@@ -1,824 +1,408 @@
-# Decouple Article Module from KnowledgeBase — Implementation Plan
+# Remove Unused `Severe` Member from `StockSeverity` Enum — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace `GatherContextStep`'s direct dependency on KnowledgeBase's `IOneDriveService` with a consumer-owned contract `IArticleStyleGuideSource` defined in the Article module and implemented by a KnowledgeBase adapter, plus an architecture test that locks the new boundary in place.
+**Goal:** Delete the unreachable `Severe` member from `StockSeverity` in the Purchase module, regenerate the TypeScript API client, and prove no callers regressed.
 
-**Architecture:** Mirror of the existing `ILeafletKnowledgeSource` precedent. Article declares the narrow contract it needs (download a style guide text by drive id and path). KnowledgeBase ships an `internal sealed` adapter that delegates to its existing `IOneDriveService`. KnowledgeBase's composition root wires the binding so Article's DI graph stays free of any KnowledgeBase symbols. A new `ModuleBoundaryRule` row in `ModuleBoundariesTests.Rules()` enforces the invariant — its allowlist temporarily covers the surviving `SearchDocumentsRequest`/`SearchDocumentsResponse`/`ChunkResult` references in `GatherContextStep` which are explicitly out of scope per the spec.
+**Architecture:** Single-file backend edit — remove one line from a transport-only enum declared next to its sole producer and consumer in the `Features/Purchase/UseCases/GetPurchaseStockAnalysis/` vertical slice. The auto-regenerated NSwag TS client picks up the removal; no frontend source edits are needed because no consumer ever branched on `Severe`. Enum serialization is string-based (`JsonStringEnumConverter` is registered in `Program.cs:142`), so the ordinal shift of remaining members is irrelevant on the wire.
 
-**Tech Stack:** .NET 8, C# nullable reference types, xUnit, FluentAssertions, Moq, MediatR, `Microsoft.Extensions.DependencyInjection`, `System.Reflection`. No new NuGet packages, no migrations, no configuration changes.
+**Tech Stack:** .NET 8 backend, `JsonStringEnumConverter` for enum serialization, NSwag for OpenAPI → TypeScript client generation (`prebuild` script on `npm run build`), React/TypeScript frontend.
 
 ---
 
 ## File Structure
 
-### New files
-| Path | Responsibility |
-|---|---|
-| `backend/src/Anela.Heblo.Application/Features/Article/Contracts/IArticleStyleGuideSource.cs` | Article-owned read-only abstraction for downloading the style guide text. Only surface the Article module is allowed to depend on for this concern. |
-| `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Infrastructure/KnowledgeBaseArticleStyleGuideSource.cs` | `internal sealed` adapter implementing `IArticleStyleGuideSource` by delegating verbatim to `IOneDriveService.DownloadFileTextByPathAsync`. |
-| `backend/test/Anela.Heblo.Tests/Features/KnowledgeBase/Infrastructure/KnowledgeBaseArticleStyleGuideSourceTests.cs` | Unit tests for the adapter: happy-path delegation, cancellation propagation, exception propagation. |
+This change touches exactly two files. The plan locks the scope to these — no other edits are permitted (the "surgical change" rule in `CLAUDE.md`).
 
-### Files modified — behavior change
-| Path | Change |
-|---|---|
-| `backend/src/Anela.Heblo.Application/Features/Article/UseCases/Generate/Pipeline/GatherContextStep.cs` | Drop `using Anela.Heblo.Application.Features.KnowledgeBase.Services;`. Swap `IOneDriveService _oneDrive` for `IArticleStyleGuideSource _styleGuideSource`. Call `_styleGuideSource.DownloadStyleGuideTextAsync(...)` inside `LoadStyleGuideAsync`. `using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;` is **kept** — `SearchDocumentsRequest`/`SearchDocumentsResponse`/`ChunkResult` are explicitly out of scope (spec §Out of Scope; arch-review §Specification Amendments). |
-| `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/KnowledgeBaseModule.cs` | Register `services.AddScoped<IArticleStyleGuideSource, KnowledgeBaseArticleStyleGuideSource>();` immediately after the existing `ILeafletKnowledgeSource` binding. |
+- **Edit (backend):** `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/GetPurchaseStockAnalysis/GetPurchaseStockAnalysisResponse.cs`
+  - Responsibility: declares the `StockSeverity` transport enum used in `StockAnalysisItemDto.Severity` and the parent response DTO.
+  - Change: delete the single line `    Severe,` (current line 99). Preserve the order of the remaining members exactly as on disk: `Critical, Low, Optimal, Overstocked, NotConfigured`.
 
-### Files modified — tests
-| Path | Change |
-|---|---|
-| `backend/test/Anela.Heblo.Tests/Article/Pipeline/GatherContextStepTests.cs` | Drop `using Anela.Heblo.Application.Features.KnowledgeBase.Services;`. Replace `Mock<IOneDriveService> _oneDrive` with `Mock<IArticleStyleGuideSource> _styleGuideSource`. Wire `_styleGuideSource.Object` into the `CreateStep` factory. Add a happy-path test that exercises `LoadStyleGuideAsync` through the new contract. The file may keep `using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;` because the test project is not under the architecture rule and `SearchDocumentsRequest` is still consumed by the step under test. |
-| `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` | Add `ArticleAllowlist` (`HashSet<string>`) with the three `SearchDocuments` entries documented in arch-review §Specification Amendments. Append one new `ModuleBoundaryRule` to `Rules()` TheoryData: `Name: "Article -> KnowledgeBase"`, `InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Article"`, three forbidden namespace prefixes covering `Domain.Features.KnowledgeBase`, `Application.Features.KnowledgeBase`, and `Persistence.KnowledgeBase`, `Allowlist: ArticleAllowlist`. |
+- **Regenerate (frontend, do not hand-edit):** `frontend/src/api/generated/api-client.ts`
+  - Responsibility: NSwag-generated TS client; consumed by `usePurchaseStockAnalysis.ts` and other Purchase-side helpers.
+  - Change: the `Severe = "Severe",` line inside the `StockSeverity` enum (current line 34161) disappears when the NSwag prebuild runs. No other lines in this file may be modified by hand.
 
-### Files NOT modified
-- `backend/src/Anela.Heblo.Application/Features/Article/ArticleModule.cs` — must not gain any reference to `OneDriveService`, the new adapter, or any KnowledgeBase type. Leave untouched.
-- `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Services/IOneDriveService.cs` and its implementations — unchanged.
-- Any EF migration, controller, or frontend file — none of this touches API/HTTP/OpenAPI surface or persistence.
+Explicitly **out of scope** (do not touch, even if you see them):
+- `GiftPackageSeverity` enum and its `Severe` member (separate Logistics module, legitimately active).
+- `usePurchaseStockAnalysis.ts` helpers `getSeverityColorClass` / `getSeverityDisplayText` — their `default` branch is now effectively unreachable but must remain as a defensive fallback for any wire value that arrives `undefined`.
+- `docs/features/gift-package-manufacture.md:476` which contains a stale `StockSeverity.Severe` reference that should read `GiftPackageSeverity.Severe` — flag in PR description, fix in a separate docs PR.
 
 ---
 
-## Task 1: Define the consumer-owned contract `IArticleStyleGuideSource`
+## Pre-flight Verification (all prerequisites)
+
+Run these before changing any code. If any check fails, stop and report — do not work around.
+
+### Task 0: Verify prerequisites
+
+**Files:** none (read-only checks)
+
+- [ ] **Step 1: Confirm `JsonStringEnumConverter` is registered**
+
+This is the single load-bearing assumption. If enums are serialized as integers, removing a middle member silently shifts ordinals (`Low` 2→1, etc.) and is a breaking change.
+
+Run from repo root:
+
+```bash
+grep -nR "JsonStringEnumConverter" backend/src/Anela.Heblo.API/Program.cs
+```
+
+Expected output (line number may drift, the registration must exist):
+
+```
+backend/src/Anela.Heblo.API/Program.cs:142:                options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+```
+
+If no match is returned, **stop**. The task expands to either registering the converter first or assigning explicit numeric values to all `StockSeverity` members before removing `Severe`. Report and wait for direction.
+
+- [ ] **Step 2: Confirm no live references to `StockSeverity.Severe`**
+
+Run from repo root:
+
+```bash
+grep -nR "StockSeverity.Severe" backend frontend/src --include="*.cs" --include="*.ts" --include="*.tsx"
+```
+
+Expected output: empty (no matches).
+
+If any match is returned (excluding the enum declaration itself in `GetPurchaseStockAnalysisResponse.cs`), **stop** and report — there is a live consumer the spec did not anticipate.
+
+- [ ] **Step 3: Confirm the NSwag toolchain is available**
+
+Run from repo root:
+
+```bash
+dotnet tool restore
+```
+
+Expected: completes successfully (may print "Tools restored" or "All tools are already restored"). NSwag is required to regenerate the client per `docs/development/api-client-generation.md`.
+
+- [ ] **Step 4: Capture a green backend baseline**
+
+Run from repo root:
+
+```bash
+dotnet build backend/Anela.Heblo.sln
+```
+
+Expected: `Build succeeded.` with zero errors. Note the warning count — the post-change build must not increase it.
+
+- [ ] **Step 5: Capture a green Purchase-module test baseline**
+
+Run from repo root:
+
+```bash
+dotnet test backend/Anela.Heblo.sln --no-build --filter "FullyQualifiedName~Purchase"
+```
+
+Expected: all matched tests pass. Note the pass count — the post-change run must match it.
+
+---
+
+## Task 1: Remove `Severe` from the backend `StockSeverity` enum
 
 **Files:**
-- Create: `backend/src/Anela.Heblo.Application/Features/Article/Contracts/IArticleStyleGuideSource.cs`
+- Modify: `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/GetPurchaseStockAnalysis/GetPurchaseStockAnalysisResponse.cs` (lines 96–104)
 
-- [ ] **Step 1.1: Create the new file**
+- [ ] **Step 1: Read the current enum block to confirm the exact lines**
 
-Write `backend/src/Anela.Heblo.Application/Features/Article/Contracts/IArticleStyleGuideSource.cs` with this exact content:
+Read `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/GetPurchaseStockAnalysis/GetPurchaseStockAnalysisResponse.cs` lines 96–104. Expected current state:
 
 ```csharp
-namespace Anela.Heblo.Application.Features.Article.Contracts;
-
-/// <summary>
-/// Retrieves the Article module's style guide text from an external source.
-/// Implemented by the KnowledgeBase module via an adapter.
-/// </summary>
-public interface IArticleStyleGuideSource
+public enum StockSeverity
 {
-    Task<string> DownloadStyleGuideTextAsync(
-        string driveId,
-        string path,
-        CancellationToken cancellationToken);
+    Critical,
+    Severe,
+    Low,
+    Optimal,
+    Overstocked,
+    NotConfigured
 }
 ```
 
-Constraints — verify before moving on:
-- Namespace is exactly `Anela.Heblo.Application.Features.Article.Contracts`.
-- File contains zero `using` directives referencing `Anela.Heblo.Application.Features.KnowledgeBase`, `Anela.Heblo.Domain.Features.KnowledgeBase`, or `Anela.Heblo.Persistence.KnowledgeBase`.
-- File contains zero references to `IOneDriveService`, `OneDriveFile`, or any other KnowledgeBase-owned type.
-- Method signature matches the call site in `GatherContextStep.LoadStyleGuideAsync` — three parameters in the order `driveId`, `path`, `cancellationToken`, returning `Task<string>` (not `Task<string?>` — the underlying `IOneDriveService.DownloadFileTextByPathAsync` returns non-null `Task<string>`; the step decides whether to wrap with `null` on exception, not the contract).
+If the on-disk content does not match this exactly, stop and reconcile before editing — the spec assumed this layout.
 
-- [ ] **Step 1.2: Compile the solution to confirm the file is well-formed**
+- [ ] **Step 2: Delete the `Severe,` line**
 
-Run:
+Apply this exact edit:
 
-```bash
-cd backend && dotnet build src/Anela.Heblo.Application/Anela.Heblo.Application.csproj
-```
-
-Expected: build succeeds with no errors. The new interface has no implementers yet so DI will not resolve it, but compilation must pass.
-
-- [ ] **Step 1.3: Commit**
-
-```bash
-cd backend && git add src/Anela.Heblo.Application/Features/Article/Contracts/IArticleStyleGuideSource.cs
-git commit -m "feat(article): add IArticleStyleGuideSource consumer-owned contract"
-```
-
----
-
-## Task 2: Write the adapter test (RED)
-
-**Files:**
-- Create: `backend/test/Anela.Heblo.Tests/Features/KnowledgeBase/Infrastructure/KnowledgeBaseArticleStyleGuideSourceTests.cs`
-
-The adapter does three things: forwards arguments verbatim to `IOneDriveService.DownloadFileTextByPathAsync`, returns its result unchanged, and lets exceptions/cancellation propagate. One test per behavior. Tests go first; the adapter implementation follows in Task 3.
-
-- [ ] **Step 2.1: Verify the test directory exists; create if missing**
-
-Run:
-
-```bash
-cd backend && mkdir -p test/Anela.Heblo.Tests/Features/KnowledgeBase/Infrastructure
-```
-
-Expected: no error (directory either pre-existed or was created).
-
-- [ ] **Step 2.2: Write the failing adapter test file**
-
-Create `backend/test/Anela.Heblo.Tests/Features/KnowledgeBase/Infrastructure/KnowledgeBaseArticleStyleGuideSourceTests.cs`:
+Old:
 
 ```csharp
-using Anela.Heblo.Application.Features.Article.Contracts;
-using Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
-using FluentAssertions;
-using Moq;
-using Xunit;
-
-namespace Anela.Heblo.Tests.Features.KnowledgeBase.Infrastructure;
-
-public class KnowledgeBaseArticleStyleGuideSourceTests
+public enum StockSeverity
 {
-    private readonly Mock<IOneDriveService> _oneDrive = new();
-
-    private IArticleStyleGuideSource CreateSut() =>
-        new KnowledgeBaseArticleStyleGuideSource(_oneDrive.Object);
-
-    [Fact]
-    public async Task DownloadStyleGuideTextAsync_ForwardsArgumentsAndReturnsResult()
-    {
-        const string driveId = "drive-abc";
-        const string path = "/style-guides/article.md";
-        const string expected = "guide body";
-
-        _oneDrive
-            .Setup(o => o.DownloadFileTextByPathAsync(driveId, path, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
-
-        var sut = CreateSut();
-
-        var actual = await sut.DownloadStyleGuideTextAsync(driveId, path, CancellationToken.None);
-
-        actual.Should().Be(expected);
-        _oneDrive.Verify(
-            o => o.DownloadFileTextByPathAsync(driveId, path, It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task DownloadStyleGuideTextAsync_PropagatesUnderlyingException()
-    {
-        _oneDrive
-            .Setup(o => o.DownloadFileTextByPathAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("OneDrive down"));
-
-        var sut = CreateSut();
-
-        var act = () => sut.DownloadStyleGuideTextAsync("drive", "path", CancellationToken.None);
-
-        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("OneDrive down");
-    }
-
-    [Fact]
-    public async Task DownloadStyleGuideTextAsync_PropagatesCancellation()
-    {
-        using var cts = new CancellationTokenSource();
-        cts.Cancel();
-
-        _oneDrive
-            .Setup(o => o.DownloadFileTextByPathAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new OperationCanceledException(cts.Token));
-
-        var sut = CreateSut();
-
-        var act = () => sut.DownloadStyleGuideTextAsync("drive", "path", cts.Token);
-
-        await act.Should().ThrowAsync<OperationCanceledException>();
-    }
+    Critical,
+    Severe,
+    Low,
+    Optimal,
+    Overstocked,
+    NotConfigured
 }
 ```
 
-- [ ] **Step 2.3: Run the new tests to confirm they fail with "type does not exist"**
-
-Run:
-
-```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~KnowledgeBaseArticleStyleGuideSourceTests"
-```
-
-Expected: compile error `CS0246: The type or namespace name 'KnowledgeBaseArticleStyleGuideSource' could not be found`. This proves the test is referencing the concrete type by name and will fail if Task 3 produces the wrong shape.
-
-> Do not commit yet — failing tests get committed together with their implementation in Task 3.
-
----
-
-## Task 3: Implement `KnowledgeBaseArticleStyleGuideSource` (GREEN)
-
-**Files:**
-- Create: `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Infrastructure/KnowledgeBaseArticleStyleGuideSource.cs`
-
-- [ ] **Step 3.1: Create the adapter file**
-
-Write `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Infrastructure/KnowledgeBaseArticleStyleGuideSource.cs`:
+New:
 
 ```csharp
-using Anela.Heblo.Application.Features.Article.Contracts;
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
-
-namespace Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
-
-internal sealed class KnowledgeBaseArticleStyleGuideSource : IArticleStyleGuideSource
+public enum StockSeverity
 {
-    private readonly IOneDriveService _oneDrive;
-
-    public KnowledgeBaseArticleStyleGuideSource(IOneDriveService oneDrive)
-    {
-        _oneDrive = oneDrive;
-    }
-
-    public Task<string> DownloadStyleGuideTextAsync(
-        string driveId,
-        string path,
-        CancellationToken cancellationToken) =>
-        _oneDrive.DownloadFileTextByPathAsync(driveId, path, cancellationToken);
+    Critical,
+    Low,
+    Optimal,
+    Overstocked,
+    NotConfigured
 }
 ```
 
-Constraints to verify:
-- Class is `internal sealed` (matches `KnowledgeBaseLeafletSourceAdapter`).
-- Constructor takes a single `IOneDriveService` dependency (matches existing adapter pattern).
-- Method body is a one-line expression-bodied member that forwards all three arguments verbatim. No transformation, no logging, no try/catch — the calling step already handles exceptions.
+No other line in this file changes. Do not reorder, rename, or assign explicit integer values to the remaining members.
 
-- [ ] **Step 3.2: Run the adapter tests — expect green**
+- [ ] **Step 3: Verify the file content post-edit**
+
+Read the same line range again. Expected: the enum now has exactly five members in the order `Critical, Low, Optimal, Overstocked, NotConfigured`.
+
+- [ ] **Step 4: Verify no remaining references in the backend**
 
 Run:
 
 ```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~KnowledgeBaseArticleStyleGuideSourceTests"
+grep -nR "StockSeverity.Severe" backend --include="*.cs"
+grep -nR "\bSevere\b" backend/src/Anela.Heblo.Application/Features/Purchase --include="*.cs"
 ```
 
-Expected: all three tests pass. `DownloadStyleGuideTextAsync_ForwardsArgumentsAndReturnsResult`, `..._PropagatesUnderlyingException`, `..._PropagatesCancellation`.
+Expected: both commands return empty output.
 
-- [ ] **Step 3.3: Commit adapter + its tests together**
+- [ ] **Step 5: Build the backend**
+
+Run:
 
 ```bash
-cd backend && git add \
-  src/Anela.Heblo.Application/Features/KnowledgeBase/Infrastructure/KnowledgeBaseArticleStyleGuideSource.cs \
-  test/Anela.Heblo.Tests/Features/KnowledgeBase/Infrastructure/KnowledgeBaseArticleStyleGuideSourceTests.cs
-git commit -m "feat(knowledgebase): add KnowledgeBaseArticleStyleGuideSource adapter"
+dotnet build backend/Anela.Heblo.sln
 ```
+
+Expected: `Build succeeded.` with zero errors. Warning count must not exceed the baseline from pre-flight Step 4.
+
+- [ ] **Step 6: Run Purchase-module tests**
+
+Run:
+
+```bash
+dotnet test backend/Anela.Heblo.sln --no-build --filter "FullyQualifiedName~Purchase"
+```
+
+Expected: all tests pass; total count matches the baseline from pre-flight Step 5.
+
+- [ ] **Step 7: Run the full backend test suite as a safety net**
+
+Run:
+
+```bash
+dotnet test backend/Anela.Heblo.sln --no-build
+```
+
+Expected: all tests pass. This catches any cross-module test that happens to reference `StockSeverity` (none expected, but cheap to verify).
+
+- [ ] **Step 8: Format**
+
+Run:
+
+```bash
+dotnet format backend/Anela.Heblo.sln
+```
+
+Expected: no diff on `GetPurchaseStockAnalysisResponse.cs` (or, at most, trailing-whitespace normalization on the edited block). If the formatter rewrites unrelated files, revert those changes — they are out of scope for this PR.
 
 ---
 
-## Task 4: Register the adapter in `KnowledgeBaseModule`
+## Task 2: Regenerate the TypeScript API client
 
 **Files:**
-- Modify: `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/KnowledgeBaseModule.cs`
+- Regenerate: `frontend/src/api/generated/api-client.ts` (NSwag-managed; do not hand-edit)
 
-- [ ] **Step 4.1: Add the using directive for the Article contract**
+- [ ] **Step 1: Run the manual NSwag regeneration target**
 
-Open `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/KnowledgeBaseModule.cs`. The existing using block already imports `Anela.Heblo.Application.Features.Leaflet.Contracts`. Add the Article contracts import directly below it.
+Per `docs/development/api-client-generation.md`, the deterministic regeneration target is:
 
-Find:
-
-```csharp
-using Anela.Heblo.Application.Features.Leaflet.Contracts;
-using Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
+```bash
+dotnet msbuild backend/src/Anela.Heblo.API -t:GenerateFrontendClientManual
 ```
 
-Replace with:
+Expected: completes successfully, prints a generation message, and writes `frontend/src/api/generated/api-client.ts`.
 
-```csharp
-using Anela.Heblo.Application.Features.Article.Contracts;
-using Anela.Heblo.Application.Features.Leaflet.Contracts;
-using Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
-```
-
-(Article comes first alphabetically — match the rest of the file's alphabetical-within-block ordering.)
-
-- [ ] **Step 4.2: Register the binding next to the Leaflet binding**
-
-In the same file, find the existing Leaflet registration block:
-
-```csharp
-        // Cross-module contract: KnowledgeBase implements Leaflet's ILeafletKnowledgeSource via adapter.
-        // DI registration owned by provider (KnowledgeBase), not consumer (Leaflet) — keeps the
-        // dependency direction inverted properly.
-        services.AddScoped<ILeafletKnowledgeSource, KnowledgeBaseLeafletSourceAdapter>();
-```
-
-Replace with:
-
-```csharp
-        // Cross-module contract: KnowledgeBase implements Leaflet's ILeafletKnowledgeSource via adapter.
-        // DI registration owned by provider (KnowledgeBase), not consumer (Leaflet) — keeps the
-        // dependency direction inverted properly.
-        services.AddScoped<ILeafletKnowledgeSource, KnowledgeBaseLeafletSourceAdapter>();
-
-        // Cross-module contract: KnowledgeBase implements Article's IArticleStyleGuideSource via adapter.
-        // Same provider-owned-DI pattern as the Leaflet binding above.
-        services.AddScoped<IArticleStyleGuideSource, KnowledgeBaseArticleStyleGuideSource>();
-```
-
-Constraints — verify:
-- Lifetime is `AddScoped` (matches `ILeafletKnowledgeSource` registration and the lifetime of the underlying `IOneDriveService`, which is also `Scoped`).
-- The Article module's composition root (`ArticleModule.cs`) is **not** modified — the binding lives in the provider's module by design.
-
-- [ ] **Step 4.3: Build to confirm the wiring compiles**
+- [ ] **Step 2: Verify the `StockSeverity` enum no longer contains `Severe`**
 
 Run:
 
 ```bash
-cd backend && dotnet build src/Anela.Heblo.Application/Anela.Heblo.Application.csproj
+grep -n -A 8 "^export enum StockSeverity" frontend/src/api/generated/api-client.ts
 ```
 
-Expected: build succeeds.
+Expected output (line number may drift):
 
-- [ ] **Step 4.4: Commit**
+```
+export enum StockSeverity {
+    Critical = "Critical",
+    Low = "Low",
+    Optimal = "Optimal",
+    Overstocked = "Overstocked",
+    NotConfigured = "NotConfigured",
+}
+```
+
+The line `Severe = "Severe",` must be absent. If it still appears, the regeneration did not run against the freshly built backend — rebuild and retry.
+
+- [ ] **Step 3: Verify the unrelated `GiftPackageSeverity` enum is unchanged**
+
+Run:
 
 ```bash
-cd backend && git add src/Anela.Heblo.Application/Features/KnowledgeBase/KnowledgeBaseModule.cs
-git commit -m "feat(knowledgebase): register IArticleStyleGuideSource adapter"
+grep -n -A 8 "^export enum GiftPackageSeverity" frontend/src/api/generated/api-client.ts
 ```
+
+Expected: `GiftPackageSeverity` still includes its own `Severe = "Severe",` member. If `GiftPackageSeverity.Severe` is missing, the regeneration corrupted an unrelated enum — stop and investigate.
+
+- [ ] **Step 4: Confirm the diff is scoped**
+
+Run:
+
+```bash
+git diff --stat frontend/src/api/generated/api-client.ts
+git diff frontend/src/api/generated/api-client.ts | head -40
+```
+
+Expected: a single small hunk inside the `StockSeverity` enum block deleting one line. If the diff touches dozens of unrelated lines (header banner, formatting drift), that may still be acceptable for an auto-generated file, but flag any non-trivial unrelated structural changes in the commit message.
 
 ---
 
-## Task 5: Update `GatherContextStepTests` to drive the contract swap (RED)
+## Task 3: Verify frontend build, lint, and tests
 
-**Files:**
-- Modify: `backend/test/Anela.Heblo.Tests/Article/Pipeline/GatherContextStepTests.cs`
+**Files:** none modified (verification only)
 
-The existing test file uses `Mock<IOneDriveService>` but no current test actually exercises `LoadStyleGuideAsync`. After this task: (a) the existing tests still pass (they don't touch the style guide path), (b) the test file no longer imports `IOneDriveService`, (c) a new test locks the happy-path wiring through `IArticleStyleGuideSource`. This drives the production refactor in Task 6.
+- [ ] **Step 1: Run the frontend build (this also re-runs the prebuild generator)**
 
-- [ ] **Step 5.1: Replace the `IOneDriveService` mock with `IArticleStyleGuideSource`**
-
-Open `backend/test/Anela.Heblo.Tests/Article/Pipeline/GatherContextStepTests.cs`.
-
-Find:
-
-```csharp
-using Anela.Heblo.Application.Features.Article;
-using Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
-using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
-```
-
-Replace with:
-
-```csharp
-using Anela.Heblo.Application.Features.Article;
-using Anela.Heblo.Application.Features.Article.Contracts;
-using Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
-using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
-```
-
-(The `KnowledgeBase.Services` using is removed. `KnowledgeBase.UseCases.SearchDocuments` stays — `SearchDocumentsRequest`/`SearchDocumentsResponse`/`ChunkResult` remain in use by the step and the test, per spec §Out of Scope.)
-
-Find:
-
-```csharp
-    private readonly Mock<IMediator> _mediator = new();
-    private readonly Mock<IWebSearchClient> _webSearch = new();
-    private readonly Mock<IOneDriveService> _oneDrive = new();
-    private readonly ArticleOptions _options = new();
-```
-
-Replace with:
-
-```csharp
-    private readonly Mock<IMediator> _mediator = new();
-    private readonly Mock<IWebSearchClient> _webSearch = new();
-    private readonly Mock<IArticleStyleGuideSource> _styleGuideSource = new();
-    private readonly ArticleOptions _options = new();
-```
-
-Find:
-
-```csharp
-    private GatherContextStep CreateStep() =>
-        new(_mediator.Object, _webSearch.Object, _oneDrive.Object,
-            Options.Create(_options), NullLogger<GatherContextStep>.Instance, CreateNoOpRecorder());
-```
-
-Replace with:
-
-```csharp
-    private GatherContextStep CreateStep() =>
-        new(_mediator.Object, _webSearch.Object, _styleGuideSource.Object,
-            Options.Create(_options), NullLogger<GatherContextStep>.Instance, CreateNoOpRecorder());
-```
-
-- [ ] **Step 5.2: Add a happy-path test that exercises the style guide contract**
-
-Append this test inside `GatherContextStepTests` (after the existing `ExecuteAsync_DuplicateWebUrls_DeduplicatesByUrl` test, before the closing class brace):
-
-```csharp
-    [Fact]
-    public async Task ExecuteAsync_StyleGuideConfigured_LoadsTextViaContract()
-    {
-        const string driveId = "drive-1";
-        const string itemPath = "/style.md";
-        const string guide = "Tone: friendly";
-
-        _styleGuideSource
-            .Setup(s => s.DownloadStyleGuideTextAsync(driveId, itemPath, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(guide);
-
-        var article = new DomainArticle
-        {
-            Topic = "Topic",
-            UsedKnowledgeBase = false,
-            UsedWebSearch = false,
-            StyleGuideDriveId = driveId,
-            StyleGuideItemPath = itemPath
-        };
-        var context = new ArticlePipelineContext
-        {
-            Article = article,
-            SearchQueries = new List<string>()
-        };
-
-        await CreateStep().ExecuteAsync(context, default);
-
-        context.StyleGuideText.Should().Be(guide);
-        _styleGuideSource.Verify(
-            s => s.DownloadStyleGuideTextAsync(driveId, itemPath, It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-```
-
-- [ ] **Step 5.3: Run the tests — expect compile failure on `GatherContextStep` constructor**
-
-Run:
+Run from repo root:
 
 ```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GatherContextStepTests"
+cd frontend && npm run build
 ```
 
-Expected: build error — `GatherContextStep` constructor still expects `IOneDriveService`, but the test now passes `IArticleStyleGuideSource`. Error message similar to `CS1503: Argument 3: cannot convert from 'Anela.Heblo.Application.Features.Article.Contracts.IArticleStyleGuideSource' to 'Anela.Heblo.Application.Features.KnowledgeBase.Services.IOneDriveService'`. This is the expected RED state — Task 6 makes it green.
+Expected: build succeeds with no TypeScript errors. The `prebuild` script re-runs NSwag — confirm the `api-client.ts` diff from Task 2 Step 4 is unchanged after this build (i.e., the manual generation and the prebuild generator agree).
 
-> Do not commit yet — test changes commit together with the production refactor in Task 6.
+If `npm run build` modifies `api-client.ts` further, the new diff supersedes the manual one — capture it.
+
+- [ ] **Step 2: Run the frontend linter**
+
+Run from `frontend/`:
+
+```bash
+npm run lint
+```
+
+Expected: completes with zero new warnings or errors. Warnings already present on `main` are not part of this change.
+
+- [ ] **Step 3: Run the frontend unit tests**
+
+Run from `frontend/`:
+
+```bash
+npm test -- --watchAll=false
+```
+
+Expected: all tests pass. Pay particular attention to any test file under `frontend/src/components/pages/Purchase/` or anything importing `usePurchaseStockAnalysis` — these are the natural failure surfaces if anything broke.
+
+- [ ] **Step 4: Final sanity grep for `StockSeverity.Severe`**
+
+Run from repo root:
+
+```bash
+grep -nR "StockSeverity.Severe" backend frontend/src --include="*.cs" --include="*.ts" --include="*.tsx"
+```
+
+Expected: empty output. The only legitimate remaining `Severe` references in `frontend/src` should be the `GiftPackageSeverity.Severe` uses inside `frontend/src/components/pages/GiftPackageManufacturing/` (verify with `grep -nR "GiftPackageSeverity.Severe" frontend/src` if curious).
 
 ---
 
-## Task 6: Refactor `GatherContextStep` to consume `IArticleStyleGuideSource` (GREEN)
+## Task 4: Commit
 
-**Files:**
-- Modify: `backend/src/Anela.Heblo.Application/Features/Article/UseCases/Generate/Pipeline/GatherContextStep.cs`
+**Files:** all staged changes from Tasks 1 and 2.
 
-- [ ] **Step 6.1: Update using directives**
-
-Open `backend/src/Anela.Heblo.Application/Features/Article/UseCases/Generate/Pipeline/GatherContextStep.cs`.
-
-Find:
-
-```csharp
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
-using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
-using Anela.Heblo.Application.Shared.WebSearch;
-using Anela.Heblo.Domain.Features.Article;
-```
-
-Replace with:
-
-```csharp
-using Anela.Heblo.Application.Features.Article.Contracts;
-using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
-using Anela.Heblo.Application.Shared.WebSearch;
-using Anela.Heblo.Domain.Features.Article;
-```
-
-(The `KnowledgeBase.Services` using — which pulled in `IOneDriveService` — is removed. The `KnowledgeBase.UseCases.SearchDocuments` using is **kept** for `SearchDocumentsRequest`/`SearchDocumentsResponse`/`ChunkResult` per spec §Out of Scope. Article contracts using is added.)
-
-- [ ] **Step 6.2: Swap the field and constructor parameter**
-
-Find:
-
-```csharp
-    private readonly IMediator _mediator;
-    private readonly IWebSearchClient _webSearch;
-    private readonly IOneDriveService _oneDrive;
-    private readonly ArticleOptions _options;
-    private readonly ILogger<GatherContextStep> _logger;
-    private readonly PipelineStepRecorder _recorder;
-
-    public GatherContextStep(
-        IMediator mediator,
-        IWebSearchClient webSearch,
-        IOneDriveService oneDrive,
-        IOptions<ArticleOptions> options,
-        ILogger<GatherContextStep> logger,
-        PipelineStepRecorder recorder)
-    {
-        _mediator = mediator;
-        _webSearch = webSearch;
-        _oneDrive = oneDrive;
-        _options = options.Value;
-        _logger = logger;
-        _recorder = recorder;
-    }
-```
-
-Replace with:
-
-```csharp
-    private readonly IMediator _mediator;
-    private readonly IWebSearchClient _webSearch;
-    private readonly IArticleStyleGuideSource _styleGuideSource;
-    private readonly ArticleOptions _options;
-    private readonly ILogger<GatherContextStep> _logger;
-    private readonly PipelineStepRecorder _recorder;
-
-    public GatherContextStep(
-        IMediator mediator,
-        IWebSearchClient webSearch,
-        IArticleStyleGuideSource styleGuideSource,
-        IOptions<ArticleOptions> options,
-        ILogger<GatherContextStep> logger,
-        PipelineStepRecorder recorder)
-    {
-        _mediator = mediator;
-        _webSearch = webSearch;
-        _styleGuideSource = styleGuideSource;
-        _options = options.Value;
-        _logger = logger;
-        _recorder = recorder;
-    }
-```
-
-- [ ] **Step 6.3: Update the single call site inside `LoadStyleGuideAsync`**
-
-Find:
-
-```csharp
-    private async Task<string?> LoadStyleGuideAsync(DomainArticle article, CancellationToken ct)
-    {
-        try
-        {
-            return await _oneDrive.DownloadFileTextByPathAsync(
-                article.StyleGuideDriveId!,
-                article.StyleGuideItemPath!,
-                ct);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogWarning(ex, "Failed to load style guide from '{Path}'", article.StyleGuideItemPath);
-            return null;
-        }
-    }
-```
-
-Replace with:
-
-```csharp
-    private async Task<string?> LoadStyleGuideAsync(DomainArticle article, CancellationToken ct)
-    {
-        try
-        {
-            return await _styleGuideSource.DownloadStyleGuideTextAsync(
-                article.StyleGuideDriveId!,
-                article.StyleGuideItemPath!,
-                ct);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogWarning(ex, "Failed to load style guide from '{Path}'", article.StyleGuideItemPath);
-            return null;
-        }
-    }
-```
-
-(Only the call target changes — argument list, ordering, cancellation handling, and warning log are preserved exactly so behavior observable from `context.StyleGuideText` is identical.)
-
-Constraints — verify:
-- `GatherContextStep.cs` no longer contains the substring `IOneDriveService` anywhere.
-- `GatherContextStep.cs` no longer contains the substring `KnowledgeBase.Services` anywhere.
-- `GatherContextStep.cs` *still* contains `KnowledgeBase.UseCases.SearchDocuments` (intentional — see Task 7 allowlist).
-- The exception-handling block is unchanged: non-cancellation exceptions are logged at Warning and the method returns `null`; `OperationCanceledException` flows out unchanged.
-
-- [ ] **Step 6.4: Run all `GatherContextStepTests` — expect green**
+- [ ] **Step 1: Inspect the staged surface**
 
 Run:
 
 ```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GatherContextStepTests"
+git status
+git diff --stat
 ```
 
-Expected: all six tests pass (five pre-existing + the new `ExecuteAsync_StyleGuideConfigured_LoadsTextViaContract`).
+Expected file list (exactly):
 
-- [ ] **Step 6.5: Run the whole Article test folder to confirm no other suite regressed**
+```
+backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/GetPurchaseStockAnalysis/GetPurchaseStockAnalysisResponse.cs
+frontend/src/api/generated/api-client.ts
+```
+
+If any other file appears in the status, decide whether it is a legitimate side effect of the NSwag run (rare — generally only `api-client.ts` is regenerated) or accidental drift. Revert accidental drift before committing.
+
+- [ ] **Step 2: Stage the two files**
 
 Run:
 
 ```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~Anela.Heblo.Tests.Article"
+git add \
+  backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/GetPurchaseStockAnalysis/GetPurchaseStockAnalysisResponse.cs \
+  frontend/src/api/generated/api-client.ts
 ```
 
-Expected: all Article-namespaced tests pass.
+- [ ] **Step 3: Commit with a conventional-commits message**
 
-- [ ] **Step 6.6: Commit production refactor + test updates together**
+Run:
 
 ```bash
-cd backend && git add \
-  src/Anela.Heblo.Application/Features/Article/UseCases/Generate/Pipeline/GatherContextStep.cs \
-  test/Anela.Heblo.Tests/Article/Pipeline/GatherContextStepTests.cs
-git commit -m "refactor(article): route GatherContextStep style guide load through IArticleStyleGuideSource"
+git commit -m "$(cat <<'EOF'
+refactor(purchase): remove dead StockSeverity.Severe member
+
+StockSeverityCalculator never returned Severe, no consumer branched on
+it, and it only leaked into the generated TypeScript client. Drop it
+from the enum and regenerate the API client so the public contract
+reflects only values the backend actually emits.
+
+No behavior change — JsonStringEnumConverter is active so the on-wire
+representation is by name, not ordinal. GiftPackageSeverity (separate
+Logistics enum) is unaffected.
+
+Note: docs/features/gift-package-manufacture.md:476 contains a stale
+reference reading "StockSeverity.Severe" where it should say
+"GiftPackageSeverity.Severe" — out of scope for this PR; tracked for a
+separate docs fix.
+EOF
+)"
 ```
+
+Expected: commit succeeds. The pre-commit hook (if any) must pass. If a hook fails, fix the underlying issue and create a NEW commit — never `--amend` after a hook failure.
+
+- [ ] **Step 4: Verify the commit landed**
+
+Run:
+
+```bash
+git log -1 --stat
+```
+
+Expected: the single commit shows exactly the two files from Step 1.
 
 ---
 
-## Task 7: Add the Article → KnowledgeBase architecture rule
+## Self-Review Notes
 
-**Files:**
-- Modify: `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs`
+- **Spec coverage:**
+  - FR-1 (remove `Severe` from backend enum) → Task 1.
+  - FR-2 (regenerate TS client) → Task 2.
+  - FR-3 (no frontend regression) → Task 3 Steps 1–4.
+  - FR-4 (preserve `GiftPackageSeverity`) → Task 2 Step 3 and Task 3 Step 4.
+  - NFR-4 (existing tests pass) → Task 1 Steps 6–7 and Task 3 Step 3.
+  - Arch-review prerequisite 1 (verify `JsonStringEnumConverter`) → Task 0 Step 1.
+  - Arch-review prerequisite 2 (NSwag toolchain) → Task 0 Step 3.
+  - Arch-review amendment 1 (declaration order `Critical, Low, Optimal, Overstocked, NotConfigured`) → Task 1 Steps 1–2 use the on-disk order, not the spec's alphabetical-ish wording.
 
-- [ ] **Step 7.1: Add `ArticleAllowlist` next to the existing per-module allowlists**
+- **Placeholder scan:** none. Every command, file path, line range, and expected output is concrete.
 
-Open `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs`.
-
-Find the end of the `LeafletAllowlist` declaration (the closing `};` after the `OneDriveFile` entry). Immediately after it, insert a new `ArticleAllowlist` block:
-
-```csharp
-    // Allowlist for Article → KnowledgeBase. Each entry needs a comment with the justification.
-    // Entries should be removed as the underlying violations are fixed.
-    private static readonly HashSet<string> ArticleAllowlist = new(StringComparer.Ordinal)
-    {
-        // Pre-existing dependency: GatherContextStep dispatches SearchDocumentsRequest via MediatR
-        // to obtain knowledge-base snippets during article generation. Lifting this behind a
-        // consumer-owned contract (e.g. IArticleKnowledgeSearch) is out of scope for the
-        // 2026-05-25 Article ↔ KnowledgeBase style-guide decoupling and is tracked as a follow-up.
-        // Remove these three entries when SearchDocumentsRequest is replaced by an Article-owned
-        // contract.
-        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.SearchDocumentsRequest",
-        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.SearchDocumentsResponse",
-        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.ChunkResult",
-    };
-```
-
-Placement must keep alphabetical-by-consumer-module order consistent with the existing file: `Leaflet`, then add `Article` (no — file is grouped by relevance, not alphabetically; just put `ArticleAllowlist` directly after `LeafletAllowlist` as the next logical neighbor).
-
-- [ ] **Step 7.2: Add the `ModuleBoundaryRule` row to `Rules()` TheoryData**
-
-In the same file, find the `Rules()` method's TheoryData initializer. The existing entries are ordered: Leaflet → KnowledgeBase, Logistics → Manufacture, PackingMaterials → Invoices, Purchase → Catalog. Add the Article → KnowledgeBase rule directly after the Leaflet rule so related rules sit together.
-
-Find:
-
-```csharp
-    public static TheoryData<ModuleBoundaryRule> Rules() => new()
-    {
-        new ModuleBoundaryRule(
-            Name: "Leaflet -> KnowledgeBase",
-            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Leaflet",
-            ForbiddenNamespacePrefixes: new[]
-            {
-                "Anela.Heblo.Domain.Features.KnowledgeBase",
-                "Anela.Heblo.Application.Features.KnowledgeBase",
-                "Anela.Heblo.Persistence.KnowledgeBase",
-            },
-            Allowlist: LeafletAllowlist),
-
-        new ModuleBoundaryRule(
-            Name: "Logistics -> Manufacture",
-```
-
-Replace with:
-
-```csharp
-    public static TheoryData<ModuleBoundaryRule> Rules() => new()
-    {
-        new ModuleBoundaryRule(
-            Name: "Leaflet -> KnowledgeBase",
-            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Leaflet",
-            ForbiddenNamespacePrefixes: new[]
-            {
-                "Anela.Heblo.Domain.Features.KnowledgeBase",
-                "Anela.Heblo.Application.Features.KnowledgeBase",
-                "Anela.Heblo.Persistence.KnowledgeBase",
-            },
-            Allowlist: LeafletAllowlist),
-
-        new ModuleBoundaryRule(
-            Name: "Article -> KnowledgeBase",
-            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Article",
-            ForbiddenNamespacePrefixes: new[]
-            {
-                "Anela.Heblo.Domain.Features.KnowledgeBase",
-                "Anela.Heblo.Application.Features.KnowledgeBase",
-                "Anela.Heblo.Persistence.KnowledgeBase",
-            },
-            Allowlist: ArticleAllowlist),
-
-        new ModuleBoundaryRule(
-            Name: "Logistics -> Manufacture",
-```
-
-Constraints — verify:
-- `InspectedNamespacePrefix` is exactly `Anela.Heblo.Application.Features.Article` (no trailing dot — the existing helper handles both equality and `prefix + "."` start).
-- All three forbidden prefixes are present — copy them from the Leaflet rule above to avoid typos.
-- `Allowlist: ArticleAllowlist` references the new constant, not `LeafletAllowlist`.
-
-- [ ] **Step 7.3: Run the architecture test for the new rule**
-
-Run:
-
-```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~ModuleBoundariesTests"
-```
-
-Expected: all `ModuleBoundariesTests` theories pass, including the new `Consumer_types_should_not_reference_provider_owned_namespaces(rule: Article -> KnowledgeBase)` case.
-
-If this fails with a violation other than the three allowlisted `SearchDocuments` entries, it means another `Anela.Heblo.Application.Features.Article` type still references a KnowledgeBase-owned namespace. Per spec §Out of Scope, do **not** silently expand scope or add more allowlist entries — surface the finding to the reviewer with the exact `Consumer -> Provider` line from the violation message so it can be tracked as a follow-up.
-
-- [ ] **Step 7.4: Commit**
-
-```bash
-cd backend && git add test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs
-git commit -m "test(architecture): enforce Article -> KnowledgeBase boundary with SearchDocuments allowlist"
-```
-
----
-
-## Task 8: Full validation
-
-**Files:** none modified — verification only.
-
-- [ ] **Step 8.1: Run the full backend test suite**
-
-Run:
-
-```bash
-cd backend && dotnet test
-```
-
-Expected: every test project passes. If any pre-existing test fails, stop and investigate — the refactor in this plan must be behavior-preserving outside the swapped DI seam.
-
-- [ ] **Step 8.2: Build the full solution**
-
-Run:
-
-```bash
-cd backend && dotnet build
-```
-
-Expected: zero errors. Warning count should not increase vs. the pre-refactor baseline (`git stash && dotnet build` on the parent commit if a baseline comparison is needed).
-
-- [ ] **Step 8.3: Apply formatter**
-
-Run:
-
-```bash
-cd backend && dotnet format
-```
-
-Expected: command completes; any files it rewrites should be limited to the ones touched in this plan. If unrelated files change, revert those — surgical-change rule applies.
-
-- [ ] **Step 8.4: Commit any formatter changes (only if dotnet format modified files in this PR's diff)**
-
-```bash
-cd backend && git status
-# if there are changes:
-git add -A
-git commit -m "style: apply dotnet format"
-```
-
-(Skip if `git status` is clean.)
-
-- [ ] **Step 8.5: Sanity-check the final boundary**
-
-Run two `grep`-style scans to confirm the refactor sticks:
-
-```bash
-cd backend && grep -rn "IOneDriveService\|KnowledgeBase.Services" src/Anela.Heblo.Application/Features/Article/
-```
-
-Expected: zero matches.
-
-```bash
-cd backend && grep -n "IArticleStyleGuideSource" src/Anela.Heblo.Application/Features/Article/UseCases/Generate/Pipeline/GatherContextStep.cs
-```
-
-Expected: at least three matches (using directive, field type, constructor parameter type — plus method call inside `LoadStyleGuideAsync`).
-
-```bash
-cd backend && grep -n "IArticleStyleGuideSource" src/Anela.Heblo.Application/Features/KnowledgeBase/KnowledgeBaseModule.cs
-```
-
-Expected: at least two matches (using directive + `AddScoped<...>` line).
-
----
-
-## Self-Review
-
-**Spec coverage** — every functional requirement maps to at least one task:
-
-| Requirement | Tasks |
-|---|---|
-| FR-1: Define `IArticleStyleGuideSource` in Article/Contracts | Task 1 |
-| FR-2: KnowledgeBase adapter implementing the contract | Tasks 2, 3 |
-| FR-3: DI registration owned by KnowledgeBase, same lifetime as Leaflet | Task 4 |
-| FR-4: `GatherContextStep` swaps to new contract, no `KnowledgeBase.Services` import | Tasks 5, 6 (arch-review §Amendment 4 acknowledged — `KnowledgeBase.UseCases.SearchDocuments` using stays) |
-| FR-5: Architecture test rule + ArticleAllowlist | Task 7 (incorporates arch-review §Amendments 1 and 3) |
-| FR-6: No behavioral regression in style guide retrieval | Task 6.3 (exception handling preserved verbatim), Task 6.4 (existing test suite passes), Task 8.1 (full suite) |
-| NFR-1 Performance | One virtual call adapter, no new allocations beyond the scoped instance — design unchanged from Leaflet precedent |
-| NFR-2 Security | No new secrets/config/network surface — adapter forwards arguments verbatim |
-| NFR-3 Maintainability | Architecture rule is the long-term guarantor (Task 7) |
-| NFR-4 Backwards compatibility | `IOneDriveService` unchanged (only `GatherContextStep` consumer is swapped) — Tasks 6 and 8.5 verify |
-
-Arch-review amendments are all addressed:
-- Amendment 1 (allowlist for `SearchDocuments` types) → Task 7.1
-- Amendment 2 (adapter name `KnowledgeBaseArticleStyleGuideSource`) → Task 3.1
-- Amendment 3 (`ArticleAllowlist` constant with comments) → Task 7.1
-- Amendment 4 (clarify that `KnowledgeBase.UseCases.SearchDocuments` using stays) → Task 6.1
-- Amendment 5 (follow-up tracking) → Comment inside `ArticleAllowlist` in Task 7.1 explicitly names the follow-up as a tracking item
-
-**Type consistency check** — verified:
-- Interface name `IArticleStyleGuideSource` and method `DownloadStyleGuideTextAsync(string driveId, string path, CancellationToken cancellationToken)` are identical across Task 1 (definition), Task 2 (test), Task 3 (adapter), Task 5 (test mock), Task 6 (call site), Task 7 (allowlist not affected — it tracks `SearchDocuments` types, not the new contract).
-- Adapter type `KnowledgeBaseArticleStyleGuideSource` is identical across Tasks 2, 3, 4.
-- Field name `_styleGuideSource` is identical across Tasks 5 (mock) and 6 (production).
-- The kept-using `Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments` and the removed-using `Anela.Heblo.Application.Features.KnowledgeBase.Services` are spelled consistently in Tasks 5 and 6.
-
-**Placeholder scan** — no `TBD`, no "implement later", no "similar to Task N", no orphan type references. Every code-changing step contains the exact code to write or replace.
+- **Type / name consistency:** the enum members named in every task are `Critical, Low, Optimal, Overstocked, NotConfigured` (post-change) and `Critical, Severe, Low, Optimal, Overstocked, NotConfigured` (pre-change). No drift between tasks.
