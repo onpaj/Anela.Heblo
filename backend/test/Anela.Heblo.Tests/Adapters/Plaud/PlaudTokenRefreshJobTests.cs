@@ -112,6 +112,9 @@ public sealed class PlaudTokenRefreshJobTests : IDisposable
         _secretClient.Verify(
             s => s.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
+
+        var diskContent = await File.ReadAllTextAsync(Path.Combine(_tempHome, ".plaud", "tokens.json"));
+        diskContent.Should().Contain("old-refresh");
     }
 
     [SkippableFact]

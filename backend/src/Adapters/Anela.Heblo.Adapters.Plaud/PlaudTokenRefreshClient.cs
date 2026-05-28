@@ -6,7 +6,7 @@ public sealed class PlaudTokenRefreshClient(HttpClient http) : IPlaudTokenRefres
 {
     public async Task<PlaudTokens> RefreshAsync(string refreshToken, CancellationToken ct = default)
     {
-        var response = await http.PostAsJsonAsync(
+        using var response = await http.PostAsJsonAsync(
             "https://platform.plaud.ai/developer/api/oauth/third-party/access-token/refresh",
             new { refresh_token = refreshToken },
             ct);
