@@ -2,60 +2,94 @@
 Article
 
 ## Finding
-`GatherContextStep.cs:1` imports:
+`GatherContextStep` has a direct compile-time dependency on `SearchDocumentsRequest`, a type that lives inside the KnowledgeBase module's UseCase folder:
 
 ```csharp
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+// backend/src/Anela.Heblo.Application/Features/Article/UseCases/Generate/Pipeline/GatherContextStep.cs:2
+using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 ```
 
-and at line 17 injects:
+The request object is then instantiated and dispatched via MediatR (lines 88–90):
 
 ```csharp
-private readonly IOneDriveService _oneDrive;
+var response = await _mediator.Send(
+    new SearchDocumentsRequest { Query = query, TopK = _options.KnowledgeBaseTopK },
+    ct);
 ```
 
-`IOneDriveService` is defined in `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Services/`. The Article module directly depends on a service interface owned by the KnowledgeBase module without going through a consumer-owned contract.
+`SearchDocumentsRequest` is declared at:
+`backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/SearchDocuments/SearchDocumentsRequest.cs`
 
-The development guidelines (`docs/architecture/development_guidelines.md`) are explicit:
+This is a type owned and controlled by the KnowledgeBase module's internal implementation, not its `Contracts/` folder. The same pattern exists in `Smartsupp/UseCases/GenerateDraftReply/GenerateDraftReplyHandler.cs:1`, so this is a recurring cross-module coupling.
 
-> Communication between modules **exclusively through `contracts/`** (e.g., `IProductQueryService`)
-
-> **Cross-Module Communication Pattern (ILeafletKnowledgeSource):** The consumer (A) defines the contract. Module A declares an interface in its own `Contracts/` folder... The provider (B) implements the contract via an adapter... A reflection-based test in `ModuleBoundariesTests.cs` enforces that types contain no references to the other module's namespaces.
-
-Using `KnowledgeBase.Services.IOneDriveService` directly in the Article module creates a hard compile-time dependency on the KnowledgeBase namespace, which the architecture tests are designed to prevent.
+The inconsistency is especially visible within the Article module itself: access to the style guide already follows the correct pattern — `IArticleStyleGuideSource` is defined in `Article/Contracts/` and implemented by the KnowledgeBase module via an adapter — but the KB search path skips the contract entirely.
 
 ## Why it matters
-- Violates the module-boundary invariant that the architecture tests enforce for other cross-module relationships.
-- If KnowledgeBase module reorganises or renames `IOneDriveService` (e.g., moves it to a shared infrastructure adapter), the Article module breaks silently.
-- Prevents future extraction of either module into a separate deployable without refactoring Article.
-- The `ILeafletKnowledgeSource` pattern exists in this codebase precisely for this scenario — it is the documented pattern to follow.
+- **Hard compile-time coupling**: Renaming or restructuring `SearchDocumentsRequest` inside KnowledgeBase breaks the Article (and Smartsupp) modules at compile time.
+- **Bypasses module contract discipline**: `development_guidelines.md` is explicit: "Communication between modules exclusively through `contracts/`." Using a UseCase-internal type as a cross-module API violates this, regardless of whether MediatR is the dispatch mechanism.
+- **Not caught by `ModuleBoundariesTests`**: The existing architecture test enforces an `Article → KnowledgeBase` namespace allowlist, but if `SearchDocumentsRequest` were ever moved or split, the test might not catch a broken caller.
+- **Sets a precedent**: Two modules (Article, Smartsupp) already use this shortcut. Without a contract boundary, more callers will follow the same path.
 
 ## Suggested fix
-Apply the same pattern used for `ILeafletKnowledgeSource`:
 
-1. **Article module defines its own contract** in `Application/Features/Article/Contracts/IArticleStyleGuideSource.cs`:
-   ```csharp
-   public interface IArticleStyleGuideSource
-   {
-       Task<string> DownloadStyleGuideTextAsync(string driveId, string path, CancellationToken ct);
-   }
-   ```
+1. **Article defines a consumer-owned contract** in its own `Contracts/` folder:
 
-2. **KnowledgeBase (or a shared adapter) implements it** in its `Infrastructure/` folder:
-   ```csharp
-   public class OneDriveArticleStyleGuideSource : IArticleStyleGuideSource
-   {
-       private readonly IOneDriveService _oneDrive;
-       public Task<string> DownloadStyleGuideTextAsync(string driveId, string path, CancellationToken ct)
-           => _oneDrive.DownloadFileTextByPathAsync(driveId, path, ct);
-   }
-   ```
+```csharp
+// backend/src/Anela.Heblo.Application/Features/Article/Contracts/IArticleKnowledgeSource.cs
+public interface IArticleKnowledgeSource
+{
+    Task<IReadOnlyList<ArticleKnowledgeChunk>> SearchAsync(
+        string query, int topK, CancellationToken ct);
+}
 
-3. **KnowledgeBase module registers the binding** in its `KnowledgeBaseModule.cs`.
+public class ArticleKnowledgeChunk
+{
+    public Guid ChunkId { get; set; }
+    public string SourceFilename { get; set; } = "";
+    public string Content { get; set; } = "";
+    public double Score { get; set; }
+}
+```
 
-4. **`GatherContextStep` injects `IArticleStyleGuideSource`** instead of `IOneDriveService`.
+2. **KnowledgeBase provides an adapter** (in `KnowledgeBase/Infrastructure/`):
 
-5. **Add a module-boundary architecture test** for Article → KnowledgeBase, mirroring `ModuleBoundariesTests.cs`.
+```csharp
+public sealed class KnowledgeBaseArticleSourceAdapter : IArticleKnowledgeSource
+{
+    private readonly IMediator _mediator;
+    public KnowledgeBaseArticleSourceAdapter(IMediator mediator) => _mediator = mediator;
+
+    public async Task<IReadOnlyList<ArticleKnowledgeChunk>> SearchAsync(
+        string query, int topK, CancellationToken ct)
+    {
+        var response = await _mediator.Send(
+            new SearchDocumentsRequest { Query = query, TopK = topK }, ct);
+        return response.Chunks.Select(c => new ArticleKnowledgeChunk
+        {
+            ChunkId = c.ChunkId,
+            SourceFilename = c.SourceFilename,
+            Content = c.Content,
+            Score = c.Score,
+        }).ToArray();
+    }
+}
+```
+
+3. **KnowledgeBase registers the binding** in `KnowledgeBaseModule.cs`:
+   `services.AddScoped<IArticleKnowledgeSource, KnowledgeBaseArticleSourceAdapter>();`
+
+4. **`GatherContextStep` injects `IArticleKnowledgeSource`** instead of `IMediator` for the KB branch:
+
+```csharp
+// GatherContextStep.cs — remove the IMediator dependency for the KB path
+private readonly IArticleKnowledgeSource _knowledgeSource;
+
+// In GatherKnowledgeBaseSnippetsAsync:
+var chunks = await _knowledgeSource.SearchAsync(query, _options.KnowledgeBaseTopK, ct);
+snippets.AddRange(chunks.Select(c => new ContextSnippet { ... }));
+```
+
+5. Apply the same contract pattern in Smartsupp as a follow-up.
 
 ---
-_Filed by daily arch-review routine on 2026-05-25._
+_Filed by daily arch-review routine on 2026-05-27._
