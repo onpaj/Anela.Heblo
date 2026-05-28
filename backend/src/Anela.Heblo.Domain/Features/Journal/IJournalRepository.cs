@@ -5,11 +5,23 @@ namespace Anela.Heblo.Domain.Features.Journal
     public interface IJournalRepository : IRepository<JournalEntry, int>
     {
         Task<PagedResult<JournalEntry>> GetEntriesAsync(
-            JournalQueryCriteria criteria,
+            int pageNumber,
+            int pageSize,
+            string sortBy,
+            string sortDirection,
             CancellationToken cancellationToken = default);
 
         Task<PagedResult<JournalEntry>> SearchEntriesAsync(
-            JournalSearchCriteria criteria,
+            string? searchText,
+            DateTime? dateFrom,
+            DateTime? dateTo,
+            string? productCodePrefix,
+            IReadOnlyCollection<int>? tagIds,
+            string? createdByUserId,
+            int pageNumber,
+            int pageSize,
+            string sortBy,
+            string sortDirection,
             CancellationToken cancellationToken = default);
 
         Task<List<JournalEntry>> GetEntriesByProductAsync(

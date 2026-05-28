@@ -27,7 +27,10 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
         }
 
         public async Task<PagedResult<JournalEntry>> GetEntriesAsync(
-            JournalQueryCriteria criteria,
+            int pageNumber,
+            int pageSize,
+            string sortBy,
+            string sortDirection,
             CancellationToken cancellationToken = default)
         {
             var query = Context.Set<JournalEntry>()
@@ -38,15 +41,15 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .AsQueryable();
 
             // Sorting
-            query = criteria.SortBy?.ToLower() switch
+            query = sortBy?.ToLower() switch
             {
-                "title" => criteria.SortDirection == "ASC"
+                "title" => sortDirection == "ASC"
                     ? query.OrderBy(x => x.Title)
                     : query.OrderByDescending(x => x.Title),
-                "createdat" => criteria.SortDirection == "ASC"
+                "createdat" => sortDirection == "ASC"
                     ? query.OrderBy(x => x.CreatedAt)
                     : query.OrderByDescending(x => x.CreatedAt),
-                _ => criteria.SortDirection == "ASC"
+                _ => sortDirection == "ASC"
                     ? query.OrderBy(x => x.EntryDate)
                     : query.OrderByDescending(x => x.EntryDate)
             };
@@ -54,21 +57,30 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
             var totalCount = await query.CountAsync(cancellationToken);
 
             var items = await query
-                .Skip((criteria.PageNumber - 1) * criteria.PageSize)
-                .Take(criteria.PageSize)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
             return new PagedResult<JournalEntry>
             {
                 Items = items,
                 TotalCount = totalCount,
-                PageNumber = criteria.PageNumber,
-                PageSize = criteria.PageSize
+                PageNumber = pageNumber,
+                PageSize = pageSize
             };
         }
 
         public async Task<PagedResult<JournalEntry>> SearchEntriesAsync(
-            JournalSearchCriteria criteria,
+            string? searchText,
+            DateTime? dateFrom,
+            DateTime? dateTo,
+            string? productCodePrefix,
+            IReadOnlyCollection<int>? tagIds,
+            string? createdByUserId,
+            int pageNumber,
+            int pageSize,
+            string sortBy,
+            string sortDirection,
             CancellationToken cancellationToken = default)
         {
             var query = Context.Set<JournalEntry>()
@@ -79,56 +91,56 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .AsQueryable();
 
             // Text search (simple contains for now, can be improved with full-text search)
-            if (!string.IsNullOrEmpty(criteria.SearchText))
+            if (!string.IsNullOrEmpty(searchText))
             {
-                var searchTerm = criteria.SearchText.Trim().ToLower();
+                var searchTerm = searchText.Trim().ToLower();
                 query = query.Where(x =>
                     (x.Title != null && x.Title.ToLower().Contains(searchTerm)) ||
                     x.Content.ToLower().Contains(searchTerm));
             }
 
             // Date filtering
-            if (criteria.DateFrom.HasValue)
+            if (dateFrom.HasValue)
             {
-                query = query.Where(x => x.EntryDate >= criteria.DateFrom.Value.Date);
+                query = query.Where(x => x.EntryDate >= dateFrom.Value.Date);
             }
 
-            if (criteria.DateTo.HasValue)
+            if (dateTo.HasValue)
             {
-                query = query.Where(x => x.EntryDate <= criteria.DateTo.Value.Date);
+                query = query.Where(x => x.EntryDate <= dateTo.Value.Date);
             }
 
             // Product filtering - check if requested product code prefix starts with any stored prefix
-            if (!string.IsNullOrEmpty(criteria.ProductCodePrefix))
+            if (!string.IsNullOrEmpty(productCodePrefix))
             {
                 query = query.Where(x => x.ProductAssociations
-                    .Any(pa => criteria.ProductCodePrefix.StartsWith(pa.ProductCodePrefix)));
+                    .Any(pa => productCodePrefix.StartsWith(pa.ProductCodePrefix)));
             }
 
 
             // Tag filtering
-            if (criteria.TagIds?.Any() == true)
+            if (tagIds?.Any() == true)
             {
                 query = query.Where(x => x.TagAssignments
-                    .Any(ta => criteria.TagIds.Contains(ta.TagId)));
+                    .Any(ta => tagIds.Contains(ta.TagId)));
             }
 
             // User filtering
-            if (!string.IsNullOrEmpty(criteria.CreatedByUserId))
+            if (!string.IsNullOrEmpty(createdByUserId))
             {
-                query = query.Where(x => x.CreatedByUserId == criteria.CreatedByUserId);
+                query = query.Where(x => x.CreatedByUserId == createdByUserId);
             }
 
             // Sorting
-            query = criteria.SortBy?.ToLower() switch
+            query = sortBy?.ToLower() switch
             {
-                "title" => criteria.SortDirection == "ASC"
+                "title" => sortDirection == "ASC"
                     ? query.OrderBy(x => x.Title)
                     : query.OrderByDescending(x => x.Title),
-                "createdat" => criteria.SortDirection == "ASC"
+                "createdat" => sortDirection == "ASC"
                     ? query.OrderBy(x => x.CreatedAt)
                     : query.OrderByDescending(x => x.CreatedAt),
-                _ => criteria.SortDirection == "ASC"
+                _ => sortDirection == "ASC"
                     ? query.OrderBy(x => x.EntryDate)
                     : query.OrderByDescending(x => x.EntryDate)
             };
@@ -136,16 +148,16 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
             var totalCount = await query.CountAsync(cancellationToken);
 
             var items = await query
-                .Skip((criteria.PageNumber - 1) * criteria.PageSize)
-                .Take(criteria.PageSize)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
             return new PagedResult<JournalEntry>
             {
                 Items = items,
                 TotalCount = totalCount,
-                PageNumber = criteria.PageNumber,
-                PageSize = criteria.PageSize
+                PageNumber = pageNumber,
+                PageSize = pageSize
             };
         }
 
