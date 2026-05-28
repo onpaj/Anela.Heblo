@@ -82,16 +82,8 @@ export default function JournalEntryForm({
 
   // Update form state when entry prop changes (for edit mode)
   useEffect(() => {
-    console.log("🐛 JournalEntryForm useEffect - entry:", entry, "isEdit:", isEdit);
     if (entry?.entry) {
       const entryData = entry.entry;
-      console.log("🐛 Updating form with entry data:", {
-        title: entryData.title,
-        content: entryData.content,
-        entryDate: entryData.entryDate,
-        tags: entryData.tags,
-        products: entryData.associatedProducts
-      });
       setTitle(entryData.title || "");
       setContent(entryData.content || "");
       setEntryDate(
@@ -104,7 +96,6 @@ export default function JournalEntryForm({
       );
       setAssociatedProducts(entryData.associatedProducts || []);
     } else if (!isEdit) {
-      console.log("🐛 Resetting form for new entry");
       // Reset form for new entries
       setTitle("");
       setContent("");
