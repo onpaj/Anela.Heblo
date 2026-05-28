@@ -222,7 +222,7 @@ describe("BatchPlanningCalculator", () => {
       expect(screen.getByRole("option", { name: "Budoucí kvartal" })).toBeInTheDocument();
       expect(screen.getByRole("option", { name: "Y2Y (12 měsíců)" })).toBeInTheDocument();
       expect(screen.getByRole("option", { name: "Předchozí sezona" })).toBeInTheDocument();
-      expect(screen.getByRole("option", { name: "9M (6 měsíců + prognóza 3 měsíce)" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "9M" })).toBeInTheDocument();
       expect(screen.getByRole("option", { name: "Vlastní období" })).toBeInTheDocument();
 
       // Q9M is selected by default
