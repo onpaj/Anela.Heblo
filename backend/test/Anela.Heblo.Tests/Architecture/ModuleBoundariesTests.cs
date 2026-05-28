@@ -79,18 +79,8 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services.GiftPackageManufactureService -> Anela.Heblo.Domain.Features.Manufacture.ProductPart",
     };
 
-    // Allowlist for Purchase → Catalog. Each entry needs a comment with the justification.
-    // Entries should be removed as the underlying violations are fixed.
-    private static readonly HashSet<string> PurchaseAllowlist = new(StringComparer.Ordinal)
-    {
-        // Pre-existing dependency: RecalculatePurchasePriceHandler consumes IProductPriceErpClient,
-        // which currently lives in Anela.Heblo.Domain.Features.Catalog.Price. IProductPriceErpClient
-        // is an ERP integration boundary (not a domain repository); decoupling it requires a
-        // separate Purchase-owned contract (e.g., IPurchasePriceRecalculator) and is out of scope
-        // for the 2026-05-24 Purchase ↔ Catalog decoupling. Track separately and remove this entry
-        // when IProductPriceErpClient is lifted behind a Purchase-owned contract.
-        "Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice.RecalculatePurchasePriceHandler -> Anela.Heblo.Domain.Features.Catalog.Price.IProductPriceErpClient",
-    };
+    // Allowlist for Purchase → Catalog. Empty — no active violations.
+    private static readonly HashSet<string> PurchaseAllowlist = new(StringComparer.Ordinal);
 
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
@@ -115,6 +105,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.KnowledgeBase",
             },
             Allowlist: ArticleAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Article -> UserManagement",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Article",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.UserManagement",
+                "Anela.Heblo.Application.Features.UserManagement",
+                "Anela.Heblo.Persistence.UserManagement",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
 
         new ModuleBoundaryRule(
             Name: "Logistics -> Manufacture",

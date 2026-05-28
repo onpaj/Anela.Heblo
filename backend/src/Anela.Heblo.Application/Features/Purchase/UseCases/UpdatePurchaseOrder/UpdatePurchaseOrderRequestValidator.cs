@@ -1,7 +1,6 @@
-using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 using FluentValidation;
 
-namespace Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;
+namespace Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 
 public class UpdatePurchaseOrderRequestValidator : AbstractValidator<UpdatePurchaseOrderRequest>
 {

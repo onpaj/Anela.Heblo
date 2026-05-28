@@ -1,14 +1,14 @@
-using System.Reflection;
+using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
-using Hangfire;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.BackgroundJobs.Services;
+namespace Anela.Heblo.API.Infrastructure.Hangfire;
 
 /// <summary>
-/// Updates a Hangfire recurring job's CRON schedule live using the same
-/// reflection pattern as RecurringJobDiscoveryService.
+/// Updates a Hangfire recurring job's CRON schedule live by delegating to
+/// <see cref="HangfireJobRegistrationHelper"/> so the runtime-update path uses
+/// the same registration code as startup discovery.
 /// </summary>
 public class HangfireRecurringJobScheduler : IHangfireRecurringJobScheduler
 {
@@ -38,21 +38,13 @@ public class HangfireRecurringJobScheduler : IHangfireRecurringJobScheduler
             return;
         }
 
-        var jobType = job.GetType();
-        var registerMethod = typeof(HangfireRecurringJobScheduler)
-            .GetMethod(nameof(UpdateJobInternal), BindingFlags.NonPublic | BindingFlags.Static);
-
-        if (registerMethod == null)
-        {
-            _logger.LogError("Could not find UpdateJobInternal method via reflection");
-            return;
-        }
-
-        var genericMethod = registerMethod.MakeGenericMethod(jobType);
-
         try
         {
-            genericMethod.Invoke(null, new object[] { jobName, cronExpression, job.Metadata.TimeZoneId });
+            HangfireJobRegistrationHelper.RegisterOrUpdate(
+                job.GetType(),
+                jobName,
+                cronExpression,
+                job.Metadata.TimeZoneId);
         }
         catch (Exception ex)
         {
@@ -66,17 +58,5 @@ public class HangfireRecurringJobScheduler : IHangfireRecurringJobScheduler
         _logger.LogInformation(
             "Live Hangfire schedule updated for {JobName} → {CronExpression}",
             jobName, cronExpression);
-    }
-
-    private static void UpdateJobInternal<TJob>(
-        string jobName,
-        string cronExpression,
-        string timeZoneId) where TJob : IRecurringJob
-    {
-        RecurringJob.AddOrUpdate<TJob>(
-            jobName,
-            j => j.ExecuteAsync(default),
-            cronExpression,
-            TimeZoneInfo.FindSystemTimeZoneById(timeZoneId));
     }
 }

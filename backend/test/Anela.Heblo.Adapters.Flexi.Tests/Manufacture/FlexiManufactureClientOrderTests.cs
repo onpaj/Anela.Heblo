@@ -93,4 +93,103 @@ public class FlexiManufactureClientOrderTests
             Times.Once);
         _templateServiceMock.Verify(x => x.InvalidateTemplate("PRD1"), Times.Once);
     }
+
+    [Fact]
+    public async Task SetBomItemsOrderAndPhaseAsync_CallsUpdateBoMItemAsyncPerItemAndInvalidatesCache()
+    {
+        // Arrange
+        var items = new List<(int BoMItemId, int Order, string? PhaseLabel)>
+        {
+            (100, 1, "A"),
+            (200, 2, "A"),
+            (300, 3, null),
+        };
+
+        _bomClientMock
+            .Setup(x => x.UpdateBoMItemAsync(
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _client.SetBomItemsOrderAndPhaseAsync("PRD1", items, CancellationToken.None);
+
+        // Assert: called 3 times (once per item)
+        _bomClientMock.Verify(
+            x => x.UpdateBoMItemAsync(
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
+
+        // Assert: item 100 called with nameC = "A"
+        _bomClientMock.Verify(
+            x => x.UpdateBoMItemAsync(
+                100,
+                1,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                "A",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Assert: item 300 (null phase) called with nameC = "" (empty = clear field in Flexi)
+        _bomClientMock.Verify(
+            x => x.UpdateBoMItemAsync(
+                300,
+                3,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                string.Empty,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Assert: cache invalidated once
+        _templateServiceMock.Verify(x => x.InvalidateTemplate("PRD1"), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetBomItemsOrderAndPhaseAsync_EmptyList_StillInvalidatesCache()
+    {
+        // Arrange
+        _bomClientMock
+            .Setup(x => x.UpdateBoMItemAsync(
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _client.SetBomItemsOrderAndPhaseAsync("PRD1", Array.Empty<(int, int, string?)>(), CancellationToken.None);
+
+        // Assert: no UpdateBoMItemAsync calls (empty list)
+        _bomClientMock.Verify(
+            x => x.UpdateBoMItemAsync(
+                It.IsAny<int>(),
+                It.IsAny<int?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        // Assert: cache still invalidated
+        _templateServiceMock.Verify(x => x.InvalidateTemplate("PRD1"), Times.Once);
+    }
 }

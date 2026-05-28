@@ -18,4 +18,6 @@ public class IngredientOrderItem
     public string IngredientProductCode { get; set; } = string.Empty;
 
     public int SortOrder { get; set; }
+
+    public string? PhaseLabel { get; set; }
 }

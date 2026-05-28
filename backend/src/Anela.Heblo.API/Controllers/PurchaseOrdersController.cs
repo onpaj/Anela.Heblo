@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrderById;
+using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrderHistory;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrders;
 using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
@@ -132,20 +133,8 @@ public class PurchaseOrdersController : BaseApiController
         [FromRoute] int id,
         CancellationToken cancellationToken)
     {
-        var request = new GetPurchaseOrderByIdRequest(id);
-        var response = await _mediator.Send(request, cancellationToken);
-
-        if (!response.Success)
-        {
-            return HandleResponse<ListResponse<PurchaseOrderHistoryDto>>(new ListResponse<PurchaseOrderHistoryDto>(response.ErrorCode!.Value, response.Params));
-        }
-
-        var listResponse = new ListResponse<PurchaseOrderHistoryDto>
-        {
-            Items = response.History,
-            TotalCount = response.History.Count
-        };
-        return Ok(listResponse);
+        var response = await _mediator.Send(new GetPurchaseOrderHistoryRequest(id), cancellationToken);
+        return HandleResponse(response);
     }
 
     [HttpPost("recalculate-purchase-price")]

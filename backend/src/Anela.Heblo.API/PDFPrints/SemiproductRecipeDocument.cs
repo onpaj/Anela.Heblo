@@ -97,8 +97,15 @@ public class SemiproductRecipeDocument : IDocument
                         header.Cell().Element(HeaderCell).AlignRight().Text("Plná šarže").Bold();
                     });
 
+                    string? previousPhase = null;
                     foreach (var ingredient in _data.Ingredients)
                     {
+                        if (!string.IsNullOrEmpty(ingredient.PhaseLabel) && ingredient.PhaseLabel != previousPhase)
+                        {
+                            table.Cell().ColumnSpan(5).Element(PhaseHeaderCell).Text($"Fáze {ingredient.PhaseLabel}").Bold();
+                        }
+                        previousPhase = ingredient.PhaseLabel;
+
                         table.Cell().Element(DataCell).Text(ingredient.ProductCode);
                         table.Cell().Element(DataCell).Text(ingredient.ProductName);
                         table.Cell().Element(DataCell).AlignRight().Text(ingredient.Percentage.ToString("0.0", CultureInfo.InvariantCulture) + "%");
@@ -129,4 +136,10 @@ public class SemiproductRecipeDocument : IDocument
 
     private static IContainer DataCell(IContainer c) =>
         c.Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(4).DefaultTextStyle(s => s.Bold());
+
+    private static IContainer PhaseHeaderCell(IContainer c) =>
+        c.Border(0.5f).BorderColor(Colors.Indigo.Lighten2)
+         .Background(Colors.Indigo.Lighten4)
+         .Padding(4)
+         .DefaultTextStyle(s => s.FontColor(Colors.Indigo.Darken2));
 }

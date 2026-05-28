@@ -13,13 +13,13 @@ namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSu
 public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSummaryRequest, GetProductMarginSummaryResponse>
 {
     private readonly IAnalyticsRepository _analyticsRepository;
-    private readonly MarginCalculator _marginCalculator;
-    private readonly MonthlyBreakdownGenerator _monthlyBreakdownGenerator;
+    private readonly IMarginCalculator _marginCalculator;
+    private readonly IMonthlyBreakdownGenerator _monthlyBreakdownGenerator;
 
     public GetProductMarginSummaryHandler(
         IAnalyticsRepository analyticsRepository,
-        MarginCalculator marginCalculator,
-        MonthlyBreakdownGenerator monthlyBreakdownGenerator)
+        IMarginCalculator marginCalculator,
+        IMonthlyBreakdownGenerator monthlyBreakdownGenerator)
     {
         _analyticsRepository = analyticsRepository;
         _marginCalculator = marginCalculator;

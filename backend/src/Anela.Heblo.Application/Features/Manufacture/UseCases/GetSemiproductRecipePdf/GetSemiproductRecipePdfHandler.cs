@@ -43,14 +43,18 @@ public class GetSemiproductRecipePdfHandler : IRequestHandler<GetSemiproductReci
                 : 1.0;
             double batchSize = request.BatchSize ?? template.OriginalAmount;
 
-            var ingredientLines = template.Ingredients.Select(i => new SemiproductRecipeIngredientLine
-            {
-                ProductCode = i.ProductCode,
-                ProductName = i.ProductName,
-                AmountFullBatch = Math.Round(i.Amount * scaleFactor, 3),
-                AmountHalfBatch = Math.Round(i.Amount * scaleFactor / 2, 3),
-                Percentage = totalAmount > 0 ? i.Amount / totalAmount * 100 : 0,
-            }).ToList();
+            var ingredientLines = template.Ingredients
+                .OrderBy(i => i.Order == 0 ? int.MaxValue : i.Order)
+                .ThenBy(i => i.ProductName)
+                .Select(i => new SemiproductRecipeIngredientLine
+                {
+                    ProductCode = i.ProductCode,
+                    ProductName = i.ProductName,
+                    AmountFullBatch = Math.Round(i.Amount * scaleFactor, 3),
+                    AmountHalfBatch = Math.Round(i.Amount * scaleFactor / 2, 3),
+                    Percentage = totalAmount > 0 ? i.Amount / totalAmount * 100 : 0,
+                    PhaseLabel = i.PhaseLabel,
+                }).ToList();
 
             var data = new SemiproductRecipeData
             {

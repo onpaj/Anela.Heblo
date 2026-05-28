@@ -1,96 +1,82 @@
-# Specification: Remove Dead Catalog Lookup in UpdatePurchaseOrderHandler
+# Specification: Relocate UpdatePurchaseOrderRequestValidator to Correct Use Case Folder
 
 ## Summary
-Remove a dead catalog lookup in `UpdatePurchaseOrderHandler.MapToResponseAsync` that performs N catalog reads per order update without using the result. The DTO already sources `MaterialName` from the entity, so the lookup is wasted compute on every `PUT /api/purchase-orders/{id}` request.
+The `UpdatePurchaseOrderRequestValidator` is currently misplaced inside the `CreatePurchaseOrder` use case folder with an incorrect namespace. This spec covers moving the file to its proper `UpdatePurchaseOrder` use case folder and updating its namespace to align with Vertical Slice Architecture co-location principles. No behavior changes are introduced.
 
 ## Background
-During the daily architecture review on 2026-05-22, an N+1 anti-pattern was found in the Purchase module's update flow.
+The codebase follows Vertical Slice Architecture, where each use case folder under `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/` contains all artifacts for that use case (handler, request/response DTOs, validators, mappings).
 
-`UpdatePurchaseOrderHandler.MapToResponseAsync` (backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/UpdatePurchaseOrder/UpdatePurchaseOrderHandler.cs:121-157) iterates over each order line and calls `_catalogRepository.GetByIdAsync(line.MaterialId, ...)`. The fetched `material` is used only to compute a local `materialName` variable that is then discarded — the DTO assigns `MaterialName = line.MaterialName` (the value already persisted on the entity), not the computed variable.
+The file `UpdatePurchaseOrderRequestValidator.cs` validates `UpdatePurchaseOrderRequest` and `UpdatePurchaseOrderLineRequest`, both owned by the `UpdatePurchaseOrder` use case. However, it is physically located under `UseCases/CreatePurchaseOrder/` with namespace `Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder`. This causes:
+- IDE navigation from `UpdatePurchaseOrderHandler` to its validator to fail or mislead.
+- Developers expecting to find the validator in `UseCases/UpdatePurchaseOrder/` will not find it there.
+- Namespace ownership incorrectly attributes the validator to the `CreatePurchaseOrder` slice.
 
-For an order with N lines this triggers N catalog lookups that contribute nothing to the response. The repository's bulk method `GetByIdsAsync` was added explicitly to eliminate this kind of N+1 pattern (per its in-code comment). The sibling handler `GetPurchaseOrderByIdHandler` performs the same lookup *legitimately* because it maps `CatalogNote = catalogItem.Note`, a field that lives only in the catalog. The update handler has no such need.
+This was filed by the daily arch-review routine on 2026-05-27.
 
 ## Functional Requirements
 
-### FR-1: Remove the unused catalog lookup
-Delete the two unused lines from `MapToResponseAsync` in `UpdatePurchaseOrderHandler`:
-
-```csharp
-var material = await _catalogRepository.GetByIdAsync(line.MaterialId, cancellationToken);
-var materialName = material?.ProductName ?? "Unknown Material";
-```
-
-No replacement is required. The DTO continues to read `MaterialName = line.MaterialName` from the entity.
+### FR-1: Relocate validator file
+Move `UpdatePurchaseOrderRequestValidator.cs` from the `CreatePurchaseOrder` use case folder to the `UpdatePurchaseOrder` use case folder.
 
 **Acceptance criteria:**
-- Lines 125-126 (approx.) of `UpdatePurchaseOrderHandler.cs` are removed.
-- The `foreach (var line in purchaseOrder.Lines)` loop no longer awaits any catalog repository call.
-- The returned `UpdatePurchaseOrderResponse` is byte-identical to the previous implementation for any valid input (i.e., `MaterialName` values in the response are unchanged because they came from `line.MaterialName` all along).
-- `_catalogRepository` is still injected only if used elsewhere in the handler; otherwise the field, constructor parameter, and `using` for `Anela.Heblo.Domain.Features.Catalog` are removed.
+- File no longer exists at `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/CreatePurchaseOrder/UpdatePurchaseOrderRequestValidator.cs`.
+- File exists at `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/UpdatePurchaseOrder/UpdatePurchaseOrderRequestValidator.cs`.
+- File content (validation logic) is otherwise unchanged.
 
-### FR-2: Remove now-dead dependencies on `ICatalogRepository`
-If `MapToResponseAsync` was the only consumer of `ICatalogRepository` in `UpdatePurchaseOrderHandler`, remove:
-- The private readonly `_catalogRepository` field.
-- The constructor parameter and its assignment.
-- Any unused `using` directive for the catalog namespace.
+### FR-2: Update namespace declaration
+Update the namespace inside the moved file to reflect its new location.
 
 **Acceptance criteria:**
-- `UpdatePurchaseOrderHandler` does not reference `ICatalogRepository` after the change unless another method genuinely uses it.
-- The project compiles (`dotnet build`) with no new warnings.
-- DI registration for the handler still resolves correctly (the handler's constructor takes only the dependencies it actually uses).
+- Namespace line reads: `namespace Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;`
+- The `using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;` line is removed (no longer needed once namespaces align).
+- No other `using` directives are removed unless they become genuinely unused.
 
-### FR-3: Preserve existing handler behavior
-The handler must continue to:
-- Update the purchase order as before.
-- Recompute supplier, totals, and line aggregates exactly as it does today.
-- Return the same shape of `UpdatePurchaseOrderResponse` with the same field values for the same inputs.
+### FR-3: Preserve validator registration and behavior
+The validator must continue to be discovered and applied to `UpdatePurchaseOrderRequest` exactly as before.
 
 **Acceptance criteria:**
-- No change to the public method signatures of `UpdatePurchaseOrderHandler`, the request, or the response DTO.
-- No change to validation, persistence, or transaction semantics.
-- Existing unit/integration tests for `UpdatePurchaseOrderHandler` pass without modification (other than any test that asserted on the catalog call count, if such a test exists).
+- FluentValidation auto-registration (via `AddValidatorsFromAssembly` or equivalent in DI setup) continues to register the validator after the move.
+- `UpdatePurchaseOrder` handler/pipeline invokes the validator with no code changes elsewhere.
+- All existing tests pass without modification.
 
-### FR-4: Verify no other handlers have the same dead lookup
-Briefly check sibling handlers in `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/**` for the same pattern (catalog `GetByIdAsync` inside a line loop whose result is unused). Apply the same removal where confirmed.
+### FR-4: No regressions in build or callers
+The move must not break compilation or any consumers.
 
 **Acceptance criteria:**
-- A grep for `GetByIdAsync(line.MaterialId` (or equivalent) under the Purchase use-cases folder reveals no remaining dead lookups.
-- Any additional removals are listed in the PR description.
-- If `GetPurchaseOrderByIdHandler` is the only other handler with such a call, it is left untouched (its use of `catalogItem.Note` is legitimate).
+- `dotnet build` succeeds with zero errors and no new warnings.
+- `dotnet format` reports no violations on the moved file.
+- No other source file requires changes (apart from imports/usings only if a consumer explicitly referenced the old namespace — none expected).
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
-- After the change, `PUT /api/purchase-orders/{id}` issues zero catalog repository calls during response mapping (down from N per order line).
-- No regression in response time; expected modest improvement proportional to line count and catalog backing-store latency.
+No runtime performance impact expected. This is a purely structural change.
 
-### NFR-2: Code quality
-- `dotnet build` produces no new warnings.
-- `dotnet format` leaves the file unchanged after the edit.
-- No dead `using` directives remain.
+### NFR-2: Security
+No security impact. No auth, validation rules, or data handling logic is modified.
 
-### NFR-3: Backwards compatibility
-- The HTTP contract for `PUT /api/purchase-orders/{id}` is unchanged.
-- The generated OpenAPI schema for `UpdatePurchaseOrderResponse` is identical.
-- No frontend changes are required.
+### NFR-3: Maintainability
+The change improves codebase maintainability by restoring Vertical Slice co-location, enabling correct IDE navigation, and aligning physical structure with logical ownership.
+
+### NFR-4: Backwards Compatibility
+No public API, contract, or behavior changes. No DB or migration impact. No frontend impact.
 
 ## Data Model
-No changes. `PurchaseOrderLine` continues to store `MaterialName` as a denormalized field; `UpdatePurchaseOrderResponse.PurchaseOrderLineDto.MaterialName` continues to be sourced from that field.
+No data model changes.
 
 ## API / Interface Design
-No changes. The affected endpoint is `PUT /api/purchase-orders/{id}`; its request and response shapes are unchanged.
+No API or interface changes. The validator is internal to the application layer.
 
 ## Dependencies
-- `Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder.UpdatePurchaseOrderHandler` (the file being edited).
-- `Anela.Heblo.Domain.Features.Catalog.ICatalogRepository` (dependency may be removed from this handler).
-- Existing test project for the Purchase feature (no new tests required unless coverage gaps are uncovered).
+- FluentValidation (existing dependency) — assembly scanning must pick up validators in the `UpdatePurchaseOrder` folder; this is already the case for other validators in sibling use case folders.
+- No new packages or external services.
 
 ## Out of Scope
-- Refactoring `GetPurchaseOrderByIdHandler` (its catalog lookup is legitimate). If a bulk `GetByIdsAsync` refactor for that handler is desired, it should be filed as a separate brief.
-- Adding `CatalogNote` (or other catalog-only fields) to `UpdatePurchaseOrderResponse`. If product later wants this, the implementation must use `GetByIdsAsync` once outside the loop.
-- Broader audit of N+1 patterns outside the Purchase module.
-- Any frontend changes.
-- Changes to caching policy in `ICatalogRepository`.
+- Refactoring or improving the validation rules themselves.
+- Auditing other use case folders for similar misplacements (a separate arch-review task).
+- Renaming the validator class or related DTOs.
+- Changes to `CreatePurchaseOrder` use case logic or its own validators.
+- Test additions beyond verifying that existing tests still pass.
 
 ## Open Questions
 None.
