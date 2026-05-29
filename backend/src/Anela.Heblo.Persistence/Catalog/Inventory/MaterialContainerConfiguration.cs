@@ -16,8 +16,13 @@ public class MaterialContainerConfiguration : IEntityTypeConfiguration<MaterialC
             .IsRequired()
             .HasMaxLength(20);
 
-        builder.Property(x => x.LotId)
-            .IsRequired();
+        builder.Property(x => x.MaterialCode)
+            .IsRequired()
+            .HasMaxLength(50);
+
+        builder.Property(x => x.LotCode)
+            .IsRequired()
+            .HasMaxLength(100);
 
         builder.Property(x => x.Amount)
             .IsRequired()
@@ -47,14 +52,10 @@ public class MaterialContainerConfiguration : IEntityTypeConfiguration<MaterialC
             .IsUnique()
             .HasDatabaseName("IX_MaterialContainers_Code");
 
-        builder.HasIndex(x => x.LotId)
-            .HasDatabaseName("IX_MaterialContainers_LotId");
+        builder.HasIndex(x => new { x.MaterialCode, x.LotCode })
+            .HasDatabaseName("IX_MaterialContainers_MaterialCode_LotCode");
 
-        // ON DELETE RESTRICT: deleting Lot while MaterialContainers exist raises an error
-        builder.HasOne<Lot>()
-            .WithMany()
-            .HasForeignKey(x => x.LotId)
-            .OnDelete(DeleteBehavior.Restrict)
-            .HasConstraintName("FK_MaterialContainers_Lots_LotId");
+        builder.HasIndex(x => new { x.MaterialCode, x.CreatedAt })
+            .HasDatabaseName("IX_MaterialContainers_MaterialCode_CreatedAt");
     }
 }

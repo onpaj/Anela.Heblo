@@ -6,7 +6,6 @@ namespace Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetMateria
 public class GetMaterialContainerByCodeResponse : BaseResponse
 {
     public MaterialContainerDto Container { get; set; } = null!;
-    public LotDto Lot { get; set; } = null!;
 
     public GetMaterialContainerByCodeResponse() : base() { }
 

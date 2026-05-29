@@ -1,5 +1,5 @@
-using Anela.Heblo.Application.Features.Catalog.Inventory.Contracts;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateLot;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateMaterialContainers;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
 using MediatR;
@@ -29,17 +29,9 @@ public class GetLotHandler : IRequestHandler<GetLotRequest, GetLotResponse>
             return new GetLotResponse(ErrorCodes.LotNotFound, new Dictionary<string, string> { { "Id", request.Id.ToString() } });
         }
 
-        var containerPage = await _materialContainerRepository.GetPaginatedAsync(request.Id, null, 1, 100, cancellationToken);
-        var containerDtos = containerPage.Items.Select(e => new MaterialContainerDto
-        {
-            Id = e.Id,
-            Code = e.Code,
-            LotId = e.LotId,
-            Amount = e.Amount,
-            Unit = e.Unit,
-            CreatedAt = e.CreatedAt,
-            CreatedBy = e.CreatedBy
-        }).ToList();
+        var containerPage = await _materialContainerRepository.GetPaginatedAsync(
+            lot.MaterialCode, lot.LotCode, page: 1, pageSize: 100, cancellationToken);
+        var containerDtos = containerPage.Items.Select(CreateMaterialContainersHandler.MapToDto).ToList();
 
         return new GetLotResponse { Lot = CreateLotHandler.MapToDto(lot), Containers = containerDtos };
     }

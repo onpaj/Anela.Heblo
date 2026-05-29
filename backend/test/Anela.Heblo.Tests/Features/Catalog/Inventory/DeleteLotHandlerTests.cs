@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.DeleteLot;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
+using Anela.Heblo.Xcc.Persistance;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -24,7 +25,8 @@ public class DeleteLotHandlerTests
         // Arrange
         var lot = new Lot("MAT001", "L1", null, DateOnly.FromDateTime(DateTime.Today), null, "user");
         _lotRepo.Setup(r => r.GetByIdAsync(1, default)).ReturnsAsync(lot);
-        _containerRepo.Setup(r => r.AnyByLotIdAsync(1, default)).ReturnsAsync(false);
+        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "L1", 1, 1, default))
+            .ReturnsAsync(new PagedResult<MaterialContainer> { Items = new List<MaterialContainer>(), TotalCount = 0, PageNumber = 1, PageSize = 1 });
 
         // Act
         var result = await _handler.Handle(new DeleteLotRequest { Id = 1 }, default);
@@ -41,7 +43,9 @@ public class DeleteLotHandlerTests
         // Arrange
         var lot = new Lot("MAT001", "L1", null, DateOnly.FromDateTime(DateTime.Today), null, "user");
         _lotRepo.Setup(r => r.GetByIdAsync(1, default)).ReturnsAsync(lot);
-        _containerRepo.Setup(r => r.AnyByLotIdAsync(1, default)).ReturnsAsync(true);
+        var container = new MaterialContainer("INT-00000001", "MAT001", "L1", 25m, "kg", "user");
+        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "L1", 1, 1, default))
+            .ReturnsAsync(new PagedResult<MaterialContainer> { Items = new List<MaterialContainer> { container }, TotalCount = 1, PageNumber = 1, PageSize = 1 });
 
         // Act
         var result = await _handler.Handle(new DeleteLotRequest { Id = 1 }, default);

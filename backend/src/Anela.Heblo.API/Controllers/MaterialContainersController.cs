@@ -22,15 +22,15 @@ public class MaterialContainersController : BaseApiController
 
     [HttpGet]
     public async Task<ActionResult<ListMaterialContainersResponse>> GetMaterialContainers(
-        [FromQuery] int? lotId,
         [FromQuery] string? materialCode,
+        [FromQuery] string? lotCode,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var request = new ListMaterialContainersRequest { LotId = lotId, MaterialCode = materialCode, Page = page, PageSize = pageSize };
-        var response = await _mediator.Send(request, cancellationToken);
-        return HandleResponse(response);
+        var request = new ListMaterialContainersRequest
+        { MaterialCode = materialCode, LotCode = lotCode, Page = page, PageSize = pageSize };
+        return HandleResponse(await _mediator.Send(request, cancellationToken));
     }
 
     [HttpGet("by-code/{code}")]

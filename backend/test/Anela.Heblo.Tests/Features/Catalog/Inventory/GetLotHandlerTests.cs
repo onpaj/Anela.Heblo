@@ -30,14 +30,14 @@ public class GetLotHandlerTests
         {
             Items = new List<MaterialContainer>
             {
-                new MaterialContainer("INT-00000001", 1, 25m, "kg", "user"),
-                new MaterialContainer("INT-00000002", 1, 25m, "kg", "user")
+                new MaterialContainer("INT-00000001", "MAT001", "LOT-A", 25m, "kg", "user"),
+                new MaterialContainer("INT-00000002", "MAT001", "LOT-A", 25m, "kg", "user")
             },
             TotalCount = 2,
             PageNumber = 1,
             PageSize = 100
         };
-        _containerRepo.Setup(r => r.GetPaginatedAsync(1, null, 1, 100, default)).ReturnsAsync(containers);
+        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "LOT-A", 1, 100, default)).ReturnsAsync(containers);
 
         // Act
         var result = await _handler.Handle(new GetLotRequest { Id = 1 }, default);

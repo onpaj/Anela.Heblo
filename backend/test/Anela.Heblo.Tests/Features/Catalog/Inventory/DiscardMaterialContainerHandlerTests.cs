@@ -21,7 +21,7 @@ public class DiscardMaterialContainerHandlerTests
     public async Task Handle_ExistingContainer_DeletesSuccessfully()
     {
         // Arrange
-        var container = new MaterialContainer("INT-00000001", 1, 25m, "kg", "user");
+        var container = new MaterialContainer("INT-00000001", "MAT001", "L1", 25m, "kg", "user");
         _containerRepo.Setup(r => r.GetByIdAsync(1, default)).ReturnsAsync(container);
 
         // Act

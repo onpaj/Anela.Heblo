@@ -27,7 +27,9 @@ public class DeleteLotHandler : IRequestHandler<DeleteLotRequest, DeleteLotRespo
             return new DeleteLotResponse(ErrorCodes.LotNotFound, new Dictionary<string, string> { { "Id", request.Id.ToString() } });
         }
 
-        if (await _materialContainerRepository.AnyByLotIdAsync(request.Id, cancellationToken))
+        var containers = await _materialContainerRepository.GetPaginatedAsync(
+            lot.MaterialCode, lot.LotCode, page: 1, pageSize: 1, cancellationToken);
+        if (containers.TotalCount > 0)
         {
             _logger.LogWarning("Cannot delete lot {Id} — it still has MaterialContainers", request.Id);
             return new DeleteLotResponse(ErrorCodes.LotHasEans, new Dictionary<string, string> { { "Id", request.Id.ToString() } });

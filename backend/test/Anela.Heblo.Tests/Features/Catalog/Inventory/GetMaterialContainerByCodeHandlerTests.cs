@@ -10,22 +10,19 @@ namespace Anela.Heblo.Tests.Features.Catalog.Inventory;
 public class GetMaterialContainerByCodeHandlerTests
 {
     private readonly Mock<IMaterialContainerRepository> _containerRepo = new();
-    private readonly Mock<ILotRepository> _lotRepo = new();
     private readonly GetMaterialContainerByCodeHandler _handler;
 
     public GetMaterialContainerByCodeHandlerTests()
     {
-        _handler = new GetMaterialContainerByCodeHandler(NullLogger<GetMaterialContainerByCodeHandler>.Instance, _containerRepo.Object, _lotRepo.Object);
+        _handler = new GetMaterialContainerByCodeHandler(NullLogger<GetMaterialContainerByCodeHandler>.Instance, _containerRepo.Object);
     }
 
     [Fact]
-    public async Task Handle_ExistingCode_ReturnsContainerWithLot()
+    public async Task Handle_ExistingCode_ReturnsContainerWithMaterialAndLotCodes()
     {
         // Arrange
-        var container = new MaterialContainer("INT-00000001", 1, 25m, "kg", "user");
-        var lot = new Lot("MAT001", "L1", new DateOnly(2027, 6, 1), DateOnly.FromDateTime(DateTime.Today), null, "user");
+        var container = new MaterialContainer("INT-00000001", "MAT001", "L1", 25m, "kg", "user");
         _containerRepo.Setup(r => r.GetByCodeAsync("INT-00000001", default)).ReturnsAsync(container);
-        _lotRepo.Setup(r => r.GetByIdAsync(1, default)).ReturnsAsync(lot);
 
         // Act
         var result = await _handler.Handle(new GetMaterialContainerByCodeRequest { Code = "INT-00000001" }, default);
@@ -33,7 +30,8 @@ public class GetMaterialContainerByCodeHandlerTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal("INT-00000001", result.Container.Code);
-        Assert.Equal("MAT001", result.Lot.MaterialCode);
+        Assert.Equal("MAT001", result.Container.MaterialCode);
+        Assert.Equal("L1", result.Container.LotCode);
     }
 
     [Fact]

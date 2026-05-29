@@ -9,39 +9,21 @@ public class MaterialContainerRepository : BaseRepository<MaterialContainer, int
 {
     public MaterialContainerRepository(ApplicationDbContext context) : base(context) { }
 
-    public async Task<MaterialContainer?> GetByCodeAsync(string code, CancellationToken ct)
-    {
-        return await DbSet.FirstOrDefaultAsync(x => x.Code == code, ct);
-    }
-
-    public async Task<bool> AnyByLotIdAsync(int lotId, CancellationToken ct)
-    {
-        return await DbSet.AnyAsync(x => x.LotId == lotId, ct);
-    }
+    public Task<MaterialContainer?> GetByCodeAsync(string code, CancellationToken ct)
+        => DbSet.FirstOrDefaultAsync(x => x.Code == code, ct);
 
     public async Task<PagedResult<MaterialContainer>> GetPaginatedAsync(
-        int? lotId,
-        string? materialCode,
-        int page,
-        int pageSize,
-        CancellationToken ct)
+        string? materialCode, string? lotCode, int page, int pageSize, CancellationToken ct)
     {
         var query = DbSet.AsQueryable();
 
-        if (lotId.HasValue)
-            query = query.Where(x => x.LotId == lotId.Value);
-
         if (!string.IsNullOrWhiteSpace(materialCode))
-        {
-            var lotIds = await Context.Set<Lot>()
-                .Where(l => l.MaterialCode == materialCode)
-                .Select(l => l.Id)
-                .ToListAsync(ct);
-            query = query.Where(x => lotIds.Contains(x.LotId));
-        }
+            query = query.Where(x => x.MaterialCode == materialCode);
+
+        if (!string.IsNullOrWhiteSpace(lotCode))
+            query = query.Where(x => x.LotCode == lotCode);
 
         var totalCount = await query.CountAsync(ct);
-
         var items = await query
             .OrderByDescending(x => x.Id)
             .Skip((page - 1) * pageSize)
@@ -55,5 +37,14 @@ public class MaterialContainerRepository : BaseRepository<MaterialContainer, int
             PageNumber = page,
             PageSize = pageSize
         };
+    }
+
+    public async Task<string?> GetLastUsedLotCodeForMaterialAsync(string materialCode, CancellationToken ct)
+    {
+        return await DbSet
+            .Where(x => x.MaterialCode == materialCode)
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(x => x.LotCode)
+            .FirstOrDefaultAsync(ct);
     }
 }

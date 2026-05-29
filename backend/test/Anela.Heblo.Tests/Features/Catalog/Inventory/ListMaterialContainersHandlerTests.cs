@@ -18,20 +18,20 @@ public class ListMaterialContainersHandlerTests
     }
 
     [Fact]
-    public async Task Handle_FilterByLotId_DelegatesToRepository()
+    public async Task Handle_FilterByMaterialCodeAndLotCode_DelegatesToRepository()
     {
         // Arrange
         var paged = new PagedResult<MaterialContainer>
         {
-            Items = new List<MaterialContainer> { new MaterialContainer("INT-00000001", 5, 25m, "kg", "user") },
+            Items = new List<MaterialContainer> { new MaterialContainer("INT-00000001", "MAT001", "L1", 25m, "kg", "user") },
             TotalCount = 1,
             PageNumber = 1,
             PageSize = 20
         };
-        _containerRepo.Setup(r => r.GetPaginatedAsync(5, null, 1, 20, default)).ReturnsAsync(paged);
+        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "L1", 1, 20, default)).ReturnsAsync(paged);
 
         // Act
-        var result = await _handler.Handle(new ListMaterialContainersRequest { LotId = 5, Page = 1, PageSize = 20 }, default);
+        var result = await _handler.Handle(new ListMaterialContainersRequest { MaterialCode = "MAT001", LotCode = "L1", Page = 1, PageSize = 20 }, default);
 
         // Assert
         Assert.True(result.Success);
