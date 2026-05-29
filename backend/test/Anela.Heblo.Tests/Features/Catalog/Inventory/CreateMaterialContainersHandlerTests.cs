@@ -85,6 +85,36 @@ public class CreateMaterialContainersHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ItemWithoutAmountOrUnit_CreatesContainer()
+    {
+        // Arrange
+        _generator.Setup(g => g.GenerateAsync(1, default))
+            .ReturnsAsync(new List<string> { "INT-00000001" }.AsReadOnly() as IReadOnlyList<string>);
+        List<MaterialContainer>? captured = null;
+        _containerRepo.Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default))
+            .Callback<IEnumerable<MaterialContainer>, CancellationToken>((items, _) => captured = items.ToList())
+            .ReturnsAsync((IEnumerable<MaterialContainer> items, CancellationToken _) => items);
+        _containerRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(1);
+
+        var request = new CreateMaterialContainersRequest
+        {
+            Items = new List<CreateMaterialContainerItem>
+            {
+                new() { MaterialCode = "MAT001", LotCode = "L1" } // No Amount, no Unit
+            }
+        };
+
+        // Act
+        var result = await _handler.Handle(request, default);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.NotNull(captured);
+        Assert.Null(captured[0].Amount);
+        Assert.Null(captured[0].Unit);
+    }
+
+    [Fact]
     public async Task Handle_ValidRequest_PersistsMaterialCodeAndLotCodeStrings()
     {
         // Arrange

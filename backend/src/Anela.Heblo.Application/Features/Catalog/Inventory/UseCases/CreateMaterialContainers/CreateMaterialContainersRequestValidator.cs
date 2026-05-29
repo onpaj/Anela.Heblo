@@ -12,8 +12,8 @@ public class CreateMaterialContainersRequestValidator : AbstractValidator<Create
         {
             item.RuleFor(i => i.MaterialCode).NotEmpty().MaximumLength(InventoryConstants.MaterialCodeMaxLength);
             item.RuleFor(i => i.LotCode).NotEmpty().MaximumLength(InventoryConstants.LotCodeMaxLength);
-            item.RuleFor(i => i.Amount).GreaterThan(0).WithMessage("Amount must be positive.");
-            item.RuleFor(i => i.Unit).NotEmpty().MaximumLength(InventoryConstants.UnitMaxLength);
+            item.RuleFor(i => i.Amount).GreaterThan(0).When(i => i.Amount.HasValue);
+            item.RuleFor(i => i.Unit).NotEmpty().MaximumLength(InventoryConstants.UnitMaxLength).When(i => i.Unit != null);
         });
     }
 }

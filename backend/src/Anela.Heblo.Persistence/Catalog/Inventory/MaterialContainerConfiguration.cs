@@ -25,11 +25,9 @@ public class MaterialContainerConfiguration : IEntityTypeConfiguration<MaterialC
             .HasMaxLength(100);
 
         builder.Property(x => x.Amount)
-            .IsRequired()
             .HasPrecision(18, 4);
 
         builder.Property(x => x.Unit)
-            .IsRequired()
             .HasMaxLength(20);
 
         builder.Property(x => x.CreatedAt)
