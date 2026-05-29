@@ -8,7 +8,8 @@ public class MaterialContainer : IEntity<int>
 
     public MaterialContainer(
         string code, string materialCode, string lotCode,
-        decimal? amount, string? unit, string createdBy)
+        decimal? amount, string? unit, string createdBy,
+        int? purchaseOrderLineId = null)
     {
         if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Code is required.", nameof(code));
         if (string.IsNullOrWhiteSpace(materialCode)) throw new ArgumentException("MaterialCode is required.", nameof(materialCode));
@@ -25,6 +26,7 @@ public class MaterialContainer : IEntity<int>
         CreatedAt = DateTime.UtcNow;
         CreatedBy = createdBy;
         Status = MaterialContainerStatus.Assigned;
+        PurchaseOrderLineId = purchaseOrderLineId;
     }
 
     public int Id { get; private set; }
@@ -38,6 +40,7 @@ public class MaterialContainer : IEntity<int>
     public string CreatedBy { get; private set; } = null!;
     public DateTime? UpdatedAt { get; private set; }
     public string? UpdatedBy { get; private set; }
+    public int? PurchaseOrderLineId { get; private set; }
 
     public void Discard(string updatedBy)
     {

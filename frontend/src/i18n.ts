@@ -98,6 +98,8 @@ const resources = {
         InvalidSupplier: "Neplatný dodavatel: {supplierName}",
         PurchaseOrderUpdateFailed:
           "Aktualizace objednávky {orderNumber} selhala: {message}",
+        PurchaseOrderLineNotFound:
+          "Řádek objednávky {PurchaseOrderLineId} neexistuje",
 
         // Manufacture module errors
         ManufacturingDataNotAvailable:

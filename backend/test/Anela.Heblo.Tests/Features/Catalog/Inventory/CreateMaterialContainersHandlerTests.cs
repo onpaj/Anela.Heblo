@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateMaterialContainers;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
+using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -12,6 +13,7 @@ public class CreateMaterialContainersHandlerTests
     private readonly Mock<IMaterialContainerRepository> _containerRepo = new();
     private readonly Mock<IMaterialContainerCodeGenerator> _generator = new();
     private readonly Mock<ICurrentUserService> _currentUser = new();
+    private readonly Mock<IPurchaseOrderRepository> _poRepo = new();
     private readonly CreateMaterialContainersHandler _handler;
 
     public CreateMaterialContainersHandlerTests()
@@ -22,7 +24,8 @@ public class CreateMaterialContainersHandlerTests
             NullLogger<CreateMaterialContainersHandler>.Instance,
             _containerRepo.Object,
             _generator.Object,
-            _currentUser.Object);
+            _currentUser.Object,
+            _poRepo.Object);
     }
 
     [Fact]
@@ -142,5 +145,83 @@ public class CreateMaterialContainersHandlerTests
         Assert.NotNull(captured);
         Assert.Equal("MAT001", captured[0].MaterialCode);
         Assert.Equal("SUPP-LOT-2026-04", captured[0].LotCode);
+    }
+
+    [Fact]
+    public async Task Handle_ItemWithPurchaseOrderLineId_PersistsLink()
+    {
+        // Arrange
+        var line = new PurchaseOrderLine(1, "MAT001", "Material One", 10m, 5m, null);
+        _poRepo.Setup(r => r.GetLineByIdAsync(42, default)).ReturnsAsync(line);
+        _generator.Setup(g => g.GenerateAsync(1, default))
+            .ReturnsAsync(new List<string> { "INT-00000001" }.AsReadOnly() as IReadOnlyList<string>);
+        List<MaterialContainer>? captured = null;
+        _containerRepo.Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default))
+            .Callback<IEnumerable<MaterialContainer>, CancellationToken>((items, _) => captured = items.ToList())
+            .ReturnsAsync((IEnumerable<MaterialContainer> items, CancellationToken _) => items);
+        _containerRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(1);
+
+        var request = new CreateMaterialContainersRequest
+        {
+            Items = new List<CreateMaterialContainerItem>
+            {
+                new() { MaterialCode = "MAT001", LotCode = "L1", PurchaseOrderLineId = 42 }
+            }
+        };
+
+        // Act
+        var result = await _handler.Handle(request, default);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(42, captured![0].PurchaseOrderLineId);
+    }
+
+    [Fact]
+    public async Task Handle_ItemWithNonExistentPurchaseOrderLineId_ReturnsError()
+    {
+        // Arrange
+        _poRepo.Setup(r => r.GetLineByIdAsync(99, default)).ReturnsAsync((PurchaseOrderLine?)null);
+
+        var request = new CreateMaterialContainersRequest
+        {
+            Items = new List<CreateMaterialContainerItem>
+            {
+                new() { MaterialCode = "MAT001", LotCode = "L1", PurchaseOrderLineId = 99 }
+            }
+        };
+
+        // Act
+        var result = await _handler.Handle(request, default);
+
+        // Assert
+        Assert.False(result.Success);
+        _containerRepo.Verify(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ItemWithNoPurchaseOrderLineId_DoesNotValidatePo()
+    {
+        // Arrange
+        _generator.Setup(g => g.GenerateAsync(1, default))
+            .ReturnsAsync(new List<string> { "INT-00000001" }.AsReadOnly() as IReadOnlyList<string>);
+        _containerRepo.Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default))
+            .ReturnsAsync((IEnumerable<MaterialContainer> items, CancellationToken _) => items);
+        _containerRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(1);
+
+        var request = new CreateMaterialContainersRequest
+        {
+            Items = new List<CreateMaterialContainerItem>
+            {
+                new() { MaterialCode = "MAT001", LotCode = "L1" }
+            }
+        };
+
+        // Act
+        var result = await _handler.Handle(request, default);
+
+        // Assert
+        Assert.True(result.Success);
+        _poRepo.Verify(r => r.GetLineByIdAsync(It.IsAny<int>(), default), Times.Never);
     }
 }

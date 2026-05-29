@@ -10,4 +10,5 @@ public class MaterialContainerDto
     public string? Unit { get; set; }
     public DateTime CreatedAt { get; set; }
     public string CreatedBy { get; set; } = null!;
+    public int? PurchaseOrderLineId { get; set; }
 }

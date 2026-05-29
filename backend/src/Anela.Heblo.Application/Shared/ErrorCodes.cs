@@ -63,6 +63,8 @@ public enum ErrorCodes
     InvalidSupplier = 1106,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     PurchaseOrderUpdateFailed = 1107,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PurchaseOrderLineNotFound = 1108,
 
     // Manufacture module errors (12XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

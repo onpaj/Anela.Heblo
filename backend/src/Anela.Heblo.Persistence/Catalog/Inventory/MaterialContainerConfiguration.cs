@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
+using Anela.Heblo.Domain.Features.Purchase;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -45,6 +46,17 @@ public class MaterialContainerConfiguration : IEntityTypeConfiguration<MaterialC
             .HasMaxLength(100);
 
         builder.Property(x => x.Status).IsRequired().HasConversion<int>();
+
+        builder.Property(x => x.PurchaseOrderLineId);
+
+        builder.HasOne<PurchaseOrderLine>()
+            .WithMany()
+            .HasForeignKey(x => x.PurchaseOrderLineId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("FK_MaterialContainers_PurchaseOrderLines_PurchaseOrderLineId");
+
+        builder.HasIndex(x => x.PurchaseOrderLineId)
+            .HasDatabaseName("IX_MaterialContainers_PurchaseOrderLineId");
 
         builder.HasIndex(x => x.Code)
             .IsUnique()

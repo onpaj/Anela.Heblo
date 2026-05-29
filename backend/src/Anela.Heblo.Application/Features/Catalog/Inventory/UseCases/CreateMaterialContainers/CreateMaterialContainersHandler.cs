@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Catalog.Inventory.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
+using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -13,29 +14,43 @@ public class CreateMaterialContainersHandler : IRequestHandler<CreateMaterialCon
     private readonly IMaterialContainerRepository _containerRepository;
     private readonly IMaterialContainerCodeGenerator _codeGenerator;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IPurchaseOrderRepository _purchaseOrderRepository;
 
     public CreateMaterialContainersHandler(
         ILogger<CreateMaterialContainersHandler> logger,
         IMaterialContainerRepository containerRepository,
         IMaterialContainerCodeGenerator codeGenerator,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IPurchaseOrderRepository purchaseOrderRepository)
     {
         _logger = logger;
         _containerRepository = containerRepository;
         _codeGenerator = codeGenerator;
         _currentUserService = currentUserService;
+        _purchaseOrderRepository = purchaseOrderRepository;
     }
 
     public async Task<CreateMaterialContainersResponse> Handle(
         CreateMaterialContainersRequest request, CancellationToken cancellationToken)
     {
+        foreach (var item in request.Items.Where(i => i.PurchaseOrderLineId.HasValue))
+        {
+            var line = await _purchaseOrderRepository.GetLineByIdAsync(item.PurchaseOrderLineId!.Value, cancellationToken);
+            if (line == null)
+            {
+                return new CreateMaterialContainersResponse(
+                    ErrorCodes.PurchaseOrderLineNotFound,
+                    new Dictionary<string, string> { { "PurchaseOrderLineId", item.PurchaseOrderLineId.Value.ToString() } });
+            }
+        }
+
         var currentUser = _currentUserService.GetCurrentUser();
         var createdBy = currentUser.Name ?? "System";
 
         var codes = await _codeGenerator.GenerateAsync(request.Items.Count, cancellationToken);
         var containers = request.Items
             .Select((item, i) => new MaterialContainer(
-                codes[i], item.MaterialCode, item.LotCode, item.Amount, item.Unit, createdBy))
+                codes[i], item.MaterialCode, item.LotCode, item.Amount, item.Unit, createdBy, item.PurchaseOrderLineId))
             .ToList();
 
         await _containerRepository.AddRangeAsync(containers, cancellationToken);
@@ -58,6 +73,7 @@ public class CreateMaterialContainersHandler : IRequestHandler<CreateMaterialCon
         Amount = c.Amount,
         Unit = c.Unit,
         CreatedAt = c.CreatedAt,
-        CreatedBy = c.CreatedBy
+        CreatedBy = c.CreatedBy,
+        PurchaseOrderLineId = c.PurchaseOrderLineId
     };
 }
