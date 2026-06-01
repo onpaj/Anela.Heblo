@@ -37,6 +37,7 @@ public class ListMaterialContainersHandlerTests
         Assert.True(result.Success);
         Assert.Equal(1, result.TotalCount);
         Assert.Single(result.Containers);
+        _containerRepo.Verify(r => r.GetPaginatedAsync("MAT001", "L1", null, 1, 20, default), Times.Once);
     }
 
     [Fact]
