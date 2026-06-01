@@ -1,9 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -18,7 +16,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
     private readonly IMediator _mediator;
     private readonly ILogger<ChangeTransportBoxStateHandler> _logger;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IStockUpProcessingService _stockUpProcessingService;
+    private readonly ILogisticsStockOperationService _stockOperationService;
     private readonly TimeProvider _timeProvider;
 
 
@@ -43,7 +41,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
         IMediator mediator,
         ILogger<ChangeTransportBoxStateHandler> logger,
         ICurrentUserService currentUserService,
-        IStockUpProcessingService stockUpProcessingService,
+        ILogisticsStockOperationService stockOperationService,
         TimeProvider timeProvider)
     {
         _repository = repository;
@@ -51,7 +49,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
         _mediator = mediator;
         _logger = logger;
         _currentUserService = currentUserService;
-        _stockUpProcessingService = stockUpProcessingService;
+        _stockOperationService = stockOperationService;
         _timeProvider = timeProvider;
     }
 
@@ -245,11 +243,11 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
         {
             var documentNumber = $"BOX-{box.Id:000000}-{group.ProductCode}";
 
-            await _stockUpProcessingService.CreateOperationAsync(
+            await _stockOperationService.CreateOperationAsync(
                 documentNumber,
                 group.ProductCode,
                 group.Amount,
-                StockUpSourceType.TransportBox,
+                LogisticsStockOperationSource.TransportBox,
                 box.Id,
                 cancellationToken);
 
