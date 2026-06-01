@@ -103,8 +103,10 @@ public class GetUserSettingsHandlerTests
         _repositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync((UserDashboardSettings?)null);
+        UserDashboardSettings? capturedSettings = null;
         _repositoryMock
             .Setup(x => x.AddAsync(It.IsAny<UserDashboardSettings>()))
+            .Callback<UserDashboardSettings>(s => capturedSettings = s)
             .ReturnsAsync((UserDashboardSettings s) => s);
 
         // Act
@@ -121,6 +123,10 @@ public class GetUserSettingsHandlerTests
         tiles[1].TileId.Should().Be("auto2");
         tiles[1].IsVisible.Should().BeTrue();
         tiles[1].DisplayOrder.Should().Be(1);
+
+        capturedSettings.Should().NotBeNull();
+        capturedSettings!.LastModified.Should().Be(FixedUtcNow);
+        capturedSettings.Tiles.Should().AllSatisfy(t => t.LastModified.Should().Be(FixedUtcNow));
 
         _repositoryMock.Verify(x => x.AddAsync(It.Is<UserDashboardSettings>(s =>
             s.UserId == userId &&
@@ -197,6 +203,11 @@ public class GetUserSettingsHandlerTests
             .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync(existingSettings);
 
+        UserDashboardSettings? capturedUpdate = null;
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<UserDashboardSettings>()))
+            .Callback<UserDashboardSettings>(s => capturedUpdate = s);
+
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
@@ -207,6 +218,12 @@ public class GetUserSettingsHandlerTests
         newTile.Should().NotBeNull();
         newTile!.IsVisible.Should().BeTrue();
         newTile.DisplayOrder.Should().Be(2); // appended after max order 1
+
+        capturedUpdate.Should().NotBeNull();
+        capturedUpdate!.LastModified.Should().Be(FixedUtcNow);
+        var backfilledTile = capturedUpdate.Tiles.FirstOrDefault(t => t.TileId == "newautoshow");
+        backfilledTile.Should().NotBeNull();
+        backfilledTile!.LastModified.Should().Be(FixedUtcNow);
 
         _repositoryMock.Verify(x => x.UpdateAsync(existingSettings), Times.Once);
         _repositoryMock.Verify(x => x.AddAsync(It.IsAny<UserDashboardSettings>()), Times.Never);
@@ -239,7 +256,7 @@ public class GetUserSettingsHandlerTests
         return new UserDashboardSettings
         {
             UserId = userId,
-            LastModified = DateTime.UtcNow.AddHours(-1),
+            LastModified = FixedUtcNow.AddHours(-1),
             Tiles = new List<UserDashboardTile>
             {
                 new()
@@ -248,7 +265,7 @@ public class GetUserSettingsHandlerTests
                     TileId = "auto1",
                     IsVisible = true,
                     DisplayOrder = 0,
-                    LastModified = DateTime.UtcNow.AddHours(-2)
+                    LastModified = FixedUtcNow.AddHours(-2)
                 },
                 new()
                 {
@@ -256,7 +273,7 @@ public class GetUserSettingsHandlerTests
                     TileId = "auto2",
                     IsVisible = false,
                     DisplayOrder = 1,
-                    LastModified = DateTime.UtcNow.AddHours(-2)
+                    LastModified = FixedUtcNow.AddHours(-2)
                 }
             }
         };
