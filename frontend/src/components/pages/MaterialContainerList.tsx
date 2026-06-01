@@ -3,6 +3,7 @@ import { Search, Filter, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 
 import {
   useMaterialContainersList,
   MaterialContainersListRequest,
+  usePrintMaterialContainerLabels,
 } from "../../api/hooks/useMaterialContainers";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useScreenView } from "../../telemetry/useScreenView";
@@ -29,6 +30,10 @@ const MaterialContainerList: React.FC = () => {
 
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+
+  const [showPrint, setShowPrint] = useState(false);
+  const [qty, setQty] = useState(10);
+  const printLabels = usePrintMaterialContainerLabels();
 
   useScreenView("Manufacturing", "MaterialContainers");
 
@@ -107,6 +112,41 @@ const MaterialContainerList: React.FC = () => {
     <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
       <div className="flex-shrink-0 mb-3 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-gray-900">Šarže</h1>
+        <div className="flex items-center gap-2">
+          {showPrint && (
+            <>
+              <input
+                type="number"
+                min={1}
+                max={200}
+                value={qty}
+                onChange={(e) => setQty(Number(e.target.value))}
+                className="w-20 border border-gray-300 rounded-md px-2 py-1 text-sm"
+                aria-label="Počet štítků"
+              />
+              <button
+                type="button"
+                disabled={printLabels.isPending || qty < 1 || qty > 200}
+                onClick={() =>
+                  printLabels.mutate(
+                    { count: qty },
+                    { onSuccess: () => setShowPrint(false) },
+                  )
+                }
+                className="bg-green-600 hover:bg-green-700 text-white font-medium py-1.5 px-3 rounded-md text-sm disabled:opacity-50"
+              >
+                {printLabels.isPending ? "Tisknu…" : `Vytisknout ${qty}`}
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowPrint((v) => !v)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1.5 px-4 rounded-md text-sm"
+          >
+            Tisk štítků
+          </button>
+        </div>
       </div>
 
       <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
@@ -179,6 +219,7 @@ const MaterialContainerList: React.FC = () => {
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kód kontejneru</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stav</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Materiál</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Šarže</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Množství</th>
@@ -190,6 +231,7 @@ const MaterialContainerList: React.FC = () => {
               {containers.map((container) => (
                 <tr key={container.id} className="hover:bg-gray-50 transition-colors duration-150">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{container.code}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{container.status}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{container.materialCode}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{container.lotCode}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatAmount(container.amount, container.unit)}</td>
