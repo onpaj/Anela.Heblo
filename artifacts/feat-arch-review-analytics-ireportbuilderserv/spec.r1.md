@@ -1,165 +1,182 @@
 # Specification: Decouple IReportBuilderService from UseCase Response Types
 
 ## Summary
-The `IReportBuilderService` interface in `Features/Analytics/Services/` currently returns nested classes defined inside two specific UseCase response objects, inverting the intended dependency direction (Services should be depended on by UseCases, not the other way around). This refactor introduces neutral DTOs in `Features/Analytics/Contracts/`, updates the service interface and implementation to use them, and adds one-line projections inside each UseCase handler. Behavior, response shapes, API contracts, and tests semantics remain unchanged.
+Refactor `IReportBuilderService` so it no longer returns types nested inside specific use-case response classes. Introduce dedicated contract DTOs under `Features/Analytics/Contracts/` and have use-case handlers project from these contract types to their own response shapes. This restores the correct dependency direction (UseCases → Services → Contracts) and unblocks reuse of the report-building logic by future use cases.
 
 ## Background
-Per `docs/architecture/filesystem.md` and `docs/architecture/development_guidelines.md`, the `Services/` folder holds domain services and business logic shared across use cases, while `UseCases/` contains per-request handlers with their request/response shapes. The `Contracts/` folder is the canonical home for shared DTOs (it already contains `AnalysisMarginData`, `TopProductDto`, `MonthlyProductMarginDto`, `ProductMarginSegmentDto`).
+`backend/src/Anela.Heblo.Application/Features/Analytics/Services/ReportBuilderService.cs` currently declares an interface whose method signatures reference nested types from two specific use cases:
 
-Today, `backend/src/Anela.Heblo.Application/Features/Analytics/Services/ReportBuilderService.cs` imports `Features.Analytics.UseCases.GetMarginReport` and `Features.Analytics.UseCases.GetProductMarginAnalysis` and references three nested types on those responses:
+- `GetProductMarginAnalysisResponse.MonthlyMarginBreakdown` (from `UseCases/GetProductMarginAnalysis/`)
+- `GetMarginReportResponse.CategoryMarginSummary` (from `UseCases/GetMarginReport/`)
+- `GetMarginReportResponse.ProductMarginSummary` (from `UseCases/GetMarginReport/`)
 
-- `GetProductMarginAnalysisResponse.MonthlyMarginBreakdown`
-- `GetMarginReportResponse.CategoryMarginSummary`
-- `GetMarginReportResponse.ProductMarginSummary`
+Per `docs/architecture/filesystem.md` and `docs/architecture/development_guidelines.md`:
+- `Services/` houses domain services and shared business logic.
+- `UseCases/` houses per-request handlers with request/response shapes scoped to that use case.
+- `Contracts/` is the home for DTOs shared across use cases (e.g., `AnalysisMarginData`, `TopProductDto`, `MonthlyProductMarginDto`).
 
-This produces three concrete problems:
-1. The `Services` namespace has a compile-time dependency on `UseCases` — the wrong direction.
-2. A future use case that needs the same computation cannot consume the service without taking a semantically-wrong type name from an unrelated use case.
-3. Renaming or restructuring either response forces a change to the shared service.
+The current shape violates this layering by making a shared service depend on use-case-specific types. Consequences:
 
-This refactor was filed by the daily arch-review routine on 2026-05-27.
+1. **Inverted dependencies** — `Services/` references `UseCases/` types at compile time, breaking the inward-pointing dependency rule.
+2. **Semantic mismatch for new callers** — Any future use case (e.g., a margin export, scheduled job, dashboard widget) needing the same calculation must accept a type named after `GetProductMarginAnalysisResponse`, which is misleading.
+3. **Fragility** — Renaming or restructuring either response class forces a change to the shared service interface and implementation.
+4. **OCP violation** — The service is closed to extension for new callers needing the same computations with different response shapes.
+
+This finding was raised by the daily architecture-review routine on 2026-05-27.
 
 ## Functional Requirements
 
-### FR-1: Introduce shared contract DTOs
-Add three new public classes (not records — per the project rule that DTOs must be classes) in `backend/src/Anela.Heblo.Application/Features/Analytics/Contracts/`, each in its own file:
+### FR-1: New shared DTOs in the Contracts layer
+Introduce three new DTOs under `backend/src/Anela.Heblo.Application/Features/Analytics/Contracts/`:
 
 - `MonthlyMarginBreakdownDto.cs`
 - `CategoryMarginSummaryDto.cs`
 - `ProductMarginSummaryDto.cs`
 
-Field shapes mirror the existing nested types exactly (same names, same types, same defaults).
+Each DTO must mirror the **public surface** of the existing nested type it replaces (same property names, types, and defaults) so consumer-side projection is field-for-field.
+
+The DTOs must be `class` (not `record`), per the project rule that DTOs visible to the OpenAPI surface must be classes. Even though these contracts are server-internal today, keeping them as classes preserves the option to expose them later without breaking the OpenAPI generator.
 
 **Acceptance criteria:**
-- File `Contracts/MonthlyMarginBreakdownDto.cs` exists with public class `MonthlyMarginBreakdownDto` containing exactly: `DateTime Month`, `decimal MarginAmount`, `decimal Revenue`, `decimal Cost`, `int UnitsSold`.
-- File `Contracts/CategoryMarginSummaryDto.cs` exists with public class `CategoryMarginSummaryDto` containing exactly: `string Category` (default `string.Empty`), `decimal TotalMargin`, `decimal TotalRevenue`, `decimal AverageMarginPercentage`, `int ProductCount`, `int TotalUnitsSold`.
-- File `Contracts/ProductMarginSummaryDto.cs` exists with public class `ProductMarginSummaryDto` containing exactly the 15 properties present today on `GetMarginReportResponse.ProductMarginSummary` (`ProductId`, `ProductName`, `Category`, `MarginAmount`, `M0Amount`, `M1Amount`, `M2Amount`, `M0Percentage`, `M1Percentage`, `M2Percentage`, `SellingPrice`, `PurchasePrice`, `MarginPercentage`, `Revenue`, `Cost`, `UnitsSold`) with identical types and string defaults.
-- Namespace of all three is `Anela.Heblo.Application.Features.Analytics.Contracts`.
-- All three classes compile and are publicly accessible.
+- Files exist at the paths above.
+- Each DTO has the exact properties (name, type, default initializer) of the corresponding nested class.
+- DTOs are declared as `public class` with public get/set properties.
+- DTOs have no behavior beyond auto-properties.
+- No `using` statements that import from `Features/Analytics/UseCases/`.
 
-### FR-2: Update `IReportBuilderService` to return Contract DTOs
-Change the interface in `backend/src/Anela.Heblo.Application/Features/Analytics/Services/ReportBuilderService.cs` so that signatures reference only `Contracts/` and `Domain/` types — no `UseCases/` imports remain.
+### FR-2: Updated IReportBuilderService interface
+Change `IReportBuilderService` so all methods return the new contract DTOs:
 
-**Acceptance criteria:**
-- `BuildMonthlyBreakdown(...)` returns `List<MonthlyMarginBreakdownDto>`.
-- `BuildCategorySummaries(...)` returns `List<CategoryMarginSummaryDto>`.
-- `BuildProductSummary(...)` returns `ProductMarginSummaryDto`.
-- File `Services/ReportBuilderService.cs` no longer contains any `using Anela.Heblo.Application.Features.Analytics.UseCases.*` directives.
-- The implementation constructs and returns the new DTOs with field-for-field copies of the values it currently produces — no logic changes to margin/revenue/cost computations or sort orders.
+```csharp
+public interface IReportBuilderService
+{
+    List<MonthlyMarginBreakdownDto> BuildMonthlyBreakdown(
+        List<SalesDataPoint> salesData,
+        AnalyticsProduct productData,
+        DateTime startDate,
+        DateTime endDate);
 
-### FR-3: Map Contract DTOs to UseCase response types in handlers
-Each call site in the two UseCase handlers must project from the new contract DTO to the existing nested response type so that public API/response shapes remain identical.
+    List<CategoryMarginSummaryDto> BuildCategorySummaries(
+        Dictionary<string, CategoryData> categoryTotals);
 
-Sites that must change:
-- `backend/src/Anela.Heblo.Application/Features/Analytics/UseCases/GetMarginReport/GetMarginReportHandler.cs` — calls to `BuildProductSummary` and `BuildCategorySummaries`, plus the internal `ReportData` class collections.
-- `backend/src/Anela.Heblo.Application/Features/Analytics/UseCases/GetProductMarginAnalysis/GetProductMarginAnalysisHandler.cs` — assignment of `response.MonthlyBreakdown` from `BuildMonthlyBreakdown`.
-
-**Acceptance criteria:**
-- Each call to a builder method is followed by (or wrapped in) a projection from `*Dto` to the corresponding nested response type via either object-initializer mapping or a small private static helper in the handler file.
-- `GetMarginReportHandler.ProductSummaries` (the response field) remains `List<GetMarginReportResponse.ProductMarginSummary>` and `CategorySummaries` remains `List<GetMarginReportResponse.CategoryMarginSummary>` — no public response shape changes.
-- `GetProductMarginAnalysisHandler.Response.MonthlyBreakdown` remains `List<GetProductMarginAnalysisResponse.MonthlyMarginBreakdown>`.
-- The internal helper class `ReportData` (defined at the bottom of `GetMarginReportHandler.cs`) is updated consistently: either it holds `*Dto` lists and the final response builder maps once at the end, or it continues to hold nested response types and the per-product mapping happens inside the loop. Implementer chooses whichever produces fewer mapping calls; both are acceptable as long as no public type leaks change.
-- The internal sort `OrderByDescending(p => p.M2Percentage)` in `GetMarginReportHandler.ProcessProductsForReport` continues to operate on objects that expose `M2Percentage` (works on either the DTO or the nested type since both have the property).
-
-### FR-4: Preserve all existing behavior
-The refactor is strictly mechanical. No business logic, validation, error handling, ordering, rounding, or response field semantics may change.
+    ProductMarginSummaryDto BuildProductSummary(
+        AnalyticsProduct product,
+        AnalysisMarginData marginData);
+}
+```
 
 **Acceptance criteria:**
-- `GetMarginReportHandlerTests.cs` passes without test edits to assertions about response contents.
-- `GetProductMarginAnalysisHandlerTests.cs` passes without test edits to assertions about response contents.
-- Any test that previously referenced `GetMarginReportResponse.ProductMarginSummary`, `GetMarginReportResponse.CategoryMarginSummary`, or `GetProductMarginAnalysisResponse.MonthlyMarginBreakdown` as the return type of an `IReportBuilderService` method must be updated to reference the new DTO type; assertion values remain identical.
-- `dotnet build` succeeds.
-- `dotnet format` reports no remaining changes.
-- No OpenAPI-generated TypeScript client diff outside of expected no-op (the response classes the API exposes do not change).
+- `IReportBuilderService` no longer references any type defined under `Features/Analytics/UseCases/`.
+- Method names, parameter lists, and parameter order are unchanged.
+- The interface compiles without using directives pointing to `UseCases/`.
 
-### FR-5: No DI / registration changes
-`ReportBuilderService` is registered the same way it is today in `AnalyticsModule.cs`. The service implementation class name and namespace do not change.
+### FR-3: Updated ReportBuilderService implementation
+Update the concrete `ReportBuilderService` class to:
+
+- Return the new contract DTOs.
+- Preserve all current calculation logic byte-for-byte (no behavioral changes to formulas, rounding, ordering, grouping, or filtering).
 
 **Acceptance criteria:**
-- `backend/src/Anela.Heblo.Application/Features/Analytics/AnalyticsModule.cs` is unchanged.
-- `IReportBuilderService` is still bound to `ReportBuilderService` with the same lifetime.
+- All existing unit tests for `ReportBuilderService` continue to pass after updating only the test assertions' return-type names (no logic changes in tests beyond the type swap).
+- No call to `new GetProductMarginAnalysisResponse.MonthlyMarginBreakdown(...)` etc. remains inside the service.
+- The service file contains no `using ...UseCases.GetProductMarginAnalysis` or `using ...UseCases.GetMarginReport` directives.
+
+### FR-4: Use-case handlers map contract DTOs to response types
+Each use-case handler that consumes `IReportBuilderService` must perform a local projection from the contract DTO to its own response's nested type:
+
+- `GetProductMarginAnalysisHandler` (or equivalent) maps `MonthlyMarginBreakdownDto` → `GetProductMarginAnalysisResponse.MonthlyMarginBreakdown`.
+- `GetMarginReportHandler` (or equivalent) maps `CategoryMarginSummaryDto` → `GetMarginReportResponse.CategoryMarginSummary` and `ProductMarginSummaryDto` → `GetMarginReportResponse.ProductMarginSummary`.
+
+The projection should be inline (LINQ `Select` or a private static mapping helper inside the handler file). Do **not** introduce a global mapper, AutoMapper profile, or shared mapping utility for this — projections are one-to-one and trivial.
+
+**Acceptance criteria:**
+- Each affected handler builds its response by projecting contract DTOs to nested response types.
+- Projection code is contained within the handler file or a private static method in the same file.
+- No new mapping library, profile, or shared mapper class is introduced.
+- The existing **response wire shape** (JSON shape returned to the client) is byte-for-byte identical to today.
+
+### FR-5: Preserve nested response types
+The nested types `GetProductMarginAnalysisResponse.MonthlyMarginBreakdown`, `GetMarginReportResponse.CategoryMarginSummary`, and `GetMarginReportResponse.ProductMarginSummary` must remain in place, unchanged. They are part of the use-case response contract and the OpenAPI-generated TypeScript client depends on them.
+
+**Acceptance criteria:**
+- The three nested classes exist with identical property signatures after the refactor.
+- The OpenAPI spec (`swagger.json`) emitted by the build is unchanged for the affected endpoints (verify by diff).
+- The auto-generated TypeScript client (`frontend/src/api/`) requires no code changes after regeneration.
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
-The change introduces at most one additional allocation per item already produced (the projection from DTO to nested response type). For the workloads in scope (single-product monthly breakdowns up to ~36 months; margin reports capped at `MaxProducts`), the overhead is negligible. No measurable regression in handler runtime is permitted (>5% would warrant investigation).
+- The added projection step is O(n) over the result list with no allocations beyond the new DTO instances themselves. No measurable degradation expected for margin endpoints (≤ a few hundred items per response in practice). No new performance budget — endpoint latency must remain within current observed range (±5%).
 
-### NFR-2: Architectural integrity
-After the refactor:
-- `Features/Analytics/Services/` contains zero references to `Features/Analytics/UseCases/`.
-- `Features/Analytics/Contracts/` contains zero references to `Features/Analytics/UseCases/`.
-- Dependency arrows point inward: `UseCases → Services → Contracts → Domain`.
+### NFR-2: Backward compatibility
+- HTTP response payloads for `GET` margin/margin-analysis endpoints must be byte-identical after the refactor (same field names, ordering, types, null handling).
+- No database schema changes.
+- No changes to the OpenAPI schema.
 
-### NFR-3: Code style
-- DTOs follow the existing style of `Contracts/TopProductDto.cs` (public class, no record, settable auto-properties, `string` defaults `= string.Empty`).
-- One DTO per file. File name matches class name.
-- No XML-doc comments are required (existing contract DTOs do not have them).
+### NFR-3: Code quality
+- `dotnet build` succeeds with zero warnings introduced by this change.
+- `dotnet format` produces no diff.
+- Existing analyzer rules (nullable, naming, etc.) are satisfied.
+
+### NFR-4: Test coverage
+- Existing unit tests for `ReportBuilderService` and the affected handlers continue to pass after updating type references.
+- No reduction in coverage percentage on touched files.
 
 ## Data Model
-No domain or database changes. Three new application-layer DTOs:
 
-| DTO | Mirrors | Fields |
+No persistence changes. New in-memory DTOs only:
+
+| Type | Location | Purpose |
 |---|---|---|
-| `MonthlyMarginBreakdownDto` | `GetProductMarginAnalysisResponse.MonthlyMarginBreakdown` | `Month`, `MarginAmount`, `Revenue`, `Cost`, `UnitsSold` |
-| `CategoryMarginSummaryDto` | `GetMarginReportResponse.CategoryMarginSummary` | `Category`, `TotalMargin`, `TotalRevenue`, `AverageMarginPercentage`, `ProductCount`, `TotalUnitsSold` |
-| `ProductMarginSummaryDto` | `GetMarginReportResponse.ProductMarginSummary` | `ProductId`, `ProductName`, `Category`, `MarginAmount`, `M0Amount`, `M1Amount`, `M2Amount`, `M0Percentage`, `M1Percentage`, `M2Percentage`, `SellingPrice`, `PurchasePrice`, `MarginPercentage`, `Revenue`, `Cost`, `UnitsSold` |
+| `MonthlyMarginBreakdownDto` | `Features/Analytics/Contracts/` | Output shape for `BuildMonthlyBreakdown` |
+| `CategoryMarginSummaryDto` | `Features/Analytics/Contracts/` | Output shape for `BuildCategorySummaries` |
+| `ProductMarginSummaryDto` | `Features/Analytics/Contracts/` | Output shape for `BuildProductSummary` |
 
-The existing nested response types remain on `GetMarginReportResponse` and `GetProductMarginAnalysisResponse` and continue to define the public HTTP/OpenAPI surface.
+Property sets mirror the existing nested classes one-for-one. Authoritative property definitions are the current nested types in `GetProductMarginAnalysisResponse` and `GetMarginReportResponse`; the new DTOs must be transcribed from those.
 
 ## API / Interface Design
 
-### Internal interface change
-```csharp
-// before
-public interface IReportBuilderService
-{
-    List<GetProductMarginAnalysisResponse.MonthlyMarginBreakdown> BuildMonthlyBreakdown(...);
-    List<GetMarginReportResponse.CategoryMarginSummary> BuildCategorySummaries(...);
-    GetMarginReportResponse.ProductMarginSummary BuildProductSummary(...);
-}
+**Internal interface change** (no public HTTP API change):
 
-// after
-public interface IReportBuilderService
-{
-    List<MonthlyMarginBreakdownDto> BuildMonthlyBreakdown(...);
-    List<CategoryMarginSummaryDto> BuildCategorySummaries(...);
-    ProductMarginSummaryDto BuildProductSummary(...);
-}
+Before:
+```csharp
+List<GetProductMarginAnalysisResponse.MonthlyMarginBreakdown> BuildMonthlyBreakdown(...);
+List<GetMarginReportResponse.CategoryMarginSummary>           BuildCategorySummaries(...);
+GetMarginReportResponse.ProductMarginSummary                   BuildProductSummary(...);
 ```
 
-### External HTTP API
-Unchanged. The MediatR responses `GetMarginReportResponse` and `GetProductMarginAnalysisResponse` retain their existing nested types and field shapes; OpenAPI spec is untouched.
-
-### Handler-side mapping pattern
-A simple object-initializer projection inside each handler. Example (illustrative, not normative):
-
+After:
 ```csharp
-var dto = _reportBuilderService.BuildProductSummary(product, marginData);
-var productSummary = new GetMarginReportResponse.ProductMarginSummary
-{
-    ProductId = dto.ProductId,
-    ProductName = dto.ProductName,
-    // ... 1:1 field copy
-};
+List<MonthlyMarginBreakdownDto> BuildMonthlyBreakdown(...);
+List<CategoryMarginSummaryDto>  BuildCategorySummaries(...);
+ProductMarginSummaryDto         BuildProductSummary(...);
 ```
 
-Implementer may extract this into a private static `ToResponse(dto)` method per handler if it improves readability.
+**HTTP / OpenAPI surface:** unchanged. Use-case responses still expose the same nested types under the same paths and the regenerated TypeScript client is bit-identical.
+
+**Dependency direction after refactor:**
+```
+UseCases  ──depends on──▶  Services  ──depends on──▶  Contracts
+   │                                                      ▲
+   └───────────────depends on (response DTOs)─────────────┘
+```
 
 ## Dependencies
-- .NET 8 SDK and existing project references — no new packages.
-- No frontend changes — the OpenAPI-generated TypeScript client is unchanged.
-- No infrastructure, configuration, or DI registration changes.
-- Touches existing test files only insofar as they declare the old nested return types for `IReportBuilderService` methods.
+- Existing types under `Features/Analytics/Contracts/` (e.g., `AnalysisMarginData`, `SalesDataPoint`, `CategoryData`, `AnalyticsProduct`) — used as inputs to the interface; unchanged.
+- The OpenAPI client generation pipeline — must be re-run after the refactor to confirm no diff.
+- Unit test suite for `ReportBuilderService` and the affected margin use-case handlers.
+
+No new NuGet packages, no DI registration changes (the existing `IReportBuilderService → ReportBuilderService` registration is untouched).
 
 ## Out of Scope
-- Renaming the existing nested response types.
-- Splitting or restructuring `GetMarginReportResponse` / `GetProductMarginAnalysisResponse`.
-- Changing margin/revenue/cost computation logic, ordering, or rounding.
-- Introducing AutoMapper or any mapping library — manual projection is sufficient and matches existing handler style.
-- Replacing the nested response types with the new DTOs at the HTTP boundary (would be a breaking API change).
-- Touching other Analytics services (e.g., `IProductFilterService`) or other features.
-- Adding new use cases that consume the refactored service.
-- Adding XML documentation comments to the new DTOs.
+- Renaming or reshaping the `MonthlyMarginBreakdown`, `CategoryMarginSummary`, or `ProductMarginSummary` nested classes in the use-case responses.
+- Changing any HTTP endpoint shape, URL, verb, status code, or auth requirement.
+- Introducing AutoMapper, Mapster, or any other mapping framework.
+- Consolidating `ProductMarginSummaryDto` with the existing `TopProductDto` (they may have overlapping fields, but unifying them is a separate concern; see Open Questions).
+- Adding new use cases that consume `IReportBuilderService`.
+- Refactoring any other service in `Features/Analytics/Services/` that may have similar layering issues.
+- Frontend changes (none should be required; verify by regenerating the TS client).
+- Database migrations.
 
 ## Open Questions
 None.
