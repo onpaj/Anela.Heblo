@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
+namespace Anela.Heblo.Domain.Features.Analytics;
 
 /// <summary>
 /// Represents invoice count for a specific day

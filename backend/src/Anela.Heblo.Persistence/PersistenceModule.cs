@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.FeatureFlags;
@@ -19,6 +20,7 @@ using Anela.Heblo.Persistence.BackgroundJobs;
 using Anela.Heblo.Persistence.DataQuality;
 using Anela.Heblo.Persistence.Catalog.Stock;
 using Anela.Heblo.Persistence.Dashboard;
+using Anela.Heblo.Persistence.Features.Analytics;
 using Anela.Heblo.Persistence.Features.Bank;
 using Anela.Heblo.Persistence.Infrastructure;
 using Anela.Heblo.Persistence.InvoiceClassification;
@@ -129,6 +131,7 @@ public static class PersistenceModule
         services.AddScoped<ITelemetryService, NoOpTelemetryService>(); // Default to NoOp, can be overridden by API layer
 
         // Register repositories
+        services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
         services.AddScoped<IUserDashboardSettingsRepository, UserDashboardSettingsRepository>();
 
         // Bank repositories

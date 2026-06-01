@@ -1,17 +1,14 @@
-using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
-using Anela.Heblo.Application.Features.Analytics.UseCases.GetBankStatementImportStatistics;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Anela.Heblo.Application.Features.Analytics.Infrastructure;
+namespace Anela.Heblo.Persistence.Features.Analytics;
 
 /// <summary>
 /// 🔒 PERFORMANCE FIX: Analytics repository with streaming capabilities
 /// Prevents memory overload by delegating to IAnalyticsProductSource
 /// </summary>
-public class AnalyticsRepository : IAnalyticsRepository
+public sealed class AnalyticsRepository : IAnalyticsRepository
 {
     private readonly IAnalyticsProductSource _productSource;
     private readonly ApplicationDbContext _dbContext;
@@ -94,7 +91,7 @@ public class AnalyticsRepository : IAnalyticsRepository
                 .Where(i => i.LastSyncTime.HasValue &&
                            i.LastSyncTime.Value >= startDateUnspecified &&
                            i.LastSyncTime.Value <= endDateUnspecified)
-                .GroupBy(i => new { Year = i.LastSyncTime.Value.Year, Month = i.LastSyncTime.Value.Month, Day = i.LastSyncTime.Value.Day })
+                .GroupBy(i => new { Year = i.LastSyncTime!.Value.Year, Month = i.LastSyncTime!.Value.Month, Day = i.LastSyncTime!.Value.Day })
                 .Select(g => new
                 {
                     Year = g.Key.Year,

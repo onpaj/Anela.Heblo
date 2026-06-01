@@ -1,6 +1,4 @@
-using Anela.Heblo.Domain.Features.Analytics;
-
-namespace Anela.Heblo.Application.Features.Analytics.Contracts;
+namespace Anela.Heblo.Domain.Features.Analytics;
 
 /// <summary>
 /// Analytics-owned read abstraction over catalog data. Implemented by the
