@@ -2,6 +2,7 @@ using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Tests.Features.Dashboard.Fixtures;
 
+[TileId("newautoshow")]
 public class NewAutoShowTile : ITile
 {
     public string Title { get; init; } = "Auto Show Tile";
@@ -19,6 +20,7 @@ public class NewAutoShowTile : ITile
     }
 }
 
+[TileId("manual")]
 public class ManualTile : ITile
 {
     public string Title { get; init; } = "Manual Tile";
@@ -36,6 +38,7 @@ public class ManualTile : ITile
     }
 }
 
+[TileId("auto1")]
 public class AutoTile1 : ITile
 {
     public string Title { get; init; } = "Auto Tile 1";
@@ -53,6 +56,7 @@ public class AutoTile1 : ITile
     }
 }
 
+[TileId("auto2")]
 public class AutoTile2 : ITile
 {
     public string Title { get; init; } = "Auto Tile 2";
@@ -70,6 +74,8 @@ public class AutoTile2 : ITile
     }
 }
 
+// Class-level [TileId] attribute for tile registration; separate from the constructor-injected TileId property
+[TileId("testwithdata")]
 public class TestTileWithData : ITile
 {
     public string TileId { get; }
