@@ -24,4 +24,13 @@ public class CarrierCoolingSettingTests
 
         setting.CoolingText.Should().BeNull();
     }
+
+    [Fact]
+    public void UpdateCooling_ClearsCoolingText_WhenPassedNull()
+    {
+        var setting = new CarrierCoolingSetting(
+            Carriers.PPL, DeliveryHandling.Box, Cooling.L1, "user1", "MRAZ");
+        setting.UpdateCooling(Cooling.L2, "user2", null);
+        setting.CoolingText.Should().BeNull();
+    }
 }

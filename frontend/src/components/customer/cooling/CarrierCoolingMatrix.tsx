@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Carriers,
   CarrierCoolingRowDto,
@@ -52,16 +52,18 @@ function CarrierCoolingRow({
   isThisRowSaving,
 }: CarrierCoolingRowProps) {
   const [text, setText] = useState<string>(row.coolingText ?? '');
+  const rowRef = useRef(row);
+  useEffect(() => { rowRef.current = row; }, [row]);
   const radioName = `${carrier}-${row.deliveryHandling}`;
 
   const commitText = () => {
     const normalized = text.trim();
-    const current = row.coolingText ?? '';
+    const current = rowRef.current.coolingText ?? '';
     if (normalized === current) return;
     onSetCooling({
       carrier,
-      deliveryHandling: row.deliveryHandling,
-      cooling: row.cooling,
+      deliveryHandling: rowRef.current.deliveryHandling,
+      cooling: rowRef.current.cooling,
       coolingText: normalized === '' ? null : normalized,
     });
   };
