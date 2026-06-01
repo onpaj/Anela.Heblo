@@ -35,38 +35,6 @@ public class AnalyticsRepository : IAnalyticsRepository
         return _productSource.StreamProductsWithSalesAsync(fromDate, toDate, productTypes, cancellationToken);
     }
 
-    /// <summary>
-    /// Gets aggregated margin data with optimized query
-    /// </summary>
-    public async Task<Dictionary<string, decimal>> GetGroupMarginTotalsAsync(
-        DateTime fromDate,
-        DateTime toDate,
-        AnalyticsProductType[] productTypes,
-        ProductGroupingMode groupingMode,
-        CancellationToken cancellationToken = default)
-    {
-        // TODO: This would be optimized SQL query in real database implementation
-        // For now, use existing logic but avoid loading full objects
-        var groupTotals = new Dictionary<string, decimal>();
-
-        await foreach (var product in StreamProductsWithSalesAsync(fromDate, toDate, productTypes, cancellationToken))
-        {
-            if (product.MarginAmount <= 0)
-                continue;
-
-            var groupKey = GetGroupKey(product, groupingMode);
-            var totalSold = product.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C);
-            var marginContribution = (decimal)totalSold * product.MarginAmount;
-
-            if (!groupTotals.ContainsKey(groupKey))
-                groupTotals[groupKey] = 0;
-
-            groupTotals[groupKey] += marginContribution;
-        }
-
-        return groupTotals;
-    }
-
     public Task<AnalyticsProduct?> GetProductAnalysisDataAsync(
         string productId,
         DateTime fromDate,
@@ -74,17 +42,6 @@ public class AnalyticsRepository : IAnalyticsRepository
         CancellationToken cancellationToken = default)
     {
         return _productSource.GetProductAnalysisDataAsync(productId, fromDate, toDate, cancellationToken);
-    }
-
-    private string GetGroupKey(AnalyticsProduct product, ProductGroupingMode groupingMode)
-    {
-        return groupingMode switch
-        {
-            ProductGroupingMode.Products => product.ProductCode,
-            ProductGroupingMode.ProductFamily => product.ProductFamily ?? "Unknown",
-            ProductGroupingMode.ProductCategory => product.ProductCategory ?? "Unknown",
-            _ => product.ProductCode
-        };
     }
 
 
