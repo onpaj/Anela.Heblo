@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Loader2, AlertCircle } from 'lucide-react';
-import ScanInput from './ScanInput';
+import { Loader2 } from 'lucide-react';
 import { useTransportBoxByCodeQuery } from '../../api/hooks/useTransportBoxes';
 import TerminalError from './TerminalError';
 import { getTerminalErrorMessage } from './terminalErrors';
 import BoxDetail from './TransportBoxDetail';
+import { ScanShell } from './shell/ScanShell';
+import { SubjectHeader } from './shell/SubjectHeader';
+import { useScanScreen } from './shell/useScanScreen';
 import { useScreenView } from '../../telemetry/useScreenView';
 
 const TransportBoxCheck: React.FC = () => {
@@ -12,57 +14,38 @@ const TransportBoxCheck: React.FC = () => {
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const { data: box, isFetching, isError, error, refetch } = useTransportBoxByCodeQuery(scannedCode);
 
-  const showError = !!scannedCode && !isFetching && isError;
+  const { flash } = useScanScreen({
+    onScan: (code) => {
+      if (isError && scannedCode === code) { void refetch(); return; }
+      setScannedCode(code);
+    },
+  });
 
-  const handleScan = (value: string) => {
-    if (isError && scannedCode === value) {
-      void refetch();
-      return;
-    }
-    setScannedCode(value);
-  };
+  // Emit exactly one flash when a scan resolves.
+  React.useEffect(() => {
+    if (!scannedCode || isFetching) return;
+    if (isError) flash('err', scannedCode);
+    else if (box) flash('ok', box.code ?? scannedCode);
+    else flash('err', scannedCode); // not found
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannedCode, isFetching, isError, box]);
+
+  const subject = box
+    ? <SubjectHeader code={box.code} state={box.state} facts={`${box.items?.length ?? 0} položek`} />
+    : <SubjectHeader emptyPrompt="Naskenujte box ke kontrole" />;
 
   return (
-    <div className="space-y-4">
-      <div className="sticky top-0 z-10 bg-background-gray pb-3">
-        <ScanInput
-          label="Kód boxu"
-          onScan={handleScan}
-          suppressKeyboard
-          allowKeyboardToggle
-        />
-      </div>
-
+    <ScanShell subject={subject}>
       {isFetching && (
         <div className="flex justify-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary-blue" />
         </div>
       )}
-
       {isError && error && (
-        <TerminalError
-          message={getTerminalErrorMessage(error)}
-          hint="Zkontrolujte kód a naskenujte znovu"
-        />
+        <TerminalError message={getTerminalErrorMessage(error)} hint="Zkontrolujte kód a naskenujte znovu" />
       )}
-
-      {showError && !error && (
-        <div
-          data-testid="box-load-error"
-          className="bg-white border border-red-200 rounded-xl p-6 flex flex-col items-center text-center gap-2"
-        >
-          <AlertCircle className="h-10 w-10 text-red-500" />
-          <p className="font-semibold text-neutral-slate">
-            Chyba při načítání boxu {scannedCode}
-          </p>
-          <p className="text-sm text-neutral-gray">
-            Zkuste naskenovat znovu
-          </p>
-        </div>
-      )}
-
       {!isFetching && box && <BoxDetail box={box} />}
-    </div>
+    </ScanShell>
   );
 };
 
