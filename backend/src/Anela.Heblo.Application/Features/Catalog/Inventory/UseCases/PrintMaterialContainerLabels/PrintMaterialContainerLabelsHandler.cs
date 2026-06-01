@@ -49,19 +49,7 @@ public class PrintMaterialContainerLabelsHandler
 
         return new PrintMaterialContainerLabelsResponse
         {
-            Containers = containers.Select(c => new MaterialContainerDto
-            {
-                Id = c.Id,
-                Code = c.Code,
-                MaterialCode = c.MaterialCode,
-                LotCode = c.LotCode,
-                Amount = c.Amount,
-                Unit = c.Unit,
-                Status = c.Status.ToString(),
-                CreatedAt = c.CreatedAt,
-                CreatedBy = c.CreatedBy,
-                PurchaseOrderLineId = c.PurchaseOrderLineId,
-            }).ToList(),
+            Containers = containers.Select(CreateMaterialContainers.CreateMaterialContainersHandler.MapToDto).ToList(),
         };
     }
 }
