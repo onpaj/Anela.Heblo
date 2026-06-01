@@ -1,329 +1,210 @@
-File writes are blocked in this session. Outputting the architecture review directly as text per the task instructions.
+Now I have everything I need to write the architecture review.
 
-# Architecture Review: Explicit Stable Tile IDs for Dashboard Tiles
+# Architecture Review: Explicit, Stable Dashboard Tile Identifiers
 
 ## Skip Design: true
 
-This is a backend-only refactor of an internal contract. No UI components, screens, layouts, or visual decisions are introduced. The DTO shape (`UserDashboardTileDto.TileId`, `DashboardTileDto.TileId`, etc.) and the on-wire string values are preserved verbatim, so the frontend sees zero behavioral change.
+Backend-only refactor. No UI components, screens, or visual design decisions are introduced or changed. The OpenAPI wire format is explicitly preserved (NFR-3), and there are no DB schema changes (NFR-2).
 
 ## Architectural Fit Assessment
 
-The proposal aligns cleanly with the project's Clean Architecture / Vertical Slice conventions:
+The change aligns with the codebase's existing patterns and module boundaries:
 
-- `ITile` already lives in `Anela.Heblo.Xcc.Services.Dashboard` as a cross-cutting contract owned by the `Xcc` ("cross-cutting concerns") project. Adding `TileId` to that interface and a `TileIdValidator` next to it keeps the contract and its validation in the single project that owns the abstraction — no module boundary is crossed.
-- All ~23 concrete tile implementations already live inside their feature module's `DashboardTiles/` folder (`Features/<Module>/DashboardTiles/<Name>Tile.cs`) and are registered via `services.RegisterTile<T>()` from each module's `*Module.cs`. The change adds one line per file inside the boundary the file already belongs to.
-- The registration pipeline (`TileRegistryExtensions` → tracks types in a static `ConcurrentBag`, then `InitializeTileRegistry` resolves each on `IHost` startup) already runs **after** `BuildServiceProvider`, so it is safe to create a `IServiceScope` inside `TileRegistry.RegisterTile<TTile>()` to read the literal `TileId` from a resolved instance. This is the only behavioral change to the bootstrap sequence and it is structurally identical to the existing `GetAvailableTiles()` / `GetTile(id)` paths that already resolve tiles via a scope.
-- The DB contract (`UserDashboardTile.TileId` column, `HasMaxLength(100)`, unique `(UserId, TileId)` index in `UserDashboardTileConfiguration.cs:20–36`) is unchanged. The `^[a-z0-9-]{1,100}$` validator is **tighter** than the column constraint, which is correct — code-side IDs are stricter than the DB allows.
+- **Layering is respected.** The attribute and registry validation live in `Anela.Heblo.Xcc.Services.Dashboard`, the same project that owns `ITile`, `TileExtensions`, `TileRegistry`, and `TileRegistryExtensions`. Tile classes in `Anela.Heblo.Application` and `Anela.Heblo.Xcc` only consume the new attribute. No new project references are created.
+- **Fail-fast on startup matches existing convention.** `IHost.InitializeTileRegistry()` (`backend/src/Anela.Heblo.Xcc/Services/Dashboard/TileRegistryExtensions.cs:29`) already runs a reflection-driven init pass — augmenting it with validation is the obvious extension point.
+- **Surgical change, no architectural shifts.** No new modules, no MediatR pipeline changes, no persistence work, no frontend work. Vertical Slice boundaries are unaffected.
 
-Two integration points the spec correctly identifies and the implementation must not miss:
-
-1. **Test doubles implement `ITile` directly.** `GetAvailableTilesHandlerTests.cs` defines `TestTile1`, `TestTile2`, `TestTileNoPermissions`; `DashboardServiceTests.cs` defines `NewAutoShowTile`, `ManualTile`, `AutoTile1`, `AutoTile2`, `TestTileWithData`. Adding `TileId` to the interface breaks all of these at compile time — they each need a literal added that preserves the value the test currently asserts (`"test1"`, `"test2"`, `"newautoshow"`, `"manual"`, `"auto1"`, `"auto2"`, `"testwithdata"`, plus the `_tileId` constructor parameter on `TestTileWithData`).
-2. **`TileExtensions.GetTileId<T>()` is asserted by name in two tile tests** (`ManufactureConditionsTileTests.cs:48`, `WeatherForecastTileTests.cs:40`). These assertions become `new ManufactureConditionsTile(...).TileId.Should().Be(...)` style after the extension is deleted.
+The only point of friction is that the spec **undercounts the affected tile classes and confuses abstract base classes with registered concrete tiles** — see Specification Amendments.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ Anela.Heblo.Xcc / Services / Dashboard                                  │
-│                                                                         │
-│   ITile  ──────► string TileId { get; }   ◄── NEW (required, literal)   │
-│                  string Title { get; }                                  │
-│                  ... (existing properties unchanged)                    │
-│                                                                         │
-│   TileIdValidator (new, static)                                         │
-│     ├── public static Regex Pattern = ^[a-z0-9-]{1,100}$                │
-│     └── public static bool IsValid(string?)                             │
-│                                                                         │
-│   TileRegistry.RegisterTile<TTile>()                                    │
-│     ├── resolve TTile from a startup scope                              │
-│     ├── read instance.TileId                                            │
-│     ├── TileIdValidator.IsValid → throw if not                          │
-│     ├── duplicate check vs _registeredTiles.Keys → throw if collision   │
-│     └── _registeredTiles[tileId] = typeof(TTile)                        │
-│                                                                         │
-│   TileExtensions.cs ──────► DELETED                                     │
-└─────────────────────────────────────────────────────────────────────────┘
-                              ▲                       ▲
-                              │ implements            │ uses
-                              │                       │
-┌─────────────────────────────┴───────┐  ┌────────────┴────────────────────┐
-│ Anela.Heblo.Application             │  │ Application/Features/Dashboard/  │
-│   Features/<Module>/DashboardTiles/ │  │   UseCases/GetAvailableTiles/    │
-│   *.cs (22 files)                   │  │     Handler: t.TileId (was       │
-│                                     │  │              t.GetTileId())      │
-│   each adds:                        │  │   Service: DashboardService:     │
-│     public string TileId =>         │  │     tile.TileId (4 call sites)   │
-│       "<preserved literal>";        │  │                                  │
-└─────────────────────────────────────┘  └──────────────────────────────────┘
-                              ▲
-                              │ scans
-                              │
-┌─────────────────────────────┴───────────────────────────────────────────┐
-│ Anela.Heblo.Tests / Features / Dashboard /                              │
-│   TileRegistrationContractTests.cs (new)                                │
-│     ├── builds a host with all production module registrations          │
-│     ├── reflects over Application + Xcc assemblies for !abstract ITile  │
-│     ├── for each: resolve via DI, assert TileId valid + non-duplicate   │
-│     └── one fail-fast message per violation                             │
-└─────────────────────────────────────────────────────────────────────────┘
+Anela.Heblo.Xcc.Services.Dashboard
+├── ITile                          (unchanged)
+├── TileIdAttribute               [NEW] — class-level metadata, sealed, AllowMultiple=false, Inherited=false
+├── TileExtensions                [REWRITTEN] — reads attribute, throws on missing
+├── TileRegistry                   (unchanged — keeps consuming GetTileId())
+├── TileRegistryExtensions        [AUGMENTED] — InitializeTileRegistry adds duplicate-detection pass
+└── Tiles/BackgroundTaskStatusTile [+ [TileId("backgroundtaskstatus")]]
+
+Anela.Heblo.Application
+├── Features/**/DashboardTiles/*Tile.cs   [+ [TileId("<pinned-value>")] on every concrete ITile]
+└── Module registrations                   (unchanged)
+
+Anela.Heblo.Tests
+├── Features/Dashboard/Fixtures/TestTiles.cs   [+ [TileId(...)] on every fixture tile]
+├── Features/Dashboard/TileRegistryTests.cs    [+ [TileId("tracked")] on TrackedTile]
+├── Features/Dashboard/TileIdContractTests.cs  [NEW — FR-5 reflection-driven regression suite]
+└── Features/Dashboard/TileRegistryValidationTests.cs [NEW — FR-4 startup-validation cases]
 ```
 
 ### Key Design Decisions
 
-#### Decision 1: Interface property vs `[TileId]` attribute vs `const string`
+#### Decision 1: Attribute on the type, not a member on the instance
+
 **Options considered:**
-- (a) Required `ITile.TileId` instance property returning a literal.
-- (b) `[TileId("...")]` attribute on the class, read by reflection.
-- (c) `public const string TileId = "..."` on each tile, surfaced via a static reflective helper.
+1. `[TileId("...")]` attribute on the class.
+2. `const string TileId = "..."` per tile + interface default method.
+3. Instance member `string ITile.TileId { get; }` resolved via DI.
 
-**Chosen approach:** (a) — explicit interface property. This is what the spec mandates and it is correct.
+**Chosen approach:** Option 1 — attribute on the class.
 
-**Rationale:** The compiler is the only enforcement mechanism that catches a new tile that forgets to declare an ID. Attributes (b) and consts (c) both require runtime reflection to surface a missing value, which moves the failure from compile time to startup/test time. The cost is one extra line per tile (~22 places) — paid once, never re-paid. The price is well worth eliminating an entire class of "I added a tile and forgot to set the ID" bug at the source. The interface property also makes the contract visible to anyone reading `ITile.cs`, which is the single file someone reaches for when implementing a new tile.
+**Rationale:** `TileRegistry.RegisterTile<TTile>` and `TileRegistryExtensions.InitializeTileRegistry` resolve the ID from the `Type` without instantiating the tile (`tileType.GetTileId()`). Tiles are `Scoped` and have non-trivial constructor dependencies (e.g., `MaterialInventoryCountTile` requires `ICatalogRepository`, `TimeProvider`). Forcing instantiation just to read an ID is wasteful and would entangle the registry with scope management. Option 2 cannot be enforced via the interface in C# without instance members. Option 1 is the only choice that keeps the existing call sites in `TileRegistry.RegisterTile<TTile>` and `TileRegistry.ToMetadata` working unchanged.
 
-#### Decision 2: Validate at registration vs validate in a test only
+#### Decision 2: `Inherited = false` on the attribute
+
 **Options considered:**
-- (a) Validate `TileId` only in the `TileRegistrationContractTests` discovery test.
-- (b) Validate inside `TileRegistry.RegisterTile<TTile>()` at app startup, plus the discovery test.
+1. `Inherited = false` — each concrete subclass must declare its own `[TileId]`.
+2. `Inherited = true` — abstract base can declare an attribute, all subclasses inherit it.
 
-**Chosen approach:** (b) — defense in depth.
+**Chosen approach:** `Inherited = false` (as specified).
 
-**Rationale:** The discovery test is the authoritative gate, but it runs in CI. A developer who skips the test locally and pushes (or a refactor that introduces a tile in a not-yet-tested code path) would otherwise reach production with an invalid ID and only fail at first user request (`"Tile not found"` in `DashboardService.cs:147`). Throwing in `RegisterTile<TTile>()` instead crashes the app at startup with a fully qualified type name and the offending ID — fail fast, fail loud, before any user is affected. The runtime cost is one DI resolution per tile per process start (already paid by `GetAvailableTiles` on every dashboard load — moving it earlier is a wash).
+**Rationale:** Three abstract base classes exist (`TransportBoxBaseTile`, `UpcomingProductionTile`, `InventoryCountTileBase`, `InventorySummaryTileBase`). Each has 2–3 concrete subclasses that get registered, and **each subclass has a distinct persisted ID** (`intransitboxes`, `receivedboxes`, `errorboxes`, `todayproduction`, `nextdayproduction`, etc.). Inheritance would silently make every subclass share one ID — exactly the kind of collision FR-4 is meant to catch. `Inherited = false` forces the declaration at the registration boundary, which is the right one.
 
-#### Decision 3: Delete `TileExtensions.cs` vs reduce to a property-reading shim
+#### Decision 3: Validation happens in `InitializeTileRegistry`, not in `RegisterTile<TTile>`
+
 **Options considered:**
-- (a) Delete the file outright; all call sites read `tile.TileId` directly.
-- (b) Keep `public static string GetTileId(this ITile tile) => tile.TileId;` for source compatibility.
+1. Validate per-type during `RegisterTile<TTile>` (incremental).
+2. Validate the full set in a single pass during `InitializeTileRegistry` (batch).
 
-**Chosen approach:** (a) — delete the file.
+**Chosen approach:** Hybrid — `GetTileId(Type)` throws on missing/empty (so `RegisterTile<TTile>` throws too), and `InitializeTileRegistry` adds a single duplicate-detection pass after all `RegisterTile<TTile>` calls.
 
-**Rationale:** The spec lists six call sites: `DashboardService.cs:55, 70, 79, 160`, `GetAvailableTilesHandler.cs:22`, and two test assertions. All are inside this PR. Keeping a shim guarantees the `Type`-based and generic overloads come back in IDE auto-complete next time someone wants "the tile ID for a type," and the whole point of the refactor is to remove the temptation to derive an ID from a `Type`. Delete it cleanly; let the next reader find `tile.TileId` and follow it to the property. (This is consistent with the project's "surgical, no half-finished" stance in `CLAUDE.md`.)
+**Rationale:** Duplicate detection requires the full set to be known. The static `ConcurrentBag<Type> RegisteredTileTypes` in `TileRegistryExtensions.cs:9` is already collected before `InitializeTileRegistry` runs, so the validation pass can group-by `GetTileId()` and throw with **all** offenders listed at once — a single, comprehensive boot-time error beats a sequence of one-at-a-time errors.
 
-#### Decision 4: Where the validator lives
-**Chosen approach:** A new `TileIdValidator` static class in `backend/src/Anela.Heblo.Xcc/Services/Dashboard/TileIdValidator.cs`, exposing a single `IsValid(string? id)` method and the compiled `Regex` as an `internal static readonly` field for reuse by the discovery test.
+#### Decision 4: FR-5 reflection scan filters to **concrete, non-abstract** `ITile` implementors
 
-**Rationale:** The `Anela.Heblo.Xcc.Services.Dashboard` namespace already owns `ITile`, `TileRegistry`, and the registration extensions. Putting the validator anywhere else fragments ownership. One file, one regex, one entry point — the spec's FR-3 "defined in a single place" requirement is literally met by the file layout.
-
-#### Decision 5: How the contract test discovers tiles
 **Options considered:**
-- (a) Enumerate types returned by `ITileRegistry.GetRegisteredTileIds()` after building the host.
-- (b) Reflect over `typeof(Anela.Heblo.Application.AssemblyMarker).Assembly` + `typeof(Anela.Heblo.Xcc.AssemblyMarker).Assembly` for `!IsAbstract && typeof(ITile).IsAssignableFrom(t)`.
-- (c) Both: reflect for the set, then assert the registry-known set equals the reflected set.
+1. Scan every `ITile` implementor including abstract base classes.
+2. Scan only concrete (non-abstract) `ITile` implementors.
 
-**Chosen approach:** (c) — reflect for the full set, then cross-check against the registry.
+**Chosen approach:** Option 2.
 
-**Rationale:** Reflection alone catches "ID is invalid" and "two tiles share an ID." The cross-check additionally catches the third failure mode the spec doesn't explicitly call out: "I added a tile class but forgot to call `services.RegisterTile<T>()` in my feature module's registration." Without the cross-check, that new tile would never appear in the dashboard and the bug would only show up in QA. With it, the contract test fails with `"Tile X is not registered with any module"`. Cheap to add, high-signal.
+**Rationale:** `TransportBoxBaseTile`, `UpcomingProductionTile`, `InventoryCountTileBase`, `InventorySummaryTileBase` are abstract and never registered. Requiring `[TileId]` on them would force a meaningless attribute that `Inherited = false` immediately discards. The test must filter `t.IsClass && !t.IsAbstract && typeof(ITile).IsAssignableFrom(t)`.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-**New files (1):**
-- `backend/src/Anela.Heblo.Xcc/Services/Dashboard/TileIdValidator.cs`
+**New files:**
+- `backend/src/Anela.Heblo.Xcc/Services/Dashboard/TileIdAttribute.cs`
+- `backend/test/Anela.Heblo.Tests/Features/Dashboard/TileIdContractTests.cs` (FR-5)
+- `backend/test/Anela.Heblo.Tests/Features/Dashboard/TileRegistryValidationTests.cs` (FR-4 cases)
 
-**Deleted files (1):**
-- `backend/src/Anela.Heblo.Xcc/Services/Dashboard/TileExtensions.cs`
-
-**Modified files (Xcc):**
-- `backend/src/Anela.Heblo.Xcc/Services/Dashboard/ITile.cs` — add `string TileId { get; }` as the first property.
-- `backend/src/Anela.Heblo.Xcc/Services/Dashboard/TileRegistry.cs` — change `RegisterTile<TTile>()` body (see "Interfaces and Contracts" below).
-- `backend/src/Anela.Heblo.Xcc/Services/Dashboard/DashboardService.cs` — change `tile.GetTileId()` → `tile.TileId` at lines 55, 70, 79, 160.
-- `backend/src/Anela.Heblo.Xcc/Services/Dashboard/Tiles/BackgroundTaskStatusTile.cs` — add `public string TileId => "backgroundtaskstatus";`.
-
-**Modified files (Application — one per concrete tile, 22 files):**
-- Add a single property line per tile, value per the FR-2 table in the spec. The literal **must** be the lowercased, `-tile`-stripped class name as it exists today. The full mapping is in the spec; do not deviate.
-
-**Modified files (Application handlers):**
-- `backend/src/Anela.Heblo.Application/Features/Dashboard/UseCases/GetAvailableTiles/GetAvailableTilesHandler.cs:22` — `TileId = t.GetTileId()` → `TileId = t.TileId`.
-
-**Test files to modify:**
-- `backend/test/Anela.Heblo.Tests/Features/Dashboard/GetAvailableTilesHandlerTests.cs` — add `public string TileId => "test1";` to `TestTile1`, `"test2"` to `TestTile2`, and the value the existing test asserts to `TestTileNoPermissions`. Preserve the asserted value; do not change the test's expected string.
-- `backend/test/Anela.Heblo.Tests/Features/Dashboard/DashboardServiceTests.cs` — add `TileId` to `NewAutoShowTile` (`"newautoshow"`), `ManualTile` (`"manual"`), `AutoTile1` (`"auto1"`), `AutoTile2` (`"auto2"`), and to `TestTileWithData` route the constructor-supplied `tileId` through the property: `public string TileId => _tileId;`.
-- `backend/test/Anela.Heblo.Tests/Features/Manufacture/DashboardTiles/ManufactureConditionsTileTests.cs:48` — replace `TileExtensions.GetTileId<ManufactureConditionsTile>().Should().Be("manufactureconditions")` with an equivalent that reads the property (e.g. construct the tile via the test host and assert on `.TileId`, or use a typed `new ManufactureConditionsTile(...).TileId`).
-- `backend/test/Anela.Heblo.Tests/Features/WeatherForecast/DashboardTiles/WeatherForecastTileTests.cs:40` — same pattern as above against `WeatherForecastTile`.
-
-**New test file:**
-- `backend/test/Anela.Heblo.Tests/Features/Dashboard/TileRegistrationContractTests.cs`
+**Modified files:**
+- `backend/src/Anela.Heblo.Xcc/Services/Dashboard/TileExtensions.cs` (rewrite per spec §API)
+- `backend/src/Anela.Heblo.Xcc/Services/Dashboard/TileRegistryExtensions.cs` (augment `InitializeTileRegistry`)
+- All 22 concrete tile classes (see amendments below) — add `[TileId("...")]`
+- All test fixture tiles in `backend/test/Anela.Heblo.Tests/Features/Dashboard/Fixtures/TestTiles.cs` and `TrackedTile` in `TileRegistryTests.cs` — add `[TileId("...")]`
+- `docs/features/dashboard_tiles_implementation_guide.md` (FR-6 rename procedure)
 
 ### Interfaces and Contracts
 
-**`ITile.cs` (full file after change):**
 ```csharp
-namespace Anela.Heblo.Xcc.Services.Dashboard;
-
-public interface ITile
+// Anela.Heblo.Xcc.Services.Dashboard
+[AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+public sealed class TileIdAttribute : Attribute
 {
-    // Stable identifier persisted in UserDashboardTiles.TileId.
-    // MUST be a string literal — see TileRegistrationContractTests for the contract.
-    string TileId { get; }
-
-    string Title { get; }
-    string Description { get; }
-    TileSize Size { get; }
-    TileCategory Category { get; }
-    bool DefaultEnabled { get; }
-    bool AutoShow { get; }
-    Type ComponentType { get; }
-    string[] RequiredPermissions { get; }
-
-    Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null,
-                               CancellationToken cancellationToken = default);
-}
-```
-
-The one-line comment above `TileId` is the **only** comment to add — it documents the non-obvious invariant (literal, persisted) that an `ITile.cs` reader cannot infer from the signature. No comments on the other properties; none of them changed.
-
-**`TileIdValidator.cs` (full file):**
-```csharp
-using System.Text.RegularExpressions;
-
-namespace Anela.Heblo.Xcc.Services.Dashboard;
-
-public static class TileIdValidator
-{
-    internal static readonly Regex Pattern =
-        new("^[a-z0-9-]{1,100}$", RegexOptions.Compiled);
-
-    public static bool IsValid(string? id) =>
-        !string.IsNullOrEmpty(id) && Pattern.IsMatch(id);
-}
-```
-
-`internal` on `Pattern` is deliberate — the discovery test in the same solution can use `InternalsVisibleTo` (or re-derive the literal) without exposing the regex as public API.
-
-**`TileRegistry.RegisterTile<TTile>()` (only the method body changes):**
-```csharp
-public void RegisterTile<TTile>() where TTile : class, ITile
-{
-    using var scope = _serviceProvider.CreateScope();
-    var instance = scope.ServiceProvider.GetRequiredService<TTile>();
-    var tileId = instance.TileId;
-
-    if (!TileIdValidator.IsValid(tileId))
+    public string Value { get; }
+    public TileIdAttribute(string value)
     {
-        throw new InvalidOperationException(
-            $"Tile {typeof(TTile).FullName} declared invalid TileId '{tileId}'. " +
-            $"Expected format: ^[a-z0-9-]{{1,100}}$.");
+        if (string.IsNullOrWhiteSpace(value))
+            throw new ArgumentException("Tile ID must be a non-empty, non-whitespace string.", nameof(value));
+        Value = value;
     }
-
-    if (_registeredTiles.TryGetValue(tileId, out var existing))
-    {
-        throw new InvalidOperationException(
-            $"Duplicate TileId '{tileId}': " +
-            $"{existing.FullName} and {typeof(TTile).FullName} both declare the same id.");
-    }
-
-    _registeredTiles[tileId] = typeof(TTile);
 }
 ```
 
-No other method on `TileRegistry` changes. `GetTile(string)` and `GetTileDataAsync(string)` continue to key the dictionary by the now-explicit id.
-
-**Tile implementation pattern (every concrete tile):**
-```csharp
-public class PurchaseOrdersInTransitTile : ITile
-{
-    public string TileId => "purchaseordersintransit";  // ← the one new line
-    public string Title => "Suma nákupních objednávek";
-    // ... rest unchanged
-}
-```
-
-For the abstract `TransportBoxBaseTile`: do **not** add `TileId`. The base remains `abstract`, the four concrete subclasses (`ReceivedBoxesTile`, `ErrorBoxesTile`, `InTransitBoxesTile`, `CriticalGiftPackagesTile`) each declare their own literal per the FR-2 table. (Verify during implementation that `TransportBoxBaseTile` is not in any `RegisterTile<...>()` call — `grep -n "RegisterTile<TransportBoxBaseTile>" backend/src` should return empty. If it ever appears, the design fails because the interface property is abstract on the base.)
+`TileExtensions.GetTileId(Type)` throws `InvalidOperationException` with the offending CLR full name when the attribute is missing. `ITileRegistry` and `TileRegistry` keep their existing surface — no signature changes.
 
 ### Data Flow
 
-**Startup (once per process):**
+Unchanged at runtime:
+
 ```
-Program.cs
-  → services.AddXccModule() / AddCatalogModule() / ...
-      → each calls services.RegisterTile<T>() (TileRegistryExtensions.cs:16)
-          → services.AddScoped<T>()                  (DI registration only)
-          → RegisteredTileTypes.Add(typeof(T))       (static bag)
-  → BuildServiceProvider()
-  → app.InitializeTileRegistry()                     (TileRegistryExtensions.cs:29)
-      → foreach typeof(T) in RegisteredTileTypes:
-          → registry.RegisterTile<T>()               (TileRegistry.cs, NEW BEHAVIOR)
-              → scope.GetRequiredService<T>()        (one-time DI resolution)
-              → read instance.TileId
-              → TileIdValidator.IsValid → throw or pass
-              → duplicate check → throw or pass
-              → _registeredTiles[id] = typeof(T)
+Startup
+  Module.ConfigureServices → services.RegisterTile<TTile>()
+    → AddScoped<TTile>(); RegisteredTileTypes.Add(typeof(TTile))
+  app.InitializeTileRegistry()
+    → foreach tile type: registry.RegisterTile<TTile>() ── reads [TileId]
+    → [NEW] validate duplicates across all registered IDs → throw if any
+    → [Existing exception path] missing [TileId] throws inside RegisterTile<TTile>
+
+Request: GET /api/dashboard/tiles/{tileId}/data
+  GetTileDataHandler → _tileRegistry.GetTileMetadata(tileId)
+    → lookup _registeredTiles[tileId]  (no attribute reflection on hot path — already cached at startup)
 ```
 
-**Per-request (existing flow, unchanged in shape):**
-```
-GET /api/dashboard
-  → DashboardController → GetUserSettings query
-      → DashboardService.GetUserSettingsAsync(userId)
-          → settingsRepository.GetByUserIdAsync(userId)
-          → tileRegistry.GetAvailableTiles()
-              → for each typeof(T) in _registeredTiles.Values:
-                   scope.GetRequiredService(T) → ITile instance
-          → autoShow filter, create UserDashboardTile rows
-              → new UserDashboardTile { TileId = tile.TileId, ... }   ← was tile.GetTileId()
-          → settingsRepository.AddAsync / UpdateAsync
-  → DashboardService.GetTileDataAsync(userId)
-      → for each visible UserDashboardTile:
-          → registry.GetTile(t.TileId)               ← dict lookup, unchanged
-          → registry.GetTileDataAsync(t.TileId)      ← dict lookup, unchanged
-          → new TileData { TileId = tile.TileId, ... }   ← was tile.GetTileId()
-```
-
-**Test discovery flow (new):**
-```
-TileRegistrationContractTests.AllTiles_HaveValidUniqueRegisteredIds
-  → reflect: Application.Assembly.GetTypes() ∪ Xcc.Assembly.GetTypes()
-           ∩ where t is class && !abstract && ITile.IsAssignableFrom(t)
-  → build a minimal Host with the same module registrations as production
-        (or use the existing test fixture if one already wires modules; otherwise
-         compose ad hoc — modules are: Xcc, Catalog, Analytics, BackgroundJobs,
-         DataQuality, Manufacture, Purchase, WeatherForecast, Logistics, Dashboard)
-  → for each discovered type T:
-      ├── assert ITileRegistry.GetRegisteredTileIds().Contains(T.TileId)
-      ├── resolve T via host.Services.GetRequiredService(T)
-      ├── assert TileIdValidator.IsValid(instance.TileId)
-      └── add (instance.TileId, T.FullName) to a list
-  → assert no duplicate TileId across the list
-  → collect all failures, fail with a single message listing every violation
-```
-
-The "minimal host" composition step is the only non-trivial piece. Two ways to do it, in preference order:
-
-1. **Reuse the existing integration-test fixture** if `Anela.Heblo.Tests` already has one (`WebApplicationFactory<Program>` or similar). A `Host.CreateApplicationBuilder()` with the registration extensions called is a host but not a *running* one and does not start Kestrel or open a DB connection — that satisfies the NFR-5 spirit (pure in-process, no I/O).
-2. **Compose ad hoc** by calling each module's `services.AddXxxModule()` extension directly on a fresh `ServiceCollection`, then calling `BuildServiceProvider()` and `InitializeTileRegistry()`. This is what the new test should do if no integration fixture exists yet.
-
-The implementer must verify (1) during the first task and pick (2) only if no fixture is available.
+The attribute is read **once per type at startup**, persisted in `_registeredTiles[tileId] = tileType`, and never re-read on the request path. NFR-1 is satisfied trivially.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Developer copies an existing literal verbatim into a new tile, producing a silent duplicate. | **High** | Duplicate detection in `TileRegistry.RegisterTile<TTile>()` (FR-4) throws at startup; the contract test (FR-5) catches it in CI before merge. Both layers required. |
-| A new tile is added but no `services.RegisterTile<T>()` call exists in any module — the tile compiles, has a valid `TileId`, but never reaches the dashboard. | **Medium** | The contract test cross-checks reflected `ITile` types against `ITileRegistry.GetRegisteredTileIds()` and fails with "tile X is not registered" (Decision 5). |
-| Implementer mistypes one of the 22 FR-2 literals (e.g. `"purchaseordersintransat"`), persisted user data breaks for that one tile on deploy. | **High** | The fixtures table in FR-2 is the source of truth. A unit test that does this comparison (using the still-extant derivation captured *before* `TileExtensions.cs` is deleted, then deleted along with it) is the cleanest enforcement. The spec calls for it in FR-2; implement it as `TilePreservedIdTests` and delete it together with `TileExtensions.cs` in a single commit. |
-| `TransportBoxBaseTile` is mistakenly registered (or another abstract tile is later added that the contract test discovers as concrete). | **Low** | Reflection filter is `!t.IsAbstract`. Document in `TileRegistrationContractTests`: a one-line comment "abstract tiles are not discoverable" beside the filter. |
-| `internal` validator regex is not visible from the test project. | **Low** | Add `[assembly: InternalsVisibleTo("Anela.Heblo.Tests")]` to `Anela.Heblo.Xcc` (check if one already exists in `AssemblyInfo.cs` or `.csproj`). If the test prefers to re-derive the regex literal rather than depend on internals, that is also acceptable. |
-| Startup performance regression from one DI resolution per tile during `InitializeTileRegistry`. | **Negligible** | ~23 transient scoped resolutions at app start, each cheap. Already paid by the existing `GetAvailableTiles()` path on every dashboard request. No mitigation needed; flag only if anyone questions it. |
-| Constructor of a tile throws when resolved during registration (e.g. an unavailable dependency at startup time). | **Low** | This would crash app startup with a clear DI exception naming the failed type — strictly better than today's behavior of failing later inside `GetAvailableTiles()` mid-request. No change required; the failure mode is just earlier. |
+| Pinned attribute value drifts from the current derived value, silently orphaning user rows | **High** | FR-5 (4) backward-compat assertion: for every class ending in `"Tile"`, attribute value must equal `name.ToLowerInvariant().Replace("tile", "")`. CI fails if drift occurs without a co-PR migration. |
+| Spec's enumerated tile list is incomplete; an unlisted tile (e.g., `InTransitBoxesTile`) is missed | **High** | Pre-merge audit step: run `grep` for `class \w+Tile\s*:\s*\w+` filtered to concrete classes and cross-check against `RegisterTile<...>` call sites. List below in **Specification Amendments** is the corrected ground truth. |
+| Existing `TileRegistryTests` (`TrackedTile`) and `Fixtures/TestTiles.cs` break — they rely on derived IDs | **Medium** | These must also receive `[TileId("...")]` matching their currently-derived values (`"tracked"`, `"newautoshow"`, `"manual"`, `"auto1"`, `"auto2"`, `"testwithdata"`). FR-5 reflection scan also covers them if the test assembly is in scope; restrict assembly list per FR-5. |
+| Two co-developers add tiles with same ID in concurrent PRs; only one tested locally | **Low** | FR-4 startup validation fails the application boot of the merged main branch in CI's `dotnet build` + smoke pass. |
+| Concrete subclasses of abstract base tiles (e.g., `InTransitBoxesTile : TransportBoxBaseTile`) silently inherit nothing — confusion about whether attribute is needed | **Medium** | `Inherited = false` is by design (Decision 2). FR-6 doc must explicitly mention "abstract base tile classes don't need `[TileId]`; every concrete subclass does". |
+| `TestTileWithData` has a constructor-injected `TileId` field unrelated to registration; readers may confuse it with `[TileId]` | **Low** | Leave the existing instance field alone (it's used by test logic). Add the class-level `[TileId("testwithdata")]` separately. Note this in the test file with a one-line comment. |
 
 ## Specification Amendments
 
-The spec is solid. Three small additions to make it implementation-ready:
+### Amendment 1 — Concrete tile inventory is wrong/incomplete
 
-1. **FR-5 cross-check.** Augment FR-5 to require the discovery test to assert every reflected concrete `ITile` is present in `ITileRegistry.GetRegisteredTileIds()`. Without this, "I forgot to register my new tile" remains an undetected failure mode (Decision 5).
-2. **Test stubs are part of FR-1's compile-time guarantee.** The spec mentions tile classes in `Application` + `Xcc` but does not call out that **8 test doubles** (listed under "Test files to modify" above) will also fail to compile and must be updated in the same PR. The values are explicitly fixed by what the existing test assertions expect; do not invent new IDs.
-3. **`[assembly: InternalsVisibleTo]` note.** If the discovery test reads `TileIdValidator.Pattern` (the `internal` field), the test project must be in `InternalsVisibleTo`. Add a one-line note under FR-3 or NFR-5 so this is not surprising. If the test instead duplicates the regex literal `"^[a-z0-9-]{1,100}$"` in its own constant, that is acceptable and avoids the `InternalsVisibleTo` dependency entirely — the implementer picks one.
+The spec states "12 tile classes implementing `ITile`". The actual registered set is **22 concrete tiles** plus **4 abstract base classes**. The pinned attribute values must be:
 
-These are clarifications, not behavioral changes. They do not alter any acceptance criterion.
+**Xcc assembly (1):**
+- `BackgroundTaskStatusTile` → `"backgroundtaskstatus"`
+
+**Application assembly (21):**
+- `InvoiceImportStatisticsTile` → `"invoiceimportstatistics"`
+- `FailedJobsTile` → `"failedjobs"`
+- `ProductInventoryCountTile` → `"productinventorycount"`
+- `MaterialInventoryCountTile` → `"materialinventorycount"`
+- `ProductInventorySummaryTile` → `"productinventorysummary"`
+- `MaterialWithExpirationInventorySummaryTile` → `"materialwithexpirationinventorysummary"`
+- `MaterialWithoutExpirationInventorySummaryTile` → `"materialwithoutexpirationinventorysummary"`
+- `LowStockAlertTile` → `"lowstockalert"`
+- `PurchaseOrdersInTransitTile` → `"purchaseordersintransit"`
+- `DataQualityStatusTile` → `"dataqualitystatus"`
+- `DqtYesterdayStatusTile` → `"dqtyesterdaystatus"`
+- `InTransitBoxesTile` → `"intransitboxes"`
+- `ReceivedBoxesTile` → `"receivedboxes"`
+- `ErrorBoxesTile` → `"errorboxes"`
+- `CriticalGiftPackagesTile` → `"criticalgiftpackages"`
+- `TodayProductionTile` → `"todayproduction"`
+- `NextDayProductionTile` → `"nextdayproduction"`
+- `ManualActionRequiredTile` → `"manualactionrequired"`
+- `ManufactureConditionsTile` → `"manufactureconditions"`
+- `LowStockEfficiencyTile` → `"lowstockefficiency"`
+- `WeatherForecastTile` → `"weatherforecast"`
+
+**Abstract base classes (do NOT add attribute):**
+- `TransportBoxBaseTile`, `UpcomingProductionTile`, `InventoryCountTileBase`, `InventorySummaryTileBase`
+
+The spec entries `TransportBoxBaseTile → "transportboxbase"` and `UpcomingProductionTile → "upcomingproduction"` are **incorrect**: those types are abstract and never reach `RegisterTile<TTile>`. Adding `[TileId]` to them would either be inert (with `Inherited = false`) or actively harmful (with `Inherited = true`, all subclasses collide).
+
+### Amendment 2 — FR-5 must filter abstract types
+
+The reflection scan in `TileIdContractTests` must restrict to `t.IsClass && !t.IsAbstract && typeof(ITile).IsAssignableFrom(t)`. Without this, the test fails for the four abstract base classes that intentionally have no attribute.
+
+### Amendment 3 — Test fixtures need attributes too
+
+The spec's "all 12 existing tile classes" omits test fixtures. The following must also receive `[TileId]` to keep tests green:
+
+- `TrackedTile` → `"tracked"` (referenced literally in `TileRegistryTests.cs:22`)
+- `NewAutoShowTile`, `ManualTile`, `AutoTile1`, `AutoTile2`, `TestTileWithData` in `Fixtures/TestTiles.cs` — derive their current IDs from the existing rule (`Replace("tile", "")` over lowercased name) and pin those.
+
+Decide explicitly whether FR-5's reflection scan includes the test assembly. **Recommended: no** — scan only `Anela.Heblo.Xcc` and `Anela.Heblo.Application` assemblies (as FR-5 already states). The fixture tiles still need attributes for compilation/runtime, but they aren't governed by the contract test.
+
+### Amendment 4 — Clarify duplicate detection's interaction with the static `ConcurrentBag`
+
+`TileRegistryExtensions.RegisteredTileTypes` is `static`. In a multi-host test process (xUnit runs tests in one process), residual entries from prior tests can pollute later runs. The FR-4 validation tests need a way to seed and reset this state. **Recommendation:** expose an internal `Clear()` method on `TileRegistryExtensions` (or use a separate, instance-scoped `TileRegistry` directly without the static bag, since `TileRegistry.RegisterTile<TTile>` works standalone). Without addressing this, FR-4 tests will be flaky.
 
 ## Prerequisites
 
-Nothing must be built or provisioned before implementation can begin. Specifically:
-
-- **No DB migration.** The `UserDashboardTile.TileId` column, constraints, and indexes are unchanged (`UserDashboardTileConfiguration.cs`). Confirm via `dotnet ef migrations list` after the change — the list must be identical to the pre-change list.
-- **No configuration change.** `DashboardOptions` is untouched. No appsettings keys are added or read.
-- **No NuGet package addition.** `System.Text.RegularExpressions` is in the BCL.
-- **No frontend regeneration.** The OpenAPI surface is byte-identical because the DTOs are unchanged; running `npm run build` should produce a zero-line diff in `frontend/src/api/generated/api-client.ts`. Verify by running it once and inspecting `git status` in `frontend/` before committing.
-- **One-time pre-implementation evidence capture.** Before deleting `TileExtensions.cs`, write `TilePreservedIdTests` that asserts, for every concrete tile type discovered by reflection, `typeof(T).Name.ToLowerInvariant().Replace("tile", "")` equals the new `.TileId` property value. Run it once green. This is the ratchet that proves FR-2 was met. Delete the test in the same commit that deletes `TileExtensions.cs` — once the literals are in code, the derivation is no longer the source of truth and the assertion becomes a tautology.
+- **None** in infrastructure, config, secrets, DB, or external services.
+- **Pre-merge audit script** (developer task, ~10 min): grep for `class \w+\s*:\s*ITile`, filter out abstract classes, cross-check against `RegisterTile<` registrations, and confirm each concrete class's name-derived ID matches the proposed pinned attribute value. Output should be checked into the PR description so reviewers can verify exhaustiveness.
+- No EF Core migration. No frontend regeneration. No Key Vault secret. No CI changes (FR-5 test runs in the existing `dotnet test` lane).
