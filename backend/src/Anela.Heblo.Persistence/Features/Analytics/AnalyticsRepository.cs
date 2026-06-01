@@ -2,7 +2,7 @@ using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Anela.Heblo.Application.Features.Analytics.Infrastructure;
+namespace Anela.Heblo.Persistence.Features.Analytics;
 
 /// <summary>
 /// 🔒 PERFORMANCE FIX: Analytics repository with streaming capabilities
