@@ -1,7 +1,9 @@
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Application.Features.Logistics.DashboardTiles;
 
+[TileId("intransitboxes")]
 public class InTransitBoxesTile : TransportBoxBaseTile
 {
     public override string Title => "Boxy v přepravě";

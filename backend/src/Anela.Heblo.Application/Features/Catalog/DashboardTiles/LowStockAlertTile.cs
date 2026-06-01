@@ -9,6 +9,7 @@ namespace Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 /// <summary>
 /// Dashboard tile showing products that are approaching stock-out based on average sales data.
 /// </summary>
+[TileId("lowstockalert")]
 public class LowStockAlertTile : ITile
 {
     private readonly ICatalogRepository _catalogRepository;

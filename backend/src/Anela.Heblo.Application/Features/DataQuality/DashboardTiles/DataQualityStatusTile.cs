@@ -3,6 +3,7 @@ using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Application.Features.DataQuality.DashboardTiles;
 
+[TileId("dataqualitystatus")]
 public class DataQualityStatusTile : ITile
 {
     private readonly IDqtRunRepository _repository;
