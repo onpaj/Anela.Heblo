@@ -1,4 +1,6 @@
+using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Logistics.DashboardTiles;
+using Anela.Heblo.Application.Features.Logistics.Infrastructure;
 using Anela.Heblo.Application.Features.Logistics.Services;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Persistence;
@@ -36,6 +38,9 @@ public static class LogisticsModule
             nameof(ITransportBoxCompletionService.CompleteReceivedBoxesAsync),
             (service, ct) => service.CompleteReceivedBoxesAsync(ct)
         );
+
+        // Cross-module contract: Catalog owns ICatalogTransportSource; Logistics implements it via adapter.
+        services.AddScoped<ICatalogTransportSource, LogisticsCatalogTransportSourceAdapter>();
 
         return services;
     }

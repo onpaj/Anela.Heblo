@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Features.Purchase.Infrastructure;
 using Anela.Heblo.Application.Features.Purchase.Services;
 using Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
@@ -24,6 +26,9 @@ public static class PurchaseModule
 
         // Register dashboard tiles
         services.RegisterTile<LowStockEfficiencyTile>();
+
+        // Cross-module contract: Catalog owns ICatalogPurchaseSource; Purchase implements it via adapter.
+        services.AddScoped<ICatalogPurchaseSource, PurchaseCatalogSourceAdapter>();
 
         return services;
     }
