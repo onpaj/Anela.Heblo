@@ -10,6 +10,10 @@ public class CreateMaterialContainersRequestValidator : AbstractValidator<Create
         RuleFor(x => x.Items.Count).LessThanOrEqualTo(500).WithMessage("Cannot create more than 500 containers in one call.");
         RuleForEach(x => x.Items).ChildRules(item =>
         {
+            item.RuleFor(i => i.Code)
+                .NotEmpty()
+                .Matches(@"^M\d{8}$")
+                .WithMessage("Code must match format M followed by 8 digits (e.g. M00000001).");
             item.RuleFor(i => i.MaterialCode).NotEmpty().MaximumLength(InventoryConstants.MaterialCodeMaxLength);
             item.RuleFor(i => i.LotCode).NotEmpty().MaximumLength(InventoryConstants.LotCodeMaxLength);
             item.RuleFor(i => i.Amount).GreaterThan(0).When(i => i.Amount.HasValue);

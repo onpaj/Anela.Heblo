@@ -9,6 +9,7 @@ public class CreateMaterialContainersRequest : IRequest<CreateMaterialContainers
 
 public class CreateMaterialContainerItem
 {
+    public string Code { get; set; } = null!;
     public string MaterialCode { get; set; } = null!;
     public string LotCode { get; set; } = null!;
     public decimal? Amount { get; set; }
