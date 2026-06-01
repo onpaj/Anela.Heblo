@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Dashboard.Contracts;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Dashboard.UseCases.GetTileData;
@@ -12,15 +13,18 @@ public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDat
     private readonly IMediator _mediator;
     private readonly ITileRegistry _tileRegistry;
     private readonly DashboardOptions _dashboardOptions;
+    private readonly ILogger<GetTileDataHandler> _logger;
 
     public GetTileDataHandler(
         IMediator mediator,
         ITileRegistry tileRegistry,
-        IOptions<DashboardOptions> dashboardOptions)
+        IOptions<DashboardOptions> dashboardOptions,
+        ILogger<GetTileDataHandler> logger)
     {
         _mediator = mediator;
         _tileRegistry = tileRegistry;
         _dashboardOptions = dashboardOptions.Value;
+        _logger = logger;
     }
 
     public async Task<GetTileDataResponse> Handle(GetTileDataRequest request, CancellationToken cancellationToken)
@@ -84,14 +88,15 @@ public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDat
                 }
                 catch (Exception ex)
                 {
+                    _logger.LogError(ex, "Failed to load tile {TileId}", tileSettings.TileId);
                     results.Add((index, new TileData
                     {
                         TileId = tileSettings.TileId,
                         Title = "Error",
-                        Description = $"Failed to load tile: {ex.Message}",
+                        Description = $"Failed to load tile '{tileSettings.TileId}'",
                         Size = TileSize.Small,
                         Category = TileCategory.Error,
-                        Data = new { Error = ex.Message }
+                        Data = new { Error = "An error occurred while loading this tile." }
                     }));
                 }
             });
@@ -110,7 +115,8 @@ public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDat
                 AutoShow = td.AutoShow,
                 RequiredPermissions = td.RequiredPermissions,
                 Data = td.Data
-            });
+            })
+            .ToArray();
 
         return new GetTileDataResponse { Tiles = tiles };
     }

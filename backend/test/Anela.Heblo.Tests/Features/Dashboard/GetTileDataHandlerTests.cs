@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentAssertions;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -14,15 +15,17 @@ public class GetTileDataHandlerTests
 {
     private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<ITileRegistry> _tileRegistryMock;
+    private readonly Mock<ILogger<GetTileDataHandler>> _loggerMock;
     private readonly GetTileDataHandler _handler;
 
     public GetTileDataHandlerTests()
     {
         _mediatorMock = new Mock<IMediator>();
         _tileRegistryMock = new Mock<ITileRegistry>();
+        _loggerMock = new Mock<ILogger<GetTileDataHandler>>();
 
         var options = Options.Create(new DashboardOptions { MaxConcurrentTileLoads = 4 });
-        _handler = new GetTileDataHandler(_mediatorMock.Object, _tileRegistryMock.Object, options);
+        _handler = new GetTileDataHandler(_mediatorMock.Object, _tileRegistryMock.Object, options, _loggerMock.Object);
     }
 
     private void SetupUserSettings(string userId, UserDashboardTileDto[] tiles)
@@ -153,7 +156,7 @@ public class GetTileDataHandlerTests
         tile.TileId.Should().Be(tileId);
         tile.Title.Should().Be("Error");
         tile.Category.Should().Be("Error");
-        tile.Description.Should().Contain(errorMessage);
+        tile.Description.Should().Be($"Failed to load tile '{tileId}'");
     }
 
     [Fact]
@@ -259,7 +262,7 @@ public class GetTileDataHandlerTests
         });
 
         var options = Options.Create(new DashboardOptions { MaxConcurrentTileLoads = 2 });
-        var handler = new GetTileDataHandler(_mediatorMock.Object, _tileRegistryMock.Object, options);
+        var handler = new GetTileDataHandler(_mediatorMock.Object, _tileRegistryMock.Object, options, _loggerMock.Object);
 
         foreach (var id in new[] { "slow-tile-1", "slow-tile-2" })
         {
