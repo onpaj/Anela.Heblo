@@ -57,7 +57,6 @@ public class CatalogRepository : ICatalogRepository
     private readonly SemaphoreSlim _cacheReplacementSemaphore = new(1, 1);
     private readonly ConcurrentDictionary<string, DateTime> _sourceLastUpdated = new();
 
-
     public CatalogRepository(
         ICatalogSalesClient salesClient,
         ICatalogAttributesClient attributesClient,
