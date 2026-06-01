@@ -1,10 +1,10 @@
-Plan complete and saved to `docs/superpowers/plans/2026-06-01-wire-bank-import-tab-filter-inputs.md` (1953 lines, 67 checkbox steps across 17 tasks).
+The implementation plan already exists at `docs/superpowers/plans/2026-06-01-wire-bank-import-tab-filter-inputs.md` (1953 lines, 17 tasks). I reviewed it against the spec.r2.md and arch-review.r1.md inputs.
 
-**Summary of what the plan covers:**
+**Coverage verified:**
+- All seven FRs (FR-1..FR-7) mapped to specific tasks in the closing coverage table.
+- All five arch-review decisions implemented: `EF.Functions.ILike` + `LikeEscape` helper for both `TransferId` and `Account` (Tasks 2+4), half-open date range (Task 4), validation in `GetBankStatementListRequestValidator` (Task 6), frontend `committedFilters` object (Task 15), and `ImportResult != "OK"` predicate (Task 4).
+- All seven arch-review risks addressed: Testcontainers PostgreSQL integration tests cover the InMemory + ILike blocker (Task 10); `LikeEscape` shared helper handles wildcard escaping (Task 2); `BankModule` registers the `ValidationBehavior` and the controller explicitly catches `ValidationException` to translate to HTTP 400 (Tasks 7+8); hand-rolled hook updated manually in Task 14 with OpenAPI regen in Task 17.
+- No placeholders, no `TBD`/`TODO` markers. Repository signature consistent across the interface, implementation, handler, and handler tests (Tasks 3, 4, 5, 12).
+- TDD/commit cadence: each task ends with a build/test gate and a commit step.
 
-- **Backend (Tasks 1–13):** Extend the request DTO + handler + repository to accept `transferId`/`account`/`dateFrom`/`dateTo`/`errorsOnly`. Implements ILike+LIKE-escape for both string filters via a new `LikeEscape` shared helper extracted from `PackageRepository`. Uses half-open date range (`>= from.Date && < to.Date.AddDays(1)`) per arch-review Decision 2. Adds five FluentValidation rules and **registers the `ValidationBehavior` for the Bank slice** (currently missing — without this the validator never runs). Catches `FluentValidation.ValidationException` explicitly in the controller so the generic 500 catch doesn't swallow it.
-- **Backend tests (Tasks 9–12):** InMemory tests for date-range/errorsOnly filters; **separate Testcontainers PostgreSQL integration tests** for the ILike filters (since EF Core InMemory doesn't translate `EF.Functions.ILike` — the arch-review's "High" risk); validator unit tests; handler-level tests for trim+parse+forward.
-- **Frontend (Tasks 14–16):** Extend the hand-rolled `useBankStatementsList` (not the generated client). Refactor `ImportTab.tsx` from seven scattered states into a single `committedFilters` object that drives React Query's `queryKey`. Inline client-side guard for `dateFrom > dateTo`. Component test mocks the hook and verifies submission payload + Vymazat reset.
-- **Verification (Task 17):** OpenAPI regen, full BE + FE test suites, lint+format, plus the required UI smoke check in a browser per project rule.
-
-A spec-coverage table at the bottom maps each FR/NFR + each arch-review recommendation back to the task(s) that implement it.
+The plan file is the artifact for the pipeline; per the pipeline note I'm skipping the execution-handoff prompt.
