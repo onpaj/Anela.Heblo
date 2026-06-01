@@ -19,7 +19,7 @@ const PoLinePickStep = () => {
       {(data.lines ?? []).map((line) => (
         <Link
           key={line.id}
-          to={`/terminal/lot-identification/po/${poId}/line/${line.id}/lot`}
+          to={`/terminal/lot-identification/po/${poId}/line/${line.id}/material/${encodeURIComponent(line.materialId ?? '')}/lot`}
           className="flex items-center gap-3 bg-white border border-border-light rounded-xl p-3 hover:border-primary-blue"
         >
           <div className="flex-1 min-w-0">

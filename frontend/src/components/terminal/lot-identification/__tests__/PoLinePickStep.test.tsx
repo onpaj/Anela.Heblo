@@ -39,11 +39,11 @@ test('renders one row per PO line', () => {
   expect(screen.getByText('Shea Butter')).toBeInTheDocument();
 });
 
-test('line row links to /terminal/lot-identification/po/{poId}/line/{lineId}/lot', () => {
+test('line row links to /terminal/lot-identification/po/{poId}/line/{lineId}/material/{material}/lot', () => {
   wrap();
   expect(screen.getByRole('link', { name: /Olive Oil/ })).toHaveAttribute(
     'href',
-    '/terminal/lot-identification/po/1/line/10/lot'
+    '/terminal/lot-identification/po/1/line/10/material/MAT001/lot'
   );
 });
 

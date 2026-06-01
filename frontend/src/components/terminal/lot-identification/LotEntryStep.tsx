@@ -22,7 +22,7 @@ const LotEntryStep = ({ mode }: LotEntryStepProps) => {
         );
       } else {
         navigate(
-          `/terminal/lot-identification/po/${params.id}/line/${params.lineId}/lot/${encodeURIComponent(lot)}/scan`,
+          `/terminal/lot-identification/po/${params.id}/line/${params.lineId}/material/${encodeURIComponent(materialCode)}/lot/${encodeURIComponent(lot)}/scan`,
         );
       }
     },

@@ -24,6 +24,10 @@ const renderLoop = (path: string) => {
             path="/terminal/lot-identification/freeform/:material/lot/:lot/scan"
             element={<ContainerScanLoop mode="freeform" />}
           />
+          <Route
+            path="/terminal/lot-identification/po/:id/line/:lineId/material/:material/lot/:lot/scan"
+            element={<ContainerScanLoop mode="po" />}
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -45,6 +49,21 @@ test('valid scan calls mutate with correct payload', async () => {
     expect(mockMutate).toHaveBeenCalledWith(
       expect.objectContaining({
         items: [expect.objectContaining({ code: 'M00000001', materialCode: 'MAT001', lotCode: 'L1' })],
+      }),
+      expect.anything(),
+    );
+  });
+});
+
+test('po mode: valid scan sends materialCode from URL', async () => {
+  renderLoop('/terminal/lot-identification/po/1/line/10/material/MAT001/lot/L1/scan');
+  const input = screen.getByRole('textbox') as HTMLInputElement;
+  fireEvent.change(input, { target: { value: 'M00000002' } });
+  fireEvent.submit(screen.getByRole('form'));
+  await waitFor(() => {
+    expect(mockMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [expect.objectContaining({ code: 'M00000002', materialCode: 'MAT001', lotCode: 'L1' })],
       }),
       expect.anything(),
     );
