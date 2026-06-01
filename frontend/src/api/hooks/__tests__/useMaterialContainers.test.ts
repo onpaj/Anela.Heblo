@@ -16,10 +16,7 @@ jest.mock('../../client', () => ({
   },
 }));
 
-const mockGetAuthenticatedApiClient =
-  clientModule.getAuthenticatedApiClient as jest.MockedFunction<
-    typeof clientModule.getAuthenticatedApiClient
-  >;
+const mockGetAuthenticatedApiClient = clientModule.getAuthenticatedApiClient as jest.MockedFunction<typeof clientModule.getAuthenticatedApiClient>;
 
 const createWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = new QueryClient({
