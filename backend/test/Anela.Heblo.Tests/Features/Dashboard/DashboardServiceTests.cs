@@ -68,7 +68,7 @@ public class DashboardServiceTests
 
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
-            .Returns(new List<ITile>());
+            .Returns(new List<TileMetadata>());
 
         // Act
         var result = await _service.GetUserSettingsAsync(userId);
@@ -91,8 +91,7 @@ public class DashboardServiceTests
         var allTiles = CreateMockAutoShowTiles();
 
         // Add a new auto-show tile that the user doesn't have yet
-        var newTile = new NewAutoShowTile();
-        allTiles.Add(newTile);
+        allTiles.Add(new TileMetadata("newautoshow", "Auto Show Tile", "Auto show tile description", TileSize.Medium, TileCategory.Finance, true, true, typeof(object), Array.Empty<string>()));
 
         _settingsRepositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
@@ -122,9 +121,10 @@ public class DashboardServiceTests
     {
         // Arrange
         var userId = "user123";
-        var tilesWithoutAutoShow = new List<ITile>();
-        var nonAutoShowTile = new ManualTile();
-        tilesWithoutAutoShow.Add(nonAutoShowTile);
+        var tilesWithoutAutoShow = new List<TileMetadata>
+        {
+            new TileMetadata("manual", "Manual Tile", "Manual tile description", TileSize.Medium, TileCategory.Finance, true, false, typeof(object), Array.Empty<string>())
+        };
 
         _settingsRepositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
@@ -178,7 +178,7 @@ public class DashboardServiceTests
 
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
-            .Returns(new List<ITile>());
+            .Returns(new List<TileMetadata>());
 
         // Act
         var result = await _service.GetTileDataAsync(userId);
@@ -194,7 +194,6 @@ public class DashboardServiceTests
         // Arrange
         var userId = "user123";
         var userSettings = CreateUserSettingsWithVisibleTiles(userId);
-        var mockTile = CreateMockTileWithData("tile1");
 
         _settingsRepositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
@@ -202,11 +201,11 @@ public class DashboardServiceTests
 
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
-            .Returns(new List<ITile>());
+            .Returns(new List<TileMetadata>());
 
         _tileRegistryMock
-            .Setup(x => x.GetTile("tile1"))
-            .Returns(mockTile);
+            .Setup(x => x.GetTileMetadata("tile1"))
+            .Returns(new TileMetadata("testwithdata", "Test Tile", "Test Description", TileSize.Medium, TileCategory.Finance, true, false, typeof(object), Array.Empty<string>()));
 
         _tileRegistryMock
             .Setup(x => x.GetTileDataAsync("tile1", It.IsAny<Dictionary<string, string>?>()))
@@ -238,11 +237,11 @@ public class DashboardServiceTests
 
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
-            .Returns(new List<ITile>());
+            .Returns(new List<TileMetadata>());
 
         _tileRegistryMock
-            .Setup(x => x.GetTile("tile1"))
-            .Returns((ITile)null);
+            .Setup(x => x.GetTileMetadata("tile1"))
+            .Returns((TileMetadata?)null);
 
         // Act
         var result = await _service.GetTileDataAsync(userId);
@@ -264,7 +263,6 @@ public class DashboardServiceTests
         // Arrange
         var userId = "user123";
         var userSettings = CreateUserSettingsWithVisibleTiles(userId);
-        var mockTile = CreateMockTileWithData("tile1");
 
         _settingsRepositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
@@ -272,11 +270,11 @@ public class DashboardServiceTests
 
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
-            .Returns(new List<ITile>());
+            .Returns(new List<TileMetadata>());
 
         _tileRegistryMock
-            .Setup(x => x.GetTile("tile1"))
-            .Returns(mockTile);
+            .Setup(x => x.GetTileMetadata("tile1"))
+            .Returns(new TileMetadata("testwithdata", "Test Tile", "Test Description", TileSize.Medium, TileCategory.Finance, true, false, typeof(object), Array.Empty<string>()));
 
         _tileRegistryMock
             .Setup(x => x.GetTileDataAsync("tile1", It.IsAny<Dictionary<string, string>?>()))
@@ -319,14 +317,14 @@ public class DashboardServiceTests
 
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
-            .Returns(new List<ITile>());
+            .Returns(new List<TileMetadata>());
 
         foreach (var tileId in new[] { "tile1", "tile2", "tile3" })
         {
             var id = tileId;
             _tileRegistryMock
-                .Setup(x => x.GetTile(id))
-                .Returns(new TestTileWithData(id));
+                .Setup(x => x.GetTileMetadata(id))
+                .Returns(new TileMetadata("testwithdata", "Test Tile", "Test Description", TileSize.Medium, TileCategory.Finance, true, false, typeof(object), Array.Empty<string>()));
 
             _tileRegistryMock
                 .Setup(x => x.GetTileDataAsync(id, It.IsAny<Dictionary<string, string>?>()))
@@ -345,17 +343,13 @@ public class DashboardServiceTests
         result.Should().AllSatisfy(t => t.Data.Should().NotBeNull());
     }
 
-    private static List<ITile> CreateMockAutoShowTiles()
+    private static List<TileMetadata> CreateMockAutoShowTiles()
     {
-        var tiles = new List<ITile>();
-
-        var tile1 = new AutoTile1();
-        tiles.Add(tile1);
-
-        var tile2 = new AutoTile2();
-        tiles.Add(tile2);
-
-        return tiles;
+        return new List<TileMetadata>
+        {
+            new TileMetadata("auto1", "Auto Tile 1", "Auto tile 1 description", TileSize.Medium, TileCategory.Finance, true, true, typeof(object), Array.Empty<string>()),
+            new TileMetadata("auto2", "Auto Tile 2", "Auto tile 2 description", TileSize.Medium, TileCategory.Finance, true, true, typeof(object), Array.Empty<string>())
+        };
     }
 
     private static UserDashboardSettings CreateExistingUserSettings(string userId)
@@ -404,102 +398,5 @@ public class DashboardServiceTests
                 }
             }
         };
-    }
-
-    private static TestTileWithData CreateMockTileWithData(string tileId)
-    {
-        return new TestTileWithData(tileId);
-    }
-}
-
-// Test tile classes for DashboardServiceTests
-public class NewAutoShowTile : ITile
-{
-    public string Title { get; init; } = "Auto Show Tile";
-    public string Description { get; init; } = "Auto show tile description";
-    public TileSize Size { get; init; } = TileSize.Medium;
-    public TileCategory Category { get; init; } = TileCategory.Finance;
-    public bool DefaultEnabled { get; init; } = true;
-    public bool AutoShow { get; init; } = true;
-    public Type ComponentType { get; init; } = typeof(object);
-    public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
-
-    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult((object)"Auto show data");
-    }
-}
-
-public class ManualTile : ITile
-{
-    public string Title { get; init; } = "Manual Tile";
-    public string Description { get; init; } = "Manual tile description";
-    public TileSize Size { get; init; } = TileSize.Medium;
-    public TileCategory Category { get; init; } = TileCategory.Finance;
-    public bool DefaultEnabled { get; init; } = true;
-    public bool AutoShow { get; init; } = false;
-    public Type ComponentType { get; init; } = typeof(object);
-    public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
-
-    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult((object)"Manual data");
-    }
-}
-
-public class AutoTile1 : ITile
-{
-    public string Title { get; init; } = "Auto Tile 1";
-    public string Description { get; init; } = "Auto tile 1 description";
-    public TileSize Size { get; init; } = TileSize.Medium;
-    public TileCategory Category { get; init; } = TileCategory.Finance;
-    public bool DefaultEnabled { get; init; } = true;
-    public bool AutoShow { get; init; } = true;
-    public Type ComponentType { get; init; } = typeof(object);
-    public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
-
-    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult((object)"Auto tile 1 data");
-    }
-}
-
-public class AutoTile2 : ITile
-{
-    public string Title { get; init; } = "Auto Tile 2";
-    public string Description { get; init; } = "Auto tile 2 description";
-    public TileSize Size { get; init; } = TileSize.Medium;
-    public TileCategory Category { get; init; } = TileCategory.Finance;
-    public bool DefaultEnabled { get; init; } = true;
-    public bool AutoShow { get; init; } = true;
-    public Type ComponentType { get; init; } = typeof(object);
-    public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
-
-    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult((object)"Auto tile 2 data");
-    }
-}
-
-public class TestTileWithData : ITile
-{
-    public string TileId { get; }
-    public string Title { get; init; } = "Test Tile";
-    public string Description { get; init; } = "Test Description";
-    public TileSize Size { get; init; } = TileSize.Medium;
-    public TileCategory Category { get; init; } = TileCategory.Finance;
-    public bool DefaultEnabled { get; init; } = true;
-    public bool AutoShow { get; init; } = false;
-    public Type ComponentType { get; init; } = typeof(object);
-    public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
-
-    public TestTileWithData(string tileId)
-    {
-        TileId = tileId;
-    }
-
-    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult((object)$"Test data for {TileId}");
     }
 }

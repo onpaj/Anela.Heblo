@@ -19,7 +19,7 @@ public class GetAvailableTilesHandler : IRequestHandler<GetAvailableTilesRequest
 
         var result = tiles.Select(t => new DashboardTileDto
         {
-            TileId = t.GetTileId(),
+            TileId = t.TileId,
             Title = t.Title,
             Description = t.Description,
             Size = t.Size.ToString(),
