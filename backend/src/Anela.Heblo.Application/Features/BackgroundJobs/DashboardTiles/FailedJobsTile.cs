@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.BackgroundJobs.DashboardTiles;
 
+[TileId("failedjobs")]
 public sealed class FailedJobsTile : ITile
 {
     private const string FailedJobsUrl = "/hangfire/jobs/failed";

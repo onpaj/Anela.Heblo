@@ -8,6 +8,7 @@ namespace Anela.Heblo.Application.Features.Logistics.DashboardTiles;
 /// <summary>
 /// Dashboard tile showing count of gift packages with critical stock severity.
 /// </summary>
+[TileId("criticalgiftpackages")]
 public class CriticalGiftPackagesTile : ITile
 {
     private readonly IMediator _mediator;

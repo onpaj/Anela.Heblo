@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.DataQuality.DashboardTiles;
 
+[TileId("dqtyesterdaystatus")]
 public class DqtYesterdayStatusTile : ITile
 {
     private const string DrillDownHref = "/automation/data-quality";
