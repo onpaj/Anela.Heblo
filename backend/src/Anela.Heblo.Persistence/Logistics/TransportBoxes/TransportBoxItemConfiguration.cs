@@ -1,0 +1,25 @@
+using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace Anela.Heblo.Persistence.Logistics.TransportBoxes;
+
+public class TransportBoxItemConfiguration : IEntityTypeConfiguration<TransportBoxItem>
+{
+    public void Configure(EntityTypeBuilder<TransportBoxItem> builder)
+    {
+        builder.ToTable("TransportBoxItems", "public");
+
+        builder.HasKey(x => x.Id);
+
+        // Configure DateAdded for PostgreSQL backward compatibility
+        builder.Property(x => x.DateAdded)
+            .HasColumnName("DateAdded")
+            .HasColumnType("timestamp without time zone")
+            .IsRequired();
+
+        builder.Property(x => x.LotNumber).HasMaxLength(100);
+        builder.Property(x => x.ExpirationDate);  // DateOnly? — Npgsql maps to 'date' natively
+        builder.Property(x => x.SourceInventoryId);
+    }
+}

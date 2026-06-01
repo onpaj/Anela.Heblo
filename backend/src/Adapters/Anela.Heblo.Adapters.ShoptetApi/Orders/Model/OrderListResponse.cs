@@ -1,0 +1,164 @@
+using System.Text.Json.Serialization;
+
+namespace Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
+
+public class OrderListResponse
+{
+    [JsonPropertyName("data")]
+    public OrderListData Data { get; set; } = new();
+}
+
+public class OrderListData
+{
+    [JsonPropertyName("orders")]
+    public List<OrderSummary> Orders { get; set; } = new();
+
+    [JsonPropertyName("paginator")]
+    public Paginator Paginator { get; set; } = new();
+}
+
+/// <summary>
+/// Order summary as returned by GET /api/orders (list endpoint) and GET /api/orders/{code}.
+/// List-endpoint fields: code, guid, creationTime, changeTime, company, fullName, email,
+/// phone, remark, cashDeskOrder, customerGuid, paid, status, source, price,
+/// paymentMethod, shipping, adminUrl, salesChannelGuid.
+/// Note: externalCode, billing/delivery addresses, and the notes object (eshopRemark etc.)
+/// are NOT in the list response. Use GET /api/orders/{code}?include=notes for notes.
+/// </summary>
+public class OrderSummary
+{
+    [JsonPropertyName("code")]
+    public string Code { get; set; } = null!;
+
+    [JsonPropertyName("guid")]
+    public string? Guid { get; set; }
+
+    [JsonPropertyName("externalCode")]
+    public string? ExternalCode { get; set; }
+
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("fullName")]
+    public string? FullName { get; set; }
+
+    [JsonPropertyName("phone")]
+    public string? Phone { get; set; }
+
+    [JsonPropertyName("company")]
+    public string? Company { get; set; }
+
+    /// <summary>ISO 8601 datetime string, e.g. "2024-06-01T10:00:00"</summary>
+    [JsonPropertyName("creationTime")]
+    public string? CreationTime { get; set; }
+
+    /// <summary>ISO 8601 datetime string</summary>
+    [JsonPropertyName("changeTime")]
+    public string? ChangeTime { get; set; }
+
+    [JsonPropertyName("paid")]
+    public bool? Paid { get; set; }
+
+    [JsonPropertyName("status")]
+    public OrderStatusSummary Status { get; set; } = new();
+
+    [JsonPropertyName("shipping")]
+    public OrderShippingSummary? Shipping { get; set; }
+
+    [JsonPropertyName("paymentMethod")]
+    public OrderPaymentMethodSummary? PaymentMethod { get; set; }
+
+    [JsonPropertyName("customerGuid")]
+    public string? CustomerGuid { get; set; }
+
+    [JsonPropertyName("adminUrl")]
+    public string? AdminUrl { get; set; }
+
+    [JsonPropertyName("price")]
+    public OrderPriceSummary? Price { get; set; }
+
+    /// <summary>
+    /// Populated only when the request included ?include=notes.
+    /// Contains eshopRemark (internal staff note), customerRemark, trackingNumber, etc.
+    /// </summary>
+    [JsonPropertyName("notes")]
+    public OrderNotes? Notes { get; set; }
+}
+
+public class OrderStatusSummary
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+}
+
+/// <summary>
+/// Shipping method as returned in the order list response.
+/// Shoptet REST API returns { "guid": "...", "name": "..." } — NOT a numeric id.
+/// The numeric shippingId values (e.g. 21 for Zásilkovna) are admin-UI internal
+/// identifiers used only for Playwright URL filters (?f[shippingId]=21).
+/// </summary>
+public class OrderShippingSummary
+{
+    [JsonPropertyName("guid")]
+    public string? Guid { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+}
+
+public class OrderPaymentMethodSummary
+{
+    [JsonPropertyName("guid")]
+    public string? Guid { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+}
+
+public class Paginator
+{
+    [JsonPropertyName("totalCount")]
+    public int TotalCount { get; set; }
+
+    [JsonPropertyName("page")]
+    public int Page { get; set; }
+
+    [JsonPropertyName("pageCount")]
+    public int PageCount { get; set; }
+}
+
+/// <summary>
+/// The notes/remarks object returned by GET /api/orders/{code}?include=notes.
+/// Only present when ?include=notes is included in the request — null otherwise.
+/// Updated via PATCH /api/orders/{code}/notes.
+/// </summary>
+public class OrderNotes
+{
+    /// <summary>Internal staff-facing remark. Updated via PATCH /notes with body {"data":{"eshopRemark":"..."}}.</summary>
+    [JsonPropertyName("eshopRemark")]
+    public string? EshopRemark { get; set; }
+
+    /// <summary>Customer remark entered at checkout. Corresponds to the "remark" field in GET /api/orders list response.</summary>
+    [JsonPropertyName("customerRemark")]
+    public string? CustomerRemark { get; set; }
+
+    [JsonPropertyName("trackingNumber")]
+    public string? TrackingNumber { get; set; }
+
+    [JsonPropertyName("trackingUrl")]
+    public string? TrackingUrl { get; set; }
+}
+
+public class OrderPriceSummary
+{
+    [JsonPropertyName("withVat")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? WithVat { get; set; }
+
+    [JsonPropertyName("withoutVat")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? WithoutVat { get; set; }
+
+    [JsonPropertyName("currencyCode")]
+    public string? CurrencyCode { get; set; }
+}

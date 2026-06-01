@@ -1,0 +1,19 @@
+using Anela.Heblo.Domain.Shared;
+
+namespace Anela.Heblo.Domain.Features.Catalog;
+
+public record CatalogProperties
+{
+    public int OptimalStockDaysSetup { get; set; } = 0;
+    public decimal StockMinSetup { get; set; } = 0;
+    public int BatchSize { get; set; } = 0;
+
+    public int ExpirationMonths { get; set; } = 12;
+    public int[] SeasonMonths { get; set; } = Array.Empty<int>();
+
+    public bool ManufactureWithoutSemiproduct { get; set; }
+
+    public double AllowedResiduePercentage { get; set; } = 0;
+
+    public Cooling Cooling { get; set; } = Cooling.None;
+}

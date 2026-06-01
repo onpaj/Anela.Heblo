@@ -1,0 +1,9 @@
+namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.SendMessage;
+
+public sealed class SmartsuppSendMessageOptions
+{
+    public const string SectionName = "Smartsupp:SendMessage";
+
+    public Dictionary<string, string> AgentMap { get; set; } =
+        new(StringComparer.OrdinalIgnoreCase);
+}

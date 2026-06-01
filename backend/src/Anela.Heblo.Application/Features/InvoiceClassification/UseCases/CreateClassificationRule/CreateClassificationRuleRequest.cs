@@ -1,0 +1,18 @@
+using MediatR;
+
+namespace Anela.Heblo.Application.Features.InvoiceClassification.UseCases.CreateClassificationRule;
+
+public class CreateClassificationRuleRequest : IRequest<CreateClassificationRuleResponse>
+{
+    public string Name { get; set; } = string.Empty;
+
+    public string RuleTypeIdentifier { get; set; } = string.Empty;
+
+    public string Pattern { get; set; } = string.Empty;
+
+    public string AccountingTemplateCode { get; set; } = string.Empty;
+
+    public string? Department { get; set; }
+
+    public bool IsActive { get; set; } = true;
+}

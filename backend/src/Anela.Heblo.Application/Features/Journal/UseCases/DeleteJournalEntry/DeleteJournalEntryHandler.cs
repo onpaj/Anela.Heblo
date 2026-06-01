@@ -1,0 +1,66 @@
+using Anela.Heblo.Application.Features.Journal.Contracts;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Journal;
+using Anela.Heblo.Domain.Features.Users;
+using MediatR;
+using Microsoft.Extensions.Logging;
+
+namespace Anela.Heblo.Application.Features.Journal.UseCases.DeleteJournalEntry
+{
+    public class DeleteJournalEntryHandler : IRequestHandler<DeleteJournalEntryRequest, DeleteJournalEntryResponse>
+    {
+        private readonly IJournalRepository _journalRepository;
+        private readonly ICurrentUserService _currentUserService;
+        private readonly ILogger<DeleteJournalEntryHandler> _logger;
+
+        public DeleteJournalEntryHandler(
+            IJournalRepository journalRepository,
+            ICurrentUserService currentUserService,
+            ILogger<DeleteJournalEntryHandler> logger)
+        {
+            _journalRepository = journalRepository;
+            _currentUserService = currentUserService;
+            _logger = logger;
+        }
+
+        public async Task<DeleteJournalEntryResponse> Handle(
+            DeleteJournalEntryRequest request,
+            CancellationToken cancellationToken)
+        {
+            var currentUser = _currentUserService.GetCurrentUser();
+            if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.Id))
+            {
+                return new DeleteJournalEntryResponse(ErrorCodes.UnauthorizedJournalAccess, new Dictionary<string, string>
+                {
+                    { "resource", "journal_entry" }
+                });
+            }
+
+            var entry = await _journalRepository.GetByIdAsync(request.Id, cancellationToken);
+            if (entry == null)
+            {
+                return new DeleteJournalEntryResponse(ErrorCodes.JournalEntryNotFound, new Dictionary<string, string>
+                {
+                    { "entryId", request.Id.ToString() }
+                });
+            }
+
+            // Check if user owns the entry (for now, allow all authenticated users to delete)
+            // In production, you might want to restrict this to the original author
+
+            entry.SoftDelete(currentUser.Id, currentUser.Name);
+            await _journalRepository.UpdateAsync(entry, cancellationToken);
+            await _journalRepository.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Journal entry {EntryId} deleted by user {UserId}",
+                request.Id,
+                currentUser.Id);
+
+            return new DeleteJournalEntryResponse
+            {
+                Id = request.Id
+            };
+        }
+    }
+}

@@ -1,0 +1,252 @@
+using Anela.Heblo.Application.Features.Manufacture.Configuration;
+using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
+using Anela.Heblo.Application.Features.Manufacture.Services;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
+using Anela.Heblo.Domain.Features.Manufacture;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Moq;
+using Xunit;
+
+namespace Anela.Heblo.Tests.Features.Manufacture;
+
+public class SubmitManufactureHandlerTests
+{
+    private readonly Mock<IManufactureClient> _clientMock = new();
+    private readonly Mock<IManufactureOrderRepository> _repositoryMock = new();
+    private readonly Mock<IManufactureErrorTransformer> _transformerMock = new();
+    private readonly Mock<ILogger<SubmitManufactureHandler>> _loggerMock = new();
+    private readonly SubmitManufactureHandler _handler;
+
+    public SubmitManufactureHandlerTests()
+    {
+        _handler = new SubmitManufactureHandler(
+            _clientMock.Object,
+            _repositoryMock.Object,
+            _transformerMock.Object,
+            TimeProvider.System,
+            _loggerMock.Object,
+            Options.Create(new ManufactureErpOptions()));
+    }
+
+    [Fact]
+    public async Task Handle_WhenClientSucceeds_ReturnsSuccessResponse()
+    {
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-001" });
+
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.ManufactureId.Should().Be("MAN-001");
+        result.UserMessage.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_WhenClientThrows_SetsUserMessageFromTransformer()
+    {
+        var ex = new InvalidOperationException("Flexi raw error");
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(ex);
+        _transformerMock
+            .Setup(t => t.Transform(ex))
+            .Returns("Nedostatek meziproduktu 'XYZ' na skladu POLOTOVARY.");
+
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.UserMessage.Should().Be("Nedostatek meziproduktu 'XYZ' na skladu POLOTOVARY.");
+    }
+
+    [Fact]
+    public async Task Handle_WhenClientSucceeds_PropagatesAllFlexiDocCodes()
+    {
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SubmitManufactureClientResponse
+            {
+                ManufactureId = "MAN-001",
+                MaterialIssueForSemiProductDocCode = "V-MAT-001",
+                SemiProductReceiptDocCode = "V-POL-001",
+                SemiProductIssueForProductDocCode = "V-POLV-001",
+                MaterialIssueForProductDocCode = "V-MATV-001",
+                ProductReceiptDocCode = "V-PRIJEM-001",
+            });
+
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.ManufactureId.Should().Be("MAN-001");
+        result.MaterialIssueForSemiProductDocCode.Should().Be("V-MAT-001");
+        result.SemiProductReceiptDocCode.Should().Be("V-POL-001");
+        result.SemiProductIssueForProductDocCode.Should().Be("V-POLV-001");
+        result.MaterialIssueForProductDocCode.Should().Be("V-MATV-001");
+        result.ProductReceiptDocCode.Should().Be("V-PRIJEM-001");
+    }
+
+    [Fact]
+    public async Task Handle_WhenClientThrows_LogsOriginalException()
+    {
+        var ex = new InvalidOperationException("Flexi raw error");
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(ex);
+        _transformerMock.Setup(t => t.Transform(It.IsAny<Exception>())).Returns("any message");
+
+        await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        _loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => true),
+                ex,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_MapsAllFieldsToClientRequest()
+    {
+        SubmitManufactureClientRequest? captured = null;
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<SubmitManufactureClientRequest, CancellationToken>((req, _) => captured = req)
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-999" });
+
+        var expirationDate = new DateOnly(2027, 6, 30);
+        var date = new DateTime(2026, 4, 9, 10, 0, 0, DateTimeKind.Utc);
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = "MO-MAPPED",
+            ManufactureInternalNumber = "INT-MAPPED",
+            ManufactureType = ErpManufactureType.SemiProduct,
+            Date = date,
+            CreatedBy = "mapper@anela.cz",
+            LotNumber = "LOT-001",
+            ExpirationDate = expirationDate,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new() { ProductCode = "PROD-X", Name = "Product X", Amount = 50 }
+            }
+        };
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        captured.Should().NotBeNull();
+        captured!.ManufactureOrderCode.Should().Be("MO-MAPPED");
+        captured.ManufactureInternalNumber.Should().Be("INT-MAPPED");
+        captured.ManufactureType.Should().Be(ErpManufactureType.SemiProduct);
+        captured.Date.Should().Be(date);
+        captured.CreatedBy.Should().Be("mapper@anela.cz");
+        captured.LotNumber.Should().Be("LOT-001");
+        captured.ExpirationDate.Should().Be(expirationDate);
+        captured.Items.Should().HaveCount(1);
+        captured.Items[0].ProductCode.Should().Be("PROD-X");
+        captured.Items[0].ProductName.Should().Be("Product X");
+        captured.Items[0].Amount.Should().Be(50);
+    }
+
+    [Fact]
+    public async Task Handle_WhenCancelled_PropagatesOperationCanceledException()
+    {
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        var act = async () => await _handler.Handle(BuildRequest(), new CancellationTokenSource().Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _transformerMock.Verify(t => t.Transform(It.IsAny<Exception>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotActivateIngredientStockValidation()
+    {
+        // Arrange — ingredient stock validation must NOT be activated at the
+        // client boundary by the default submit path. Activation should be an
+        // explicit, documented opt-in in a separate PR.
+        SubmitManufactureClientRequest? capturedClientRequest = null;
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<SubmitManufactureClientRequest, CancellationToken>(
+                (r, _) => capturedClientRequest = r)
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-VAL-1" });
+
+        // Act
+        await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        capturedClientRequest.Should().NotBeNull();
+        capturedClientRequest!.ValidateIngredientStock.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_WhenErpTimesOut_PropagatesOperationCanceledException()
+    {
+        // Arrange — simulate Flexi taking longer than the configured timeout.
+        // Use a very short timeout (1 ms) so the test doesn't actually wait.
+        var handlerWithShortTimeout = new SubmitManufactureHandler(
+            _clientMock.Object,
+            _repositoryMock.Object,
+            _transformerMock.Object,
+            TimeProvider.System,
+            _loggerMock.Object,
+            Options.Create(new ManufactureErpOptions { ErpTimeoutSeconds = 1 }));
+
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .Returns(async (SubmitManufactureClientRequest _, CancellationToken ct) =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5), ct);
+                return new SubmitManufactureClientResponse { ManufactureId = "NEVER" };
+            });
+
+        // Act
+        var act = async () => await handlerWithShortTimeout.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert — the timeout CTS cancels, which propagates as OperationCanceledException
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _transformerMock.Verify(t => t.Transform(It.IsAny<Exception>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTimeoutDisabled_DoesNotApplyCancelAfter()
+    {
+        // Arrange — ErpTimeoutSeconds = 0 means no application-level timeout.
+        var handlerNoTimeout = new SubmitManufactureHandler(
+            _clientMock.Object,
+            _repositoryMock.Object,
+            _transformerMock.Object,
+            TimeProvider.System,
+            _loggerMock.Object,
+            Options.Create(new ManufactureErpOptions { ErpTimeoutSeconds = 0 }));
+
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-NOTIMEOUT" });
+
+        // Act
+        var result = await handlerNoTimeout.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert — call succeeds; no timeout was enforced
+        result.Success.Should().BeTrue();
+        result.ManufactureId.Should().Be("MAN-NOTIMEOUT");
+    }
+
+    private static SubmitManufactureRequest BuildRequest() => new()
+    {
+        ManufactureOrderNumber = "MO-001",
+        ManufactureInternalNumber = "INT-001",
+        ManufactureType = ErpManufactureType.SemiProduct,
+        Date = DateTime.UtcNow,
+        CreatedBy = "test@anela.cz",
+        Items = new List<SubmitManufactureRequestItem>
+        {
+            new() { ProductCode = "PROD001", Name = "Test Product", Amount = 100 }
+        }
+    };
+}

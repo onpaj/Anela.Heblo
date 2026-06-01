@@ -1,0 +1,21 @@
+using Anela.Heblo.Domain.Features.MarketingInvoices;
+using Anela.Heblo.Persistence.Repositories;
+
+namespace Anela.Heblo.Persistence.Features.MarketingInvoices;
+
+public class ImportedMarketingTransactionRepository
+    : BaseRepository<ImportedMarketingTransaction, int>, IImportedMarketingTransactionRepository
+{
+    public ImportedMarketingTransactionRepository(ApplicationDbContext context)
+        : base(context)
+    {
+    }
+
+    public async Task<bool> ExistsAsync(string platform, string transactionId, CancellationToken ct)
+    {
+        return await AnyAsync(
+            x => x.Platform == platform && x.TransactionId == transactionId,
+            ct);
+    }
+
+}

@@ -1,0 +1,195 @@
+using Anela.Heblo.Domain.Features.Manufacture;
+using Microsoft.EntityFrameworkCore;
+
+namespace Anela.Heblo.Persistence.Manufacture;
+
+public class ManufactureOrderRepository : IManufactureOrderRepository
+{
+    private readonly ApplicationDbContext _context;
+
+    public ManufactureOrderRepository(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<(List<ManufactureOrder> Items, int TotalCount)> GetOrdersAsync(
+        ManufactureOrderState? state = null,
+        DateOnly? dateFrom = null,
+        DateOnly? dateTo = null,
+        string? responsiblePerson = null,
+        string? orderNumber = null,
+        string? productCode = null,
+        string? erpDocumentNumber = null,
+        bool? manualActionRequired = null,
+        string? lotNumber = null,
+        int pageNumber = 1,
+        int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        // Base filter query without navigation property includes — used for COUNT
+        // to avoid unnecessary joins when computing the total row count.
+        var filterQuery = _context.ManufactureOrders.AsQueryable();
+
+        if (state.HasValue)
+        {
+            filterQuery = filterQuery.Where(x => x.State == state.Value);
+        }
+
+        if (dateFrom.HasValue)
+        {
+            filterQuery = filterQuery.Where(x => x.PlannedDate >= dateFrom.Value);
+        }
+
+        if (dateTo.HasValue)
+        {
+            filterQuery = filterQuery.Where(x => x.PlannedDate <= dateTo.Value);
+        }
+
+        if (!string.IsNullOrEmpty(responsiblePerson))
+        {
+            filterQuery = filterQuery.Where(x => x.ResponsiblePerson != null && x.ResponsiblePerson.Contains(responsiblePerson));
+        }
+
+        if (!string.IsNullOrEmpty(orderNumber))
+        {
+            filterQuery = filterQuery.Where(x => x.OrderNumber.Contains(orderNumber));
+        }
+
+        // Filters on navigation properties require a join regardless; apply to
+        // both filterQuery and the data query so the WHERE clause is consistent.
+        if (!string.IsNullOrEmpty(productCode))
+        {
+            filterQuery = filterQuery
+                .Include(x => x.SemiProduct)
+                .Include(x => x.Products)
+                .Where(x =>
+                    (x.SemiProduct != null && x.SemiProduct.ProductCode.Contains(productCode)) ||
+                    x.Products.Any(p => p.ProductCode.Contains(productCode)));
+        }
+
+        if (!string.IsNullOrEmpty(erpDocumentNumber))
+        {
+            filterQuery = filterQuery.Where(x =>
+                (x.ErpOrderNumberSemiproduct != null && x.ErpOrderNumberSemiproduct.Contains(erpDocumentNumber)) ||
+                (x.ErpOrderNumberProduct != null && x.ErpOrderNumberProduct.Contains(erpDocumentNumber)) ||
+                (x.ErpDiscardResidueDocumentNumber != null && x.ErpDiscardResidueDocumentNumber.Contains(erpDocumentNumber)));
+        }
+
+        if (manualActionRequired.HasValue)
+        {
+            filterQuery = filterQuery.Where(x => x.ManualActionRequired == manualActionRequired.Value);
+        }
+
+        if (!string.IsNullOrEmpty(lotNumber))
+        {
+            filterQuery = filterQuery
+                .Include(x => x.SemiProduct)
+                .Include(x => x.Products)
+                .Where(x =>
+                    (x.SemiProduct != null && x.SemiProduct.LotNumber != null && x.SemiProduct.LotNumber.Contains(lotNumber)) ||
+                    x.Products.Any(p => p.LotNumber != null && p.LotNumber.Contains(lotNumber)));
+        }
+
+        var safePageSize = pageSize <= 0 ? 20 : pageSize;
+        var safePageNumber = pageNumber <= 0 ? 1 : pageNumber;
+
+        // COUNT uses the filter query without extra includes — avoids unnecessary joins.
+        var totalCount = await filterQuery.CountAsync(cancellationToken);
+
+        // Data query: apply the same filters together with required includes.
+        // Notes are excluded from the list query; they are only loaded for the
+        // single-order detail endpoint (GetOrderByIdAsync) where they are needed.
+        var items = await filterQuery
+            .AsNoTracking()
+            .Include(x => x.SemiProduct)
+            .Include(x => x.Products)
+            .OrderByDescending(x => x.CreatedDate)
+            .Skip((safePageNumber - 1) * safePageSize)
+            .Take(safePageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
+    public async Task<ManufactureOrder?> GetOrderByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await _context.ManufactureOrders
+            .Include(x => x.SemiProduct)
+            .Include(x => x.Products)
+            .Include(x => x.Notes.OrderByDescending(n => n.CreatedAt))
+            .Include(x => x.ConditionsReadings.OrderBy(r => r.RecordedAt))
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+
+    public async Task<ManufactureOrder> AddOrderAsync(ManufactureOrder order, CancellationToken cancellationToken = default)
+    {
+        _context.ManufactureOrders.Add(order);
+        await _context.SaveChangesAsync(cancellationToken);
+        return order;
+    }
+
+    public async Task<ManufactureOrder> UpdateOrderAsync(ManufactureOrder order, CancellationToken cancellationToken = default)
+    {
+        _context.ManufactureOrders.Update(order);
+        await _context.SaveChangesAsync(cancellationToken);
+        return order;
+    }
+
+    public async Task DeleteOrderAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var order = await _context.ManufactureOrders.FindAsync(new object[] { id }, cancellationToken);
+        if (order != null)
+        {
+            _context.ManufactureOrders.Remove(order);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    public async Task<string> GenerateOrderNumberAsync(CancellationToken cancellationToken = default)
+    {
+        var currentYear = DateTime.Now.Year;
+        var prefix = $"MO-{currentYear}-";
+
+        var lastOrderNumber = await _context.ManufactureOrders
+            .Where(x => x.OrderNumber.StartsWith(prefix))
+            .OrderByDescending(x => x.OrderNumber)
+            .Select(x => x.OrderNumber)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        int nextSequence = 1;
+        if (lastOrderNumber != null)
+        {
+            var sequencePart = lastOrderNumber.Substring(prefix.Length);
+            if (int.TryParse(sequencePart, out int lastSequence))
+            {
+                nextSequence = lastSequence + 1;
+            }
+        }
+
+        return $"{prefix}{nextSequence:D3}"; // Format as 001, 002, etc.
+    }
+
+    public async Task<List<ManufactureOrder>> GetOrdersForDateRangeAsync(DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default)
+    {
+        return await _context.ManufactureOrders
+            .Include(x => x.SemiProduct)
+            .Include(x => x.Products)
+            .Include(x => x.Notes)
+            .Where(x => (x.PlannedDate >= startDate && x.PlannedDate <= endDate))
+            .OrderBy(x => x.PlannedDate)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Dictionary<string, decimal>> GetPlannedQuantitiesAsync(CancellationToken cancellationToken = default)
+    {
+        return await (from order in _context.ManufactureOrders
+                      where order.State != ManufactureOrderState.Completed &&
+                            order.State != ManufactureOrderState.Cancelled &&
+                            order.State != ManufactureOrderState.Draft
+                      from product in _context.ManufactureOrderProducts
+                      where product.ManufactureOrderId == order.Id
+                      group product by product.ProductCode into grouped
+                      select new { ProductCode = grouped.Key, TotalQuantity = grouped.Sum(p => p.PlannedQuantity) })
+            .ToDictionaryAsync(x => x.ProductCode, x => x.TotalQuantity, cancellationToken);
+    }
+}

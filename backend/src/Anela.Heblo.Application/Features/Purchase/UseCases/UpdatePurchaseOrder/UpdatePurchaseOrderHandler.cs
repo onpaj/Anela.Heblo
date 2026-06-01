@@ -1,0 +1,162 @@
+using Anela.Heblo.Application.Features.Purchase.Contracts;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Purchase;
+using Anela.Heblo.Domain.Features.Users;
+using MediatR;
+using Microsoft.Extensions.Logging;
+
+namespace Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
+
+public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderRequest, UpdatePurchaseOrderResponse>
+{
+    private readonly ILogger<UpdatePurchaseOrderHandler> _logger;
+    private readonly IPurchaseOrderRepository _repository;
+    private readonly IMaterialCatalogService _materialCatalog;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly ISupplierRepository _supplierRepository;
+
+    public UpdatePurchaseOrderHandler(
+        ILogger<UpdatePurchaseOrderHandler> logger,
+        IPurchaseOrderRepository repository,
+        IMaterialCatalogService materialCatalog,
+        ICurrentUserService currentUserService,
+        ISupplierRepository supplierRepository)
+    {
+        _logger = logger;
+        _repository = repository;
+        _materialCatalog = materialCatalog;
+        _currentUserService = currentUserService;
+        _supplierRepository = supplierRepository;
+    }
+
+    public async Task<UpdatePurchaseOrderResponse> Handle(UpdatePurchaseOrderRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Updating purchase order {Id}", request.Id);
+
+        var purchaseOrder = await _repository.GetByIdWithDetailsAsync(request.Id, cancellationToken);
+
+        if (purchaseOrder == null)
+        {
+            _logger.LogWarning("Purchase order not found for ID {Id}", request.Id);
+            return new UpdatePurchaseOrderResponse(ErrorCodes.PurchaseOrderNotFound, new Dictionary<string, string> { { "Id", request.Id.ToString() } });
+        }
+
+        try
+        {
+            var currentUser = _currentUserService.GetCurrentUser();
+            var updatedBy = currentUser.Name ?? "System";
+
+            // Update order number if provided
+            if (!string.IsNullOrEmpty(request.OrderNumber) && request.OrderNumber != purchaseOrder.OrderNumber)
+            {
+                purchaseOrder.UpdateOrderNumber(request.OrderNumber, updatedBy);
+            }
+
+            // Get supplier by ID
+            var supplier = await _supplierRepository.GetByIdAsync(request.SupplierId, cancellationToken);
+            if (supplier == null)
+            {
+                _logger.LogWarning("Supplier with ID {SupplierId} not found", request.SupplierId);
+                return new UpdatePurchaseOrderResponse(ErrorCodes.SupplierNotFound, new Dictionary<string, string> { { "SupplierId", request.SupplierId.ToString() } });
+            }
+
+            purchaseOrder.Update(supplier.Id, supplier.Name, request.ExpectedDeliveryDate, request.ContactVia, request.Notes, updatedBy);
+
+            var existingLineIds = purchaseOrder.Lines.Select(l => l.Id).ToHashSet();
+            var requestLineIds = request.Lines.Where(l => l.Id.HasValue).Select(l => l.Id!.Value).ToHashSet();
+
+            var linesToRemove = existingLineIds.Except(requestLineIds).ToList();
+            foreach (var lineId in linesToRemove)
+            {
+                purchaseOrder.RemoveLine(lineId);
+            }
+
+            // Batch-fetch every material referenced by the incoming request lines.
+            // Replaces the previous per-line GetByIdAsync calls (N+1).
+            var requestMaterialIds = request.Lines
+                .Select(l => l.MaterialId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .ToList();
+            var materialLookup = requestMaterialIds.Count > 0
+                ? await _materialCatalog.GetByIdsAsync(requestMaterialIds, cancellationToken)
+                : (IReadOnlyDictionary<string, MaterialInfo>)new Dictionary<string, MaterialInfo>();
+
+            foreach (var lineRequest in request.Lines)
+            {
+                var materialName = materialLookup.TryGetValue(lineRequest.MaterialId, out var material)
+                    ? material.ProductName
+                    : lineRequest.Name ?? "Unknown Material";
+
+                if (lineRequest.Id.HasValue)
+                {
+                    purchaseOrder.UpdateLine(
+                        lineRequest.Id.Value,
+                        materialName,
+                        lineRequest.Quantity,
+                        lineRequest.UnitPrice,
+                        lineRequest.Notes);
+                }
+                else
+                {
+                    purchaseOrder.AddLine(
+                        lineRequest.MaterialId,
+                        materialName,
+                        lineRequest.Quantity,
+                        lineRequest.UnitPrice,
+                        lineRequest.Notes);
+                }
+            }
+
+            // Entity is already tracked from GetByIdWithDetailsAsync, EF will auto-detect changes
+            await _repository.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Purchase order {OrderNumber} updated successfully", purchaseOrder.OrderNumber);
+
+            return MapToResponse(purchaseOrder, request.SupplierId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("Cannot update purchase order {OrderNumber}: {Message}",
+                purchaseOrder.OrderNumber, ex.Message);
+            return new UpdatePurchaseOrderResponse(ErrorCodes.PurchaseOrderUpdateFailed, new Dictionary<string, string> { { "OrderNumber", purchaseOrder.OrderNumber }, { "Message", ex.Message } });
+        }
+    }
+
+    private static UpdatePurchaseOrderResponse MapToResponse(PurchaseOrder purchaseOrder, long supplierId)
+    {
+        var lines = new List<PurchaseOrderLineDto>();
+
+        foreach (var line in purchaseOrder.Lines)
+        {
+            lines.Add(new PurchaseOrderLineDto
+            {
+                Id = line.Id,
+                MaterialId = line.MaterialId,
+                Code = line.MaterialId,
+                MaterialName = line.MaterialName,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitPrice,
+                LineTotal = line.LineTotal,
+                Notes = line.Notes
+            });
+        }
+
+        return new UpdatePurchaseOrderResponse
+        {
+            Id = purchaseOrder.Id,
+            OrderNumber = purchaseOrder.OrderNumber,
+            SupplierId = supplierId,
+            SupplierName = purchaseOrder.SupplierName,
+            OrderDate = purchaseOrder.OrderDate,
+            ExpectedDeliveryDate = purchaseOrder.ExpectedDeliveryDate,
+            ContactVia = purchaseOrder.ContactVia,
+            Status = purchaseOrder.Status.ToString(),
+            Notes = purchaseOrder.Notes,
+            TotalAmount = purchaseOrder.TotalAmount,
+            Lines = lines,
+            UpdatedAt = purchaseOrder.UpdatedAt,
+            UpdatedBy = purchaseOrder.UpdatedBy
+        };
+    }
+}

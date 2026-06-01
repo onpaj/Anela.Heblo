@@ -1,0 +1,442 @@
+import { test, expect } from '@playwright/test';
+import {
+  navigateToClassificationHistory,
+  getRowCount,
+  clickFirstRowClassifyButton,
+  openClassifyInvoiceModal,
+  getClassifyInvoiceModalTitle,
+  clickClassifyInvoiceCancel,
+  clickClassifyInvoiceSave,
+  selectClassificationRuleType,
+  selectClassificationAccountingTemplate,
+  selectClassificationDepartment,
+  fillClassificationDescription,
+} from '../helpers/classification-history-helpers';
+
+test.describe('Classification History - Classify Invoice Button', () => {
+  test.beforeEach(async ({ page }) => {
+    await navigateToClassificationHistory(page);
+  });
+
+  test('should show Classify Invoice button in action column', async ({
+    page,
+  }) => {
+    // Arrange
+    const rowCount = await getRowCount(page);
+    if (rowCount === 0) {
+      throw new Error(
+        'Test data missing: No classification history records found for testing'
+      );
+    }
+
+    // Act - button is visible in first row
+    const classifyButton = page
+      .locator('table tbody tr')
+      .first()
+      .locator('button:has-text("Klasifikovat")');
+
+    // Assert
+    await expect(classifyButton).toBeVisible();
+  });
+
+});
+
+// TODO(e2e-map): These tests expect a "Klasifikovat" modal that does not exist.
+// The button calls classifySingleInvoiceMutation.mutateAsync() directly — no modal, no form fields.
+// Options: (a) rewrite to test the button + loading-spinner behaviour, or (b) delete after product decision.
+// See docs/testing/e2e-test-map.md § core/invoice-classification-history-actions.spec.ts for details.
+test.describe.skip('Classification History - Classify Invoice Modal (not implemented in current UI)', () => {
+  test.beforeEach(async ({ page }) => {
+    await navigateToClassificationHistory(page);
+  });
+
+  test('should show loading state when classifying invoice', async ({
+    page,
+  }) => {
+    const rowCount = await getRowCount(page);
+    if (rowCount === 0) {
+      throw new Error(
+        'Test data missing: No classification history records found for testing'
+      );
+    }
+
+    await clickFirstRowClassifyButton(page);
+    await page.waitForSelector('div[role="dialog"]', { state: 'visible' });
+
+    const modalTitle = await getClassifyInvoiceModalTitle(page);
+    expect(modalTitle).toBe('Rechnung klassifizieren');
+  });
+
+  test('should disable save button when form is invalid', async ({ page }) => {
+    const rowCount = await getRowCount(page);
+    if (rowCount === 0) {
+      throw new Error(
+        'Test data missing: No classification history records found for testing'
+      );
+    }
+
+    await openClassifyInvoiceModal(page);
+
+    const saveButton = page.locator('button:has-text("Speichern")');
+    await expect(saveButton).toBeDisabled();
+  });
+
+  test('should successfully classify invoice when all required fields are filled', async ({
+    page,
+  }) => {
+    const rowCount = await getRowCount(page);
+    if (rowCount === 0) {
+      throw new Error(
+        'Test data missing: No classification history records found for testing'
+      );
+    }
+
+    await openClassifyInvoiceModal(page);
+
+    await selectClassificationRuleType(page, 'Buchhaltungsvorlage');
+    await selectClassificationAccountingTemplate(page, 1);
+
+    const departmentSelect = page.locator('select[name="department"]');
+    if (await departmentSelect.isVisible()) {
+      await selectClassificationDepartment(page, 1);
+    }
+
+    await fillClassificationDescription(page, 'E2E Test Classification');
+    await clickClassifyInvoiceSave(page);
+
+    await page.waitForSelector('div[role="dialog"]', { state: 'hidden' });
+  });
+
+  test('should handle classification errors gracefully', async ({ page }) => {
+    const rowCount = await getRowCount(page);
+    if (rowCount === 0) {
+      throw new Error(
+        'Test data missing: No classification history records found for testing'
+      );
+    }
+
+    await openClassifyInvoiceModal(page);
+
+    const saveButton = page.locator('button:has-text("Speichern")');
+
+    if (await saveButton.isEnabled()) {
+      await clickClassifyInvoiceSave(page);
+      await expect(page.locator('div[role="dialog"]')).toBeVisible();
+    }
+
+    await clickClassifyInvoiceCancel(page);
+  });
+});
+
+test.describe('Classification History - Create Rule Button', () => {
+  test.beforeEach(async ({ page }) => {
+    await navigateToClassificationHistory(page);
+  });
+
+  test('should show Create Rule button and open modal', async ({ page }) => {
+    // Arrange
+    const rowCount = await getRowCount(page);
+    if (rowCount === 0) {
+      throw new Error(
+        'Test data missing: No classification history records found for testing'
+      );
+    }
+
+    // Act - find and click Create Rule button in first row
+    const createRuleButton = page
+      .locator('table tbody tr')
+      .first()
+      .locator('button:has-text("Vytvořit pravidlo")');
+
+    await expect(createRuleButton).toBeVisible();
+    await createRuleButton.click();
+
+    // Wait for modal to appear
+    await page.waitForTimeout(1000); // Wait for modal animation
+
+    // Assert - modal should have correct title
+    const modalTitle = page.locator('h2:has-text("Vytvořit pravidlo klasifikace")');
+    await expect(modalTitle).toBeVisible();
+  });
+
+  test('should disable Create Rule button when no company is selected', async ({
+    page,
+  }) => {
+    // Arrange
+    const rowCount = await getRowCount(page);
+    if (rowCount === 0) {
+      throw new Error(
+        'Test data missing: No classification history records found for testing'
+      );
+    }
+
+    // Act - find Create Rule button in a row with no company
+    // (This test assumes some rows might not have company data)
+    const firstRow = page.locator('table tbody tr').first();
+    const createRuleButton = firstRow.locator(
+      'button:has-text("Vytvořit pravidlo")'
+    );
+
+    // Assert - button should be visible
+    // (Disabled state depends on whether company exists in row data)
+    await expect(createRuleButton).toBeVisible();
+
+    // If button is disabled, it should have appropriate styling or attribute
+    // (Implementation-specific assertion)
+  });
+
+  test('should prefill company name when opening rule creation modal', async ({
+    page,
+  }) => {
+    // Arrange
+    const rowCount = await getRowCount(page);
+    if (rowCount === 0) {
+      throw new Error(
+        'Test data missing: No classification history records found for testing'
+      );
+    }
+
+    // Get company name from first row
+    const firstRow = page.locator('table tbody tr').first();
+    const companyCell = firstRow.locator('td').nth(1); // Assuming company is 2nd column
+    const companyName = await companyCell.textContent();
+
+    // Act - open Create Rule modal
+    const createRuleButton = firstRow.locator(
+      'button:has-text("Vytvořit pravidlo")'
+    );
+    await createRuleButton.click();
+
+    // Wait for modal - it uses <h2> heading, not div[role="dialog"]
+    await page.waitForSelector('h2:has-text("Vytvořit pravidlo klasifikace")', {
+      state: 'visible',
+    });
+
+    // Assert - company name should be prefilled in "Vzor" (Pattern) field
+    const patternInput = page.getByPlaceholder(
+      'např. Regex nebo text v názvu firmy'
+    );
+    const inputValue = await patternInput.inputValue();
+
+    expect(inputValue).toBe(companyName?.trim() || '');
+  });
+
+  test('should close rule creation modal when cancel is clicked', async ({
+    page,
+  }) => {
+    // Arrange
+    const rowCount = await getRowCount(page);
+    if (rowCount === 0) {
+      throw new Error(
+        'Test data missing: No classification history records found for testing'
+      );
+    }
+
+    // Act - open modal
+    const createRuleButton = page
+      .locator('table tbody tr')
+      .first()
+      .locator('button:has-text("Vytvořit pravidlo")');
+    await createRuleButton.click();
+
+    // Wait for modal
+    await page.waitForSelector('h2:has-text("Vytvořit pravidlo klasifikace")', { state: 'visible' });
+
+    // Click cancel button
+    const cancelButton = page.locator('button:has-text("Zrušit")');
+    await cancelButton.click();
+
+    // Assert - modal should be hidden
+    await page.waitForSelector('h2:has-text("Vytvořit pravidlo klasifikace")', { state: 'hidden' });
+  });
+});
+
+test.describe('Classification History - Rule Creation Modal', () => {
+  test.beforeEach(async ({ page }) => {
+    await navigateToClassificationHistory(page);
+  });
+
+  /**
+   * Helper function to open the rule creation modal from first row
+   */
+  async function openRuleModal(page: any) {
+    const rowCount = await getRowCount(page);
+    if (rowCount === 0) {
+      throw new Error(
+        'Test data missing: No classification history records found for testing'
+      );
+    }
+
+    const createRuleButton = page
+      .locator('table tbody tr')
+      .first()
+      .locator('button:has-text("Vytvořit pravidlo")');
+
+    await createRuleButton.click();
+    await page.waitForSelector('h2:has-text("Vytvořit pravidlo klasifikace")', { state: 'visible' });
+  }
+
+  test('should display all form fields in rule creation modal', async ({
+    page,
+  }) => {
+    // Arrange & Act
+    await openRuleModal(page);
+
+    // Assert - all form fields should be visible
+    const ruleNameInput = page.getByRole('textbox', { name: 'Název pravidla *' });
+    await expect(ruleNameInput).toBeVisible();
+
+    const ruleTypeSelect = page.getByRole('combobox', { name: 'Typ pravidla *' });
+    await expect(ruleTypeSelect).toBeVisible();
+
+    const patternInput = page.getByRole('textbox', { name: 'Vzor *' });
+    await expect(patternInput).toBeVisible();
+
+    const accountingTemplateSelect = page.getByRole('combobox', { name: 'Účetní předpis *' });
+    await expect(accountingTemplateSelect).toBeVisible();
+
+    const departmentSelect = page.getByRole('combobox', { name: 'Oddělení' });
+    // Department is optional
+    await expect(departmentSelect).toBeVisible();
+
+    const activeCheckbox = page.getByRole('checkbox', { name: 'Pravidlo je aktivní' });
+    await expect(activeCheckbox).toBeVisible();
+  });
+
+  test('should have rule type dropdown with correct options', async ({
+    page,
+  }) => {
+    // Arrange & Act
+    await openRuleModal(page);
+
+    // Assert - rule type dropdown should have expected options
+    const ruleTypeSelect = page.getByRole('combobox', { name: 'Typ pravidla *' });
+    await expect(ruleTypeSelect).toBeVisible();
+
+    // Wait for options to load (options are loaded asynchronously)
+    // The combobox initially shows "Načítání..." (Loading...), wait for actual options to be attached
+    await page.waitForTimeout(2000);  // Give time for options to load via API
+
+    // Get all options from the combobox (it's a native <select> element)
+    const options = await ruleTypeSelect.locator('option').allTextContents();
+
+    // Should include at least these rule types (Czech)
+    expect(options).toContain('Název firmy');  // Company name
+    expect(options).toContain('IČO');  // Tax ID
+    expect(options).toContain('Popis faktury');  // Invoice description
+    expect(options.length).toBeGreaterThan(0);
+  });
+
+  test('should have accounting template dropdown with options', async ({
+    page,
+  }) => {
+    // Arrange & Act
+    await openRuleModal(page);
+
+    // Assert - accounting template dropdown should be visible
+    const accountingTemplateSelect = page.getByRole('combobox', {
+      name: 'Účetní předpis *',
+    });
+    await expect(accountingTemplateSelect).toBeVisible();
+
+    // Wait for options to load asynchronously
+    await page.waitForTimeout(2000);
+
+    // Should have at least a placeholder option
+    const options = await accountingTemplateSelect
+      .locator('option')
+      .allTextContents();
+    expect(options.length).toBeGreaterThan(0);
+  });
+
+  test('should have department dropdown with options', async ({ page }) => {
+    // Arrange & Act
+    await openRuleModal(page);
+
+    // Assert - department dropdown should be visible
+    const departmentSelect = page.locator('select[name="department"]');
+
+    // Department might be conditional based on rule type
+    const isVisible = await departmentSelect.isVisible();
+
+    if (isVisible) {
+      const options = await departmentSelect.locator('option').allTextContents();
+      expect(options.length).toBeGreaterThan(0);
+    }
+  });
+
+  // TODO(e2e-map): "Vytvořit" button stays enabled even when required fields are empty (missing client-side validation).
+  // Fix RuleForm component to disable the button until required fields are filled, then unskip.
+  // See docs/testing/e2e-test-map.md § core/invoice-classification-history-actions.spec.ts.
+  test.skip('should validate required fields before submission', async ({
+    page,
+  }) => {
+
+    // Arrange & Act
+    await openRuleModal(page);
+
+    // Get the save button in the modal (filter by near the cancel button to avoid table buttons)
+    const cancelButton = page.getByRole('button', { name: 'Zrušit', exact: true });
+    const saveButton = page.getByRole('button', { name: 'Vytvořit', exact: true }).filter({ near: cancelButton });
+
+    // Assert - save button should be disabled when required fields are empty
+    await expect(saveButton).toBeDisabled();
+
+    // Fill only rule name (should still be invalid)
+    const ruleNameInput = page.getByRole('textbox', {
+      name: 'Název pravidla *',
+    });
+    await ruleNameInput.fill('Test Rule');
+
+    // Save should still be disabled without other required fields
+    await expect(saveButton).toBeDisabled();
+  });
+
+  test('should enable save button when all required fields are filled', async ({
+    page,
+  }) => {
+    // Arrange & Act
+    await openRuleModal(page);
+
+    // Fill all required fields
+    // Note: Rule name field (Název pravidla *) - required
+    const ruleNameInput = page.getByRole('textbox', {
+      name: 'Název pravidla *',
+    });
+    await ruleNameInput.fill('E2E Test Rule');
+
+    // Note: Rule type field (Typ pravidla *) - required
+    const ruleTypeSelect = page.getByRole('combobox', {
+      name: 'Typ pravidla *',
+    });
+    await page.waitForTimeout(2000); // Wait for options to load async
+    await ruleTypeSelect.selectOption({ index: 1 }); // Select first non-placeholder option
+
+    // Note: Pattern field (Vzor *) - required (where company name gets prefilled)
+    const patternInput = page.getByPlaceholder(
+      'např. Regex nebo text v názvu firmy'
+    );
+    await patternInput.fill('Test Company E2E');
+
+    // Note: Accounting template field (Účetní předpis *) - required
+    const accountingTemplateSelect = page.getByRole('combobox', {
+      name: 'Účetní předpis *',
+    });
+    await page.waitForTimeout(2000); // Wait for options to load async
+    await accountingTemplateSelect.selectOption({ index: 1 });
+
+    // Assert - save button should be enabled
+    // Note: Changed from German "Speichern" to Czech "Vytvořit"
+    const cancelButton = page.getByRole('button', {
+      name: 'Zrušit',
+      exact: true,
+    });
+    const saveButton = page
+      .getByRole('button', { name: 'Vytvořit', exact: true })
+      .filter({ near: cancelButton });
+    await expect(saveButton).toBeEnabled();
+
+    // Clean up - close modal without saving
+    await cancelButton.click();
+  });
+});

@@ -1,0 +1,93 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Local HTTPS": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "https://localhost:5001;http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "Development": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "Production": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Production"
+      }
+    },
+    "Test": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5001",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Test"
+      }
+    },
+    "Hydrate Shoptet Test Environment": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "commandLineArgs": "test ../../test/Anela.Heblo.Adapters.Shoptet.Tests/Anela.Heblo.Adapters.Shoptet.Tests.csproj --filter \"FullyQualifiedName~HydrateTestEnvironment\"",
+      "workingDirectory": "$(ProjectDir)",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "SHOPTET_HYDRATE": "1"
+      }
+    },
+    "Purge Shoptet Test Orders": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "commandLineArgs": "test ../../test/Anela.Heblo.Adapters.Shoptet.Tests/Anela.Heblo.Adapters.Shoptet.Tests.csproj --filter \"FullyQualifiedName~PurgeTestOrders\"",
+      "workingDirectory": "$(ProjectDir)",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "SHOPTET_HYDRATE": "1"
+      }
+    },
+    "Generate Frontend Client": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "commandLineArgs": "msbuild -t:GenerateFrontendClientManual",
+      "workingDirectory": "$(ProjectDir)",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "Update database - STAGING": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "commandLineArgs": "ef database update --project ../Anela.Heblo.Persistence --startup-project .",
+      "workingDirectory": "$(ProjectDir)",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Staging"
+      }
+    },
+    "Update database": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "commandLineArgs": "ef database update --project ../Anela.Heblo.Persistence --startup-project .",
+      "workingDirectory": "$(ProjectDir)",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Production"
+      }
+    }
+  }
+}

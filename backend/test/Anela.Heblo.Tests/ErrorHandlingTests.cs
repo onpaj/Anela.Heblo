@@ -1,0 +1,169 @@
+using System.Reflection;
+using Anela.Heblo.Application.Shared;
+using Xunit;
+
+namespace Anela.Heblo.Tests;
+
+/// <summary>
+/// Tests to ensure all API responses follow the standardized error handling structure
+/// </summary>
+public class ErrorHandlingTests
+{
+    public static IEnumerable<object[]> GetResponseClasses()
+    {
+        var applicationAssembly = Assembly.Load("Anela.Heblo.Application");
+        var responseClasses = applicationAssembly.GetTypes()
+            .Where(type => type.Name.EndsWith("Response", StringComparison.Ordinal) &&
+                          type.IsClass &&
+                          !type.IsAbstract &&
+                          type != typeof(BaseResponse) &&
+                          type != typeof(ListResponse<>))
+            .ToList();
+
+        foreach (var responseClass in responseClasses)
+        {
+            yield return new object[] { responseClass };
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(GetResponseClasses))]
+    public void ResponseClass_ShouldInheritFromBaseResponse(Type responseClass)
+    {
+        // Act
+        var inheritsFromBaseResponse = responseClass.IsSubclassOf(typeof(BaseResponse));
+
+        // Assert
+        Assert.True(inheritsFromBaseResponse,
+            $"Response class '{responseClass.FullName}' must inherit from BaseResponse");
+    }
+
+    [Fact]
+    public void ShouldFindSomeResponseClasses()
+    {
+        // Arrange & Act
+        var responseClasses = GetResponseClasses().ToList();
+
+        // Assert
+        Assert.True(responseClasses.Count > 0, "Should find at least some response classes to test");
+    }
+
+    [Fact]
+    public void ErrorCodes_ShouldHaveUniqueValues()
+    {
+        // Arrange
+        var errorCodeValues = Enum.GetValues<ErrorCodes>().Cast<int>().ToList();
+
+        // Act & Assert
+        var duplicates = errorCodeValues
+            .GroupBy(x => x)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+        Assert.Empty(duplicates);
+    }
+
+    [Fact]
+    public void ErrorCodes_ShouldFollowModulePrefixSystem()
+    {
+        // Arrange & Act
+        var errorCodes = Enum.GetValues<ErrorCodes>().Cast<int>().ToList();
+
+        // Assert - Check that error codes follow the new prefix-postfix system
+        var generalErrors = errorCodes.Where(code => code >= 1 && code <= 99).ToList(); // 00XX range
+        var auditErrors = errorCodes.Where(code => code >= 1000 && code < 1100).ToList(); // 10XX range
+        var purchaseErrors = errorCodes.Where(code => code >= 1100 && code < 1200).ToList(); // 11XX range
+        var manufactureErrors = errorCodes.Where(code => code >= 1200 && code < 1300).ToList(); // 12XX range
+        var catalogErrors = errorCodes.Where(code => code >= 1300 && code < 1400).ToList(); // 13XX range
+        var transportErrors = errorCodes.Where(code => code >= 1400 && code < 1500).ToList(); // 14XX range
+        var configErrors = errorCodes.Where(code => code >= 1500 && code < 1600).ToList(); // 15XX range
+        var journalErrors = errorCodes.Where(code => code >= 1600 && code < 1700).ToList(); // 16XX range
+        var analyticsErrors = errorCodes.Where(code => code >= 1700 && code < 1800).ToList(); // 17XX range
+        var fileStorageErrors = errorCodes.Where(code => code >= 1800 && code < 1900).ToList(); // 18XX range
+        var backgroundJobsErrors = errorCodes.Where(code => code >= 1900 && code < 2000).ToList(); // 19XX range
+        var knowledgeBaseErrors = errorCodes.Where(code => code >= 2000 && code < 2100).ToList(); // 20XX range
+        var shoptetOrdersErrors = errorCodes.Where(code => code >= 2100 && code < 2200).ToList(); // 21XX range
+        var dataQualityErrors = errorCodes.Where(code => code >= 2200 && code < 2300).ToList(); // 22XX range
+        var marketingErrors = errorCodes.Where(code => code >= 2300 && code < 2400).ToList(); // 23XX range
+        var articleErrors = errorCodes.Where(code => code >= 2400 && code < 2500).ToList(); // 24XX range
+        var leafletErrors = errorCodes.Where(code => code >= 2500 && code < 2600).ToList(); // 25XX range
+        var photobankErrors = errorCodes.Where(code => code >= 2600 && code < 2700).ToList(); // 26XX range
+        var smartsuppErrors = errorCodes.Where(code => code >= 2700 && code < 2800).ToList(); // 27XX range
+        var inventoryErrors = errorCodes.Where(code => code >= 2800 && code < 2900).ToList(); // 28XX range
+        var range29xxErrors = errorCodes.Where(code => code >= 2900 && code < 3000).ToList(); // 29XX range (WeatherForecast + ShipmentLabels)
+        var packagingErrors = errorCodes.Where(code => code >= 3000 && code < 3100).ToList(); // 30XX range (Packaging)
+        var catalogDocumentsErrors = errorCodes.Where(code => code >= 3100 && code < 3200).ToList(); // 31XX range (CatalogDocuments)
+        var externalServiceErrors = errorCodes.Where(code => code >= 9000 && code < 9100).ToList(); // 90XX range
+
+        // Ensure we have some errors in the expected categories
+        Assert.True(generalErrors.Count > 0, "Should have general errors in 00XX range");
+        Assert.True(purchaseErrors.Count > 0, "Should have purchase errors in 11XX range");
+        Assert.True(catalogErrors.Count > 0, "Should have catalog errors in 13XX range");
+        Assert.True(transportErrors.Count > 0, "Should have transport errors in 14XX range");
+        Assert.True(configErrors.Count > 0, "Should have config errors in 15XX range");
+        Assert.True(journalErrors.Count > 0, "Should have journal errors in 16XX range");
+        Assert.True(analyticsErrors.Count > 0, "Should have analytics errors in 17XX range");
+        Assert.True(fileStorageErrors.Count > 0, "Should have file storage errors in 18XX range");
+        Assert.True(backgroundJobsErrors.Count > 0, "Should have background jobs errors in 19XX range");
+        Assert.True(knowledgeBaseErrors.Count > 0, "Should have knowledge base errors in 20XX range");
+        Assert.True(shoptetOrdersErrors.Count > 0, "Should have Shoptet orders errors in 21XX range");
+        Assert.True(dataQualityErrors.Count > 0, "Should have Data Quality errors in 22XX range");
+        Assert.True(marketingErrors.Count > 0, "Should have Marketing Calendar errors in 23XX range");
+        Assert.True(articleErrors.Count > 0, "Should have Article Generation errors in 24XX range");
+        Assert.True(leafletErrors.Count > 0, "Should have Leaflet errors in 25XX range");
+        Assert.True(photobankErrors.Count > 0, "Should have Photobank errors in 26XX range");
+        Assert.True(smartsuppErrors.Count > 0, "Should have Smartsupp errors in 27XX range");
+        Assert.True(inventoryErrors.Count > 0, "Should have Inventory errors in 28XX range");
+        Assert.True(range29xxErrors.Count > 0, "Should have errors in 29XX range");
+        Assert.True(packagingErrors.Count > 0, "Should have packaging errors in 30XX range");
+        Assert.True(catalogDocumentsErrors.Count > 0, "Should have CatalogDocuments errors in 31XX range");
+        Assert.True(externalServiceErrors.Count > 0, "Should have external service errors in 90XX range");
+
+        // Ensure all error codes fall into defined module ranges
+        var categorizedCount = generalErrors.Count + auditErrors.Count + purchaseErrors.Count +
+                              manufactureErrors.Count + catalogErrors.Count + transportErrors.Count +
+                              configErrors.Count + journalErrors.Count + analyticsErrors.Count +
+                              fileStorageErrors.Count + backgroundJobsErrors.Count + knowledgeBaseErrors.Count +
+                              shoptetOrdersErrors.Count + dataQualityErrors.Count + marketingErrors.Count +
+                              articleErrors.Count + leafletErrors.Count + photobankErrors.Count + smartsuppErrors.Count + inventoryErrors.Count + range29xxErrors.Count + packagingErrors.Count + catalogDocumentsErrors.Count + externalServiceErrors.Count;
+
+        Assert.Equal(errorCodes.Count, categorizedCount);
+    }
+
+    [Fact]
+    public void BaseResponse_ShouldHaveCorrectDefaultValues()
+    {
+        // Act
+        var response = new TestResponse();
+
+        // Assert
+        Assert.True(response.Success);
+        Assert.Null(response.ErrorCode);
+        Assert.Null(response.Params);
+    }
+
+    [Fact]
+    public void BaseResponse_ShouldAllowErrorCreation()
+    {
+        // Arrange
+        var errorCode = ErrorCodes.ValidationError;
+        var parameters = new Dictionary<string, string> { { "field", "testField" } };
+
+        // Act
+        var response = new TestResponse(errorCode, parameters);
+
+        // Assert
+        Assert.False(response.Success);
+        Assert.Equal(errorCode, response.ErrorCode);
+        Assert.Equal(parameters, response.Params);
+    }
+
+    // Test response class for testing BaseResponse functionality
+    private class TestResponse : BaseResponse
+    {
+        public TestResponse() : base() { }
+        public TestResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
+            : base(errorCode, parameters) { }
+    }
+}
