@@ -25,6 +25,7 @@ import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturin
 import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import InventoryList from "./components/pages/InventoryList";
 import ManufactureInventoryList from "./components/pages/ManufactureInventoryList";
+import MaterialContainerList from "./components/pages/MaterialContainerList";
 import ManufacturedInventoryPage from "./components/pages/ManufacturedInventoryPage";
 import ManufactureOrderList from "./components/manufacture/pages/ManufactureOrderList";
 import ManufactureOrderDetail from "./components/manufacture/pages/ManufactureOrderDetail";
@@ -403,8 +404,8 @@ function App() {
                           <Route index element={<LotIdentificationHome />} />
                           <Route path="po" element={<PoPickStep />} />
                           <Route path="po/:id" element={<PoLinePickStep />} />
-                          <Route path="po/:id/line/:lineId/lot" element={<LotEntryStep mode="po" />} />
-                          <Route path="po/:id/line/:lineId/lot/:lot/scan" element={<ContainerScanLoop mode="po" />} />
+                          <Route path="po/:id/line/:lineId/material/:material/lot" element={<LotEntryStep mode="po" />} />
+                          <Route path="po/:id/line/:lineId/material/:material/lot/:lot/scan" element={<ContainerScanLoop mode="po" />} />
                           <Route path="po/:id/finish" element={<FinishPoStep />} />
                           <Route path="freeform" element={<FreeformMaterialStep />} />
                           <Route path="freeform/:material/lot" element={<LotEntryStep mode="freeform" />} />
@@ -447,6 +448,7 @@ function App() {
                         <Route path="/logistics/inventory" element={<InventoryList />} />
                         <Route path="/manufacturing/inventory" element={<ManufactureInventoryList />} />
                         <Route path="/manufacturing/product-inventory" element={<ManufacturedInventoryPage />} />
+                        <Route path="/manufacturing/material-containers" element={<MaterialContainerList />} />
                         <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
                         <Route path="/logistics/receive-boxes" element={<TransportBoxReceivePage />} />
                         <Route path="/logistics/gift-package-manufacturing" element={<GiftPackageManufacturing />} />
