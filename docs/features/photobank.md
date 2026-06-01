@@ -81,7 +81,8 @@ b!jj_-5-FohEybxp_61HKbJLmG6KD2FqJOmZeQYQNbxqrCWYOs1rorQ5BtZfHEjWKj
 
 Pravidla pro automatické přiřazování štítků podle cesty.
 
-- **Vzor cesty** — např. `/PROFI_FOCENI/Produkty/*` (hvězdička nahrazuje jeden segment cesty)
+- **Vzor cesty** — regulární výraz kompatibilní s .NET (ne glob). Vzor se porovnává s cestou ve formátu `složka/soubor.jpg` (bez úvodního lomítka). Neplatný regulární výraz je odmítnut při uložení pravidla.
+  - Příklad: `^PROFI_FOCENI/Produkty/[^/]+(/|$)` — `^` kotví na začátek cesty, `[^/]+` odpovídá právě jednomu segmentu (bez lomítek), `(/|$)` zajistí hranici segmentu.
 - **Štítek** — název štítku (automaticky převeden na malá písmena)
 - **Pořadí** — nižší číslo = vyšší priorita (platí všechna shodná pravidla, ne jen první)
 
