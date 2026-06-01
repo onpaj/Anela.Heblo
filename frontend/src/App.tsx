@@ -76,6 +76,13 @@ import TransportBoxCheck from "./components/terminal/TransportBoxCheck";
 import TransportBoxReceive from "./components/terminal/TransportBoxReceive";
 import ComingSoonPage from "./components/terminal/ComingSoonPage";
 import BoxFillWorkflow from "./components/terminal/box-fill/BoxFillWorkflow";
+import LotIdentificationHome from "./components/terminal/lot-identification/LotIdentificationHome";
+import PoPickStep from "./components/terminal/lot-identification/PoPickStep";
+import PoLinePickStep from "./components/terminal/lot-identification/PoLinePickStep";
+import LotEntryStep from "./components/terminal/lot-identification/LotEntryStep";
+import ContainerScanLoop from "./components/terminal/lot-identification/ContainerScanLoop";
+import FinishPoStep from "./components/terminal/lot-identification/FinishPoStep";
+import FreeformMaterialStep from "./components/terminal/lot-identification/FreeformMaterialStep";
 import BaleniLayout from "./components/baleni/BaleniLayout";
 import BaleniHome from "./components/baleni/BaleniHome";
 import BaleniPlaceholder from "./components/baleni/BaleniPlaceholder";
@@ -392,10 +399,17 @@ function App() {
                         <Route path="box-fill" element={<BoxFillWorkflow />} />
                         <Route path="receive" element={<TransportBoxReceive />} />
                         <Route path="stocktake" element={<ComingSoonPage title="Inventura" />} />
-                        <Route
-                          path="lot-identification"
-                          element={<ComingSoonPage title="Identifikace šarže" />}
-                        />
+                        <Route path="lot-identification">
+                          <Route index element={<LotIdentificationHome />} />
+                          <Route path="po" element={<PoPickStep />} />
+                          <Route path="po/:id" element={<PoLinePickStep />} />
+                          <Route path="po/:id/line/:lineId/lot" element={<LotEntryStep mode="po" />} />
+                          <Route path="po/:id/line/:lineId/lot/:lot/scan" element={<ContainerScanLoop mode="po" />} />
+                          <Route path="po/:id/finish" element={<FinishPoStep />} />
+                          <Route path="freeform" element={<FreeformMaterialStep />} />
+                          <Route path="freeform/:material/lot" element={<LotEntryStep mode="freeform" />} />
+                          <Route path="freeform/:material/lot/:lot/scan" element={<ContainerScanLoop mode="freeform" />} />
+                        </Route>
                       </Route>
 
                       {/* Balení device module — landscape touch PC, no sidebar */}
