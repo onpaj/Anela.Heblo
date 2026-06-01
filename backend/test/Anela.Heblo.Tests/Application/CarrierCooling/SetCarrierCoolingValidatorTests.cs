@@ -92,6 +92,44 @@ public class SetCarrierCoolingValidatorTests
     }
 
     [Fact]
+    public void Validator_FailsForCoolingTextExceedingMaxLength()
+    {
+        SetupCatalog((Carriers.PPL, DeliveryHandling.NaRuky));
+        var validator = CreateValidator();
+        var request = new SetCarrierCoolingRequest
+        {
+            Carrier = Carriers.PPL,
+            DeliveryHandling = DeliveryHandling.NaRuky,
+            Cooling = Cooling.L1,
+            CoolingText = new string('x', 51),
+            ModifiedBy = "user-123",
+        };
+
+        var result = validator.TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.CoolingText);
+    }
+
+    [Fact]
+    public void Validator_PassesForCoolingTextAtMaxLength()
+    {
+        SetupCatalog((Carriers.PPL, DeliveryHandling.NaRuky));
+        var validator = CreateValidator();
+        var request = new SetCarrierCoolingRequest
+        {
+            Carrier = Carriers.PPL,
+            DeliveryHandling = DeliveryHandling.NaRuky,
+            Cooling = Cooling.L1,
+            CoolingText = new string('x', 50),
+            ModifiedBy = "user-123",
+        };
+
+        var result = validator.TestValidate(request);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.CoolingText);
+    }
+
+    [Fact]
     public void Validator_FailsForInvalidCoolingEnum()
     {
         SetupCatalog((Carriers.PPL, DeliveryHandling.NaRuky));

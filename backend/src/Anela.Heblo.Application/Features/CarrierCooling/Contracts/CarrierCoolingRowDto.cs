@@ -7,4 +7,5 @@ public class CarrierCoolingRowDto
 {
     public DeliveryHandling DeliveryHandling { get; set; }
     public Cooling Cooling { get; set; }
+    public string? CoolingText { get; set; }
 }
