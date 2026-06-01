@@ -333,6 +333,8 @@ public enum ErrorCodes
     MaterialContainerCodeExists = 2807,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     MaterialContainerCodeInvalidFormat = 2808,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    UnknownMaterialContainerCode = 2809,
 
     // WeatherForecast module errors (29XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

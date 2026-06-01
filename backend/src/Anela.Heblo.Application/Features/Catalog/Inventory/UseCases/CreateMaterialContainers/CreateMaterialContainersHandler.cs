@@ -40,49 +40,59 @@ public class CreateMaterialContainersHandler : IRequestHandler<CreateMaterialCon
                 new Dictionary<string, string> { { "Code", duplicateCode } });
         }
 
+        var currentUser = _currentUserService.GetCurrentUser();
+        var updatedBy = currentUser.Name ?? "System";
+
+        var toAssign = new List<(MaterialContainer Container, CreateMaterialContainerItem Item)>();
+
         foreach (var item in request.Items)
         {
             var existing = await _containerRepository.GetByCodeAsync(item.Code, cancellationToken);
-            if (existing != null)
+
+            if (existing is null)
+            {
+                return new CreateMaterialContainersResponse(
+                    ErrorCodes.UnknownMaterialContainerCode,
+                    new Dictionary<string, string> { { "Code", item.Code } });
+            }
+
+            if (existing.Status != MaterialContainerStatus.Unassigned)
             {
                 return new CreateMaterialContainersResponse(
                     ErrorCodes.MaterialContainerCodeExists,
                     new Dictionary<string, string>
                     {
                         { "Code", item.Code },
-                        { "MaterialCode", existing.MaterialCode },
-                        { "LotCode", existing.LotCode },
+                        { "MaterialCode", existing.MaterialCode ?? string.Empty },
+                        { "LotCode", existing.LotCode ?? string.Empty },
                         { "Status", existing.Status.ToString() }
                     });
             }
-        }
 
-        foreach (var item in request.Items.Where(i => i.PurchaseOrderLineId.HasValue))
-        {
-            var line = await _purchaseOrderRepository.GetLineByIdAsync(item.PurchaseOrderLineId!.Value, cancellationToken);
-            if (line == null)
+            if (item.PurchaseOrderLineId.HasValue)
             {
-                return new CreateMaterialContainersResponse(
-                    ErrorCodes.PurchaseOrderLineNotFound,
-                    new Dictionary<string, string> { { "PurchaseOrderLineId", item.PurchaseOrderLineId.Value.ToString() } });
+                var line = await _purchaseOrderRepository.GetLineByIdAsync(item.PurchaseOrderLineId.Value, cancellationToken);
+                if (line == null)
+                {
+                    return new CreateMaterialContainersResponse(
+                        ErrorCodes.PurchaseOrderLineNotFound,
+                        new Dictionary<string, string> { { "PurchaseOrderLineId", item.PurchaseOrderLineId.Value.ToString() } });
+                }
             }
+
+            toAssign.Add((existing, item));
         }
 
-        var currentUser = _currentUserService.GetCurrentUser();
-        var createdBy = currentUser.Name ?? "System";
+        foreach (var (container, item) in toAssign)
+        {
+            container.Assign(item.MaterialCode, item.LotCode, item.Amount, item.Unit, item.PurchaseOrderLineId, updatedBy);
+        }
 
-        var containers = request.Items
-            .Select(item => new MaterialContainer(
-                item.Code, item.MaterialCode, item.LotCode,
-                item.Amount, item.Unit, createdBy, item.PurchaseOrderLineId))
-            .ToList();
-
-        await _containerRepository.AddRangeAsync(containers, cancellationToken);
         await _containerRepository.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Created {Count} MaterialContainers", containers.Count);
+        _logger.LogInformation("Assigned {Count} MaterialContainers", toAssign.Count);
 
-        return new CreateMaterialContainersResponse { Containers = containers.Select(MapToDto).ToList() };
+        return new CreateMaterialContainersResponse { Containers = toAssign.Select(t => MapToDto(t.Container)).ToList() };
     }
 
     internal static MaterialContainerDto MapToDto(MaterialContainer c) => new()
