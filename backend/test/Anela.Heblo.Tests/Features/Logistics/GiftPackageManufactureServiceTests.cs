@@ -134,13 +134,13 @@ public class GiftPackageManufactureServiceTests
         _manufactureClientMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
 
-        // Setup catalog repository to return ingredient products
-        foreach (var ingredient in ingredients)
-        {
-            var ingredientProduct = CreateCatalogItem(ingredient.ProductCode, ingredient.ProductName, ProductType.Material, 0, ingredient.AvailableStock);
-            _catalogRepositoryMock.Setup(x => x.GetByIdAsync(ingredient.ProductCode, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(ingredientProduct);
-        }
+        // Setup catalog repository to return ingredient products via batched lookup
+        var ingredientCatalog = ingredients.ToDictionary(
+            ing => ing.ProductCode,
+            ing => CreateCatalogItem(ing.ProductCode, ing.ProductName, ProductType.Material, 0, ing.AvailableStock));
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ingredientCatalog);
 
         // Act
         var result = await _service.GetGiftPackageDetailAsync(giftPackageCode);
@@ -205,14 +205,14 @@ public class GiftPackageManufactureServiceTests
         _manufactureClientMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
 
-        // Setup catalog repository to return ingredient products
+        // Setup catalog repository to return ingredient products via batched lookup
         var ingredients = CreateTestIngredients();
-        foreach (var ingredient in ingredients)
-        {
-            var ingredientProduct = CreateCatalogItem(ingredient.ProductCode, ingredient.ProductName, ProductType.Material, 0, ingredient.AvailableStock);
-            _catalogRepositoryMock.Setup(x => x.GetByIdAsync(ingredient.ProductCode, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(ingredientProduct);
-        }
+        var ingredientCatalog = ingredients.ToDictionary(
+            ing => ing.ProductCode,
+            ing => CreateCatalogItem(ing.ProductCode, ing.ProductName, ProductType.Material, 0, ing.AvailableStock));
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ingredientCatalog);
 
         var expectedManufactureDto = new GiftPackageManufactureDto
         {
@@ -326,13 +326,13 @@ public class GiftPackageManufactureServiceTests
         _manufactureClientMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
 
-        // Setup catalog repository to return ingredient products
-        foreach (var ingredient in ingredients)
-        {
-            var ingredientProduct = CreateCatalogItem(ingredient.ProductCode, ingredient.ProductName, ProductType.Material, 0, ingredient.AvailableStock);
-            _catalogRepositoryMock.Setup(x => x.GetByIdAsync(ingredient.ProductCode, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(ingredientProduct);
-        }
+        // Setup catalog repository to return ingredient products via batched lookup
+        var ingredientCatalog = ingredients.ToDictionary(
+            ing => ing.ProductCode,
+            ing => CreateCatalogItem(ing.ProductCode, ing.ProductName, ProductType.Material, 0, ing.AvailableStock));
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ingredientCatalog);
 
         // Act
         var result = await _service.GetGiftPackageDetailAsync(giftPackageCode, 1.0m, customFromDate, customToDate);
@@ -449,5 +449,62 @@ public class GiftPackageManufactureServiceTests
             new ProductPart { ProductCode = "ING001", ProductName = "Ingredient 1", Amount = 2.0 },
             new ProductPart { ProductCode = "ING002", ProductName = "Ingredient 2", Amount = 1.5 }
         };
+    }
+
+    [Fact]
+    public async Task GetGiftPackageDetailAsync_CallsGetByIdsAsyncOnceForIngredients()
+    {
+        // Arrange
+        var giftPackageCode = "SET001";
+        var product = CreateCatalogItem(giftPackageCode, "Test Gift Set 1", ProductType.Set, 100, 50);
+        var ingredients = CreateTestIngredients();
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        _manufactureClientMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestProductParts());
+
+        var ingredientCatalog = ingredients.ToDictionary(
+            ing => ing.ProductCode,
+            ing => CreateCatalogItem(ing.ProductCode, ing.ProductName, ProductType.Material, 0, ing.AvailableStock));
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ingredientCatalog);
+
+        // Act
+        var result = await _service.GetGiftPackageDetailAsync(giftPackageCode);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Ingredients.Should().HaveCount(2);
+        _catalogRepositoryMock.Verify(
+            x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
+            Times.Once());
+    }
+
+    [Fact]
+    public async Task GetGiftPackageDetailAsync_MissingIngredientInCatalog_ReturnsZeroStockAndNullImage()
+    {
+        // Arrange
+        var giftPackageCode = "SET001";
+        var product = CreateCatalogItem(giftPackageCode, "Test Gift Set 1", ProductType.Set, 100, 50);
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        _manufactureClientMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestProductParts());
+
+        // Return empty dictionary — no ingredients in catalog
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
+
+        // Act
+        var result = await _service.GetGiftPackageDetailAsync(giftPackageCode);
+
+        // Assert — missing ingredients get zero stock and null image (existing null-tolerant behavior preserved)
+        result.Should().NotBeNull();
+        result.Ingredients.Should().HaveCount(2);
+        result.Ingredients.Should().OnlyContain(i => i.AvailableStock == 0.0 && i.Image == null);
     }
 }

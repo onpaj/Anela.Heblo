@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
 
@@ -12,6 +13,11 @@ public class CalculateBatchPlanRequest : IRequest<CalculateBatchPlanResponse>
     // Time period selection (same as Purchase Analysis)
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
+
+    // When set, the handler resolves this into one or more DateRanges via ITimePeriodResolver
+    // and uses them for sales-rate computation. FromDate/ToDate then act as CustomPeriod fallback.
+    // When null, the handler wraps [FromDate, ToDate] into a single-element range list.
+    public TimePeriod? TimePeriod { get; set; }
 
     // Sales calculation settings
     public double? SalesMultiplier { get; set; } = 1.0;

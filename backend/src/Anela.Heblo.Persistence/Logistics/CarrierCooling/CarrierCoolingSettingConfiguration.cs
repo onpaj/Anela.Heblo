@@ -27,6 +27,9 @@ public class CarrierCoolingSettingConfiguration : IEntityTypeConfiguration<Carri
             .HasConversion<string>()
             .HasMaxLength(10);
 
+        builder.Property(e => e.CoolingText)
+            .HasMaxLength(50);
+
         builder.Property(e => e.ModifiedAt)
             .IsRequired()
             .HasColumnType("timestamp without time zone");

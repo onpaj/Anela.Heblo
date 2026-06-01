@@ -251,7 +251,7 @@ public sealed class CatalogAnalyticsSourceAdapterTests
     }
 
     [Fact]
-    public async Task GetProductAnalysisDataAsync_PreservesUnfilteredSalesHistory()
+    public async Task GetProductAnalysisDataAsync_FiltersSalesHistoryByPeriod()
     {
         // Arrange
         var product = CreateCatalogAggregate("PROD001", "Test", ProductType.Product);
@@ -276,11 +276,10 @@ public sealed class CatalogAnalyticsSourceAdapterTests
 
         // Assert
         result.Should().NotBeNull();
-        result!.SalesHistory.Should().HaveCount(3); // All 3 records, not filtered by period
-        result.SalesHistory.Should().Satisfy(
-            s => s.Date == new DateTime(2023, 6, 15),
-            s => s.Date == new DateTime(2024, 6, 15),
-            s => s.Date == new DateTime(2025, 6, 15));
+        result!.SalesHistory.Should().HaveCount(1);
+        result.SalesHistory[0].Date.Should().Be(new DateTime(2024, 6, 15));
+        result.SalesHistory[0].AmountB2B.Should().Be(10);
+        result.SalesHistory[0].AmountB2C.Should().Be(8);
     }
 
     [Fact]

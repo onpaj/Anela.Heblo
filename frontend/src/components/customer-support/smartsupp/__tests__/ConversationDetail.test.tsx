@@ -2,9 +2,11 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ConversationDetail from "../ConversationDetail";
-import { ConversationDto } from "../../../../api/hooks/useSmartsupp";
-
-const mockMutate = jest.fn();
+import {
+  ConversationDto,
+  useSmartsuppConversation,
+  useCloseConversation,
+} from "../../../../api/hooks/useSmartsupp";
 
 jest.mock("react-hot-toast", () => ({
   toast: {
@@ -17,27 +19,8 @@ jest.mock("../../../../api/hooks/useSmartsupp", () => {
   const actual = jest.requireActual("../../../../api/hooks/useSmartsupp");
   return {
     ...actual,
-    useSmartsuppConversation: () => ({
-      data: {
-        success: true,
-        conversation: null,
-        messages: [
-          {
-            id: "m1",
-            authorType: "visitor",
-            authorName: "Jana",
-            content: "Dotaz",
-            createdAt: new Date().toISOString(),
-            isFirstReply: false,
-          },
-        ],
-      },
-      isLoading: false,
-    }),
-    useCloseConversation: () => ({
-      mutate: mockMutate,
-      isPending: false,
-    }),
+    useSmartsuppConversation: jest.fn(),
+    useCloseConversation: jest.fn(),
   };
 });
 
@@ -58,6 +41,17 @@ const conv: ConversationDto = {
   tags: [],
 };
 
+const defaultMessages = [
+  {
+    id: "m1",
+    authorType: "visitor",
+    authorName: "Jana",
+    content: "Dotaz",
+    createdAt: new Date().toISOString(),
+    isFirstReply: false,
+  },
+];
+
 const wrap = (ui: React.ReactNode) => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
@@ -65,6 +59,18 @@ const wrap = (ui: React.ReactNode) => {
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = jest.fn();
+});
+
+beforeEach(() => {
+  jest.mocked(useSmartsuppConversation).mockReturnValue({
+    data: { success: true, conversation: null, messages: defaultMessages, agentNames: {} },
+    isLoading: false,
+  } as ReturnType<typeof useSmartsuppConversation>);
+
+  jest.mocked(useCloseConversation).mockReturnValue({
+    mutate: jest.fn(),
+    isPending: false,
+  } as unknown as ReturnType<typeof useCloseConversation>);
 });
 
 describe("ConversationDetail", () => {
@@ -170,11 +176,44 @@ describe("ConversationDetail", () => {
   });
 
   it("calls mutate with conversationId when the close button is clicked", () => {
+    const mockMutate = jest.fn();
+    jest.mocked(useCloseConversation).mockReturnValue({
+      mutate: mockMutate,
+      isPending: false,
+    } as unknown as ReturnType<typeof useCloseConversation>);
     render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
     fireEvent.click(screen.getByTestId("close-conversation-btn"));
     expect(mockMutate).toHaveBeenCalledWith(
       "c1",
       expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
     );
+  });
+
+  it("hides the close button when detail query returns resolved status even if prop status is open", () => {
+    jest.mocked(useSmartsuppConversation).mockReturnValue({
+      data: {
+        success: true,
+        conversation: { ...conv, status: "resolved" },
+        messages: [],
+        agentNames: {},
+      },
+      isLoading: false,
+    } as ReturnType<typeof useSmartsuppConversation>);
+    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
+    expect(screen.queryByTestId("close-conversation-btn")).not.toBeInTheDocument();
+  });
+
+  it("shows resolved status pill when detail query returns resolved status", () => {
+    jest.mocked(useSmartsuppConversation).mockReturnValue({
+      data: {
+        success: true,
+        conversation: { ...conv, status: "resolved" },
+        messages: [],
+        agentNames: {},
+      },
+      isLoading: false,
+    } as ReturnType<typeof useSmartsuppConversation>);
+    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
+    expect(screen.getByTestId("status-pill")).not.toHaveTextContent("Aktivní");
   });
 });

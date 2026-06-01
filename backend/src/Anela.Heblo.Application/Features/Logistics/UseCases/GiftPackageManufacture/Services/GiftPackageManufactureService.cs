@@ -151,11 +151,13 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         var productParts = await _manufactureClient.GetSetPartsAsync(giftPackageCode, cancellationToken);
 
         // Map ProductPart objects to GiftPackageIngredientDto with stock data
+        var ingredientCodes = productParts.Select(p => p.ProductCode).Distinct().ToList();
+        var ingredientCatalog = await _catalogRepository.GetByIdsAsync(ingredientCodes, cancellationToken);
+
         var ingredients = new List<GiftPackageIngredientDto>();
         foreach (var part in productParts)
         {
-            // Load product from catalog to get available stock
-            var ingredientProduct = await _catalogRepository.GetByIdAsync(part.ProductCode, cancellationToken);
+            ingredientCatalog.TryGetValue(part.ProductCode, out var ingredientProduct);
 
             var ingredient = new GiftPackageIngredientDto
             {
