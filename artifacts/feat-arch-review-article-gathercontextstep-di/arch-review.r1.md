@@ -1,146 +1,157 @@
-I have full context. Now I'll produce the architecture review.
-
-# Architecture Review: Decouple GatherContextStep from KnowledgeBase via Article-Owned Contract
+# Architecture Review: Decouple Article Module from KnowledgeBase Internals via Consumer-Owned Contract
 
 ## Skip Design: true
 
+(Backend-only refactor — no UI components, screens, or visual decisions.)
+
 ## Architectural Fit Assessment
 
-The proposed change is a textbook application of an already-established pattern in this codebase. The codebase explicitly documents the **consumer-owned contract / provider-implemented adapter** pattern in `docs/architecture/development_guidelines.md` (lines 196-205) and has two living examples in the exact same `Application` assembly:
+The proposal is an excellent fit. The codebase has a well-established, documented, and test-enforced pattern for cross-module read access: **consumer owns the contract, provider owns the adapter and the DI binding**. Two adapters already live in `Features/KnowledgeBase/Infrastructure/`:
 
-1. `Leaflet.Contracts.ILeafletKnowledgeSource` ← `KnowledgeBase.Infrastructure.KnowledgeBaseLeafletSourceAdapter`
-2. `Article.Contracts.IArticleStyleGuideSource` ← `KnowledgeBase.Infrastructure.KnowledgeBaseArticleStyleGuideSource`
+- `KnowledgeBaseLeafletSourceAdapter` → `ILeafletKnowledgeSource` (in `Features/Leaflet/Contracts/`)
+- `KnowledgeBaseArticleStyleGuideSource` → `IArticleStyleGuideSource` (in `Features/Article/Contracts/`)
 
-Both adapters are `internal sealed`, constructor-injected, scoped, and registered inside `KnowledgeBaseModule.AddKnowledgeBaseModule(...)`. The new `IArticleKnowledgeSource` slots in beside them with zero structural friction. The `ModuleBoundariesTests` allowlist already contains three entries (`SearchDocumentsRequest`, `SearchDocumentsResponse`, `ChunkResult`) tagged as removable when this exact refactor lands — the boundary test will get tighter as a direct byproduct.
+Both are registered alongside each other in `KnowledgeBaseModule.AddKnowledgeBaseModule`, both are `internal sealed`, and the pattern is canonically described in `docs/architecture/development_guidelines.md` under "Cross-Module Communication Example: ILeafletKnowledgeSource". The architecture test `ModuleBoundariesTests.Consumer_types_should_not_reference_provider_owned_namespaces` already enforces the rule for `Article → KnowledgeBase` and currently carries a three-entry allowlist that explicitly tracks this exact violation (see `ModuleBoundariesTests.cs:50-61`).
 
-Integration points:
-- **Consumer**: `Article.UseCases.Generate.Pipeline.GatherContextStep` (the only Article→KB compile-time coupling left).
-- **Provider**: KB's `SearchDocuments` MediatR pipeline (untouched).
-- **Composition**: `KnowledgeBaseModule.cs`.
-- **Architecture tests**: `ModuleBoundariesTests.ArticleAllowlist`.
-
-No conflict with existing patterns. No new architectural concept is introduced.
+Integration points are minimal: one new contract file (Article side), one new adapter file (KnowledgeBase side), one DI registration line (KnowledgeBase side), one constructor change + one method body change in `GatherContextStep`, plus test updates.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│ Anela.Heblo.Application                                                │
-│                                                                        │
-│   Features/Article/                                                    │
-│   ├── Contracts/                                                       │
-│   │   ├── IArticleStyleGuideSource.cs       (existing)                 │
-│   │   ├── IArticleUserResolver.cs           (existing)                 │
-│   │   └── IArticleKnowledgeSource.cs        ← NEW                      │
-│   │       • interface IArticleKnowledgeSource                          │
-│   │       • class ArticleKnowledgeChunk (DTO, not record)              │
-│   │                                                                    │
-│   └── UseCases/Generate/Pipeline/                                      │
-│       └── GatherContextStep.cs              ← MODIFIED                 │
-│           • depends on IArticleKnowledgeSource                         │
-│           • IMediator removed (only KB search used it)                 │
-│                                                                        │
-│                              ▲ implements                              │
-│                              │                                         │
-│   Features/KnowledgeBase/                                              │
-│   ├── Infrastructure/                                                  │
-│   │   ├── KnowledgeBaseArticleStyleGuideSource.cs   (existing)         │
-│   │   ├── KnowledgeBaseLeafletSourceAdapter.cs      (existing)         │
-│   │   └── KnowledgeBaseArticleSourceAdapter.cs      ← NEW              │
-│   │       • internal sealed                                            │
-│   │       • injects IMediator                                          │
-│   │       • dispatches SearchDocumentsRequest                          │
-│   │       • projects ChunkResult → ArticleKnowledgeChunk               │
-│   │                                                                    │
-│   ├── UseCases/SearchDocuments/             (unchanged)                │
-│   └── KnowledgeBaseModule.cs                ← MODIFIED                 │
-│       • + AddScoped<IArticleKnowledgeSource,                           │
-│                     KnowledgeBaseArticleSourceAdapter>()               │
-└────────────────────────────────────────────────────────────────────────┘
-
-Test assembly
-   └── Architecture/ModuleBoundariesTests.cs   ← MODIFIED
-       • remove 3 ArticleAllowlist entries (SearchDocumentsRequest/
-         Response/ChunkResult). Allowlist becomes empty but is retained
-         as a non-null HashSet so the rule entry still compiles.
-   └── Article/Pipeline/GatherContextStepTests.cs ← MODIFIED
-       • mock IArticleKnowledgeSource instead of IMediator for KB path
-       • SearchDocumentsRequest/Response/ChunkResult imports removed
+┌─────────────────────────────────────────────────────────────┐
+│ Features/Article (consumer)                                  │
+│                                                              │
+│   Contracts/                                                 │
+│     ├─ IArticleStyleGuideSource         (existing)          │
+│     ├─ IArticleUserResolver             (existing)          │
+│     └─ IArticleKnowledgeSource          (NEW)               │
+│         └─ ArticleKnowledgeChunk         (NEW DTO)          │
+│                                                              │
+│   UseCases/Generate/Pipeline/                                │
+│     └─ GatherContextStep                                    │
+│         • depends on IArticleKnowledgeSource (NEW)          │
+│         • no longer imports KnowledgeBase.UseCases.*        │
+└─────────────────────────────────────────────────────────────┘
+                            ▲ interface
+                            │ depends on
+                            │
+┌─────────────────────────────────────────────────────────────┐
+│ Features/KnowledgeBase (provider)                            │
+│                                                              │
+│   Infrastructure/                                            │
+│     ├─ KnowledgeBaseLeafletSourceAdapter        (existing)  │
+│     ├─ KnowledgeBaseArticleStyleGuideSource     (existing)  │
+│     └─ KnowledgeBaseArticleKnowledgeSource      (NEW)       │
+│         • delegates to IMediator.Send(SearchDocumentsRequest)│
+│         • projects ChunkResult → ArticleKnowledgeChunk      │
+│                                                              │
+│   KnowledgeBaseModule.cs                                     │
+│     • services.AddScoped<IArticleKnowledgeSource, …>(); NEW  │
+│                                                              │
+│   UseCases/SearchDocuments/                                  │
+│     ├─ SearchDocumentsRequest    (unchanged, internal)      │
+│     ├─ SearchDocumentsResponse   (unchanged, internal)      │
+│     └─ SearchDocumentsHandler    (unchanged)                │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Design Decisions
 
-#### Decision 1: Adapter visibility — `internal sealed`
+#### Decision 1: Adapter delegates via MediatR rather than calling the handler internals directly
 **Options considered:**
-- A. `public sealed` (mirrors public surface of UseCase handlers).
-- B. `internal sealed` (mirrors the two existing adapters in `KnowledgeBase.Infrastructure`).
+- (A) Adapter dispatches `SearchDocumentsRequest` through `IMediator` (per spec).
+- (B) Adapter injects the underlying primitives directly (`IKnowledgeBaseRepository`, `IEmbeddingGenerator`, `IRagQueryExpander`, `KnowledgeBaseOptions`) and reimplements the search.
+- (C) Extract a `IKnowledgeBaseSearchService` inside KB and have both the MediatR handler and the adapter call it.
 
-**Chosen approach:** `internal sealed`.
+**Chosen approach:** (A) — match the spec.
 
-**Rationale:** Both `KnowledgeBaseArticleStyleGuideSource` and `KnowledgeBaseLeafletSourceAdapter` are `internal sealed`. The adapter is a composition-root binding target only — no caller outside the assembly should reference the concrete type. The spec's "internal-visible if the existing style-guide adapter is" clause resolves unambiguously to `internal`.
+**Rationale:** `SearchDocumentsHandler` is non-trivial: it runs RAG query expansion, embedding generation, similarity threshold filtering, and transient-failure handling. Reimplementing that in the adapter (option B) duplicates logic and risks behavioral drift. Option C is cleaner long-term but is out of scope for a coupling fix. Going through MediatR keeps a single source of truth and is consistent with how `KnowledgeBaseLeafletSourceAdapter` calls `IKnowledgeBaseRepository` (one shared underlying primitive) — the adapter is intentionally thin.
 
-#### Decision 2: Folder placement — `KnowledgeBase/Infrastructure/`
+#### Decision 2: Adapter visibility — `internal sealed`, not `public sealed`
 **Options considered:**
-- A. New `KnowledgeBase/Adapters/` folder.
-- B. Place beside the two existing adapters in `KnowledgeBase/Infrastructure/`.
+- (A) `public sealed` (per spec).
+- (B) `internal sealed` (matches existing pattern).
 
-**Chosen approach:** B. Directly in `Features/KnowledgeBase/Infrastructure/`.
+**Chosen approach:** (B) `internal sealed`.
 
-**Rationale:** The folder already exists (`Infrastructure/` contains both peer adapters plus a `Jobs/` subfolder). The spec's "create `Infrastructure/` folder if it does not exist" guard is therefore moot — verified. `filesystem.md` lines 33 and 117 codify `Features/{Feature}/Infrastructure/` for feature-specific infrastructure, and the two reference adapters confirm it for cross-module adapters specifically.
+**Rationale:** Both existing adapters (`KnowledgeBaseLeafletSourceAdapter`, `KnowledgeBaseArticleStyleGuideSource`) are `internal sealed`. There is no reason for the adapter type to be visible outside the KnowledgeBase module — only its interface contract is consumed externally. The spec's `public sealed` would break the established convention. **This is a spec amendment.**
 
-#### Decision 3: Drop `IMediator` from `GatherContextStep`
+#### Decision 3: Adapter naming — `KnowledgeBaseArticleKnowledgeSource`, not `KnowledgeBaseArticleSourceAdapter`
 **Options considered:**
-- A. Keep `IMediator` injected "for future use".
-- B. Remove `IMediator` since it's only used by the KB search path.
+- (A) `KnowledgeBaseArticleSourceAdapter` (per spec).
+- (B) `KnowledgeBaseArticleKnowledgeSource` (mirrors `KnowledgeBaseArticleStyleGuideSource`).
+- (C) `KnowledgeBaseArticleKnowledgeSourceAdapter` (verbose, mixed pattern).
 
-**Chosen approach:** B. Remove `IMediator` from the constructor.
+**Chosen approach:** (B) `KnowledgeBaseArticleKnowledgeSource`.
 
-**Rationale:** Per the read of `GatherContextStep.cs`, `_mediator` is referenced exactly once — line 88, the KB search. The other three dependencies (`_webSearch`, `_styleGuideSource`, `_recorder`) cover web search, style guide load, and step recording. The CLAUDE.md rule "Don't add features … beyond what the task requires" plus "Surgical changes" backs removing the now-unused dependency. The test class will need its `Mock<IMediator>` removed correspondingly. (The spec's FR-4 already authorizes this.)
+**Rationale:** The Article module will now have **two** KB-implemented contracts (`IArticleStyleGuideSource`, `IArticleKnowledgeSource`). The spec's `KnowledgeBaseArticleSourceAdapter` is ambiguous — it does not say *which* Article-facing source it implements. The existing sibling adapter for the style guide drops the "Adapter" suffix entirely and uses the `KnowledgeBase{Consumer}{Capability}Source` form. Matching that gives `KnowledgeBaseArticleKnowledgeSource`. (The Leaflet adapter uses the `Adapter` suffix, so the codebase is mixed — but within the Article-facing family, consistency is more valuable.) **This is a spec amendment.**
 
-#### Decision 4: Adapter projection materialization
+#### Decision 4: Architecture test — remove allowlist entries; do not add a new test
 **Options considered:**
-- A. Return `IEnumerable<ArticleKnowledgeChunk>` (deferred).
-- B. Materialize to `.ToArray()` and return `IReadOnlyList<ArticleKnowledgeChunk>`.
+- (A) Add a brand new test as FR-6 says.
+- (B) Delete the three Article-allowlist entries (`ModuleBoundariesTests.cs:58-60`) and let the existing `Article -> KnowledgeBase` rule fail on the slightest regression.
 
-**Chosen approach:** B. Materialize with `.ToArray()`.
+**Chosen approach:** (B).
 
-**Rationale:** Contract signature is `Task<IReadOnlyList<ArticleKnowledgeChunk>>`. The KB call has already executed and produced a fully materialized `List<ChunkResult>` before projection — there is nothing to "defer". `.ToArray()` is cheaper than `.ToList()` for a fixed-size projection (`topK ≤ 20` per `SearchDocumentsRequest` validation) and aligns with the spec's explicit instruction in FR-2.
+**Rationale:** FR-6's behavior is **already implemented** by `ModuleBoundariesTests.Consumer_types_should_not_reference_provider_owned_namespaces`. It enforces a namespace-prefix ban for every type under `Anela.Heblo.Application.Features.Article`, forbids the entire `Anela.Heblo.Application.Features.KnowledgeBase` prefix (which subsumes `…UseCases.SearchDocuments`), and produces a clear failure message naming the offending caller. The only thing keeping the current violation green is the three-entry allowlist at `ModuleBoundariesTests.cs:58-60`. Deleting those entries is sufficient — and it is exactly what the existing comment instructs (*"Remove these three entries when SearchDocumentsRequest is replaced by an Article-owned contract."*). **This is a spec amendment.**
 
-#### Decision 5: Exception/cancellation passthrough
+#### Decision 5: DTO style — class with public setters, but consider `init`
 **Options considered:**
-- A. Adapter catches and translates exceptions to a contract-specific type.
-- B. Adapter is a transparent passthrough; the consumer keeps its existing `try/catch (Exception ex) when (ex is not OperationCanceledException)`.
+- (A) Public mutable setters (per spec, matches `ChunkResult`).
+- (B) `init`-only setters (matches sibling `KnowledgeSearchResult` in Leaflet contracts).
 
-**Chosen approach:** B. Passthrough.
+**Chosen approach:** (A) with `init` as an acceptable alternative — either is fine.
 
-**Rationale:** The current `GatherContextStep.GatherKnowledgeBaseSnippetsAsync` wraps the call in `try/catch` and logs `KB search failed for query '{Query}'`. Preserving this catch site (now wrapping the contract call instead of the MediatR call) keeps observability identical. Introducing a contract-defined exception type would expand scope and have no caller. NFR-1 and the spec's "Behavior under cancellation and exceptions is unchanged" requirement are met by doing nothing in the adapter.
+**Rationale:** Project rule says DTOs are classes (not records); both setter styles satisfy that. `KnowledgeSearchResult` already uses `init`. The OpenAPI generator caveat applies to *records* with positional constructors, not to `init`-only properties on classes. Implementer's choice; the spec's mutable setters are safe.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-Three files change, two files are created. No new folders.
+**New files:**
+```
+backend/src/Anela.Heblo.Application/Features/Article/Contracts/
+  └─ IArticleKnowledgeSource.cs        # interface + ArticleKnowledgeChunk DTO
 
-**Create:**
-- `backend/src/Anela.Heblo.Application/Features/Article/Contracts/IArticleKnowledgeSource.cs`
-- `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Infrastructure/KnowledgeBaseArticleSourceAdapter.cs`
+backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Infrastructure/
+  └─ KnowledgeBaseArticleKnowledgeSource.cs   # internal sealed adapter
+```
 
-**Modify:**
-- `backend/src/Anela.Heblo.Application/Features/Article/UseCases/Generate/Pipeline/GatherContextStep.cs` — remove `using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;`, remove `IMediator _mediator` field + ctor parameter, add `IArticleKnowledgeSource _knowledgeSource`, rewrite `GatherKnowledgeBaseSnippetsAsync` to call `_knowledgeSource.SearchAsync(query, _options.KnowledgeBaseTopK, ct)` and project `ArticleKnowledgeChunk → ContextSnippet`.
-- `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/KnowledgeBaseModule.cs` — append one `services.AddScoped<IArticleKnowledgeSource, KnowledgeBaseArticleSourceAdapter>();` next to the existing `IArticleStyleGuideSource` binding (line 43), with a one-line comment matching the style of lines 41-42.
-- `backend/test/Anela.Heblo.Tests/Article/Pipeline/GatherContextStepTests.cs` — replace `Mock<IMediator>` with `Mock<IArticleKnowledgeSource>`, replace `SearchDocumentsRequest/Response/ChunkResult` setup data with `ArticleKnowledgeChunk` instances, update the `Send` verify in `ExecuteAsync_KnowledgeBaseEnabled_AddsKbSnippets` to verify `SearchAsync(query, _options.KnowledgeBaseTopK, …)`, remove `using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;`. Keep all 5 test scenarios; assertion shape on `ContextSnippet` is unchanged.
-- `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` — delete the three entries in `ArticleAllowlist` (lines 58-60) and update the explanatory comment (lines 52-57) to read as a historical note that the violation has been removed, or remove the comment entirely. **Keep the `ArticleAllowlist` field declaration** (as an empty `HashSet`) so the `Rules()` `TheoryData` row at line 107 still compiles. Mirror the style of the existing `PurchaseAllowlist` (line 83) — an empty allowlist with a single comment line.
+**Modified files:**
+```
+backend/src/Anela.Heblo.Application/Features/Article/UseCases/Generate/Pipeline/GatherContextStep.cs
+  • Drop:  using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+  • Add:   IArticleKnowledgeSource _knowledgeSource ctor parameter + field
+  • Keep:  IMediator (still unused by KB path, but no other consumer either —
+           SEE OPEN ITEM: remove it if no remaining branch uses it)
+
+backend/src/Anela.Heblo.Application/Features/KnowledgeBase/KnowledgeBaseModule.cs
+  • Add:   services.AddScoped<IArticleKnowledgeSource, KnowledgeBaseArticleKnowledgeSource>();
+           (place adjacent to the existing IArticleStyleGuideSource registration at line 43)
+
+backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs
+  • Delete lines 58–60 (the three ArticleAllowlist entries).
+  • Optionally delete the comment block at lines 52–57 since the rationale is gone.
+
+backend/test/Anela.Heblo.Tests/Article/Pipeline/GatherContextStepTests.cs
+  • Swap Mock<IMediator> KB setup → Mock<IArticleKnowledgeSource>.
+  • Update CreateStep to pass the new mock.
+  • IMediator mock may still be needed if IMediator remains in the constructor.
+
+backend/test/Anela.Heblo.Tests/KnowledgeBase/  (new test file)
+  └─ KnowledgeBaseArticleKnowledgeSourceTests.cs  # adapter round-trip test
+```
 
 ### Interfaces and Contracts
 
 ```csharp
-// File: Features/Article/Contracts/IArticleKnowledgeSource.cs
+// Features/Article/Contracts/IArticleKnowledgeSource.cs
 namespace Anela.Heblo.Application.Features.Article.Contracts;
 
 /// <summary>
-/// Retrieves knowledge-base snippets for article generation context.
+/// Article-owned read-only abstraction over the knowledge-base search index.
 /// Implemented by the KnowledgeBase module via an adapter.
 /// </summary>
 public interface IArticleKnowledgeSource
@@ -149,7 +160,7 @@ public interface IArticleKnowledgeSource
         string query, int topK, CancellationToken cancellationToken);
 }
 
-public class ArticleKnowledgeChunk   // class, not record (project DTO rule)
+public class ArticleKnowledgeChunk
 {
     public Guid ChunkId { get; set; }
     public string SourceFilename { get; set; } = "";
@@ -158,76 +169,140 @@ public class ArticleKnowledgeChunk   // class, not record (project DTO rule)
 }
 ```
 
-Mandatory invariants:
-- The file has **no** `using Anela.Heblo.Application.Features.KnowledgeBase…` statement.
-- `ArticleKnowledgeChunk` is a `class`, matching the project rule about C# records and OpenAPI generators (CLAUDE.md). While this DTO is not on the public API surface, the convention is uniform across the Article `Contracts/` folder.
-- Cancellation token parameter is named `cancellationToken` (full word), to match the existing `IArticleStyleGuideSource` style.
+Naming alignment: parameter name should be `cancellationToken` (full word), matching the two existing sibling contracts.
+
+```csharp
+// Features/KnowledgeBase/Infrastructure/KnowledgeBaseArticleKnowledgeSource.cs
+using Anela.Heblo.Application.Features.Article.Contracts;
+using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+using MediatR;
+
+namespace Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
+
+internal sealed class KnowledgeBaseArticleKnowledgeSource : IArticleKnowledgeSource
+{
+    private readonly IMediator _mediator;
+
+    public KnowledgeBaseArticleKnowledgeSource(IMediator mediator) => _mediator = mediator;
+
+    public async Task<IReadOnlyList<ArticleKnowledgeChunk>> SearchAsync(
+        string query, int topK, CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(
+            new SearchDocumentsRequest { Query = query, TopK = topK }, cancellationToken);
+
+        return response.Chunks
+            .Select(c => new ArticleKnowledgeChunk
+            {
+                ChunkId = c.ChunkId,
+                SourceFilename = c.SourceFilename,
+                Content = c.Content,
+                Score = c.Score,
+            })
+            .ToArray();
+    }
+}
+```
 
 ### Data Flow
 
+**Before (current):**
 ```
-ArticlePipelineContext.SearchQueries (List<string>)
-        │
-        ▼ for each query
-GatherContextStep.GatherKnowledgeBaseSnippetsAsync
-        │
-        │ _knowledgeSource.SearchAsync(query, _options.KnowledgeBaseTopK, ct)
-        ▼
-IArticleKnowledgeSource (Article.Contracts)
-        │
-        ▼  resolved by DI to →
-KnowledgeBaseArticleSourceAdapter (KnowledgeBase.Infrastructure)
-        │
-        │ _mediator.Send(new SearchDocumentsRequest { Query, TopK }, ct)
-        ▼
-SearchDocumentsHandler  → SearchDocumentsResponse { Chunks: List<ChunkResult> }
-        │
-        ▼ projection in adapter
-IReadOnlyList<ArticleKnowledgeChunk>
-   { ChunkId, SourceFilename, Content, Score }
-        │
-        ▼ projection in GatherContextStep
-List<ContextSnippet>
-   { Source = KnowledgeBase, Title = SourceFilename, Excerpt = Content,
-     Url = null, ChunkId, Score }
-        │
-        ▼
-ArticlePipelineContext.ContextSnippets
+GatherContextStep
+  → IMediator.Send(SearchDocumentsRequest)
+       → SearchDocumentsHandler (RAG expand → embed → repo search → threshold filter)
+  → SearchDocumentsResponse.Chunks (List<ChunkResult>)
+  → projects to List<ContextSnippet>
 ```
 
-Exception path (unchanged in behaviour):
-- `OperationCanceledException` propagates through both the adapter and `GatherContextStep` (the `catch (Exception ex) when (ex is not OperationCanceledException)` filter is preserved verbatim in the consumer).
-- Any other exception inside the adapter or downstream handler is caught in `GatherKnowledgeBaseSnippetsAsync` and logged with `_logger.LogWarning(ex, "KB search failed for query '{Query}'", query)` — the per-query partial-failure semantic is unchanged.
+**After (proposed):**
+```
+GatherContextStep
+  → IArticleKnowledgeSource.SearchAsync(query, topK, ct)
+       → KnowledgeBaseArticleKnowledgeSource (adapter, KB module)
+            → IMediator.Send(SearchDocumentsRequest)   ← unchanged from here down
+                 → SearchDocumentsHandler
+            → projects ChunkResult → ArticleKnowledgeChunk
+  → IReadOnlyList<ArticleKnowledgeChunk>
+  → projects to List<ContextSnippet>
+```
+
+End-user behavior is unchanged. Threshold filtering, transient-failure handling, and `BelowThresholdCount` reporting all still happen inside `SearchDocumentsHandler`; the adapter is a pure type-translation layer.
+
+### `GatherContextStep` rewrite — the KB branch
+
+```csharp
+private async Task<List<ContextSnippet>> GatherKnowledgeBaseSnippetsAsync(
+    List<string> queries, CancellationToken ct)
+{
+    var snippets = new List<ContextSnippet>();
+
+    foreach (var query in queries)
+    {
+        try
+        {
+            var chunks = await _knowledgeSource.SearchAsync(query, _options.KnowledgeBaseTopK, ct);
+
+            snippets.AddRange(chunks.Select(chunk => new ContextSnippet
+            {
+                Source = SourceType.KnowledgeBase,
+                Title = chunk.SourceFilename,
+                Excerpt = chunk.Content,
+                Url = null,
+                ChunkId = chunk.ChunkId,
+                Score = chunk.Score
+            }));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "KB search failed for query '{Query}'", query);
+        }
+    }
+
+    return snippets;
+}
+```
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| `ModuleBoundariesTests.ArticleAllowlist` left non-empty (forgotten cleanup) → architectural debt is hidden. | Medium | The PR must remove the three entries (`SearchDocumentsRequest`, `SearchDocumentsResponse`, `ChunkResult`). Reviewer checklist item. The test will start *passing* with the allowlist tightened; if a developer forgets to tighten it, the test still passes but the boundary regresses silently. Add a one-line assertion `ArticleAllowlist.Should().BeEmpty()` is **not** worth the extra mechanism — the comment update is sufficient signal. |
-| `IMediator` is removed from `GatherContextStep` but a later in-flight branch reintroduces it. | Low | Strictly out of scope. The two-line ctor diff is small and visible in review. |
-| Adapter and downstream handler both throw on identical inputs differently (e.g. validation throws inside MediatR vs. in adapter input check). | Low | The adapter performs no validation; `SearchDocumentsRequest` validation attributes (`[Required, MinLength(1), MaxLength(2000)]` on `Query`, `[Range(1, 20)]` on `TopK`) continue to fire inside the MediatR pipeline. Behavior is bit-identical to today. |
-| Article tests pin behavior on `Send(SearchDocumentsRequest, …)` being called once. | Low | Tests must be updated (FR-5). The single `Verify` assertion at `GatherContextStepTests.cs:80-82` becomes a `SearchAsync` verify on the new mock. |
-| Spec's "remove IMediator if only used for KB search" condition mis-evaluated in implementation. | Low | Verified by reading the file: `_mediator` is used at exactly one site (line 88). Removal is safe. |
-| Smartsupp follow-up not tracked. | Low | The spec already acknowledges Smartsupp is out of scope (FR-7). Capture as a separate issue at PR-creation time. |
+| `IMediator` left dangling on `GatherContextStep` constructor after KB path migrates away. | Low | Inspect the file: the KB branch is the only consumer of `_mediator` in `GatherContextStep` (style guide uses `_styleGuideSource`, web uses `_webSearch`, recorder uses its own dep). Remove `IMediator` from the constructor. **Add this as an explicit acceptance criterion in FR-4** (spec already mentions it but should be assertive: "remove `IMediator`"). |
+| Allowlist entries in `ModuleBoundariesTests.cs:58-60` left in place — refactor done but regression test still permits the old coupling. | Medium | Make "delete the three Article allowlist entries" an explicit subtask. CI will not catch missing deletions because the test still passes; the deletion is the *test*. |
+| Adapter name collides conceptually with the existing `KnowledgeBaseArticleStyleGuideSource` (both adapt Article-side contracts). | Low | Use `KnowledgeBaseArticleKnowledgeSource` (matches the StyleGuideSource naming form). |
+| Spec says `public sealed` but existing sibling adapters are `internal sealed`. Following the spec literally would inconsistently expose the adapter class. | Low | Use `internal sealed`. Codified in Decision 2. |
+| Adapter delegates via `IMediator`, which means the test for the adapter must mock `IMediator` and assert request shape — fragile if `SearchDocumentsRequest` properties evolve. | Low | Acceptable: mocking `IMediator.Send` and inspecting the `SearchDocumentsRequest` captured by `It.Is<>` matches the test style used elsewhere; the test should be tolerant (assert `Query` and `TopK` only, not extra fields). |
+| `SearchDocumentsHandler` filters by `MinSimilarityScore` and reports `BelowThresholdCount`. The new contract drops `BelowThresholdCount`. | Low | `GatherContextStep` does not read `BelowThresholdCount` today, so no behavioral change. Document this as an explicit non-regression. |
+| Other modules might re-introduce direct `SearchDocumentsRequest` usage (Smartsupp is already a known offender). | Medium (scope) | Out of scope per spec — but `ModuleBoundariesTests` does not yet cover `Smartsupp → KnowledgeBase`. Flag for the follow-up. |
 
 ## Specification Amendments
 
-The spec is unusually faithful to the existing code and to the reference pattern. Only minor clarifications, none of which change scope:
+The spec is high-quality and complete. The following clarifications/changes should be applied:
 
-1. **FR-2 folder placement is decided.** The spec hedges ("create `Infrastructure/` folder if it does not exist — verify against `filesystem.md` conventions"). Verified: `Features/KnowledgeBase/Infrastructure/` already exists and contains two analogous adapters. Place the file there with no further analysis.
+1. **Adapter visibility: change `public sealed` → `internal sealed`** (FR-2). Matches existing `KnowledgeBaseLeafletSourceAdapter` and `KnowledgeBaseArticleStyleGuideSource`. No external consumer requires a public adapter type.
 
-2. **FR-2 adapter visibility is decided.** The spec hedges ("internal-visible if the existing style-guide adapter is, otherwise public sealed"). Verified: both reference adapters are `internal sealed`. Use `internal sealed`.
+2. **Adapter name: change `KnowledgeBaseArticleSourceAdapter` → `KnowledgeBaseArticleKnowledgeSource`** (FR-2). Disambiguates from `KnowledgeBaseArticleStyleGuideSource`, the other Article-side adapter living in the same folder.
 
-3. **FR-3 DI registration site is decided.** Add the line in `KnowledgeBaseModule.AddKnowledgeBaseModule` immediately after the existing `services.AddScoped<IArticleStyleGuideSource, KnowledgeBaseArticleStyleGuideSource>();` (line 43), preceded by a 2-line comment using the same wording style as lines 36-39 / 41-42 ("Cross-module contract: KnowledgeBase implements Article's IArticleKnowledgeSource via adapter. Same provider-owned-DI pattern as the bindings above.").
+3. **FR-6 is already satisfied by the existing test** — restate the work as:
+   > Delete the three Article-allowlist entries at `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs:58-60` (and optionally the explanatory comment block at lines 52–57). The existing `Consumer_types_should_not_reference_provider_owned_namespaces[Article -> KnowledgeBase]` theory then enforces FR-6's intent automatically. **No new test is required.**
 
-4. **FR-4 `IMediator` removal is decided, not conditional.** `_mediator` is used at exactly one site in `GatherContextStep`. Remove the field, the constructor parameter, and the `using MediatR;` import.
+4. **FR-4: make `IMediator` removal assertive, not conditional.** Inspection confirms `GatherContextStep`'s KB branch is the sole `_mediator` consumer. Spec wording "retained only if still used" should become: "`IMediator` must be removed from the constructor; verify no remaining branch sends MediatR requests."
 
-5. **FR-6 allowlist tightening is decided, not conditional.** Per `ModuleBoundariesTests.ArticleAllowlist`, all three current entries are the references being removed. Delete all three entries; keep the empty `HashSet` so the `Rules()` row still compiles. Update the prefacing comment from "Pre-existing dependency: GatherContextStep dispatches SearchDocumentsRequest..." to either a one-liner ("Empty — no active violations.") matching `PurchaseAllowlist` or removed entirely. **No new dedicated assertion is needed.**
+5. **Contract parameter naming:** the cancellation-token parameter on `IArticleKnowledgeSource.SearchAsync` should be named `cancellationToken` (full word), matching `IArticleStyleGuideSource.DownloadStyleGuideTextAsync` and `ILeafletKnowledgeSource.SearchSimilarAsync`. The spec's `ct` shorthand is inconsistent with project conventions.
 
-6. **Add an additional acceptance criterion to FR-4**: the `using MediatR;` import in `GatherContextStep.cs` is removed when `IMediator` is dropped. (Currently implicit in FR-4 but worth being explicit since the file currently has both `using MediatR;` and `using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;` on consecutive lines.)
+6. **DI registration placement** (FR-3): explicitly place the new `services.AddScoped<IArticleKnowledgeSource, …>()` line immediately after the existing `IArticleStyleGuideSource` registration at `KnowledgeBaseModule.cs:43`, with a one-line comment mirroring the existing cross-module-contract comments at lines 36-43.
 
-7. **Add a note to FR-5**: a 6th test should be added that asserts the adapter is invoked with the **exact** `topK` from `ArticleOptions.KnowledgeBaseTopK` — the existing `Times.Once` verify only checks invocation count. This is a one-line `It.Is<int>(k => k == _options.KnowledgeBaseTopK)` addition and protects against regression where the option is bypassed. *(Optional; reviewer call. If declined, leave as-is per FR-5 scope discipline.)*
+7. **Adapter test placement** (FR-5): the new `KnowledgeBaseArticleKnowledgeSourceTests` should live in `backend/test/Anela.Heblo.Tests/KnowledgeBase/` — there is currently no folder for KB-adapter tests, so create one. Verify by checking sibling test layout before final placement.
 
 ## Prerequisites
 
-None. No migrations, configuration changes, infrastructure provisioning, secrets, environment variables, feature flags, or schema work. The change is pure in-process code. `dotnet build`, `dotnet format`, and the existing test suite (`Anela.Heblo.Tests`) are the only validation needed.
+None. All required infrastructure is already in place:
+
+- `Features/KnowledgeBase/Infrastructure/` folder exists and already hosts two analogous adapters.
+- `Features/Article/Contracts/` folder exists and already hosts two analogous contracts (`IArticleStyleGuideSource`, `IArticleUserResolver`).
+- `KnowledgeBaseModule.cs` already wires two cross-module bindings — slotting in a third is trivial.
+- `ModuleBoundariesTests` already enforces the boundary; the work is to **remove** allowlist entries, not to add tests.
+- No migrations, configuration, or infrastructure changes required.
+- No dependent feature flags.
+
+Implementation can begin immediately.
