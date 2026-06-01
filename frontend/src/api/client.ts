@@ -393,8 +393,16 @@ export const getAuthenticatedApiClientWithProvider = (
 /**
  * Get an authenticated fetch function with the same headers as the API client.
  * Returns a fetch-like function that automatically attaches auth headers.
- * Does NOT throw on non-2xx responses — callers must check response.status.
- * Use this for resources that must be fetched via JS (e.g. images behind auth).
+ *
+ * Key behaviors:
+ * - Auth header ALWAYS wins: caller-supplied `Authorization` headers are overwritten by the helper's auth header.
+ * - Does NOT throw on non-2xx response — the caller owns status-code branching (e.g. 409 → typed result).
+ * - Does NOT trigger global error toasts or the 401 login redirect — those belong to `getAuthenticatedApiClient()`.
+ *   Callers must handle error UX themselves.
+ * - Canonical use case: endpoints where status-code branching is required (e.g. 409 = already submitted).
+ *   See `useSubmitArticleFeedbackMutation` in `hooks/useArticles.ts` for the reference implementation.
+ *
+ * Use `getAuthenticatedApiClient()` instead when you don't need status-code branching.
  */
 export function getAuthenticatedFetch(): (
   input: RequestInfo | URL,
@@ -404,7 +412,7 @@ export function getAuthenticatedFetch(): (
     const headers = await buildAuthHeaders(init);
     return fetch(input, {
       ...init,
-      headers: { ...headers, ...(init.headers ?? {}) },
+      headers: { ...(init.headers ?? {}), ...headers },
       credentials: isE2ETestMode() ? "include" : "same-origin",
     });
   };

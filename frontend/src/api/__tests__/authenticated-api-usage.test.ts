@@ -74,8 +74,6 @@ describe("Authenticated API Usage", () => {
             fileContent.includes("getAuthenticatedApiClient()") ||
             fileContent.includes("getAuthenticatedFetch");
           const isUsingAuthenticatedPattern =
-            fileContent.includes("(apiClient as any).http.fetch") ||
-            fileContent.includes("apiClient.http.fetch") ||
             fileContent.includes("getAuthenticatedFetch");
 
           if (!hasAuthenticatedClient || !isUsingAuthenticatedPattern) {
@@ -157,8 +155,65 @@ describe("Authenticated API Usage", () => {
         `Found ${violations.length} API hooks with authentication issues:\n${errorMessage}\n\n` +
           "All API hooks should:\n" +
           '1. Import getAuthenticatedApiClient or getAuthenticatedFetch from "../client"\n' +
-          "2. Use apiClient.http.fetch() or getAuthenticatedFetch() instead of plain fetch()\n" +
+          "2. Use getAuthenticatedApiClient() for typed calls, or getAuthenticatedFetch() for status-code branching\n" +
           "3. Follow the pattern from useCatalog.ts or useArticles.ts",
+      );
+    }
+  });
+
+  // This test guards against regressions in hooks that have already been migrated to
+  // getApiBaseUrl() + getAuthenticatedFetch(). Pre-existing violations in other hooks
+  // are tracked as tech debt — extend MIGRATED_HOOKS below as each hook is cleaned up.
+  it("should not use (as any) type casting patterns for API clients", () => {
+    // Hooks that have been fully migrated away from (apiClient as any) patterns.
+    // Add new hook file names here (basename only) when they are migrated.
+    const MIGRATED_HOOKS = new Set(["useArticles.ts"]);
+
+    const hookFiles = getTypeScriptFiles(apiHooksDir);
+    const violations: Array<{ file: string; line: number; content: string }> =
+      [];
+
+    hookFiles.forEach((file) => {
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
+      const basename = path.basename(file);
+
+      // Skip test files and hooks not yet migrated
+      if (file.includes("test") || file.includes("spec")) return;
+      if (!MIGRATED_HOOKS.has(basename)) return;
+
+      lines.forEach((line, index) => {
+        const trimmedLine = line.trim();
+
+        // Skip comments
+        if (trimmedLine.startsWith("//") || trimmedLine.startsWith("*")) {
+          return;
+        }
+
+        // Check for forbidden (as any) patterns
+        if (
+          trimmedLine.includes("(apiClient as any)") ||
+          trimmedLine.includes("as any).http") ||
+          trimmedLine.includes("as any).baseUrl")
+        ) {
+          violations.push({
+            file: file.replace(apiHooksDir, ""),
+            line: index + 1,
+            content: trimmedLine,
+          });
+        }
+      });
+    });
+
+    if (violations.length > 0) {
+      const errorMessage = violations
+        .map((v) => `${v.file}:${v.line} - ${v.content}`)
+        .join("\n");
+
+      throw new Error(
+        `Found ${violations.length} forbidden (as any) patterns in API hooks:\n${errorMessage}\n\n` +
+          "Use getApiBaseUrl() and getAuthenticatedFetch() from '../client' instead.\n" +
+          "Import: import { getApiBaseUrl, getAuthenticatedFetch } from '../client'",
       );
     }
   });

@@ -112,6 +112,28 @@ describe('API Client - typed helpers', () => {
       fetchSpy.mockRestore();
     });
 
+    it('auth header wins over caller-provided Authorization header', async () => {
+      const fetchSpy = jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(new Response(null, { status: 200 }));
+
+      // clearTokenCache and setGlobalTokenProvider are already set up in beforeEach
+      await getAuthenticatedFetch()('https://api.test.example/x', {
+        method: 'GET',
+        headers: { Authorization: 'Bearer caller-bogus' },
+      });
+
+      const callArgs = fetchSpy.mock.calls[0];
+      const init = callArgs[1] as RequestInit;
+      const headers = new Headers(init?.headers);
+
+      // The helper's real auth token must win; caller-bogus must not survive
+      expect(headers.get('Authorization')).toBe('Bearer test-token');
+      expect(headers.get('Authorization')).not.toBe('Bearer caller-bogus');
+
+      fetchSpy.mockRestore();
+    });
+
     it('returns a function that can be called multiple times', async () => {
       const fetchSpy = jest
         .spyOn(global, 'fetch')

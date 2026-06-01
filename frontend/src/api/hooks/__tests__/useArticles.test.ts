@@ -27,6 +27,11 @@ const mockGetAuthenticatedFetch =
     typeof clientModule.getAuthenticatedFetch
   >;
 
+const mockGetApiBaseUrl =
+  clientModule.getApiBaseUrl as jest.MockedFunction<
+    typeof clientModule.getApiBaseUrl
+  >;
+
 const createWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -278,6 +283,7 @@ describe('useSubmitArticleFeedbackMutation', () => {
     jest.clearAllMocks();
     mockFetch = jest.fn();
     mockGetAuthenticatedFetch.mockReturnValue(mockFetch);
+    mockGetApiBaseUrl.mockReturnValue('https://api.example.test');
   });
 
   const createMutationWrapper = ({ children }: { children: React.ReactNode }) => {
