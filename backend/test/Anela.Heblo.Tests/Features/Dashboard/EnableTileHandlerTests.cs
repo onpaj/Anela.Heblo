@@ -205,6 +205,42 @@ public class EnableTileHandlerTests
         _lockMock.Verify(x => x.AcquireAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_SendsGetUserSettingsBeforeAcquiringLock()
+    {
+        // Arrange
+        var userId = "user123";
+        var request = new EnableTileRequest { UserId = userId, TileId = "tile1" };
+
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(CreateSampleUserSettings(userId));
+
+        var callOrder = new List<string>();
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("mediator"))
+            .ReturnsAsync(new GetUserSettingsResponse());
+
+        var noOpDisposable = new Mock<IAsyncDisposable>();
+        noOpDisposable.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        _lockMock
+            .Setup(x => x.AcquireAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("lock"))
+            .ReturnsAsync(noOpDisposable.Object);
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        callOrder.Should().ContainInOrder("mediator", "lock");
+        _mediatorMock.Verify(x => x.Send(
+            It.Is<GetUserSettingsRequest>(r => r.UserId == userId),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     private static UserDashboardSettings CreateSampleUserSettings(string userId)
     {
         return new UserDashboardSettings
