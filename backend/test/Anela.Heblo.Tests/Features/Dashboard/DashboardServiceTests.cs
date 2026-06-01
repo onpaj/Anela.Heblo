@@ -1,5 +1,6 @@
-using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Domain;
+using Anela.Heblo.Xcc.Services.Concurrency;
+using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -11,14 +12,19 @@ public class DashboardServiceTests
 {
     private readonly Mock<ITileRegistry> _tileRegistryMock;
     private readonly Mock<IUserDashboardSettingsRepository> _settingsRepositoryMock;
+    private readonly Mock<IKeyedAsyncLock> _lockPoolMock;
     private readonly DashboardService _service;
 
     public DashboardServiceTests()
     {
         _tileRegistryMock = new Mock<ITileRegistry>();
         _settingsRepositoryMock = new Mock<IUserDashboardSettingsRepository>();
+        _lockPoolMock = new Mock<IKeyedAsyncLock>();
+        _lockPoolMock
+            .Setup(x => x.AcquireAsync(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new NoOpAsyncDisposable());
         var options = Options.Create(new DashboardOptions());
-        _service = new DashboardService(_tileRegistryMock.Object, _settingsRepositoryMock.Object, options);
+        _service = new DashboardService(_tileRegistryMock.Object, _settingsRepositoryMock.Object, options, _lockPoolMock.Object);
     }
 
     [Fact]
@@ -502,4 +508,9 @@ public class TestTileWithData : ITile
     {
         return Task.FromResult((object)$"Test data for {TileId}");
     }
+}
+
+internal sealed class NoOpAsyncDisposable : IAsyncDisposable
+{
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }

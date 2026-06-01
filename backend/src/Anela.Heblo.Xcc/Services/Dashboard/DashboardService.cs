@@ -1,6 +1,6 @@
 using Anela.Heblo.Xcc.Domain;
+using Anela.Heblo.Xcc.Services.Concurrency;
 using Microsoft.Extensions.Options;
-using System.Collections.Concurrent;
 
 namespace Anela.Heblo.Xcc.Services.Dashboard;
 
@@ -9,29 +9,25 @@ public class DashboardService : IDashboardService
     private readonly ITileRegistry _tileRegistry;
     private readonly IUserDashboardSettingsRepository _settingsRepository;
     private readonly DashboardOptions _dashboardOptions;
-    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _userLocks = new();
+    private readonly IKeyedAsyncLock _lockPool;
+    private readonly TimeSpan _lockTtl;
 
     public DashboardService(
         ITileRegistry tileRegistry,
         IUserDashboardSettingsRepository settingsRepository,
-        IOptions<DashboardOptions> dashboardOptions)
+        IOptions<DashboardOptions> dashboardOptions,
+        IKeyedAsyncLock lockPool)
     {
         _tileRegistry = tileRegistry;
         _settingsRepository = settingsRepository;
         _dashboardOptions = dashboardOptions.Value;
-    }
-
-    private static SemaphoreSlim GetUserLock(string userId)
-    {
-        return _userLocks.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
+        _lockPool = lockPool;
+        _lockTtl = TimeSpan.FromMinutes(dashboardOptions.Value.UserLockSlidingExpirationMinutes);
     }
 
     public async Task<UserDashboardSettings> GetUserSettingsAsync(string userId)
     {
-        var userLock = GetUserLock(userId);
-        await userLock.WaitAsync();
-
-        try
+        await using (await _lockPool.AcquireAsync($"dashboard:{userId}", _lockTtl))
         {
             var settings = await _settingsRepository.GetByUserIdAsync(userId);
             var availableTiles = _tileRegistry.GetAvailableTiles();
@@ -41,14 +37,12 @@ public class DashboardService : IDashboardService
 
             if (settings == null)
             {
-                // Create default settings for new user
                 settings = new UserDashboardSettings
                 {
                     UserId = userId,
                     LastModified = DateTime.UtcNow
                 };
 
-                // Create individual tile settings for AutoShow tiles
                 var tileSettings = autoShowTiles.Select((tile, index) => new UserDashboardTile
                 {
                     UserId = userId,
@@ -64,7 +58,6 @@ public class DashboardService : IDashboardService
             }
             else
             {
-                // For existing users, add any new AutoShow tiles that aren't in their settings yet
                 var existingTileIds = settings.Tiles.Select(t => t.TileId).ToHashSet();
                 var newAutoShowTiles = autoShowTiles
                     .Where(t => !existingTileIds.Contains(t.GetTileId()))
@@ -95,26 +88,15 @@ public class DashboardService : IDashboardService
 
             return settings;
         }
-        finally
-        {
-            userLock.Release();
-        }
     }
 
     public async Task SaveUserSettingsAsync(string userId, UserDashboardSettings settings)
     {
-        var userLock = GetUserLock(userId);
-        await userLock.WaitAsync();
-
-        try
+        await using (await _lockPool.AcquireAsync($"dashboard:{userId}", _lockTtl))
         {
             settings.UserId = userId;
             settings.LastModified = DateTime.UtcNow;
             await _settingsRepository.UpdateAsync(settings);
-        }
-        finally
-        {
-            userLock.Release();
         }
     }
 
@@ -126,7 +108,7 @@ public class DashboardService : IDashboardService
             .OrderBy(t => t.DisplayOrder)
             .ToList();
 
-        var results = new ConcurrentBag<(int Index, TileData Data)>();
+        var results = new System.Collections.Concurrent.ConcurrentBag<(int Index, TileData Data)>();
 
         await Parallel.ForEachAsync(
             visibleTiles.Select((tile, index) => (tile, index)),
@@ -152,7 +134,6 @@ public class DashboardService : IDashboardService
                         return;
                     }
 
-                    // Load data using registry method that manages scope properly
                     var data = await _tileRegistry.GetTileDataAsync(tileSettings.TileId, tileParameters);
 
                     results.Add((index, new TileData
