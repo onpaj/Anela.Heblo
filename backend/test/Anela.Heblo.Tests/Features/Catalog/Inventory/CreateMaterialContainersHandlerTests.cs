@@ -309,6 +309,35 @@ public class CreateMaterialContainersHandlerTests
     }
 
     [Fact]
+    public async Task Handle_MixedBatch_RejectsAtFirstBadItem_AndAssignsNothing()
+    {
+        // Arrange
+        var containerA = MaterialContainer.CreateUnassigned("M00000001", "admin");
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000001", default)).ReturnsAsync(containerA);
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000099", default)).ReturnsAsync((MaterialContainer?)null);
+
+        var request = new CreateMaterialContainersRequest
+        {
+            Items = new List<CreateMaterialContainerItem>
+            {
+                new() { Code = "M00000001", MaterialCode = "MAT001", LotCode = "L1" },
+                new() { Code = "M00000099", MaterialCode = "MAT001", LotCode = "L1" }
+            }
+        };
+
+        // Act
+        var result = await _handler.Handle(request, default);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.UnknownMaterialContainerCode, result.ErrorCode);
+        // Validate-all-before-mutate: A passed validation but B's null lookup
+        // triggered an early return before the assignment loop ran.
+        Assert.Equal(MaterialContainerStatus.Unassigned, containerA.Status);
+        _containerRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_BatchWithDuplicateCodes_ReturnsCodeExistsError()
     {
         // Arrange
