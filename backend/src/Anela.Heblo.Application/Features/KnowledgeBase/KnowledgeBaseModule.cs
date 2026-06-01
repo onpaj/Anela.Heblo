@@ -42,6 +42,10 @@ public static class KnowledgeBaseModule
         // Same provider-owned-DI pattern as the Leaflet binding above.
         services.AddScoped<IArticleStyleGuideSource, KnowledgeBaseArticleStyleGuideSource>();
 
+        // Cross-module contract: KnowledgeBase implements Article's IArticleKnowledgeSource via adapter.
+        // Scoped to match existing Article contract bindings above.
+        services.AddScoped<IArticleKnowledgeSource, KnowledgeBaseArticleKnowledgeSource>();
+
         // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)
 
         // OneDrive service — use real Graph service only when SharePoint drives are configured
