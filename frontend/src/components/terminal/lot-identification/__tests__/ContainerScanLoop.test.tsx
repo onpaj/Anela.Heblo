@@ -1,7 +1,8 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ContainerScanLoop from '../ContainerScanLoop';
+import { ErrorCodes } from '../../../../types/errors';
 
 const mockMutate = jest.fn();
 jest.mock('../../../../api/hooks/useMaterialContainers', () => ({
@@ -68,6 +69,24 @@ test('po mode: valid scan sends materialCode from URL', async () => {
       expect.anything(),
     );
   });
+});
+
+test('unknown container code shows generate-first message and does not increment count', async () => {
+  renderLoop('/terminal/lot-identification/freeform/MAT001/lot/L1/scan');
+  const input = screen.getByRole('textbox') as HTMLInputElement;
+  fireEvent.change(input, { target: { value: 'M00000003' } });
+  fireEvent.submit(screen.getByRole('form'));
+  await waitFor(() => expect(mockMutate).toHaveBeenCalled());
+
+  const onSuccess = mockMutate.mock.calls[0][1].onSuccess;
+  act(() => {
+    onSuccess({ success: false, errorCode: ErrorCodes.UnknownMaterialContainerCode });
+  });
+
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'Neznámý štítek – nejprve jej vygenerujte v aplikaci.',
+  );
+  expect(screen.getByText('Naskenováno:')).toHaveTextContent('Naskenováno: 0');
 });
 
 test('invalid format does not call mutate', async () => {
