@@ -3,6 +3,10 @@ using Hangfire;
 
 namespace Anela.Heblo.API.Infrastructure.Hangfire;
 
+/// <summary>
+/// Hangfire-backed implementation of <see cref="IFailedJobCounter"/>.
+/// Queries the Hangfire monitoring API for the current failed-job count.
+/// </summary>
 public sealed class HangfireFailedJobCounter : IFailedJobCounter
 {
     private readonly JobStorage _jobStorage;
