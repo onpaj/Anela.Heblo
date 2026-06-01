@@ -1,114 +1,126 @@
-```markdown
-# Architecture Review: Extract `GetCurrentUserId` into `BaseApiController`
+# Architecture Review: Consolidate GetCurrentUserId() into BaseApiController
 
 ## Skip Design: true
 
-Backend-only consolidation refactor. No new visual components, screens, layout changes, or user-facing surface alterations. The HTTP API contract is unchanged.
+This is a backend-only code-organization refactor. No UI components, screens, or visual decisions are touched.
 
 ## Architectural Fit Assessment
 
-The proposal aligns cleanly with the existing structure.
+The proposal aligns cleanly with existing conventions. `BaseApiController` already serves as the established home for cross-controller infrastructure (`HandleResponse<T>`, `Logger`), and all three affected controllers (`DashboardController`, `CarrierCoolingController`, `GiftSettingsController`) already inherit from it. ~30 controllers in `backend/src/Anela.Heblo.API/Controllers/` use `BaseApiController` today, so adding a `protected` helper there is the established extension point — no new abstraction is being introduced.
 
-- **`BaseApiController` is the correct host.** It is declared `public abstract` in `backend/src/Anela.Heblo.API/Controllers/BaseApiController.cs` and already exposes cross-cutting protected members (`Logger`, `HandleResponse<T>`). Adding `GetCurrentUserId` here is consistent with the file's stated purpose ("common functionality for all API controllers").
-- **All three target controllers already inherit from `BaseApiController`.** No inheritance chain rewiring is required — the method becomes available the moment it is added.
-- **Verified scope of the duplication.** A repo-wide grep for `GetCurrentUserId` in `backend/src/Anela.Heblo.API/Controllers/` returns exactly the three controllers the spec names (`DashboardController.cs`, `CarrierCoolingController.cs`, `GiftSettingsController.cs`); the only other hit anywhere in `backend/` is `CurrentUserService.cs`, which the spec correctly excludes. Similarly, the inline claim chain `FindFirst(ClaimTypes.NameIdentifier) ?? "sub" ?? "oid"` exists in exactly four files: the three controllers and `CurrentUserService`. The sweep contract in FR-5 is therefore satisfiable.
-- **`CurrentUserService` is correctly out of scope.** It is DI-injected via `IHttpContextAccessor`, returns a nullable `CurrentUser` DTO, and serves application-layer handlers (110 referencing files). The controller helper serves a different shape (non-null id, throw-on-missing, no DI) and the two are not duplicates of *intent* — only of the underlying claim chain. Merging them would change a wide blast radius for no benefit.
+Two integration points need explicit attention:
 
-The main integration point is the inheritance contract between `BaseApiController` and its subclasses — a `protected` instance member resolves at the call sites without any further wiring.
+1. **Exception-mapping middleware does not currently exist.** A grep across `Anela.Heblo.API` finds no `UseExceptionHandler`, no `IExceptionHandler` registration, and no `ExceptionMiddleware`. `ConfigureApplicationPipeline` in `backend/src/Anela.Heblo.API/Extensions/ApplicationBuilderExtensions.cs` jumps from CORS → routing → auth → endpoints with no global exception stage. FR-3 therefore requires *adding* (not extending) a global exception handler. This is a small but real cross-cutting addition the spec calls out but does not fully scope.
+
+2. **The brief misstates the current exception type in two of three controllers.** Actual code:
+   - `DashboardController.cs:103` — `throw new Exception("User not found")` *(matches brief)*
+   - `CarrierCoolingController.cs:45` — `throw new InvalidOperationException("Authenticated user has no identity claim.")`
+   - `GiftSettingsController.cs:45` — `throw new InvalidOperationException("Authenticated user has no identity claim.")`
+
+   Result is unchanged (consolidate to `UnauthorizedAccessException` on the base class), but the spec's NFR-3 catch-block sweep must also look for `catch (InvalidOperationException)`, not just `catch (Exception)`.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-ControllerBase (ASP.NET Core)
-        │
-        ▼
-BaseApiController                              (anela.heblo.api/Controllers)
-  ├── Logger                  (existing)
-  ├── HandleResponse<T>(...)  (existing)
-  └── GetCurrentUserId()      (NEW — protected, instance, throws UnauthorizedAccessException)
-        │
-        ├── DashboardController       (5 call sites — already present)
-        ├── CarrierCoolingController  (1 call site  — already present)
-        └── GiftSettingsController    (1 call site  — already present)
-
-Out of scope (unchanged):
-  ICurrentUserService / CurrentUserService          (DI path, nullable id, ~110 consumers)
-  HangfireDashboardAuthorizationFilter (if present) (filter pipeline, cannot inherit)
+                ┌────────────────────────────────────────┐
+                │ HTTP Request (authenticated, [Authorize]) │
+                └───────────────────────────────────────┬┘
+                                                        │
+                ┌───────────────────────────────────────▼─┐
+                │ AuthN/AuthZ middleware (existing)        │
+                │ — populates ControllerBase.User          │
+                └───────────────────────────────────────┬─┘
+                                                        │
+                ┌───────────────────────────────────────▼─┐
+                │ Derived controller action               │
+                │   var userId = GetCurrentUserId();      │
+                └────────┬────────────────────────────────┘
+                         │ (calls inherited protected method)
+                ┌────────▼────────────────────────────────┐
+                │ BaseApiController.GetCurrentUserId()    │  ◄── single source of truth
+                │ NameIdentifier → sub → oid → throw      │
+                └────────┬────────────────────────────────┘
+                         │ (on missing claim)
+                ┌────────▼────────────────────────────────┐
+                │ UnauthorizedAccessException             │
+                └────────┬────────────────────────────────┘
+                         │ (bubbles up)
+                ┌────────▼────────────────────────────────┐
+                │ IExceptionHandler (NEW)                 │
+                │ UnauthorizedAccessException → 401       │
+                │ + ProblemDetails body                   │
+                └─────────────────────────────────────────┘
 ```
 
 ### Key Design Decisions
 
-#### Decision 1: Host on `BaseApiController` (instance member) vs. static helper or extension method
+#### Decision 1: Method visibility — `protected` (not `protected internal` or `public`)
+**Options considered:** `private` (defeats reuse), `protected`, `protected internal`, `public`.
+**Chosen approach:** `protected`.
+**Rationale:** Matches the visibility of the existing `HandleResponse<T>` and `Logger` members on `BaseApiController`. `internal` exposure is unnecessary — only derived controllers need it, and the ASP.NET model-binding pipeline never invokes helper methods directly. The method is non-virtual; no existing override pattern exists on `BaseApiController` and overriding identity resolution per-controller would be a misuse.
+
+#### Decision 2: Exception type — `UnauthorizedAccessException`
+**Options considered:** `Exception` (status quo, surfaces as 500), `InvalidOperationException` (current Carrier/Gift behavior, also 500), `UnauthorizedAccessException` (proposed), a custom `MissingClaimException`.
+**Chosen approach:** `UnauthorizedAccessException` (BCL type).
+**Rationale:** Semantically accurate — the principal is authenticated but lacks the claim required to identify them, which is an authorization-context failure. BCL type avoids adding a new exception class for a single call site. Aligns with the project's preference for idiomatic .NET over bespoke abstractions (CLAUDE.md §"Surgical changes"). A custom exception offers no benefit and adds another type developers must learn.
+
+#### Decision 3: 401 mapping — implement `IExceptionHandler`, not `UseExceptionHandler` with lambda
 **Options considered:**
-- (A) Protected instance method on `BaseApiController`.
-- (B) Static helper accepting `ClaimsPrincipal` (e.g. in a `ClaimsPrincipalExtensions` class).
-- (C) Inject `ICurrentUserService` into each controller and call `.GetCurrentUser().Id`.
+- Per-controller `try/catch` (rejected — defeats consolidation).
+- `app.UseExceptionHandler(...)` with inline lambda.
+- `IExceptionHandler` (ASP.NET Core 8+ DI-friendly handler chain).
 
-**Chosen approach:** (A), as the spec proposes.
+**Chosen approach:** Register an `IExceptionHandler` (e.g. `UnauthorizedAccessExceptionHandler`) via `services.AddExceptionHandler<T>()` and `app.UseExceptionHandler()` in the pipeline.
+**Rationale:** Project targets .NET 8 (per CLAUDE.md). `IExceptionHandler` is the .NET 8 idiom — strongly typed, testable, composable, and lets future handlers (e.g. for `ValidationException`) be added without touching pipeline code. It coexists with the existing `BaseResponse`/`ErrorCodes` pattern (which handles *expected* business failures via `HandleResponse<T>`) by handling only *unexpected* exceptions — the two patterns do not overlap.
 
-**Rationale:**
-- The codebase has already declared `BaseApiController` exactly to host this kind of cross-controller helper; adding `Logger` and `HandleResponse<T>` set the precedent.
-- (B) loses the `User` capture and forces every call site to type `User.GetCurrentUserId()`, which is uglier than `GetCurrentUserId()` for negligible testability gain.
-- (C) is wrong here: `CurrentUserService` returns `Id` as `string?`, the controllers need non-null, so each call site would still need a null-check or re-throw — the duplication just moves up a layer. Worse, it would require revisiting DI registration for three controllers for no architectural benefit. The spec's "out of scope" framing on this is correct.
+#### Decision 4: Response body — `ProblemDetails` with no message leakage
+**Options considered:** Empty 401 body, custom JSON envelope, `ProblemDetails`.
+**Chosen approach:** RFC 7807 `ProblemDetails` with `status: 401`, `title: "Unauthorized"`, no `detail` (i.e. exception message NOT returned to the client).
+**Rationale:** `ProblemDetails` is already used elsewhere in the codebase (e.g. `LeafletController.cs:35-61`). The exception message `"Authenticated user has no identifiable claim."` is safe for logs but should not be echoed to clients — keeping `detail` empty avoids any policy ambiguity (NFR-2). The exception itself MUST be logged with full context server-side.
 
-#### Decision 2: Throw `UnauthorizedAccessException` rather than return `Unauthorized()` or `null`
-**Options considered:**
-- (A) `throw new UnauthorizedAccessException(...)` — spec choice.
-- (B) Change the helper's return type to `string?` (mirroring `ICurrentUserService`).
-- (C) Have the helper return `IActionResult` / `ActionResult<T>` short-circuit on failure.
-
-**Chosen approach:** (A).
-
-**Rationale:**
-- All three existing call sites consume `GetCurrentUserId()` as a non-null `string` and immediately assign it to a request DTO. Returning nullable (B) would require every call site to add a null-check or `!` — strictly worse than today.
-- (C) would change the ergonomics of the call sites (early-return pattern) and require touching all 7 call sites. The spec is explicit that mapping unauthenticated callers to a proper 401 is out of scope.
-- `UnauthorizedAccessException` is the standard BCL exception for this scenario and replaces both `Exception` (Dashboard) and `InvalidOperationException` (the other two) with one consistent, semantically correct type. The HTTP-status side effect is unchanged (500 in all four cases — before and after).
-
-#### Decision 3: Coverage strategy — keep tests in `DashboardControllerTests`, no new file
-**Options considered:**
-- (A) Add `BaseApiControllerTests.cs` with a minimal test-only subclass exposing the protected member.
-- (B) Leave the four existing tests in `DashboardControllerTests` and only update the failure-path assertion.
-
-**Chosen approach:** (B), per FR-7.
-
-**Rationale:**
-- Confirmed: `backend/test/Anela.Heblo.Tests/Controllers/BaseApiControllerTests.cs` does **not** exist. The FR-7 guard ("only if file already exists") therefore correctly skips it.
-- The four tests in `DashboardControllerTests` already exercise the behavior end-to-end through a real controller subclass. They remain valid coverage after the method moves up the inheritance chain.
-- Creating a parallel test fixture would introduce a new pattern (test-only controller subclasses) that the repo does not currently use.
+#### Decision 5: Test placement — single test class on the base controller
+**Options considered:** Keep the four `GetCurrentUserId_*` tests on `DashboardControllerTests`, duplicate per controller, or migrate to a dedicated `BaseApiControllerTests` fixture.
+**Chosen approach:** Create `backend/test/Anela.Heblo.Tests/Controllers/BaseApiControllerTests.cs` with a minimal `TestBaseApiController : BaseApiController` harness exposing `GetCurrentUserId` for assertion. Delete the four tests currently at `DashboardControllerTests.cs:230, 250, 278, 306` since the behavior they exercise has moved to the base class.
+**Rationale:** Tests should sit on the type that owns the behavior. Per-controller duplication contradicts the whole point of consolidation. A small test-only derived class avoids exposing the method publicly on production code.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-No new files. Modifications only:
-
 ```
-backend/src/Anela.Heblo.API/Controllers/
-  ├── BaseApiController.cs         [MODIFY] add using + GetCurrentUserId()
-  ├── DashboardController.cs        [MODIFY] remove private method; drop `using System.Security.Claims;`
-  ├── CarrierCoolingController.cs   [MODIFY] remove private method; drop `using System.Security.Claims;`
-  └── GiftSettingsController.cs     [MODIFY] remove private method; drop `using System.Security.Claims;`
+backend/src/Anela.Heblo.API/
+├── Controllers/
+│   └── BaseApiController.cs                          (MODIFY — add GetCurrentUserId)
+│   └── DashboardController.cs                        (MODIFY — remove private method; remove unused `using System.Security.Claims;`)
+│   └── CarrierCoolingController.cs                   (MODIFY — same)
+│   └── GiftSettingsController.cs                     (MODIFY — same)
+├── Infrastructure/
+│   └── ExceptionHandling/                            (NEW directory)
+│       └── UnauthorizedAccessExceptionHandler.cs     (NEW)
+└── Extensions/
+    ├── ApplicationBuilderExtensions.cs               (MODIFY — UseExceptionHandler before UseRouting)
+    └── ServiceCollectionExtensions.cs                (MODIFY — AddExceptionHandler<...>(); AddProblemDetails();)
 
-backend/test/Anela.Heblo.Tests/Controllers/
-  └── DashboardControllerTests.cs   [MODIFY] update WhenNoClaimsPresent assertion
+backend/test/Anela.Heblo.Tests/
+├── Controllers/
+│   ├── BaseApiControllerTests.cs                     (NEW — claim chain + UnauthorizedAccessException tests)
+│   └── DashboardControllerTests.cs                   (MODIFY — delete the four GetCurrentUserId_* tests at lines 230, 250, 278, 306)
+└── Infrastructure/
+    └── ExceptionHandling/
+        └── UnauthorizedAccessExceptionHandlerTests.cs (NEW — verifies 401 + ProblemDetails + no message leak)
 ```
-
-Verified that none of the three controller files reference `System.Security.Claims` anywhere other than the private helper they will be losing — the `using` directive can be removed cleanly in all three.
 
 ### Interfaces and Contracts
 
-```csharp
-// BaseApiController.cs
-using System.Security.Claims;
-// ...
+**`BaseApiController.cs` — addition:**
 
-/// <summary>
-/// Gets the authenticated user's id from the standard claim chain
-/// (NameIdentifier → sub → oid). Throws <see cref="UnauthorizedAccessException"/>
-/// when no id claim is present.
-/// </summary>
+```csharp
+using System.Security.Claims;
+
+// existing class body…
+
 protected string GetCurrentUserId()
     => User.FindFirst(ClaimTypes.NameIdentifier)?.Value
        ?? User.FindFirst("sub")?.Value
@@ -116,63 +128,95 @@ protected string GetCurrentUserId()
        ?? throw new UnauthorizedAccessException("Authenticated user has no identifiable claim.");
 ```
 
-Rules subclasses must follow:
-- Do **not** redeclare a `GetCurrentUserId` member on a subclass (it would shadow the inherited one and silently re-introduce the divergence problem).
-- Do **not** catch `UnauthorizedAccessException` in controller code to convert it to another exception — if a 401 mapping is ever needed, do it in middleware so every caller benefits.
+**`UnauthorizedAccessExceptionHandler.cs` — contract:**
+
+```csharp
+public sealed class UnauthorizedAccessExceptionHandler : IExceptionHandler
+{
+    private readonly ILogger<UnauthorizedAccessExceptionHandler> _logger;
+    public UnauthorizedAccessExceptionHandler(ILogger<UnauthorizedAccessExceptionHandler> logger) => _logger = logger;
+
+    public async ValueTask<bool> TryHandleAsync(
+        HttpContext httpContext,
+        Exception exception,
+        CancellationToken cancellationToken)
+    {
+        if (exception is not UnauthorizedAccessException uax) return false;
+
+        _logger.LogWarning(uax, "Unauthorized access: {Message}", uax.Message);
+
+        httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        await httpContext.Response.WriteAsJsonAsync(new ProblemDetails
+        {
+            Status = StatusCodes.Status401Unauthorized,
+            Title = "Unauthorized",
+            Type = "https://tools.ietf.org/html/rfc7235#section-3.1"
+        }, cancellationToken);
+        return true;
+    }
+}
+```
+
+**Pipeline wiring (`ApplicationBuilderExtensions.cs`):**
+
+`app.UseExceptionHandler()` must be registered **before** `app.UseRouting()` (line 89) so it can catch exceptions from any later middleware including the endpoint executor. The `ConfigureApplicationPipeline` ordering becomes:
+
+```
+ForwardedHeaders → CORS → HttpsRedirection → HttpLogging → RequestLogging
+→ UseExceptionHandler()         ◄── INSERT HERE
+→ E2ETestAuth (conditional)
+→ UseRouting → UseAuthentication → UseAuthorization → …
+```
+
+**Service registration (`ServiceCollectionExtensions.cs`):**
+
+```csharp
+services.AddExceptionHandler<UnauthorizedAccessExceptionHandler>();
+services.AddProblemDetails();
+```
 
 ### Data Flow
 
-For each modified call site:
+**Happy path (claim present):**
+1. `[Authorize]` middleware admits the request; `ControllerBase.User` is populated.
+2. Controller action calls inherited `GetCurrentUserId()`.
+3. First non-null of `NameIdentifier` / `sub` / `oid` is returned.
+4. Action proceeds; behavior is byte-identical to the previous per-controller method.
 
-```
-HTTP Request (Authorize) → Controller action
-                              │
-                              ▼
-                       GetCurrentUserId()       (inherited from BaseApiController)
-                              │
-            ┌─────────────────┼─────────────────┐
-            ▼                 ▼                 ▼
-  ClaimTypes.NameIdentifier  "sub"            "oid"
-            │                 │                 │
-            └─────── first non-null wins ───────┘
-                              │
-                  ┌───────────┴───────────┐
-                  ▼                       ▼
-            string userId           UnauthorizedAccessException
-                  │                       │
-                  ▼                       ▼
-       MediatR request.UserId       ASP.NET unhandled → 500
-       (handler proceeds)           (same as today)
-```
+**Missing-claim path:**
+1. `[Authorize]` admits the request (token was valid) but the token has none of the three claims.
+2. `GetCurrentUserId()` throws `UnauthorizedAccessException`.
+3. Exception bubbles past the controller and through the endpoint middleware.
+4. `UseExceptionHandler` invokes `UnauthorizedAccessExceptionHandler.TryHandleAsync`.
+5. Handler logs the exception (full context, server-side) and writes a `401 ProblemDetails` response with **no message in the body**.
 
-No data-flow change for the success path. The failure path now produces a single exception type instead of three different ones.
+**Practical note on FR-3:** Because all three controllers carry `[Authorize]` and the token validation pipeline already requires a valid principal, the missing-claim path is a true edge case (would require a token issued to a principal with none of the three claim types). The handler is therefore primarily a defensive contract guarantee, not a hot path.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| A subclass already (or later) defines a non-virtual `GetCurrentUserId()` and silently hides the base member, defeating the consolidation. | Low | The compiler emits CS0108 (`new` keyword required to hide…) as a warning. Verified at grep time that no other controller currently has the method. Reviewers should treat any CS0108 on this name as a blocker. |
-| A consumer (production, not tests) catches `Exception` or `InvalidOperationException` specifically and depends on the old type. | Low | Grep confirms no such catch outside the tests covered by FR-6. ASP.NET surfaces both the old and new exceptions as HTTP 500, so middleware/global handlers see equivalent behavior. |
-| HTTP 500 on missing claims is a defense-in-depth posture, not a clean 401. | Medium | Already true in all three controllers today — not introduced by this refactor. Spec explicitly puts proper 401 mapping out of scope. Document the limitation in a follow-up issue if a 401 contract is desired later. |
-| Future contributor adds another controller and re-introduces the private copy (because it isn't discoverable from outside `BaseApiController`). | Low | The XML `<summary>` on the new member makes IntelliSense show it on every subclass. Discoverability is at parity with `Logger` and `HandleResponse<T>`, both of which have survived the same risk. |
-| `BaseApiController` accumulates unrelated auth helpers over time. | Low | Out of scope for this change. If the file grows past ~3 cross-cutting concerns, revisit by extracting an `IControllerUserContext` or claim-chain extension method then. |
+| Other controllers also have private `GetCurrentUserId()` — codebase-wide sweep missed something. | Low | Run `grep -rn "GetCurrentUserId" backend/src --include="*.cs"` as a hard gate before declaring complete. Spec already requires this. Confirmed by grep on the worktree: only the three controllers from the brief contain a definition. |
+| Adding `UseExceptionHandler` globally inadvertently swallows or reshapes errors from other code paths (e.g. background jobs, MCP). | Medium | `IExceptionHandler.TryHandleAsync` returning `false` for non-matching types means the default ASP.NET error pipeline still runs for everything else. Restrict the new handler to `UnauthorizedAccessException` only. Verify no other code path in the codebase throws `UnauthorizedAccessException` expecting a 500 (grep result: only `GraphService.cs:183` catches it — does not throw). |
+| Existing tests at `DashboardControllerTests.cs:230` use `Assert.ThrowsAsync<Exception>` and check `Message == "User not found"`. Removing the per-controller method breaks them. | High | Tests must be deleted as part of this change (they target moved behavior). Replacement tests live in `BaseApiControllerTests`. Listed explicitly under "Specification Amendments" below. |
+| `CarrierCoolingController` and `GiftSettingsController` `using System.Security.Claims;` becomes unused after refactor — `dotnet format` will flag. | Low | Remove the `using` directive in the same edit. Same for `DashboardController.cs:1`. |
+| `UnauthorizedAccessException` from controller-construction or routing throws (extremely unlikely) might also get mapped to 401 unexpectedly. | Low | Handler scope is correct as-is; if needed in the future, scope by inspecting `httpContext.GetEndpoint()` or path prefix `/api/`. Not required for the initial implementation. |
+| The handler's `ProblemDetails` body conflicts with what the project's existing 401 responses (from `HandleResponse<T>`) return — clients may see two different 401 shapes. | Medium | Acceptable: existing `HandleResponse<T>` 401s return a `BaseResponse` (business error), while the new handler returns `ProblemDetails` (infrastructure error). These are distinct semantic categories. Document the difference in `UnauthorizedAccessExceptionHandler.cs` with a one-line comment. |
 
 ## Specification Amendments
 
-The spec is implementable as written. Two minor corrections / clarifications:
+1. **NFR-3 sweep must include `InvalidOperationException`.** The spec says to search for `catch (Exception)`. Two of the three controllers actually throw `InvalidOperationException`, so the sweep must also include `catch (InvalidOperationException)` to satisfy NFR-3.
 
-1. **FR-2 line-number drift.** The spec cites `DashboardController.cs:97-105` for the private method, which matches the current file (the brief says "97–105" inclusive of the closing brace). The cited five call sites (lines 38, 48, 58, 72, 86) also match. No change to the spec required — flagging only because re-running the implementation against a future revision of the file should re-check via grep, not by line number.
-2. **FR-5 sweep is already satisfied by the proposed three deletions.** A repo-wide grep across `backend/src/Anela.Heblo.API/Controllers/` for both `GetCurrentUserId` and the literal three-step chain confirms only the three named controllers contain the duplicate; `CurrentUserService.cs` is the only other hit and is intentionally excluded. The implementer should still re-run the grep at completion time to verify nothing was added during the same branch window, but no additional file modifications are expected.
-3. **Suggested addition to NFR-2.** Add a single line: *"If a global exception-handling middleware is later added that maps `UnauthorizedAccessException` → 401, this refactor will become the consolidation point. Treat that as a deliberate downstream improvement, not a hidden behavior change."* This makes the upgrade path explicit so a future reviewer doesn't perceive a regression.
+2. **FR-2 should explicitly list `using System.Security.Claims;` removal.** Once the private method is removed, none of the three controllers reference `ClaimTypes` directly. The unused `using` must be removed in the same edit to avoid an analyzer warning under `dotnet format`.
+
+3. **FR-4 acceptance criteria should specify test relocation.** Add to FR-4: "The four existing `GetCurrentUserId_*` tests on `DashboardControllerTests` (lines 230, 250, 278, 306) MUST be deleted and replaced by equivalent tests on a new `BaseApiControllerTests` fixture using a minimal test-derived controller. The Dashboard tests are not migrated — they are deleted and the equivalents live on the base-class test class."
+
+4. **FR-3 should name the implementation mechanism.** Replace "add one (in the existing global exception handler / middleware, ...)" with: "register an `IExceptionHandler` implementation (`UnauthorizedAccessExceptionHandler`) via `services.AddExceptionHandler<T>()`, `services.AddProblemDetails()`, and call `app.UseExceptionHandler()` before `app.UseRouting()` in `ConfigureApplicationPipeline`. Response body MUST be `ProblemDetails` with no `detail` (exception message logged server-side only, never returned to the client)."
+
+5. **NFR-2 should add a "no other thrower" check.** Add: "Confirm via grep that no other code path throws `UnauthorizedAccessException` expecting a 500 response. As of the current codebase, only `GraphService.cs:183` references the type (in a `catch`), so this is safe."
+
+6. **Add a new acceptance criterion under "API / Interface Design":** "Response body shape for the missing-claim 401 is `ProblemDetails` (`{status, title, type}`), distinct from the `BaseResponse`-shaped 401s returned by `HandleResponse<T>`. This shape divergence is intentional — infrastructure exceptions and business errors are separate categories."
 
 ## Prerequisites
 
-None. The change requires:
-- No database migration.
-- No configuration / Key Vault change.
-- No new NuGet package.
-- No DI registration update (the helper is an instance member; no service container involvement).
-- No frontend regeneration (HTTP contract unchanged).
-
-Implementation can start immediately. Validation gates: `dotnet build`, `dotnet format`, `dotnet test` on the touched test project — all per `CLAUDE.md`.
-```
+None. All required types (`UnauthorizedAccessException`, `IExceptionHandler`, `ProblemDetails`, `ClaimsPrincipal`) are in the BCL or ASP.NET Core 8 framework already referenced by `Anela.Heblo.API.csproj`. No new NuGet packages, configuration entries, Key Vault secrets, database migrations, or infrastructure changes are required.
