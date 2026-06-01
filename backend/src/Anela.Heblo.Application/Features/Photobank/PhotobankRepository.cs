@@ -149,6 +149,24 @@ namespace Anela.Heblo.Application.Features.Photobank
             return await _context.Photos.ToListAsync(cancellationToken);
         }
 
+        public Task<Photo?> GetPhotoBySharePointFileIdAsync(string sharePointFileId, CancellationToken cancellationToken)
+        {
+            return _context.Photos
+                .FirstOrDefaultAsync(p => p.SharePointFileId == sharePointFileId, cancellationToken);
+        }
+
+        public Task AddPhotoAsync(Photo photo, CancellationToken cancellationToken)
+        {
+            _context.Photos.Add(photo);
+            return Task.CompletedTask;
+        }
+
+        public Task RemovePhotoAsync(Photo photo, CancellationToken cancellationToken)
+        {
+            _context.Photos.Remove(photo);
+            return Task.CompletedTask;
+        }
+
         // Tags
 
         public async Task<IReadOnlyList<TagCount>> GetTagsWithCountsAsync(CancellationToken cancellationToken)
@@ -276,12 +294,32 @@ namespace Anela.Heblo.Application.Features.Photobank
             return pairs.Select(x => (x.PhotoId, x.TagId)).ToHashSet();
         }
 
+        public async Task<List<PhotoTag>> GetPhotoTagsByPhotoAndSourceAsync(int photoId, PhotoTagSource source, CancellationToken cancellationToken)
+        {
+            return await _context.PhotoTags
+                .Where(pt => pt.PhotoId == photoId && pt.Source == source)
+                .ToListAsync(cancellationToken);
+        }
+
+        public Task RemovePhotoTagsAsync(IEnumerable<PhotoTag> photoTags, CancellationToken cancellationToken)
+        {
+            _context.PhotoTags.RemoveRange(photoTags);
+            return Task.CompletedTask;
+        }
+
         // Roots
 
         public async Task<List<PhotobankIndexRoot>> GetRootsAsync(CancellationToken cancellationToken)
         {
             return await _context.PhotobankIndexRoots
                 .OrderBy(r => r.CreatedAt)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<PhotobankIndexRoot>> GetActiveRootsWithDriveAsync(CancellationToken cancellationToken)
+        {
+            return await _context.PhotobankIndexRoots
+                .Where(r => r.IsActive && r.DriveId != null)
                 .ToListAsync(cancellationToken);
         }
 
@@ -307,6 +345,14 @@ namespace Anela.Heblo.Application.Features.Photobank
             return await _context.PhotobankTagRules
                 .OrderBy(r => r.SortOrder)
                 .ThenBy(r => r.Id)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<TagRule>> GetActiveTagRulesAsync(CancellationToken cancellationToken)
+        {
+            return await _context.PhotobankTagRules
+                .Where(r => r.IsActive)
+                .OrderBy(r => r.SortOrder)
                 .ToListAsync(cancellationToken);
         }
 

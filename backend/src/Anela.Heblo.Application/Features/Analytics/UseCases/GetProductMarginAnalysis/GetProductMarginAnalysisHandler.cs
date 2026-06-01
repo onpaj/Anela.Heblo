@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
@@ -105,8 +104,17 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
                 .Where(s => s.Date >= request.StartDate && s.Date <= request.EndDate)
                 .ToList();
 
-            response.MonthlyBreakdown = _reportBuilderService.BuildMonthlyBreakdown(
-                salesInPeriod, productData, request.StartDate, request.EndDate);
+            response.MonthlyBreakdown = (_reportBuilderService
+                .BuildMonthlyBreakdown(salesInPeriod, productData, request.StartDate, request.EndDate) ?? [])
+                .Select(dto => new GetProductMarginAnalysisResponse.MonthlyMarginBreakdown
+                {
+                    Month = dto.Month,
+                    MarginAmount = dto.MarginAmount,
+                    Revenue = dto.Revenue,
+                    Cost = dto.Cost,
+                    UnitsSold = dto.UnitsSold
+                })
+                .ToList();
         }
 
         return response;

@@ -29,6 +29,12 @@ module.exports = {
         'warning': '#F59E0B',
         'error': '#EF4444',
         'info': '#06B6D4',
+        // Scan Shell feedback scale (pale backgrounds for flash echo / banners)
+        'success-pale': '#ECFDF5',
+        'warning-pale': '#FFFBEB',
+        'error-pale': '#FEF2F2',
+        // Scan accent (yellow SCAN affordance)
+        'scan-accent': '#FACC15',
         // Functional colors
         'border-light': '#E2E8F0',
         'background-gray': '#F8FAFC',

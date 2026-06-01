@@ -591,6 +591,48 @@ public class ExpeditionProtocolDocumentTests
     }
 
     [Fact]
+    public void Generate_WithCustomCoolingText_DoesNotThrow()
+    {
+        // Cooled order carrying a custom badge text must render without exception.
+        var data = new ExpeditionProtocolData
+        {
+            CarrierDisplayName = "Zásilkovna",
+            Orders = new List<ExpeditionOrder>
+            {
+                new()
+                {
+                    Code = "COOL002",
+                    CustomerName = "Test",
+                    Address = "Praha",
+                    Phone = "123",
+                    CarrierCooling = Cooling.L1,
+                    CoolingText = "DRŽTE V CHLADU",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "C1",
+                            Name = "Chlazený",
+                            Variant = string.Empty,
+                            WarehousePosition = "C1",
+                            Quantity = 1,
+                            StockCount = 5,
+                            StockDemand = 1,
+                            UnitPrice = 100m,
+                            Unit = "ks",
+                            Cooling = Cooling.L1,
+                        },
+                    },
+                },
+            },
+        };
+
+        var act = () => ExpeditionProtocolDocument.Generate(data);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
     public void Generate_CooledOrder_SavesToDiskForVisualInspection()
     {
         // Generates a PDF for manual visual verification of the frost badge.
