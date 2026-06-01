@@ -6,6 +6,7 @@ import {
   GetMaterialContainerByCodeResponse,
   GetLastUsedLotForMaterialResponse,
   CreateMaterialContainerItem,
+  ListMaterialContainersResponse,
 } from '../generated/api-client';
 
 export const useCreateMaterialContainers = () => {
@@ -42,9 +43,33 @@ export const useLastUsedLotForMaterial = (materialCode: string | null) =>
     },
   });
 
+export interface MaterialContainersListRequest {
+  materialCode?: string;
+  lotCode?: string;
+  code?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export const useMaterialContainersList = (request: MaterialContainersListRequest) =>
+  useQuery({
+    queryKey: ['materialContainers', 'list', request],
+    queryFn: (): Promise<ListMaterialContainersResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      return apiClient.materialContainers_GetMaterialContainers(
+        request.materialCode || undefined,
+        request.lotCode || undefined,
+        request.code || undefined,
+        request.page ?? 1,
+        request.pageSize ?? 20,
+      );
+    },
+  });
+
 export type {
   CreateMaterialContainerItem,
   CreateMaterialContainersResponse,
   GetMaterialContainerByCodeResponse,
   GetLastUsedLotForMaterialResponse,
+  ListMaterialContainersResponse,
 } from '../generated/api-client';

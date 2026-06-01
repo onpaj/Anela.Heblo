@@ -5,6 +5,7 @@ import {
   useCreateMaterialContainers,
   useMaterialContainerByCode,
   useLastUsedLotForMaterial,
+  useMaterialContainersList,
 } from '../useMaterialContainers';
 import * as clientModule from '../../client';
 
@@ -194,5 +195,49 @@ describe('useLastUsedLotForMaterial', () => {
 
     expect(result.current.fetchStatus).toBe('idle');
     expect(mockGetLastUsedLot).not.toHaveBeenCalled();
+  });
+});
+
+describe('useMaterialContainersList', () => {
+  let mockList: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockList = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      materialContainers_GetMaterialContainers: mockList,
+    } as any);
+  });
+
+  it('passes all filters and pagination to the generated client', async () => {
+    mockList.mockResolvedValue({ success: true, containers: [], totalCount: 0, pageNumber: 1, pageSize: 20 });
+
+    const { result } = renderHook(
+      () =>
+        useMaterialContainersList({
+          materialCode: 'MAT001',
+          lotCode: 'LOT001',
+          code: 'M00001234',
+          page: 2,
+          pageSize: 50,
+        }),
+      { wrapper: createWrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockList).toHaveBeenCalledWith('MAT001', 'LOT001', 'M00001234', 2, 50);
+  });
+
+  it('sends undefined for empty filters and default pagination', async () => {
+    mockList.mockResolvedValue({ success: true, containers: [], totalCount: 0, pageNumber: 1, pageSize: 20 });
+
+    const { result } = renderHook(() => useMaterialContainersList({}), {
+      wrapper: createWrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockList).toHaveBeenCalledWith(undefined, undefined, undefined, 1, 20);
   });
 });
