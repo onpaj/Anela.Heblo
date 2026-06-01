@@ -40,19 +40,18 @@ const MaterialContainerList: React.FC = () => {
     pageSize,
   };
 
-  const { data, isLoading: loading, error, refetch } = useMaterialContainersList(request);
+  const { data, isLoading: loading, error } = useMaterialContainersList(request);
 
   const containers = data?.containers || [];
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const isFiltered = Boolean(materialFilter || lotFilter || codeFilter);
 
-  const handleApplyFilters = async () => {
+  const handleApplyFilters = () => {
     setMaterialFilter(materialInput);
     setLotFilter(lotInput);
     setCodeFilter(codeInput);
     setPageNumber(1);
-    await refetch();
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -61,7 +60,7 @@ const MaterialContainerList: React.FC = () => {
     }
   };
 
-  const handleClearFilters = async () => {
+  const handleClearFilters = () => {
     setMaterialInput("");
     setLotInput("");
     setCodeInput("");
@@ -69,7 +68,6 @@ const MaterialContainerList: React.FC = () => {
     setLotFilter("");
     setCodeFilter("");
     setPageNumber(1);
-    await refetch();
   };
 
   const handlePageChange = (newPage: number) => {
