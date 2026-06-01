@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using System.Linq.Expressions;
 
 namespace Anela.Heblo.Application.Features.Logistics.Infrastructure;
 
@@ -22,7 +23,7 @@ internal sealed class LogisticsCatalogTransportSourceAdapter : ICatalogTransport
         AggregateByProductCodeAsync(TransportBox.IsInQuarantinePredicate, cancellationToken);
 
     private async Task<Dictionary<string, int>> AggregateByProductCodeAsync(
-        System.Linq.Expressions.Expression<Func<TransportBox, bool>> predicate,
+        Expression<Func<TransportBox, bool>> predicate,
         CancellationToken cancellationToken)
     {
         var boxes = await _transportBoxRepository.FindAsync(predicate, includeDetails: true, cancellationToken: cancellationToken);
