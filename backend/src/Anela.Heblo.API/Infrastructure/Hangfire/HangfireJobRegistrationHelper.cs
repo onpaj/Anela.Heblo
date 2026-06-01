@@ -2,7 +2,7 @@ using System.Reflection;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Hangfire;
 
-namespace Anela.Heblo.Application.Features.BackgroundJobs.Services;
+namespace Anela.Heblo.API.Infrastructure.Hangfire;
 
 /// <summary>
 /// Single entry point for binding a runtime <see cref="Type"/> to
