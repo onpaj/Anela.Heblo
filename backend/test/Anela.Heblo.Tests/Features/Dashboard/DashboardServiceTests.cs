@@ -351,6 +351,43 @@ public class DashboardServiceTests
         result.Should().AllSatisfy(t => t.Data.Should().NotBeNull());
     }
 
+    [Fact]
+    public async Task GetUserSettingsAsync_WhenCalledConcurrently_ShouldCreateSettingsOnce()
+    {
+        // Arrange — use a real lock pool, not the mock
+        var realLockPool = new KeyedAsyncLock();
+        var options = Options.Create(new DashboardOptions());
+        var serviceWithRealLock = new DashboardService(
+            _tileRegistryMock.Object,
+            _settingsRepositoryMock.Object,
+            options,
+            realLockPool);
+
+        var userId = "concurrent-user";
+        UserDashboardSettings? storedSettings = null;
+
+        _settingsRepositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(() => storedSettings);
+        _settingsRepositoryMock
+            .Setup(x => x.AddAsync(It.IsAny<UserDashboardSettings>()))
+            .Callback<UserDashboardSettings>(s => storedSettings = s)
+            .ReturnsAsync((UserDashboardSettings s) => s);
+        _tileRegistryMock
+            .Setup(x => x.GetAvailableTiles())
+            .Returns(new List<ITile>());
+
+        // Act — two concurrent calls for the same user
+        await Task.WhenAll(
+            serviceWithRealLock.GetUserSettingsAsync(userId),
+            serviceWithRealLock.GetUserSettingsAsync(userId));
+
+        // Assert — AddAsync called exactly once despite two concurrent callers
+        _settingsRepositoryMock.Verify(
+            x => x.AddAsync(It.IsAny<UserDashboardSettings>()),
+            Times.Once);
+    }
+
     private static List<ITile> CreateMockAutoShowTiles()
     {
         var tiles = new List<ITile>();
