@@ -50,11 +50,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
 
         var giftPackages = new List<GiftPackageDto>();
 
-        // Calculate date range for daily sales calculation
-        // Use provided dates or fallback to last 12 months
-        var actualToDate = toDate ?? _timeProvider.GetUtcNow().DateTime;
-        var actualFromDate = fromDate ?? actualToDate.AddYears(-1);
-        var daysDiff = Math.Max((actualToDate - actualFromDate).Days, 1);
+        var (actualFromDate, actualToDate, daysDiff) = ResolveDateRange(fromDate, toDate);
 
         foreach (var product in setProducts)
         {
@@ -107,11 +103,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             throw new ArgumentException($"Gift package '{giftPackageCode}' not found or is not a set product");
         }
 
-        // Calculate date range for daily sales calculation
-        // Use provided dates or fallback to last 12 months
-        var actualToDate = toDate ?? _timeProvider.GetUtcNow().DateTime;
-        var actualFromDate = fromDate ?? actualToDate.AddYears(-1);
-        var daysDiff = Math.Max((actualToDate - actualFromDate).Days, 1);
+        var (actualFromDate, actualToDate, daysDiff) = ResolveDateRange(fromDate, toDate);
 
         // Calculate daily sales from sales history using the actual date range
         var totalSalesInPeriod = (decimal)product.GetTotalSold(actualFromDate, actualToDate) * salesCoefficient;
@@ -332,6 +324,13 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             DisassembledBy = disassemblyLog.CreatedBy,
             ReturnedComponents = returnedComponents
         };
+    }
+
+    private (DateTime From, DateTime To, int Days) ResolveDateRange(DateTime? fromDate, DateTime? toDate)
+    {
+        var to = toDate ?? _timeProvider.GetUtcNow().DateTime;
+        var from = fromDate ?? to.AddYears(-1);
+        return (from, to, Math.Max((to - from).Days, 1));
     }
 
     private static GiftPackageSeverity CalculateSeverity(int availableStock, int suggestedQuantity, int overstockMinimal)
