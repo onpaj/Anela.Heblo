@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Models;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Shared;
@@ -99,7 +98,7 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
         DateTime startDate,
         DateTime endDate)
     {
-        var productSummaries = new List<GetMarginReportResponse.ProductMarginSummary>();
+        var productSummaries = new List<ProductMarginSummaryDto>();
         var categoryTotals = new Dictionary<string, CategoryData>();
         var overallTotals = new OverallTotals();
 
@@ -190,8 +189,38 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
             AverageMarginPercentage = averageMarginPercentage,
             TotalProductsAnalyzed = reportData.ProductSummaries.Count,
             TotalUnitsSold = reportData.OverallTotals.TotalUnitsSold,
-            ProductSummaries = reportData.ProductSummaries,
+            ProductSummaries = reportData.ProductSummaries
+                .Select(dto => new GetMarginReportResponse.ProductMarginSummary
+                {
+                    ProductId = dto.ProductId,
+                    ProductName = dto.ProductName,
+                    Category = dto.Category,
+                    MarginAmount = dto.MarginAmount,
+                    M0Amount = dto.M0Amount,
+                    M1Amount = dto.M1Amount,
+                    M2Amount = dto.M2Amount,
+                    M0Percentage = dto.M0Percentage,
+                    M1Percentage = dto.M1Percentage,
+                    M2Percentage = dto.M2Percentage,
+                    SellingPrice = dto.SellingPrice,
+                    PurchasePrice = dto.PurchasePrice,
+                    MarginPercentage = dto.MarginPercentage,
+                    Revenue = dto.Revenue,
+                    Cost = dto.Cost,
+                    UnitsSold = dto.UnitsSold
+                })
+                .ToList(),
             CategorySummaries = reportData.CategorySummaries
+                .Select(dto => new GetMarginReportResponse.CategoryMarginSummary
+                {
+                    Category = dto.Category,
+                    TotalMargin = dto.TotalMargin,
+                    TotalRevenue = dto.TotalRevenue,
+                    AverageMarginPercentage = dto.AverageMarginPercentage,
+                    ProductCount = dto.ProductCount,
+                    TotalUnitsSold = dto.TotalUnitsSold
+                })
+                .ToList()
         };
     }
 
@@ -212,8 +241,8 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
 /// </summary>
 internal class ReportData
 {
-    public List<GetMarginReportResponse.ProductMarginSummary> ProductSummaries { get; set; } = new();
-    public List<GetMarginReportResponse.CategoryMarginSummary> CategorySummaries { get; set; } = new();
+    public List<ProductMarginSummaryDto> ProductSummaries { get; set; } = new();
+    public List<CategoryMarginSummaryDto> CategorySummaries { get; set; } = new();
     public OverallTotals OverallTotals { get; set; } = new();
 }
 

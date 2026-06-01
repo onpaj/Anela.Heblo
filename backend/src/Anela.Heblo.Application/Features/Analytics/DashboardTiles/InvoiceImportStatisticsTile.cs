@@ -1,5 +1,4 @@
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
-using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Application.Features.Analytics.DashboardTiles;

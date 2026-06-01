@@ -4,5 +4,6 @@ public enum PurchaseOrderStatus
 {
     Draft,
     InTransit,
+    Received,
     Completed
 }

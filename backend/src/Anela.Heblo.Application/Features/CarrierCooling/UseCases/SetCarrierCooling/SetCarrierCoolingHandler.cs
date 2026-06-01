@@ -39,7 +39,8 @@ public class SetCarrierCoolingHandler : IRequestHandler<SetCarrierCoolingRequest
             request.Carrier,
             request.DeliveryHandling,
             request.Cooling,
-            request.ModifiedBy);
+            request.ModifiedBy,
+            request.CoolingText);
 
         await _repository.UpsertAsync(setting, cancellationToken);
 
