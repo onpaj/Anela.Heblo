@@ -87,8 +87,8 @@ public class GetTransportBoxByCodeHandlerTests
         // Mock catalog repository for the product in the box
         var catalogItem = CreateTestCatalogItem("TEST-PRODUCT", "Test Product", "https://example.com/image.jpg", 10.5m);
         _catalogRepositoryMock
-            .Setup(x => x.GetByIdAsync("TEST-PRODUCT", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => catalogItem);
+            .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate> { { "TEST-PRODUCT", catalogItem } });
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -124,8 +124,8 @@ public class GetTransportBoxByCodeHandlerTests
         // Mock catalog repository for the product in the box
         var catalogItem = CreateTestCatalogItem("TEST-PRODUCT", "Test Product", "https://example.com/image.jpg", 10.5m);
         _catalogRepositoryMock
-            .Setup(x => x.GetByIdAsync("TEST-PRODUCT", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => catalogItem);
+            .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate> { { "TEST-PRODUCT", catalogItem } });
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -246,5 +246,73 @@ public class GetTransportBoxByCodeHandlerTests
                 Eshop = eshopStock
             }
         };
+    }
+
+    [Fact]
+    public async Task Handle_ValidBox_CallsGetByIdsAsyncOnceAndNeverGetByIdAsync()
+    {
+        // Arrange
+        var request = new GetTransportBoxByCodeRequest { BoxCode = "B001" };
+        var box = CreateTestBoxWithItems(TransportBoxState.Reserve, "B001");
+
+        _repositoryMock
+            .Setup(x => x.GetByCodeAsync("B001"))
+            .ReturnsAsync(box);
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(box.Id))
+            .ReturnsAsync(box);
+
+        var catalogItem = CreateTestCatalogItem("TEST-PRODUCT", "Test Product", "https://example.com/image.jpg", 10.5m);
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate> { { "TEST-PRODUCT", catalogItem } });
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _catalogRepositoryMock.Verify(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()), Times.Once());
+        _catalogRepositoryMock.Verify(x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never());
+    }
+
+    [Fact]
+    public async Task Handle_ItemMissingFromCatalog_LogsWarningAndLeavesItemUnpopulated()
+    {
+        // Arrange
+        var request = new GetTransportBoxByCodeRequest { BoxCode = "B001" };
+        var box = CreateTestBoxWithItems(TransportBoxState.Reserve, "B001");
+
+        _repositoryMock
+            .Setup(x => x.GetByCodeAsync("B001"))
+            .ReturnsAsync(box);
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(box.Id))
+            .ReturnsAsync(box);
+
+        // Return empty dictionary — catalog has no entry for TEST-PRODUCT
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert - request succeeds with default values for the missing item
+        result.Success.Should().BeTrue();
+        result.TransportBox.Should().NotBeNull();
+        result.TransportBox!.Items.Should().HaveCount(1);
+        result.TransportBox.Items[0].ImageUrl.Should().BeNull();
+        result.TransportBox.Items[0].OnStock.Should().Be(0);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("TEST-PRODUCT")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce());
     }
 }
