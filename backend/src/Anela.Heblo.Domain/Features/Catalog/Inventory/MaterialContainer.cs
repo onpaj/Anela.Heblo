@@ -31,8 +31,8 @@ public class MaterialContainer : IEntity<int>
 
     public int Id { get; private set; }
     public string Code { get; private set; } = null!;
-    public string MaterialCode { get; private set; } = null!;
-    public string LotCode { get; private set; } = null!;
+    public string? MaterialCode { get; private set; }
+    public string? LotCode { get; private set; }
     public decimal? Amount { get; private set; }
     public string? Unit { get; private set; }
     public MaterialContainerStatus Status { get; private set; }
@@ -41,6 +41,40 @@ public class MaterialContainer : IEntity<int>
     public DateTime? UpdatedAt { get; private set; }
     public string? UpdatedBy { get; private set; }
     public int? PurchaseOrderLineId { get; private set; }
+
+    public static MaterialContainer CreateUnassigned(string code, string createdBy)
+    {
+        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Code is required.", nameof(code));
+        if (string.IsNullOrWhiteSpace(createdBy)) throw new ArgumentException("CreatedBy is required.", nameof(createdBy));
+
+        return new MaterialContainer
+        {
+            Code = code,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = createdBy,
+            Status = MaterialContainerStatus.Unassigned,
+        };
+    }
+
+    public void Assign(string materialCode, string lotCode, decimal? amount, string? unit, int? purchaseOrderLineId, string updatedBy)
+    {
+        if (Status != MaterialContainerStatus.Unassigned)
+            throw new InvalidOperationException($"Container {Code} cannot be assigned from status {Status}.");
+        if (string.IsNullOrWhiteSpace(materialCode)) throw new ArgumentException("MaterialCode is required.", nameof(materialCode));
+        if (string.IsNullOrWhiteSpace(lotCode)) throw new ArgumentException("LotCode is required.", nameof(lotCode));
+        if (amount is <= 0) throw new ArgumentException("Amount must be positive when provided.", nameof(amount));
+        if (unit is not null && string.IsNullOrWhiteSpace(unit)) throw new ArgumentException("Unit must be non-empty when provided.", nameof(unit));
+        if (string.IsNullOrWhiteSpace(updatedBy)) throw new ArgumentException("UpdatedBy is required.", nameof(updatedBy));
+
+        MaterialCode = materialCode;
+        LotCode = lotCode;
+        Amount = amount;
+        Unit = unit;
+        PurchaseOrderLineId = purchaseOrderLineId;
+        Status = MaterialContainerStatus.Assigned;
+        UpdatedAt = DateTime.UtcNow;
+        UpdatedBy = updatedBy;
+    }
 
     public void Discard(string updatedBy)
     {
