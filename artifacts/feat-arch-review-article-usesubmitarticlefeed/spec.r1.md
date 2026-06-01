@@ -1,136 +1,127 @@
-The brief is self-contained — the worktree only holds artifacts, not source. Producing the spec from the brief.
-
-# Specification: Remove `as any` bypass in `useSubmitArticleFeedbackMutation`
+# Specification: Replace `apiClient as any` Bypass in `useSubmitArticleFeedbackMutation` with Typed Helpers
 
 ## Summary
-The `useSubmitArticleFeedbackMutation` hook in `frontend/src/api/hooks/useArticles.ts` reaches into the NSwag-generated API client's private `http` and `baseUrl` properties via `as any` casts to issue a raw `fetch` that can branch on HTTP 409. This spec replaces the private-field access with a typed, public mechanism while preserving the 409 (already-submitted) detection that motivated the bypass.
+Eliminate the two `(apiClient as any)` casts in `useSubmitArticleFeedbackMutation` by introducing public, typed helpers (`getApiBaseUrl()` and `getAuthenticatedFetch()`) on the API client module, and switching the hook to use them. The 409 ("already submitted") branch remains expressed as a typed result, but without reaching into private fields of the NSwag-generated client.
 
 ## Background
-The arch-review routine flagged a TODO (dated 2026-05-25) on lines 218–220 of `useArticles.ts`. The hook submits article feedback and must distinguish HTTP 409 ("already submitted") from other errors as a typed result, but the NSwag-generated `AnelaHebloApiClient` raises 409s as exceptions and exposes no typed-result shape for that status. The author worked around this by:
+`useSubmitArticleFeedbackMutation` in `frontend/src/api/hooks/useArticles.ts` cannot use the generated NSwag client's typed mutation for feedback submission because the client treats HTTP 409 as a thrown exception, whereas the UI needs to surface it as a typed result (`{ alreadySubmitted: true }`). The existing workaround uses raw `fetch` driven by the client's private `baseUrl` and `http` fields via two `as any` casts. This is brittle against NSwag regeneration (a template rename silently breaks at runtime), bypasses TypeScript, and violates the project rule that hooks must use the client's managed base URL through public API.
 
-1. Reading `(apiClient as any).baseUrl` to build the URL.
-2. Calling `(apiClient as any).http.fetch(...)` to reuse the client's HTTP transport (and its authentication wiring).
-3. Branching on `response.status === 409` to return a typed `{ alreadySubmitted: true }`-style result instead of throwing.
-
-This violates:
-- The project rule (`CLAUDE.md`) that hooks construct URLs using `${apiClient.baseUrl}${relativeUrl}` via the **public** accessor.
-- TypeScript type safety: the `as any` masks drift between the hand-rolled body shape and the C# `SubmitArticleFeedbackRequest` DTO and silently breaks if NSwag regeneration renames or restructures `baseUrl`/`http`.
-
-The bypass must go, but the 409-as-typed-result behaviour must remain.
+The arch-review routine flagged this on 2026-05-27 (TODO tag `2026-05-25`) without an accompanying GitHub issue. This spec captures the agreed remediation: keep the raw-fetch + 409-branch shape, but route it through typed, public helpers that survive client regeneration.
 
 ## Functional Requirements
 
-### FR-1: Eliminate `as any` casts in `useSubmitArticleFeedbackMutation`
-Remove both `(apiClient as any).baseUrl` and `(apiClient as any).http.fetch` from `useArticles.ts`. After this change, `useArticles.ts` must contain zero occurrences of `as any` referencing `apiClient` internals.
+### FR-1: Public `getApiBaseUrl` helper
+Expose a typed function `getApiBaseUrl(): string` from `frontend/src/api/client.ts` that returns the same base URL the authenticated NSwag client is configured with, without reading private fields of the generated class.
 
 **Acceptance criteria:**
-- `grep -n "apiClient as any" frontend/src/api/hooks/useArticles.ts` returns no matches.
-- The TODO comment block (lines 218–220 at the time of brief filing) is removed.
-- TypeScript compiles cleanly (`tsc --noEmit`) with no new errors and no new `@ts-ignore`/`@ts-expect-error` pragmas.
+- `getApiBaseUrl` is exported from `frontend/src/api/client.ts` with return type `string`.
+- The returned URL matches the base URL used by `getAuthenticatedApiClient()` for every supported environment (local dev, staging, production).
+- The implementation does not use `as any`, `// @ts-ignore`, or any other type-system escape.
+- The function works without requiring the caller to first instantiate or authenticate the NSwag client.
+- A unit test in `frontend/src/api/__tests__/client.test.ts` asserts the returned URL is a non-empty string and matches the expected configured value under test setup.
 
-### FR-2: Public, typed access to the API base URL
-Introduce a public, typed accessor for the API base URL that hooks can use to construct absolute URLs when they need a raw `fetch`. The accessor must not require modifications to the auto-generated NSwag client file (which is regenerated and would lose hand edits), and must not rely on `as any`.
-
-**Acceptance criteria:**
-- A new helper `getApiBaseUrl(): string` is exported from the same module that exports `getAuthenticatedApiClient` (today: `frontend/src/api/client.ts` or equivalent — confirm exact location during implementation).
-- `getApiBaseUrl()` returns the same string that `apiClient.baseUrl` resolves to today (i.e. the configured backend base URL, no trailing slash normalisation regressions).
-- The helper has a non-`any` return type (`string`).
-- If `baseUrl` is not exposed publicly on the generated client, the helper resolves the base URL from the same configuration source the client uses (e.g. the environment variable / runtime config consumed by `getAuthenticatedApiClient`) rather than reading a private field.
-
-### FR-3: Preserve authenticated transport for the raw `fetch` call
-Today the bypass uses `apiClient.http.fetch` which inherits the authentication interceptor/headers wired into the generated client. The replacement must continue to send the same auth headers (bearer token, tenant headers, anti-forgery, etc.) that the generated client attaches to other requests. A plain `fetch` without auth headers is not acceptable.
+### FR-2: Public `getAuthenticatedFetch` helper
+Expose a typed function `getAuthenticatedFetch(): (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>` from `frontend/src/api/client.ts` that returns a fetch-compatible function which automatically attaches the same authentication headers (bearer token, etc.) the NSwag client would attach.
 
 **Acceptance criteria:**
-- The `POST /api/articles/{articleId}/feedback` request issued by the refactored hook carries the same `Authorization` / auth-related headers as a request issued via a generated client method (verifiable by network-tab inspection or a mocked-fetch unit test that asserts headers).
-- The auth header source is the same singleton/provider used elsewhere in the app (no duplicate token plumbing introduced).
-- If the existing auth wiring is exposed only through `apiClient.http`, expose a public helper (e.g. `getAuthenticatedFetch(): typeof fetch`) that returns an auth-augmenting fetch function, and use it in the hook.
+- `getAuthenticatedFetch` is exported from `frontend/src/api/client.ts` with a signature compatible with the global `fetch` function.
+- The returned function attaches the same `Authorization` header (and any other auth-related headers) used by `getAuthenticatedApiClient()`.
+- The caller-supplied `headers` in `init` are preserved and merged with auth headers; caller headers do not silently override auth headers.
+- The function does not use `as any` or reach into private fields of the generated client.
+- Unit tests assert: (a) the auth header is attached, (b) caller headers are preserved, (c) the response is returned unmodified (no error wrapping for non-2xx).
 
-### FR-4: Typed request body matching the server DTO
-The request body sent to `POST /api/articles/{articleId}/feedback` must be typed against the NSwag-generated `SubmitArticleFeedbackRequest` (or equivalent) type, not a hand-rolled inline object literal typed as `any`.
-
-**Acceptance criteria:**
-- The body object is declared with an explicit type imported from the generated client module (e.g. `SubmitArticleFeedbackRequest`).
-- Renaming a field on the C# DTO and regenerating the client produces a compile-time TypeScript error at the hook call site.
-
-### FR-5: Preserve the 409 "already submitted" typed-result behaviour
-The hook's existing contract — that an HTTP 409 response resolves to a typed success-shaped result (e.g. `{ alreadySubmitted: true }`) rather than throwing — must remain unchanged from the caller's perspective. Non-409 non-2xx responses must continue to throw or otherwise surface as errors in the same way they do today.
+### FR-3: Refactor `useSubmitArticleFeedbackMutation` to use the helpers
+The hook in `frontend/src/api/hooks/useArticles.ts` must construct its request using `getApiBaseUrl()` and `getAuthenticatedFetch()` and remove both `(apiClient as any)` casts and the `TODO(arch-review 2026-05-25)` comment.
 
 **Acceptance criteria:**
-- A unit test (mocking `fetch`) asserts that a 409 response resolves the mutation with the existing typed "already submitted" result shape, and that the mutation's `onSuccess` callback fires (not `onError`).
-- A unit test asserts that a 500 response rejects/throws and the mutation's `onError` callback fires.
-- A unit test asserts that a 2xx response resolves with the success shape.
-- No caller of `useSubmitArticleFeedbackMutation` requires changes.
+- No `as any` cast remains in `useSubmitArticleFeedbackMutation`.
+- The request body is typed as `SubmitArticleFeedbackRequest` (no hand-rolled object that drifts from the C# DTO).
+- The URL is constructed as `` `${getApiBaseUrl()}/api/articles/${articleId}/feedback` ``.
+- The `if (response.status === 409) return { alreadySubmitted: true }` branch is preserved.
+- The non-2xx, non-409 path still throws an `Error` so React Query surfaces it as a mutation error.
+- On 2xx, the response is parsed and mapped to `SubmitArticleFeedbackResult` with the same fields (`precisionScore`, `styleScore`, `feedbackComment`) as before.
+- The `TODO(arch-review 2026-05-25)` comment is removed (the underlying issue is resolved).
+- `onSuccess` continues to invalidate `articleKeys.detail(articleId)`.
 
-### FR-6: File a follow-up tracking the long-term NSwag improvement
-A GitHub issue is filed (or the existing arch-review issue updated) to track the long-term fix: configuring the NSwag template / endpoint annotations so that 409 on `POST /api/articles/{articleId}/feedback` is returned as a typed alternative result by the generated client, eliminating the need for a raw `fetch` entirely.
+### FR-4: Lint/test guard against future regressions
+A repo-level test (or lint rule) prevents hooks under `frontend/src/api/hooks/` from using plain `fetch()` or `(apiClient as any)` patterns.
 
 **Acceptance criteria:**
-- A GitHub issue exists referencing this spec and the 2026-05-25 arch-review tag.
-- The issue is labelled with the project's tech-debt / arch-review label convention.
+- A test under `frontend/src/api/__tests__/authenticated-api-usage.test.ts` (or equivalent) fails if any file in `frontend/src/api/hooks/` uses plain `fetch(` without going through `getAuthenticatedFetch()`.
+- The same test fails if any hook file contains `(apiClient as any)` or `as any).http` or `as any).baseUrl`.
+- The failure message points the developer to import `getApiBaseUrl` / `getAuthenticatedFetch` from `../client`.
+
+### FR-5: Preserve existing behavior of the feedback flow
+The user-observable behavior of submitting article feedback is unchanged.
+
+**Acceptance criteria:**
+- Submitting a valid feedback for the first time returns `{ precisionScore, styleScore, feedbackComment }` and the React Query cache for `articleKeys.detail(articleId)` is invalidated.
+- Submitting feedback for an article that already has feedback returns `{ alreadySubmitted: true }` without throwing.
+- Network errors and HTTP 5xx surface as React Query `error` state with a message including the status code.
+- Auth headers are attached identically to before (no change in 401 behavior).
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
-No measurable change. The request continues to be a single `POST` to the same endpoint with the same body. Replacement of `apiClient.http.fetch` with a thin authenticated-fetch helper must not introduce extra round trips, retries, or serialization overhead.
+Refactor must not introduce additional network round-trips or perceivable latency. `getApiBaseUrl()` and `getAuthenticatedFetch()` are synchronous, in-memory accessors; calling them per request is acceptable. No new caching layer is required.
 
 ### NFR-2: Security
-- The replacement must transmit the same authentication credentials as the current implementation (FR-3). A regression that strips auth headers and turns the endpoint into an effectively-anonymous call is unacceptable.
-- No secrets, tokens, or auth headers may be logged by the new helper.
+Auth header handling must be identical to the current authenticated client — same token source, same header name and format, same refresh behavior. The helper must not log, expose, or persist the bearer token. The base URL is not a secret but must never be hard-coded to a production host.
 
-### NFR-3: Maintainability / Regeneration safety
-The hook must survive an NSwag regeneration that:
-- Renames the private `baseUrl` field on the generated client.
-- Replaces the `http` field with a different transport abstraction.
-- Reshapes the generated client class hierarchy.
+### NFR-3: Type Safety
+All call sites of the helpers must compile under `strict` TypeScript without `any`, `unknown` widening, or `@ts-ignore`. Body and response types in the feedback hook must reference generated DTOs (`SubmitArticleFeedbackRequest`, etc.) so NSwag regeneration triggers a compile error if shapes drift.
 
-After regeneration with any of the above changes, the hook either continues to compile and work, or fails at **compile time** with a clear TypeScript error — never silently at runtime.
+### NFR-4: Resilience to NSwag regeneration
+The helpers must not depend on the internal field names (`baseUrl`, `http`) of the generated `AnelaHebloApiClient` class. If NSwag templates change and rename or remove those internal fields, the helpers must continue to function or fail to compile — never fail silently at runtime.
 
-### NFR-4: Test coverage
-The hook must have direct unit-test coverage for the three response branches (2xx, 409, other non-2xx) — see FR-5. If such tests existed prior to the refactor, they are preserved and continue to pass; if not, they are added.
+### NFR-5: Test Coverage
+Net change in test coverage for `frontend/src/api/client.ts` and `frontend/src/api/hooks/useArticles.ts` must be non-negative. The 409, 2xx, and 5xx paths of `useSubmitArticleFeedbackMutation` must each have at least one explicit unit test using mocked `getAuthenticatedFetch`.
 
 ## Data Model
-No persisted-data changes. The in-flight request body is the existing `SubmitArticleFeedbackRequest` DTO:
+No persistent data model changes. The relevant in-memory types remain:
 
-```
-SubmitArticleFeedbackRequest {
-  // shape defined by the C# DTO, consumed via NSwag-generated TypeScript type
-  // (exact fields out of scope here — implementation must import the generated type, not redeclare it)
-}
-```
-
-The hook's resolved-value shape (success and "already submitted" branches) is unchanged from current behaviour.
+- `SubmitArticleFeedbackRequest` (generated DTO; class, not record) — `{ articleId, precisionScore, styleScore, comment }`
+- `SubmitArticleFeedbackPayload` (hook-local) — caller's input minus `articleId`
+- `SubmitArticleFeedbackResult` (hook-local) — discriminated by presence of `alreadySubmitted: true` vs. populated score fields
 
 ## API / Interface Design
 
-### Frontend module changes
-- **`frontend/src/api/client.ts`** (or wherever `getAuthenticatedApiClient` lives):
-  - Add `export function getApiBaseUrl(): string` (FR-2).
-  - If needed for FR-3, add `export function getAuthenticatedFetch(): (input: RequestInfo, init?: RequestInit) => Promise<Response>` that returns a fetch wrapper attaching the standard auth headers used by the rest of the app.
-- **`frontend/src/api/hooks/useArticles.ts`** — `useSubmitArticleFeedbackMutation`:
-  - Replace `(apiClient as any).baseUrl` with `getApiBaseUrl()`.
-  - Replace `(apiClient as any).http.fetch(...)` with `getAuthenticatedFetch()(...)` (or equivalent — see Open Questions).
-  - Type the request body as `SubmitArticleFeedbackRequest` imported from the generated client module.
-  - Keep the `if (response.status === 409)` branch verbatim in behaviour (typed result, not throw).
-  - Remove the TODO comment block.
+### New exports from `frontend/src/api/client.ts`
+```ts
+export const getApiBaseUrl = (): string => /* ... */;
 
-### Backend
-No backend changes in scope. The endpoint contract (`POST /api/articles/{articleId}/feedback`, 2xx on success, 409 on duplicate) is preserved.
+export function getAuthenticatedFetch(): (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) => Promise<Response>;
+```
 
-### NSwag configuration
-No NSwag template changes in scope for this fix (tracked separately under FR-6).
+### Updated hook contract (unchanged signature)
+```ts
+export const useSubmitArticleFeedbackMutation = (articleId: string) =>
+  useMutation<SubmitArticleFeedbackResult, Error, SubmitArticleFeedbackPayload>(/* ... */);
+```
+
+### HTTP endpoint (unchanged)
+`POST /api/articles/{articleId}/feedback`
+- Request body: `SubmitArticleFeedbackRequest`
+- 2xx: returns feedback DTO
+- 409: feedback already submitted (typed as `{ alreadySubmitted: true }` by the hook)
+- 4xx (other) / 5xx: thrown as `Error`
 
 ## Dependencies
-- The NSwag-generated `AnelaHebloApiClient` and its associated TypeScript types (`SubmitArticleFeedbackRequest`).
-- The application's existing auth-header provider (the same one consumed by `getAuthenticatedApiClient`).
-- React Query (the hook is a `useMutation`).
-- Existing test infrastructure for hook unit tests (e.g. `@testing-library/react`, MSW or `vi.spyOn(global, 'fetch')`).
+- NSwag-generated client in `frontend/src/api/` (`AnelaHebloApiClient`, generated DTOs).
+- `@tanstack/react-query` mutation/query infrastructure.
+- Authentication module that supplies the bearer token consumed by the generated client and by `getAuthenticatedFetch`.
+- Project rule documented in `CLAUDE.md` and `docs/development/api-client-generation.md` ("API hooks use absolute URLs").
 
 ## Out of Scope
-- Changing the NSwag template to return 409 as a typed alternative result on this endpoint — tracked separately (FR-6).
-- Refactoring other hooks in `useArticles.ts` that may use the same pattern (none flagged by the brief, but the audit is out of scope).
-- Backend changes to the feedback endpoint.
-- Changes to the caller contract of `useSubmitArticleFeedbackMutation`.
-- Migrating away from React Query or restructuring the hook surface.
+- Configuring the NSwag template to return typed 409 results for any endpoint. (Captured as a longer-term option; not part of this change.)
+- Refactoring other hooks that already use `getAuthenticatedApiClient()` correctly.
+- Backend changes to the `POST /api/articles/{articleId}/feedback` endpoint.
+- Changing the on-disk shape of `frontend/src/api/client.ts` beyond adding the two helpers.
+- Migrating the feedback hook to a fully typed `articles_SubmitFeedback` mutation — explicitly deferred until NSwag templates support typed 409 handling.
+- Filing or closing a GitHub tracking issue for the original arch-review finding (handled by the arch-review routine, not by this work).
 
 ## Open Questions
 None.
