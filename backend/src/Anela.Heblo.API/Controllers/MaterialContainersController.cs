@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.DiscardMateria
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetLastUsedLotForMaterial;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetMaterialContainerByCode;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.ListMaterialContainers;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.PrintMaterialContainerLabels;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -66,6 +67,14 @@ public class MaterialContainersController : BaseApiController
     public async Task<ActionResult<DiscardMaterialContainerResponse>> Discard(int id, CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(new DiscardMaterialContainerRequest { Id = id }, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    [HttpPost("print-labels")]
+    public async Task<ActionResult<PrintMaterialContainerLabelsResponse>> PrintLabels(
+        [FromBody] PrintMaterialContainerLabelsRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }
 }
