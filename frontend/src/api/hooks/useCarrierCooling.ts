@@ -9,6 +9,7 @@ export type Cooling = 'None' | 'L1' | 'L2';
 export interface CarrierCoolingRowDto {
   deliveryHandling: DeliveryHandling;
   cooling: Cooling;
+  coolingText?: string | null;
 }
 
 export interface CarrierGroupDto {
@@ -24,6 +25,7 @@ export interface SetCarrierCoolingRequest {
   carrier: Carriers;
   deliveryHandling: DeliveryHandling;
   cooling: Cooling;
+  coolingText?: string | null;
 }
 
 const QUERY_KEYS = {
@@ -90,7 +92,7 @@ export const useSetCarrierCooling = () => {
                 rows: group.rows.map((row) =>
                   row.deliveryHandling !== request.deliveryHandling
                     ? row
-                    : { ...row, cooling: request.cooling }
+                    : { ...row, cooling: request.cooling, coolingText: request.coolingText ?? null }
                 ),
               };
             }),

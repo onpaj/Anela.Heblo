@@ -149,4 +149,12 @@ public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, in
         // In-memory implementation returns empty list since history is not tracked
         return await Task.FromResult(new List<PurchaseOrderHistory>().AsReadOnly());
     }
+
+    public async Task<PurchaseOrderLine?> GetLineByIdAsync(int lineId, CancellationToken cancellationToken = default)
+    {
+        var line = _orders.Values
+            .SelectMany(o => o.Lines)
+            .FirstOrDefault(l => l.Id == lineId);
+        return await Task.FromResult(line);
+    }
 }
