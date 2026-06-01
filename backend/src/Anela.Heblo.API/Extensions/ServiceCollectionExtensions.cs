@@ -343,6 +343,7 @@ public static class ServiceCollectionExtensions
         // concrete types live in API/Infrastructure/Hangfire — relocated to keep the
         // Application project free of Hangfire imports for these specific adapters).
         services.AddScoped<IHangfireJobEnqueuer, HangfireJobEnqueuer>();
+        services.AddScoped<IFailedJobCounter, HangfireFailedJobCounter>();
         services.AddSingleton<IHangfireRecurringJobScheduler, HangfireRecurringJobScheduler>();
 
         // Note: IRecurringJobStatusChecker is now registered in Application layer (BackgroundJobsModule)
