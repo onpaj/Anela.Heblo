@@ -26,7 +26,7 @@ export const FlashOverlay: React.FC = () => {
     return () => window.clearTimeout(id); // new flash cancels the prior timer
   }, [flash]);
 
-  if (!active || active.tone === 'ok') return null;
+  if (!active) return null;
 
   return (
     <div

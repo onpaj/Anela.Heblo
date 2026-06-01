@@ -20,8 +20,8 @@ it('renders a non-blocking, aria-live overlay with the err tone after flash()', 
   expect(overlay.dataset.tone).toBe('err');
 });
 
-it('does not render an overlay for the ok tone', () => {
+it('renders the ok tone overlay after flash()', () => {
   render(<ScanProvider><FlashOverlay /><FlashButton tone="ok" /></ScanProvider>);
   fireEvent.click(screen.getByText('flash'));
-  expect(screen.queryByTestId('flash-overlay')).toBeNull();
+  expect(screen.getByTestId('flash-overlay')).toHaveAttribute('data-tone', 'ok');
 });
