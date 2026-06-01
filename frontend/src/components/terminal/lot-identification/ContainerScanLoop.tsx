@@ -10,6 +10,7 @@ const CODE_FORMAT = /^M\d{8}$/;
 const INVALID_FORMAT_MESSAGE = 'Neplatný formát kódu (očekáváno M + 8 číslic).';
 const CONNECTION_ERROR_MESSAGE = 'Chyba připojení.';
 const GENERIC_SAVE_ERROR_MESSAGE = 'Chyba při ukládání kontejneru.';
+const UNKNOWN_CODE_MESSAGE = 'Neznámý štítek – nejprve jej vygenerujte v aplikaci.';
 
 interface ContainerScanLoopProps {
   mode: 'freeform' | 'po';
@@ -53,6 +54,8 @@ const ContainerScanLoop = ({ mode }: ContainerScanLoopProps) => {
                   ? 'Tento kód byl vyřazen, použijte nový štítek.'
                   : `Kód ${code} je již přiřazen k materiálu ${assignedMaterial} / šarži ${assignedLot}.`;
               setError(message);
+            } else if (data.errorCode === ErrorCodes.UnknownMaterialContainerCode) {
+              setError(UNKNOWN_CODE_MESSAGE);
             } else {
               setError(GENERIC_SAVE_ERROR_MESSAGE);
             }

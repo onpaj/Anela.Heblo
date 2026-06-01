@@ -4,8 +4,9 @@ public class MaterialContainerDto
 {
     public int Id { get; set; }
     public string Code { get; set; } = null!;
-    public string MaterialCode { get; set; } = null!;
-    public string LotCode { get; set; } = null!;
+    public string? MaterialCode { get; set; }
+    public string? LotCode { get; set; }
+    public string Status { get; set; } = null!;
     public decimal? Amount { get; set; }
     public string? Unit { get; set; }
     public DateTime CreatedAt { get; set; }

@@ -6,6 +6,7 @@ import {
   useMaterialContainerByCode,
   useLastUsedLotForMaterial,
   useMaterialContainersList,
+  usePrintMaterialContainerLabels,
 } from '../useMaterialContainers';
 import * as clientModule from '../../client';
 
@@ -109,6 +110,60 @@ describe('useCreateMaterialContainers', () => {
 
     await act(async () => {
       result.current.mutate({ items: [] });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect((result.current.error as Error).message).toBe('API Error');
+  });
+});
+
+describe('usePrintMaterialContainerLabels', () => {
+  let mockPrintLabels: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockPrintLabels = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      materialContainers_PrintLabels: mockPrintLabels,
+    } as any);
+  });
+
+  it('posts the requested count and returns the printed containers', async () => {
+    const mockResponse = {
+      success: true,
+      containers: [
+        { id: 1, code: 'M00000001', status: 'Unassigned' },
+        { id: 2, code: 'M00000002', status: 'Unassigned' },
+      ],
+    };
+    mockPrintLabels.mockResolvedValue(mockResponse);
+
+    const { result } = renderHook(() => usePrintMaterialContainerLabels(), {
+      wrapper: createWrapper,
+    });
+
+    await act(async () => {
+      result.current.mutate({ count: 5 });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockPrintLabels).toHaveBeenCalledTimes(1);
+    expect(mockPrintLabels).toHaveBeenCalledWith(
+      expect.objectContaining({ count: 5 }),
+    );
+    expect(result.current.data?.containers?.[0].code).toBe('M00000001');
+  });
+
+  it('surfaces errors from the API', async () => {
+    mockPrintLabels.mockRejectedValue(new Error('API Error'));
+
+    const { result } = renderHook(() => usePrintMaterialContainerLabels(), {
+      wrapper: createWrapper,
+    });
+
+    await act(async () => {
+      result.current.mutate({ count: 1 });
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));

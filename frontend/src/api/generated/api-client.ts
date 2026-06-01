@@ -7477,6 +7477,44 @@ export class ApiClient {
         return Promise.resolve<DiscardMaterialContainerResponse>(null as any);
     }
 
+    materialContainers_PrintLabels(request: PrintMaterialContainerLabelsRequest): Promise<PrintMaterialContainerLabelsResponse> {
+        let url_ = this.baseUrl + "/api/material-containers/print-labels";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMaterialContainers_PrintLabels(_response);
+        });
+    }
+
+    protected processMaterialContainers_PrintLabels(response: Response): Promise<PrintMaterialContainerLabelsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PrintMaterialContainerLabelsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PrintMaterialContainerLabelsResponse>(null as any);
+    }
+
     meetingTasks_List(statusFilter: string | null | undefined, searchText: string | null | undefined, searchInTranscript: boolean | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetTranscriptListResponse> {
         let url_ = this.baseUrl + "/api/meeting-tasks?";
         if (statusFilter !== undefined && statusFilter !== null)
@@ -12331,6 +12369,7 @@ export enum ErrorCodes {
     LotHasEans = "LotHasEans",
     MaterialContainerCodeExists = "MaterialContainerCodeExists",
     MaterialContainerCodeInvalidFormat = "MaterialContainerCodeInvalidFormat",
+    UnknownMaterialContainerCode = "UnknownMaterialContainerCode",
     WeatherForecastUnavailable = "WeatherForecastUnavailable",
     ShipmentLabelsNoShipmentFound = "ShipmentLabelsNoShipmentFound",
     ShipmentLabelsNotGenerated = "ShipmentLabelsNotGenerated",
@@ -14435,6 +14474,7 @@ export enum Carriers {
 export class CarrierCoolingRowDto implements ICarrierCoolingRowDto {
     deliveryHandling?: DeliveryHandling;
     cooling?: Cooling;
+    coolingText?: string | undefined;
 
     constructor(data?: ICarrierCoolingRowDto) {
         if (data) {
@@ -14449,6 +14489,7 @@ export class CarrierCoolingRowDto implements ICarrierCoolingRowDto {
         if (_data) {
             this.deliveryHandling = _data["deliveryHandling"];
             this.cooling = _data["cooling"];
+            this.coolingText = _data["coolingText"];
         }
     }
 
@@ -14463,6 +14504,7 @@ export class CarrierCoolingRowDto implements ICarrierCoolingRowDto {
         data = typeof data === 'object' ? data : {};
         data["deliveryHandling"] = this.deliveryHandling;
         data["cooling"] = this.cooling;
+        data["coolingText"] = this.coolingText;
         return data;
     }
 }
@@ -14470,6 +14512,7 @@ export class CarrierCoolingRowDto implements ICarrierCoolingRowDto {
 export interface ICarrierCoolingRowDto {
     deliveryHandling?: DeliveryHandling;
     cooling?: Cooling;
+    coolingText?: string | undefined;
 }
 
 export enum DeliveryHandling {
@@ -14514,6 +14557,7 @@ export class SetCarrierCoolingRequest implements ISetCarrierCoolingRequest {
     carrier?: Carriers;
     deliveryHandling?: DeliveryHandling;
     cooling?: Cooling;
+    coolingText?: string | undefined;
     modifiedBy?: string;
 
     constructor(data?: ISetCarrierCoolingRequest) {
@@ -14530,6 +14574,7 @@ export class SetCarrierCoolingRequest implements ISetCarrierCoolingRequest {
             this.carrier = _data["carrier"];
             this.deliveryHandling = _data["deliveryHandling"];
             this.cooling = _data["cooling"];
+            this.coolingText = _data["coolingText"];
             this.modifiedBy = _data["modifiedBy"];
         }
     }
@@ -14546,6 +14591,7 @@ export class SetCarrierCoolingRequest implements ISetCarrierCoolingRequest {
         data["carrier"] = this.carrier;
         data["deliveryHandling"] = this.deliveryHandling;
         data["cooling"] = this.cooling;
+        data["coolingText"] = this.coolingText;
         data["modifiedBy"] = this.modifiedBy;
         return data;
     }
@@ -14555,6 +14601,7 @@ export interface ISetCarrierCoolingRequest {
     carrier?: Carriers;
     deliveryHandling?: DeliveryHandling;
     cooling?: Cooling;
+    coolingText?: string | undefined;
     modifiedBy?: string;
 }
 
@@ -23348,8 +23395,9 @@ export interface IGetLotResponse extends IBaseResponse {
 export class MaterialContainerDto implements IMaterialContainerDto {
     id?: number;
     code?: string;
-    materialCode?: string;
-    lotCode?: string;
+    materialCode?: string | undefined;
+    lotCode?: string | undefined;
+    status?: string;
     amount?: number | undefined;
     unit?: string | undefined;
     createdAt?: Date;
@@ -23371,6 +23419,7 @@ export class MaterialContainerDto implements IMaterialContainerDto {
             this.code = _data["code"];
             this.materialCode = _data["materialCode"];
             this.lotCode = _data["lotCode"];
+            this.status = _data["status"];
             this.amount = _data["amount"];
             this.unit = _data["unit"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
@@ -23392,6 +23441,7 @@ export class MaterialContainerDto implements IMaterialContainerDto {
         data["code"] = this.code;
         data["materialCode"] = this.materialCode;
         data["lotCode"] = this.lotCode;
+        data["status"] = this.status;
         data["amount"] = this.amount;
         data["unit"] = this.unit;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
@@ -23404,8 +23454,9 @@ export class MaterialContainerDto implements IMaterialContainerDto {
 export interface IMaterialContainerDto {
     id?: number;
     code?: string;
-    materialCode?: string;
-    lotCode?: string;
+    materialCode?: string | undefined;
+    lotCode?: string | undefined;
+    status?: string;
     amount?: number | undefined;
     unit?: string | undefined;
     createdAt?: Date;
@@ -28744,6 +28795,83 @@ export class DiscardMaterialContainerResponse extends BaseResponse implements ID
 }
 
 export interface IDiscardMaterialContainerResponse extends IBaseResponse {
+}
+
+export class PrintMaterialContainerLabelsResponse extends BaseResponse implements IPrintMaterialContainerLabelsResponse {
+    containers?: MaterialContainerDto[];
+
+    constructor(data?: IPrintMaterialContainerLabelsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["containers"])) {
+                this.containers = [] as any;
+                for (let item of _data["containers"])
+                    this.containers!.push(MaterialContainerDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): PrintMaterialContainerLabelsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new PrintMaterialContainerLabelsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.containers)) {
+            data["containers"] = [];
+            for (let item of this.containers)
+                data["containers"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IPrintMaterialContainerLabelsResponse extends IBaseResponse {
+    containers?: MaterialContainerDto[];
+}
+
+export class PrintMaterialContainerLabelsRequest implements IPrintMaterialContainerLabelsRequest {
+    count?: number;
+
+    constructor(data?: IPrintMaterialContainerLabelsRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.count = _data["count"];
+        }
+    }
+
+    static fromJS(data: any): PrintMaterialContainerLabelsRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new PrintMaterialContainerLabelsRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["count"] = this.count;
+        return data;
+    }
+}
+
+export interface IPrintMaterialContainerLabelsRequest {
+    count?: number;
 }
 
 export class GetTranscriptListResponse extends BaseResponse implements IGetTranscriptListResponse {

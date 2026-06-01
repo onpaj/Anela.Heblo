@@ -28,12 +28,40 @@ public class CreateMaterialContainersHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ValidRequest_PersistsContainersWithProvidedCodes()
+    public async Task Handle_UnassignedCode_AssignsContainerAndSaves()
     {
         // Arrange
-        _containerRepo.Setup(r => r.GetByCodeAsync(It.IsAny<string>(), default)).ReturnsAsync((MaterialContainer?)null);
-        _containerRepo.Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default))
-            .ReturnsAsync((IEnumerable<MaterialContainer> items, CancellationToken _) => items);
+        var container = MaterialContainer.CreateUnassigned("M00000001", "admin");
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000001", default)).ReturnsAsync(container);
+        _containerRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(1);
+
+        var request = new CreateMaterialContainersRequest
+        {
+            Items = new List<CreateMaterialContainerItem>
+            {
+                new() { Code = "M00000001", MaterialCode = "MAT001", LotCode = "L1", Amount = 25m, Unit = "kg" }
+            }
+        };
+
+        // Act
+        var result = await _handler.Handle(request, default);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(MaterialContainerStatus.Assigned, container.Status);
+        Assert.Equal("MAT001", container.MaterialCode);
+        Assert.Equal("L1", container.LotCode);
+        _containerRepo.Verify(r => r.SaveChangesAsync(default), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_AssignsMultipleUnassignedContainers()
+    {
+        // Arrange
+        var c1 = MaterialContainer.CreateUnassigned("M00000001", "admin");
+        var c2 = MaterialContainer.CreateUnassigned("M00000002", "admin");
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000001", default)).ReturnsAsync(c1);
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000002", default)).ReturnsAsync(c2);
         _containerRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(2);
 
         var request = new CreateMaterialContainersRequest
@@ -53,46 +81,93 @@ public class CreateMaterialContainersHandlerTests
         Assert.Equal(2, result.Containers.Count);
         Assert.Equal("M00000001", result.Containers[0].Code);
         Assert.Equal("M00000002", result.Containers[1].Code);
-        _containerRepo.Verify(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default), Times.Once);
+        Assert.Equal(MaterialContainerStatus.Assigned, c1.Status);
+        Assert.Equal(MaterialContainerStatus.Assigned, c2.Status);
     }
 
     [Fact]
-    public async Task Handle_ValidRequest_CreatesContainersWithAssignedStatus()
+    public async Task Handle_UnknownCode_ReturnsUnknownMaterialContainerCodeError()
     {
         // Arrange
         _containerRepo.Setup(r => r.GetByCodeAsync(It.IsAny<string>(), default)).ReturnsAsync((MaterialContainer?)null);
-        List<MaterialContainer>? captured = null;
-        _containerRepo.Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default))
-            .Callback<IEnumerable<MaterialContainer>, CancellationToken>((items, _) => captured = items.ToList())
-            .ReturnsAsync((IEnumerable<MaterialContainer> items, CancellationToken _) => items);
-        _containerRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(1);
 
         var request = new CreateMaterialContainersRequest
         {
             Items = new List<CreateMaterialContainerItem>
             {
-                new() { Code = "M00000001", MaterialCode = "MAT001", LotCode = "L1", Amount = 25m, Unit = "kg" }
+                new() { Code = "M00000001", MaterialCode = "MAT001", LotCode = "L1" }
             }
         };
 
         // Act
-        await _handler.Handle(request, default);
+        var result = await _handler.Handle(request, default);
 
         // Assert
-        Assert.NotNull(captured);
-        Assert.Single(captured);
-        Assert.Equal(MaterialContainerStatus.Assigned, captured[0].Status);
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.UnknownMaterialContainerCode, result.ErrorCode);
+        _containerRepo.Verify(r => r.SaveChangesAsync(default), Times.Never);
     }
 
     [Fact]
-    public async Task Handle_ItemWithoutAmountOrUnit_CreatesContainer()
+    public async Task Handle_AlreadyAssignedCode_ReturnsCodeExistsErrorWithMaterialCode()
     {
         // Arrange
-        _containerRepo.Setup(r => r.GetByCodeAsync(It.IsAny<string>(), default)).ReturnsAsync((MaterialContainer?)null);
-        List<MaterialContainer>? captured = null;
-        _containerRepo.Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default))
-            .Callback<IEnumerable<MaterialContainer>, CancellationToken>((items, _) => captured = items.ToList())
-            .ReturnsAsync((IEnumerable<MaterialContainer> items, CancellationToken _) => items);
+        var container = MaterialContainer.CreateUnassigned("M00000001", "admin");
+        container.Assign("MAT-OLD", "LOT-OLD", null, null, null, "worker");
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000001", default)).ReturnsAsync(container);
+
+        var request = new CreateMaterialContainersRequest
+        {
+            Items = new List<CreateMaterialContainerItem>
+            {
+                new() { Code = "M00000001", MaterialCode = "MAT001", LotCode = "L1" }
+            }
+        };
+
+        // Act
+        var result = await _handler.Handle(request, default);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.MaterialContainerCodeExists, result.ErrorCode);
+        Assert.Equal("MAT-OLD", result.Params!["MaterialCode"]);
+        Assert.Equal("LOT-OLD", result.Params!["LotCode"]);
+        Assert.Equal(MaterialContainerStatus.Assigned.ToString(), result.Params!["Status"]);
+        _containerRepo.Verify(r => r.SaveChangesAsync(default), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_DiscardedCode_ReturnsCodeExistsErrorWithDiscardedStatus()
+    {
+        // Arrange
+        var container = MaterialContainer.CreateUnassigned("M00000001", "admin");
+        container.Discard("worker");
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000001", default)).ReturnsAsync(container);
+
+        var request = new CreateMaterialContainersRequest
+        {
+            Items = new List<CreateMaterialContainerItem>
+            {
+                new() { Code = "M00000001", MaterialCode = "MAT001", LotCode = "L1" }
+            }
+        };
+
+        // Act
+        var result = await _handler.Handle(request, default);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.MaterialContainerCodeExists, result.ErrorCode);
+        Assert.Equal(MaterialContainerStatus.Discarded.ToString(), result.Params!["Status"]);
+        _containerRepo.Verify(r => r.SaveChangesAsync(default), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_UnassignedCodeWithoutAmountOrUnit_Assigns()
+    {
+        // Arrange
+        var container = MaterialContainer.CreateUnassigned("M00000001", "admin");
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000001", default)).ReturnsAsync(container);
         _containerRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(1);
 
         var request = new CreateMaterialContainersRequest
@@ -108,20 +183,16 @@ public class CreateMaterialContainersHandlerTests
 
         // Assert
         Assert.True(result.Success);
-        Assert.NotNull(captured);
-        Assert.Null(captured[0].Amount);
-        Assert.Null(captured[0].Unit);
+        Assert.Null(container.Amount);
+        Assert.Null(container.Unit);
     }
 
     [Fact]
-    public async Task Handle_ValidRequest_PersistsMaterialCodeAndLotCodeStrings()
+    public async Task Handle_UnassignedCode_PersistsMaterialCodeAndLotCodeStrings()
     {
         // Arrange
-        _containerRepo.Setup(r => r.GetByCodeAsync(It.IsAny<string>(), default)).ReturnsAsync((MaterialContainer?)null);
-        List<MaterialContainer>? captured = null;
-        _containerRepo.Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default))
-            .Callback<IEnumerable<MaterialContainer>, CancellationToken>((items, _) => captured = items.ToList())
-            .ReturnsAsync((IEnumerable<MaterialContainer> items, CancellationToken _) => items);
+        var container = MaterialContainer.CreateUnassigned("M00000001", "admin");
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000001", default)).ReturnsAsync(container);
         _containerRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(1);
 
         var request = new CreateMaterialContainersRequest
@@ -137,22 +208,18 @@ public class CreateMaterialContainersHandlerTests
 
         // Assert
         Assert.True(result.Success);
-        Assert.NotNull(captured);
-        Assert.Equal("MAT001", captured[0].MaterialCode);
-        Assert.Equal("SUPP-LOT-2026-04", captured[0].LotCode);
+        Assert.Equal("MAT001", container.MaterialCode);
+        Assert.Equal("SUPP-LOT-2026-04", container.LotCode);
     }
 
     [Fact]
     public async Task Handle_ItemWithPurchaseOrderLineId_PersistsLink()
     {
         // Arrange
-        _containerRepo.Setup(r => r.GetByCodeAsync(It.IsAny<string>(), default)).ReturnsAsync((MaterialContainer?)null);
+        var container = MaterialContainer.CreateUnassigned("M00000001", "admin");
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000001", default)).ReturnsAsync(container);
         var line = new PurchaseOrderLine(1, "MAT001", "Material One", 10m, 5m, null);
         _poRepo.Setup(r => r.GetLineByIdAsync(42, default)).ReturnsAsync(line);
-        List<MaterialContainer>? captured = null;
-        _containerRepo.Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default))
-            .Callback<IEnumerable<MaterialContainer>, CancellationToken>((items, _) => captured = items.ToList())
-            .ReturnsAsync((IEnumerable<MaterialContainer> items, CancellationToken _) => items);
         _containerRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(1);
 
         var request = new CreateMaterialContainersRequest
@@ -168,14 +235,15 @@ public class CreateMaterialContainersHandlerTests
 
         // Assert
         Assert.True(result.Success);
-        Assert.Equal(42, captured![0].PurchaseOrderLineId);
+        Assert.Equal(42, container.PurchaseOrderLineId);
     }
 
     [Fact]
     public async Task Handle_ItemWithNonExistentPurchaseOrderLineId_ReturnsError()
     {
         // Arrange
-        _containerRepo.Setup(r => r.GetByCodeAsync(It.IsAny<string>(), default)).ReturnsAsync((MaterialContainer?)null);
+        var container = MaterialContainer.CreateUnassigned("M00000001", "admin");
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000001", default)).ReturnsAsync(container);
         _poRepo.Setup(r => r.GetLineByIdAsync(99, default)).ReturnsAsync((PurchaseOrderLine?)null);
 
         var request = new CreateMaterialContainersRequest
@@ -191,16 +259,16 @@ public class CreateMaterialContainersHandlerTests
 
         // Assert
         Assert.False(result.Success);
-        _containerRepo.Verify(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default), Times.Never);
+        Assert.Equal(ErrorCodes.PurchaseOrderLineNotFound, result.ErrorCode);
+        _containerRepo.Verify(r => r.SaveChangesAsync(default), Times.Never);
     }
 
     [Fact]
     public async Task Handle_ItemWithNoPurchaseOrderLineId_DoesNotValidatePo()
     {
         // Arrange
-        _containerRepo.Setup(r => r.GetByCodeAsync(It.IsAny<string>(), default)).ReturnsAsync((MaterialContainer?)null);
-        _containerRepo.Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default))
-            .ReturnsAsync((IEnumerable<MaterialContainer> items, CancellationToken _) => items);
+        var container = MaterialContainer.CreateUnassigned("M00000001", "admin");
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000001", default)).ReturnsAsync(container);
         _containerRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(1);
 
         var request = new CreateMaterialContainersRequest
@@ -241,17 +309,19 @@ public class CreateMaterialContainersHandlerTests
     }
 
     [Fact]
-    public async Task Handle_DuplicateCode_ReturnsCodeExistsError()
+    public async Task Handle_MixedBatch_RejectsAtFirstBadItem_AndAssignsNothing()
     {
         // Arrange
-        _containerRepo.Setup(r => r.GetByCodeAsync("M00000001", default))
-            .ReturnsAsync(new MaterialContainer("M00000001", "MAT001", "L1", null, null, "user"));
+        var containerA = MaterialContainer.CreateUnassigned("M00000001", "admin");
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000001", default)).ReturnsAsync(containerA);
+        _containerRepo.Setup(r => r.GetByCodeAsync("M00000099", default)).ReturnsAsync((MaterialContainer?)null);
 
         var request = new CreateMaterialContainersRequest
         {
             Items = new List<CreateMaterialContainerItem>
             {
-                new() { Code = "M00000001", MaterialCode = "MAT001", LotCode = "L1" }
+                new() { Code = "M00000001", MaterialCode = "MAT001", LotCode = "L1" },
+                new() { Code = "M00000099", MaterialCode = "MAT001", LotCode = "L1" }
             }
         };
 
@@ -260,7 +330,11 @@ public class CreateMaterialContainersHandlerTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Equal(ErrorCodes.MaterialContainerCodeExists, result.ErrorCode);
+        Assert.Equal(ErrorCodes.UnknownMaterialContainerCode, result.ErrorCode);
+        // Validate-all-before-mutate: A passed validation but B's null lookup
+        // triggered an early return before the assignment loop ran.
+        Assert.Equal(MaterialContainerStatus.Unassigned, containerA.Status);
+        _containerRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -283,6 +357,6 @@ public class CreateMaterialContainersHandlerTests
         Assert.False(result.Success);
         Assert.Equal(ErrorCodes.MaterialContainerCodeExists, result.ErrorCode);
         _containerRepo.Verify(r => r.GetByCodeAsync(It.IsAny<string>(), default), Times.Never);
-        _containerRepo.Verify(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default), Times.Never);
+        _containerRepo.Verify(r => r.SaveChangesAsync(default), Times.Never);
     }
 }

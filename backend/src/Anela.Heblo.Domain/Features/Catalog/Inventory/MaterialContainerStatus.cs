@@ -4,4 +4,5 @@ public enum MaterialContainerStatus
 {
     Assigned = 0,
     Discarded = 1,
+    Unassigned = 2,
 }

@@ -249,6 +249,7 @@ const resources = {
         InventoryMaterialInvalidType: "Neplatný typ materiálu skladu.",
         LotHasEans: "Šarži nelze smazat, protože obsahuje materiálové kontejnery.",
         MaterialContainerCodeExists: "Kód materiálového kontejneru již existuje.",
+        UnknownMaterialContainerCode: "Neznámý štítek – nejprve jej vygenerujte v aplikaci.",
         MaterialContainerCodeInvalidFormat: "Neplatný formát kódu materiálového kontejneru.",
 
         // Article Generation errors

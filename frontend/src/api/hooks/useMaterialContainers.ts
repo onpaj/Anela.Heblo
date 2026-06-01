@@ -7,6 +7,8 @@ import {
   GetLastUsedLotForMaterialResponse,
   CreateMaterialContainerItem,
   ListMaterialContainersResponse,
+  PrintMaterialContainerLabelsRequest,
+  PrintMaterialContainerLabelsResponse,
 } from '../generated/api-client';
 
 export const useCreateMaterialContainers = () => {
@@ -16,6 +18,20 @@ export const useCreateMaterialContainers = () => {
       const apiClient = getAuthenticatedApiClient();
       const request = new CreateMaterialContainersRequest({ items: input.items });
       return apiClient.materialContainers_Create(request);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialContainers });
+    },
+  });
+};
+
+export const usePrintMaterialContainerLabels = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { count: number }): Promise<PrintMaterialContainerLabelsResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const request = new PrintMaterialContainerLabelsRequest({ count: input.count });
+      return apiClient.materialContainers_PrintLabels(request);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialContainers });
@@ -72,4 +88,5 @@ export type {
   GetMaterialContainerByCodeResponse,
   GetLastUsedLotForMaterialResponse,
   ListMaterialContainersResponse,
+  PrintMaterialContainerLabelsResponse,
 } from '../generated/api-client';
