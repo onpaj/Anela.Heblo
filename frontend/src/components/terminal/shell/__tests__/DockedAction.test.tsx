@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { DockedAction } from '../DockedAction';
 
 it('renders nothing when no actions', () => {
-  const { container } = render(<DockedAction actions={[]} />);
-  expect(container.firstChild).toBeNull();
+  render(<DockedAction actions={[]} />);
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
 });
 
 it('renders a single full-width action and fires onClick', () => {

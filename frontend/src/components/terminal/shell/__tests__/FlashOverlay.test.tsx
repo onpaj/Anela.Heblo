@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ScanProvider, ScanActionsContext } from '../ScanProvider';
 import { FlashOverlay } from '../FlashOverlay';
 
@@ -13,7 +13,7 @@ function FlashButton() {
 
 it('renders a non-blocking, aria-live overlay with the err tone after flash()', () => {
   render(<ScanProvider><FlashOverlay /><FlashButton /></ScanProvider>);
-  act(() => { fireEvent.click(screen.getByText('flash')); });
+  fireEvent.click(screen.getByText('flash'));
   const overlay = screen.getByTestId('flash-overlay');
   expect(overlay).toHaveAttribute('aria-live');
   expect(overlay.className).toContain('pointer-events-none');

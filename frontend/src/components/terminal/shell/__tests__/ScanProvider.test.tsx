@@ -13,7 +13,7 @@ function Probe({ onScan }: { onScan: (c: string) => void }) {
 }
 
 function typeCode(code: string) {
-  const input = document.querySelector('input[data-testid="wedge-input"]') as HTMLInputElement;
+  const input = screen.getByTestId('wedge-input') as HTMLInputElement;
   fireEvent.change(input, { target: { value: code } });
   fireEvent.keyDown(input, { key: 'Enter' });
 }
@@ -30,13 +30,13 @@ describe('ScanProvider wedge', () => {
     const onScan = jest.fn();
     render(<ScanProvider><Probe onScan={onScan} /></ScanProvider>);
     act(() => typeCode('b001'));
-    const input = document.querySelector('input[data-testid="wedge-input"]') as HTMLInputElement;
+    const input = screen.getByTestId('wedge-input') as HTMLInputElement;
     expect(input.value).toBe('');
   });
 
   it('keeps a focused capture field by default', () => {
     render(<ScanProvider><Probe onScan={jest.fn()} /></ScanProvider>);
-    const input = document.querySelector('input[data-testid="wedge-input"]');
-    expect(document.activeElement).toBe(input);
+    const input = screen.getByTestId('wedge-input');
+    expect(input).toHaveFocus();
   });
 });
