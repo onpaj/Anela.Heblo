@@ -29,7 +29,7 @@ public class MaterialContainerCodeGenerator : IMaterialContainerCodeGenerator
         while (await reader.ReadAsync(ct))
         {
             var seq = reader.GetInt64(0);
-            codes.Add($"INT-{seq:D8}");
+            codes.Add($"M{seq:D8}");
         }
         return codes;
     }
