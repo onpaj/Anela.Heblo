@@ -63,6 +63,11 @@ export const ScanProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const actions = useMemo<ScanActions>(() => ({
     registerScanHandler: (handler) => {
       handlerRef.current = handler;
+      // A new screen has taken over scanning — clear the previous screen's
+      // echo (last code + any partial buffer) so the scan strip starts fresh
+      // instead of showing a stale code from the screen we just left.
+      if (inputRef.current) inputRef.current.value = '';
+      setEcho({ buffer: '', lastCode: null, lastTone: null });
       return () => { if (handlerRef.current === handler) handlerRef.current = null; };
     },
     flash: (tone: FlashTone, code?: string) => {
