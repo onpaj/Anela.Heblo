@@ -1,3 +1,5 @@
+using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
+using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Xcc.Domain;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using MediatR;
@@ -6,22 +8,37 @@ namespace Anela.Heblo.Application.Features.Dashboard.UseCases.SaveUserSettings;
 
 public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, SaveUserSettingsResponse>
 {
-    private readonly IDashboardService _dashboardService;
+    private readonly IUserDashboardSettingsRepository _repository;
+    private readonly IUserDashboardSettingsLock _lock;
     private readonly TimeProvider _timeProvider;
+    private readonly IMediator _mediator;
 
     public SaveUserSettingsHandler(
-        IDashboardService dashboardService,
-        TimeProvider timeProvider
-        )
+        IUserDashboardSettingsRepository repository,
+        IUserDashboardSettingsLock @lock,
+        TimeProvider timeProvider,
+        IMediator mediator)
     {
-        _dashboardService = dashboardService;
+        _repository = repository;
+        _lock = @lock;
         _timeProvider = timeProvider;
+        _mediator = mediator;
     }
 
     public async Task<SaveUserSettingsResponse> Handle(SaveUserSettingsRequest request, CancellationToken cancellationToken)
     {
         var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
-        var settings = await _dashboardService.GetUserSettingsAsync(userId);
+
+        // Trigger provisioning outside the write lock (lock is non-reentrant)
+        await _mediator.Send(new GetUserSettingsRequest { UserId = userId }, cancellationToken);
+
+        await using var lockHandle = await _lock.AcquireAsync(userId, cancellationToken);
+
+        var settings = await _repository.GetByUserIdAsync(userId);
+        if (settings == null)
+        {
+            return new SaveUserSettingsResponse();
+        }
 
         // Update tile settings
         if (request.Tiles != null)
@@ -37,7 +54,6 @@ public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, 
                 }
                 else
                 {
-                    // Add new tile
                     settings.Tiles.Add(new UserDashboardTile
                     {
                         UserId = userId,
@@ -51,8 +67,9 @@ public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, 
             }
         }
 
+        settings.UserId = userId;
         settings.LastModified = _timeProvider.GetUtcNow().DateTime;
-        await _dashboardService.SaveUserSettingsAsync(userId, settings);
+        await _repository.UpdateAsync(settings);
 
         return new SaveUserSettingsResponse();
     }

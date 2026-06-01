@@ -24,7 +24,6 @@ public static class XccModule
         // Register dashboard services
         services.Configure<DashboardOptions>(configuration.GetSection(DashboardOptions.SectionName));
         services.AddSingleton<ITileRegistry, TileRegistry>();
-        services.AddScoped<IDashboardService, DashboardService>();
 
         // Register system tiles
         services.RegisterTile<BackgroundTaskStatusTile>();
