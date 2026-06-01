@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Xcc;
 using Microsoft.Extensions.Options;
