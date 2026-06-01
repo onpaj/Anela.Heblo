@@ -1,4 +1,3 @@
-using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.Application.Shared.Printing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +7,11 @@ namespace Anela.Heblo.Adapters.Cups;
 
 public static class CupsAdapterServiceCollectionExtensions
 {
-    public static IServiceCollection AddCupsAdapter(
+    /// <summary>
+    /// Registers the shared CUPS printing infrastructure and the label printing service.
+    /// Safe to call once during composition; does NOT register an IPrintQueueSink.
+    /// </summary>
+    public static IServiceCollection AddCupsPrinting(
         this IServiceCollection services,
         IConfiguration configuration)
     {
@@ -28,7 +31,7 @@ public static class CupsAdapterServiceCollectionExtensions
         });
 
         services.AddScoped<ICupsPrintingService, CupsPrintingService>();
-        services.AddScoped<IPrintQueueSink, CupsPrintQueueSink>();
+        services.AddScoped<ILabelPrintingService, CupsLabelPrintingService>();
 
         return services;
     }

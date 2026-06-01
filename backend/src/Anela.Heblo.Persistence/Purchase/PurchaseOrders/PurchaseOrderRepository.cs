@@ -120,4 +120,11 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurc
             .OrderByDescending(h => h.ChangedAt)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<PurchaseOrderLine?> GetLineByIdAsync(int lineId, CancellationToken cancellationToken = default)
+    {
+        return await Context.PurchaseOrderLines
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Id == lineId, cancellationToken);
+    }
 }

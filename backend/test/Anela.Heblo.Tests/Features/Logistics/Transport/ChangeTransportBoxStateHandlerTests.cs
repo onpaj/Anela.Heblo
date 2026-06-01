@@ -1,11 +1,9 @@
 using System.ComponentModel.DataAnnotations;
-using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases;
 using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
@@ -23,7 +21,7 @@ public class ChangeTransportBoxStateHandlerTests
     private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<ILogger<ChangeTransportBoxStateHandler>> _loggerMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
-    private readonly Mock<IStockUpProcessingService> _stockUpProcessingServiceMock;
+    private readonly Mock<ILogisticsStockOperationService> _stockUpProcessingServiceMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly ChangeTransportBoxStateHandler _handler;
 
@@ -34,7 +32,7 @@ public class ChangeTransportBoxStateHandlerTests
         _mediatorMock = new Mock<IMediator>();
         _loggerMock = new Mock<ILogger<ChangeTransportBoxStateHandler>>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
-        _stockUpProcessingServiceMock = new Mock<IStockUpProcessingService>();
+        _stockUpProcessingServiceMock = new Mock<ILogisticsStockOperationService>();
         _timeProviderMock = new Mock<TimeProvider>();
 
         // Setup default returns for the new dependencies
@@ -51,7 +49,7 @@ public class ChangeTransportBoxStateHandlerTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<int>(),
-                It.IsAny<StockUpSourceType>(),
+                It.IsAny<LogisticsStockOperationSource>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -301,7 +299,7 @@ public class ChangeTransportBoxStateHandlerTests
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
-                It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -331,7 +329,7 @@ public class ChangeTransportBoxStateHandlerTests
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
-                It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -359,14 +357,14 @@ public class ChangeTransportBoxStateHandlerTests
                 "BOX-000001-P-001",
                 "P-001",
                 8,
-                StockUpSourceType.TransportBox,
+                LogisticsStockOperationSource.TransportBox,
                 1,
                 It.IsAny<CancellationToken>()),
             Times.Once);
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
-                It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -392,17 +390,17 @@ public class ChangeTransportBoxStateHandlerTests
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 "BOX-000001-P-001", "P-001", 2,
-                StockUpSourceType.TransportBox, 1, It.IsAny<CancellationToken>()),
+                LogisticsStockOperationSource.TransportBox, 1, It.IsAny<CancellationToken>()),
             Times.Once);
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 "BOX-000001-P-002", "P-002", 4,
-                StockUpSourceType.TransportBox, 1, It.IsAny<CancellationToken>()),
+                LogisticsStockOperationSource.TransportBox, 1, It.IsAny<CancellationToken>()),
             Times.Once);
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
-                It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Exactly(2));
     }
 
@@ -428,7 +426,7 @@ public class ChangeTransportBoxStateHandlerTests
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 It.IsAny<string>(), "P-001", 3,
-                It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

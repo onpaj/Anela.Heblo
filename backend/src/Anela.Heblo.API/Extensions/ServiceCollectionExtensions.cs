@@ -343,6 +343,7 @@ public static class ServiceCollectionExtensions
         // concrete types live in API/Infrastructure/Hangfire — relocated to keep the
         // Application project free of Hangfire imports for these specific adapters).
         services.AddScoped<IHangfireJobEnqueuer, HangfireJobEnqueuer>();
+        services.AddScoped<IFailedJobCounter, HangfireFailedJobCounter>();
         services.AddSingleton<IHangfireRecurringJobScheduler, HangfireRecurringJobScheduler>();
 
         // Note: IRecurringJobStatusChecker is now registered in Application layer (BackgroundJobsModule)
@@ -388,6 +389,10 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddPrintQueueSink(this IServiceCollection services, IConfiguration configuration)
     {
+        // The CUPS label-printing infrastructure (ILabelPrintingService) is always available —
+        // it is used by MaterialContainer label printing regardless of the expedition print sink.
+        services.AddCupsPrinting(configuration);
+
         var printSink = configuration["ExpeditionList:PrintSink"];
         switch (printSink)
         {
@@ -395,15 +400,13 @@ public static class ServiceCollectionExtensions
                 services.AddAzurePrintQueueSink(configuration);
                 break;
             case "Cups":
-                services.AddCupsAdapter(configuration);
+                services.AddScoped<IPrintQueueSink, CupsPrintQueueSink>();
                 services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
                 break;
             case "Combined":
-                // AddAzurePrintQueueSink and AddCupsAdapter each also register a non-keyed
-                // IPrintQueueSink as a side effect; those bindings are unused here — the
-                // last non-keyed registration (CombinedPrintQueueSink below) wins.
+                // AddAzurePrintQueueSink registers a non-keyed IPrintQueueSink as a side effect;
+                // it is unused here — the last non-keyed registration (CombinedPrintQueueSink) wins.
                 services.AddAzurePrintQueueSink(configuration);
-                services.AddCupsAdapter(configuration);
                 services.AddKeyedScoped<IPrintQueueSink, AzureBlobPrintQueueSink>("azure");
                 services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
                 services.AddScoped<IPrintQueueSink, CombinedPrintQueueSink>();

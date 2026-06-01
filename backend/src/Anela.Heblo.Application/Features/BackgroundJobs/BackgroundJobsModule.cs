@@ -1,4 +1,6 @@
+using Anela.Heblo.Application.Features.BackgroundJobs.DashboardTiles;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.Application.Features.BackgroundJobs;
@@ -15,6 +17,9 @@ public static class BackgroundJobsModule
 
         // Register recurring job status checker
         services.AddScoped<IRecurringJobStatusChecker, RecurringJobStatusChecker>();
+
+        // Register dashboard tiles
+        services.RegisterTile<FailedJobsTile>();
 
         return services;
     }

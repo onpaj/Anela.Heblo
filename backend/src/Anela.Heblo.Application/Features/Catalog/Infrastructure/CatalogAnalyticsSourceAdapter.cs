@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
