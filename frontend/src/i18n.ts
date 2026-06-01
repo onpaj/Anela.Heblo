@@ -98,6 +98,8 @@ const resources = {
         InvalidSupplier: "Neplatný dodavatel: {supplierName}",
         PurchaseOrderUpdateFailed:
           "Aktualizace objednávky {orderNumber} selhala: {message}",
+        PurchaseOrderLineNotFound:
+          "Řádek objednávky {PurchaseOrderLineId} neexistuje",
 
         // Manufacture module errors
         ManufacturingDataNotAvailable:
@@ -241,11 +243,13 @@ const resources = {
 
         // Inventory module errors
         LotNotFound: "Šarže nebyla nalezena.",
-        EanNotFound: "EAN kód nebyl nalezen.",
+        MaterialContainerNotFound: "Materiálový kontejner nebyl nalezen.",
         LotAlreadyExists: "Šarže s tímto kódem již existuje.",
         InventoryMaterialNotFound: "Materiál skladu nebyl nalezen.",
         InventoryMaterialInvalidType: "Neplatný typ materiálu skladu.",
-        LotHasEans: "Šarži nelze smazat, protože obsahuje EAN kódy.",
+        LotHasEans: "Šarži nelze smazat, protože obsahuje materiálové kontejnery.",
+        MaterialContainerCodeExists: "Kód materiálového kontejneru již existuje.",
+        MaterialContainerCodeInvalidFormat: "Neplatný formát kódu materiálového kontejneru.",
 
         // Article Generation errors
         ArticleNotFound: "Článek nebyl nalezen (ID: {{id}})",
