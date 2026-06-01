@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import {
   Carriers,
+  CarrierCoolingRowDto,
   CarrierGroupDto,
   Cooling,
   DeliveryHandling,
@@ -31,6 +33,89 @@ const COOLING_OPTIONS: { value: Cooling; label: string }[] = [
   { value: 'L2', label: 'L2' },
 ];
 
+const DEFAULT_COOLING_TEXT = 'CHLAZENÁ ZÁSILKA';
+const COOLING_TEXT_MAX_LENGTH = 50;
+
+interface CarrierCoolingRowProps {
+  carrier: Carriers;
+  row: CarrierCoolingRowDto;
+  onSetCooling: (request: SetCarrierCoolingRequest) => void;
+  isSaving: boolean;
+  isThisRowSaving: boolean;
+}
+
+function CarrierCoolingRow({
+  carrier,
+  row,
+  onSetCooling,
+  isSaving,
+  isThisRowSaving,
+}: CarrierCoolingRowProps) {
+  const [text, setText] = useState<string>(row.coolingText ?? '');
+  const radioName = `${carrier}-${row.deliveryHandling}`;
+
+  const commitText = () => {
+    const normalized = text.trim();
+    const current = row.coolingText ?? '';
+    if (normalized === current) return;
+    onSetCooling({
+      carrier,
+      deliveryHandling: row.deliveryHandling,
+      cooling: row.cooling,
+      coolingText: normalized === '' ? null : normalized,
+    });
+  };
+
+  return (
+    <div className="flex items-center px-3 py-2 gap-4">
+      <span className="w-20 text-sm text-gray-700 flex-shrink-0">
+        {HANDLING_LABELS[row.deliveryHandling] ?? String(row.deliveryHandling)}
+      </span>
+      <div className="flex gap-4">
+        {COOLING_OPTIONS.map((option) => (
+          <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name={radioName}
+              value={option.value}
+              checked={row.cooling === option.value}
+              onChange={() =>
+                onSetCooling({
+                  carrier,
+                  deliveryHandling: row.deliveryHandling,
+                  cooling: option.value,
+                  coolingText: row.coolingText ?? null,
+                })
+              }
+              disabled={isSaving}
+              className="h-4 w-4 text-indigo-600 cursor-pointer"
+            />
+            <span className="text-sm text-gray-700">{option.label}</span>
+          </label>
+        ))}
+      </div>
+      <input
+        type="text"
+        value={text}
+        maxLength={COOLING_TEXT_MAX_LENGTH}
+        placeholder={DEFAULT_COOLING_TEXT}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commitText}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        disabled={isSaving}
+        className="flex-1 min-w-0 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+      />
+      {isThisRowSaving && (
+        <span className="text-xs text-gray-400 ml-2 animate-pulse">Ukládám…</span>
+      )}
+    </div>
+  );
+}
+
 function CarrierCoolingMatrix({ groups, onSetCooling, isSaving, savingRow }: CarrierCoolingMatrixProps) {
   return (
     <div className="space-y-3 p-4">
@@ -46,52 +131,20 @@ function CarrierCoolingMatrix({ groups, onSetCooling, isSaving, savingRow }: Car
           </div>
           <div className="divide-y divide-gray-50">
             {group.rows.map((row) => {
-              const radioName = `${group.carrier}-${row.deliveryHandling}`;
-
               const isThisRowSaving =
                 isSaving &&
                 savingRow?.carrier === group.carrier &&
                 savingRow?.deliveryHandling === row.deliveryHandling;
 
               return (
-                <div
+                <CarrierCoolingRow
                   key={row.deliveryHandling}
-                  className="flex items-center px-3 py-2 gap-4"
-                >
-                  <span className="w-20 text-sm text-gray-700 flex-shrink-0">
-                    {HANDLING_LABELS[row.deliveryHandling] ?? String(row.deliveryHandling)}
-                  </span>
-                  <div className="flex gap-4">
-                    {COOLING_OPTIONS.map((option) => (
-                      <label
-                        key={option.value}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <input
-                          type="radio"
-                          name={radioName}
-                          value={option.value}
-                          checked={row.cooling === option.value}
-                          onChange={() =>
-                            onSetCooling({
-                              carrier: group.carrier,
-                              deliveryHandling: row.deliveryHandling,
-                              cooling: option.value,
-                            })
-                          }
-                          disabled={isSaving}
-                          className="h-4 w-4 text-indigo-600 cursor-pointer"
-                        />
-                        <span className="text-sm text-gray-700">{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {isThisRowSaving && (
-                    <span className="text-xs text-gray-400 ml-2 animate-pulse">
-                      Ukládám…
-                    </span>
-                  )}
-                </div>
+                  carrier={group.carrier}
+                  row={row}
+                  onSetCooling={onSetCooling}
+                  isSaving={isSaving}
+                  isThisRowSaving={isThisRowSaving}
+                />
               );
             })}
           </div>
