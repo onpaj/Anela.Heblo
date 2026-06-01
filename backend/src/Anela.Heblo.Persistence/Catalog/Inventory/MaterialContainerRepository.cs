@@ -13,7 +13,7 @@ public class MaterialContainerRepository : BaseRepository<MaterialContainer, int
         => DbSet.FirstOrDefaultAsync(x => x.Code == code, ct);
 
     public async Task<PagedResult<MaterialContainer>> GetPaginatedAsync(
-        string? materialCode, string? lotCode, int page, int pageSize, CancellationToken ct)
+        string? materialCode, string? lotCode, string? code, int page, int pageSize, CancellationToken ct)
     {
         var query = DbSet.AsQueryable();
 
@@ -22,6 +22,9 @@ public class MaterialContainerRepository : BaseRepository<MaterialContainer, int
 
         if (!string.IsNullOrWhiteSpace(lotCode))
             query = query.Where(x => x.LotCode == lotCode);
+
+        if (!string.IsNullOrWhiteSpace(code))
+            query = query.Where(x => x.Code == code);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query

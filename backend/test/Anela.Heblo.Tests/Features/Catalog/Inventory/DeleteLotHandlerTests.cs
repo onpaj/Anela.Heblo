@@ -25,7 +25,7 @@ public class DeleteLotHandlerTests
         // Arrange
         var lot = new Lot("MAT001", "L1", null, DateOnly.FromDateTime(DateTime.Today), null, "user");
         _lotRepo.Setup(r => r.GetByIdAsync(1, default)).ReturnsAsync(lot);
-        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "L1", 1, 1, default))
+        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "L1", null, 1, 1, default))
             .ReturnsAsync(new PagedResult<MaterialContainer> { Items = new List<MaterialContainer>(), TotalCount = 0, PageNumber = 1, PageSize = 1 });
 
         // Act
@@ -44,7 +44,7 @@ public class DeleteLotHandlerTests
         var lot = new Lot("MAT001", "L1", null, DateOnly.FromDateTime(DateTime.Today), null, "user");
         _lotRepo.Setup(r => r.GetByIdAsync(1, default)).ReturnsAsync(lot);
         var container = new MaterialContainer("INT-00000001", "MAT001", "L1", 25m, "kg", "user");
-        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "L1", 1, 1, default))
+        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "L1", null, 1, 1, default))
             .ReturnsAsync(new PagedResult<MaterialContainer> { Items = new List<MaterialContainer> { container }, TotalCount = 1, PageNumber = 1, PageSize = 1 });
 
         // Act

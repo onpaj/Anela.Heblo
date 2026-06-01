@@ -30,7 +30,7 @@ public class GetLotHandler : IRequestHandler<GetLotRequest, GetLotResponse>
         }
 
         var containerPage = await _materialContainerRepository.GetPaginatedAsync(
-            lot.MaterialCode, lot.LotCode, page: 1, pageSize: 100, cancellationToken);
+            lot.MaterialCode, lot.LotCode, null, page: 1, pageSize: 100, cancellationToken);
         var containerDtos = containerPage.Items.Select(CreateMaterialContainersHandler.MapToDto).ToList();
 
         return new GetLotResponse { Lot = CreateLotHandler.MapToDto(lot), Containers = containerDtos };

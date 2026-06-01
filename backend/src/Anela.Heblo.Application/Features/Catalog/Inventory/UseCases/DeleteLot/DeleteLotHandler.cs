@@ -28,7 +28,7 @@ public class DeleteLotHandler : IRequestHandler<DeleteLotRequest, DeleteLotRespo
         }
 
         var containers = await _materialContainerRepository.GetPaginatedAsync(
-            lot.MaterialCode, lot.LotCode, page: 1, pageSize: 1, cancellationToken);
+            lot.MaterialCode, lot.LotCode, null, page: 1, pageSize: 1, cancellationToken);
         if (containers.TotalCount > 0)
         {
             _logger.LogWarning("Cannot delete lot {Id} — it still has MaterialContainers", request.Id);

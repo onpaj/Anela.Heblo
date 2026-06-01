@@ -21,6 +21,7 @@ public class ListMaterialContainersHandler : IRequestHandler<ListMaterialContain
         var result = await _materialContainerRepository.GetPaginatedAsync(
             request.MaterialCode,
             request.LotCode,
+            request.Code,
             request.Page,
             request.PageSize,
             cancellationToken);

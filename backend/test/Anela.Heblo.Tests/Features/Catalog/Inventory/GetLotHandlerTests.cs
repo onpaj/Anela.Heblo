@@ -37,7 +37,7 @@ public class GetLotHandlerTests
             PageNumber = 1,
             PageSize = 100
         };
-        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "LOT-A", 1, 100, default)).ReturnsAsync(containers);
+        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "LOT-A", null, 1, 100, default)).ReturnsAsync(containers);
 
         // Act
         var result = await _handler.Handle(new GetLotRequest { Id = 1 }, default);

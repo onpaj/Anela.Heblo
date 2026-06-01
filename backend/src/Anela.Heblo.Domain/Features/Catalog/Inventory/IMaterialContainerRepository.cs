@@ -6,6 +6,6 @@ public interface IMaterialContainerRepository : IRepository<MaterialContainer, i
 {
     Task<MaterialContainer?> GetByCodeAsync(string code, CancellationToken ct);
     Task<PagedResult<MaterialContainer>> GetPaginatedAsync(
-        string? materialCode, string? lotCode, int page, int pageSize, CancellationToken ct);
+        string? materialCode, string? lotCode, string? code, int page, int pageSize, CancellationToken ct);
     Task<string?> GetLastUsedLotCodeForMaterialAsync(string materialCode, CancellationToken ct);
 }
