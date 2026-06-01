@@ -51,6 +51,7 @@ internal sealed class KeyedAsyncLock : IKeyedAsyncLock, IDisposable
         public readonly SemaphoreSlim Sem = new(1, 1);
         private int _refCount;
         private int _evicted;
+        private int _semDisposed;
 
         public void AddRef() => Interlocked.Increment(ref _refCount);
 
@@ -68,9 +69,11 @@ internal sealed class KeyedAsyncLock : IKeyedAsyncLock, IDisposable
 
         private void TryDispose()
         {
-            if (Volatile.Read(ref _evicted) == 1 && Volatile.Read(ref _refCount) <= 0)
+            if (Volatile.Read(ref _evicted) == 1 &&
+                Volatile.Read(ref _refCount) <= 0 &&
+                Interlocked.CompareExchange(ref _semDisposed, 1, 0) == 0)
             {
-                try { Sem.Dispose(); } catch { /* swallow NFR-5 */ }
+                Sem.Dispose();
             }
         }
     }
