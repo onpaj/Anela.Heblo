@@ -95,16 +95,16 @@ public static class PersistenceModule
             services.AddSingleton(dataSource); // Register for DI-managed disposal
         }
 
-        // Register EAN code generator — real implementation needs NpgsqlDataSource (raw ADO.NET
-        // for sequence access); fall back to NullEanCodeGenerator when running in-memory so that
+        // Register material container code generator — real implementation needs NpgsqlDataSource (raw ADO.NET
+        // for sequence access); fall back to NullMaterialContainerCodeGenerator when running in-memory so that
         // DI validation and tests can start without a live database.
         if (!useInMemory && connectionString != "InMemory" && dataSource != null)
         {
-            services.AddScoped<IEanCodeGenerator, EanCodeGenerator>();
+            services.AddScoped<IMaterialContainerCodeGenerator, MaterialContainerCodeGenerator>();
         }
         else
         {
-            services.AddScoped<IEanCodeGenerator, NullEanCodeGenerator>();
+            services.AddScoped<IMaterialContainerCodeGenerator, NullMaterialContainerCodeGenerator>();
         }
 
         // Register interceptors

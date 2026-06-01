@@ -32,6 +32,7 @@ public class GetPurchaseOrdersHandlerTests
         if (status == PurchaseOrderStatus.Completed)
         {
             order.ChangeStatus(PurchaseOrderStatus.InTransit, TestUser);
+            order.ChangeStatus(PurchaseOrderStatus.Received, TestUser);
             order.ChangeStatus(PurchaseOrderStatus.Completed, TestUser);
         }
         else if (status != PurchaseOrderStatus.Draft)
