@@ -1,11 +1,11 @@
-using Anela.Heblo.Application.Features.BackgroundJobs.Services;
+using Anela.Heblo.API.Infrastructure.Hangfire;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Tests.Features.BackgroundJobs.Infrastructure;
 using Hangfire;
 using Hangfire.Storage;
 using Xunit;
 
-namespace Anela.Heblo.Tests.Features.BackgroundJobs;
+namespace Anela.Heblo.Tests.Infrastructure.Hangfire;
 
 [Collection("Hangfire")]
 public class HangfireJobRegistrationHelperTests : IDisposable
