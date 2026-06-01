@@ -70,6 +70,25 @@ public class ModuleBoundariesTests
     // Allowlist for Purchase → Catalog. Empty — no active violations.
     private static readonly HashSet<string> PurchaseAllowlist = new(StringComparer.Ordinal);
 
+    // Allowlist for Logistics → Catalog. Pre-existing violations in TransportBoxCompletionService
+    // that are out of scope for the 2026-06-01 Logistics-Catalog boundary introduction.
+    // Remove these entries when TransportBoxCompletionService is refactored to use a
+    // Logistics-owned contract instead of IStockUpOperationRepository / StockUpOperation directly.
+    private static readonly HashSet<string> LogisticsCatalogAllowlist = new(StringComparer.Ordinal)
+    {
+        // TransportBoxCompletionService injects IStockUpOperationRepository (a Catalog-owned
+        // repository) to persist stock-up operations when a transport box is completed.
+        // Decoupling this requires introducing a Logistics-owned contract (e.g.
+        // ILogisticsStockUpGateway) and a Catalog adapter — tracked as a follow-up.
+        "Anela.Heblo.Application.Features.Logistics.Services.TransportBoxCompletionService -> Anela.Heblo.Domain.Features.Catalog.Stock.IStockUpOperationRepository",
+
+        // StockUpOperation is the value type produced and persisted by TransportBoxCompletionService
+        // via IStockUpOperationRepository. Covered by the same follow-up as the entry above;
+        // the compiler-generated nested types (+<>c, +<ProcessBoxAsync>d__5) are handled
+        // automatically via the DeclaringType allowlist check in the test harness.
+        "Anela.Heblo.Application.Features.Logistics.Services.TransportBoxCompletionService -> Anela.Heblo.Domain.Features.Catalog.Stock.StockUpOperation",
+    };
+
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
         new ModuleBoundaryRule(
@@ -126,6 +145,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Catalog",
             },
             Allowlist: PurchaseAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Logistics -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Logistics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: LogisticsCatalogAllowlist),
 
         new ModuleBoundaryRule(
             Name: "ExpeditionListArchive -> ExpeditionList",
