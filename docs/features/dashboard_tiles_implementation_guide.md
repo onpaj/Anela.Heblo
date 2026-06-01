@@ -551,3 +551,41 @@ return new
 ```
 
 This guide provides a comprehensive foundation for implementing dashboard tiles in the Anela Heblo application. Follow these patterns and guidelines to ensure consistency, maintainability, and scalability of the tile system.
+
+## Renaming Tiles and Changing Tile IDs
+
+### Source of Truth
+
+The `[TileId("...")]` attribute on each tile class is the **single source of truth** for the tile's persisted identifier. The string value stored in `UserDashboardTiles.TileId` (PostgreSQL `text` column) must match the attribute value exactly.
+
+### Renaming a Tile Class (Safe — No Migration Required)
+
+Renaming the C# class of a tile is safe as long as the `[TileId]` value remains unchanged:
+
+```csharp
+// Before rename:
+[TileId("purchaseordersintransit")]
+public class PurchaseOrdersInTransitTile : ITile { ... }
+
+// After rename — TileId value unchanged, no migration needed:
+[TileId("purchaseordersintransit")]
+public class OrdersInTransitTile : ITile { ... }
+```
+
+The `TileIdContractTests` backward-compatibility assertion will **fail CI** if the attribute value drifts from the class-name-derived value without a corresponding migration. To rename a class and keep its ID stable, update the FR-5 backward-compat exclusion in the test (add the new class name to an explicit allowlist, or update the test with a comment citing the migration).
+
+### Changing a Tile ID Value (Breaking — Migration Required)
+
+Changing a `[TileId]` value is a **breaking data change**. All existing `UserDashboardTiles` rows for affected users will orphan and the tile will disappear from their dashboards until they re-enable it.
+
+To change a tile ID safely:
+1. Write an EF Core migration that updates `UserDashboardTiles.TileId` from the old value to the new one.
+2. Change the `[TileId]` attribute value in the same PR.
+3. Update the FR-5 backward-compat assertion in `TileIdContractTests` (the test's backward-compat guard will otherwise flag the new value as a violation).
+
+Use the existing migration as a template:
+`backend/src/Anela.Heblo.Persistence/Migrations/20251024072354_UpdateMaterialInventoryTileId.cs`
+
+### Abstract Base Classes
+
+Abstract tile base classes (`TransportBoxBaseTile`, `UpcomingProductionTile`, `InventoryCountTileBase`, `InventorySummaryTileBase`) do **not** need `[TileId]`. The attribute uses `Inherited = false`, so each concrete subclass must declare its own unique `[TileId]`. Never add `[TileId]` to an abstract base tile — it will be silently ignored.
