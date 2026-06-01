@@ -71,7 +71,7 @@ describe('TerminalHome', () => {
   it('shows coming-soon label only on the stub tiles', () => {
     renderHome();
     const labels = screen.getAllByText('Brzy k dispozici');
-    expect(labels).toHaveLength(2);
+    expect(labels).toHaveLength(1);
   });
 
   it('navigates to receive when a scanned box is receivable', () => {

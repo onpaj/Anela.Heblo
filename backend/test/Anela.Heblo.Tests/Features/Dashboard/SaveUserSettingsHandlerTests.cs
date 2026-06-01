@@ -1,8 +1,11 @@
 using Anela.Heblo.Application.Features.Dashboard.Contracts;
+using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
+using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.SaveUserSettings;
-using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Domain;
+using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentAssertions;
+using MediatR;
 using Moq;
 using Xunit;
 
@@ -10,13 +13,45 @@ namespace Anela.Heblo.Tests.Features.Dashboard;
 
 public class SaveUserSettingsHandlerTests
 {
-    private readonly Mock<IDashboardService> _dashboardServiceMock;
+    private readonly Mock<IUserDashboardSettingsRepository> _repositoryMock;
+    private readonly Mock<IUserDashboardSettingsLock> _lockMock;
+    private readonly Mock<IMediator> _mediatorMock;
+    private readonly TimeProvider _timeProvider;
     private readonly SaveUserSettingsHandler _handler;
+
+    private static readonly DateTime FixedUtcNow = new DateTime(2024, 6, 1, 12, 0, 0, DateTimeKind.Utc);
 
     public SaveUserSettingsHandlerTests()
     {
-        _dashboardServiceMock = new Mock<IDashboardService>();
-        _handler = new SaveUserSettingsHandler(_dashboardServiceMock.Object, TimeProvider.System);
+        _repositoryMock = new Mock<IUserDashboardSettingsRepository>();
+        _lockMock = new Mock<IUserDashboardSettingsLock>();
+        _mediatorMock = new Mock<IMediator>();
+
+        var timeProviderMock = new Mock<TimeProvider>();
+        timeProviderMock
+            .Setup(x => x.GetUtcNow())
+            .Returns(new DateTimeOffset(FixedUtcNow));
+        _timeProvider = timeProviderMock.Object;
+
+        // No-op disposable returned by the lock
+        var noOpDisposable = new Mock<IAsyncDisposable>();
+        noOpDisposable
+            .Setup(x => x.DisposeAsync())
+            .Returns(ValueTask.CompletedTask);
+        _lockMock
+            .Setup(x => x.AcquireAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(noOpDisposable.Object);
+
+        // Mediator returns a default GetUserSettingsResponse
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetUserSettingsResponse());
+
+        _handler = new SaveUserSettingsHandler(
+            _repositoryMock.Object,
+            _lockMock.Object,
+            _timeProvider,
+            _mediatorMock.Object);
     }
 
     [Fact]
@@ -33,20 +68,21 @@ public class SaveUserSettingsHandlerTests
         };
 
         var existingSettings = CreateSampleUserSettings("anonymous");
-        _dashboardServiceMock
-            .Setup(x => x.GetUserSettingsAsync("anonymous"))
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync("anonymous"))
             .ReturnsAsync(existingSettings);
 
         // Act
         await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(
-            "anonymous",
-            It.Is<UserDashboardSettings>(s =>
-                s.UserId == "anonymous" &&
-                s.Tiles.Count == 1 &&
-                s.Tiles.First().TileId == "tile1")),
+        _mediatorMock.Verify(x => x.Send(
+            It.Is<GetUserSettingsRequest>(r => r.UserId == "anonymous"),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+        _repositoryMock.Verify(x => x.GetByUserIdAsync("anonymous"), Times.Once);
+        _repositoryMock.Verify(x => x.UpdateAsync(
+            It.Is<UserDashboardSettings>(s => s.UserId == "anonymous")),
             Times.Once);
     }
 
@@ -64,16 +100,15 @@ public class SaveUserSettingsHandlerTests
         };
 
         var existingSettings = CreateSampleUserSettings("anonymous");
-        _dashboardServiceMock
-            .Setup(x => x.GetUserSettingsAsync("anonymous"))
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync("anonymous"))
             .ReturnsAsync(existingSettings);
 
         // Act
         await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(
-            "anonymous",
+        _repositoryMock.Verify(x => x.UpdateAsync(
             It.Is<UserDashboardSettings>(s => s.UserId == "anonymous")),
             Times.Once);
     }
@@ -93,23 +128,36 @@ public class SaveUserSettingsHandlerTests
             }
         };
 
-        var existingSettings = CreateSampleUserSettings(userId);
-        _dashboardServiceMock
-            .Setup(x => x.GetUserSettingsAsync(userId))
+        var existingSettings = new UserDashboardSettings
+        {
+            UserId = userId,
+            LastModified = DateTime.UtcNow,
+            Tiles = new List<UserDashboardTile>
+            {
+                new() { UserId = userId, TileId = "tile1", IsVisible = false, DisplayOrder = 5, LastModified = DateTime.UtcNow },
+                new() { UserId = userId, TileId = "tile2", IsVisible = true, DisplayOrder = 6, LastModified = DateTime.UtcNow }
+            }
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync(existingSettings);
+
+        UserDashboardSettings? capturedSettings = null;
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<UserDashboardSettings>()))
+            .Callback<UserDashboardSettings>(s => capturedSettings = s);
 
         // Act
         await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(
-            userId,
-            It.Is<UserDashboardSettings>(s =>
-                s.UserId == userId &&
-                s.Tiles.Count == 2 &&
-                s.Tiles.Any(t => t.TileId == "tile1" && t.IsVisible && t.DisplayOrder == 0) &&
-                s.Tiles.Any(t => t.TileId == "tile2" && !t.IsVisible && t.DisplayOrder == 1))),
-            Times.Once);
+        capturedSettings.Should().NotBeNull();
+        capturedSettings!.UserId.Should().Be(userId);
+        capturedSettings.Tiles.Should().HaveCount(2);
+        capturedSettings.Tiles.Should().Contain(t => t.TileId == "tile1" && t.IsVisible && t.DisplayOrder == 0);
+        capturedSettings.Tiles.Should().Contain(t => t.TileId == "tile2" && !t.IsVisible && t.DisplayOrder == 1);
+        capturedSettings.LastModified.Should().Be(FixedUtcNow);
     }
 
     [Fact]
@@ -124,24 +172,21 @@ public class SaveUserSettingsHandlerTests
         };
 
         var existingSettings = CreateSampleUserSettings(userId);
-        _dashboardServiceMock
-            .Setup(x => x.GetUserSettingsAsync(userId))
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync(existingSettings);
 
         // Act
         await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(
-            userId,
-            It.Is<UserDashboardSettings>(s =>
-                s.UserId == userId &&
-                s.Tiles.Count == 0)),
+        _repositoryMock.Verify(x => x.UpdateAsync(
+            It.Is<UserDashboardSettings>(s => s.UserId == userId && s.Tiles.Count == 0)),
             Times.Once);
     }
 
     [Fact]
-    public async Task Handle_WhenNullTiles_ShouldSaveEmptySettings()
+    public async Task Handle_WhenNullTiles_ShouldNotMutateExistingTiles()
     {
         // Arrange
         var userId = "user123";
@@ -151,66 +196,27 @@ public class SaveUserSettingsHandlerTests
             Tiles = null
         };
 
-        var existingSettings = CreateSampleUserSettings(userId);
-        _dashboardServiceMock
-            .Setup(x => x.GetUserSettingsAsync(userId))
-            .ReturnsAsync(existingSettings);
-
-        // Act
-        await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(
-            userId,
-            It.Is<UserDashboardSettings>(s =>
-                s.UserId == userId &&
-                s.Tiles.Count == 0)),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_ShouldMapTilePropertiesCorrectly()
-    {
-        // Arrange
-        var userId = "user123";
-        var request = new SaveUserSettingsRequest
+        var existingSettings = new UserDashboardSettings
         {
             UserId = userId,
-            Tiles = new[]
+            LastModified = DateTime.UtcNow,
+            Tiles = new List<UserDashboardTile>
             {
-                new UserDashboardTileDto
-                {
-                    TileId = "analytics-tile",
-                    IsVisible = true,
-                    DisplayOrder = 5
-                }
+                new() { UserId = userId, TileId = "tile1", IsVisible = true, DisplayOrder = 0, LastModified = DateTime.UtcNow }
             }
         };
 
-        var existingSettings = CreateSampleUserSettings(userId);
-        _dashboardServiceMock
-            .Setup(x => x.GetUserSettingsAsync(userId))
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync(existingSettings);
-
-        UserDashboardSettings capturedSettings = null;
-        _dashboardServiceMock
-            .Setup(x => x.SaveUserSettingsAsync(It.IsAny<string>(), It.IsAny<UserDashboardSettings>()))
-            .Callback<string, UserDashboardSettings>((_, settings) => capturedSettings = settings);
 
         // Act
         await _handler.Handle(request, CancellationToken.None);
 
-        // Assert
-        capturedSettings.Should().NotBeNull();
-        capturedSettings.UserId.Should().Be(userId);
-        capturedSettings.Tiles.Should().HaveCount(1);
-
-        var tile = capturedSettings.Tiles.First();
-        tile.UserId.Should().Be(userId);
-        tile.TileId.Should().Be("analytics-tile");
-        tile.IsVisible.Should().BeTrue();
-        tile.DisplayOrder.Should().Be(5);
-        tile.LastModified.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        // Assert — existing tile unchanged, UpdateAsync still called (LastModified updated)
+        _repositoryMock.Verify(x => x.UpdateAsync(
+            It.Is<UserDashboardSettings>(s => s.UserId == userId && s.Tiles.Count == 1)),
+            Times.Once);
     }
 
     [Fact]
@@ -227,8 +233,8 @@ public class SaveUserSettingsHandlerTests
         };
 
         var existingSettings = CreateSampleUserSettings("user123");
-        _dashboardServiceMock
-            .Setup(x => x.GetUserSettingsAsync("user123"))
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync("user123"))
             .ReturnsAsync(existingSettings);
 
         // Act
@@ -237,6 +243,68 @@ public class SaveUserSettingsHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_AcquiresLockOncePerCall()
+    {
+        // Arrange
+        var userId = "user123";
+        var request = new SaveUserSettingsRequest
+        {
+            UserId = userId,
+            Tiles = Array.Empty<UserDashboardTileDto>()
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(CreateSampleUserSettings(userId));
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        _lockMock.Verify(x => x.AcquireAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_SendsGetUserSettingsBeforeAcquiringLock()
+    {
+        // Arrange
+        var userId = "user123";
+        var request = new SaveUserSettingsRequest
+        {
+            UserId = userId,
+            Tiles = Array.Empty<UserDashboardTileDto>()
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(CreateSampleUserSettings(userId));
+
+        var callOrder = new List<string>();
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("mediator"))
+            .ReturnsAsync(new GetUserSettingsResponse());
+
+        var noOpDisposable = new Mock<IAsyncDisposable>();
+        noOpDisposable.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        _lockMock
+            .Setup(x => x.AcquireAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("lock"))
+            .ReturnsAsync(noOpDisposable.Object);
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        callOrder.Should().ContainInOrder("mediator", "lock");
+        _mediatorMock.Verify(x => x.Send(
+            It.Is<GetUserSettingsRequest>(r => r.UserId == userId),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     private static UserDashboardSettings CreateSampleUserSettings(string userId)

@@ -25,7 +25,7 @@ const TerminalLayout: React.FC = () => {
       <header className="h-14 sticky top-0 z-10 bg-white border-b border-border-light flex items-center px-4 gap-3">
         {!isHome && (
           <button
-            onClick={() => navigate(TERMINAL_ROOT)}
+            onClick={() => navigate(-1)}
             aria-label="Zpět"
             className="p-2 -ml-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale transition-colors"
           >

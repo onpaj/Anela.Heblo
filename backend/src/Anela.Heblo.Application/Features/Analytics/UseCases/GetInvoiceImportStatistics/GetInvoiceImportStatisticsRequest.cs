@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Analytics;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
@@ -16,20 +17,4 @@ public class GetInvoiceImportStatisticsRequest : IRequest<GetInvoiceImportStatis
     /// Number of days to look back from today
     /// </summary>
     public int? DaysBack { get; set; }
-}
-
-/// <summary>
-/// Enum defining which date field to use for statistics
-/// </summary>
-public enum ImportDateType
-{
-    /// <summary>
-    /// Use InvoiceDate (when invoice was issued)
-    /// </summary>
-    InvoiceDate,
-
-    /// <summary>
-    /// Use LastSyncTime (when invoice was imported into our system)
-    /// </summary>
-    LastSyncTime
 }
