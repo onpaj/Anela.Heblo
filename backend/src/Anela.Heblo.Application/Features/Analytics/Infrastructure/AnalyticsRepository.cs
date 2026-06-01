@@ -44,7 +44,6 @@ public class AnalyticsRepository : IAnalyticsRepository
         return _productSource.GetProductAnalysisDataAsync(productId, fromDate, toDate, cancellationToken);
     }
 
-
     /// <summary>
     /// Gets daily invoice import statistics for monitoring purposes
     /// </summary>
