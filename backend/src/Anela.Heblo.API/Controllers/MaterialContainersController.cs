@@ -49,7 +49,7 @@ public class MaterialContainersController : BaseApiController
         return HandleResponse(response);
     }
 
-    [HttpDelete("{id:int}")]
+    [HttpPost("{id:int}/discard")]
     public async Task<ActionResult<DiscardMaterialContainerResponse>> Discard(int id, CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(new DiscardMaterialContainerRequest { Id = id }, cancellationToken);

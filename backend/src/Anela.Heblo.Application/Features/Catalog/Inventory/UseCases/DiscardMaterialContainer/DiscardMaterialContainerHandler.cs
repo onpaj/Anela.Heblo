@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -8,27 +9,36 @@ namespace Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.DiscardMat
 public class DiscardMaterialContainerHandler : IRequestHandler<DiscardMaterialContainerRequest, DiscardMaterialContainerResponse>
 {
     private readonly ILogger<DiscardMaterialContainerHandler> _logger;
-    private readonly IMaterialContainerRepository _materialContainerRepository;
+    private readonly IMaterialContainerRepository _containerRepository;
+    private readonly ICurrentUserService _currentUserService;
 
-    public DiscardMaterialContainerHandler(ILogger<DiscardMaterialContainerHandler> logger, IMaterialContainerRepository materialContainerRepository)
+    public DiscardMaterialContainerHandler(
+        ILogger<DiscardMaterialContainerHandler> logger,
+        IMaterialContainerRepository containerRepository,
+        ICurrentUserService currentUserService)
     {
         _logger = logger;
-        _materialContainerRepository = materialContainerRepository;
+        _containerRepository = containerRepository;
+        _currentUserService = currentUserService;
     }
 
-    public async Task<DiscardMaterialContainerResponse> Handle(DiscardMaterialContainerRequest request, CancellationToken cancellationToken)
+    public async Task<DiscardMaterialContainerResponse> Handle(
+        DiscardMaterialContainerRequest request, CancellationToken cancellationToken)
     {
-        var container = await _materialContainerRepository.GetByIdAsync(request.Id, cancellationToken);
+        var container = await _containerRepository.GetByIdAsync(request.Id, cancellationToken);
         if (container == null)
         {
-            _logger.LogWarning("MaterialContainer {Id} not found for delete", request.Id);
-            return new DiscardMaterialContainerResponse(ErrorCodes.MaterialContainerNotFound, new Dictionary<string, string> { { "Id", request.Id.ToString() } });
+            return new DiscardMaterialContainerResponse(
+                ErrorCodes.MaterialContainerNotFound,
+                new Dictionary<string, string> { { "Id", request.Id.ToString() } });
         }
 
-        await _materialContainerRepository.DeleteAsync(container, cancellationToken);
-        await _materialContainerRepository.SaveChangesAsync(cancellationToken);
+        var currentUser = _currentUserService.GetCurrentUser();
+        var updatedBy = currentUser.Name ?? "System";
+        container.Discard(updatedBy);
 
-        _logger.LogInformation("MaterialContainer {Id} deleted", request.Id);
+        await _containerRepository.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("MaterialContainer {Id} discarded by {User}", request.Id, updatedBy);
         return new DiscardMaterialContainerResponse();
     }
 }
