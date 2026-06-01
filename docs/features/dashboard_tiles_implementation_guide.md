@@ -551,3 +551,37 @@ return new
 ```
 
 This guide provides a comprehensive foundation for implementing dashboard tiles in the Anela Heblo application. Follow these patterns and guidelines to ensure consistency, maintainability, and scalability of the tile system.
+
+## Renaming a Tile Class or Changing Its Persistent ID
+
+### The `[TileId]` attribute is the source of truth
+
+Every concrete `ITile` implementation carries a `[TileId("value")]` attribute. This value is the string persisted in the `UserDashboardTiles.TileId` column and is the **only** thing that connects a user's saved configuration to the tile implementation.
+
+### Renaming the C# class is safe
+
+Renaming the class (e.g., `PurchaseOrdersInTransitTile` → `OrdersInTransitTile`) does **not** require a database migration, as long as the `[TileId]` value remains unchanged.
+
+```csharp
+// Before
+[TileId("purchaseordersintransit")]
+public class PurchaseOrdersInTransitTile : ITile { ... }
+
+// After rename — no migration needed because [TileId] is unchanged
+[TileId("purchaseordersintransit")]
+public class OrdersInTransitTile : ITile { ... }
+```
+
+### Changing the `[TileId]` value is a breaking data change
+
+If you need to change the `[TileId]` value, you must write an EF Core migration that updates the `UserDashboardTiles.TileId` column from the old value to the new one. Use the existing `20251024072354_UpdateMaterialInventoryTileId` migration as a template.
+
+Steps:
+1. Write and test the migration against a copy of the production database.
+2. Update the `[TileId]` attribute in code.
+3. Update the `AllConcreteTiles_WhoseNameEndsInTile_HaveBackwardCompatibleTileId` assertion in `TileIdContractTests.cs` if the class name still ends in `"Tile"` (or the test will fail CI).
+4. Deploy the migration and the code change together.
+
+### Abstract base classes do not need `[TileId]`
+
+Abstract base classes (e.g., `TransportBoxBaseTile`, `UpcomingProductionTile`) do **not** need the attribute. Every **concrete** subclass that is registered must declare its own `[TileId]`.
