@@ -129,7 +129,7 @@ const MaterialContainerList: React.FC = () => {
                   value={materialInput}
                   onChange={(e) => setMaterialInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border border-gray-300 rounded-md"
                   placeholder="Materiál"
                 />
               </div>
@@ -141,7 +141,7 @@ const MaterialContainerList: React.FC = () => {
                 value={lotInput}
                 onChange={(e) => setLotInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full px-3 py-2 sm:text-sm border border-gray-300 rounded-md"
                 placeholder="Šarže"
               />
             </div>
@@ -152,7 +152,7 @@ const MaterialContainerList: React.FC = () => {
                 value={codeInput}
                 onChange={(e) => setCodeInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full px-3 py-2 sm:text-sm border border-gray-300 rounded-md"
                 placeholder="Kód kontejneru"
               />
             </div>
