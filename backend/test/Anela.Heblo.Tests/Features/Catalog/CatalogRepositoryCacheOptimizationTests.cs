@@ -13,6 +13,7 @@ using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -175,14 +176,17 @@ public class CatalogRepositoryCacheOptimizationTests
         _productPriceErpClientMock.Setup(x => x.GetAllAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ProductPriceErp>());
 
-        _manufactureClientMock.Setup(x => x.FindByIngredientAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ManufactureTemplate>());
-
         _manufactureDifficultyRepositoryMock.Setup(x => x.ListAsync(It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureDifficultySetting>());
 
-        _manufactureHistoryClientMock.Setup(x => x.GetHistoryAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ManufactureHistoryRecord>());
+        _manufactureSourceMock.Setup(x => x.GetManufactureHistoryAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<ManufactureHistoryRecord>)new List<ManufactureHistoryRecord>());
+
+        _manufactureSourceMock.Setup(x => x.GetPlannedQuantitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, decimal>());
+
+        _manufactureSourceMock.Setup(x => x.GetManufacturedInventoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, decimal>());
 
         _transportSourceMock.Setup(x => x.GetProductsInTransportAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int>());
