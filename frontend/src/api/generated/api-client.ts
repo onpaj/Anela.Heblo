@@ -7279,12 +7279,14 @@ export class ApiClient {
         return Promise.resolve<ImportFromOutlookResponse>(null as any);
     }
 
-    materialContainers_GetMaterialContainers(materialCode: string | null | undefined, lotCode: string | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListMaterialContainersResponse> {
+    materialContainers_GetMaterialContainers(materialCode: string | null | undefined, lotCode: string | null | undefined, code: string | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListMaterialContainersResponse> {
         let url_ = this.baseUrl + "/api/material-containers?";
         if (materialCode !== undefined && materialCode !== null)
             url_ += "materialCode=" + encodeURIComponent("" + materialCode) + "&";
         if (lotCode !== undefined && lotCode !== null)
             url_ += "lotCode=" + encodeURIComponent("" + lotCode) + "&";
+        if (code !== undefined && code !== null)
+            url_ += "code=" + encodeURIComponent("" + code) + "&";
         if (page === null)
             throw new Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
