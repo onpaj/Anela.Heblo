@@ -16,6 +16,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.SubmitStockTaking;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder;
 using Anela.Heblo.Application.Features.Catalog.Validators;
+using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
@@ -46,6 +47,8 @@ public static class CatalogModule
         services.AddScoped<IMaterialCatalogService, PurchaseMaterialCatalogAdapter>();
         services.AddScoped<IPurchasePriceRecalculationService, CatalogPurchasePriceRecalculationAdapter>();
         services.AddTransient<IAnalyticsProductSource, CatalogAnalyticsSourceAdapter>();
+        services.AddTransient<ILogisticsCatalogSource, LogisticsCatalogSourceAdapter>();
+        services.AddTransient<ILogisticsStockOperationService, LogisticsStockOperationAdapter>();
 
         // Register cost repositories
         services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others

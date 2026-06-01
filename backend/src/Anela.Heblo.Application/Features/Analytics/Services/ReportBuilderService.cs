@@ -1,36 +1,34 @@
 using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Features.Analytics.Models;
-using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
-using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 using Anela.Heblo.Domain.Features.Analytics;
 
 namespace Anela.Heblo.Application.Features.Analytics.Services;
 
 public interface IReportBuilderService
 {
-    List<GetProductMarginAnalysisResponse.MonthlyMarginBreakdown> BuildMonthlyBreakdown(
+    List<MonthlyMarginBreakdownDto> BuildMonthlyBreakdown(
         List<SalesDataPoint> salesData,
         AnalyticsProduct productData,
         DateTime startDate,
         DateTime endDate);
 
-    List<GetMarginReportResponse.CategoryMarginSummary> BuildCategorySummaries(
+    List<CategoryMarginSummaryDto> BuildCategorySummaries(
         Dictionary<string, CategoryData> categoryTotals);
 
-    GetMarginReportResponse.ProductMarginSummary BuildProductSummary(
+    ProductMarginSummaryDto BuildProductSummary(
         AnalyticsProduct product,
         AnalysisMarginData marginData);
 }
 
 public class ReportBuilderService : IReportBuilderService
 {
-    public List<GetProductMarginAnalysisResponse.MonthlyMarginBreakdown> BuildMonthlyBreakdown(
+    public List<MonthlyMarginBreakdownDto> BuildMonthlyBreakdown(
         List<SalesDataPoint> salesData,
         AnalyticsProduct productData,
         DateTime startDate,
         DateTime endDate)
     {
-        var breakdown = new List<GetProductMarginAnalysisResponse.MonthlyMarginBreakdown>();
+        var breakdown = new List<MonthlyMarginBreakdownDto>();
         var current = new DateTime(startDate.Year, startDate.Month, 1);
         var end = new DateTime(endDate.Year, endDate.Month, 1);
 
@@ -45,7 +43,7 @@ public class ReportBuilderService : IReportBuilderService
             var monthlyCost = (decimal)monthlyUnitsSold * (productData.SellingPrice - productData.MarginAmount);
             var monthlyMargin = monthlyRevenue - monthlyCost;
 
-            breakdown.Add(new GetProductMarginAnalysisResponse.MonthlyMarginBreakdown
+            breakdown.Add(new MonthlyMarginBreakdownDto
             {
                 Month = current,
                 MarginAmount = monthlyMargin,
@@ -60,10 +58,10 @@ public class ReportBuilderService : IReportBuilderService
         return breakdown;
     }
 
-    public List<GetMarginReportResponse.CategoryMarginSummary> BuildCategorySummaries(
+    public List<CategoryMarginSummaryDto> BuildCategorySummaries(
         Dictionary<string, CategoryData> categoryTotals)
     {
-        return categoryTotals.Select(kvp => new GetMarginReportResponse.CategoryMarginSummary
+        return categoryTotals.Select(kvp => new CategoryMarginSummaryDto
         {
             Category = kvp.Key,
             TotalMargin = kvp.Value.TotalMargin,
@@ -75,11 +73,11 @@ public class ReportBuilderService : IReportBuilderService
         }).ToList();
     }
 
-    public GetMarginReportResponse.ProductMarginSummary BuildProductSummary(
+    public ProductMarginSummaryDto BuildProductSummary(
         AnalyticsProduct product,
         AnalysisMarginData marginData)
     {
-        return new GetMarginReportResponse.ProductMarginSummary
+        return new ProductMarginSummaryDto
         {
             ProductId = product.ProductCode,
             ProductName = product.ProductName,

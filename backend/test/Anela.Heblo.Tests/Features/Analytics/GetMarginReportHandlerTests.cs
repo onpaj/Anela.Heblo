@@ -80,7 +80,7 @@ public class GetMarginReportHandlerTests
         // Default report builder service behavior
         _reportBuilderServiceMock
             .Setup(x => x.BuildProductSummary(It.IsAny<AnalyticsProduct>(), It.IsAny<AnalysisMarginData>()))
-            .Returns((AnalyticsProduct product, AnalysisMarginData data) => new GetMarginReportResponse.ProductMarginSummary
+            .Returns((AnalyticsProduct product, AnalysisMarginData data) => new ProductMarginSummaryDto
             {
                 ProductId = product.ProductCode,
                 ProductName = product.ProductName,
@@ -95,7 +95,7 @@ public class GetMarginReportHandlerTests
         _reportBuilderServiceMock
             .Setup(x => x.BuildCategorySummaries(It.IsAny<Dictionary<string, CategoryData>>()))
             .Returns((Dictionary<string, CategoryData> categoryTotals) =>
-                categoryTotals.Select(kvp => new GetMarginReportResponse.CategoryMarginSummary
+                categoryTotals.Select(kvp => new CategoryMarginSummaryDto
                 {
                     Category = kvp.Key,
                     TotalMargin = kvp.Value.TotalMargin,
