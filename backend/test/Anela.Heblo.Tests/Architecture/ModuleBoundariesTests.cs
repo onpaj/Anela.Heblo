@@ -89,6 +89,39 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Logistics.Services.TransportBoxCompletionService -> Anela.Heblo.Domain.Features.Catalog.Stock.StockUpOperation",
     };
 
+    // Allowlist for Catalog -> Logistics. Empty — all violations cleared by the Catalog source-contract refactor.
+    private static readonly HashSet<string> CatalogLogisticsAllowlist = new(StringComparer.Ordinal);
+
+    // Allowlist for Catalog -> Purchase. Empty — all violations cleared by the Catalog source-contract refactor.
+    private static readonly HashSet<string> CatalogPurchaseAllowlist = new(StringComparer.Ordinal);
+
+    // Allowlist for Catalog -> Manufacture. Pre-existing handler-level IManufactureClient injections
+    // and ManufactureHistoryRecord return-type leak from CatalogRepository/ICatalogManufactureSource
+    // are out of scope for the 2026-06-01 CatalogRepository decoupling. Track as follow-ups:
+    //   - Migrate the three handlers off IManufactureClient onto a Catalog-owned contract.
+    //   - Introduce a Catalog-owned CatalogManufactureHistoryRecord DTO and map in the adapter.
+    private static readonly HashSet<string> CatalogManufactureAllowlist = new(StringComparer.Ordinal)
+    {
+        // Follow-up: migrate UpdateProductCompositionOrderHandler off IManufactureClient.
+        "Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder.UpdateProductCompositionOrderHandler -> Anela.Heblo.Domain.Features.Manufacture.IManufactureClient",
+
+        // Follow-up: migrate GetProductCompositionHandler off IManufactureClient.
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition.GetProductCompositionHandler -> Anela.Heblo.Domain.Features.Manufacture.IManufactureClient",
+
+        // Follow-up: migrate GetProductUsageHandler off IManufactureClient.
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage.GetProductUsageHandler -> Anela.Heblo.Domain.Features.Manufacture.IManufactureClient",
+
+        // Deliberate pragmatic leak: ManufactureHistoryRecord is the return-element type of
+        // ICatalogManufactureSource.GetManufactureHistoryAsync and is woven through Catalog's
+        // CachedManufactureHistoryData and CatalogAggregate.ManufactureHistory. Track follow-up:
+        // introduce Catalog-owned CatalogManufactureHistoryRecord DTO.
+        "Anela.Heblo.Application.Features.Catalog.CatalogRepository -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+
+        // ICatalogManufactureSource explicitly returns ManufactureHistoryRecord in its contract;
+        // this is the deliberate leak described above. Remove when follow-up DTO is introduced.
+        "Anela.Heblo.Application.Features.Catalog.Contracts.ICatalogManufactureSource -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+    };
+
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
         new ModuleBoundaryRule(
@@ -190,6 +223,39 @@ public class ModuleBoundariesTests
             },
             Allowlist: new HashSet<string>(StringComparer.Ordinal),
             InspectedAssembly: "Anela.Heblo.Domain"),
+
+        new ModuleBoundaryRule(
+            Name: "Catalog -> Logistics",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Catalog",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Logistics",
+                "Anela.Heblo.Application.Features.Logistics",
+                "Anela.Heblo.Persistence.Logistics",
+            },
+            Allowlist: CatalogLogisticsAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Catalog -> Purchase",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Catalog",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Purchase",
+                "Anela.Heblo.Application.Features.Purchase",
+                "Anela.Heblo.Persistence.Purchase",
+            },
+            Allowlist: CatalogPurchaseAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Catalog -> Manufacture",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Catalog",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Manufacture",
+                "Anela.Heblo.Application.Features.Manufacture",
+                "Anela.Heblo.Persistence.Manufacture",
+            },
+            Allowlist: CatalogManufactureAllowlist),
     };
 
     [Theory]
