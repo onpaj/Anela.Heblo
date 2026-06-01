@@ -96,10 +96,10 @@ describe("Authenticated API Usage", () => {
 
       throw new Error(
         `Found ${violations.length} unauthenticated API calls:\n${errorMessage}\n\n` +
-          "Use getAuthenticatedApiClient() instead of plain fetch() for API calls.\n" +
-          "Example:\n" +
-          "  const apiClient = getAuthenticatedApiClient();\n" +
-          "  const response = await (apiClient as any).http.fetch(fullUrl, {...});",
+          "Use getAuthenticatedApiClient() or getAuthenticatedFetch() for API calls.\n" +
+          "Example (for endpoints where you need to check specific status codes):\n" +
+          "  import { getApiBaseUrl, getAuthenticatedFetch } from '../client';\n" +
+          "  const response = await getAuthenticatedFetch()(url, { method: 'POST', ... });",
       );
     }
   });
