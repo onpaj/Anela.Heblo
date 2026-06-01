@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { AlertCircle } from "lucide-react";
 import type { ManufacturedProductInventoryItem } from "../../../api/hooks/useManufacturedProductInventory";
+import { BottomSheet } from "../shell/BottomSheet";
 
 interface AmountEntrySheetProps {
   item: ManufacturedProductInventoryItem;
@@ -30,13 +31,11 @@ const AmountEntrySheet: React.FC<AmountEntrySheetProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onCancel}>
+    <BottomSheet open onClose={onCancel} hasInput>
       <div
-        role="dialog"
         aria-modal="true"
         aria-label={`Zadat množství – ${item.productName}`}
-        className="bg-white rounded-t-2xl w-full max-w-md p-5 space-y-4"
-        onClick={(e) => e.stopPropagation()}
+        className="space-y-4"
       >
         <div>
           <p className="font-semibold text-neutral-slate">{item.productName}</p>
@@ -91,7 +90,7 @@ const AmountEntrySheet: React.FC<AmountEntrySheetProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </BottomSheet>
   );
 };
 

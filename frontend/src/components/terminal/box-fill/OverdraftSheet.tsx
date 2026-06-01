@@ -1,6 +1,7 @@
 import React from "react";
 import { AlertCircle } from "lucide-react";
 import type { ManufacturedProductInventoryItem } from "../../../api/hooks/useManufacturedProductInventory";
+import { BottomSheet } from "../shell/BottomSheet";
 
 interface OverdraftSheetProps {
   item: ManufacturedProductInventoryItem;
@@ -21,13 +22,11 @@ const OverdraftSheet: React.FC<OverdraftSheetProps> = ({
 }) => {
   const missing = requestedAmount - item.amount;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onCancel}>
+    <BottomSheet open onClose={onCancel}>
       <div
-        role="dialog"
         aria-modal="true"
         aria-label={`Nedostatek zásob – ${item.productName}`}
-        className="bg-white rounded-t-2xl w-full max-w-md p-5 space-y-4"
-        onClick={(e) => e.stopPropagation()}
+        className="space-y-4"
       >
         <div className="flex items-start gap-3">
           <AlertCircle className="h-6 w-6 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -60,7 +59,7 @@ const OverdraftSheet: React.FC<OverdraftSheetProps> = ({
           Zrušit
         </button>
       </div>
-    </div>
+    </BottomSheet>
   );
 };
 
