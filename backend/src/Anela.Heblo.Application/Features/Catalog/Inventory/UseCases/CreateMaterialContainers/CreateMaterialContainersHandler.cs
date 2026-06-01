@@ -93,6 +93,7 @@ public class CreateMaterialContainersHandler : IRequestHandler<CreateMaterialCon
         LotCode = c.LotCode,
         Amount = c.Amount,
         Unit = c.Unit,
+        Status = c.Status.ToString(),
         CreatedAt = c.CreatedAt,
         CreatedBy = c.CreatedBy,
         PurchaseOrderLineId = c.PurchaseOrderLineId
