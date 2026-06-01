@@ -124,23 +124,50 @@ describe("Authenticated API Usage", () => {
           content.includes("getAuthenticatedApiClient") ||
           content.includes("getAuthenticatedFetch") ||
           content.includes("smartsuppClient");
+        // Legacy hooks that use (apiClient as any).http.fetch are authenticated via the NSwag
+        // client's auth state but bypass the type contract. They're treated as "not plain fetch"
+        // here to avoid double-flagging; enforcement for migrated hooks is in the MIGRATED_HOOKS
+        // guard below. New hooks must never introduce this pattern.
+        const hasLegacyAsAnyFetch =
+          content.includes("(apiClient as any).http.fetch") ||
+          content.includes("apiClient.http.fetch");
+
         const hasPlainFetch =
           content.includes("fetch(") &&
-          !content.includes("(apiClient as any).http.fetch") &&
-          !content.includes("apiClient.http.fetch") &&
-          !content.includes("getAuthenticatedFetch");
+          !content.includes("getAuthenticatedFetch") &&
+          !hasLegacyAsAnyFetch;
+
+        // Any hook that still uses (apiClient as any) patterns (not just .http.fetch, but also
+        // .baseUrl or any other private-field access) is tracked here. New hooks must not add
+        // these — the MIGRATED_HOOKS set below enforces this; extend it as each hook is cleaned up.
+        const hasForbiddenCast =
+          content.includes("(apiClient as any)") ||
+          content.includes("as any).http") ||
+          content.includes("as any).baseUrl");
 
         if (!hasAuthenticatedClient) {
           violations.push({
             file: file.replace(apiHooksDir, ""),
-            reason: "Missing getAuthenticatedApiClient() or getAuthenticatedFetch() import and usage",
+            reason: "Missing getAuthenticatedApiClient() or getAuthenticatedFetch() import and usage. " +
+              "Import { getApiBaseUrl, getAuthenticatedFetch } from '../client' for status-code branching.",
           });
         }
 
         if (hasPlainFetch) {
           violations.push({
             file: file.replace(apiHooksDir, ""),
-            reason: "Using plain fetch() instead of authenticated API client or getAuthenticatedFetch()",
+            reason: "Using plain fetch() instead of authenticated API client or getAuthenticatedFetch(). " +
+              "Import { getApiBaseUrl, getAuthenticatedFetch } from '../client'.",
+          });
+        }
+
+        if (hasForbiddenCast && !hasLegacyAsAnyFetch) {
+          // hasForbiddenCast that isn't the known legacy .http.fetch form is unexpected.
+          // This fires for patterns like `(apiClient as any).baseUrl` introduced by new hooks.
+          violations.push({
+            file: file.replace(apiHooksDir, ""),
+            reason: "Uses forbidden (apiClient as any) cast. Use getApiBaseUrl() and getAuthenticatedFetch() " +
+              "from '../client' instead of reaching into private fields.",
           });
         }
       }
@@ -213,7 +240,8 @@ describe("Authenticated API Usage", () => {
       throw new Error(
         `Found ${violations.length} forbidden (as any) patterns in API hooks:\n${errorMessage}\n\n` +
           "Use getApiBaseUrl() and getAuthenticatedFetch() from '../client' instead.\n" +
-          "Import: import { getApiBaseUrl, getAuthenticatedFetch } from '../client'",
+          "Import: import { getApiBaseUrl, getAuthenticatedFetch } from '../client'\n" +
+          "See: docs/development/api-client-generation.md for the canonical pattern.",
       );
     }
   });
