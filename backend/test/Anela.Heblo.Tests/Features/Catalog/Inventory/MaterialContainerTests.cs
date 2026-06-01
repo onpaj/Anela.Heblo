@@ -43,4 +43,62 @@ public class MaterialContainerTests
 
         act.Should().Throw<InvalidOperationException>();
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Assign_Throws_WhenAmountNotPositive(decimal amount)
+    {
+        var c = MaterialContainer.CreateUnassigned("M00000004", "tester");
+
+        var act = () => c.Assign("MAT", "LOT", amount: amount, unit: null, purchaseOrderLineId: null, updatedBy: "u");
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Assign_Throws_WhenMaterialCodeBlank()
+    {
+        var c = MaterialContainer.CreateUnassigned("M00000005", "tester");
+
+        var act = () => c.Assign("", "LOT", amount: null, unit: null, purchaseOrderLineId: null, updatedBy: "u");
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Assign_Throws_WhenLotCodeBlank()
+    {
+        var c = MaterialContainer.CreateUnassigned("M00000006", "tester");
+
+        var act = () => c.Assign("MAT", "", amount: null, unit: null, purchaseOrderLineId: null, updatedBy: "u");
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Assign_Throws_WhenUpdatedByBlank()
+    {
+        var c = MaterialContainer.CreateUnassigned("M00000007", "tester");
+
+        var act = () => c.Assign("MAT", "LOT", amount: null, unit: null, purchaseOrderLineId: null, updatedBy: "");
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void CreateUnassigned_Throws_WhenCodeBlank()
+    {
+        var act = () => MaterialContainer.CreateUnassigned("", "tester");
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void CreateUnassigned_Throws_WhenCreatedByBlank()
+    {
+        var act = () => MaterialContainer.CreateUnassigned("M00000001", "");
+
+        act.Should().Throw<ArgumentException>();
+    }
 }
