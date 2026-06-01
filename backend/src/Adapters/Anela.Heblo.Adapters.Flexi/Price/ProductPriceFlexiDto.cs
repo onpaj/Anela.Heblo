@@ -8,7 +8,7 @@ public class ProductPriceFlexiDto
     public int ProductId { get; set; }
 
     [JsonProperty("kod")]
-    public string ProductCode { get; set; }
+    public required string ProductCode { get; set; }
 
     [JsonProperty("cena")]
     public decimal Price { get; set; }
@@ -17,10 +17,10 @@ public class ProductPriceFlexiDto
     public decimal PurchasePrice { get; set; }
 
     [JsonProperty("typszbdphk")]
-    public string VatLevel { get; set; }
+    public required string VatLevel { get; set; }
 
     [JsonProperty("typzasobyk")]
-    public string ProductType { get; set; }
+    public required string ProductType { get; set; }
 
     [JsonProperty("idKusovnik")]
     public int? BoMId { get; set; }

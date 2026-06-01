@@ -70,7 +70,7 @@ export interface ArticleFeedbackListParams {
   hasFeedback?: boolean;
   requestedBy?: string;
   sortBy?: string;
-  descending?: boolean;
+  sortDescending?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -80,11 +80,10 @@ export interface ArticleFeedbackSummary {
   topic: string;
   title: string | null;
   requestedBy: string;
-  generatedAt: string | null;
+  createdAt: string | null;
   precisionScore: number | null;
   styleScore: number | null;
-  feedbackComment: string | null;
-  hasFeedback: boolean;
+  hasComment: boolean;
 }
 
 export interface ArticleFeedbackStats {
@@ -136,7 +135,7 @@ export const useListArticlesQuery = (params: ListArticlesParams = {}) => {
         id: item.id?.toString() ?? '',
         topic: item.topic ?? '',
         title: item.title ?? null,
-        status: (item.status as ArticleStatus) ?? ArticleStatus.Queued,
+        status: item.status ?? ArticleStatus.Queued,
         createdAt: item.createdAt?.toISOString() ?? '',
         generatedAt: item.generatedAt?.toISOString() ?? null,
       }));
@@ -161,7 +160,7 @@ export const useGetArticleQuery = (id: string | null) => {
         length: response.length ?? '',
         title: response.title ?? null,
         htmlContent: response.htmlContent ?? null,
-        status: (response.status as ArticleStatus) ?? ArticleStatus.Queued,
+        status: response.status ?? ArticleStatus.Queued,
         errorMessage: response.errorMessage ?? null,
         createdAt: response.createdAt?.toISOString() ?? '',
         generatedAt: response.generatedAt?.toISOString() ?? null,
@@ -180,12 +179,9 @@ export const useGetArticleQuery = (id: string | null) => {
             validationNote: (raw.validationNote as string | null) ?? null,
           };
         }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        precisionScore: ((response as any).precisionScore as number | null) ?? null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        styleScore: ((response as any).styleScore as number | null) ?? null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        feedbackComment: ((response as any).feedbackComment as string | null) ?? null,
+        precisionScore: response.precisionScore ?? null,
+        styleScore: response.styleScore ?? null,
+        feedbackComment: response.feedbackComment ?? null,
       };
     },
     enabled: !!id,
@@ -219,6 +215,7 @@ export const useSubmitArticleFeedbackMutation = (articleId: string) => {
   return useMutation({
     mutationFn: async (payload: SubmitArticleFeedbackPayload): Promise<SubmitArticleFeedbackResult> => {
       const apiClient = getAuthenticatedApiClient();
+      // TODO(arch-review 2026-05-25): Uses private apiClient internals (baseUrl/http) via `as any` — same fragility as the hooks refactored in this PR. Keep raw fetch only for 409 branch; revisit when generated client exposes typed-mutation 409 handling.
       const fullUrl = `${(apiClient as any).baseUrl}/api/articles/${articleId}/feedback`;
 
       const response = await (apiClient as any).http.fetch(fullUrl, {
@@ -257,34 +254,44 @@ export const useArticleFeedbackListQuery = (params: ArticleFeedbackListParams = 
   return useQuery({
     queryKey: articleKeys.feedbackList(params),
     queryFn: async (): Promise<ArticleFeedbackListResponse> => {
-      const apiClient = getAuthenticatedApiClient();
-      const searchParams = new URLSearchParams();
-
-      if (params.hasFeedback !== undefined)
-        searchParams.append('hasFeedback', params.hasFeedback.toString());
-      if (params.requestedBy) searchParams.append('requestedBy', params.requestedBy);
-      if (params.sortBy) searchParams.append('sortBy', params.sortBy);
-      if (params.descending !== undefined)
-        searchParams.append('descending', params.descending.toString());
-      if (params.page !== undefined)
-        searchParams.append('page', params.page.toString());
-      if (params.pageSize !== undefined)
-        searchParams.append('pageSize', params.pageSize.toString());
-
-      const query = searchParams.toString();
-      const relativeUrl = `/api/articles/feedback/list${query ? `?${query}` : ''}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch article feedback list: ${response.status}`);
-      }
-
-      return response.json();
+      const client = getAuthenticatedApiClient();
+      const data = await client.articles_FeedbackList(
+        params.hasFeedback ?? null,
+        params.requestedBy ?? null,
+        params.sortBy,
+        params.sortDescending,
+        params.page,
+        params.pageSize,
+      );
+      return {
+        articles: (data.items ?? []).map((item) => ({
+          id: item.id ?? '',
+          topic: item.topic ?? '',
+          title: item.title ?? null,
+          requestedBy: item.requestedBy ?? '',
+          createdAt: item.createdAt?.toISOString() ?? null,
+          precisionScore: item.precisionScore ?? null,
+          styleScore: item.styleScore ?? null,
+          hasComment: item.hasComment ?? false,
+        })),
+        totalCount: data.totalCount ?? 0,
+        page: data.page ?? params.page ?? 1,
+        pageSize: data.pageSize ?? params.pageSize ?? 20,
+        totalPages: data.totalPages ?? 0,
+        stats: data.stats
+          ? {
+              totalArticles: data.stats.totalArticles ?? 0,
+              totalWithFeedback: data.stats.totalWithFeedback ?? 0,
+              avgPrecisionScore: data.stats.avgPrecisionScore ?? null,
+              avgStyleScore: data.stats.avgStyleScore ?? null,
+            }
+          : {
+              totalArticles: 0,
+              totalWithFeedback: 0,
+              avgPrecisionScore: null,
+              avgStyleScore: null,
+            },
+      };
     },
     staleTime: 30_000,
     gcTime: 5 * 60 * 1000,

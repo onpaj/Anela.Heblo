@@ -30,19 +30,19 @@ public class FlexiReceivedInvoicesClient : IReceivedInvoicesClient
         _mapper = mapper;
     }
 
-    public async Task<List<ReceivedInvoiceDto>> GetUnclassifiedInvoicesAsync()
+    public async Task<List<ReceivedInvoice>> GetUnclassifiedInvoicesAsync()
     {
         var dateTo = _timeProvider.GetLocalNow().DateTime;
         var dateFrom = dateTo.AddDays(-1 * _dataSourceOptions.Value.InvoiceClassificationDaysBack);
         var invoices = await _client.SearchAsync(new ReceivedInvoiceRequest(dateFrom, dateTo,
             label: _dataSourceOptions.Value.InvoiceClassificationTriggerLabel));
 
-        return _mapper.Map<List<ReceivedInvoiceDto>>(invoices);
+        return _mapper.Map<List<ReceivedInvoice>>(invoices);
     }
 
-    public async Task<ReceivedInvoiceDto?> GetInvoiceByIdAsync(string invoiceId)
+    public async Task<ReceivedInvoice?> GetInvoiceByIdAsync(string invoiceId)
     {
         var found = await _client.GetAsync(invoiceId);
-        return _mapper.Map<ReceivedInvoiceDto>(found); ;
+        return found is null ? null : _mapper.Map<ReceivedInvoice>(found);
     }
 }

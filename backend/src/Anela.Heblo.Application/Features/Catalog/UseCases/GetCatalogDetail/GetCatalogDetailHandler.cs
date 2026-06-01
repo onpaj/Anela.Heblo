@@ -283,10 +283,10 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                 // M1 - M0 + Manufacturing costs (if different)
                 M1 = new MarginLevelDto
                 {
-                    Percentage = m.Value.M1.Percentage,
-                    Amount = m.Value.M1.Amount,
-                    CostLevel = m.Value.M1.CostLevel,
-                    CostTotal = m.Value.M1.CostTotal
+                    Percentage = m.Value.M1_A.Percentage,
+                    Amount = m.Value.M1_A.Amount,
+                    CostLevel = m.Value.M1_A.CostLevel,
+                    CostTotal = m.Value.M1_A.CostTotal
                 },
 
                 // M2 - M1 + Sales costs (final margin level now)

@@ -765,15 +765,17 @@ public class CatalogRepository : ICatalogRepository
         }
     }
 
+    private const string CachedManufactureCostDataKey = "CachedManufactureCostData";
+
     [Obsolete($"{nameof(IMarginCalculationService)} should be used instead")]
     private IDictionary<string, List<ManufactureCost>> CachedManufactureCostData
     {
-        get => _cache.Get<Dictionary<string, List<ManufactureCost>>>(nameof(CachedManufactureCostData)) ?? new Dictionary<string, List<ManufactureCost>>();
+        get => _cache.Get<Dictionary<string, List<ManufactureCost>>>(CachedManufactureCostDataKey) ?? new Dictionary<string, List<ManufactureCost>>();
         set
         {
-            _cache.Set(nameof(CachedManufactureCostData), value);
-            InvalidateSourceData(nameof(CachedManufactureCostData));
-            SetLoadDateInCache(nameof(CachedManufactureCostData));
+            _cache.Set(CachedManufactureCostDataKey, value);
+            InvalidateSourceData(CachedManufactureCostDataKey);
+            SetLoadDateInCache(CachedManufactureCostDataKey);
         }
     }
 
@@ -808,7 +810,7 @@ public class CatalogRepository : ICatalogRepository
     public DateTime? ErpPricesLoadDate => GetLoadDateFromCache(nameof(CachedErpPriceData));
     public DateTime? EshopUrlLoadDate => GetLoadDateFromCache(nameof(CachedEshopUrlData));
     public DateTime? ManufactureDifficultySettingsLoadDate => GetLoadDateFromCache(nameof(CachedManufactureDifficultySettingsData));
-    public DateTime? ManufactureCostLoadDate => GetLoadDateFromCache(nameof(CachedManufactureCostData));
+    public DateTime? ManufactureCostLoadDate => GetLoadDateFromCache(CachedManufactureCostDataKey);
 
     // Merge operation tracking
     public DateTime? LastMergeDateTime => _cache.Get<DateTime?>("LastMergeDateTime");

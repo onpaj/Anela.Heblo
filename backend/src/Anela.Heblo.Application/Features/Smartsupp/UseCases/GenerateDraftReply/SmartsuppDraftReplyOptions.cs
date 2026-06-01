@@ -10,6 +10,7 @@ public class SmartsuppDraftReplyOptions
 
     /// <summary>
     /// System prompt for draft-reply generation. Placeholders:
+    /// {agent_name} — first name of the logged-in agent, or "Anela" as fallback;
     /// {transcript} — the role-labelled conversation transcript;
     /// {context}    — retrieved KnowledgeBase chunks;
     /// {topic}      — the selected topic hint, or "(neuvedeno)" when none.
@@ -26,6 +27,13 @@ public class SmartsuppDraftReplyOptions
         - Pokud konverzace žádnou zprávu agenta neobsahuje, použij zdvořilý
           formální český styl (oslovení "Dobrý den").
         - Odpovídej vždy v češtině.
+
+        Identita agenta:
+        - Tvoje jméno je {agent_name}. Pokud odpověď podepisuješ, podepiš se
+          vždy jako {agent_name}.
+        - Jména, která se objevují v kontextu z databáze znalostí (např. autoři
+          dokumentů), nejsou tvoje jméno a nesmíš se jimi podepisovat ani je
+          v odpovědi uvádět jako autora.
 
         Obsah odpovědi:
         - Vycházej výhradně z poskytnutého kontextu z databáze znalostí.

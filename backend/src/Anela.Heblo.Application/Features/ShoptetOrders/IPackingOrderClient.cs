@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Shared;
 
 namespace Anela.Heblo.Application.Features.ShoptetOrders;
 
@@ -31,6 +31,15 @@ public class PackingOrder
 
     /// <summary>Internal staff remark on the order; null when none.</summary>
     public string? EshopNote { get; set; }
+
+    /// <summary>Combined street and house number from the delivery address; null when unavailable.</summary>
+    public string? ShippingStreet { get; set; }
+
+    /// <summary>Delivery address city; null when unavailable.</summary>
+    public string? ShippingCity { get; set; }
+
+    /// <summary>Delivery address ZIP/postal code; null when unavailable.</summary>
+    public string? ShippingZip { get; set; }
 
     public List<PackingOrderItem> Items { get; set; } = new();
 }

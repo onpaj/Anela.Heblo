@@ -15,7 +15,6 @@ public static class PackingMaterialsModule
         services.AddScoped<IPackingMaterialAllocationRepository, PackingMaterialAllocationRepository>();
 
         // Register services
-        // Note: ConsumptionCalculationService depends on IIssuedInvoiceRepository, which is registered by InvoicesModule
         services.AddScoped<IConsumptionCalculationService, ConsumptionCalculationService>();
 
         // Register Hangfire jobs

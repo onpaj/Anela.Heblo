@@ -9,6 +9,7 @@ import {
   useBankStatementImportStatistics,
 } from "../../api/hooks/useBankStatements";
 import { BankStatementImportChart } from '../charts/BankStatementImportChart';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 type ViewOption = 'ImportCount' | 'TotalItemCount';
 type DateTypeOption = 'ImportDate' | 'StatementDate';
@@ -16,6 +17,8 @@ type DateTypeOption = 'ImportDate' | 'StatementDate';
 const BankStatementImportPage: React.FC = () => {
   const [viewType, setViewType] = useState<ViewOption>('ImportCount');
   const [dateType, setDateType] = useState<DateTypeOption>('ImportDate');
+
+  useScreenView('Finance', 'BankStatementImport');
   
   // API query - pass dateType parameter
   const { 

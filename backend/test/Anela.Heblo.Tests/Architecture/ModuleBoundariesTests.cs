@@ -16,7 +16,8 @@ public class ModuleBoundariesTests
         string Name,
         string InspectedNamespacePrefix,
         IReadOnlyList<string> ForbiddenNamespacePrefixes,
-        IReadOnlySet<string> Allowlist);
+        IReadOnlySet<string> Allowlist,
+        string InspectedAssembly = "Anela.Heblo.Application");
 
     // Pre-existing allowlist for Leaflet → KnowledgeBase. Each entry needs a comment with the
     // justification. Entries should be removed as the underlying violations are fixed.
@@ -44,6 +45,21 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Leaflet.Infrastructure.Jobs.LeafletIngestionJob -> Anela.Heblo.Application.Features.KnowledgeBase.Services.OneDriveFile",
     };
 
+    // Allowlist for Article → KnowledgeBase. Each entry needs a comment with the justification.
+    // Entries should be removed as the underlying violations are fixed.
+    private static readonly HashSet<string> ArticleAllowlist = new(StringComparer.Ordinal)
+    {
+        // Pre-existing dependency: GatherContextStep dispatches SearchDocumentsRequest via MediatR
+        // to obtain knowledge-base snippets during article generation. Lifting this behind a
+        // consumer-owned contract (e.g. IArticleKnowledgeSearch) is out of scope for the
+        // 2026-05-25 Article ↔ KnowledgeBase style-guide decoupling and is tracked as a follow-up.
+        // Remove these three entries when SearchDocumentsRequest is replaced by an Article-owned
+        // contract.
+        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.SearchDocumentsRequest",
+        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.SearchDocumentsResponse",
+        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.ChunkResult",
+    };
+
     // Allowlist for Logistics → Manufacture. Each entry needs a comment with the justification.
     // Entries should be removed as the underlying violations are fixed.
     private static readonly HashSet<string> LogisticsAllowlist = new(StringComparer.Ordinal)
@@ -63,6 +79,9 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services.GiftPackageManufactureService -> Anela.Heblo.Domain.Features.Manufacture.ProductPart",
     };
 
+    // Allowlist for Purchase → Catalog. Empty — no active violations.
+    private static readonly HashSet<string> PurchaseAllowlist = new(StringComparer.Ordinal);
+
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
         new ModuleBoundaryRule(
@@ -77,6 +96,28 @@ public class ModuleBoundariesTests
             Allowlist: LeafletAllowlist),
 
         new ModuleBoundaryRule(
+            Name: "Article -> KnowledgeBase",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Article",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.KnowledgeBase",
+                "Anela.Heblo.Application.Features.KnowledgeBase",
+                "Anela.Heblo.Persistence.KnowledgeBase",
+            },
+            Allowlist: ArticleAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Article -> UserManagement",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Article",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.UserManagement",
+                "Anela.Heblo.Application.Features.UserManagement",
+                "Anela.Heblo.Persistence.UserManagement",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
             Name: "Logistics -> Manufacture",
             InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Logistics",
             ForbiddenNamespacePrefixes: new[]
@@ -86,13 +127,69 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Manufacture",
             },
             Allowlist: LogisticsAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "PackingMaterials -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.PackingMaterials",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "Purchase -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Purchase",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: PurchaseAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "ExpeditionListArchive -> ExpeditionList",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.ExpeditionListArchive",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.ExpeditionList",
+                "Anela.Heblo.Application.Features.ExpeditionList",
+                "Anela.Heblo.Persistence.ExpeditionList",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Application) -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Domain) -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Domain.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal),
+            InspectedAssembly: "Anela.Heblo.Domain"),
     };
 
     [Theory]
     [MemberData(nameof(Rules))]
     public void Consumer_types_should_not_reference_provider_owned_namespaces(ModuleBoundaryRule rule)
     {
-        var assembly = Assembly.Load("Anela.Heblo.Application");
+        var assembly = Assembly.Load(rule.InspectedAssembly);
         var consumerTypes = assembly.GetTypes()
             .Where(t => t.Namespace is not null
                 && t.Namespace.StartsWith(rule.InspectedNamespacePrefix, StringComparison.Ordinal))
@@ -201,6 +298,45 @@ public class ModuleBoundariesTests
         violations.Should().BeEmpty(
             "Logistics types must not reference Purchase-owned namespaces. " +
             "Define a Logistics-owned contract and avoid importing Purchase types. " +
+            "Found:\n  " + string.Join("\n  ", violations));
+    }
+
+    [Fact]
+    public void Application_types_should_not_reference_AspNetCore_namespaces()
+    {
+        // NFR-3 from spec 2026-05-26: the Application layer must remain free of any
+        // Microsoft.AspNetCore.* type references. CurrentUserService was relocated to
+        // the API project to enforce this. This test prevents regression.
+        const string ApplicationNamespacePrefix = "Anela.Heblo.Application";
+        const string ForbiddenPrefix = "Microsoft.AspNetCore";
+
+        var assembly = Assembly.Load("Anela.Heblo.Application");
+        var applicationTypes = assembly.GetTypes()
+            .Where(t => t.Namespace is not null
+                && t.Namespace.StartsWith(ApplicationNamespacePrefix, StringComparison.Ordinal))
+            .ToList();
+
+        var violations = new List<string>();
+
+        foreach (var applicationType in applicationTypes)
+        {
+            foreach (var (referencedType, memberDescription) in EnumerateReferencedTypes(applicationType))
+            {
+                if (referencedType.Namespace is null)
+                    continue;
+
+                if (!referencedType.Namespace.Equals(ForbiddenPrefix, StringComparison.Ordinal)
+                    && !referencedType.Namespace.StartsWith(ForbiddenPrefix + ".", StringComparison.Ordinal))
+                    continue;
+
+                violations.Add($"{applicationType.FullName} -> {referencedType.FullName} (via {memberDescription})");
+            }
+        }
+
+        violations.Should().BeEmpty(
+            "Application layer must not reference Microsoft.AspNetCore.* types. " +
+            "Move ASP.NET Core-dependent code to the API or Infrastructure layer and " +
+            "expose it through a framework-neutral abstraction in Domain or Application. " +
             "Found:\n  " + string.Join("\n  ", violations));
     }
 

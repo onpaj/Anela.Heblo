@@ -6,6 +6,7 @@ import StockUpOperationStatusIndicator from '../../common/StockUpOperationStatus
 import { useCreateGiftPackageManufacture, useEnqueueGiftPackageManufacture } from "../../../api/hooks/useGiftPackageManufacturing";
 import { useStockUpOperationsSummary } from '../../../api/hooks/useStockUpOperations';
 import { CreateGiftPackageManufactureRequest, EnqueueGiftPackageManufactureRequest, StockUpSourceType } from "../../../api/generated/api-client";
+import { useScreenView } from "../../../telemetry/useScreenView";
 
 const GiftPackageManufacturing: React.FC = () => {
   // State for manufacturing modal 
@@ -22,6 +23,8 @@ const GiftPackageManufacturing: React.FC = () => {
   // State for catalog detail modal
   const [selectedProductCode, setSelectedProductCode] = useState<string | null>(null);
   const [isCatalogDetailOpen, setIsCatalogDetailOpen] = useState(false);
+
+  useScreenView('Logistics', 'GiftPackageManufacturing');
 
   // Manufacturing API hooks
   const createManufactureMutation = useCreateGiftPackageManufacture();

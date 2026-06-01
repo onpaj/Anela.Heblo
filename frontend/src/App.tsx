@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from "react-router-dom";
 import { MsalProvider } from "@azure/msal-react";
-import { PublicClientApplication } from "@azure/msal-browser";
+import { PublicClientApplication, EventType, AccountInfo } from "@azure/msal-browser";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Layout from "./components/Layout/Layout";
 import Dashboard from "./components/pages/Dashboard";
@@ -33,6 +33,7 @@ import BackgroundTasks from "./components/pages/automation/BackgroundTasks";
 import MeetingTasksPage from "./components/pages/automation/MeetingTasksPage";
 import MeetingTaskDetailPage from "./components/pages/automation/MeetingTaskDetailPage";
 import OrgChartPage from "./pages/OrgChartPage";
+import FeatureFlagsAdminPage from "./pages/FeatureFlagsAdminPage";
 import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClassificationPage";
 import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import StockOperationsPage from "./pages/StockOperationsPage";
@@ -52,7 +53,7 @@ import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
 import DataQualityPage from "./pages/customer/DataQualityPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
 import SmartsuppChatsPage from "./components/customer-support/smartsupp/pages/SmartsuppChatsPage";
-import CoolingPage from "./pages/customer/CoolingPage";
+import ExpeditionSettingsPage from "./pages/customer/ExpeditionSettingsPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
 import { UserStorage } from "./auth/userStorage";
 import { apiRequest } from "./auth/msalConfig";
@@ -66,6 +67,8 @@ import { ChangelogProvider } from "./contexts/ChangelogContext";
 import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
 import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog";
+import { FeatureFlagProvider } from "./features/feature-flags/FeatureFlagProvider";
+import { OpenFeatureProvider } from "@openfeature/react-sdk";
 import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
 import TerminalLayout from "./components/terminal/TerminalLayout";
 import TerminalHome from "./components/terminal/TerminalHome";
@@ -77,7 +80,10 @@ import BaleniLayout from "./components/baleni/BaleniLayout";
 import BaleniHome from "./components/baleni/BaleniHome";
 import BaleniPlaceholder from "./components/baleni/BaleniPlaceholder";
 import BaleniPacking from "./components/baleni/BaleniPacking";
+import { ZasilkyPage } from "./components/baleni/zasilky/ZasilkyPage";
 import "./i18n";
+import { initAppInsights, getAppInsights } from './telemetry/appInsights';
+import { AppInsightsProvider } from './telemetry/AppInsightsProvider';
 
 let isRedirecting = false;
 
@@ -108,6 +114,8 @@ function App() {
         const appConfig = loadConfig();
         setConfig(appConfig);
 
+        initAppInsights(appConfig.aiConnectionString);
+
         // Create MSAL configuration with app configuration
         const msalConfig = {
           auth: {
@@ -132,6 +140,29 @@ function App() {
         console.log("📱 Creating MSAL instance...");
         const instance = new PublicClientApplication(msalConfig);
         setMsalInstance(instance);
+
+        // Wire Application Insights user context to MSAL authentication events
+        instance.addEventCallback((event) => {
+          if (event.eventType === EventType.LOGIN_SUCCESS && event.payload) {
+            const account = (event.payload as { account?: AccountInfo }).account;
+            const oid = (account?.idTokenClaims as { oid?: string } | undefined)?.oid;
+            if (oid) {
+              getAppInsights()?.setAuthenticatedUserContext(oid, undefined, true);
+            }
+          }
+          if (event.eventType === EventType.LOGOUT_SUCCESS) {
+            getAppInsights()?.clearAuthenticatedUserContext();
+          }
+        });
+
+        // For users already signed in (page reload), set context immediately
+        const existingAccounts = instance.getAllAccounts();
+        if (existingAccounts.length > 0) {
+          const oid = (existingAccounts[0].idTokenClaims as { oid?: string } | undefined)?.oid;
+          if (oid) {
+            getAppInsights()?.setAuthenticatedUserContext(oid, undefined, true);
+          }
+        }
 
         // Clean up stale returnUrl on normal app start (not during MSAL redirect callback)
         const isHandlingRedirect = window.location.search.includes('code=') || window.location.hash.includes('code=');
@@ -334,6 +365,7 @@ function App() {
   }
 
   return (
+    <OpenFeatureProvider>
     <QueryClientProvider client={queryClient}>
       <LoadingProvider>
         <ToastProvider>
@@ -350,6 +382,8 @@ function App() {
                   }}
                 >
                   <AuthGuard>
+                    <FeatureFlagProvider>
+                    <AppInsightsProvider>
                     <Routes>
                       {/* Mobile terminal — no sidebar, no topbar */}
                       <Route path="/terminal" element={<TerminalLayout />}>
@@ -368,7 +402,7 @@ function App() {
                       <Route path="/baleni" element={<BaleniLayout />}>
                         <Route index element={<BaleniHome />} />
                         <Route path="baleni" element={<BaleniPacking />} />
-                        <Route path="zasilky" element={<BaleniPlaceholder title="Zásilky" />} />
+                        <Route path="zasilky" element={<ZasilkyPage />} />
                         <Route path="statistiky" element={<BaleniPlaceholder title="Statistiky" />} />
                       </Route>
 
@@ -412,7 +446,8 @@ function App() {
                         <Route path="/customer/issued-invoices" element={<IssuedInvoicesPage />} />
                         <Route path="/customer/bank-statements-overview" element={<BankStatementsOverviewPage />} />
                         <Route path="/customer/smartsupp" element={<SmartsuppChatsPage />} />
-                        <Route path="/customer/cooling" element={<CoolingPage />} />
+                        <Route path="/customer/expedition-settings" element={<ExpeditionSettingsPage />} />
+                        <Route path="/customer/cooling" element={<Navigate to="/customer/expedition-settings?tab=cooling" replace />} />
                         <Route path="/orgchart" element={<OrgChartPage />} />
                         <Route path="/stock-up-operations" element={<StockOperationsPage />} />
                         <Route path="/recurring-jobs" element={<RecurringJobsPage />} />
@@ -421,8 +456,11 @@ function App() {
                         <Route path="/marketing/feedback" element={<MarketingFeedbackPage />} />
                         <Route path="/articles" element={<ArticlesPage />} />
                         <Route path="/automation/data-quality" element={<DataQualityPage />} />
+                        <Route path="/admin/feature-flags" element={<FeatureFlagsAdminPage />} />
                       </Route>
                     </Routes>
+                    </AppInsightsProvider>
+                    </FeatureFlagProvider>
                   </AuthGuard>
                 </Router>
               </MsalProvider>
@@ -437,6 +475,7 @@ function App() {
         </ToastProvider>
       </LoadingProvider>
     </QueryClientProvider>
+    </OpenFeatureProvider>
   );
 }
 

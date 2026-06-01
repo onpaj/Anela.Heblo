@@ -28,6 +28,7 @@ import { ExplainModal } from './explain/ExplainModal';
 import { ManageAccessModal } from './access/ManageAccessModal';
 import { downloadTextFile, sanitizeFilename } from "../../../utils/downloadTextFile";
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
+import { useScreenView } from "../../../telemetry/useScreenView";
 
 const EMPTY_FORM: TaskFormData = { title: "", description: "", assignee: "", assigneeEmail: null, dueDate: null };
 
@@ -84,6 +85,7 @@ function AssigneePicker({ users, value, onChange }: AssigneePickerProps) {
 }
 
 const MeetingTaskDetailPage: React.FC = () => {
+  useScreenView('Automation', 'MeetingTaskDetail');
   const { id = "" } = useParams<{ id: string }>();
   const detail = useMeetingTaskDetail(id);
   const updateTask = useUpdateProposedTask();
@@ -196,7 +198,16 @@ const MeetingTaskDetailPage: React.FC = () => {
   };
 
   const confirmSubmit = async () => {
-    await submitToTodo.mutateAsync(id);
+    const result = await submitToTodo.mutateAsync(id);
+    if (result.failedCount === 0) {
+      submitToTodo.reset();
+      setSubmitOpen(false);
+    }
+    // Failures: keep modal open so the user can read the error list rendered below.
+  };
+
+  const closeSubmitModal = () => {
+    submitToTodo.reset();
     setSubmitOpen(false);
   };
 
@@ -533,10 +544,29 @@ const MeetingTaskDetailPage: React.FC = () => {
                 Odeslani selhalo: {submitToTodo.error instanceof Error ? submitToTodo.error.message : String(submitToTodo.error)}
               </p>
             )}
+            {submitToTodo.data && submitToTodo.data.failedCount > 0 && (
+              <div className="mt-3 p-3 rounded border border-red-200 bg-red-50">
+                <p className="text-sm font-medium text-red-800">
+                  Odeslání selhalo: {submitToTodo.data.failedCount} z {submitToTodo.data.successCount + submitToTodo.data.failedCount} úloh.
+                </p>
+                {submitToTodo.data.errors.length > 0 && (
+                  <ul className="mt-2 list-disc list-inside text-sm text-red-700 space-y-1">
+                    {submitToTodo.data.errors.map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                  </ul>
+                )}
+                {submitToTodo.data.errors.some(e => e.includes('consent required') || e.includes('Tasks.ReadWrite')) && (
+                  <p className="mt-2 text-sm text-red-700">
+                    Microsoft 365 vyžaduje souhlas administrátora pro práci s úkoly v Planneru. Odhlaste se a znovu se přihlaste po udělení souhlasu.
+                  </p>
+                )}
+              </div>
+            )}
             <div className="flex justify-end gap-2 mt-4">
               <button
                 type="button"
-                onClick={() => setSubmitOpen(false)}
+                onClick={closeSubmitModal}
                 disabled={submitToTodo.isPending}
                 className="px-3 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
               >

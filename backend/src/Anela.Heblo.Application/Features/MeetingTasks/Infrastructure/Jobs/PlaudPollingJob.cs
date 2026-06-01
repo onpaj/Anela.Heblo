@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.MeetingTasks.Services;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.IngestPlaudRecording;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Hangfire;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -38,6 +39,7 @@ public class PlaudPollingJob : IRecurringJob
         _logger = logger;
     }
 
+    [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
         if (!await _statusChecker.IsJobEnabledAsync(Metadata.JobName, cancellationToken))

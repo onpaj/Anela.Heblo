@@ -4,7 +4,6 @@ using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
@@ -19,9 +18,7 @@ public class ManufactureOrderControllerProtocolTests
     public ManufactureOrderControllerProtocolTests()
     {
         _mediatorMock = new Mock<IMediator>();
-        var configMock = new Mock<IConfiguration>();
-
-        _controller = new ManufactureOrderController(_mediatorMock.Object, configMock.Object);
+        _controller = new ManufactureOrderController(_mediatorMock.Object);
 
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();

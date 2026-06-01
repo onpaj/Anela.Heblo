@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Anela.Heblo.Application.Features.Users;
+using Anela.Heblo.API.Features.Users;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Moq;

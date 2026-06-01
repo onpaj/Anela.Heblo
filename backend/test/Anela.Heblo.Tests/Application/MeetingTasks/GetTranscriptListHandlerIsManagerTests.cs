@@ -34,14 +34,14 @@ public class GetTranscriptListHandlerIsManagerTests
         _userServiceMock.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(null, "Manager", "manager@test.com", true));
         _repositoryMock
-            .Setup(x => x.GetListAsync(null, true, "manager@test.com", 1, 20, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetListAsync(null, null, false, true, "manager@test.com", 1, 20, It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<MeetingTranscript>(), 0));
 
         var result = await _handler.Handle(new GetTranscriptListRequest { PageNumber = 1, PageSize = 20 }, default);
 
         result.Success.Should().BeTrue();
         _repositoryMock.Verify(
-            x => x.GetListAsync(null, true, "manager@test.com", 1, 20, It.IsAny<CancellationToken>()),
+            x => x.GetListAsync(null, null, false, true, "manager@test.com", 1, 20, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -52,14 +52,14 @@ public class GetTranscriptListHandlerIsManagerTests
         _userServiceMock.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(null, "User", "user@test.com", true));
         _repositoryMock
-            .Setup(x => x.GetListAsync(null, false, "user@test.com", 1, 20, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetListAsync(null, null, false, false, "user@test.com", 1, 20, It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<MeetingTranscript>(), 0));
 
         var result = await _handler.Handle(new GetTranscriptListRequest { PageNumber = 1, PageSize = 20 }, default);
 
         result.Success.Should().BeTrue();
         _repositoryMock.Verify(
-            x => x.GetListAsync(null, false, "user@test.com", 1, 20, It.IsAny<CancellationToken>()),
+            x => x.GetListAsync(null, null, false, false, "user@test.com", 1, 20, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }

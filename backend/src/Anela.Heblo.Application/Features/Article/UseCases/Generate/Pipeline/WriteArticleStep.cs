@@ -12,7 +12,7 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
-public class WriteArticleStep : IArticlePipelineStep
+public class WriteArticleStep
 {
     private readonly IChatClient _chat;
     private readonly ArticleOptions _options;
@@ -38,7 +38,14 @@ public class WriteArticleStep : IArticlePipelineStep
             "WriteArticle",
             5,
             _options.DefaultModel,
-            new { topic = context.Article.Topic, factCount = context.Facts.Count, styleGuideLength = context.StyleGuideText?.Length },
+            new
+            {
+                topic = context.Article.Topic,
+                factCount = context.Facts.Count,
+                styleGuideLength = context.StyleGuideText?.Length,
+                scope = context.Article.Scope,
+                hasLanguageNote = !string.IsNullOrWhiteSpace(context.Article.LanguageNote)
+            },
             async (token) =>
             {
                 var article = context.Article;
@@ -83,34 +90,36 @@ public class WriteArticleStep : IArticlePipelineStep
             ct);
     }
 
-    private const string SystemInstruction =
-        """
-        Jsi zkušený redaktor kosmetického obsahu. Píšeš výhradně v češtině.
-        Odpověz POUZE validním JSON bez markdown nebo code fences.
-        V poli article_html použij výhradně HTML tagy – nikdy nepište doslovný text "\n" jako obsah.
-        {"article_title":"...","article_html":"<article>...</article>","sources_used":[{"title":"...","url":"..."}]}
-        """;
-
-    private static string BuildSystemPrompt(string? styleGuideText)
+    private string BuildSystemPrompt(string? styleGuideText)
     {
         if (styleGuideText == null)
-            return SystemInstruction;
+            return _options.WriteArticleSystemPrompt;
 
-        return $"STYLE GUIDE — follow this exactly:\n{styleGuideText}\n\n{SystemInstruction}";
+        return $"STYLE GUIDE — follow this exactly:\n{styleGuideText}\n\n{_options.WriteArticleSystemPrompt}";
     }
 
     private string BuildUserMessage(ArticlePipelineContext context)
     {
         var article = context.Article;
         var factsText = BuildFactsList(context.Facts);
+        var toneNoteLine = BuildToneNoteLine(article.LanguageNote);
 
-        return _options.WriteArticleSystemPromptTemplate
+        return _options.WriteArticleUserPromptTemplate
             .Replace("{topic}", article.Topic)
+            .Replace("{scope}", article.Scope)
             .Replace("{audience}", article.Audience ?? "obecné publikum")
             .Replace("{length}", article.Length)
             .Replace("{angle}", article.Angle ?? "(nevyspecifikováno)")
+            .Replace("{language_note}", article.LanguageNote ?? "")
+            .Replace("{tone_note_line}", toneNoteLine)
             .Replace("{facts}", factsText)
             .Replace("{style_guide}", context.StyleGuideText ?? "");
+    }
+
+    private static string BuildToneNoteLine(string? languageNote)
+    {
+        var trimmed = languageNote?.Trim();
+        return string.IsNullOrEmpty(trimmed) ? "" : $"Tonalita: {trimmed}";
     }
 
     private static string BuildFactsList(List<AggregatedFact> facts)

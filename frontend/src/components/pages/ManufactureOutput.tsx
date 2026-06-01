@@ -9,6 +9,7 @@ import {
   ManufactureOutputMonth,
 } from "../../api/hooks/useManufactureOutput";
 import ManufactureOutputModal from "./ManufactureOutputModal";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 // Color palette for products (from highest weighted value to lowest)
 const PRODUCT_COLORS = [
@@ -32,6 +33,7 @@ const PRODUCT_COLORS = [
 const OTHER_COLOR = "#9CA3AF"; // Gray for other products
 
 const ManufactureOutput: React.FC = () => {
+  useScreenView('Manufacturing', 'ManufactureOutput');
   const { data, isLoading, error, refetch } = useManufactureOutputQuery(13);
   const [selectedMonth, setSelectedMonth] =
     useState<ManufactureOutputMonth | null>(null);

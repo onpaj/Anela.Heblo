@@ -1,6 +1,5 @@
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.Price;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -8,17 +7,17 @@ namespace Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchase
 
 public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurchasePriceRequest, RecalculatePurchasePriceResponse>
 {
-    private readonly ICatalogRepository _catalogRepository;
-    private readonly IProductPriceErpClient _productPriceClient;
+    private readonly IMaterialCatalogService _materialCatalog;
+    private readonly IPurchasePriceRecalculationService _priceRecalculationService;
     private readonly ILogger<RecalculatePurchasePriceHandler> _logger;
 
     public RecalculatePurchasePriceHandler(
-        ICatalogRepository catalogRepository,
-        IProductPriceErpClient productPriceClient,
+        IMaterialCatalogService materialCatalog,
+        IPurchasePriceRecalculationService priceRecalculationService,
         ILogger<RecalculatePurchasePriceHandler> logger)
     {
-        _catalogRepository = catalogRepository;
-        _productPriceClient = productPriceClient;
+        _materialCatalog = materialCatalog;
+        _priceRecalculationService = priceRecalculationService;
         _logger = logger;
     }
 
@@ -34,48 +33,62 @@ public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurcha
             return new RecalculatePurchasePriceResponse(ErrorCodes.InvalidValue, new Dictionary<string, string> { { "Message", "Either ProductCode must be specified or RecalculateAll must be true" } });
         }
 
-        var products = await _catalogRepository.GetAllAsync(cancellationToken);
         var response = new RecalculatePurchasePriceResponse();
-
-        List<CatalogAggregate> productsToProcess;
+        List<MaterialBomReference> bomReferences;
 
         if (!string.IsNullOrEmpty(request.ProductCode))
         {
             // Single product recalculation
-            var product = products.SingleOrDefault(p => p.ProductCode == request.ProductCode);
+            var product = await _materialCatalog.GetByIdAsync(request.ProductCode, cancellationToken);
             if (product == null)
             {
                 _logger.LogWarning("Product with code '{ProductCode}' not found", request.ProductCode);
                 return new RecalculatePurchasePriceResponse(ErrorCodes.CatalogItemNotFound, new Dictionary<string, string> { { "ProductCode", request.ProductCode } });
             }
 
-            productsToProcess = new List<CatalogAggregate> { product };
+            if (!product.HasBoM || !product.BoMId.HasValue)
+            {
+                _logger.LogWarning("Product '{ProductCode}' does not have BoM", request.ProductCode);
+                return new RecalculatePurchasePriceResponse(ErrorCodes.InvalidValue, new Dictionary<string, string> { { "ProductCode", request.ProductCode }, { "Message", $"Product {request.ProductCode} does not have BoM" } });
+            }
+
+            bomReferences = new List<MaterialBomReference>
+            {
+                new MaterialBomReference
+                {
+                    ProductCode = product.ProductCode,
+                    BoMId = product.BoMId.Value,
+                }
+            };
             _logger.LogInformation("Processing single product: {ProductCode}", request.ProductCode);
         }
         else
         {
             // All products with BoM recalculation
-            productsToProcess = products.Where(p => p.HasBoM).ToList();
-            _logger.LogInformation("Processing {Count} products with BoM", productsToProcess.Count);
+            bomReferences = (await _materialCatalog.GetMaterialsWithBomAsync(cancellationToken)).ToList();
+            _logger.LogInformation("Processing {Count} products with BoM", bomReferences.Count);
         }
 
-        response.TotalCount = productsToProcess.Count;
+        response.TotalCount = bomReferences.Count;
 
         // Process each product
-        foreach (var product in productsToProcess)
+        foreach (var bom in bomReferences)
         {
             try
             {
-                await RecalculateSingleProduct(product, cancellationToken);
+                _logger.LogDebug("Recalculating price for product {ProductCode} with BoMId {BoMId}",
+                    bom.ProductCode, bom.BoMId);
+
+                await _priceRecalculationService.RecalculatePurchasePriceAsync(bom.BoMId, cancellationToken);
 
                 response.ProcessedProducts.Add(new ProductRecalculationResult
                 {
-                    ProductCode = product.ProductCode,
+                    ProductCode = bom.ProductCode,
                     Success = true
                 });
 
                 response.SuccessCount++;
-                _logger.LogDebug("Successfully recalculated price for product {ProductCode}", product.ProductCode);
+                _logger.LogDebug("Successfully recalculated price for product {ProductCode}", bom.ProductCode);
             }
             catch (Exception ex)
             {
@@ -84,7 +97,7 @@ public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurcha
 
                 response.ProcessedProducts.Add(new ProductRecalculationResult
                 {
-                    ProductCode = product.ProductCode,
+                    ProductCode = bom.ProductCode,
                     Success = false,
                     ErrorCode = ErrorCodes.Exception,
                     Params = new Dictionary<string, string>
@@ -95,7 +108,7 @@ public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurcha
                 });
 
                 _logger.LogError(ex, "Failed to recalculate price for product {ProductCode}: {ErrorMessage}",
-                    product.ProductCode, errorMessage);
+                    bom.ProductCode, errorMessage);
             }
         }
 
@@ -103,19 +116,5 @@ public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurcha
             response.SuccessCount, response.FailedCount, response.TotalCount);
 
         return response;
-    }
-
-
-    private async Task RecalculateSingleProduct(CatalogAggregate product, CancellationToken cancellationToken)
-    {
-        if (!product.BoMId.HasValue)
-        {
-            throw new InvalidOperationException($"Product {product.ProductCode} does not have BoM");
-        }
-
-        _logger.LogDebug("Recalculating price for product {ProductCode} with BoMId {BoMId}",
-            product.ProductCode, product.BoMId.Value);
-
-        await _productPriceClient.RecalculatePurchasePrice(product.BoMId.Value, cancellationToken);
     }
 }

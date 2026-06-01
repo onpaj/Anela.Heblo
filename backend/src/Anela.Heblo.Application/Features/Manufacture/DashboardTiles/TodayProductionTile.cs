@@ -4,8 +4,6 @@ namespace Anela.Heblo.Application.Features.Manufacture.DashboardTiles;
 
 public class TodayProductionTile : UpcomingProductionTile
 {
-    private readonly IManufactureOrderRepository _repository;
-
     // Self-describing metadata
     public override string Title => $"Dnešní výroba ({ReferenceDate.ToString("dd.MM.yyyy")})";
     public override string Description => "Produkty vyráběné dnes";

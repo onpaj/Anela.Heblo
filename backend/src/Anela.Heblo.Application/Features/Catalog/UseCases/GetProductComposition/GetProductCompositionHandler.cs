@@ -3,13 +3,14 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition;
 
-public class GetProductCompositionHandler : IRequestHandler<GetProductCompositionRequest, GetProductCompositionResponse>
+public class GetProductCompositionHandler
+    : IRequestHandler<GetProductCompositionRequest, GetProductCompositionResponse>
 {
     private readonly IManufactureClient _manufactureClient;
 
     public GetProductCompositionHandler(IManufactureClient manufactureClient)
     {
-        _manufactureClient = manufactureClient;
+        _manufactureClient = manufactureClient ?? throw new ArgumentNullException(nameof(manufactureClient));
     }
 
     public async Task<GetProductCompositionResponse> Handle(
@@ -20,27 +21,26 @@ public class GetProductCompositionHandler : IRequestHandler<GetProductCompositio
             request.ProductCode,
             cancellationToken);
 
-        if (template == null)
+        if (template is null)
         {
-            return new GetProductCompositionResponse
-            {
-                Ingredients = new List<IngredientDto>()
-            };
+            return new GetProductCompositionResponse { Ingredients = new List<IngredientDto>() };
         }
 
-        var ingredients = template.Ingredients
-            .Select(i => new IngredientDto
+        // Sort by Flexi BoM order (poradi). Zero means unordered — push those last, then alphabetical.
+        var sorted = template.Ingredients
+            .OrderBy(i => i.Order == 0 ? int.MaxValue : i.Order)
+            .ThenBy(i => i.ProductName)
+            .Select((i, index) => new IngredientDto
             {
                 ProductCode = i.ProductCode,
                 ProductName = i.ProductName,
                 Amount = i.Amount,
-                Unit = "g" // TODO: Determine unit from product type or configuration
+                Unit = "g",
+                Order = index + 1,
+                PhaseLabel = i.PhaseLabel,
             })
             .ToList();
 
-        return new GetProductCompositionResponse
-        {
-            Ingredients = ingredients
-        };
+        return new GetProductCompositionResponse { Ingredients = sorted };
     }
 }

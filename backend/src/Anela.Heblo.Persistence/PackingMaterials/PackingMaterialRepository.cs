@@ -1,5 +1,4 @@
 using Anela.Heblo.Domain.Features.PackingMaterials;
-using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using Anela.Heblo.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,18 +10,6 @@ public class PackingMaterialRepository : BaseRepository<PackingMaterial, int>, I
     {
     }
 
-    public async Task<IEnumerable<PackingMaterial>> GetAllWithLogsAsync(CancellationToken cancellationToken = default)
-    {
-        // For now, return materials without logs since we removed the navigation property
-        // We'll load logs separately when needed
-        return await DbSet.ToListAsync(cancellationToken);
-    }
-
-    public async Task<PackingMaterial?> GetByIdWithLogsAsync(int id, CancellationToken cancellationToken = default)
-    {
-        return await DbSet.FirstOrDefaultAsync(pm => pm.Id == id, cancellationToken);
-    }
-
     public async Task<IEnumerable<PackingMaterialLog>> GetRecentLogsAsync(int packingMaterialId, DateTime fromDate, CancellationToken cancellationToken = default)
     {
         return await Context.Set<PackingMaterialLog>()
@@ -31,10 +18,38 @@ public class PackingMaterialRepository : BaseRepository<PackingMaterial, int>, I
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyDictionary<int, IReadOnlyList<PackingMaterialLog>>> GetRecentLogsForMaterialsAsync(
+        IEnumerable<int> packingMaterialIds,
+        DateTime fromDate,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = packingMaterialIds as IReadOnlyCollection<int> ?? packingMaterialIds.ToArray();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, IReadOnlyList<PackingMaterialLog>>();
+        }
+
+        var logs = await Context.Set<PackingMaterialLog>()
+            .Where(log => ids.Contains(log.PackingMaterialId) && log.CreatedAt >= fromDate)
+            .OrderByDescending(log => log.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return logs
+            .GroupBy(log => log.PackingMaterialId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<PackingMaterialLog>)g.ToList());
+    }
+
     public async Task<bool> HasDailyProcessingBeenRunAsync(DateOnly date, CancellationToken cancellationToken = default)
     {
-        return await Context.Set<PackingMaterialLog>()
-            .AnyAsync(log => log.Date == date && log.LogType == LogEntryType.AutomaticConsumption, cancellationToken);
+        return await Context.Set<PackingMaterialDailyRun>()
+            .AnyAsync(r => r.Date == date, cancellationToken);
+    }
+
+    public async Task AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default)
+    {
+        await Context.Set<PackingMaterialDailyRun>().AddAsync(run, cancellationToken);
     }
 
     public async Task<IEnumerable<PackingMaterial>> GetAllWithAllocationsAsync(CancellationToken cancellationToken = default)

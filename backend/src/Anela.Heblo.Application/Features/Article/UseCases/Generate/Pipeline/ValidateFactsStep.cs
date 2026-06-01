@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
-public class ValidateFactsStep : IArticlePipelineStep
+public class ValidateFactsStep
 {
     private readonly IChatClient _chat;
     private readonly ArticleOptions _options;

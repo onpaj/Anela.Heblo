@@ -1,9 +1,10 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeletePackingMaterial;
 
-public class DeletePackingMaterialHandler : IRequestHandler<DeletePackingMaterialRequest>
+public class DeletePackingMaterialHandler : IRequestHandler<DeletePackingMaterialRequest, DeletePackingMaterialResponse>
 {
     private readonly IPackingMaterialRepository _repository;
 
@@ -12,14 +13,20 @@ public class DeletePackingMaterialHandler : IRequestHandler<DeletePackingMateria
         _repository = repository;
     }
 
-    public async Task Handle(DeletePackingMaterialRequest request, CancellationToken cancellationToken)
+    public async Task<DeletePackingMaterialResponse> Handle(DeletePackingMaterialRequest request, CancellationToken cancellationToken)
     {
         var packingMaterial = await _repository.GetByIdAsync(request.Id, cancellationToken);
         if (packingMaterial == null)
         {
-            throw new InvalidOperationException($"Packing material with ID {request.Id} not found.");
+            return new DeletePackingMaterialResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.ResourceNotFound,
+                Error = $"Packing material with ID {request.Id} not found."
+            };
         }
 
         await _repository.DeleteAsync(packingMaterial, cancellationToken);
+        return new DeletePackingMaterialResponse();
     }
 }

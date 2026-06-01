@@ -190,6 +190,8 @@ const resources = {
         RecurringJobNotFound: "Opakovaná úloha nenalezena",
         RecurringJobUpdateFailed: "Aktualizace opakované úlohy selhala",
         InvalidCronExpression: "Neplatný výraz CRON",
+        RecurringJobDisabled: "Opakovaná úloha je vypnutá",
+        RecurringJobEnqueueFailed: "Zařazení opakované úlohy do fronty se nezdařilo",
 
         // KnowledgeBase module errors
         KnowledgeBaseFeedbackLogNotFound: "Záznam zpětné vazby nenalezen",
@@ -222,11 +224,20 @@ const resources = {
         BulkTagInvalidRequest: "Neplatný požadavek pro hromadné tagování.",
         PhotobankTagNotFound: "Tag fotobanka nebyl nalezen.",
         PhotobankInvalidRegexPattern: "Neplatný regulární výraz.",
+        PhotobankThumbnailNotFound: "Náhled fotky nebyl nalezen.",
+        PhotobankThumbnailThrottled: "Služba náhledů je přetížena. Zkuste to prosím znovu.",
+        PhotobankThumbnailAuthUnavailable: "Autentizační služba náhledů je nedostupná.",
+        PhotobankThumbnailUpstream: "Chyba vzdálené služby náhledů.",
 
         // Smartsupp module errors
         SmartsuppConversationNotFound: "Konverzace Smartsupp nebyla nalezena",
         SmartsuppDraftReplyAiUnavailable: "AI služba je momentálně nedostupná. Zkuste to prosím znovu.",
         SmartsuppConversationEmpty: "Konverzace neobsahuje zprávu zákazníka.",
+        SmartsuppShoptetCustomerNotFound: "Zákazník v Shoptetu nenalezen.",
+        SmartsuppVisitorNotFound: "Návštěvník nebyl nalezen.",
+        SmartsuppSendMessageUnavailable: "Odeslání zprávy selhalo. Zkuste to prosím znovu.",
+        SmartsuppAgentMappingNotFound: "Váš uživatelský účet nemá přiřazený Smartsupp agent. Doplňte mapování v Smartsupp:AgentMap.",
+        SmartsuppCloseConversationUnavailable: "Uzavření konverzace selhalo — služba je nedostupná. Zkuste to prosím znovu.",
 
         // Inventory module errors
         LotNotFound: "Šarže nebyla nalezena.",
@@ -255,12 +266,27 @@ const resources = {
         // ShipmentLabels module errors
         ShipmentLabelsNoShipmentFound: "Zásilka k objednávce nebyla nalezena.",
         ShipmentLabelsNotGenerated: "Štítky zásilek nebyly dosud vygenerovány.",
-        ShipmentLabelPdfNotFound: "PDF štítek zásilky nebyl nalezen.",
         ShipmentAlreadyExists: "Zásilka pro tuto objednávku již existuje.",
         ShipmentCarrierNotResolved: "Nepodařilo se určit dopravce pro objednávku.",
         ShipmentCreationFailed: "Vytvoření zásilky se nezdařilo.",
         ShipmentLabelNotReady: "Štítek zásilky ještě není připraven.",
         ShipmentOrderWeightUnavailable: "Hmotnost objednávky není dostupná.",
+
+        // Packaging module errors
+        OrderNotInPackingState: "Objednávka není ve stavu Balí se — zásilku nelze vytvořit.",
+        ShipmentCancelFailed: "Zrušení zásilky u dopravce se nezdařilo.",
+        NoShipmentToReset: "K této objednávce neexistuje žádná zásilka, kterou by bylo možné resetovat.",
+        PackageLabelNotFound: "Štítek pro tento balík nebyl nalezen.",
+        PackageLabelDownloadFailed: "Stažení PDF štítku od dopravce se nezdařilo.",
+        PackageNotFound: "Zásilka nebyla nalezena.",
+
+        // CatalogDocuments module errors
+        CatalogDocumentInvalidTypeCode: "Neplatný kód typu dokumentu katalogu.",
+        CatalogDocumentLotRequired: "Pro tento typ dokumentu je vyžadována šarže.",
+        CatalogDocumentFolderNotFound: "Složka dokumentů katalogu nebyla nalezena.",
+        CatalogDocumentFolderMultipleMatches: "Nalezeno více odpovídajících složek dokumentů katalogu.",
+        CatalogDocumentFileMissing: "Soubor dokumentu katalogu chybí.",
+        CatalogDocumentGraphError: "Chyba přístupu k úložišti dokumentů katalogu.",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",

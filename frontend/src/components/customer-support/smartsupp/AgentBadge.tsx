@@ -4,21 +4,30 @@ import { getAgentColor } from "./utils/agentColor";
 interface AgentBadgeProps {
   agentId?: string | null;
   name?: string | null;
+  agentNames?: Record<string, string>;
   showInitials?: boolean;
 }
 
-function getInitials(name?: string | null): string {
-  if (!name) return "?";
+function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
   return parts.length >= 2
     ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
     : name.slice(0, 2).toUpperCase();
 }
 
-const AgentBadge: React.FC<AgentBadgeProps> = ({ agentId, name, showInitials = true }) => {
+const AgentBadge: React.FC<AgentBadgeProps> = ({ agentId, name, agentNames, showInitials = true }) => {
   const color = getAgentColor(agentId);
-  const initials = getInitials(name);
-  const label = name ?? initials;
+  const resolvedName = name?.trim() || (agentId ? agentNames?.[agentId] : null) || null;
+  let initials: string;
+  let label: string;
+
+  if (resolvedName) {
+    initials = getInitials(resolvedName);
+    label = resolvedName;
+  } else {
+    initials = agentId ? agentId.slice(0, 2).toUpperCase() : "?";
+    label = "Agent";
+  }
 
   return (
     <span

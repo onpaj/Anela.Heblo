@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Shared;
+
 namespace Anela.Heblo.Domain.Features.Catalog;
 
 public record CatalogProperties

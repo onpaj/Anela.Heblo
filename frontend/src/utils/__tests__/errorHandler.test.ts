@@ -27,6 +27,22 @@ describe("errorHandler", () => {
       expect(message).toBe("Nastala chyba (neznámý kód: 9999)");
     });
 
+    it("should resolve string error codes sent by the API (JsonStringEnumConverter)", () => {
+      // Backend serializes ErrorCodes as the enum name (string), not the number.
+      const message = getErrorMessage("ValidationError");
+      expect(message).toBe("Chyba validace");
+    });
+
+    it("should resolve SmartsuppShoptetCustomerNotFound from string code", () => {
+      const message = getErrorMessage("SmartsuppShoptetCustomerNotFound");
+      expect(message).toBe("Zákazník v Shoptetu nenalezen.");
+    });
+
+    it("should return generic message for unknown string code", () => {
+      const message = getErrorMessage("NotARealCode" as keyof typeof ErrorCodes);
+      expect(message).toBe("Nastala chyba (neznámý kód: NotARealCode)");
+    });
+
     it("should handle missing parameters gracefully", () => {
       const message = getErrorMessage(ErrorCodes.PurchaseOrderNotFound);
       expect(message).toBe("Objednávka nenalezena (ID: {id})"); // Placeholder not replaced
@@ -144,18 +160,13 @@ describe("errorHandler", () => {
 
 describe("Error Code Coverage", () => {
   it("should have translations for all error codes", () => {
-    const allErrorCodes = Object.values(ErrorCodes).filter(
-      (value) => typeof value === "number",
-    ) as number[];
-
-    const missingTranslations: number[] = [];
-
-    allErrorCodes.forEach((code) => {
+    const allErrorCodes = Object.values(ErrorCodes) as string[];
+    const missingTranslations = allErrorCodes.filter((code) => {
       const message = getErrorMessage(code as ErrorCodes);
-      // If translation is missing, getErrorMessage returns generic message with code
-      if (message.includes(`kód: ${code}`)) {
-        missingTranslations.push(code);
-      }
+      return (
+        message.includes(`neznámý kód: ${code}`) ||
+        message === `Nastala chyba (kód: ${code})`
+      );
     });
 
     if (missingTranslations.length > 0) {
@@ -164,41 +175,17 @@ describe("Error Code Coverage", () => {
       );
     }
 
-    // For now, just warn about missing translations rather than failing the test
-    // This allows gradual addition of error codes without breaking the build
+    // Warn rather than fail so new codes can land without blocking the build.
     expect(allErrorCodes.length).toBeGreaterThan(0);
   });
 
-  it("should have valid ErrorCodes enum values", () => {
-    const errorCodeValues = Object.values(ErrorCodes).filter(
-      (value) => typeof value === "number",
-    ) as number[];
-
-    // Check that we have error codes in expected ranges according to new structure
-    const hasGeneralErrors = errorCodeValues.some(
-      (code) => code >= 1 && code <= 99,
-    );
-    const hasPurchaseErrors = errorCodeValues.some(
-      (code) => code >= 1100 && code < 1200,
-    );
-    const hasCatalogErrors = errorCodeValues.some(
-      (code) => code >= 1300 && code < 1400,
-    );
-    const hasTransportErrors = errorCodeValues.some(
-      (code) => code >= 1400 && code < 1500,
-    );
-    const hasConfigErrors = errorCodeValues.some(
-      (code) => code >= 1500 && code < 1600,
-    );
-    const hasExternalErrors = errorCodeValues.some(
-      (code) => code >= 9000 && code < 9100,
-    );
-
-    expect(hasGeneralErrors).toBe(true);
-    expect(hasPurchaseErrors).toBe(true);
-    expect(hasCatalogErrors).toBe(true);
-    expect(hasTransportErrors).toBe(true);
-    expect(hasConfigErrors).toBe(true);
-    expect(hasExternalErrors).toBe(true);
+  it("should expose representative codes from each module", () => {
+    const names = Object.keys(ErrorCodes);
+    expect(names).toContain("ValidationError");
+    expect(names).toContain("PurchaseOrderNotFound");
+    expect(names).toContain("CatalogItemNotFound");
+    expect(names).toContain("TransportBoxNotFound");
+    expect(names).toContain("ConfigurationNotFound");
+    expect(names).toContain("ExternalServiceError");
   });
 });

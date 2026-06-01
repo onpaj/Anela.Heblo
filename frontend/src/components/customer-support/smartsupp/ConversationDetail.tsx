@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import { ArrowLeft, Info } from "lucide-react";
-import { ConversationDto, MessageDto, useSmartsuppConversation } from "../../../api/hooks/useSmartsupp";
+import { ArrowLeft, Info, Loader2 } from "lucide-react";
+import { ConversationDto, MessageDto, useSmartsuppConversation, useCloseConversation } from "../../../api/hooks/useSmartsupp";
+import { toast } from "react-hot-toast";
 import MessageBubble from "./MessageBubble";
 import StatusPill from "./StatusPill";
 import AgentBadge from "./AgentBadge";
@@ -57,8 +58,19 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
   onDraftChange,
 }) => {
   const { data, isLoading } = useSmartsuppConversation(conversationId);
+  const { mutate: closeConversation, isPending: isClosing } = useCloseConversation();
+  const liveStatus = data?.conversation?.status ?? conversation.status;
+
+  const handleClose = () => {
+    closeConversation(conversationId, {
+      onSuccess: () => toast.success("Konverzace byla uzavřena"),
+      onError: (err) => toast.error(err.message),
+    });
+  };
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const messages = data?.messages ?? [];
+  const agentNames = data?.agentNames ?? {};
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -68,7 +80,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
   const grouped = groupByDay(messages);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-3">
         {onBack && (
           <button
@@ -84,7 +96,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-gray-900 truncate">{displayName}</h3>
-            <StatusPill status={conversation.status} />
+            <StatusPill status={liveStatus} />
           </div>
           {conversation.contactEmail && (
             <p className="text-xs text-gray-500 truncate">{conversation.contactEmail}</p>
@@ -92,8 +104,21 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
         </div>
         <div className="ml-auto flex items-center gap-2">
           {conversation.assignedAgentIds.map((id) => (
-            <AgentBadge key={id} agentId={id} name={id} />
+            <AgentBadge key={id} agentId={id} name={agentNames[id] ?? id} />
           ))}
+          {liveStatus.toLowerCase() === 'open' && (
+            <button
+              type="button"
+              data-testid="close-conversation-btn"
+              onClick={handleClose}
+              disabled={isClosing}
+              aria-label="Uzavřít konverzaci"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-2.5 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isClosing && <Loader2 className="h-4 w-4 animate-spin" />}
+              Uzavřít konverzaci
+            </button>
+          )}
           {onOpenContactDetails && (
             <button
               type="button"
@@ -108,7 +133,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
         {isLoading && (
           <div className="text-sm text-gray-400 text-center py-8">Načítání zpráv...</div>
         )}
@@ -119,7 +144,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
           <div key={g.day}>
             <DaySeparator date={g.items[0].createdAt} />
             {g.items.map((m) => (
-              <MessageBubble key={m.id} message={m} />
+              <MessageBubble key={m.id} message={m} agentNames={agentNames} />
             ))}
           </div>
         ))}

@@ -10,14 +10,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  claude-review:
-    name: 🤖 Claude Code Review
+  check-trigger:
+    name: 🔍 Check Claude trigger
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: read
-      id-token: write
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -26,7 +23,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: 🔍 Check if Claude review is requested
-        id: check-claude
+        id: check
         run: |
           COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s %b")
           echo "📝 Actual HEAD commit message: $COMMIT_MESSAGE"
@@ -40,8 +37,24 @@ jobs:
             echo "should_run=false" >> $GITHUB_OUTPUT
           fi
 
+  claude-review:
+    name: 🤖 Claude Code Review
+    needs: check-trigger
+    if: needs.check-trigger.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
       - name: 📝 Log trigger info
-        if: steps.check-claude.outputs.should_run == 'true'
         run: |
           echo "🔍 Claude Review triggered by commit message"
           echo "Actual commit message: $(git log -1 --pretty=format:'%s %b')"
@@ -49,8 +62,7 @@ jobs:
           echo "SHA: ${{ github.event.pull_request.head.sha }}"
 
       - name: 🤖 Run Claude Code Review
-        if: steps.check-claude.outputs.should_run == 'true'
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@de8e0b9c42c6cb58e904c857f164aa072244c1ac # beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}

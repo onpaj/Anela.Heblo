@@ -1,5 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getClientAndBaseUrl, apiGet, apiPost } from "../smartsuppClient";
+import { QUERY_KEYS } from "../client";
+
+export interface ConversationSummaryDto {
+  id: string;
+  status: string;
+  lastMessageAt?: string | null;
+  lastMessagePreview?: string | null;
+  isUnread: boolean;
+}
 
 export interface ConversationDto {
   id: string;
@@ -27,6 +36,14 @@ export interface ConversationDto {
   locationCity?: string | null;
   locationCode?: string | null;
   tags: string[];
+  // Phase 1 additions
+  contactPhone?: string | null;
+  contactNote?: string | null;
+  contactTags: string[];
+  contactProperties: Record<string, string>;
+  locationIp?: string | null;
+  variables: Record<string, string>;
+  otherConversations: ConversationSummaryDto[];
 }
 
 export interface MessageDto {
@@ -56,16 +73,12 @@ export interface GetConversationResponse {
   success: boolean;
   conversation?: ConversationDto | null;
   messages: MessageDto[];
+  agentNames: Record<string, string>;
 }
 
-function getClientAndBaseUrl(): { apiClient: ReturnType<typeof getAuthenticatedApiClient>; baseUrl: string } {
-  const apiClient = getAuthenticatedApiClient();
-  const baseUrl = (apiClient as any).baseUrl as string;
-  return { apiClient, baseUrl };
-}
 
-async function apiFetch(apiClient: ReturnType<typeof getAuthenticatedApiClient>, url: string): Promise<Response> {
-  const response = await (apiClient as any).http.fetch(url, { method: "GET" });
+async function apiFetch(apiClient: Parameters<typeof apiGet>[0], url: string): Promise<Response> {
+  const response = await apiGet(apiClient, url);
   if (!response.ok) {
     throw new Error(`Smartsupp API error: ${response.status} ${response.statusText}`);
   }
@@ -75,6 +88,8 @@ async function apiFetch(apiClient: ReturnType<typeof getAuthenticatedApiClient>,
 export const SMARTSUPP_QUERY_KEYS = {
   conversations: (status: string) => ["smartsupp", "conversations", status] as const,
   conversation: (id: string) => ["smartsupp", "conversation", id] as const,
+  shoptetInfo: (id: string) => ["smartsupp", "shoptet-info", id] as const,
+  visitorInfo: (id: string) => ["smartsupp", "visitor-info", id] as const,
 };
 
 export function useSmartsuppConversations(status: "Open" | "Resolved" = "Open") {
@@ -85,8 +100,8 @@ export function useSmartsuppConversations(status: "Open" | "Resolved" = "Open") 
       const response = await apiFetch(apiClient, `${baseUrl}/api/smartsupp/conversations?status=${status}&page=1&pageSize=100`);
       return response.json() as Promise<ListConversationsResponse>;
     },
-    refetchInterval: 60_000,
-    staleTime: 30_000,
+    refetchInterval: 10_000,
+    staleTime: 10_000,
   });
 }
 
@@ -104,3 +119,137 @@ export function useSmartsuppConversation(id: string | null) {
   });
 }
 
+export interface ShoptetCustomerSnapshotDto {
+  fullName?: string | null;
+  email?: string | null;
+  customerGroup?: string | null;
+  priceList?: string | null;
+  defaultShippingAddress?: string | null;
+}
+
+export interface ShoptetOrderSnapshotDto {
+  code: string;
+  statusName?: string | null;
+  totalWithVat?: number | null;
+  currencyCode?: string | null;
+  orderDate?: string | null;
+  adminUrl?: string | null;
+}
+
+export interface ShoptetContactInfoDto {
+  customer?: ShoptetCustomerSnapshotDto | null;
+  recentOrders: ShoptetOrderSnapshotDto[];
+  cartUpdatedAt?: string | null;
+}
+
+export interface GetSmartsuppShoptetInfoResponse {
+  success: boolean;
+  contactInfo?: ShoptetContactInfoDto | null;
+}
+
+export interface VisitorPageDto {
+  url: string;
+}
+
+export interface VisitorInfoDto {
+  os?: string | null;
+  browser?: string | null;
+  browserVersion?: string | null;
+  userAgent?: string | null;
+  visitsCount?: number | null;
+  chatsCount: number;
+  pages: VisitorPageDto[];
+}
+
+export interface GetSmartsuppVisitorInfoResponse {
+  success: boolean;
+  visitorInfo?: VisitorInfoDto | null;
+}
+
+export function useSmartsuppShoptetInfo(conversationId: string | null) {
+  return useQuery({
+    queryKey: SMARTSUPP_QUERY_KEYS.shoptetInfo(conversationId ?? ""),
+    queryFn: async () => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await apiGet(
+        apiClient,
+        `${baseUrl}/api/smartsupp/conversations/${conversationId}/shoptet-info`
+      );
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error(`Shoptet info error: ${response.status}`);
+      return response.json() as Promise<GetSmartsuppShoptetInfoResponse>;
+    },
+    enabled: !!conversationId,
+    staleTime: 300_000,
+    retry: false,
+  });
+}
+
+export function useSmartsuppVisitorInfo(conversationId: string | null) {
+  return useQuery({
+    queryKey: SMARTSUPP_QUERY_KEYS.visitorInfo(conversationId ?? ""),
+    queryFn: async () => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await apiGet(
+        apiClient,
+        `${baseUrl}/api/smartsupp/conversations/${conversationId}/visitor-info`
+      );
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error(`Visitor info error: ${response.status}`);
+      return response.json() as Promise<GetSmartsuppVisitorInfoResponse>;
+    },
+    enabled: !!conversationId,
+    staleTime: 600_000,
+    retry: false,
+  });
+}
+
+export interface CloseConversationResponse {
+  success: boolean;
+  errorCode?: string;
+}
+
+const CLOSE_ERROR_MESSAGES: Record<string, string> = {
+  SmartsuppCloseConversationUnavailable:
+    "Nepodařilo se uzavřít konverzaci — služba je nedostupná. Zkuste to prosím znovu.",
+  SmartsuppConversationNotFound: "Konverzace nebyla nalezena.",
+};
+
+function messageForCloseError(code?: string): string {
+  if (code && CLOSE_ERROR_MESSAGES[code]) return CLOSE_ERROR_MESSAGES[code];
+  return "Nepodařilo se uzavřít konverzaci.";
+}
+
+export function useCloseConversation() {
+  const queryClient = useQueryClient();
+  return useMutation<CloseConversationResponse, Error, string>({
+    mutationFn: async (conversationId: string) => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await apiPost(
+        apiClient,
+        `${baseUrl}/api/smartsupp/conversations/${conversationId}/close`,
+        {},
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({})) as Partial<CloseConversationResponse>;
+        throw new Error(messageForCloseError(errData?.errorCode));
+      }
+
+      const data = (await response.json()) as CloseConversationResponse;
+      if (!data.success) {
+        throw new Error(messageForCloseError(data?.errorCode));
+      }
+
+      return data;
+    },
+    onSuccess: (_data, conversationId) => {
+      queryClient.invalidateQueries({
+        queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.smartsupp, "conversations"],
+      });
+    },
+  });
+}

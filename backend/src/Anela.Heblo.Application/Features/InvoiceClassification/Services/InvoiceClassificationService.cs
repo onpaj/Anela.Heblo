@@ -29,7 +29,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
         _logger = logger;
     }
 
-    public async Task<InvoiceClassificationResult> ClassifyInvoiceAsync(ReceivedInvoiceDto invoice)
+    public async Task<InvoiceClassificationResult> ClassifyInvoiceAsync(ReceivedInvoice invoice)
     {
         var currentUser = _currentUserService.GetCurrentUser();
 
@@ -99,7 +99,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
         }
     }
 
-    private async Task RecordClassificationHistory(ReceivedInvoiceDto invoice, Guid? ruleId,
+    private async Task RecordClassificationHistory(ReceivedInvoice invoice, Guid? ruleId,
         ClassificationResult result, string? accountingTemplateCode, string? department, string? errorMessage, string processedBy)
     {
         var history = new ClassificationHistory(

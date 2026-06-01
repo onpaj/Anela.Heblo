@@ -35,7 +35,6 @@ public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, in
         string? status,
         DateTime? fromDate,
         DateTime? toDate,
-        int? supplierId,
         bool? activeOrdersOnly,
         int pageNumber,
         int pageSize,
@@ -65,12 +64,6 @@ public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, in
         if (toDate.HasValue)
         {
             query = query.Where(x => x.OrderDate <= toDate.Value);
-        }
-
-        if (supplierId.HasValue)
-        {
-            // Note: SupplierId filtering is disabled as we now use SupplierName
-            // In future, implement supplier name filtering if needed
         }
 
         if (activeOrdersOnly.HasValue && activeOrdersOnly.Value)
@@ -143,5 +136,17 @@ public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, in
             .ToList();
 
         return await Task.FromResult(orders);
+    }
+
+    public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var exists = _orders.ContainsKey(id);
+        return await Task.FromResult(exists);
+    }
+
+    public async Task<IReadOnlyList<PurchaseOrderHistory>> GetHistoryAsync(int orderId, CancellationToken cancellationToken = default)
+    {
+        // In-memory implementation returns empty list since history is not tracked
+        return await Task.FromResult(new List<PurchaseOrderHistory>().AsReadOnly());
     }
 }

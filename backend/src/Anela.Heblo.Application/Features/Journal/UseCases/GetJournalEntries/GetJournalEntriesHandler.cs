@@ -18,15 +18,12 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.GetJournalEntries
             GetJournalEntriesRequest request,
             CancellationToken cancellationToken)
         {
-            var criteria = new JournalQueryCriteria
-            {
-                PageNumber = request.PageNumber,
-                PageSize = request.PageSize,
-                SortBy = request.SortBy,
-                SortDirection = request.SortDirection
-            };
-
-            var result = await _journalRepository.GetEntriesAsync(criteria, cancellationToken);
+            var result = await _journalRepository.GetEntriesAsync(
+                request.PageNumber,
+                request.PageSize,
+                request.SortBy,
+                request.SortDirection,
+                cancellationToken);
 
             var entryDtos = result.Items.Select(JournalEntryMapper.ToDto).ToList();
 

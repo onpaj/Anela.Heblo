@@ -22,16 +22,13 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
     private readonly int _defaultItemWeightGrams;
 
     public ShoptetApiPackingOrderClient(
-        IEshopOrderClient orderClient,
+        ShoptetOrderClient orderClient,
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling,
         ILogger<ShoptetApiPackingOrderClient> logger,
         IOptions<ShoptetApiSettings> settings)
     {
-        _orderClient = orderClient as ShoptetOrderClient
-            ?? throw new InvalidOperationException(
-                $"{nameof(IEshopOrderClient)} must be {nameof(ShoptetOrderClient)} " +
-                $"but got {orderClient.GetType().Name}.");
+        _orderClient = orderClient;
         _catalog = catalog;
         _carrierCooling = carrierCooling;
         _logger = logger;
@@ -99,6 +96,11 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             };
         }).ToList();
 
+        var deliveryAddress = detail.DeliveryAddress ?? detail.BillingAddress;
+        var shippingStreet = deliveryAddress is null
+            ? null
+            : CombineStreetAndHouseNumber(deliveryAddress.Street, deliveryAddress.HouseNumber);
+
         return new PackingOrder
         {
             Code = order.Code,
@@ -109,7 +111,27 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             StatusId = statusId,
             CustomerNote = string.IsNullOrWhiteSpace(order.CustomerRemark) ? null : order.CustomerRemark,
             EshopNote = string.IsNullOrWhiteSpace(order.EshopRemark) ? null : order.EshopRemark,
+            ShippingStreet = shippingStreet,
+            ShippingCity = NormalizeAddressField(deliveryAddress?.City),
+            ShippingZip = NormalizeAddressField(deliveryAddress?.Zip),
             Items = items,
         };
+    }
+
+    private static string? NormalizeAddressField(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? CombineStreetAndHouseNumber(string? street, string? houseNumber)
+    {
+        var hasStreet = !string.IsNullOrWhiteSpace(street);
+        var hasHouseNumber = !string.IsNullOrWhiteSpace(houseNumber);
+
+        if (hasStreet && hasHouseNumber)
+            return $"{street} {houseNumber}".Trim();
+        if (hasStreet)
+            return street!.Trim();
+        if (hasHouseNumber)
+            return houseNumber!.Trim();
+        return null;
     }
 }

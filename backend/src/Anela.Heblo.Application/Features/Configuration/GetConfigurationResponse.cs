@@ -26,4 +26,13 @@ public class GetConfigurationResponse : BaseResponse
     /// Response timestamp in UTC
     /// </summary>
     public DateTime Timestamp { get; set; }
+
+    /// <summary>
+    /// Microsoft Entra group ID used for manufacture responsible-person lookups.
+    /// Null when the "ManufactureGroupId" configuration key is missing or empty.
+    /// Note: ConfigurationController is intentionally anonymous (no [Authorize]) so
+    /// the SPA can fetch version and useMockAuth before sign-in. ManufactureGroupId
+    /// is a non-sensitive Entra group identifier and is acceptable to expose anonymously.
+    /// </summary>
+    public string? ManufactureGroupId { get; set; }
 }

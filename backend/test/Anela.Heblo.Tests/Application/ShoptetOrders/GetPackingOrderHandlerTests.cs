@@ -1,7 +1,7 @@
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.ShoptetOrders.UseCases.GetPackingOrder;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -55,31 +55,49 @@ public class GetPackingOrderHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OrderInPackingState_SetsIsInPackingStateTrue()
+    public async Task Handle_WhenOrderIsInPackingState_ReturnsEligibleWithNullWarning()
     {
         _clientMock
-            .Setup(c => c.GetPackingOrderAsync("250001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PackingOrder { Code = "250001", StatusId = 26 });
+            .Setup(c => c.GetPackingOrderAsync("ORD001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PackingOrder
+            {
+                Code = "ORD001",
+                CustomerName = "Jan Novák",
+                ShippingMethodName = "PPL",
+                StatusId = 26,
+                Items = [],
+            });
 
-        var response = await CreateHandler(packingStateId: 26).Handle(
-            new GetPackingOrderRequest { Code = "250001" }, CancellationToken.None);
+        var result = await CreateHandler().Handle(
+            new GetPackingOrderRequest { Code = "ORD001" }, CancellationToken.None);
 
-        response.StatusId.Should().Be(26);
-        response.IsInPackingState.Should().BeTrue();
+        result.Success.Should().BeTrue();
+        result.Eligibility.IsEligible.Should().BeTrue();
+        result.Eligibility.WarningTitle.Should().BeNull();
+        result.Eligibility.WarningBody.Should().BeNull();
     }
 
     [Fact]
-    public async Task Handle_OrderNotInPackingState_SetsIsInPackingStateFalse()
+    public async Task Handle_WhenOrderIsNotInPackingState_ReturnsIneligibleWithCzechWarning()
     {
         _clientMock
-            .Setup(c => c.GetPackingOrderAsync("250001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PackingOrder { Code = "250001", StatusId = 5 });
+            .Setup(c => c.GetPackingOrderAsync("ORD002", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PackingOrder
+            {
+                Code = "ORD002",
+                CustomerName = "Jana Nováková",
+                ShippingMethodName = "PPL",
+                StatusId = 99,
+                Items = [],
+            });
 
-        var response = await CreateHandler(packingStateId: 26).Handle(
-            new GetPackingOrderRequest { Code = "250001" }, CancellationToken.None);
+        var result = await CreateHandler().Handle(
+            new GetPackingOrderRequest { Code = "ORD002" }, CancellationToken.None);
 
-        response.StatusId.Should().Be(5);
-        response.IsInPackingState.Should().BeFalse();
+        result.Success.Should().BeTrue();
+        result.Eligibility.IsEligible.Should().BeFalse();
+        result.Eligibility.WarningTitle.Should().Be("Objednávka není ve stavu „Balí se“");
+        result.Eligibility.WarningBody.Should().Be("Tuto objednávku nezpracovávejte, dokud nebude ve správném stavu.");
     }
 
     [Fact]

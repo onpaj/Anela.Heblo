@@ -10,10 +10,10 @@ public class CatalogSalesFlexiDto
     public DateTime Date { get; set; }
 
     [JsonProperty("produktkod")]
-    public string ProductCode { get; set; }
+    public required string ProductCode { get; set; }
 
     [JsonProperty("nazevproduktu")]
-    public string ProductName { get; set; }
+    public required string ProductName { get; set; }
 
     [JsonProperty("mnozstvi")]
     public double AmountTotal { get; set; }

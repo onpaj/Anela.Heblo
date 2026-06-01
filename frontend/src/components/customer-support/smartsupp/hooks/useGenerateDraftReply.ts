@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../../../../api/client";
+import { getClientAndBaseUrl, apiPost } from "../../../../api/smartsuppClient";
 
 export interface DraftReplySource {
   chunkId: string;
@@ -52,19 +52,11 @@ export function useGenerateDraftReply(
         throw new Error("Není vybrána konverzace.");
       }
 
-      const apiClient = getAuthenticatedApiClient();
-      const baseUrl = (apiClient as unknown as { baseUrl: string }).baseUrl;
-      const http = (apiClient as unknown as {
-        http: { fetch: (url: string, init: RequestInit) => Promise<Response> };
-      }).http;
-
-      const response = await http.fetch(
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await apiPost(
+        apiClient,
         `${baseUrl}/api/smartsupp/conversations/${conversationId}/draft-reply`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic: topic ?? null }),
-        },
+        { topic: topic ?? null },
       );
 
       const data = (await response.json()) as GenerateDraftReplyApiResponse;

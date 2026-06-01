@@ -3,9 +3,11 @@ import { CreditCard, BarChart, Download } from "lucide-react";
 import StatisticsTab from "../../components/customer/tabs/StatisticsTab";
 import ImportTab from "../../components/customer/tabs/ImportTab";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const BankStatementsOverviewPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"statistics" | "import">("statistics");
+  useScreenView('Customer', 'BankStatementsOverview');
 
   return (
     <div

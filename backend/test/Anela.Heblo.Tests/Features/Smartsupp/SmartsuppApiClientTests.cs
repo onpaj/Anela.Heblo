@@ -15,7 +15,9 @@ namespace Anela.Heblo.Tests.Features.Smartsupp;
 
 public class SmartsuppApiClientTests
 {
-    private static SmartsuppApiClient CreateClient(HttpMessageHandler handler, ResiliencePipeline? pipeline = null)
+    private static SmartsuppApiClient CreateClient(
+        HttpMessageHandler handler,
+        ResiliencePipeline? pipeline = null)
     {
         var factory = new Mock<IHttpClientFactory>();
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.smartsupp.com/v2/") };
@@ -318,5 +320,181 @@ public class SmartsuppApiClientTests
         // Assert
         await act.Should().ThrowAsync<HttpRequestException>()
             .Where(ex => ex.StatusCode == HttpStatusCode.InternalServerError);
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_ReturnsMessageData_WhenApiResponds()
+    {
+        // Arrange — response shape must match the actual Smartsupp v2 POST /conversations/{id}/messages response
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            id = "msNewMessage123",
+            created_at = "2026-05-20T10:00:00Z",
+            type = "message",
+            sub_type = "agent",
+        });
+
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.Is<HttpRequestMessage>(r =>
+                    r.Method == HttpMethod.Post &&
+                    r.RequestUri!.PathAndQuery.Contains("conversations/conv123/messages")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handler.Object);
+
+        // Act
+        var result = await client.SendMessageAsync("conv123", "Dobrý den!", "agt-ondra", CancellationToken.None);
+
+        // Assert
+        result.Id.Should().Be("msNewMessage123");
+        result.CreatedAt.Should().Be(new DateTime(2026, 5, 20, 10, 0, 0));
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_SendsAgentId_AndNeverIncludesAgentBlock()
+    {
+        // Regression: Smartsupp returns 422 "agent_id is required when sub_type is \"agent\""
+        // if we include the `agent` block. We send agent_id only (the agent name is
+        // resolved by Smartsupp from the agent profile).
+        string? capturedBody = null;
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            {
+                capturedBody = await req.Content!.ReadAsStringAsync();
+            })
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(new { id = "m1", created_at = "2026-05-20T10:00:00Z" }),
+                    Encoding.UTF8,
+                    "application/json"),
+            });
+
+        var client = CreateClient(handler.Object);
+
+        await client.SendMessageAsync("conv123", "Ahoj", "agt-123", CancellationToken.None);
+
+        capturedBody.Should().NotBeNull();
+        capturedBody.Should().Contain("\"agent_id\":\"agt-123\"");
+        capturedBody.Should().NotContain("\"agent\":");
+        capturedBody.Should().NotContain("\"name\":");
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_OmitsAgentId_WhenCallerPassesNull()
+    {
+        string? capturedBody = null;
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            {
+                capturedBody = await req.Content!.ReadAsStringAsync();
+            })
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(new { id = "m1", created_at = "2026-05-20T10:00:00Z" }),
+                    Encoding.UTF8,
+                    "application/json"),
+            });
+
+        var client = CreateClient(handler.Object);
+
+        await client.SendMessageAsync("conv123", "Ahoj", null, CancellationToken.None);
+
+        capturedBody.Should().NotBeNull();
+        capturedBody.Should().NotContain("agent_id");
+        capturedBody.Should().NotContain("\"agent\":");
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_ThrowsHttpRequestException_OnErrorResponse()
+    {
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.UnprocessableEntity));
+
+        var client = CreateClient(handler.Object, ResiliencePipeline.Empty);
+
+        var act = () => client.SendMessageAsync("conv123", "Text", "agt-1", CancellationToken.None);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task CloseConversationAsync_SendsPatchToCloseSubresource()
+    {
+        // Arrange
+        string? capturedUrl = null;
+        string? capturedMethod = null;
+        HttpContent? capturedContent = null;
+        string? capturedAuth = null;
+
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) =>
+            {
+                capturedUrl = req.RequestUri?.ToString();
+                capturedMethod = req.Method.Method;
+                capturedContent = req.Content;
+                capturedAuth = req.Headers.Authorization?.ToString();
+            })
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handler.Object);
+
+        // Act
+        await client.CloseConversationAsync("conv-abc", CancellationToken.None);
+
+        // Assert
+        capturedUrl.Should().EndWith("conversations/conv-abc/close");
+        capturedMethod.Should().Be("PATCH");
+        capturedContent.Should().BeNull();
+        capturedAuth.Should().StartWith("Bearer test-token");
+    }
+
+    [Fact]
+    public async Task CloseConversationAsync_ThrowsHttpRequestException_OnNon2xx()
+    {
+        // Arrange
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+            {
+                Content = new StringContent("{\"error\":\"unavailable\"}", Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handler.Object, ResiliencePipeline.Empty);
+
+        // Act
+        Func<Task> act = () => client.CloseConversationAsync("conv-abc", CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>();
     }
 }

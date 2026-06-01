@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.ExpeditionList;
+using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionListsByDate;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Options;
@@ -16,7 +16,7 @@ public class GetExpeditionListsByDateHandlerTests
     public GetExpeditionListsByDateHandlerTests()
     {
         _blobStorageServiceMock = new Mock<IBlobStorageService>();
-        _handler = new GetExpeditionListsByDateHandler(_blobStorageServiceMock.Object, Options.Create(new PrintPickingListOptions()));
+        _handler = new GetExpeditionListsByDateHandler(_blobStorageServiceMock.Object, Options.Create(new ExpeditionListArchiveOptions()));
     }
 
     [Fact]
@@ -45,6 +45,8 @@ public class GetExpeditionListsByDateHandlerTests
         Assert.Equal("picking-list-001.pdf", result.Items[0].FileName);
         Assert.Equal($"{date}/picking-list-001.pdf", result.Items[0].BlobPath);
         Assert.Equal(512000, result.Items[0].ContentLength);
+        Assert.Equal("picking-list-001", result.Items[0].ListId);
+        Assert.Equal("picking-list-002", result.Items[1].ListId);
     }
 
     [Fact]

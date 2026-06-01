@@ -15,7 +15,6 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurc
         string? status,
         DateTime? fromDate,
         DateTime? toDate,
-        int? supplierId,
         bool? activeOrdersOnly,
         int pageNumber,
         int pageSize,
@@ -45,12 +44,6 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurc
         if (toDate.HasValue)
         {
             query = query.Where(x => x.OrderDate <= toDate.Value);
-        }
-
-        if (supplierId.HasValue)
-        {
-            // Note: SupplierId filtering is disabled as we now use SupplierName
-            // In future, implement supplier name filtering if needed
         }
 
         if (activeOrdersOnly.HasValue && activeOrdersOnly.Value)
@@ -111,6 +104,20 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurc
         return await DbSet
             .Where(order => order.Status == status)
             .Include(order => order.Lines)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await DbSet.AsNoTracking().AnyAsync(x => x.Id == id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<PurchaseOrderHistory>> GetHistoryAsync(int orderId, CancellationToken cancellationToken = default)
+    {
+        return await Context.PurchaseOrderHistory
+            .AsNoTracking()
+            .Where(h => h.PurchaseOrderId == orderId)
+            .OrderByDescending(h => h.ChangedAt)
             .ToListAsync(cancellationToken);
     }
 }

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Anela.Heblo.Application.Features.Photobank
 {
@@ -67,14 +68,21 @@ namespace Anela.Heblo.Application.Features.Photobank
             if (withoutTags)
                 query = query.Where(p => !p.Tags.Any());
 
-            var total = await query.CountAsync(cancellationToken);
-            var items = await query
-                .OrderByDescending(p => p.ModifiedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
+            try
+            {
+                var total = await query.CountAsync(cancellationToken);
+                var items = await query
+                    .OrderByDescending(p => p.ModifiedAt)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync(cancellationToken);
 
-            return (items, total);
+                return (items, total);
+            }
+            catch (PostgresException ex) when (useRegex && ex.SqlState == "2201B")
+            {
+                throw new InvalidPhotoSearchPatternException(search ?? string.Empty);
+            }
         }
 
         public async Task<int> CountFilteredPhotosAsync(
@@ -136,6 +144,11 @@ namespace Anela.Heblo.Application.Features.Photobank
             return new PhotoLocator(projection.DriveId, projection.SharePointFileId, projection.ModifiedAt);
         }
 
+        public async Task<List<Photo>> GetAllPhotosAsync(CancellationToken cancellationToken)
+        {
+            return await _context.Photos.ToListAsync(cancellationToken);
+        }
+
         // Tags
 
         public async Task<IReadOnlyList<TagCount>> GetTagsWithCountsAsync(CancellationToken cancellationToken)
@@ -170,6 +183,29 @@ namespace Anela.Heblo.Application.Features.Photobank
             return tag;
         }
 
+        public async Task<IReadOnlyDictionary<string, int>> GetOrCreateTagsAsync(
+            IReadOnlyCollection<string> normalizedNames, CancellationToken cancellationToken)
+        {
+            var tagsByName = await _context.PhotobankTags
+                .Where(t => normalizedNames.Contains(t.Name))
+                .ToDictionaryAsync(t => t.Name, cancellationToken);
+
+            var newTagsCreated = false;
+            foreach (var name in normalizedNames.Where(n => !tagsByName.ContainsKey(n)))
+            {
+                var newTag = new Tag { Name = name };
+                _context.PhotobankTags.Add(newTag);
+                tagsByName[name] = newTag;
+                newTagsCreated = true;
+            }
+
+            // Flush new Tag inserts so they receive DB-assigned IDs before use.
+            if (newTagsCreated)
+                await _context.SaveChangesAsync(cancellationToken);
+
+            return tagsByName.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Id);
+        }
+
         public async Task<Tag?> GetTagByIdAsync(int id, CancellationToken cancellationToken)
         {
             return await _context.PhotobankTags
@@ -196,6 +232,12 @@ namespace Anela.Heblo.Application.Features.Photobank
             return Task.CompletedTask;
         }
 
+        public Task AddPhotoTagsAsync(IEnumerable<PhotoTag> photoTags, CancellationToken cancellationToken)
+        {
+            _context.PhotoTags.AddRange(photoTags);
+            return Task.CompletedTask;
+        }
+
         public async Task RemovePhotoTagAsync(int photoId, int tagId, CancellationToken cancellationToken)
         {
             var photoTag = await _context.PhotoTags
@@ -208,6 +250,30 @@ namespace Anela.Heblo.Application.Features.Photobank
         {
             return await _context.PhotoTags
                 .AnyAsync(pt => pt.PhotoId == photoId && pt.TagId == tagId, cancellationToken);
+        }
+
+        public async Task RemoveRuleTagsAsync(string? scopeToTagName, CancellationToken cancellationToken)
+        {
+            var query = _context.PhotoTags.Where(pt => pt.Source == PhotoTagSource.Rule);
+            if (scopeToTagName != null)
+                query = query.Where(pt => pt.Tag.Name == scopeToTagName);
+
+            var ruleTags = await query.ToListAsync(cancellationToken);
+            _context.PhotoTags.RemoveRange(ruleTags);
+        }
+
+        public async Task<HashSet<(int PhotoId, int TagId)>> GetOccupiedTagPairsAsync(
+            string? scopeToTagName, CancellationToken cancellationToken)
+        {
+            var query = _context.PhotoTags.Where(pt => pt.Source != PhotoTagSource.Rule);
+            if (scopeToTagName != null)
+                query = query.Where(pt => pt.Tag.Name == scopeToTagName);
+
+            var pairs = await query
+                .Select(pt => new { pt.PhotoId, pt.TagId })
+                .ToListAsync(cancellationToken);
+
+            return pairs.Select(x => (x.PhotoId, x.TagId)).ToHashSet();
         }
 
         // Roots
@@ -268,107 +334,6 @@ namespace Anela.Heblo.Application.Features.Photobank
                 return false;
             _context.PhotobankTagRules.Remove(rule);
             return true;
-        }
-
-        // Reapply rules
-
-        public async Task<int> ReapplyRulesAsync(List<TagRule> allRules, string? scopeToTagName, CancellationToken cancellationToken)
-        {
-            var activeRules = allRules.Where(r => r.IsActive).ToList();
-
-            // Remove Rule-sourced PhotoTags (scoped to one tag name when specified)
-            var removalQuery = _context.PhotoTags.Where(pt => pt.Source == PhotoTagSource.Rule);
-            if (scopeToTagName != null)
-                removalQuery = removalQuery.Where(pt => pt.Tag.Name == scopeToTagName);
-
-            var ruleTags = await removalQuery.ToListAsync(cancellationToken);
-            _context.PhotoTags.RemoveRange(ruleTags);
-
-            // Snapshot existing Manual/AI tags — a Rule tag cannot be inserted if the same
-            // (PhotoId, TagId) already exists under a different source (shared PK).
-            var occupiedQuery = _context.PhotoTags.Where(pt => pt.Source != PhotoTagSource.Rule);
-            if (scopeToTagName != null)
-                occupiedQuery = occupiedQuery.Where(pt => pt.Tag.Name == scopeToTagName);
-
-            var occupiedRaw = await occupiedQuery
-                .Select(pt => new { pt.PhotoId, pt.TagId })
-                .ToListAsync(cancellationToken);
-            var occupiedSet = occupiedRaw.Select(x => (x.PhotoId, x.TagId)).ToHashSet();
-
-            // Resolve tag names from active rules in one batch. Scoped to the target tag name
-            // when specified so we only touch exactly the tags this rule produces.
-            var ruleTagNames = activeRules
-                .Select(r => r.TagName.ToLowerInvariant())
-                .Distinct()
-                .ToList();
-
-            if (scopeToTagName != null)
-                ruleTagNames = ruleTagNames.Where(n => n == scopeToTagName).ToList();
-
-            if (ruleTagNames.Count == 0)
-                return 0;
-
-            var tagsByName = await _context.PhotobankTags
-                .Where(t => ruleTagNames.Contains(t.Name))
-                .ToDictionaryAsync(t => t.Name, cancellationToken);
-
-            var newTagsCreated = false;
-            foreach (var name in ruleTagNames.Where(n => !tagsByName.ContainsKey(n)))
-            {
-                var newTag = new Tag { Name = name };
-                _context.PhotobankTags.Add(newTag);
-                tagsByName[name] = newTag;
-                newTagsCreated = true;
-            }
-
-            // Flush new Tag inserts so they have DB-assigned IDs before we use them in PhotoTags.
-            if (newTagsCreated)
-                await _context.SaveChangesAsync(cancellationToken);
-
-            var photos = await _context.Photos.ToListAsync(cancellationToken);
-
-            var photosUpdated = 0;
-            var now = DateTime.UtcNow;
-            var addedPairs = new HashSet<(int PhotoId, int TagId)>();
-
-            foreach (var photo in photos)
-            {
-                var allMatchingTagNames = TagRuleMatcher.GetMatchingTags(photo.FolderPath, photo.FileName, activeRules);
-                var matchingTagNames = scopeToTagName != null
-                    ? (IReadOnlyList<string>)allMatchingTagNames.Where(n => n == scopeToTagName).ToList()
-                    : allMatchingTagNames;
-
-                if (matchingTagNames.Count == 0)
-                    continue;
-
-                var tagsUpdated = false;
-                foreach (var tagName in matchingTagNames)
-                {
-                    if (!tagsByName.TryGetValue(tagName, out var tag))
-                        continue;
-
-                    var pair = (photo.Id, tag.Id);
-                    if (!addedPairs.Add(pair))
-                        continue;
-
-                    if (occupiedSet.Contains(pair))
-                        continue;
-
-                    _context.PhotoTags.Add(new PhotoTag
-                    {
-                        PhotoId = photo.Id,
-                        TagId = tag.Id,
-                        Source = PhotoTagSource.Rule,
-                        CreatedAt = now,
-                    });
-                    tagsUpdated = true;
-                }
-
-                if (tagsUpdated)
-                    photosUpdated++;
-            }
-
-            return photosUpdated;
         }
 
         // Auto-tagging

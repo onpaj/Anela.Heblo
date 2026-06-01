@@ -1,7 +1,11 @@
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.FeatureFlags;
+using Anela.Heblo.Persistence.FeatureFlags;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Bank;
+using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Persistence.GridLayouts;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
@@ -21,6 +25,8 @@ using Anela.Heblo.Persistence.InvoiceClassification;
 using Anela.Heblo.Persistence.Features.Article;
 using Anela.Heblo.Persistence.Features.Leaflet;
 using Anela.Heblo.Persistence.KnowledgeBase;
+using Anela.Heblo.Persistence.Purchase.PurchaseOrders;
+using Anela.Heblo.Persistence.Repositories.Packaging;
 using Anela.Heblo.Persistence.MeetingTasks;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Telemetry;
@@ -150,12 +156,22 @@ public static class PersistenceModule
 
         // Article repositories
         services.AddScoped<IArticleRepository, ArticleRepository>();
+        services.AddScoped<IArticleAdminRepository, ArticleAdminRepository>();
 
         // Grid Layouts repositories
         services.AddScoped<IGridLayoutRepository, GridLayoutRepository>();
 
         // Data Quality repositories
         services.AddScoped<IDqtRunRepository, DqtRunRepository>();
+
+        // Feature Flags repositories
+        services.AddScoped<IFeatureFlagOverrideRepository, FeatureFlagOverrideRepository>();
+
+        // Purchase repositories
+        services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+
+        // Packaging repositories
+        services.AddScoped<IPackageRepository, PackageRepository>();
 
         return services;
     }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useOrgChart } from '../api/hooks/useOrgChart';
 import { PositionCard } from '../components/OrgChart/PositionCard';
+import { useScreenView } from '../telemetry/useScreenView';
 import {
   calculateLevels,
   getAllParentPositionIds,
@@ -19,6 +20,8 @@ interface PositionRect {
 }
 
 const OrgChartPage: React.FC = () => {
+  useScreenView('Admin', 'OrgChart');
+
   // Fetch organization data from backend
   const { data: orgChartResponse, isLoading, error: queryError } = useOrgChart();
 

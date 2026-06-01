@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -23,6 +24,7 @@ public class GenerateDraftReplyHandler
     private readonly IMediator _mediator;
     private readonly IChatClient _chatClient;
     private readonly SmartsuppDraftReplyOptions _options;
+    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<GenerateDraftReplyHandler> _logger;
 
     public GenerateDraftReplyHandler(
@@ -30,12 +32,14 @@ public class GenerateDraftReplyHandler
         IMediator mediator,
         IChatClient chatClient,
         IOptions<SmartsuppDraftReplyOptions> options,
+        ICurrentUserService currentUserService,
         ILogger<GenerateDraftReplyHandler> logger)
     {
         _repository = repository;
         _mediator = mediator;
         _chatClient = chatClient;
         _options = options.Value;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -66,7 +70,10 @@ public class GenerateDraftReplyHandler
             ? string.Join("\n\n---\n\n", searchResult.Chunks.Select(c => c.Content))
             : NoContextPlaceholder;
 
+        var agentName = SmartsuppNameHelper.ExtractFirstName(_currentUserService.GetCurrentUser().Name);
+
         var systemPrompt = _options.DraftReplySystemPrompt
+            .Replace("{agent_name}", agentName)
             .Replace("{transcript}", transcript)
             .Replace("{context}", context)
             .Replace("{topic}", topic ?? NoTopicPlaceholder);

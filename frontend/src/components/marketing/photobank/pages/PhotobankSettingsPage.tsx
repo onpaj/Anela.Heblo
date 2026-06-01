@@ -4,6 +4,7 @@ import { useMsal } from '@azure/msal-react';
 import IndexRootsTab from '../settings/IndexRootsTab';
 import TagRulesTab from '../settings/TagRulesTab';
 import TagsTab from '../settings/TagsTab';
+import { useScreenView } from '../../../../telemetry/useScreenView';
 
 const ADMIN_ROLE = 'super_user';
 
@@ -13,6 +14,8 @@ const PhotobankSettingsPage = () => {
     (accounts[0]?.idTokenClaims as any)?.roles?.includes(ADMIN_ROLE) ?? false;
 
   const [activeTab, setActiveTab] = useState<'roots' | 'rules' | 'tags'>('roots');
+
+  useScreenView('Marketing', 'PhotobankSettings');
 
   if (!isAdmin) {
     return (

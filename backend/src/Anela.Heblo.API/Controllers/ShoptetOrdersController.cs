@@ -3,7 +3,6 @@ using Anela.Heblo.Application.Features.ShoptetOrders.UseCases.GetPackingOrder;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json.Serialization;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -51,10 +50,4 @@ public class ShoptetOrdersController : BaseApiController
         var response = await _mediator.Send(new GetPackingOrderRequest { Code = code });
         return HandleResponse(response);
     }
-}
-
-public class BlockOrderRequest
-{
-    [JsonPropertyName("note")]
-    public string Note { get; set; } = string.Empty;
 }

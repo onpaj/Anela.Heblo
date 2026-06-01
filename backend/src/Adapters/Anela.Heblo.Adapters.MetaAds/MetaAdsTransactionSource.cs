@@ -21,7 +21,9 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
         PropertyNameCaseInsensitive = true,
     };
 
-    public string Platform => "MetaAds";
+    public const string PlatformName = "MetaAds";
+
+    public string Platform => PlatformName;
 
     public MetaAdsTransactionSource(
         HttpClient httpClient,
@@ -63,7 +65,6 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
                     results.Add(new MarketingTransaction
                     {
                         TransactionId = item.Id,
-                        Platform = Platform,
                         Amount = item.Amount / 100m,
                         TransactionDate = txDate,
                         Currency = item.Currency,

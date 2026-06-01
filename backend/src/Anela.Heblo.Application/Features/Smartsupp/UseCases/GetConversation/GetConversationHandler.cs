@@ -8,10 +8,12 @@ namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 public class GetConversationHandler : IRequestHandler<GetConversationRequest, GetConversationResponse>
 {
     private readonly ISmartsuppRepository _repository;
+    private readonly ISmartsuppAgentCache _agentCache;
 
-    public GetConversationHandler(ISmartsuppRepository repository)
+    public GetConversationHandler(ISmartsuppRepository repository, ISmartsuppAgentCache agentCache)
     {
         _repository = repository;
+        _agentCache = agentCache;
     }
 
     public async Task<GetConversationResponse> Handle(GetConversationRequest request, CancellationToken cancellationToken)
@@ -21,14 +23,21 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
         if (conversation is null)
             return new GetConversationResponse(ErrorCodes.SmartsuppConversationNotFound);
 
+        var otherConversations = conversation.ContactId is not null
+            ? await _repository.ListConversationsForContactAsync(conversation.ContactId, conversation.Id, cancellationToken)
+            : [];
+
+        var agentNames = await _agentCache.GetAgentNamesAsync(cancellationToken);
+
         return new GetConversationResponse
         {
-            Conversation = MapConversationDto(conversation),
+            Conversation = MapConversationDto(conversation, otherConversations),
             Messages = conversation.Messages.Select(MapMessageDto).ToList(),
+            AgentNames = new Dictionary<string, string>(agentNames),
         };
     }
 
-    private static ConversationDto MapConversationDto(SmartsuppConversation c) =>
+    private static ConversationDto MapConversationDto(SmartsuppConversation c, List<SmartsuppConversation> otherConversations) =>
         new()
         {
             Id = c.Id,
@@ -56,6 +65,23 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
             LocationCity = c.LocationCity,
             LocationCode = c.LocationCode,
             Tags = ParseStringList(c.TagsJson),
+            ContactPhone = c.Contact?.Phone,
+            ContactNote = c.Contact?.Note,
+            ContactTags = ParseStringList(c.Contact?.TagsJson),
+            ContactProperties = ParseStringDictionary(c.Contact?.PropertiesJson),
+            LocationIp = c.LocationIp,
+            Variables = ParseStringDictionary(c.VariablesJson),
+            OtherConversations = otherConversations.Select(MapConversationSummaryDto).ToList(),
+        };
+
+    private static ConversationSummaryDto MapConversationSummaryDto(SmartsuppConversation c) =>
+        new()
+        {
+            Id = c.Id,
+            Status = c.Status.ToString(),
+            LastMessageAt = c.LastMessageAt,
+            LastMessagePreview = c.LastMessagePreview,
+            IsUnread = c.IsUnread,
         };
 
     private static MessageDto MapMessageDto(SmartsuppMessage m) =>
@@ -85,6 +111,25 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
         catch (System.Text.Json.JsonException)
         {
             return new List<string>();
+        }
+    }
+
+    private static Dictionary<string, string> ParseStringDictionary(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new Dictionary<string, string>();
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            return doc.RootElement.EnumerateObject()
+                .ToDictionary(
+                    p => p.Name,
+                    p => p.Value.ValueKind == System.Text.Json.JsonValueKind.String
+                        ? p.Value.GetString() ?? string.Empty
+                        : p.Value.GetRawText());
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return new Dictionary<string, string>();
         }
     }
 }

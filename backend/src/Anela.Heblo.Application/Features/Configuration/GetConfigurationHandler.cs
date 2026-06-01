@@ -31,12 +31,19 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
 
             var appConfig = await BuildApplicationConfigurationAsync();
 
+            var manufactureGroupId = _configuration["ManufactureGroupId"];
+            if (string.IsNullOrEmpty(manufactureGroupId))
+            {
+                manufactureGroupId = null;
+            }
+
             var response = new GetConfigurationResponse
             {
                 Version = appConfig.Version,
                 Environment = appConfig.Environment,
                 UseMockAuth = appConfig.UseMockAuth,
-                Timestamp = appConfig.Timestamp
+                Timestamp = appConfig.Timestamp,
+                ManufactureGroupId = manufactureGroupId
             };
 
             _logger.LogDebug("Configuration retrieved successfully: {@Config}", response);

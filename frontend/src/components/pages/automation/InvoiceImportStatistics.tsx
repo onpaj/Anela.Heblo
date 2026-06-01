@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertCircle, BarChart3, Calendar, RefreshCw } from 'lucide-react';
 import { useInvoiceImportStatistics } from '../../../api/hooks/useInvoiceImportStatistics';
 import { InvoiceImportChart } from '../../charts/InvoiceImportChart';
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 type DateTypeOption = 'InvoiceDate' | 'LastSyncTime';
 
@@ -10,6 +11,7 @@ type DateTypeOption = 'InvoiceDate' | 'LastSyncTime';
  * Shows daily invoice counts with visual indicators for problematic days
  */
 const InvoiceImportStatistics: React.FC = () => {
+  useScreenView('Automation', 'InvoiceImportStatistics');
   const [dateType, setDateType] = useState<DateTypeOption>('InvoiceDate');
   
   const { 

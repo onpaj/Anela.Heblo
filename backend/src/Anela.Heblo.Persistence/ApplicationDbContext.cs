@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.FeatureFlags;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Domain.Features.DataQuality;
@@ -18,10 +19,12 @@ using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
+using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.PackingMaterials;
+using Anela.Heblo.Domain.Features.Packaging;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Xcc.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -50,6 +53,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<PurchaseOrder> PurchaseOrders { get; set; } = null!;
     public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
     public DbSet<PurchaseOrderHistory> PurchaseOrderHistory { get; set; } = null!;
+    public DbSet<Package> Packages { get; set; } = null!;
 
     // Catalog module
     public DbSet<ManufactureDifficultySetting> ManufactureDifficultySettings { get; set; } = null!;
@@ -85,9 +89,13 @@ public class ApplicationDbContext : DbContext
     // Packing Materials module
     public DbSet<PackingMaterial> PackingMaterials { get; set; } = null!;
     public DbSet<PackingMaterialLog> PackingMaterialLogs { get; set; } = null!;
+    public DbSet<PackingMaterialDailyRun> PackingMaterialDailyRuns { get; set; } = null!;
 
     // Carrier Cooling module
     public DbSet<CarrierCoolingSetting> CarrierCoolingSettings { get; set; } = null!;
+
+    // Gift Settings module
+    public DbSet<GiftSetting> GiftSettings { get; set; } = null!;
 
     // Background Jobs module
     public DbSet<RecurringJobConfiguration> RecurringJobConfigurations { get; set; } = null!;
@@ -145,11 +153,18 @@ public class ApplicationDbContext : DbContext
     public DbSet<Lot> Lots { get; set; } = null!;
     public DbSet<Ean> Eans { get; set; } = null!;
 
+    // Feature Flags module
+    public DbSet<FeatureFlagOverride> FeatureFlagOverrides { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.HasPostgresExtension("vector");
+        // Only set up PostgreSQL extensions if using PostgreSQL provider
+        if (Database.IsNpgsql())
+        {
+            modelBuilder.HasPostgresExtension("vector");
+        }
 
         // Apply configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);

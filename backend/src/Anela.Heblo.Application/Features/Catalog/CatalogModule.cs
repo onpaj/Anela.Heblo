@@ -7,13 +7,16 @@ using Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficultySettings;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight;
 using Anela.Heblo.Application.Features.Catalog.UseCases.SubmitStockTaking;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
+using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder;
 using Anela.Heblo.Application.Features.Catalog.Validators;
+using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.CostProviders;
@@ -39,6 +42,10 @@ public static class CatalogModule
         // Register default implementations - tests can override these
         services.AddTransient<ICatalogRepository, CatalogRepository>();
         services.AddTransient<IManufactureDifficultyRepository, ManufactureDifficultyRepository>();
+        // Register adapter to expose catalog services to Purchase module
+        services.AddScoped<IMaterialCatalogService, PurchaseMaterialCatalogAdapter>();
+        services.AddScoped<IPurchasePriceRecalculationService, CatalogPurchasePriceRecalculationAdapter>();
+        services.AddTransient<IAnalyticsProductSource, CatalogAnalyticsSourceAdapter>();
 
         // Register cost repositories
         services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others
@@ -62,15 +69,6 @@ public static class CatalogModule
         services.AddTransient<IStockUpProcessingService, StockUpProcessingService>();
         services.AddScoped<IEshopStockDomainService, EshopStockDomainService>();
         services.AddTransient<IProductCatalogQueryService, ProductCatalogQueryService>();
-
-        // Configure feature flags from configuration
-        services.Configure<CatalogFeatureFlags>(options =>
-        {
-            // Default values - can be overridden by configuration
-            options.IsTransportBoxTrackingEnabled = false;
-            options.IsStockTakingEnabled = false;
-            options.IsBackgroundRefreshEnabled = true;
-        });
 
         // Background refresh services are now handled by centralized BackgroundRefreshSchedulerService
         // Old CatalogRefreshBackgroundService is replaced by individual refresh tasks
@@ -97,6 +95,7 @@ public static class CatalogModule
         services.AddScoped<IValidator<GetManufactureDifficultySettingsRequest>, GetManufactureDifficultyHistoryRequestValidator>();
         services.AddScoped<IValidator<SubmitStockTakingRequest>, SubmitStockTakingRequestValidator>();
         services.AddScoped<IValidator<RecalculateProductWeightRequest>, RecalculateProductWeightRequestValidator>();
+        services.AddScoped<IValidator<UpdateProductCompositionOrderRequest>, UpdateProductCompositionOrderRequestValidator>();
 
         // Register MediatR validation behavior only for catalog requests
         services.AddScoped<IPipelineBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>, ValidationBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>>();
@@ -105,6 +104,7 @@ public static class CatalogModule
         services.AddScoped<IPipelineBehavior<GetManufactureDifficultySettingsRequest, GetManufactureDifficultySettingsResponse>, ValidationBehavior<GetManufactureDifficultySettingsRequest, GetManufactureDifficultySettingsResponse>>();
         services.AddScoped<IPipelineBehavior<SubmitStockTakingRequest, SubmitStockTakingResponse>, ValidationBehavior<SubmitStockTakingRequest, SubmitStockTakingResponse>>();
         services.AddScoped<IPipelineBehavior<RecalculateProductWeightRequest, RecalculateProductWeightResponse>, ValidationBehavior<RecalculateProductWeightRequest, RecalculateProductWeightResponse>>();
+        services.AddScoped<IPipelineBehavior<UpdateProductCompositionOrderRequest, UpdateProductCompositionOrderResponse>, ValidationBehavior<UpdateProductCompositionOrderRequest, UpdateProductCompositionOrderResponse>>();
 
         RegisterBackgroundRefreshTasks(services);
 

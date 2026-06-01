@@ -16,6 +16,11 @@ public class ShoptetOrderClient : IEshopOrderClient
         PropertyNameCaseInsensitive = true,
     };
 
+    private const int AdditionalFieldMinIndex = 1;
+    private const int AdditionalFieldMaxIndex = 6;
+    private const int AdditionalFieldShortTextMaxIndex = 3;
+    private const int AdditionalFieldShortTextMaxLength = 255;
+
     public ShoptetOrderClient(HttpClient http)
     {
         _http = http;
@@ -190,6 +195,33 @@ public class ShoptetOrderClient : IEshopOrderClient
         response.EnsureSuccessStatusCode();
     }
 
+    // NOTE: Fetches only page 1. For high-volume stores the matching orders may not appear on the first page,
+    // which can cause the email-fallback resolution path to under-return results or miss the customer GUID.
+    public async Task<List<EshopOrderInfo>> GetRecentOrdersByEmailAsync(string email, int count, CancellationToken ct = default)
+    {
+        var itemsPerPage = Math.Min(count, 50);
+        var response = await _http.GetAsync($"/api/orders?page=1&itemsPerPage={itemsPerPage}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<OrderListResponse>(JsonOptions, ct);
+        return (data?.Data.Orders ?? [])
+            .Where(o => string.Equals(o.Email, email, StringComparison.OrdinalIgnoreCase))
+            .Take(count)
+            .Select(MapToOrderInfo)
+            .ToList();
+    }
+
+    public async Task<Dictionary<int, string>> GetOrderStatusNamesAsync(CancellationToken ct = default)
+    {
+        var response = await _http.GetAsync("/api/eshop?include=orderStatuses", ct);
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<ShoptetEshopResponse>(JsonOptions, ct);
+        return (data?.Data?.Eshop?.OrderStatuses ?? [])
+            .Where(s => !string.IsNullOrWhiteSpace(s.Name))
+            .ToDictionary(s => s.Id, s => s.Name!);
+    }
+
     // ── Expedition methods ────────────────────────────────────────────────────
 
     public async Task<OrderListResponse> GetOrdersByStatusAsync(int statusId, int page, CancellationToken ct = default)
@@ -208,6 +240,36 @@ public class ShoptetOrderClient : IEshopOrderClient
 
         var data = await response.Content.ReadFromJsonAsync<ExpeditionOrderDetailResponse>(JsonOptions, ct);
         return data!.Data.Order;
+    }
+
+    public async Task SetAdditionalFieldAsync(
+        string orderCode,
+        int index,
+        string? text,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(orderCode))
+            throw new ArgumentException("Order code must not be null or empty.", nameof(orderCode));
+        if (index is < AdditionalFieldMinIndex or > AdditionalFieldMaxIndex)
+            throw new ArgumentOutOfRangeException(nameof(index), index, "Index must be between 1 and 6 inclusive.");
+        if (text != null && index <= AdditionalFieldShortTextMaxIndex && text.Length > AdditionalFieldShortTextMaxLength)
+            throw new ArgumentException($"Text for additionalField index {index} must not exceed 255 characters.", nameof(text));
+
+        var body = new UpdateAdditionalFieldRequest
+        {
+            Data = new UpdateAdditionalFieldData
+            {
+                AdditionalFields = [new AdditionalFieldEntry { Index = index, Text = text }],
+            },
+        };
+
+        var response = await _http.PatchAsJsonAsync($"/api/orders/{orderCode}/notes", body, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException(
+                $"PATCH /api/orders/{orderCode}/notes returned {(int)response.StatusCode}: {errorBody}");
+        }
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -229,6 +291,17 @@ public class ShoptetOrderClient : IEshopOrderClient
             Email = order.Email,
             StatusId = order.Status.Id,
         };
+
+    private static EshopOrderInfo MapToOrderInfo(OrderSummary o) => new()
+    {
+        Code = o.Code,
+        CustomerGuid = o.CustomerGuid,
+        TotalWithVat = o.Price?.WithVat,
+        CurrencyCode = o.Price?.CurrencyCode,
+        StatusId = o.Status.Id,
+        AdminUrl = o.AdminUrl,
+        OrderDate = o.CreationTime is { } t && DateTime.TryParse(t, out var dt) ? dt : null,
+    };
 }
 
 /// <summary>

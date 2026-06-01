@@ -70,4 +70,18 @@ internal sealed class ManufactureTemplateCache : IManufactureTemplateCache
             // Cache disposed during shutdown — skip caching, return data anyway.
         }
     }
+
+    public void Invalidate(string productCode)
+    {
+        var key = CacheKeyPrefix + productCode;
+        try
+        {
+            _cache.Remove(key);
+            _logger.LogDebug("Manufacture template cache INVALIDATED for {ProductCode}", productCode);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Cache disposed during shutdown — ignore.
+        }
+    }
 }

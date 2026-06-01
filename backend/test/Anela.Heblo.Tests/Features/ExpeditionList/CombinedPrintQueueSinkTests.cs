@@ -1,5 +1,5 @@
 using Anela.Heblo.API.Features.ExpeditionList;
-using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Application.Shared.Printing;
 using Moq;
 
 namespace Anela.Heblo.Tests.Features.ExpeditionList;

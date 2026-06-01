@@ -13,6 +13,7 @@ import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import DashboardGrid from "../dashboard/DashboardGrid";
 import DashboardSettings from "../dashboard/DashboardSettings";
 import { useIsMobile } from "../../hooks/useMediaQuery";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const Dashboard: React.FC = () => {
   useLiveHealthCheck();
@@ -20,6 +21,8 @@ const Dashboard: React.FC = () => {
 
   const isMobile = useIsMobile();
   const [showSettings, setShowSettings] = useState(false);
+
+  useScreenView('Dashboard', 'Dashboard');
 
   const { data: userSettings, isLoading: settingsLoading } = useUserDashboardSettings();
   const { data: allTileData = [], isLoading: dataLoading } = useTileData();

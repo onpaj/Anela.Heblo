@@ -1,15 +1,13 @@
-using Anela.Heblo.Application.Features.MarketingInvoices.Services;
+using Anela.Heblo.Application.Features.MarketingInvoices.UseCases.ImportMarketingInvoices;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
-using Anela.Heblo.Domain.Features.MarketingInvoices;
+using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Adapters.GoogleAds;
 
 public class GoogleAdsInvoiceImportJob : IRecurringJob
 {
-    private readonly GoogleAdsTransactionSource _source;
-    private readonly IImportedMarketingTransactionRepository _repository;
-    private readonly ILogger<MarketingInvoiceImportService> _importLogger;
+    private readonly IMediator _mediator;
     private readonly IRecurringJobStatusChecker _statusChecker;
     private readonly ILogger<GoogleAdsInvoiceImportJob> _logger;
 
@@ -23,15 +21,11 @@ public class GoogleAdsInvoiceImportJob : IRecurringJob
     };
 
     public GoogleAdsInvoiceImportJob(
-        GoogleAdsTransactionSource source,
-        IImportedMarketingTransactionRepository repository,
-        ILogger<MarketingInvoiceImportService> importLogger,
+        IMediator mediator,
         IRecurringJobStatusChecker statusChecker,
         ILogger<GoogleAdsInvoiceImportJob> logger)
     {
-        _source = source ?? throw new ArgumentNullException(nameof(source));
-        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
-        _importLogger = importLogger ?? throw new ArgumentNullException(nameof(importLogger));
+        _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         _statusChecker = statusChecker ?? throw new ArgumentNullException(nameof(statusChecker));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -51,15 +45,18 @@ public class GoogleAdsInvoiceImportJob : IRecurringJob
             var to = DateTime.UtcNow;
             var from = to.AddDays(-7);
 
-            var service = new MarketingInvoiceImportService(_source, _repository, _importLogger);
-            var result = await service.ImportAsync(from, to, cancellationToken);
+            var response = await _mediator.Send(
+                new ImportMarketingInvoicesRequest
+                {
+                    Platform = GoogleAdsTransactionSource.PlatformName,
+                    From = from,
+                    To = to,
+                },
+                cancellationToken);
 
             _logger.LogInformation(
                 "{JobName} completed. Imported={Imported}, Skipped={Skipped}, Failed={Failed}",
-                Metadata.JobName,
-                result.Imported,
-                result.Skipped,
-                result.Failed);
+                Metadata.JobName, response.Imported, response.Skipped, response.Failed);
         }
         catch (Exception ex)
         {

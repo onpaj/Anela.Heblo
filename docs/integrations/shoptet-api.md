@@ -204,9 +204,60 @@ Updates the order's remark/note slots. Any property omitted from the body is lef
 
 **Used by:** `BlockOrderProcessingHandler` — reads current `eshopRemark` via `GetEshopRemarkAsync`, appends the block reason on a new line, writes back via `UpdateEshopRemarkAsync`. Both methods are on `ShoptetOrderClient`.
 
+**✅ Verified 2026-05-25 against test store (Shoptet token prefix 780175):**
+- PATCH `additionalFields: [{ "index": 1, "text": "CHLAZENE-TEST" }]` → 200 `{"data":null,"errors":null}` _(verified with index 1; index 6 uses the same API path — round-trip confirmed)_
+- GET `/api/orders/{code}?include=notes` → field round-trips correctly
+- Production uses **index 6** (index 1 is reserved by an external system):
+  ```json
+  {
+    "data": {
+      "additionalFields": [{ "index": 6, "text": "CHLAZENE" }]
+    }
+  }
+  ```
+
+### 3.7 Heblo reservations for the 6 per-order additional fields
+
+| Index | Reserved by | Value contract | Written when | Cleared when | Reader(s) | Limits |
+|---|---|---|---|---|---|---|
+| 1 | **RESERVED — external system** | Do not use; already claimed by a system outside Heblo | — | — | External system (unknown) | ≤ 255 chars |
+| 2 | — unassigned — | | | | | ≤ 255 chars |
+| 3 | — unassigned — | | | | | ≤ 255 chars |
+| 4 | — unassigned — | | | | | length undocumented |
+| 5 | — unassigned — | | | | | length undocumented |
+| 6 | Expedition cooling marker | Literal string `"CHLAZENE"` for cooled orders; no other value ever written | Original expedition list print, if `ExpeditionOrder.IsCooled == true` | Never (write-only) | External / Shoptet operators (informational; nothing in Heblo reads it back) | length undocumented (we use 8 chars) |
+
+**Before using an additional field in a new feature, claim it by updating this table in the same PR.** The fields are a finite shared resource (6 total) and the Shoptet API gives no per-field semantic protection — two callers writing to the same index will silently overwrite each other. The Heblo expectation is: one logical owner per index, documented here.
+
+The Heblo client (`ShoptetOrderClient.SetAdditionalFieldAsync`) accepts any 1..6 index; there is no runtime guard tying an index to a feature. The guard is this table and code review.
+
+Length limits: indices 1–3 are capped at 255 chars by the Shoptet API. Indices 4–6 are believed to support longer text but the exact cap has not been verified — measure before assuming.
+
 ---
 
-## 4. Products API
+## 4. Customers API
+
+> **TODO: Verify against live API.** Run `curl -H "Shoptet-Private-API-Token: <token>" https://api.myshoptet.com/api/customers/<guid>` with a real customer GUID and document the actual response shape here. Update `ShoptetCustomerResponse.cs` field names if they differ from the speculative model.
+
+### 4.1 Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/customers/{guid}` | Get customer by GUID |
+
+### 4.2 Known fields (speculative — verify before production)
+
+Response shape assumed to follow Shoptet conventions:
+- `data.customer.guid` — customer GUID
+- `data.customer.email` — customer email
+- `data.customer.fullName` — full name
+- `data.customer.customerGroup.name` — customer group name
+- `data.customer.priceList.name` — price list name
+- `data.customer.billingAddress` — billing address with `street`, `city`, `zip`, `countryCode`
+
+---
+
+## 5. Products API
 
 | Method | Path | Description |
 |---|---|---|
@@ -244,7 +295,7 @@ The snapshot endpoint (`GET /api/products/snapshot`) exists but requires a regis
 
 ---
 
-## 5. ShoptetPay API
+## 6. ShoptetPay API
 
 Base URL: `https://api.shoptetpay.com`
 
@@ -1133,3 +1184,54 @@ After a successful `201` response, the shipment is in `requested` status. The la
 #### Test store limitation
 
 The staging store (780175 / `api.myshoptet.com` with token `Shoptet:ApiToken`) has **no Balikobot carriers configured** (`GET /api/shipments/carriers` returns `[]`). All `POST /api/shipments` calls in the test store will return `errorCode: invalid-request-data, instance: integration-call`. Integration tests for shipment creation must run against the production store or a store with Balikobot configured.
+
+---
+
+### 11.10 POST /api/shipments/{guid}/cancel-request — Cancel Shipment
+
+> **Probed 2026-05-21** against the official OpenAPI spec (`https://api.docs.shoptet.com/_bundle/Shoptet%20API/openapi.json`).
+
+Requests cancellation of an existing shipment. Forwarded to the carrier asynchronously — the API accepts the request immediately and the carrier processes the actual cancellation in the background.
+
+> **⚠️ Common mistake — there is NO `DELETE /api/shipments/{guid}` endpoint.** Calling `DELETE` returns `404` / `405`. The only documented cancellation mechanism is this `POST .../cancel-request`. Anela hit this bug prior to 2026-05-21 in `ShoptetShipmentClient.DeleteShipmentAsync` — `ResetOrderShipmentHandler` consistently failed with `ShipmentDeleteFailed` because the underlying DELETE never succeeded.
+
+#### Path parameter
+
+| Parameter | Type | Description |
+|---|---|---|
+| `guid` | string (UUID) | Shipment GUID returned by `POST /api/shipments` |
+
+#### Request body
+
+**None.** No body, no query params.
+
+#### Response (202 Accepted)
+
+Empty body. Cancellation has been accepted for forwarding to the carrier — it is NOT yet final.
+
+#### Error codes
+
+| HTTP | errorCode | instance | Meaning |
+|---|---|---|---|
+| 404 | `shipment-not-found` | `payload` | Shipment GUID does not exist (already removed / never created). Treat as idempotent success. |
+| 422 | `invalid-request-data` | `integration-call` | Carrier rejected the cancellation request (e.g. shipment already in transit). |
+
+#### Final-state semantics
+
+`202` does NOT mean the shipment is cancelled — only that the request was accepted. Poll `GET /api/shipments/{guid}` to observe the actual lifecycle:
+
+```
+requested → cancel_requested → canceled → deleted
+created   → cancel_requested → canceled
+in_transit → (cancellation may be rejected by carrier with 422)
+```
+
+#### Anela usage pattern (Balení reset flow)
+
+`ResetOrderShipmentHandler` fires `POST .../cancel-request` and **immediately** calls `POST /api/shipments` to create a replacement — it does **not** poll for the cancel to complete. Trade-off:
+
+- Operator experience is fast (single confirm-then-print cycle on the kiosk).
+- The old shipment may briefly co-exist with the new one in `requested` state at the carrier.
+- A `404` from cancel-request is treated as success — the shipment is already gone, no further action needed.
+
+`ShoptetShipmentClient.CancelShipmentAsync` returns silently on `404` and throws `HttpRequestException` on any other non-2xx status.
