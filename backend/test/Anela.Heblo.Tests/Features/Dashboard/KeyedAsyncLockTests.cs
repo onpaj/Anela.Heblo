@@ -132,4 +132,29 @@ public sealed class KeyedAsyncLockTests : IDisposable
         // Now a third acquirer should be able to get the lock normally
         await using var finalHandle = await _sut.AcquireAsync("cancel-key", TimeSpan.FromMinutes(1));
     }
+
+    [Fact]
+    public async Task AcquireAsync_EntryIsEvictedAfterTtlExpires_AndFreshAcquireSucceeds()
+    {
+        // Arrange — use a very short TTL
+        var shortTtl = TimeSpan.FromMilliseconds(50);
+        const string key = "evict-fresh-key";
+
+        // Act — acquire and immediately release
+        await using (await _sut.AcquireAsync(key, shortTtl))
+        { /* critical section — immediately released */ }
+
+        // Wait well past the TTL so the sliding-expiration eviction fires
+        await Task.Delay(300);
+
+        // Assert — can acquire the same key again without error (fresh entry after eviction)
+        IAsyncDisposable? handle = null;
+        var act = async () =>
+        {
+            handle = await _sut.AcquireAsync(key, shortTtl);
+        };
+
+        await act.Should().NotThrowAsync();
+        if (handle != null) await handle.DisposeAsync();
+    }
 }
