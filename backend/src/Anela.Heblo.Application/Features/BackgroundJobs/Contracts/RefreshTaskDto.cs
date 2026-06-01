@@ -1,4 +1,4 @@
-namespace Anela.Heblo.API.Controllers;
+namespace Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
 
 public class RefreshTaskDto
 {
