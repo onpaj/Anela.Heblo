@@ -572,7 +572,7 @@ public class PurchaseOrdersInTransitTile : ITile { ... }
 public class OrdersInTransitTile : ITile { ... }
 ```
 
-The `TileIdContractTests` backward-compatibility assertion will **fail CI** if the attribute value drifts from the class-name-derived value without a corresponding migration. To rename a class and keep its ID stable, update the FR-5 backward-compat exclusion in the test (add the new class name to an explicit allowlist, or update the test with a comment citing the migration).
+The `TileIdContractTests` backward-compatibility assertion will **fail CI** if the renamed class derives a different ID than the pinned `[TileId]` value. If you rename a class and keep the `[TileId]` value stable (no DB migration), update the backward-compat assertion in `TileIdContractTests.AllConcreteTiles_ShouldMatchLegacyDerivedValue_ForBackwardCompatibility` to exclude the renamed class from the check by adding a `.Where(t => t.Name != "NewClassName")` filter on line 76 with a comment explaining the intentional divergence and citing the class rename.
 
 ### Changing a Tile ID Value (Breaking — Migration Required)
 
@@ -581,7 +581,7 @@ Changing a `[TileId]` value is a **breaking data change**. All existing `UserDas
 To change a tile ID safely:
 1. Write an EF Core migration that updates `UserDashboardTiles.TileId` from the old value to the new one.
 2. Change the `[TileId]` attribute value in the same PR.
-3. Update the FR-5 backward-compat assertion in `TileIdContractTests` (the test's backward-compat guard will otherwise flag the new value as a violation).
+3. Update the backward-compat assertion in `TileIdContractTests.AllConcreteTiles_ShouldMatchLegacyDerivedValue_ForBackwardCompatibility` by adding a `.Where()` filter to exclude the tile from the derived-value check, with a comment citing the migration.
 
 Use the existing migration as a template:
 `backend/src/Anela.Heblo.Persistence/Migrations/20251024072354_UpdateMaterialInventoryTileId.cs`
