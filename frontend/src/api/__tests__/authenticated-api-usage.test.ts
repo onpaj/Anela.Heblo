@@ -70,12 +70,13 @@ describe("Authenticated API Usage", () => {
         ) {
           // Allow if it's using authenticated client pattern
           const fileContent = fs.readFileSync(file, "utf-8");
-          const hasAuthenticatedClient = fileContent.includes(
-            "getAuthenticatedApiClient()",
-          );
+          const hasAuthenticatedClient =
+            fileContent.includes("getAuthenticatedApiClient()") ||
+            fileContent.includes("getAuthenticatedFetch");
           const isUsingAuthenticatedPattern =
             fileContent.includes("(apiClient as any).http.fetch") ||
-            fileContent.includes("apiClient.http.fetch");
+            fileContent.includes("apiClient.http.fetch") ||
+            fileContent.includes("getAuthenticatedFetch");
 
           if (!hasAuthenticatedClient || !isUsingAuthenticatedPattern) {
             violations.push({
@@ -123,23 +124,25 @@ describe("Authenticated API Usage", () => {
       if (hasApiCalls) {
         const hasAuthenticatedClient =
           content.includes("getAuthenticatedApiClient") ||
+          content.includes("getAuthenticatedFetch") ||
           content.includes("smartsuppClient");
         const hasPlainFetch =
           content.includes("fetch(") &&
           !content.includes("(apiClient as any).http.fetch") &&
-          !content.includes("apiClient.http.fetch");
+          !content.includes("apiClient.http.fetch") &&
+          !content.includes("getAuthenticatedFetch");
 
         if (!hasAuthenticatedClient) {
           violations.push({
             file: file.replace(apiHooksDir, ""),
-            reason: "Missing getAuthenticatedApiClient() import and usage",
+            reason: "Missing getAuthenticatedApiClient() or getAuthenticatedFetch() import and usage",
           });
         }
 
         if (hasPlainFetch) {
           violations.push({
             file: file.replace(apiHooksDir, ""),
-            reason: "Using plain fetch() instead of authenticated API client",
+            reason: "Using plain fetch() instead of authenticated API client or getAuthenticatedFetch()",
           });
         }
       }
@@ -153,9 +156,9 @@ describe("Authenticated API Usage", () => {
       throw new Error(
         `Found ${violations.length} API hooks with authentication issues:\n${errorMessage}\n\n` +
           "All API hooks should:\n" +
-          '1. Import getAuthenticatedApiClient from "../client"\n' +
-          "2. Use apiClient.http.fetch() instead of plain fetch()\n" +
-          "3. Follow the pattern from useCatalog.ts",
+          '1. Import getAuthenticatedApiClient or getAuthenticatedFetch from "../client"\n' +
+          "2. Use apiClient.http.fetch() or getAuthenticatedFetch() instead of plain fetch()\n" +
+          "3. Follow the pattern from useCatalog.ts or useArticles.ts",
       );
     }
   });
