@@ -1,6 +1,4 @@
-using Anela.Heblo.Xcc.Domain;
-
-namespace Anela.Heblo.Xcc.Services.Dashboard;
+namespace Anela.Heblo.Domain.Features.Dashboard;
 
 public interface IUserDashboardSettingsRepository
 {

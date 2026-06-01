@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
-using Anela.Heblo.Xcc.Domain;
+using Anela.Heblo.Domain.Features.Dashboard;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentAssertions;
 using Moq;
