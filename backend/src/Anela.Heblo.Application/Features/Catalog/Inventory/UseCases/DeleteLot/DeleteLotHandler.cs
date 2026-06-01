@@ -9,13 +9,13 @@ public class DeleteLotHandler : IRequestHandler<DeleteLotRequest, DeleteLotRespo
 {
     private readonly ILogger<DeleteLotHandler> _logger;
     private readonly ILotRepository _lotRepository;
-    private readonly IEanRepository _eanRepository;
+    private readonly IMaterialContainerRepository _materialContainerRepository;
 
-    public DeleteLotHandler(ILogger<DeleteLotHandler> logger, ILotRepository lotRepository, IEanRepository eanRepository)
+    public DeleteLotHandler(ILogger<DeleteLotHandler> logger, ILotRepository lotRepository, IMaterialContainerRepository materialContainerRepository)
     {
         _logger = logger;
         _lotRepository = lotRepository;
-        _eanRepository = eanRepository;
+        _materialContainerRepository = materialContainerRepository;
     }
 
     public async Task<DeleteLotResponse> Handle(DeleteLotRequest request, CancellationToken cancellationToken)
@@ -27,9 +27,11 @@ public class DeleteLotHandler : IRequestHandler<DeleteLotRequest, DeleteLotRespo
             return new DeleteLotResponse(ErrorCodes.LotNotFound, new Dictionary<string, string> { { "Id", request.Id.ToString() } });
         }
 
-        if (await _eanRepository.AnyByLotIdAsync(request.Id, cancellationToken))
+        var containers = await _materialContainerRepository.GetPaginatedAsync(
+            lot.MaterialCode, lot.LotCode, null, page: 1, pageSize: 1, cancellationToken);
+        if (containers.TotalCount > 0)
         {
-            _logger.LogWarning("Cannot delete lot {Id} — it still has EANs", request.Id);
+            _logger.LogWarning("Cannot delete lot {Id} — it still has MaterialContainers", request.Id);
             return new DeleteLotResponse(ErrorCodes.LotHasEans, new Dictionary<string, string> { { "Id", request.Id.ToString() } });
         }
 

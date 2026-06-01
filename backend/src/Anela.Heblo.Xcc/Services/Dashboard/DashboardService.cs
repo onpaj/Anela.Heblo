@@ -47,7 +47,7 @@ public class DashboardService : IDashboardService
                 var tileSettings = autoShowTiles.Select((tile, index) => new UserDashboardTile
                 {
                     UserId = userId,
-                    TileId = tile.GetTileId(),
+                    TileId = tile.TileId,
                     IsVisible = true,
                     DisplayOrder = index,
                     LastModified = DateTime.UtcNow,
@@ -61,7 +61,7 @@ public class DashboardService : IDashboardService
             {
                 var existingTileIds = settings.Tiles.Select(t => t.TileId).ToHashSet();
                 var newAutoShowTiles = autoShowTiles
-                    .Where(t => !existingTileIds.Contains(t.GetTileId()))
+                    .Where(t => !existingTileIds.Contains(t.TileId))
                     .ToList();
 
                 if (newAutoShowTiles.Any())
@@ -70,7 +70,7 @@ public class DashboardService : IDashboardService
                     var newTileSettings = newAutoShowTiles.Select((tile, index) => new UserDashboardTile
                     {
                         UserId = userId,
-                        TileId = tile.GetTileId(),
+                        TileId = tile.TileId,
                         IsVisible = true,
                         DisplayOrder = maxOrder + index + 1,
                         LastModified = DateTime.UtcNow,
@@ -120,8 +120,8 @@ public class DashboardService : IDashboardService
 
                 try
                 {
-                    var tile = _tileRegistry.GetTile(tileSettings.TileId);
-                    if (tile == null)
+                    var metadata = _tileRegistry.GetTileMetadata(tileSettings.TileId);
+                    if (metadata == null)
                     {
                         results.Add((index, new TileData
                         {
@@ -139,15 +139,15 @@ public class DashboardService : IDashboardService
 
                     results.Add((index, new TileData
                     {
-                        TileId = tile.GetTileId(),
-                        Title = tile.Title,
-                        Description = tile.Description,
-                        Size = tile.Size,
-                        Category = tile.Category,
-                        DefaultEnabled = tile.DefaultEnabled,
-                        AutoShow = tile.AutoShow,
-                        ComponentType = tile.ComponentType,
-                        RequiredPermissions = tile.RequiredPermissions,
+                        TileId = metadata.TileId,
+                        Title = metadata.Title,
+                        Description = metadata.Description,
+                        Size = metadata.Size,
+                        Category = metadata.Category,
+                        DefaultEnabled = metadata.DefaultEnabled,
+                        AutoShow = metadata.AutoShow,
+                        ComponentType = metadata.ComponentType,
+                        RequiredPermissions = metadata.RequiredPermissions,
                         Data = data
                     }));
                 }

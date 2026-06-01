@@ -67,11 +67,12 @@ public class UpdatePurchaseOrderStatusHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithValidRequestAndInTransitOrder_ShouldUpdateStatusToCompleted()
+    public async Task Handle_WithValidRequestAndReceivedOrder_ShouldUpdateStatusToCompleted()
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
         var purchaseOrder = CreateDraftPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, "System");
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, "System");
 
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
@@ -278,6 +279,98 @@ public class UpdatePurchaseOrderStatusHandlerTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_TransitionFromInTransitToReceived_Succeeds()
+    {
+        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Received");
+        var purchaseOrder = CreateDraftPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, "System");
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(purchaseOrder);
+
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.Success.Should().BeTrue();
+        result.Status.Should().Be("Received");
+        purchaseOrder.Status.Should().Be(PurchaseOrderStatus.Received);
+    }
+
+    [Fact]
+    public async Task Handle_TransitionFromReceivedToCompleted_Succeeds()
+    {
+        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
+        var purchaseOrder = CreateDraftPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, "System");
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, "System");
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(purchaseOrder);
+
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.Success.Should().BeTrue();
+        result.Status.Should().Be("Completed");
+        purchaseOrder.Status.Should().Be(PurchaseOrderStatus.Completed);
+    }
+
+    [Fact]
+    public async Task Handle_TransitionFromReceivedToDraft_ShouldReturnError()
+    {
+        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Draft");
+        var purchaseOrder = CreateDraftPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, "System");
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, "System");
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(purchaseOrder);
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.StatusTransitionNotAllowed);
+    }
+
+    [Fact]
+    public async Task Handle_TransitionFromInTransitToCompleted_ShouldReturnError()
+    {
+        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
+        var purchaseOrder = CreateDraftPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, "System");
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(purchaseOrder);
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.StatusTransitionNotAllowed);
     }
 
     private static PurchaseOrder CreateDraftPurchaseOrder()

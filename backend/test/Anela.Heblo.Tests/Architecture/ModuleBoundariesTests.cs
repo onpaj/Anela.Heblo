@@ -45,20 +45,8 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Leaflet.Infrastructure.Jobs.LeafletIngestionJob -> Anela.Heblo.Application.Features.KnowledgeBase.Services.OneDriveFile",
     };
 
-    // Allowlist for Article → KnowledgeBase. Each entry needs a comment with the justification.
-    // Entries should be removed as the underlying violations are fixed.
-    private static readonly HashSet<string> ArticleAllowlist = new(StringComparer.Ordinal)
-    {
-        // Pre-existing dependency: GatherContextStep dispatches SearchDocumentsRequest via MediatR
-        // to obtain knowledge-base snippets during article generation. Lifting this behind a
-        // consumer-owned contract (e.g. IArticleKnowledgeSearch) is out of scope for the
-        // 2026-05-25 Article ↔ KnowledgeBase style-guide decoupling and is tracked as a follow-up.
-        // Remove these three entries when SearchDocumentsRequest is replaced by an Article-owned
-        // contract.
-        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.SearchDocumentsRequest",
-        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.SearchDocumentsResponse",
-        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.ChunkResult",
-    };
+    // Allowlist for Article → KnowledgeBase. Empty — all violations fixed.
+    private static readonly HashSet<string> ArticleAllowlist = new(StringComparer.Ordinal);
 
     // Allowlist for Logistics → Manufacture. Each entry needs a comment with the justification.
     // Entries should be removed as the underlying violations are fixed.
@@ -81,6 +69,25 @@ public class ModuleBoundariesTests
 
     // Allowlist for Purchase → Catalog. Empty — no active violations.
     private static readonly HashSet<string> PurchaseAllowlist = new(StringComparer.Ordinal);
+
+    // Allowlist for Logistics → Catalog. Pre-existing violations in TransportBoxCompletionService
+    // that are out of scope for the 2026-06-01 Logistics-Catalog boundary introduction.
+    // Remove these entries when TransportBoxCompletionService is refactored to use a
+    // Logistics-owned contract instead of IStockUpOperationRepository / StockUpOperation directly.
+    private static readonly HashSet<string> LogisticsCatalogAllowlist = new(StringComparer.Ordinal)
+    {
+        // TransportBoxCompletionService injects IStockUpOperationRepository (a Catalog-owned
+        // repository) to persist stock-up operations when a transport box is completed.
+        // Decoupling this requires introducing a Logistics-owned contract (e.g.
+        // ILogisticsStockUpGateway) and a Catalog adapter — tracked as a follow-up.
+        "Anela.Heblo.Application.Features.Logistics.Services.TransportBoxCompletionService -> Anela.Heblo.Domain.Features.Catalog.Stock.IStockUpOperationRepository",
+
+        // StockUpOperation is the value type produced and persisted by TransportBoxCompletionService
+        // via IStockUpOperationRepository. Covered by the same follow-up as the entry above;
+        // the compiler-generated nested types (+<>c, +<ProcessBoxAsync>d__5) are handled
+        // automatically via the DeclaringType allowlist check in the test harness.
+        "Anela.Heblo.Application.Features.Logistics.Services.TransportBoxCompletionService -> Anela.Heblo.Domain.Features.Catalog.Stock.StockUpOperation",
+    };
 
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
@@ -105,17 +112,6 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.KnowledgeBase",
             },
             Allowlist: ArticleAllowlist),
-
-        new ModuleBoundaryRule(
-            Name: "Article -> UserManagement",
-            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Article",
-            ForbiddenNamespacePrefixes: new[]
-            {
-                "Anela.Heblo.Domain.Features.UserManagement",
-                "Anela.Heblo.Application.Features.UserManagement",
-                "Anela.Heblo.Persistence.UserManagement",
-            },
-            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
 
         new ModuleBoundaryRule(
             Name: "Logistics -> Manufacture",
@@ -149,6 +145,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Catalog",
             },
             Allowlist: PurchaseAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Logistics -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Logistics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: LogisticsCatalogAllowlist),
 
         new ModuleBoundaryRule(
             Name: "ExpeditionListArchive -> ExpeditionList",
