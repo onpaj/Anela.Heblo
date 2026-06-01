@@ -31,10 +31,8 @@ const AmountEntrySheet: React.FC<AmountEntrySheetProps> = ({
   };
 
   return (
-    <BottomSheet open onClose={onCancel} hasInput>
+    <BottomSheet open onClose={onCancel} hasInput ariaLabel={`Zadat množství – ${item.productName}`}>
       <div
-        aria-modal="true"
-        aria-label={`Zadat množství – ${item.productName}`}
         className="space-y-4"
       >
         <div>

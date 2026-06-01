@@ -120,7 +120,11 @@ const BoxFillWorkflow: React.FC = () => {
 
   const handleAmountConfirm = (amount: number) => {
     if (!selected) return;
-    if (amount > selected.amount) { setOverdraft({ item: selected, amount }); setSelected(null); return; }
+    if (amount > selected.amount) {
+      setOverdraft({ item: selected, amount });
+      setSelected(null);
+      return;
+    }
     void performAdd(selected, amount, false, 'ok');
   };
 

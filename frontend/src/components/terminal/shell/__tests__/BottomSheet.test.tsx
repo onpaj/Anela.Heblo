@@ -1,6 +1,6 @@
 // shell/__tests__/BottomSheet.test.tsx
 import React, { useContext } from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { ScanProvider, ScanActionsContext } from '../ScanProvider';
 import { BottomSheet } from '../BottomSheet';
 
@@ -30,4 +30,15 @@ it('sets yieldFocus while open and releases on unmount', () => {
     </ScanProvider>,
   );
   expect(spy).toHaveBeenCalledWith(false);
+});
+
+it('gives the dialog an accessible name when ariaLabel is provided', () => {
+  render(
+    <ScanProvider>
+      <BottomSheet open ariaLabel="Test sheet" onClose={jest.fn()}>
+        <div>content</div>
+      </BottomSheet>
+    </ScanProvider>,
+  );
+  expect(screen.getByRole('dialog')).toHaveAccessibleName('Test sheet');
 });

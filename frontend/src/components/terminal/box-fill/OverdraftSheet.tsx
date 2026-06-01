@@ -22,10 +22,8 @@ const OverdraftSheet: React.FC<OverdraftSheetProps> = ({
 }) => {
   const missing = requestedAmount - item.amount;
   return (
-    <BottomSheet open onClose={onCancel}>
+    <BottomSheet open onClose={onCancel} ariaLabel={`Nedostatek zásob – ${item.productName}`}>
       <div
-        aria-modal="true"
-        aria-label={`Nedostatek zásob – ${item.productName}`}
         className="space-y-4"
       >
         <div className="flex items-start gap-3">
