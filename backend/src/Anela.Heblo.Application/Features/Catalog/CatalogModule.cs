@@ -16,7 +16,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.SubmitStockTaking;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder;
 using Anela.Heblo.Application.Features.Catalog.Validators;
-using Anela.Heblo.Application.Features.Analytics.Contracts;
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.CostProviders;

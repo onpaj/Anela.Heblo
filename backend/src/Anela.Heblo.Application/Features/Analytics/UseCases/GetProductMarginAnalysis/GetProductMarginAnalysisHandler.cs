@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;

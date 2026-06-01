@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetBankStatementImportStatistics;
+namespace Anela.Heblo.Domain.Features.Analytics;
 
 /// <summary>
 /// Represents bank statement import statistics for a specific day

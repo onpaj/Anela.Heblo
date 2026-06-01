@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 using Anela.Heblo.Application.Shared;

@@ -1,13 +1,8 @@
-using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
-using Anela.Heblo.Application.Features.Analytics.UseCases.GetBankStatementImportStatistics;
-using Anela.Heblo.Domain.Features.Analytics;
-
-namespace Anela.Heblo.Application.Features.Analytics.Infrastructure;
+namespace Anela.Heblo.Domain.Features.Analytics;
 
 /// <summary>
-/// 🔒 PERFORMANCE FIX: Analytics-specific repository with streaming capabilities
-/// Prevents memory issues by avoiding loading all data at once
+/// Analytics-specific repository with streaming capabilities.
+/// Prevents memory issues by avoiding loading all data at once.
 /// </summary>
 public interface IAnalyticsRepository
 {

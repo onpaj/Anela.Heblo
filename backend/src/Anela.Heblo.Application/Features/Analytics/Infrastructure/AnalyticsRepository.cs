@@ -1,6 +1,3 @@
-using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
-using Anela.Heblo.Application.Features.Analytics.UseCases.GetBankStatementImportStatistics;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
