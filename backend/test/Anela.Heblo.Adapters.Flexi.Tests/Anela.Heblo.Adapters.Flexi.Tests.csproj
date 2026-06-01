@@ -23,6 +23,8 @@
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.8" />
+        <PackageReference Include="Testcontainers.PostgreSql" Version="3.10.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -32,6 +34,7 @@
     <ItemGroup>
       <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Flexi\Anela.Heblo.Adapters.Flexi.csproj" />
       <ProjectReference Include="..\..\src\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
+      <ProjectReference Include="..\..\src\Anela.Heblo.Persistence.Analytics\Anela.Heblo.Persistence.Analytics.csproj" />
     </ItemGroup>
     
     <ItemGroup>
