@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateMaterialContainers;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.DiscardMaterialContainer;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetLastUsedLotForMaterial;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetMaterialContainerByCode;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.ListMaterialContainers;
 using MediatR;
@@ -31,6 +32,17 @@ public class MaterialContainersController : BaseApiController
         var request = new ListMaterialContainersRequest
         { MaterialCode = materialCode, LotCode = lotCode, Page = page, PageSize = pageSize };
         return HandleResponse(await _mediator.Send(request, cancellationToken));
+    }
+
+    [HttpGet("last-used-lot")]
+    public async Task<ActionResult<GetLastUsedLotForMaterialResponse>> GetLastUsedLot(
+        [FromQuery] string materialCode, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(materialCode))
+            return BadRequest();
+        var response = await _mediator.Send(
+            new GetLastUsedLotForMaterialRequest { MaterialCode = materialCode }, cancellationToken);
+        return HandleResponse(response);
     }
 
     [HttpGet("by-code/{code}")]
