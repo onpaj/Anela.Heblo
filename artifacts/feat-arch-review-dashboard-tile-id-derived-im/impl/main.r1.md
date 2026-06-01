@@ -1,58 +1,25 @@
+Implementation complete. Here's a summary of what was done across 8 commits:
+
 ---
 
-# Implementation: Dashboard Tile ID Explicit Property Refactor
+## Implementation complete: Explicit, Stable Dashboard Tile Identifiers
 
-## What was implemented
+**8 commits, all tasks reviewed and approved.**
 
-Nothing was committed to the branch. The implementation is blocked by the same write permission issue that blocked the previous session.
+### What was built
 
-## Files created/modified
+| # | Task | Status |
+|---|------|--------|
+| 1 | `TileIdAttribute` — new sealed attribute class | ✅ |
+| 2 | `[TileId]` on all 22 concrete production tiles | ✅ |
+| 3 | `[TileId]` on 6 test fixture tiles | ✅ |
+| 4 | `TileExtensions.GetTileId` rewritten to read attribute; legacy `Replace("tile","")` deleted | ✅ |
+| 5 | `ValidateTileTypes` startup validation + 2 unit tests (FR-4) | ✅ |
+| 6 | `TileIdContractTests` reflection suite — 4 tests covering presence, lowercase, uniqueness, backward-compat (FR-5) | ✅ |
+| 7 | Rename procedure documentation in `dashboard_tiles_implementation_guide.md` (FR-6) | ✅ |
 
-None in the repository (blocked). Memory updated:
-- `memory/session-context.md` — updated with full change list and fix instructions
+### Key guarantees
 
-## Tests
-
-No tests written (blocked).
-
-## How to verify
-
-The write permission blocker can be confirmed by running `cat .claude/settings.json` in the working directory — it has no `permissions.allow` entries.
-
-## Notes
-
-**Root cause:** The project `.claude/settings.json` has no `permissions.allow` entries. All `Edit`, `Write`, and file-writing `Bash` calls require interactive user approval, but no user is present in the automated pipeline. This is identical to the r1 blocker.
-
-**Required fix before r3 run:** Update `.claude/settings.json` to:
-```json
-{
-  "enabledPlugins": {
-    "ralph-loop@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true
-  },
-  "permissions": {
-    "allow": [
-      "Edit(**)",
-      "Write(**)",
-      "Bash(dotnet *)",
-      "Bash(git *)",
-      "Bash(rm *)"
-    ]
-  }
-}
-```
-
-This single change will allow all 30+ file edits to proceed in the next run. The complete change list is documented in `memory/session-context.md`.
-
-**What WOULD be implemented once unblocked:** Add `string TileId { get; }` to `ITile`, create `TileIdValidator` with regex `^[a-z0-9-]{1,100}$`, update `TileRegistry.RegisterTile<TTile>()` for validation + duplicate detection, delete `TileExtensions.cs`, add `TileId` literals to all 23 concrete tiles, update call sites in `DashboardService.cs` and `GetAvailableTilesHandler.cs`, update 8 test doubles, update 2 tile test assertions, and create `TileRegistrationContractTests.cs`.
-
-## PR Summary
-
-Implementation blocked: project `.claude/settings.json` has no write permissions configured. This is the second consecutive session that has hit this blocker. The fix is a one-line addition to the settings file. Full change list is preserved in memory/session-context.md across sessions.
-
-### Changes
-- No source files modified
-- `memory/session-context.md` — updated with complete implementation plan and fix instructions
-
-## Status
-BLOCKED
+- **Zero DB changes** — all 22 pinned `[TileId]` values match the legacy derived strings exactly, so every user's stored tile configuration continues to resolve
+- **Fail-fast at startup** — missing attribute or duplicate ID throws during `InitializeTileRegistry`, not on the first request
+- **CI guard** — `TileIdContractTests` catches any future tile added without the attribute; grep confirms `Replace("tile"` is gone from all production code
