@@ -30,6 +30,16 @@ public class CreateMaterialContainersHandler : IRequestHandler<CreateMaterialCon
     public async Task<CreateMaterialContainersResponse> Handle(
         CreateMaterialContainersRequest request, CancellationToken cancellationToken)
     {
+        var duplicateCode = request.Items
+            .GroupBy(i => i.Code)
+            .FirstOrDefault(g => g.Count() > 1)?.Key;
+        if (duplicateCode != null)
+        {
+            return new CreateMaterialContainersResponse(
+                ErrorCodes.MaterialContainerCodeExists,
+                new Dictionary<string, string> { { "Code", duplicateCode } });
+        }
+
         foreach (var item in request.Items)
         {
             var existing = await _containerRepository.GetByCodeAsync(item.Code, cancellationToken);

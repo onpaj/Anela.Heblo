@@ -262,4 +262,27 @@ public class CreateMaterialContainersHandlerTests
         Assert.False(result.Success);
         Assert.Equal(ErrorCodes.MaterialContainerCodeExists, result.ErrorCode);
     }
+
+    [Fact]
+    public async Task Handle_BatchWithDuplicateCodes_ReturnsCodeExistsError()
+    {
+        // Arrange
+        var request = new CreateMaterialContainersRequest
+        {
+            Items = new List<CreateMaterialContainerItem>
+            {
+                new() { Code = "M00000001", MaterialCode = "MAT001", LotCode = "L1" },
+                new() { Code = "M00000001", MaterialCode = "MAT001", LotCode = "L1" }
+            }
+        };
+
+        // Act
+        var result = await _handler.Handle(request, default);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.MaterialContainerCodeExists, result.ErrorCode);
+        _containerRepo.Verify(r => r.GetByCodeAsync(It.IsAny<string>(), default), Times.Never);
+        _containerRepo.Verify(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default), Times.Never);
+    }
 }
