@@ -29,6 +29,7 @@ public static class CupsAdapterServiceCollectionExtensions
 
         services.AddScoped<ICupsPrintingService, CupsPrintingService>();
         services.AddScoped<IPrintQueueSink, CupsPrintQueueSink>();
+        services.AddScoped<ILabelPrintingService, CupsLabelPrintingService>();
 
         return services;
     }
