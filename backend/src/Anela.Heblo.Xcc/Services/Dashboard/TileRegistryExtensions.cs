@@ -28,12 +28,32 @@ public static class TileRegistryExtensions
 
     public static void InitializeTileRegistry(this IHost app)
     {
-        var registry = app.Services.GetRequiredService<ITileRegistry>();
+        var distinctTypes = RegisteredTileTypes.Distinct().ToList();
+        ValidateTileTypes(distinctTypes);
 
-        foreach (var tileType in RegisteredTileTypes.Distinct())
+        var registry = app.Services.GetRequiredService<ITileRegistry>();
+        foreach (var tileType in distinctTypes)
         {
             var genericMethod = RegisterTileMethod.MakeGenericMethod(tileType);
             genericMethod.Invoke(registry, null);
         }
+    }
+
+    internal static void ValidateTileTypes(IReadOnlyList<Type> types)
+    {
+        var duplicates = types
+            .GroupBy(t => t.GetTileId())
+            .Where(g => g.Count() > 1)
+            .ToList();
+
+        if (duplicates.Count == 0)
+            return;
+
+        var conflicts = duplicates.Select(g =>
+            $"  ID '{g.Key}' is shared by: {string.Join(", ", g.Select(t => t.FullName))}");
+
+        throw new InvalidOperationException(
+            "Dashboard tile registry has duplicate tile IDs. Each tile must have a unique [TileId].\n" +
+            string.Join("\n", conflicts));
     }
 }
