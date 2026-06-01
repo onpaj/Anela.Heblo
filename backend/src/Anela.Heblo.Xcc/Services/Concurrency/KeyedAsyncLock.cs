@@ -6,27 +6,32 @@ internal sealed class KeyedAsyncLock : IKeyedAsyncLock, IDisposable
 {
     private readonly MemoryCache _entries = new(new MemoryCacheOptions());
 
-    public async Task<IAsyncDisposable> AcquireAsync(string key, TimeSpan slidingExpiration, CancellationToken cancellationToken = default)
+    public async Task<IAsyncDisposable> AcquireAsync(string key, TimeSpan ttl, CancellationToken ct = default)
     {
         while (true)
         {
             var entry = _entries.GetOrCreate(key, e =>
             {
-                e.SlidingExpiration = slidingExpiration;
+                e.SlidingExpiration = ttl;
                 var le = new LockEntry();
+                le.AddRef(); // cache holds a ref — balanced by ReleaseRef in eviction callback
                 e.RegisterPostEvictionCallback((_, value, _, _) =>
                 {
-                    if (value is LockEntry ev) ev.MarkEvicted();
+                    if (value is LockEntry ev)
+                    {
+                        ev.MarkEvicted();
+                        ev.ReleaseRef(); // release the cache's ref
+                    }
                 });
                 return le;
             })!;
 
-            entry.AddRef();
+            entry.AddRef(); // caller's ref
             if (_entries.TryGetValue<LockEntry>(key, out var current) && ReferenceEquals(current, entry))
             {
                 try
                 {
-                    await entry.Sem.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    await entry.Sem.WaitAsync(ct).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -35,7 +40,7 @@ internal sealed class KeyedAsyncLock : IKeyedAsyncLock, IDisposable
                 }
                 return new Handle(entry);
             }
-            entry.ReleaseRef();
+            entry.ReleaseRef(); // entry no longer in cache, retry
         }
     }
 
