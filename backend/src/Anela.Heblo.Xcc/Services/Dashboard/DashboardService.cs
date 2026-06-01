@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Anela.Heblo.Xcc.Domain;
 using Anela.Heblo.Xcc.Services.Concurrency;
 using Microsoft.Extensions.Options;
@@ -8,7 +9,7 @@ public class DashboardService : IDashboardService
 {
     private readonly ITileRegistry _tileRegistry;
     private readonly IUserDashboardSettingsRepository _settingsRepository;
-    private readonly DashboardOptions _dashboardOptions;
+    private readonly int _maxConcurrentTileLoads;
     private readonly IKeyedAsyncLock _lockPool;
     private readonly TimeSpan _lockTtl;
 
@@ -20,7 +21,7 @@ public class DashboardService : IDashboardService
     {
         _tileRegistry = tileRegistry;
         _settingsRepository = settingsRepository;
-        _dashboardOptions = dashboardOptions.Value;
+        _maxConcurrentTileLoads = dashboardOptions.Value.MaxConcurrentTileLoads;
         _lockPool = lockPool;
         _lockTtl = TimeSpan.FromMinutes(dashboardOptions.Value.UserLockSlidingExpirationMinutes);
     }
@@ -108,11 +109,11 @@ public class DashboardService : IDashboardService
             .OrderBy(t => t.DisplayOrder)
             .ToList();
 
-        var results = new System.Collections.Concurrent.ConcurrentBag<(int Index, TileData Data)>();
+        var results = new ConcurrentBag<(int Index, TileData Data)>();
 
         await Parallel.ForEachAsync(
             visibleTiles.Select((tile, index) => (tile, index)),
-            new ParallelOptions { MaxDegreeOfParallelism = _dashboardOptions.MaxConcurrentTileLoads },
+            new ParallelOptions { MaxDegreeOfParallelism = _maxConcurrentTileLoads },
             async (item, ct) =>
             {
                 var (tileSettings, index) = item;
