@@ -28,6 +28,7 @@ public class ExpeditionProtocolDocument : IDocument
     private const float FrostIconSize = 12f;
     private const float FrostBadgePadding = 3f;
     private const float FrostBadgeBorderThickness = 1.5f;
+    private const string DefaultCoolingText = "CHLAZENÁ ZÁSILKA";
 
     private static readonly byte[] FrostIconBytes = GenerateFrostIcon();
 
@@ -116,7 +117,7 @@ public class ExpeditionProtocolDocument : IDocument
                         {
                             row.AutoItem().Width(FrostIconSize).Height(FrostIconSize).Image(FrostIconBytes).FitArea();
                             row.AutoItem().PaddingLeft(3).AlignMiddle()
-                                .Text("CHLAZENÁ ZÁSILKA")
+                                .Text(string.IsNullOrWhiteSpace(order.CoolingText) ? DefaultCoolingText : order.CoolingText)
                                 .Bold().FontSize(10).FontColor(Colors.Black);
                         });
                 }

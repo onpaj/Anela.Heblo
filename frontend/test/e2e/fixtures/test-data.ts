@@ -304,6 +304,22 @@ export const TestPackingOrders: Record<string, string | null> = {
   existingShipmentPacking: null
 };
 
+export interface MaterialContainerFixture {
+  codePrefix: string;
+  materialCode: string;
+  lotCode: string;
+}
+
+/**
+ * Fixture for material container (lot identification) E2E tests.
+ * materialCode: AKL001 (Bisabolol) — stable material present on staging per docs/testing/test-data-fixtures.md
+ */
+export const materialContainerFixtures: MaterialContainerFixture = {
+  codePrefix: 'M999',
+  materialCode: 'AKL001',
+  lotCode: 'E2E-LOT',
+};
+
 /**
  * Helper function to verify test data exists
  * Use this at the beginning of tests to fail fast if data is missing

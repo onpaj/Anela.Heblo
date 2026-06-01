@@ -51,7 +51,7 @@ const WORKFLOWS: WorkflowTile[] = [
     description: 'Evidujte šarže při příjmu a sledujte spotřebu ve výrobě',
     href: '/terminal/lot-identification',
     icon: Tag,
-    comingSoon: true,
+    comingSoon: false,
   },
 ];
 

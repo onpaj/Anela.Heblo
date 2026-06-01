@@ -20,33 +20,28 @@ public class TileRegistry : ITileRegistry
         _registeredTiles[tileId] = tileType;
     }
 
-    public IEnumerable<ITile> GetAvailableTiles()
+    public IEnumerable<TileMetadata> GetAvailableTiles()
     {
-        var tiles = new List<ITile>();
-
-        using (var scope = _serviceProvider.CreateScope())
+        var result = new List<TileMetadata>(_registeredTiles.Count);
+        using var scope = _serviceProvider.CreateScope();
+        foreach (var tileType in _registeredTiles.Values)
         {
-            foreach (var tileType in _registeredTiles.Values)
-            {
-                var tile = (ITile)scope.ServiceProvider.GetRequiredService(tileType);
-                tiles.Add(tile);
-            }
+            var tile = (ITile)scope.ServiceProvider.GetRequiredService(tileType);
+            result.Add(ToMetadata(tile));
         }
-
-        return tiles;
+        return result;
     }
 
-    public ITile? GetTile(string tileId)
+    public TileMetadata? GetTileMetadata(string tileId)
     {
         if (!_registeredTiles.TryGetValue(tileId, out var tileType))
         {
             return null;
         }
 
-        using (var scope = _serviceProvider.CreateScope())
-        {
-            return (ITile)scope.ServiceProvider.GetRequiredService(tileType);
-        }
+        using var scope = _serviceProvider.CreateScope();
+        var tile = (ITile)scope.ServiceProvider.GetRequiredService(tileType);
+        return ToMetadata(tile);
     }
 
     public async Task<object?> GetTileDataAsync(string tileId, Dictionary<string, string>? parameters = null)
@@ -56,12 +51,21 @@ public class TileRegistry : ITileRegistry
             return null;
         }
 
-        using (var scope = _serviceProvider.CreateScope())
-        {
-            var tile = (ITile)scope.ServiceProvider.GetRequiredService(tileType);
-            return await tile.LoadDataAsync(parameters);
-        }
+        using var scope = _serviceProvider.CreateScope();
+        var tile = (ITile)scope.ServiceProvider.GetRequiredService(tileType);
+        return await tile.LoadDataAsync(parameters);
     }
+
+    private static TileMetadata ToMetadata(ITile tile) => new(
+        tile.GetTileId(),
+        tile.Title,
+        tile.Description,
+        tile.Size,
+        tile.Category,
+        tile.DefaultEnabled,
+        tile.AutoShow,
+        tile.ComponentType,
+        tile.RequiredPermissions);
 
     public IEnumerable<string> GetRegisteredTileIds()
     {

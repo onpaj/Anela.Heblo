@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.FeatureFlags;
@@ -19,6 +20,7 @@ using Anela.Heblo.Persistence.BackgroundJobs;
 using Anela.Heblo.Persistence.DataQuality;
 using Anela.Heblo.Persistence.Catalog.Stock;
 using Anela.Heblo.Persistence.Dashboard;
+using Anela.Heblo.Persistence.Features.Analytics;
 using Anela.Heblo.Persistence.Features.Bank;
 using Anela.Heblo.Persistence.Infrastructure;
 using Anela.Heblo.Persistence.InvoiceClassification;
@@ -95,16 +97,16 @@ public static class PersistenceModule
             services.AddSingleton(dataSource); // Register for DI-managed disposal
         }
 
-        // Register EAN code generator — real implementation needs NpgsqlDataSource (raw ADO.NET
-        // for sequence access); fall back to NullEanCodeGenerator when running in-memory so that
+        // Register material container code generator — real implementation needs NpgsqlDataSource (raw ADO.NET
+        // for sequence access); fall back to NullMaterialContainerCodeGenerator when running in-memory so that
         // DI validation and tests can start without a live database.
         if (!useInMemory && connectionString != "InMemory" && dataSource != null)
         {
-            services.AddScoped<IEanCodeGenerator, EanCodeGenerator>();
+            services.AddScoped<IMaterialContainerCodeGenerator, MaterialContainerCodeGenerator>();
         }
         else
         {
-            services.AddScoped<IEanCodeGenerator, NullEanCodeGenerator>();
+            services.AddScoped<IMaterialContainerCodeGenerator, NullMaterialContainerCodeGenerator>();
         }
 
         // Register interceptors
@@ -129,6 +131,7 @@ public static class PersistenceModule
         services.AddScoped<ITelemetryService, NoOpTelemetryService>(); // Default to NoOp, can be overridden by API layer
 
         // Register repositories
+        services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
         services.AddScoped<IUserDashboardSettingsRepository, UserDashboardSettingsRepository>();
 
         // Bank repositories

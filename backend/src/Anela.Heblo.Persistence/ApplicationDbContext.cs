@@ -151,7 +151,7 @@ public class ApplicationDbContext : DbContext
 
     // Inventory module
     public DbSet<Lot> Lots { get; set; } = null!;
-    public DbSet<Ean> Eans { get; set; } = null!;
+    public DbSet<MaterialContainer> MaterialContainers { get; set; } = null!;
 
     // Feature Flags module
     public DbSet<FeatureFlagOverride> FeatureFlagOverrides { get; set; } = null!;

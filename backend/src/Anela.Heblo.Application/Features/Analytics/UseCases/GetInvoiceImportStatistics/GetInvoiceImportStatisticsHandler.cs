@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
+using Anela.Heblo.Domain.Features.Analytics;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 

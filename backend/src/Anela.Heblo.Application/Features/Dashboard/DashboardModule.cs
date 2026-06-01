@@ -1,7 +1,5 @@
-using Anela.Heblo.Application.Features.BackgroundJobs.DashboardTiles;
 using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Application.Features.Dashboard.Tiles;
-using Anela.Heblo.Application.Features.DataQuality.DashboardTiles;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Hangfire;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,9 +20,6 @@ public static class DashboardModule
 
         // Register dashboard tiles
         services.RegisterTile<PurchaseOrdersInTransitTile>();
-        services.RegisterTile<DataQualityStatusTile>();
-        services.RegisterTile<DqtYesterdayStatusTile>();
-        services.RegisterTile<FailedJobsTile>();
 
         return services;
     }
