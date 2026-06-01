@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
