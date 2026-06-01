@@ -30,4 +30,40 @@ public class CupsLabelPrintingServiceTests
         cups.VerifyAll();
         File.Exists(capturedPath!).Should().BeFalse(); // temp cleaned up
     }
+
+    [Fact]
+    public async Task PrintZplAsync_DeletesTempFile_WhenPrintThrows()
+    {
+        var cups = new Mock<ICupsPrintingService>();
+        string? capturedPath = null;
+        cups.Setup(c => c.PrintAsync(It.IsAny<string>(), "Zebra-Raw", "application/octet-stream", It.IsAny<CancellationToken>()))
+            .Callback<string, string?, string, CancellationToken>((p, _, _, _) =>
+            {
+                capturedPath = p;
+                File.Exists(p).Should().BeTrue();
+            })
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        var options = Options.Create(new CupsOptions { LabelPrinterName = "Zebra-Raw" });
+        var sut = new CupsLabelPrintingService(cups.Object, options, NullLogger<CupsLabelPrintingService>.Instance);
+
+        var act = () => sut.PrintZplAsync("^XA^XZ");
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        File.Exists(capturedPath!).Should().BeFalse(); // finally cleanup runs on exception
+    }
+
+    [Fact]
+    public async Task PrintZplAsync_Throws_WhenLabelPrinterNameBlank()
+    {
+        var cups = new Mock<ICupsPrintingService>();
+
+        var options = Options.Create(new CupsOptions { LabelPrinterName = "" });
+        var sut = new CupsLabelPrintingService(cups.Object, options, NullLogger<CupsLabelPrintingService>.Instance);
+
+        var act = () => sut.PrintZplAsync("^XA^XZ");
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        cups.Verify(c => c.PrintAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }
