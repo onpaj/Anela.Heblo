@@ -66,6 +66,15 @@ describe('TerminalLayout', () => {
     expect(getManifestHref()).toBe('/manifest.terminal.json');
   });
 
+  it('mounts the wedge input and flash overlay foundation', () => {
+    renderWithRouter('/terminal');
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(document.querySelector('input[data-testid="wedge-input"]')).toBeInTheDocument();
+    // hidden until a flash fires
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(document.querySelector('[data-testid="flash-overlay"]')).not.toBeInTheDocument();
+  });
+
   it('restores the main manifest on unmount', () => {
     const { unmount } = renderWithRouter('/terminal');
     expect(getManifestHref()).toBe('/manifest.terminal.json');

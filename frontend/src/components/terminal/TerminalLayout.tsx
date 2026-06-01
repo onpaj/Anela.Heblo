@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import UserProfile from '../auth/UserProfile';
+import { ScanProvider } from './shell/ScanProvider';
+import { FlashOverlay } from './shell/FlashOverlay';
 
 const TERMINAL_ROOT = '/terminal';
 
@@ -36,11 +38,12 @@ const TerminalLayout: React.FC = () => {
         <UserProfile compact={true} />
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-md mx-auto w-full">
+      <ScanProvider>
+        <main className="flex-1 min-h-0 overflow-hidden">
           <Outlet />
-        </div>
-      </main>
+        </main>
+        <FlashOverlay />
+      </ScanProvider>
     </div>
   );
 };
