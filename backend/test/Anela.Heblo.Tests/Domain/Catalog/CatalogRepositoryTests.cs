@@ -451,14 +451,13 @@ public class CatalogRepositoryTests
             typeof(TransportBoxItem), "TEST001", "Test Product", 15.0, DateTime.UtcNow, "user", null, null, null)!;
         ((List<TransportBoxItem>)itemsField.GetValue(quarantineBox)!).Add(item);
 
-        // Use SetupSequence: 1st call (reserve) returns empty, 2nd call (quarantine) returns the box
-        _transportBoxRepositoryMock
-            .SetupSequence(x => x.FindAsync(
-                It.IsAny<System.Linq.Expressions.Expression<System.Func<TransportBox, bool>>>(),
-                It.IsAny<bool>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TransportBox>())
-            .ReturnsAsync(new List<TransportBox> { quarantineBox });
+        // Use SetupSequence: 1st call (reserve) returns empty, 2nd call (quarantine) returns the product with quantity
+        _transportSourceMock
+            .Setup(x => x.GetProductsInReserveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int>());
+        _transportSourceMock
+            .Setup(x => x.GetProductsInQuarantineAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int> { { "TEST001", 15 } });
 
         // Act
         await _repository.RefreshReserveData(CancellationToken.None);
@@ -477,14 +476,8 @@ public class CatalogRepositoryTests
         SetupEmptyMocks();
         _repository.QuarantineLoadDate.Should().BeNull(); // before any refresh
 
-        // Use SetupSequence to handle both FindAsync calls (reserve + quarantine)
-        _transportBoxRepositoryMock
-            .SetupSequence(x => x.FindAsync(
-                It.IsAny<System.Linq.Expressions.Expression<System.Func<TransportBox, bool>>>(),
-                It.IsAny<bool>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TransportBox>())
-            .ReturnsAsync(new List<TransportBox>());
+        // Already setup in SetupEmptyMocks(), so no additional setup needed here
+        // Transport source will return empty dictionaries for all products
 
         // Act
         await _repository.RefreshReserveData(CancellationToken.None);
