@@ -21,16 +21,6 @@ public interface IAnalyticsRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets aggregated margin data directly from repository (optimized query)
-    /// </summary>
-    Task<Dictionary<string, decimal>> GetGroupMarginTotalsAsync(
-        DateTime fromDate,
-        DateTime toDate,
-        AnalyticsProductType[] productTypes,
-        ProductGroupingMode groupingMode,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Gets detailed product analysis data for a specific product
     /// </summary>
     Task<AnalyticsProduct?> GetProductAnalysisDataAsync(

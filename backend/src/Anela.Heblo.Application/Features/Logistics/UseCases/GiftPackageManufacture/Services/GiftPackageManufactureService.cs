@@ -43,11 +43,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
 
     public async Task<List<GiftPackageDto>> GetAvailableGiftPackagesAsync(decimal salesCoefficient = 1.0m, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
     {
-        // Calculate date range for daily sales calculation
-        // Use provided dates or fallback to last 12 months
-        var actualToDate = toDate ?? _timeProvider.GetUtcNow().DateTime;
-        var actualFromDate = fromDate ?? actualToDate.AddYears(-1);
-        var daysDiff = Math.Max((actualToDate - actualFromDate).Days, 1);
+        var (actualFromDate, actualToDate, daysDiff) = ResolveDateRange(fromDate, toDate);
 
         var setProducts = await _catalogSource.GetGiftPackageSetsAsync(actualFromDate, actualToDate, cancellationToken);
 
@@ -96,11 +92,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
 
     public async Task<GiftPackageDto> GetGiftPackageDetailAsync(string giftPackageCode, decimal salesCoefficient = 1.0m, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
     {
-        // Calculate date range for daily sales calculation
-        // Use provided dates or fallback to last 12 months
-        var actualToDate = toDate ?? _timeProvider.GetUtcNow().DateTime;
-        var actualFromDate = fromDate ?? actualToDate.AddYears(-1);
-        var daysDiff = Math.Max((actualToDate - actualFromDate).Days, 1);
+        var (actualFromDate, actualToDate, daysDiff) = ResolveDateRange(fromDate, toDate);
 
         // Get the basic product info from catalog
         var product = await _catalogSource.GetGiftPackageAsync(giftPackageCode, actualFromDate, actualToDate, cancellationToken);
@@ -337,6 +329,13 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             DisassembledBy = disassemblyLog.CreatedBy,
             ReturnedComponents = returnedComponents
         };
+    }
+
+    private (DateTime From, DateTime To, int Days) ResolveDateRange(DateTime? fromDate, DateTime? toDate)
+    {
+        var to = toDate ?? _timeProvider.GetUtcNow().DateTime;
+        var from = fromDate ?? to.AddYears(-1);
+        return (from, to, Math.Max((to - from).Days, 1));
     }
 
     private static GiftPackageSeverity CalculateSeverity(int availableStock, int suggestedQuantity, int overstockMinimal)
