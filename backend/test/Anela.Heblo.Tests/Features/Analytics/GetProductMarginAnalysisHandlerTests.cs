@@ -70,10 +70,10 @@ public class GetProductMarginAnalysisHandlerTests
             UnitsSold = 45
         };
 
-        var monthlyBreakdown = new List<GetProductMarginAnalysisResponse.MonthlyMarginBreakdown>();
+        var monthlyBreakdown = new List<MonthlyMarginBreakdownDto>();
         for (int month = 1; month <= 12; month++)
         {
-            monthlyBreakdown.Add(new GetProductMarginAnalysisResponse.MonthlyMarginBreakdown
+            monthlyBreakdown.Add(new MonthlyMarginBreakdownDto
             {
                 Month = new DateTime(2024, month, 1),
                 UnitsSold = month == 3 ? 15 : month == 6 ? 30 : 0,
