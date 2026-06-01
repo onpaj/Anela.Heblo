@@ -105,8 +105,8 @@ public class GetTileDataHandlerTests
         });
 
         _tileRegistryMock
-            .Setup(x => x.GetTile(tileId))
-            .Returns((ITile?)null);
+            .Setup(x => x.GetTileMetadata(tileId))
+            .Returns((TileMetadata?)null);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -130,19 +130,10 @@ public class GetTileDataHandlerTests
             new UserDashboardTileDto { TileId = tileId, IsVisible = true, DisplayOrder = 0 }
         });
 
-        var tileMock = new Mock<ITile>();
-        tileMock.Setup(x => x.Title).Returns("Throwing Tile");
-        tileMock.Setup(x => x.Description).Returns("Desc");
-        tileMock.Setup(x => x.Size).Returns(TileSize.Medium);
-        tileMock.Setup(x => x.Category).Returns(TileCategory.Finance);
-        tileMock.Setup(x => x.DefaultEnabled).Returns(true);
-        tileMock.Setup(x => x.AutoShow).Returns(false);
-        tileMock.Setup(x => x.ComponentType).Returns(typeof(object));
-        tileMock.Setup(x => x.RequiredPermissions).Returns(Array.Empty<string>());
-
         _tileRegistryMock
-            .Setup(x => x.GetTile(tileId))
-            .Returns(tileMock.Object);
+            .Setup(x => x.GetTileMetadata(tileId))
+            .Returns(new TileMetadata(tileId, "Throwing Tile", "Desc", TileSize.Medium,
+                TileCategory.Finance, true, false, typeof(object), Array.Empty<string>()));
 
         _tileRegistryMock
             .Setup(x => x.GetTileDataAsync(tileId, It.IsAny<Dictionary<string, string>?>()))
@@ -174,17 +165,9 @@ public class GetTileDataHandlerTests
         foreach (var id in new[] { "tile-a", "tile-b", "tile-c" })
         {
             var capturedId = id;
-            var tileMock = new Mock<ITile>();
-            tileMock.Setup(x => x.Title).Returns($"Title {capturedId}");
-            tileMock.Setup(x => x.Description).Returns("Desc");
-            tileMock.Setup(x => x.Size).Returns(TileSize.Small);
-            tileMock.Setup(x => x.Category).Returns(TileCategory.System);
-            tileMock.Setup(x => x.DefaultEnabled).Returns(true);
-            tileMock.Setup(x => x.AutoShow).Returns(false);
-            tileMock.Setup(x => x.ComponentType).Returns(typeof(object));
-            tileMock.Setup(x => x.RequiredPermissions).Returns(Array.Empty<string>());
-
-            _tileRegistryMock.Setup(x => x.GetTile(capturedId)).Returns(tileMock.Object);
+            _tileRegistryMock.Setup(x => x.GetTileMetadata(capturedId))
+                .Returns(new TileMetadata(capturedId, $"Title {capturedId}", "Desc", TileSize.Small,
+                    TileCategory.System, true, false, typeof(object), Array.Empty<string>()));
             _tileRegistryMock
                 .Setup(x => x.GetTileDataAsync(capturedId, It.IsAny<Dictionary<string, string>?>()))
                 .ReturnsAsync(new { Id = capturedId });
@@ -216,19 +199,10 @@ public class GetTileDataHandlerTests
             new UserDashboardTileDto { TileId = tileId, IsVisible = true, DisplayOrder = 0 }
         });
 
-        var tileMock = new Mock<ITile>();
-        tileMock.Setup(x => x.Title).Returns("Analytics");
-        tileMock.Setup(x => x.Description).Returns("Analytics description");
-        tileMock.Setup(x => x.Size).Returns(TileSize.Large);
-        tileMock.Setup(x => x.Category).Returns(TileCategory.Finance);
-        tileMock.Setup(x => x.DefaultEnabled).Returns(true);
-        tileMock.Setup(x => x.AutoShow).Returns(true);
-        tileMock.Setup(x => x.ComponentType).Returns(typeof(object));
-        tileMock.Setup(x => x.RequiredPermissions).Returns(new[] { "read", "analytics" });
-
         _tileRegistryMock
-            .Setup(x => x.GetTile(tileId))
-            .Returns(tileMock.Object);
+            .Setup(x => x.GetTileMetadata(tileId))
+            .Returns(new TileMetadata(tileId, "Analytics", "Analytics description", TileSize.Large,
+                TileCategory.Finance, true, true, typeof(object), new[] { "read", "analytics" }));
 
         _tileRegistryMock
             .Setup(x => x.GetTileDataAsync(tileId, null))
@@ -267,17 +241,9 @@ public class GetTileDataHandlerTests
         foreach (var id in new[] { "slow-tile-1", "slow-tile-2" })
         {
             var capturedId = id;
-            var tileMock = new Mock<ITile>();
-            tileMock.Setup(x => x.Title).Returns("Slow");
-            tileMock.Setup(x => x.Description).Returns("Slow tile");
-            tileMock.Setup(x => x.Size).Returns(TileSize.Small);
-            tileMock.Setup(x => x.Category).Returns(TileCategory.System);
-            tileMock.Setup(x => x.DefaultEnabled).Returns(true);
-            tileMock.Setup(x => x.AutoShow).Returns(false);
-            tileMock.Setup(x => x.ComponentType).Returns(typeof(object));
-            tileMock.Setup(x => x.RequiredPermissions).Returns(Array.Empty<string>());
-
-            _tileRegistryMock.Setup(x => x.GetTile(capturedId)).Returns(tileMock.Object);
+            _tileRegistryMock.Setup(x => x.GetTileMetadata(capturedId))
+                .Returns(new TileMetadata(capturedId, "Slow", "Slow tile", TileSize.Small,
+                    TileCategory.System, true, false, typeof(object), Array.Empty<string>()));
             _tileRegistryMock
                 .Setup(x => x.GetTileDataAsync(capturedId, It.IsAny<Dictionary<string, string>?>()))
                 .Returns(async () =>

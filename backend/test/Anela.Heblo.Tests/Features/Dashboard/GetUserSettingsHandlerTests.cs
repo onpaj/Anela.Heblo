@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
-using Anela.Heblo.Tests.Features.Dashboard.Fixtures;
 using Anela.Heblo.Xcc.Domain;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentAssertions;
@@ -52,7 +51,7 @@ public class GetUserSettingsHandlerTests
     {
         // Arrange
         var request = new GetUserSettingsRequest { UserId = null };
-        _tileRegistryMock.Setup(x => x.GetAvailableTiles()).Returns(new List<ITile>());
+        _tileRegistryMock.Setup(x => x.GetAvailableTiles()).Returns(new List<TileMetadata>());
         _repositoryMock
             .Setup(x => x.GetByUserIdAsync("anonymous"))
             .ReturnsAsync((UserDashboardSettings?)null);
@@ -74,7 +73,7 @@ public class GetUserSettingsHandlerTests
     {
         // Arrange
         var request = new GetUserSettingsRequest { UserId = "" };
-        _tileRegistryMock.Setup(x => x.GetAvailableTiles()).Returns(new List<ITile>());
+        _tileRegistryMock.Setup(x => x.GetAvailableTiles()).Returns(new List<TileMetadata>());
         _repositoryMock
             .Setup(x => x.GetByUserIdAsync("anonymous"))
             .ReturnsAsync((UserDashboardSettings?)null);
@@ -97,7 +96,11 @@ public class GetUserSettingsHandlerTests
         // Arrange
         var userId = "user123";
         var request = new GetUserSettingsRequest { UserId = userId };
-        var autoTiles = new List<ITile> { new AutoTile1(), new AutoTile2() };
+        var autoTiles = new List<TileMetadata>
+        {
+            MakeTile("auto1", defaultEnabled: true, autoShow: true),
+            MakeTile("auto2", defaultEnabled: true, autoShow: true)
+        };
 
         _tileRegistryMock.Setup(x => x.GetAvailableTiles()).Returns(autoTiles);
         _repositoryMock
@@ -140,7 +143,7 @@ public class GetUserSettingsHandlerTests
         // Arrange
         var userId = "user123";
         var request = new GetUserSettingsRequest { UserId = userId };
-        var tiles = new List<ITile> { new ManualTile() };
+        var tiles = new List<TileMetadata> { MakeTile("manual", defaultEnabled: true, autoShow: false) };
 
         _tileRegistryMock.Setup(x => x.GetAvailableTiles()).Returns(tiles);
         _repositoryMock
@@ -171,7 +174,11 @@ public class GetUserSettingsHandlerTests
         var existingSettings = CreateExistingUserSettings(userId);
 
         // Registry returns only the tiles already in existing settings
-        var allTiles = new List<ITile> { new AutoTile1(), new AutoTile2() };
+        var allTiles = new List<TileMetadata>
+        {
+            MakeTile("auto1", defaultEnabled: true, autoShow: true),
+            MakeTile("auto2", defaultEnabled: true, autoShow: true)
+        };
         _tileRegistryMock.Setup(x => x.GetAvailableTiles()).Returns(allTiles);
         _repositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
@@ -197,7 +204,12 @@ public class GetUserSettingsHandlerTests
         var existingSettings = CreateExistingUserSettings(userId); // has auto1 (order 0) and auto2 (order 1)
 
         // Registry has an additional new AutoShow tile
-        var allTiles = new List<ITile> { new AutoTile1(), new AutoTile2(), new NewAutoShowTile() };
+        var allTiles = new List<TileMetadata>
+        {
+            MakeTile("auto1", defaultEnabled: true, autoShow: true),
+            MakeTile("auto2", defaultEnabled: true, autoShow: true),
+            MakeTile("newautoshow", defaultEnabled: true, autoShow: true)
+        };
         _tileRegistryMock.Setup(x => x.GetAvailableTiles()).Returns(allTiles);
         _repositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
@@ -236,7 +248,7 @@ public class GetUserSettingsHandlerTests
         var userId = "user123";
         var request = new GetUserSettingsRequest { UserId = userId };
 
-        _tileRegistryMock.Setup(x => x.GetAvailableTiles()).Returns(new List<ITile>());
+        _tileRegistryMock.Setup(x => x.GetAvailableTiles()).Returns(new List<TileMetadata>());
         _repositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync((UserDashboardSettings?)null);
@@ -250,6 +262,10 @@ public class GetUserSettingsHandlerTests
         // Assert
         _lockMock.Verify(x => x.AcquireAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    private static TileMetadata MakeTile(string tileId, bool defaultEnabled = true, bool autoShow = true) =>
+        new(tileId, tileId, $"{tileId} description", TileSize.Medium, TileCategory.Finance,
+            defaultEnabled, autoShow, typeof(object), Array.Empty<string>());
 
     private static UserDashboardSettings CreateExistingUserSettings(string userId)
     {

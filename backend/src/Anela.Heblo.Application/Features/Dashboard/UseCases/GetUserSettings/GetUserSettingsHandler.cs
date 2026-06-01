@@ -48,7 +48,7 @@ public class GetUserSettingsHandler : IRequestHandler<GetUserSettingsRequest, Ge
                 Tiles = autoShowTiles.Select((tile, index) => new UserDashboardTile
                 {
                     UserId = userId,
-                    TileId = tile.GetTileId(),
+                    TileId = tile.TileId,
                     IsVisible = true,
                     DisplayOrder = index,
                     LastModified = now,
@@ -67,7 +67,7 @@ public class GetUserSettingsHandler : IRequestHandler<GetUserSettingsRequest, Ge
             // FR-2: Back-fill new AutoShow tiles for existing users
             var existingTileIds = settings.Tiles.Select(t => t.TileId).ToHashSet();
             var newAutoShowTiles = autoShowTiles
-                .Where(t => !existingTileIds.Contains(t.GetTileId()))
+                .Where(t => !existingTileIds.Contains(t.TileId))
                 .ToList();
 
             if (newAutoShowTiles.Count > 0)
@@ -78,7 +78,7 @@ public class GetUserSettingsHandler : IRequestHandler<GetUserSettingsRequest, Ge
                     settings.Tiles.Add(new UserDashboardTile
                     {
                         UserId = userId,
-                        TileId = newAutoShowTiles[i].GetTileId(),
+                        TileId = newAutoShowTiles[i].TileId,
                         IsVisible = true,
                         DisplayOrder = maxOrder + i + 1,
                         LastModified = now,

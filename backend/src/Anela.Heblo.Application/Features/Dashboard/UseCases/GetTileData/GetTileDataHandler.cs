@@ -55,7 +55,7 @@ public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDat
 
                 try
                 {
-                    var tile = _tileRegistry.GetTile(tileSettings.TileId);
+                    var tile = _tileRegistry.GetTileMetadata(tileSettings.TileId);
                     if (tile == null)
                     {
                         results.Add((index, new TileData
@@ -74,7 +74,7 @@ public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDat
 
                     results.Add((index, new TileData
                     {
-                        TileId = tile.GetTileId(),
+                        TileId = tile.TileId,
                         Title = tile.Title,
                         Description = tile.Description,
                         Size = tile.Size,
