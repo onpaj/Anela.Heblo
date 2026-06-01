@@ -598,4 +598,33 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             };
         }, cancellationToken);
     }
+
+    public async Task CloseConversationAsync(string conversationId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_options.ApiToken))
+            throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
+
+        await _pipeline.ExecuteAsync(async ct =>
+        {
+            var client = _httpClientFactory.CreateClient("Smartsupp");
+            using var request = new HttpRequestMessage(
+                HttpMethod.Patch,
+                $"{_options.BaseUrl}conversations/{conversationId}/close");
+            request.Headers.Add("Authorization", $"Bearer {_options.ApiToken}");
+
+            var response = await client.SendAsync(request, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Smartsupp close conversation failed {Status}: {Body}",
+                    response.StatusCode, errorBody);
+                var ex = new HttpRequestException(
+                    $"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+                if (response.Headers.RetryAfter?.Delta is { } delta)
+                    ex.Data["RetryAfter"] = delta;
+                throw ex;
+            }
+        }, cancellationToken);
+    }
 }

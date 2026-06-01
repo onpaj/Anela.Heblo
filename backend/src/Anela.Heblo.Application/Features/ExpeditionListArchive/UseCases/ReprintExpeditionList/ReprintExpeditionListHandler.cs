@@ -1,5 +1,4 @@
-using Anela.Heblo.Application.Features.ExpeditionList;
-using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
 using Microsoft.Extensions.Options;
@@ -12,7 +11,7 @@ public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionLis
     private readonly IPrintQueueSink _cupsSink;
     private readonly string _containerName;
 
-    public ReprintExpeditionListHandler(IBlobStorageService blobStorageService, IPrintQueueSink cupsSink, IOptions<PrintPickingListOptions> options)
+    public ReprintExpeditionListHandler(IBlobStorageService blobStorageService, IPrintQueueSink cupsSink, IOptions<ExpeditionListArchiveOptions> options)
     {
         _blobStorageService = blobStorageService;
         _cupsSink = cupsSink;
@@ -26,7 +25,7 @@ public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionLis
             return ReprintExpeditionListResponse.Fail("Invalid blob path.");
         }
 
-        var tempFile = Path.GetTempFileName() + ".pdf";
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.pdf");
         try
         {
             await using var blobStream = await _blobStorageService.DownloadAsync(_containerName, request.BlobPath, cancellationToken);

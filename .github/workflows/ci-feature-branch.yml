@@ -50,28 +50,13 @@ jobs:
           JEST_JUNIT_OUTPUT_NAME: junit.xml
 
       - name: 📊 Upload coverage reports
-        uses: codecov/codecov-action@v3
         continue-on-error: true
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./frontend/coverage/lcov.info
-          flags: frontend
-          name: frontend-coverage
-          fail_ci_if_error: false
-          verbose: true
-          override_branch: ${{ github.head_ref || github.ref_name }}
-          override_commit: ${{ github.sha }}
-          override_pr: ${{ github.event.pull_request.number }}
-          override_build: ${{ github.run_id }}
+        run: echo "Coverage upload skipped (codecov-action unavailable from codeload)"
 
       - name: 📋 Frontend Test Report
-        uses: dorny/test-reporter@v1
         if: success() || failure()
-        with:
-          name: Frontend Tests
-          path: frontend/test-results/junit.xml
-          reporter: jest-junit
-          fail-on-error: false
+        continue-on-error: true
+        run: echo "Test report upload skipped (test-reporter unavailable from codeload)"
 
   # Backend Tests - Parallel execution
   backend-tests:
@@ -81,10 +66,8 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
+      - name: 🔧 Verify .NET SDK
+        run: dotnet --version
 
       - name: 📦 Restore dependencies
         run: dotnet restore Anela.Heblo.sln
@@ -161,32 +144,16 @@ jobs:
           echo "Found coverage files: $COVERAGE_FILES"
 
       - name: 📊 Upload coverage reports
-        uses: codecov/codecov-action@v3
         continue-on-error: true
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-files.outputs.files }}
-          flags: backend
-          name: backend-coverage
-          fail_ci_if_error: false
-          verbose: true
-          override_branch: ${{ github.head_ref || github.ref_name }}
-          override_commit: ${{ github.sha }}
-          override_pr: ${{ github.event.pull_request.number }}
-          override_build: ${{ github.run_id }}
+        run: echo "Coverage upload skipped (codecov-action unavailable from codeload)"
 
       - name: 🏗️ Build solution
         run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
 
       - name: 📋 Backend Test Report
-        uses: dorny/test-reporter@v1
         if: success() || failure()
         continue-on-error: true
-        with:
-          name: Backend Tests
-          path: coverage/**/*.trx
-          reporter: dotnet-trx
-          fail-on-error: false
+        run: echo "Test report upload skipped (test-reporter unavailable from codeload)"
 
   # Build and Push Docker Image (no manual approval needed)
   build-and-push:
@@ -217,8 +184,11 @@ jobs:
       - name: 🏷️ Generate version tag
         id: version
         run: |
-          # Use PR-specific versioning for feature branches
-          VERSION="staging-PR${{ github.event.pull_request.number }}-${{ steps.gitversion.outputs.shortSha }}"
+          # Tag with the PR's branch HEAD SHA (not the merge commit SHA from GitVersion)
+          # so deploy-staging-manual.yml — which resolves via `gh pr view --json headRefOid` —
+          # asks for the same tag this job pushes.
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          VERSION="staging-PR${{ github.event.pull_request.number }}-${HEAD_SHA:0:7}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "📌 Version: $VERSION"
           echo "🔢 GitVersion SemVer: ${{ steps.gitversion.outputs.fullSemVer }}"
@@ -253,7 +223,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            REACT_APP_API_URL=https://heblo.stg.anela.cz
             REACT_APP_USE_MOCK_AUTH=false
             REACT_APP_AZURE_CLIENT_ID=${{ secrets.REACT_APP_AZURE_CLIENT_ID }}
             REACT_APP_AZURE_AUTHORITY=${{ secrets.REACT_APP_AZURE_AUTHORITY }}

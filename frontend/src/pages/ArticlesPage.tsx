@@ -4,11 +4,13 @@ import { useListArticlesQuery } from '../api/hooks/useArticles';
 import ArticleGenerationForm from '../features/articles/ArticleGenerationForm';
 import ArticleList from '../features/articles/ArticleList';
 import ArticleDetail from '../features/articles/ArticleDetail';
+import { useScreenView } from '../telemetry/useScreenView';
 
 type Tab = 'new' | 'list';
 
 export default function ArticlesPage() {
   const [activeTab, setActiveTab] = useState<Tab>('new');
+  useScreenView('Marketing', 'Articles', activeTab === 'new' ? 'NewTab' : 'ListTab');
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
 
   const { data: articles = [], isLoading } = useListArticlesQuery({ pageSize: 50 });

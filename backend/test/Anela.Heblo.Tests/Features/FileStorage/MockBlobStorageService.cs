@@ -169,6 +169,39 @@ public class MockBlobStorageService : IBlobStorageService
         return new MemoryStream(content);
     }
 
+    public Task<IReadOnlyList<string>> ListVirtualDirectoriesAsync(string containerName, CancellationToken cancellationToken = default)
+    {
+        if (_simulateErrors)
+        {
+            throw new InvalidOperationException("Simulated list virtual directories error");
+        }
+
+        if (!_containers.ContainsKey(containerName))
+        {
+            IReadOnlyList<string> empty = new List<string>().AsReadOnly();
+            return Task.FromResult(empty);
+        }
+
+        // Mirror Azure's GetBlobsByHierarchyAsync(delimiter: "/") semantics:
+        //   - skip keys that contain no "/" (loose top-level blobs)
+        //   - take the substring before the first "/" (first-level segment only)
+        //   - distinct
+        IReadOnlyList<string> prefixes = _containers[containerName]
+            .Keys
+            .Select(name =>
+            {
+                var slash = name.IndexOf('/');
+                return slash < 0 ? null : name[..slash];
+            })
+            .Where(prefix => prefix is not null)
+            .Select(prefix => prefix!)
+            .Distinct()
+            .ToList()
+            .AsReadOnly();
+
+        return Task.FromResult(prefixes);
+    }
+
     private static string GetContentTypeFromUrl(string url)
     {
         var extension = Path.GetExtension(new Uri(url).LocalPath).ToLowerInvariant();

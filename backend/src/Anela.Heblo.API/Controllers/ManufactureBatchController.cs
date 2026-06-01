@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -58,5 +59,16 @@ public class ManufactureBatchController : BaseApiController
         var response = await _mediator.Send(request, cancellationToken);
 
         return HandleResponse(response);
+    }
+
+    [HttpGet("recipe-pdf/{productCode}")]
+    public async Task<IActionResult> GetRecipePdf(string productCode, [FromQuery] double? batchSize, CancellationToken cancellationToken = default)
+    {
+        var response = await _mediator.Send(new GetSemiproductRecipePdfRequest { ProductCode = productCode, BatchSize = batchSize }, cancellationToken);
+
+        if (!response.Success)
+            return BadRequest(response);
+
+        return File(response.PdfBytes, "application/pdf", response.FileName);
     }
 }

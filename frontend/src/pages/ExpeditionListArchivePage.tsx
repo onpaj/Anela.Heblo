@@ -12,6 +12,7 @@ import {
 } from "../api/hooks/useExpeditionListArchive";
 import { useTriggerRecurringJobMutation } from "../api/hooks/useRecurringJobs";
 import { useToast } from "../contexts/ToastContext";
+import { useScreenView } from "../telemetry/useScreenView";
 
 const PAGE_SIZE = 20;
 
@@ -40,6 +41,8 @@ const ExpeditionListArchivePage: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [reprintConfirm, setReprintConfirm] = useState<ExpeditionListItemDto | null>(null);
+
+  useScreenView('Logistics', 'ExpeditionArchive');
 
   const { data: datesData, isLoading: datesLoading } = useExpeditionDates(page, PAGE_SIZE);
   const { data: itemsData, isLoading: itemsLoading } = useExpeditionListsByDate(selectedDate);

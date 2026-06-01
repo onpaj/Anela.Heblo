@@ -114,7 +114,14 @@ public sealed class PlaudCliClient : IPlaudClient
             if (process.ExitCode != 0)
             {
                 _logger.LogError("Plaud CLI exited with code {ExitCode}: {Error}", process.ExitCode, error);
-                throw new InvalidOperationException($"Plaud CLI exited with code {process.ExitCode}");
+                var trimmed = (error ?? string.Empty).Trim();
+                if (trimmed.Contains("AUTH_FAILED", StringComparison.Ordinal))
+                {
+                    throw new PlaudAuthExpiredException(trimmed);
+                }
+                var suffix = trimmed.Length > 0 ? $": {trimmed}" : string.Empty;
+                throw new InvalidOperationException(
+                    $"Plaud CLI exited with code {process.ExitCode}{suffix}");
             }
 
             if (!string.IsNullOrEmpty(error))

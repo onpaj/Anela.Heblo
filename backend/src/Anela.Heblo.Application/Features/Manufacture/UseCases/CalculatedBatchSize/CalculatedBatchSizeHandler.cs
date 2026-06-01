@@ -50,14 +50,15 @@ public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeReq
 
             // Batch-load all ingredient catalog entries in a single call (avoids N+1 queries)
             var ingredientCodes = template.Ingredients.Select(i => i.ProductCode).ToHashSet();
-            var ingredientCatalogEntries = await _catalogRepository.FindAsync(
-                x => ingredientCodes.Contains(x.ProductCode),
-                cancellationToken);
-            var ingredientCatalogByCode = ingredientCatalogEntries.ToDictionary(x => x.ProductCode);
+            var ingredientCatalogByCode = await _catalogRepository.GetByIdsAsync(ingredientCodes, cancellationToken);
+
+            var sortedIngredients = template.Ingredients
+                .OrderBy(i => i.Order == 0 ? int.MaxValue : i.Order)
+                .ThenBy(i => i.ProductName);
 
             // Create ingredients list with stock information
             var ingredientsWithStock = new List<CalculatedIngredientDto>();
-            foreach (var ingredient in template.Ingredients)
+            foreach (var ingredient in sortedIngredients)
             {
                 ingredientCatalogByCode.TryGetValue(ingredient.ProductCode, out var ingredientCatalog);
 
@@ -74,7 +75,8 @@ public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeReq
                     CalculatedAmount = Math.Round(ingredient.Amount * scaleFactor, 2),
                     Price = ingredient.Price,
                     StockTotal = ingredientCatalog?.Stock?.Total ?? 0,
-                    LastStockTaking = lastStockTaking
+                    LastStockTaking = lastStockTaking,
+                    PhaseLabel = ingredient.PhaseLabel,
                 });
             }
 

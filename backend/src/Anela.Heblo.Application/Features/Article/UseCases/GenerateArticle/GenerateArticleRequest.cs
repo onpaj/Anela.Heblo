@@ -13,6 +13,7 @@ public class GenerateArticleRequest : IRequest<GenerateArticleResponse>
     public string? Audience { get; set; }
     public string? Angle { get; set; }
     public string Length { get; set; } = DomainArticle.DefaultLength;
+    [MaxLength(500)]
     public string? LanguageNote { get; set; }
     public bool UseKnowledgeBase { get; set; } = true;
     public bool UseWebSearch { get; set; } = true;

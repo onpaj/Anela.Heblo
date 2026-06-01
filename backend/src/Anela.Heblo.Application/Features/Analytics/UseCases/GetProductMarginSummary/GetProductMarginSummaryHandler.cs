@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Domain.Features.Analytics;
-using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSummary;
@@ -14,13 +13,13 @@ namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSu
 public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSummaryRequest, GetProductMarginSummaryResponse>
 {
     private readonly IAnalyticsRepository _analyticsRepository;
-    private readonly MarginCalculator _marginCalculator;
-    private readonly MonthlyBreakdownGenerator _monthlyBreakdownGenerator;
+    private readonly IMarginCalculator _marginCalculator;
+    private readonly IMonthlyBreakdownGenerator _monthlyBreakdownGenerator;
 
     public GetProductMarginSummaryHandler(
         IAnalyticsRepository analyticsRepository,
-        MarginCalculator marginCalculator,
-        MonthlyBreakdownGenerator monthlyBreakdownGenerator)
+        IMarginCalculator marginCalculator,
+        IMonthlyBreakdownGenerator monthlyBreakdownGenerator)
     {
         _analyticsRepository = analyticsRepository;
         _marginCalculator = marginCalculator;
@@ -33,8 +32,8 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
         var (fromDate, toDate) = TimeWindowParser.ParseTimeWindow(request.TimeWindow);
         var dateRange = new DateRange(fromDate, toDate);
 
-        // 2. Stream products with Product/Goods types that have sales in the period  
-        var productTypes = new[] { ProductType.Product, ProductType.Goods };
+        // 2. Stream products with Product/Goods types that have sales in the period
+        var productTypes = new[] { AnalyticsProductType.Product, AnalyticsProductType.Goods };
         var productStream = _analyticsRepository.StreamProductsWithSalesAsync(fromDate, toDate, productTypes, cancellationToken);
 
         // 3. Calculate margin data using streaming approach (reduces memory usage)

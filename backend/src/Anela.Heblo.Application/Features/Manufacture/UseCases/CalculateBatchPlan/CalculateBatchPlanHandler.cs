@@ -1,23 +1,30 @@
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
-using Anela.Heblo.Xcc;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
 
 public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanRequest, CalculateBatchPlanResponse>
 {
+    private const int DefaultFallbackDays = 30;
+
     private readonly IBatchPlanningService _batchPlanningService;
     private readonly ICatalogRepository _catalogRepository;
-    private readonly IManufactureClient _manufactureClient
-        ;
+    private readonly IManufactureClient _manufactureClient;
+    private readonly ITimePeriodResolver _timePeriodResolver;
 
-    public CalculateBatchPlanHandler(IBatchPlanningService batchPlanningService, ICatalogRepository catalogRepository, IManufactureClient manufactureClient)
+    public CalculateBatchPlanHandler(
+        IBatchPlanningService batchPlanningService,
+        ICatalogRepository catalogRepository,
+        IManufactureClient manufactureClient,
+        ITimePeriodResolver timePeriodResolver)
     {
         _batchPlanningService = batchPlanningService;
         _catalogRepository = catalogRepository;
         _manufactureClient = manufactureClient;
+        _timePeriodResolver = timePeriodResolver;
     }
 
     public async Task<CalculateBatchPlanResponse> Handle(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
@@ -36,6 +43,19 @@ public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanReque
             }
         }
 
-        return await _batchPlanningService.CalculateBatchPlan(request, cancellationToken);
+        var salesRanges = ResolveSalesRanges(request);
+        return await _batchPlanningService.CalculateBatchPlan(request, salesRanges, cancellationToken);
+    }
+
+    private IReadOnlyList<DateRange> ResolveSalesRanges(CalculateBatchPlanRequest request)
+    {
+        if (request.TimePeriod.HasValue)
+        {
+            return _timePeriodResolver.Resolve(request.TimePeriod.Value, request.FromDate, request.ToDate);
+        }
+
+        var endDate = request.ToDate ?? DateTime.Now;
+        var startDate = request.FromDate ?? endDate.AddDays(-DefaultFallbackDays);
+        return new[] { new DateRange(startDate, endDate) };
     }
 }

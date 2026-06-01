@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.MarketingInvoices;
 using Anela.Heblo.Application.Features.MarketingInvoices.Services;
 using Anela.Heblo.Application.Features.MarketingInvoices.UseCases.ImportMarketingInvoices;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
@@ -9,13 +10,10 @@ namespace Anela.Heblo.Tests.Features.MarketingInvoices;
 
 public class ImportMarketingInvoicesHandlerTests
 {
-    private readonly Mock<IImportedMarketingTransactionRepository> _mockRepository = new();
-
-    private MarketingInvoiceImportService CreateService() =>
-        new(_mockRepository.Object, NullLogger<MarketingInvoiceImportService>.Instance);
+    private readonly Mock<IMarketingInvoiceImportService> _mockImportService = new();
 
     private ImportMarketingInvoicesHandler CreateHandler(IEnumerable<IMarketingTransactionSource> sources) =>
-        new(sources, CreateService(), NullLogger<ImportMarketingInvoicesHandler>.Instance);
+        new(sources, _mockImportService.Object, NullLogger<ImportMarketingInvoicesHandler>.Instance);
 
     private static Mock<IMarketingTransactionSource> SourceFor(string platform)
     {
@@ -32,19 +30,11 @@ public class ImportMarketingInvoicesHandlerTests
         var to = new DateTime(2026, 5, 8);
 
         var meta = SourceFor("MetaAds");
-        meta.Setup(s => s.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<MarketingTransaction>
-            {
-                new() { TransactionId = "TX-1", Platform = "MetaAds", Amount = 10m, TransactionDate = from },
-            });
-
         var google = SourceFor("GoogleAds");
 
-        _mockRepository.Setup(r => r.ExistsAsync("MetaAds", It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-        _mockRepository.Setup(r => r.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        _mockRepository.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _mockImportService
+            .Setup(s => s.ImportAsync(meta.Object, from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MarketingImportResult { Imported = 1, Skipped = 0, Failed = 0 });
 
         var handler = CreateHandler(new[] { meta.Object, google.Object });
 
@@ -59,8 +49,8 @@ public class ImportMarketingInvoicesHandlerTests
         Assert.Equal(1, response.Imported);
         Assert.Equal(0, response.Skipped);
         Assert.Equal(0, response.Failed);
-        google.Verify(
-            s => s.GetTransactionsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()),
+        _mockImportService.Verify(
+            s => s.ImportAsync(google.Object, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -98,7 +88,9 @@ public class ImportMarketingInvoicesHandlerTests
     public async Task Handle_SourceThrows_ExceptionPropagates()
     {
         var meta = SourceFor("MetaAds");
-        meta.Setup(s => s.GetTransactionsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+
+        _mockImportService
+            .Setup(s => s.ImportAsync(meta.Object, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Meta API down"));
 
         var handler = CreateHandler(new[] { meta.Object });

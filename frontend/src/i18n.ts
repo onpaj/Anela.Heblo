@@ -98,6 +98,8 @@ const resources = {
         InvalidSupplier: "Neplatný dodavatel: {supplierName}",
         PurchaseOrderUpdateFailed:
           "Aktualizace objednávky {orderNumber} selhala: {message}",
+        PurchaseOrderLineNotFound:
+          "Řádek objednávky {PurchaseOrderLineId} neexistuje",
 
         // Manufacture module errors
         ManufacturingDataNotAvailable:
@@ -190,6 +192,8 @@ const resources = {
         RecurringJobNotFound: "Opakovaná úloha nenalezena",
         RecurringJobUpdateFailed: "Aktualizace opakované úlohy selhala",
         InvalidCronExpression: "Neplatný výraz CRON",
+        RecurringJobDisabled: "Opakovaná úloha je vypnutá",
+        RecurringJobEnqueueFailed: "Zařazení opakované úlohy do fronty se nezdařilo",
 
         // KnowledgeBase module errors
         KnowledgeBaseFeedbackLogNotFound: "Záznam zpětné vazby nenalezen",
@@ -235,14 +239,17 @@ const resources = {
         SmartsuppVisitorNotFound: "Návštěvník nebyl nalezen.",
         SmartsuppSendMessageUnavailable: "Odeslání zprávy selhalo. Zkuste to prosím znovu.",
         SmartsuppAgentMappingNotFound: "Váš uživatelský účet nemá přiřazený Smartsupp agent. Doplňte mapování v Smartsupp:AgentMap.",
+        SmartsuppCloseConversationUnavailable: "Uzavření konverzace selhalo — služba je nedostupná. Zkuste to prosím znovu.",
 
         // Inventory module errors
         LotNotFound: "Šarže nebyla nalezena.",
-        EanNotFound: "EAN kód nebyl nalezen.",
+        MaterialContainerNotFound: "Materiálový kontejner nebyl nalezen.",
         LotAlreadyExists: "Šarže s tímto kódem již existuje.",
         InventoryMaterialNotFound: "Materiál skladu nebyl nalezen.",
         InventoryMaterialInvalidType: "Neplatný typ materiálu skladu.",
-        LotHasEans: "Šarži nelze smazat, protože obsahuje EAN kódy.",
+        LotHasEans: "Šarži nelze smazat, protože obsahuje materiálové kontejnery.",
+        MaterialContainerCodeExists: "Kód materiálového kontejneru již existuje.",
+        MaterialContainerCodeInvalidFormat: "Neplatný formát kódu materiálového kontejneru.",
 
         // Article Generation errors
         ArticleNotFound: "Článek nebyl nalezen (ID: {{id}})",

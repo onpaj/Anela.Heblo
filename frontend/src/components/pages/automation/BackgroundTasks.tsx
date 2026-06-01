@@ -4,8 +4,10 @@ import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
 import { RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "../../../api/client";
+import { useScreenView } from "../../../telemetry/useScreenView";
 
 const BackgroundTasks: React.FC = () => {
+  useScreenView('Automation', 'BackgroundTasks');
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 

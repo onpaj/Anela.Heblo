@@ -71,17 +71,21 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
         dto.IsReceivable = isReceivable;
 
         // Enrich each item with catalog image and current stock
+        var codes = dto.Items.Select(i => i.ProductCode).Distinct().ToList();
+        var catalogByCode = await _catalogRepository.GetByIdsAsync(codes, cancellationToken);
+
         foreach (var itemDto in dto.Items)
         {
-            try
+            if (catalogByCode.TryGetValue(itemDto.ProductCode, out var catalogItem))
             {
-                var catalogItem = (await _catalogRepository.GetByIdAsync(itemDto.ProductCode, cancellationToken))!;
                 itemDto.ImageUrl = catalogItem.Image;
                 itemDto.OnStock = catalogItem.Stock.Eshop;
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogWarning(ex, "Failed to load catalog image for product {ProductCode}", itemDto.ProductCode);
+                _logger.LogWarning(
+                    "Catalog item not found for product code {ProductCode} in transport box {BoxCode}; leaving image/stock unset",
+                    itemDto.ProductCode, dto.Code);
             }
         }
 

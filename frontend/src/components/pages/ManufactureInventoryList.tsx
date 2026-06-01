@@ -18,6 +18,7 @@ import { useManufactureInventoryQuery } from "../../api/hooks/useManufactureInve
 import CatalogDetail from "./CatalogDetail";
 import ManufactureInventoryModal from "../inventory/ManufactureInventoryDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 // Filter for manufacture inventory - only show materials
 const allowedManufactureInventoryTypes: ProductType[] = [
@@ -34,7 +35,8 @@ const productTypeLabels: Record<ProductType, string> = {
 };
 
 const ManufactureInventoryList: React.FC = () => {
-  
+  useScreenView('Manufacturing', 'ManufactureInventory');
+
   // Filter states - separate input values from applied filters
   const [productNameInput, setProductNameInput] = useState("");
   const [productCodeInput, setProductCodeInput] = useState("");

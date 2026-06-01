@@ -1,5 +1,5 @@
 using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
-using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Application.Shared.Printing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SharpIpp;

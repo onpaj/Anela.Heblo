@@ -105,7 +105,7 @@ public class ShoptetApiExpeditionListSourceTests
     {
         var coolingRepo = carrierCooling ?? BuildEmptyCoolingRepo();
         var giftRepo = giftSettings ?? BuildGiftRepo();
-        return new ShoptetApiExpeditionListSource(client, TimeProvider.System, new Mock<ICatalogRepository>().Object, coolingRepo, giftRepo, generateDocument);
+        return new ShoptetApiExpeditionListSource(client, TimeProvider.System, new Mock<ICatalogRepository>().Object, coolingRepo, giftRepo, new Mock<Microsoft.Extensions.Logging.ILogger<ShoptetApiExpeditionListSource>>().Object, generateDocument);
     }
 
     private static ICarrierCoolingRepository BuildEmptyCoolingRepo()
@@ -322,7 +322,7 @@ public class ShoptetApiExpeditionListSourceTests
             if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
                 return Json(listResp);
 
-            if (req.Method == HttpMethod.Patch)
+            if (req.Method == HttpMethod.Patch && req.RequestUri!.AbsolutePath.EndsWith("/status"))
             {
                 // Extract code from /api/orders/{code}/status
                 var segments = req.RequestUri.Segments;
@@ -330,6 +330,8 @@ public class ShoptetApiExpeditionListSourceTests
                 patchedCodes.Add(code);
                 return new HttpResponseMessage(HttpStatusCode.OK);
             }
+            if (req.Method == HttpMethod.Patch)
+                return new HttpResponseMessage(HttpStatusCode.OK);  // silently accept other PATCHes (e.g., /notes for additionalField)
 
             var orderCode = req.RequestUri.Segments.Last();
             return Json(DetailFor(orderCode));
@@ -361,11 +363,13 @@ public class ShoptetApiExpeditionListSourceTests
             if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
                 return Json(listResp);
 
-            if (req.Method == HttpMethod.Patch)
+            if (req.Method == HttpMethod.Patch && req.RequestUri!.AbsolutePath.EndsWith("/status"))
             {
                 patchCallCount++;
                 return new HttpResponseMessage(HttpStatusCode.OK);
             }
+            if (req.Method == HttpMethod.Patch)
+                return new HttpResponseMessage(HttpStatusCode.OK);  // silently accept other PATCHes (e.g., /notes for additionalField)
 
             var code = req.RequestUri.Segments.Last();
             return Json(DetailFor(code));
@@ -656,7 +660,7 @@ public class ShoptetApiExpeditionListSourceTests
                 Properties = new CatalogProperties { Cooling = Cooling.L1 },
             });
 
-        var source = new ShoptetApiExpeditionListSource(client, TimeProvider.System, catalogMock.Object, BuildEmptyCoolingRepo(), BuildGiftRepo());
+        var source = new ShoptetApiExpeditionListSource(client, TimeProvider.System, catalogMock.Object, BuildEmptyCoolingRepo(), BuildGiftRepo(), new Mock<Microsoft.Extensions.Logging.ILogger<ShoptetApiExpeditionListSource>>().Object);
 
         // Act
         var result = await source.CreatePickingList(DefaultRequest(), null);
@@ -850,6 +854,44 @@ public class ShoptetApiExpeditionListSourceTests
         var result = ShoptetApiExpeditionListSource.ResolveCarrierCooling(PplExportGuid, matrix);
 
         result.Should().Be(Cooling.None);
+    }
+
+    // ─── ResolveCarrierCoolingText ────────────────────────────────────────────────
+
+    [Fact]
+    public void ResolveCarrierCoolingText_ReturnsNull_WhenGuidNotInRegistry()
+    {
+        var matrix = new Dictionary<(Carriers, DeliveryHandling), string?>
+        {
+            [(Carriers.PPL, DeliveryHandling.NaRuky)] = "MRAZ",
+        };
+
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCoolingText("unknown-guid", matrix);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ResolveCarrierCoolingText_ReturnsNull_WhenMatrixHasNoEntryForCarrierHandling()
+    {
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCoolingText(
+            PplDoRukyGuid,
+            new Dictionary<(Carriers, DeliveryHandling), string?>());
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ResolveCarrierCoolingText_ReturnsText_WhenMatrixHasEntry()
+    {
+        var matrix = new Dictionary<(Carriers, DeliveryHandling), string?>
+        {
+            [(Carriers.PPL, DeliveryHandling.NaRuky)] = "MRAZ",
+        };
+
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCoolingText(PplDoRukyGuid, matrix);
+
+        result.Should().Be("MRAZ");
     }
 
     // ─── CreatePickingList — carrier cooling integration ──────────────────────────

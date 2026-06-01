@@ -204,6 +204,35 @@ Updates the order's remark/note slots. Any property omitted from the body is lef
 
 **Used by:** `BlockOrderProcessingHandler` — reads current `eshopRemark` via `GetEshopRemarkAsync`, appends the block reason on a new line, writes back via `UpdateEshopRemarkAsync`. Both methods are on `ShoptetOrderClient`.
 
+**✅ Verified 2026-05-25 against test store (Shoptet token prefix 780175):**
+- PATCH `additionalFields: [{ "index": 1, "text": "CHLAZENE-TEST" }]` → 200 `{"data":null,"errors":null}` _(verified with index 1; index 6 uses the same API path — round-trip confirmed)_
+- GET `/api/orders/{code}?include=notes` → field round-trips correctly
+- Production uses **index 6** (index 1 is reserved by an external system):
+  ```json
+  {
+    "data": {
+      "additionalFields": [{ "index": 6, "text": "CHLAZENE" }]
+    }
+  }
+  ```
+
+### 3.7 Heblo reservations for the 6 per-order additional fields
+
+| Index | Reserved by | Value contract | Written when | Cleared when | Reader(s) | Limits |
+|---|---|---|---|---|---|---|
+| 1 | **RESERVED — external system** | Do not use; already claimed by a system outside Heblo | — | — | External system (unknown) | ≤ 255 chars |
+| 2 | — unassigned — | | | | | ≤ 255 chars |
+| 3 | — unassigned — | | | | | ≤ 255 chars |
+| 4 | — unassigned — | | | | | length undocumented |
+| 5 | — unassigned — | | | | | length undocumented |
+| 6 | Expedition cooling marker | Literal string `"CHLAZENE"` for cooled orders; no other value ever written | Original expedition list print, if `ExpeditionOrder.IsCooled == true` | Never (write-only) | External / Shoptet operators (informational; nothing in Heblo reads it back) | length undocumented (we use 8 chars) |
+
+**Before using an additional field in a new feature, claim it by updating this table in the same PR.** The fields are a finite shared resource (6 total) and the Shoptet API gives no per-field semantic protection — two callers writing to the same index will silently overwrite each other. The Heblo expectation is: one logical owner per index, documented here.
+
+The Heblo client (`ShoptetOrderClient.SetAdditionalFieldAsync`) accepts any 1..6 index; there is no runtime guard tying an index to a feature. The guard is this table and code review.
+
+Length limits: indices 1–3 are capped at 255 chars by the Shoptet API. Indices 4–6 are believed to support longer text but the exact cap has not been verified — measure before assuming.
+
 ---
 
 ## 4. Customers API

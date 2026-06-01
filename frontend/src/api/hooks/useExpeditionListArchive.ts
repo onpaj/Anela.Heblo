@@ -131,7 +131,7 @@ export const useRunExpeditionListPrintFix = () => {
   return useMutation({
     mutationFn: async () => {
       const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/expedition-list-archive/run-fix`;
+      const relativeUrl = `/api/expedition-list/run-fix`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
 
       const response = await (apiClient as any).http.fetch(fullUrl, {

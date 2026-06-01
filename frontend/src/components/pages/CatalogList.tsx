@@ -16,6 +16,7 @@ import {
 import CatalogDetail from "./CatalogDetail";
 import Pagination from "../common/Pagination";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const productTypeLabels: Record<ProductType, string> = {
   [ProductType.Product]: "Produkt",
@@ -80,6 +81,8 @@ const CatalogList: React.FC = () => {
   // Modal states
   const [selectedItem, setSelectedItem] = useState<CatalogItemDto | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  useScreenView('Catalog', 'CatalogList');
 
   // Use the actual API call
   const {

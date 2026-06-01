@@ -45,6 +45,7 @@ import DetailActionButtons from "../detail/DetailActionButtons";
 import ConfirmationDialogs from "../detail/ConfirmationDialogs";
 import ConditionsReadingsSection from "../detail/ConditionsReadingsSection";
 import { useTelemetry } from '../../../telemetry/useTelemetry';
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 interface ManufactureOrderDetailProps {
   orderId?: number;
@@ -72,7 +73,14 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   
   // Tab state
   const [activeTab, setActiveTab] = useState<"info" | "notes" | "log" | "conditions">("info");
-  
+
+  const tabSubScreen =
+    activeTab === 'info' ? 'InfoTab' :
+    activeTab === 'notes' ? 'NotesTab' :
+    activeTab === 'log' ? 'LogTab' :
+    'ConditionsTab';
+  useScreenView('Manufacturing', 'ManufactureOrderDetail', tabSubScreen);
+
   // Note input state
   const [newNote, setNewNote] = useState("");
 

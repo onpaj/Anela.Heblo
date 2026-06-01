@@ -19,6 +19,7 @@ import { useInventoryQuery } from "../../api/hooks/useInventory";
 import CatalogDetail from "./CatalogDetail";
 import InventoryModal from "../inventory/InventoryModal";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useScreenView } from "../../telemetry/useScreenView";
 
 // Filter for inventory - only show finished goods that can be sold
 const allowedInventoryTypes: ProductType[] = [
@@ -39,7 +40,7 @@ const productTypeLabels: Record<ProductType, string> = {
 const InventoryList: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   // Filter states - separate input values from applied filters
   const [productNameInput, setProductNameInput] = useState("");
   const [productCodeInput, setProductCodeInput] = useState("");
@@ -63,6 +64,8 @@ const InventoryList: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<CatalogItemDto | null>(null);
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
+
+  useScreenView('Logistics', 'InventoryFinishedGoods');
 
   // Use custom inventory hook that properly handles "all types" filtering
   const {

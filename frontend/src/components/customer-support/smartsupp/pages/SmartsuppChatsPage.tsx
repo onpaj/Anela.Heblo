@@ -7,6 +7,7 @@ import ConversationList from "../ConversationList";
 import ConversationDetail from "../ConversationDetail";
 import ContactDetailsPanel from "../ContactDetailsPanel";
 import CollapsibleRail from "../CollapsibleRail";
+import { useScreenView } from '../../../../telemetry/useScreenView';
 
 const LIST_PANEL_KEY = "smartsupp.listPanel.open";
 const CONTACT_PANEL_KEY = "smartsupp.contactPanel.open";
@@ -21,6 +22,7 @@ function readPanelOpen(key: string, defaultOpen: boolean): boolean {
 type MobileView = "list" | "chat" | "contact";
 
 const SmartsuppChatsPage: React.FC = () => {
+  useScreenView('Customer', 'SmartsuppChats');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState<"Open" | "Resolved">("Open");
   const [mobileView, setMobileView] = useState<MobileView>("list");

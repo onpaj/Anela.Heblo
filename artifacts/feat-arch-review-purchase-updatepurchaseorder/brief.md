@@ -2,44 +2,23 @@
 Purchase
 
 ## Finding
-`UpdatePurchaseOrderHandler.MapToResponseAsync` fetches a catalog item for every order line, but the fetched object is never used — the DTO maps `line.MaterialName` (already stored on the entity):
+The validator for `UpdatePurchaseOrderRequest` is physically located inside the `CreatePurchaseOrder` use case folder and carries the wrong namespace:
 
-```csharp
-// backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/UpdatePurchaseOrder/UpdatePurchaseOrderHandler.cs:121-157
-private async Task<UpdatePurchaseOrderResponse> MapToResponseAsync(PurchaseOrder purchaseOrder, long supplierId, CancellationToken cancellationToken)
-{
-    var lines = new List<PurchaseOrderLineDto>();
-    foreach (var line in purchaseOrder.Lines)
-    {
-        // Try to get material name from catalog
-        var material = await _catalogRepository.GetByIdAsync(line.MaterialId, cancellationToken);  // ← fetched
-        var materialName = material?.ProductName ?? "Unknown Material";                              // ← computed
+- **File (wrong location):** `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/CreatePurchaseOrder/UpdatePurchaseOrderRequestValidator.cs`
+- **Line 4 (wrong namespace):** `namespace Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;`
+- **Line 1 (validated type from another use case):** `using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;`
 
-        lines.Add(new PurchaseOrderLineDto
-        {
-            ...
-            MaterialName = line.MaterialName,   // ← entity value used, not 'materialName'
-            ...
-        });
-    }
-```
-
-`materialName` is computed but then discarded — the DTO always reads `line.MaterialName`. For an order with N lines this makes N catalog lookups (each of which queries a large in-memory cache or external system) and throws the results away.
-
-Compare with `GetPurchaseOrderByIdHandler`, which performs the same lookup legitimately: it maps `CatalogNote = catalogItem.Note` — a field that only lives in the catalog and cannot come from the entity.
+The file validates `UpdatePurchaseOrderRequest` and `UpdatePurchaseOrderLineRequest` — both of which belong to the `UpdatePurchaseOrder` use case — but is filed under the `CreatePurchaseOrder` folder.
 
 ## Why it matters
-- Every `PUT /api/purchase-orders/{id}` request fires N catalog reads that produce no visible output. This is wasted compute on every update.
-- `ICatalogRepository.GetByIdsAsync` was added specifically to eliminate N+1 patterns (its code comment says so). Using `GetByIdAsync` in a loop already goes against that design; computing and discarding the result compounds the waste.
+This breaks the co-location principle of Vertical Slice Architecture (one use case folder contains everything for that use case). A developer searching for the `UpdatePurchaseOrder` validator will not find it in the expected `UseCases/UpdatePurchaseOrder/` directory. The namespace mismatch also signals incorrect ownership — any IDE navigation from `UpdatePurchaseOrderHandler` to its validator will be misleading.
 
 ## Suggested fix
-Delete the two dead lines from `MapToResponseAsync`:
+Move the file to `UseCases/UpdatePurchaseOrder/UpdatePurchaseOrderRequestValidator.cs` and update the namespace to:
 ```csharp
-// Remove:
-var material = await _catalogRepository.GetByIdAsync(line.MaterialId, cancellationToken);
-var materialName = material?.ProductName ?? "Unknown Material";
+namespace Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 ```
-The DTO already reads `line.MaterialName`; no replacement is needed. If `CatalogNote` ever needs to appear on the update response too, use `GetByIdsAsync` once (bulk) outside the loop, as `GetPurchaseOrderByIdHandler` does.
+No logic changes needed — just a rename/move.
 
 ---
-_Filed by daily arch-review routine on 2026-05-22._
+_Filed by daily arch-review routine on 2026-05-27._

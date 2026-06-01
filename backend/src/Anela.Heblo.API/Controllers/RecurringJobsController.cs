@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.GetRecurringJobsList;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.UpdateRecurringJobStatus;
@@ -102,6 +101,8 @@ public class RecurringJobsController : BaseApiController
     [ProducesResponseType(typeof(TriggerRecurringJobResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<TriggerRecurringJobResponse>> TriggerJob(
         string jobName,
         CancellationToken cancellationToken = default)
@@ -115,32 +116,9 @@ public class RecurringJobsController : BaseApiController
 
         if (!response.Success)
         {
-            return NotFound(response);
+            return HandleResponse(response);
         }
 
         return Accepted(response);
     }
-}
-
-/// <summary>
-/// Request body for updating recurring job status
-/// </summary>
-public class UpdateJobStatusRequestBody
-{
-    /// <summary>
-    /// Whether the job should be enabled
-    /// </summary>
-    public bool IsEnabled { get; set; }
-}
-
-/// <summary>
-/// Request body for updating recurring job CRON expression
-/// </summary>
-public class UpdateJobCronRequestBody
-{
-    /// <summary>
-    /// The new CRON expression (e.g. "0 3 * * *")
-    /// </summary>
-    [Required]
-    public string CronExpression { get; set; } = string.Empty;
 }

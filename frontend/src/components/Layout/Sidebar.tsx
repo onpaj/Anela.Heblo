@@ -70,6 +70,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     window.open("https://orgchart.anela.cz", "_blank", "noopener,noreferrer");
   };
 
+  const openBaleni = () => {
+    window.open(`${window.location.origin}/baleni`, "_blank", "noopener,noreferrer");
+  };
+
+  const openTerminal = () => {
+    window.open(`${window.location.origin}/terminal`, "_blank", "noopener,noreferrer");
+  };
+
   // Navigation sections - only implemented pages
   const navigationSections = [
     {
@@ -138,14 +146,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Bankovní výpisy",
           href: "/customer/bank-statements-overview",
         },
-        {
-          id: "archiv-expedic-zakaznicke",
-          name: "Expedice",
-          href: "/logistics/expedition-archive",
-        },
         { id: "knowledge-base", name: "Poradenství (KB)", href: "/knowledge-base" },
         { id: "smartsupp", name: "Smartsupp", href: "/customer/smartsupp" },
-        { id: "chlazeni", name: "Nastavení expedice", href: "/customer/expedition-settings" },
       ],
     },
     {
@@ -239,6 +241,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Sklad výroby",
           href: "/manufacturing/product-inventory",
         },
+        {
+          id: "sarze",
+          name: "Šarže",
+          href: "/manufacturing/material-containers",
+        },
       ],
     },
     {
@@ -268,24 +275,33 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "/logistics/gift-package-manufacturing",
         },
         {
-          id: "statistiky-skladu",
-          name: "Statistiky skladu",
-          href: "/logistics/warehouse-statistics",
-        },
-        {
           id: "sledovani-materialu",
           name: "Sledování materiálů",
           href: "/logistics/packing-materials",
         },
         {
+          id: "tisk-expedice",
+          name: "Tisk expedice",
+          href: "/logistics/expedition-archive",
+        },
+        {
+          id: "nastaveni-expedice",
+          name: "Nastavení expedice",
+          href: "/customer/expedition-settings",
+        },
+        {
           id: "terminal",
           name: "Terminál",
-          href: "/terminal",
+          href: "#",
+          onClick: openTerminal,
+          isExternal: true,
         },
         {
           id: "baleni",
           name: "Balení",
-          href: "/baleni",
+          href: "#",
+          onClick: openBaleni,
+          isExternal: true,
         },
       ],
     },

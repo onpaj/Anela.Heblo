@@ -1,4 +1,4 @@
-This is a standalone worktree clone (not linked to the main repo's worktree list). GIT_DIR == GIT_COMMON → standard 4-option menu.
+`GIT_DIR == GIT_COMMON` → Normal repo (standalone checkout, no linked worktree). Named branch `feat-arch-review-purchase-updatepurchaseorder`, base branch `main`.
 
 ---
 

@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.Article.UseCases.GetFeedbackList;
 using Anela.Heblo.Domain.Features.Article;
 using FluentAssertions;
 using Moq;
-using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
 
 namespace Anela.Heblo.Tests.Article.UseCases;
 
@@ -15,21 +14,19 @@ public class GetArticleFeedbackListHandlerTests
     [Fact]
     public async Task Handle_DefaultParams_RunsPagedAndStatsInParallelAndProjectsResults()
     {
-        var article = new DomainArticle
-        {
-            Id = Guid.NewGuid(),
-            Topic = "Sun care",
-            Title = "Sun care title",
-            RequestedBy = "alice",
-            CreatedAt = DateTimeOffset.UtcNow,
-            PrecisionScore = 4,
-            StyleScore = 5,
-            FeedbackComment = "ok",
-        };
+        var article = new ArticleFeedbackProjection(
+            Id: Guid.NewGuid(),
+            Title: "Sun care title",
+            Topic: "Sun care",
+            RequestedBy: "alice",
+            CreatedAt: DateTimeOffset.UtcNow,
+            PrecisionScore: 4,
+            StyleScore: 5,
+            FeedbackComment: "ok");
 
         _repository.Setup(r => r.GetFeedbackPagedAsync(
                 null, null, "CreatedAt", true, 1, 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(((IReadOnlyList<DomainArticle>)new[] { article }, 1));
+            .ReturnsAsync(((IReadOnlyList<ArticleFeedbackProjection>)new[] { article }, 1));
 
         _repository.Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ArticleFeedbackStats(10, 4, 4.5, 4.0));
@@ -58,7 +55,7 @@ public class GetArticleFeedbackListHandlerTests
     {
         _repository.Setup(r => r.GetFeedbackPagedAsync(
                 It.IsAny<bool?>(), It.IsAny<string?>(), "CreatedAt", true, 1, 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(((IReadOnlyList<DomainArticle>)Array.Empty<DomainArticle>(), 0));
+            .ReturnsAsync(((IReadOnlyList<ArticleFeedbackProjection>)Array.Empty<ArticleFeedbackProjection>(), 0));
         _repository.Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ArticleFeedbackStats(0, 0, null, null));
 
@@ -77,7 +74,7 @@ public class GetArticleFeedbackListHandlerTests
         _repository.Setup(r => r.GetFeedbackPagedAsync(
                 It.IsAny<bool?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<bool>(),
                 It.IsAny<int>(), 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(((IReadOnlyList<DomainArticle>)Array.Empty<DomainArticle>(), 0));
+            .ReturnsAsync(((IReadOnlyList<ArticleFeedbackProjection>)Array.Empty<ArticleFeedbackProjection>(), 0));
         _repository.Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ArticleFeedbackStats(0, 0, null, null));
 

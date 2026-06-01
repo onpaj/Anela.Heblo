@@ -10,6 +10,7 @@ public class SetCarrierCoolingValidator : AbstractValidator<SetCarrierCoolingReq
         RuleFor(x => x.Carrier).IsInEnum();
         RuleFor(x => x.DeliveryHandling).IsInEnum();
         RuleFor(x => x.Cooling).IsInEnum();
+        RuleFor(x => x.CoolingText).MaximumLength(50);
 
         RuleFor(x => x)
             .Must(x => catalog.GetAvailableDeliveryOptions()

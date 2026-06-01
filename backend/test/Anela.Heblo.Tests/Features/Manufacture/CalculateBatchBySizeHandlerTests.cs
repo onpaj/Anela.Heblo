@@ -63,6 +63,9 @@ public class CalculateBatchBySizeHandlerTests
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
 
+        _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
+
         var request = new CalculatedBatchSizeRequest
         {
             ProductCode = productCode,
@@ -224,6 +227,9 @@ public class CalculateBatchBySizeHandlerTests
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
 
         var request = new CalculatedBatchSizeRequest
         {
