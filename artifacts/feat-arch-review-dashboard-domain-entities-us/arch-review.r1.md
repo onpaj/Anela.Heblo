@@ -1,197 +1,256 @@
-I have what I need. The spec contains a hard architectural blocker I must call out. Writing the review now.
+I have enough context to ground the review. The spec's plan is correct, but I identified one missed file: `ApplicationDbContextModelSnapshot.cs` contains the entity CLR type name strings (`"Anela.Heblo.Xcc.Domain.UserDashboardSettings"` etc.) and must be updated, otherwise EF will report a phantom pending model change on the next migration. I'll flag this in Specification Amendments.
 
+```markdown
 # Architecture Review: Relocate Dashboard Domain Entities from Xcc to Domain Layer
 
 ## Skip Design: true
 
-Pure backend refactor. No new components, screens, or visual changes.
+This is a backend-only namespace/file relocation with no API, schema, DTO, or UI surface change.
 
 ## Architectural Fit Assessment
 
-The **goal** of the refactor aligns perfectly with the project's Clean Architecture conventions: every other feature module places its entities under `Anela.Heblo.Domain/Features/{Module}/`, and the Dashboard module is the lone exception. The brief and spec correctly identify the layering violation.
+The change strengthens conformance to the project's documented Clean Architecture + Vertical Slice layering. Every other module in the codebase (`BackgroundJobs`, `Users`, `Catalog`, `Logistics`, `Manufacture`, ...) places its feature-specific entities and repository interfaces in `Anela.Heblo.Domain/Features/{Feature}/`. `Dashboard` is the lone outlier with entities and a feature-specific repository contract sitting in `Anela.Heblo.Xcc` — which `docs/architecture/development_guidelines.md` and `CLAUDE.md` explicitly reserve for *technical* cross-cutting concerns.
 
-However, the **scope as written is not buildable**. Verified facts:
+Integration points (all internal, all C#):
 
-- `Anela.Heblo.Xcc.csproj` declares **no** `ProjectReference` — Xcc sits at the bottom of the dependency graph and references only `Microsoft.Extensions.*` NuGet packages.
-- `Anela.Heblo.Domain.csproj` already references `Anela.Heblo.Xcc` (for `Entity<T>`, `IEntity<T>` in `Xcc/Domain/`).
-- `IDashboardService` (Xcc, `IDashboardService.cs:7,8`) returns `UserDashboardSettings` and `DashboardService` (Xcc, `DashboardService.cs:10,29,45,52,76,104`) consumes `UserDashboardSettings`, `UserDashboardTile`, and `IUserDashboardSettingsRepository`.
+- **Domain → Xcc dependency direction.** Already correct: `Anela.Heblo.Domain.csproj` references `Anela.Heblo.Xcc.csproj`. The relocated `UserDashboardSettings`/`UserDashboardTile` can keep inheriting `Anela.Heblo.Xcc.Domain.Entity<int>` with zero new project reference.
+- **Application/Persistence consumers.** Already reference `Anela.Heblo.Domain`. They only need their `using` lines flipped from `Anela.Heblo.Xcc.Domain` / `Anela.Heblo.Xcc.Services.Dashboard` to `Anela.Heblo.Domain.Features.Dashboard`. Other Xcc imports in the same files (`ITile`, `ITileRegistry`, `TileMetadata`, `TileSize`, `TileCategory`, `TileData`, `DashboardOptions`, `RegisterTile<>()` extension) **must remain** — those types stay in Xcc by design.
+- **EF model snapshot.** `Persistence/Migrations/ApplicationDbContextModelSnapshot.cs` hardcodes the CLR type name strings (verified: 5 occurrences referencing `Anela.Heblo.Xcc.Domain.UserDashboardSettings`/`UserDashboardTile`). This file is the live model fingerprint used by `dotnet ef migrations add`; if not updated the next migration command will emit a spurious rename diff.
 
-Moving the three types into `Anela.Heblo.Domain` while leaving `DashboardService` / `IDashboardService` in `Anela.Heblo.Xcc` forces Xcc to reference Domain. Combined with the existing Domain → Xcc reference, this is a **circular project reference** and the solution will fail to compile. **The spec's claim that issue #1943 (DashboardService placement) is out of scope cannot stand — at least the two service files must move with the entities, or the refactor cannot succeed.**
-
-A second non-obvious integration point: `Persistence/Migrations/ApplicationDbContextModelSnapshot.cs` embeds the entity FQNs as string literals (`Anela.Heblo.Xcc.Domain.UserDashboardSettings` at lines 3506, 3530, 3916, 3918). EF Core compares this string against the runtime model's FQN; if they drift, the next `dotnet ef migrations add` produces a spurious migration even though no schema changed. The snapshot must be hand-edited in lockstep with the namespace change. Historical `*.Designer.cs` files are also frozen snapshots referencing the old FQN — they must stay frozen (per convention), but their string FQNs are decoupled from runtime type resolution so they can remain unchanged.
+The Xcc → Domain back-reference is correctly forbidden by the spec (FR-5) and not needed: nothing in Xcc depends on the moved types — `Xcc/Services/Dashboard/Tiles/BackgroundTaskStatusTile.cs` and `XccModule.cs` only touch the tile registry and `DashboardOptions`, which stay put.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-Anela.Heblo.Xcc  (technical cross-cutting only; no Anela.Heblo.* refs)
-├── Domain/                              [stays] Entity<T>, IEntity<T>
-└── Services/Dashboard/                  [keep]  ITile, ITileRegistry, TileRegistry,
-                                                 TileExtensions, TileRegistryExtensions,
-                                                 TileData, TileSize, TileCategory,
-                                                 DashboardOptions, Tiles/BackgroundTaskStatusTile
-        (REMOVED — IDashboardService, DashboardService, IUserDashboardSettingsRepository)
-
-Anela.Heblo.Domain  (references Xcc)
-└── Features/Dashboard/                  [NEW]
-        ├── UserDashboardSettings.cs        (was Xcc/Domain/)
-        ├── UserDashboardTile.cs            (was Xcc/Domain/)
-        ├── IUserDashboardSettingsRepository.cs   (was Xcc/Services/Dashboard/)
-        └── IDashboardService.cs            (was Xcc/Services/Dashboard/  — spec amendment)
-
-Anela.Heblo.Application  (references Domain, Xcc)
-└── Features/Dashboard/
-        ├── Services/DashboardService.cs    (was Xcc/Services/Dashboard/ — spec amendment)
-        └── UseCases/...                    [unchanged behaviour, only usings update]
-
-Anela.Heblo.Persistence  (references Domain, Xcc)
-└── Dashboard/
-        ├── UserDashboardSettingsRepository.cs       [usings update]
-        ├── UserDashboardSettingsConfiguration.cs    [usings update]
-        └── UserDashboardTileConfiguration.cs        [usings update]
-└── Migrations/
-        └── ApplicationDbContextModelSnapshot.cs     [edit FQN string literals in lockstep]
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Anela.Heblo.API                                                          │
+│   DashboardController ──► MediatR                                        │
+└──────────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Anela.Heblo.Application/Features/Dashboard                               │
+│   UseCases/*Handler.cs        (consume IUserDashboardSettingsRepository) │
+│   Infrastructure/IUserDashboardSettingsLock                              │
+│   Contracts/UserDashboardSettingsDto, UserDashboardTileDto               │
+│   DashboardModule.cs                                                     │
+└──────────────────────────────────────────────────────────────────────────┘
+                  │ uses                                  │ uses
+                  ▼                                       ▼
+┌────────────────────────────────────┐    ┌─────────────────────────────────┐
+│ Anela.Heblo.Domain/Features/       │    │ Anela.Heblo.Xcc                 │
+│   Dashboard/   ◄── NEW FOLDER      │    │   Domain/Entity<T>, IEntity<T>  │
+│     UserDashboardSettings.cs       │───►│   Services/Dashboard/           │
+│     UserDashboardTile.cs           │    │     ITile, ITileRegistry,       │
+│     IUserDashboardSettingsRepo.cs  │    │     TileRegistry, TileMetadata, │
+└────────────────────────────────────┘    │     TileSize, TileCategory,     │
+                  ▲                       │     TileData, DashboardOptions, │
+                  │ implements            │     XccModule, Tiles/           │
+                  │                       └─────────────────────────────────┘
+┌────────────────────────────────────┐
+│ Anela.Heblo.Persistence/Dashboard  │
+│   UserDashboardSettingsConfig      │
+│   UserDashboardTileConfig          │
+│   UserDashboardSettingsRepository  │
+└────────────────────────────────────┘
 ```
+
+The arrow from `Domain/Features/Dashboard` to `Xcc` (for `Entity<int>`) is the *only* permitted cross-project link and already exists.
 
 ### Key Design Decisions
 
-#### Decision 1: Expand scope to also relocate `IDashboardService` and `DashboardService`
-
+#### Decision 1: Keep `Entity<int>` in Xcc; move only Dashboard-specific types
 **Options considered:**
-1. Move only entities + repository interface as spec states (the brief's wording).
-2. Also move `IDashboardService` and `DashboardService` out of Xcc in the same change.
-3. Add `Xcc → Domain` project reference, accepting circularity attempt.
+- (A) Move `Entity<T>` / `IEntity<T>` to `Anela.Heblo.Domain/Shared/` together with the Dashboard entities.
+- (B) Leave `Entity<T>` / `IEntity<T>` in `Anela.Heblo.Xcc.Domain` and only move feature-specific types.
 
-**Chosen approach:** Option 2.
+**Chosen approach:** (B).
 
-**Rationale:** Option 1 produces a circular project reference and will not build (verified — `DashboardService.cs:29` returns `UserDashboardSettings`; `IDashboardService.cs:7` does the same; Xcc has no Anela.Heblo.* project references today, and Domain already references Xcc). Option 3 is forbidden by Clean Architecture and would still fail because `Domain → Xcc` already exists. Option 2 is the minimum-viable cycle break: it moves only the four files actually entangled with the Dashboard aggregate, leaving tile-registry plumbing (`ITile`, `ITileRegistry`, `TileData`, etc.) in Xcc because it has no dependency on the relocated types and is genuine technical scaffolding. This expansion subsumes the minimum subset of issue #1943 required to unblock this work; the spec's "issue #1943 is out of scope" rule must be relaxed accordingly.
+**Rationale:** `Entity<T>` is a technical base type used by entities across all modules; it is genuinely cross-cutting and matches the documented purpose of Xcc ("technical concerns only"). Relocating it expands the blast radius of this change to every entity in the solution for no architectural gain. Domain → Xcc is already an accepted dependency (ADR-002: generic repository in Xcc), and the same direction satisfies the inheritance requirement here. The brief and spec scope this work narrowly to Dashboard; widening it would violate the "surgical changes" rule in `CLAUDE.md`.
 
-#### Decision 2: Place `IDashboardService` in Domain, `DashboardService` in Application
-
+#### Decision 2: Keep tile registry infrastructure (`ITile`, `ITileRegistry`, `TileRegistry`, `TileMetadata`, `TileSize`, `TileCategory`, `TileData`, `DashboardOptions`) in Xcc
 **Options considered:**
-1. Both in `Anela.Heblo.Application/Features/Dashboard/Services/`.
-2. `IDashboardService` in `Anela.Heblo.Domain/Features/Dashboard/`, implementation in Application.
+- (A) Move the tile registry infrastructure to `Application/Features/Dashboard/Infrastructure/`.
+- (B) Keep it in `Xcc/Services/Dashboard/`.
 
-**Chosen approach:** Option 2.
+**Chosen approach:** (B). This is consistent with the spec ("Out of Scope") and aligns with how the tile registry is actually used: 13+ modules across `Application/Features/*/DashboardTiles/` register tiles into it via `RegisterTile<>()` (Catalog, Manufacture, Purchase, Logistics, BackgroundJobs, DataQuality, Analytics, WeatherForecast, ...). Tile registration is a plugin extensibility mechanism — a technical concern. Only the *user's stored dashboard state* (which tiles they enabled, in what order) is feature-specific domain data, and that is exactly what's being moved.
 
-**Rationale:** Matches the codebase's existing pattern where repository abstractions live in Domain (e.g., the other entries already in `Domain/Features/*`) and implementations live in their respective infrastructure project. `IDashboardService` is consumed by Application handlers (`SaveUserSettingsHandler`, `EnableTileHandler`) — placing its contract in Domain keeps Application → Domain dependency direction natural. `DashboardService` orchestrates Application use cases (locking, tile parallelism, defaulting) and belongs in Application.
+**Rationale:** Distinguishes "platform/extensibility mechanism" (Xcc) from "feature-owned domain state" (Domain).
 
-#### Decision 3: Hand-edit `ApplicationDbContextModelSnapshot.cs` rather than generate a no-op migration
-
+#### Decision 3: Update `ApplicationDbContextModelSnapshot.cs` in the same commit
 **Options considered:**
-1. Edit the snapshot's four string-literal FQNs to match the new namespace.
-2. Run `dotnet ef migrations add UpdateDashboardEntityNamespaces` and accept the no-op migration.
+- (A) Manually edit the snapshot strings to the new fully-qualified type names.
+- (B) Generate a no-op EF migration (`dotnet ef migrations add RelocateDashboardEntityNamespace`) and let the tooling regenerate the snapshot.
+- (C) Leave the snapshot stale.
 
-**Chosen approach:** Option 1.
+**Chosen approach:** (A).
 
-**Rationale:** The spec's FR-6 forbids new migrations and the schema genuinely is unchanged. Option 2 produces an empty `Up`/`Down` whose only effect is updating the snapshot — pollution. The snapshot file is auto-generated but checked in; editing four strings is a legitimate fix and EF Core's runtime diff will then see no model change.
+**Rationale:** The spec asserts (FR-6) that no migration is required because table/column schema is unchanged. (C) is wrong because EF would emit a phantom migration on the next `dotnet ef migrations add` due to entity CLR type name change. (B) creates a useless empty migration that pollutes history and contradicts FR-6. (A) is the smallest, most honest change: the type rename is purely metadata; the snapshot is the authoritative metadata record and must be kept in sync. The strings to update are the 5 occurrences in `ApplicationDbContextModelSnapshot.cs` only; historical `*.Designer.cs` files must be left alone (they encode historical model state).
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-**Files to move (new locations):**
+**Create:**
 ```
 backend/src/Anela.Heblo.Domain/Features/Dashboard/
-    UserDashboardSettings.cs                       (from Xcc/Domain/)
-    UserDashboardTile.cs                           (from Xcc/Domain/)
-    IUserDashboardSettingsRepository.cs            (from Xcc/Services/Dashboard/)
-    IDashboardService.cs                           (from Xcc/Services/Dashboard/) — spec amendment
-
-backend/src/Anela.Heblo.Application/Features/Dashboard/Services/
-    DashboardService.cs                            (from Xcc/Services/Dashboard/) — spec amendment
+├── UserDashboardSettings.cs              (moved from Xcc/Domain/)
+├── UserDashboardTile.cs                  (moved from Xcc/Domain/)
+└── IUserDashboardSettingsRepository.cs   (moved from Xcc/Services/Dashboard/)
 ```
 
-**Files to edit (using-statement updates only):**
-- `backend/src/Anela.Heblo.Persistence/Dashboard/UserDashboardSettingsRepository.cs` — replace `using Anela.Heblo.Xcc.Domain;` and `using Anela.Heblo.Xcc.Services.Dashboard;` with `using Anela.Heblo.Domain.Features.Dashboard;`.
-- `backend/src/Anela.Heblo.Persistence/Dashboard/UserDashboardSettingsConfiguration.cs` — same.
-- `backend/src/Anela.Heblo.Persistence/Dashboard/UserDashboardTileConfiguration.cs` — same.
-- `backend/src/Anela.Heblo.Persistence/ApplicationDbContext.cs` — line 29 (`using Anela.Heblo.Xcc.Domain;`) currently serves both `Entity<T>` and the dashboard DbSets; verify whether `Entity<T>` is still needed and either keep both usings or replace with `using Anela.Heblo.Domain.Features.Dashboard;`.
-- All Application handlers: `SaveUserSettingsHandler.cs`, `EnableTileHandler.cs`, `GetUserSettingsHandler.cs`, `DisableTileHandler.cs`, `GetTileDataHandler.cs`, `GetAvailableTilesHandler.cs`, plus `DashboardModule.cs` and any mapper / DTO file in `Application/Features/Dashboard/`.
-- `backend/src/Anela.Heblo.API/Program.cs` and `Extensions/ServiceCollectionExtensions.cs` — DI registration namespace updates.
-- All `backend/test/Anela.Heblo.Tests/Features/Dashboard/*Tests.cs` — `using` updates only.
-- `backend/test/Anela.Heblo.Tests/Controllers/DashboardControllerTests.cs` — same.
-- Any tile implementation files under `Application/Features/*/DashboardTiles/` that touch the moved types (`ITile` stays in Xcc, but verify each grep hit).
-- `backend/src/Anela.Heblo.Persistence/Migrations/ApplicationDbContextModelSnapshot.cs` — replace the four `Anela.Heblo.Xcc.Domain.UserDashboard*` FQN string literals with `Anela.Heblo.Domain.Features.Dashboard.UserDashboard*`.
+**Delete:**
+```
+backend/src/Anela.Heblo.Xcc/Domain/UserDashboardSettings.cs
+backend/src/Anela.Heblo.Xcc/Domain/UserDashboardTile.cs
+backend/src/Anela.Heblo.Xcc/Services/Dashboard/IUserDashboardSettingsRepository.cs
+```
 
-**Files NOT to touch:**
-- `Persistence/Migrations/20251009061353_AddUserDashboardSettings.Designer.cs`, `20251009071426_RefactorDashboardTileStorage.Designer.cs`, `20251024072354_UpdateMaterialInventoryTileId.Designer.cs` — frozen historical snapshots. They contain string FQNs that EF does not use for runtime type resolution; leaving them alone preserves migration history convention.
-- `Persistence/Migrations/20251009061353_AddUserDashboardSettings.cs`, `20251009071426_RefactorDashboardTileStorage.cs` — the `Up`/`Down` SQL has no namespace references (verified: only table names).
-- `Xcc/Services/Dashboard/` other files: `ITile`, `ITileRegistry`, `TileRegistry`, `TileExtensions`, `TileRegistryExtensions`, `TileCategory`, `TileSize`, `TileData`, `DashboardOptions`, `Tiles/BackgroundTaskStatusTile` — none depend on `UserDashboardSettings`/`UserDashboardTile` (verify with grep before declaring done).
+**Untouched (stay in Xcc):**
+```
+backend/src/Anela.Heblo.Xcc/Domain/Entity.cs
+backend/src/Anela.Heblo.Xcc/Domain/IEntity.cs
+backend/src/Anela.Heblo.Xcc/Services/Dashboard/{ITile,ITileRegistry,TileRegistry,
+   TileRegistryExtensions,TileMetadata,TileExtensions,TileData,TileSize,
+   TileCategory,DashboardOptions,Tiles/}.cs
+backend/src/Anela.Heblo.Xcc/XccModule.cs
+```
 
 ### Interfaces and Contracts
 
-All relocated types keep their existing signatures verbatim. Namespace mapping:
+After move, the three types resolve under namespace `Anela.Heblo.Domain.Features.Dashboard`:
 
-| Before | After |
-|---|---|
-| `Anela.Heblo.Xcc.Domain.UserDashboardSettings` | `Anela.Heblo.Domain.Features.Dashboard.UserDashboardSettings` |
-| `Anela.Heblo.Xcc.Domain.UserDashboardTile` | `Anela.Heblo.Domain.Features.Dashboard.UserDashboardTile` |
-| `Anela.Heblo.Xcc.Services.Dashboard.IUserDashboardSettingsRepository` | `Anela.Heblo.Domain.Features.Dashboard.IUserDashboardSettingsRepository` |
-| `Anela.Heblo.Xcc.Services.Dashboard.IDashboardService` | `Anela.Heblo.Domain.Features.Dashboard.IDashboardService` |
-| `Anela.Heblo.Xcc.Services.Dashboard.DashboardService` | `Anela.Heblo.Application.Features.Dashboard.Services.DashboardService` |
+```csharp
+// File: backend/src/Anela.Heblo.Domain/Features/Dashboard/UserDashboardSettings.cs
+using Anela.Heblo.Xcc.Domain;          // for Entity<int>
+namespace Anela.Heblo.Domain.Features.Dashboard;
+public class UserDashboardSettings : Entity<int> { /* unchanged surface */ }
 
-The two relocated entities keep inheriting `Entity<int>` from `Anela.Heblo.Xcc.Domain.Entity<>` — they need `using Anela.Heblo.Xcc.Domain;` on the new files. Domain → Xcc is allowed (already present).
+// File: backend/src/Anela.Heblo.Domain/Features/Dashboard/UserDashboardTile.cs
+using Anela.Heblo.Xcc.Domain;          // for Entity<int>
+namespace Anela.Heblo.Domain.Features.Dashboard;
+public class UserDashboardTile : Entity<int> { /* unchanged surface */ }
+
+// File: backend/src/Anela.Heblo.Domain/Features/Dashboard/IUserDashboardSettingsRepository.cs
+namespace Anela.Heblo.Domain.Features.Dashboard;
+public interface IUserDashboardSettingsRepository
+{
+    Task<UserDashboardSettings?> GetByUserIdAsync(string userId);
+    Task<UserDashboardSettings> AddAsync(UserDashboardSettings settings);
+    Task UpdateAsync(UserDashboardSettings settings);
+    Task DeleteAsync(string userId);
+}
+```
+
+No method signatures, properties, or default values change.
 
 ### Data Flow
 
-Unchanged. The Dashboard request path is still:
-```
-DashboardController → MediatR → {Get|Save|Enable|Disable|GetTileData}Handler
-                                       │
-                                       ▼
-                                IDashboardService (now Domain)
-                                       │
-                                       ▼
-                          DashboardService (now Application)
-                                       │
-                                       ▼
-                IUserDashboardSettingsRepository (now Domain)
-                                       │
-                                       ▼
-                UserDashboardSettingsRepository (Persistence/Dashboard/)
-                                       │
-                                       ▼
-                          ApplicationDbContext  → Postgres
-```
+Identical to current behavior. For `SaveUserSettings`:
 
-Only the namespace declarations change; runtime behaviour, EF mapping, transactions, locking, and tile loading parallelism are untouched.
+1. `DashboardController` receives HTTP request → MediatR `SaveUserSettingsRequest`.
+2. `SaveUserSettingsHandler` (in `Application/Features/Dashboard/UseCases/SaveUserSettings/`) acquires `IUserDashboardSettingsLock`, calls `IUserDashboardSettingsRepository.GetByUserIdAsync(userId)` / `UpdateAsync` / `AddAsync`.
+3. `UserDashboardSettingsRepository` (in `Persistence/Dashboard/`) writes to `ApplicationDbContext.UserDashboardSettings` `DbSet<UserDashboardSettings>`.
+4. EF Core applies `UserDashboardSettingsConfiguration` + `UserDashboardTileConfiguration` mappings to tables `public.UserDashboardSettings` and `public.UserDashboardTiles`.
+
+The only change: in steps 2–4 the CLR types resolve from `Anela.Heblo.Domain.Features.Dashboard` instead of `Anela.Heblo.Xcc.Domain`.
+
+### Call-site updates (verified non-exhaustive list)
+
+`using` line updates only — no logic change. Confirmed via repo-wide grep for `Anela.Heblo.Xcc.Domain` and `Anela.Heblo.Xcc.Services.Dashboard`:
+
+**Source files that must flip the using (Application + Persistence):**
+- `Application/Features/Dashboard/DashboardModule.cs` — currently imports `Anela.Heblo.Xcc.Services.Dashboard` (drop only if no other Xcc.Services.Dashboard type is referenced; keep the import otherwise — verify).
+- `Application/Features/Dashboard/UseCases/SaveUserSettings/SaveUserSettingsHandler.cs`
+- `Application/Features/Dashboard/UseCases/GetUserSettings/GetUserSettingsHandler.cs`
+- `Application/Features/Dashboard/UseCases/EnableTile/EnableTileHandler.cs`
+- `Application/Features/Dashboard/UseCases/DisableTile/DisableTileHandler.cs`
+- `Application/Features/Dashboard/UseCases/GetAvailableTiles/GetAvailableTilesHandler.cs` (referenced repository for tile order/visibility)
+- `Application/Features/Dashboard/UseCases/GetTileData/GetTileDataHandler.cs`
+- `Application/Features/Dashboard/UseCases/SaveUserSettings/SaveUserSettingsRequest.cs`
+- `Application/Features/Dashboard/UseCases/GetUserSettings/GetUserSettingsResponse.cs`
+- `Application/Features/Dashboard/Infrastructure/IUserDashboardSettingsLock.cs`
+- `Application/Features/Dashboard/Infrastructure/UserDashboardSettingsLock.cs`
+- `Application/Features/Dashboard/Contracts/UserDashboardSettingsDto.cs`
+- `Application/Features/Dashboard/Contracts/UserDashboardTileDto.cs`
+- `Persistence/Dashboard/UserDashboardSettingsConfiguration.cs`
+- `Persistence/Dashboard/UserDashboardTileConfiguration.cs`
+- `Persistence/Dashboard/UserDashboardSettingsRepository.cs` (drop the `Anela.Heblo.Xcc.Domain` AND `Anela.Heblo.Xcc.Services.Dashboard` imports; add `Anela.Heblo.Domain.Features.Dashboard`)
+- `Persistence/PersistenceModule.cs` (verify DI registration of `IUserDashboardSettingsRepository`)
+- `Persistence/ApplicationDbContext.cs` (the `DbSet<UserDashboardSettings>` property + any `using` line)
+
+**API layer:**
+- `API/Controllers/DashboardController.cs` — verify; does not need to reference the entity directly, but check the `using` block.
+
+**Tests:**
+- `test/Anela.Heblo.Tests/Features/Dashboard/SaveUserSettingsHandlerTests.cs`
+- `test/Anela.Heblo.Tests/Features/Dashboard/GetUserSettingsHandlerTests.cs`
+- `test/Anela.Heblo.Tests/Features/Dashboard/EnableTileHandlerTests.cs`
+- `test/Anela.Heblo.Tests/Features/Dashboard/DisableTileHandlerTests.cs`
+- `test/Anela.Heblo.Tests/Features/Dashboard/GetTileDataHandlerTests.cs`
+- `test/Anela.Heblo.Tests/Features/Dashboard/Infrastructure/UserDashboardSettingsLockTests.cs`
+- `test/Anela.Heblo.Tests/Controllers/DashboardControllerTests.cs`
+
+**EF Migration snapshot (see Decision 3):**
+- `Persistence/Migrations/ApplicationDbContextModelSnapshot.cs` — replace 5 occurrences of `"Anela.Heblo.Xcc.Domain.UserDashboardSettings"` / `"Anela.Heblo.Xcc.Domain.UserDashboardTile"` with `"Anela.Heblo.Domain.Features.Dashboard.UserDashboardSettings"` / `"Anela.Heblo.Domain.Features.Dashboard.UserDashboardTile"`.
+
+**Do NOT modify:**
+- `Persistence/Migrations/20251009061353_AddUserDashboardSettings.Designer.cs` and other historical `.Designer.cs` files. These freeze model state at the time of each migration; rewriting history is wrong.
+- `Persistence/Migrations/20251009061353_AddUserDashboardSettings.cs` and `20251009071426_RefactorDashboardTileStorage.cs` migration bodies — they operate on table names (strings), not CLR types.
+- Tile registration call sites in `Catalog`/`Manufacture`/`Purchase`/`Logistics`/etc. — they import `Anela.Heblo.Xcc.Services.Dashboard` for `ITile`, `RegisterTile<>()`, `TileMetadata`, etc., and never reference `UserDashboardSettings` or `IUserDashboardSettingsRepository`.
+
+### Validation steps
+
+1. `grep -rn "Anela\.Heblo\.Xcc\.Domain\.UserDashboard\|Anela\.Heblo\.Xcc\.Services\.Dashboard\.IUserDashboardSettingsRepository" backend/` → must return zero matches (excluding deleted files and historical `.Designer.cs` snapshots).
+2. `dotnet build` from `backend/` → zero errors, no new warnings.
+3. `dotnet format` → clean.
+4. `dotnet test --filter "FullyQualifiedName~Dashboard"` → 100% pass on existing tests.
+5. `dotnet ef migrations add _ProbeRelocation --no-build --dry-run` *(optional sanity check — should report "no changes"; if it would generate a non-empty migration, the snapshot update in step Decision 3 was missed).* Discard the probe.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Circular project reference if only entities/repo move (spec as-written produces this) | **Blocker** | Apply Spec Amendment 1 — also move `IDashboardService` to Domain and `DashboardService` to Application. |
-| Spurious EF migration generated next time someone runs `dotnet ef migrations add` because `ApplicationDbContextModelSnapshot.cs` still contains old FQNs | High | Hand-edit the four FQN strings in the snapshot file as part of this PR; verify by running `dotnet ef migrations add Probe --no-build` in a scratch checkout and confirming an empty migration (then discard). |
-| Historical `*.Designer.cs` snapshots reference old FQN — compile fails? | Low | Verified: Designer.cs files store entity names as **string literals**, not C# type references. They compile regardless of whether the type exists at that namespace at runtime. Leave them frozen. |
-| Hidden callers missed by the brief's enumeration (DI registration in `Program.cs`, mappers, controller, tests, other Xcc tile primitives) | Medium | Run repository-wide grep for the three (now four) FQNs and `IUserDashboardSettingsRepository`, `UserDashboardSettings`, `UserDashboardTile`, `IDashboardService`, `DashboardService` symbols — verified that 187 files match the namespace patterns today; most are migration designers (leave frozen), but the controller, tests, and DI registrations must update. |
-| `ApplicationDbContext.cs:29` (`using Anela.Heblo.Xcc.Domain;`) might be needed for `Entity<T>` independently of the dashboard types | Low | Inspect the file before removing the using; if `Entity<T>` or other Xcc.Domain types are referenced, keep the using and add the new one. |
-| Removing empty Xcc directories causes git noise without value | Low | Acceptable; matches spec FR-5. Verify `Xcc/Domain/` still contains `Entity.cs`/`IEntity.cs` and is therefore not removed; `Xcc/Services/Dashboard/` still contains tile-registry files and is therefore not removed. |
+| `ApplicationDbContextModelSnapshot.cs` not updated → next developer's `dotnet ef migrations add` emits a phantom rename migration | High | Update the 5 string occurrences in the snapshot as part of the same PR (Decision 3). Add a verification step to the PR description. |
+| Hidden `using Anela.Heblo.Xcc.Domain;` left behind in a file that no longer references any Xcc.Domain type → harmless warning, but `dotnet format` may flip it | Low | Run `dotnet format` after edits; CI catches it. Acceptable cleanup as part of the move. |
+| File over-cleans `using Anela.Heblo.Xcc.Services.Dashboard;` while still needing it for `ITile`/`TileMetadata`/`DashboardOptions`/etc. → build break | Medium | When touching each file, search it for `ITile`, `TileMetadata`, `TileSize`, `TileCategory`, `TileData`, `ITileRegistry`, `DashboardOptions`, `RegisterTile`, `TileExtensions` — if any present, keep the Xcc.Services.Dashboard import. |
+| Test seed data uses `new Anela.Heblo.Xcc.Domain.UserDashboardSettings(...)` fully-qualified anywhere | Low | The grep in step 1 of validation catches this. |
+| Other adapter/module project (`backend/src/Adapters/*`) references the moved types | Low | Grep shows no Adapter project touches `IUserDashboardSettingsRepository` or `UserDashboard*`. Confirmed clean. |
+| `InternalsVisibleTo` mismatch — the moved interface relies on internal visibility | None | All three moved types are `public`; no internals involved. |
+| Future per-module DbContext split (ADR-001 Phase 2) needs these in Domain | Resolved positively | This change is a prerequisite for that future split and removes a known blocker. |
 
 ## Specification Amendments
 
-**Amendment 1 (required to unblock the build): Expand FR-3 / Out-of-Scope to cover `IDashboardService` and `DashboardService`.**
-The spec's "Out of Scope" bullet `Issue #1943 (DashboardService placement) — explicitly out of scope` must be relaxed: the minimum subset required to break the circular dependency is moving `IDashboardService` to `Anela.Heblo.Domain/Features/Dashboard/` and `DashboardService` to `Anela.Heblo.Application/Features/Dashboard/Services/`. Without this, the relocation produces a `Xcc → Domain` reference on top of the existing `Domain → Xcc`, which the C# compiler will reject. The rest of issue #1943 (tile registry refactors, etc.) remains out of scope.
+1. **Add an explicit acceptance criterion under FR-6 for `ApplicationDbContextModelSnapshot.cs`.** The spec's current FR-6 wording ("No new EF Core migration is generated for this change") is satisfiable in two ways: stale snapshot or updated snapshot. Only the updated-snapshot option keeps the codebase healthy. Recommended additional bullet:
+   > - `Persistence/Migrations/ApplicationDbContextModelSnapshot.cs` is updated in this PR so that all CLR type-name strings referring to `UserDashboardSettings`/`UserDashboardTile` use the new namespace `Anela.Heblo.Domain.Features.Dashboard`. Historical `*.Designer.cs` migration files are left unchanged. After the change, `dotnet ef migrations add Probe --dry-run` produces no diff.
 
-**Amendment 2: Add `ApplicationDbContextModelSnapshot.cs` to the FR-4 caller list.**
-The spec enumerates handlers, configurations, and the repository implementation but omits the EF model snapshot. The snapshot embeds the entity FQNs as string literals at lines 3506, 3530, 3916, and 3918, and must be edited in lockstep to avoid a spurious next-migration drift. State explicitly that historical `*.Designer.cs` files are **not** to be modified.
+2. **Extend FR-4's "known call sites" list** with the following files that the current spec does not mention but that the codebase grep surfaces. (Spec already disclaims the list is non-exhaustive, so this is a hint, not a requirement change.):
+   - `Application/Features/Dashboard/UseCases/SaveUserSettings/SaveUserSettingsRequest.cs`
+   - `Application/Features/Dashboard/UseCases/GetUserSettings/GetUserSettingsResponse.cs`
+   - `Application/Features/Dashboard/Infrastructure/IUserDashboardSettingsLock.cs`
+   - `Application/Features/Dashboard/Infrastructure/UserDashboardSettingsLock.cs`
+   - `Application/Features/Dashboard/Contracts/UserDashboardSettingsDto.cs`
+   - `Application/Features/Dashboard/Contracts/UserDashboardTileDto.cs`
+   - `Persistence/PersistenceModule.cs`
+   - `Persistence/ApplicationDbContext.cs`
+   - `test/Anela.Heblo.Tests/Features/Dashboard/Infrastructure/UserDashboardSettingsLockTests.cs`
+   - `test/Anela.Heblo.Tests/Controllers/DashboardControllerTests.cs`
 
-**Amendment 3: Tighten FR-6's "no new migration" claim.**
-Reword to: "No new EF Core migration is generated, **on the condition that** `ApplicationDbContextModelSnapshot.cs` is edited to use the new FQN strings; otherwise the next `dotnet ef migrations add` will emit a snapshot-only migration." Add an acceptance check: `dotnet ef migrations add Probe --no-build` in a scratch checkout yields an empty `Up`/`Down`.
+3. **Clarify FR-5 about Domain → Xcc direction.** Suggested wording:
+   > The existing `Anela.Heblo.Domain → Anela.Heblo.Xcc` project reference satisfies the `Entity<int>` inheritance requirement. This direction is consistent with ADR-002 (generic repository in Xcc) and remains the only permitted edge between these two projects. The reverse direction (`Xcc → Domain`) must not be introduced and is verified by the absence of `<ProjectReference Include="..\Anela.Heblo.Domain\Anela.Heblo.Domain.csproj" />` in `Anela.Heblo.Xcc.csproj`.
 
-**Amendment 4: Add a circular-reference acceptance check.**
-After implementation, `Anela.Heblo.Xcc.csproj` MUST still contain zero `ProjectReference` entries to other `Anela.Heblo.*` projects. This is the architectural invariant that determines whether the refactor succeeded.
-
-**Amendment 5: Clarify the using-statement strategy in `ApplicationDbContext.cs`.**
-The file currently has `using Anela.Heblo.Xcc.Domain;` which serves both `Entity<T>` (if referenced) and the moved dashboard types. Implementer must verify which is needed and adjust accordingly rather than blindly replacing the using.
+No other amendments. The spec is otherwise complete, correctly scoped, and accurately reflects the codebase state.
 
 ## Prerequisites
 
-None — no infrastructure, configuration, migration, or external setup required. The change is entirely contained in source code, csproj layouts, and one auto-generated-but-checked-in snapshot file.
+None. All of the following already exist:
 
-Pre-implementation verification checklist (do these once before starting):
-1. Confirm `Anela.Heblo.Xcc.csproj` has no `Anela.Heblo.*` project references (verified: only NuGet packages today).
-2. Confirm `Anela.Heblo.Domain.csproj` references `Anela.Heblo.Xcc` (verified: line 21).
-3. Confirm `Anela.Heblo.Application.csproj` references both Domain and Xcc (verify before starting).
-4. Run a baseline `dotnet build` + `dotnet test` to record the green-baseline state.
+- `Anela.Heblo.Domain.csproj` already references `Anela.Heblo.Xcc.csproj`.
+- `Anela.Heblo.Xcc.csproj` already exposes `Entity<T>` and `IEntity<T>` as `public`.
+- `Anela.Heblo.Domain/Features/` already exists with 50+ peer feature folders demonstrating the pattern (`BackgroundJobs/`, `Users/`, `Purchase/`, etc.) — the new `Dashboard/` subfolder simply follows.
+- All consumer projects (`Application`, `Persistence`, `Tests`) already reference `Anela.Heblo.Domain`.
+
+The change is self-contained, atomic, and can be implemented in a single PR with the validation steps above.
+```
