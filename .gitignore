@@ -1,0 +1,162 @@
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Test secrets (never commit real tokens!)
+**/test-secrets.json
+TEST_MICROSOFT_TOKEN
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.Iscache
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.docstates
+*.csproj.lscache
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]uild/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Node.js / React
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Production builds
+/build
+/dist
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Test credentials (NEVER commit)
+**/.env.test
+**/test-credentials.*
+frontend/test/auth/.env.test
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+.dockerignore
+
+# Logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+# Note: React apps need their public directory, so we don't ignore it globally
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Playwright testing
+frontend/playwright-screenshots/
+frontend/*.png
+frontend/step*.png
+frontend/error*.png
+frontend/test-results/
+frontend/playwright-report/
+backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/app/playwright/
+
+# Test results and coverage
+TestResults/
+test-results/
+*.trx
+*.coverage
+*.coveragexml
+
+
+.playwright-mcp
+
+# Git worktrees
+.worktrees/
+WORKLOG.md
+.ralph/
+.ralph-tui/
+.claude/worktrees
+.superpowers/
+
+arch-review.r*.md
+design.r*.md
+spec.md
+spec.r*.md
+task-plan.r*.md
+brief.mdfrontend/node_modules

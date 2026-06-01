@@ -1,0 +1,9 @@
+mode: ContinuousDeployment
+branches:
+  main:
+    increment: Patch
+major-version-bump-message: '^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\(.+\))?(!):|^(breaking|BREAKING\s+CHANGE:|feat!):'
+minor-version-bump-message: '^(feat)(\(.+\))?:'
+patch-version-bump-message: '^(build|chore|ci|docs|fix|perf|refactor|revert|style|test)(\(.+\))?:'
+no-bump-message: '^(docs|test|style)(\(.+\))?:'
+commit-message-incrementing: Enabled
