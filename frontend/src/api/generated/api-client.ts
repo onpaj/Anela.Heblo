@@ -2709,164 +2709,6 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
-    eans_GetEans(lotId: number | null | undefined, materialCode: string | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListEansResponse> {
-        let url_ = this.baseUrl + "/api/eans?";
-        if (lotId !== undefined && lotId !== null)
-            url_ += "lotId=" + encodeURIComponent("" + lotId) + "&";
-        if (materialCode !== undefined && materialCode !== null)
-            url_ += "materialCode=" + encodeURIComponent("" + materialCode) + "&";
-        if (page === null)
-            throw new Error("The parameter 'page' cannot be null.");
-        else if (page !== undefined)
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
-        if (pageSize === null)
-            throw new Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processEans_GetEans(_response);
-        });
-    }
-
-    protected processEans_GetEans(response: Response): Promise<ListEansResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = ListEansResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<ListEansResponse>(null as any);
-    }
-
-    eans_CreateEans(request: CreateEansRequest): Promise<CreateEansResponse> {
-        let url_ = this.baseUrl + "/api/eans";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processEans_CreateEans(_response);
-        });
-    }
-
-    protected processEans_CreateEans(response: Response): Promise<CreateEansResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = CreateEansResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<CreateEansResponse>(null as any);
-    }
-
-    eans_GetEanByCode(code: string): Promise<GetEanByCodeResponse> {
-        let url_ = this.baseUrl + "/api/eans/by-code/{code}";
-        if (code === undefined || code === null)
-            throw new Error("The parameter 'code' must be defined.");
-        url_ = url_.replace("{code}", encodeURIComponent("" + code));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processEans_GetEanByCode(_response);
-        });
-    }
-
-    protected processEans_GetEanByCode(response: Response): Promise<GetEanByCodeResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetEanByCodeResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetEanByCodeResponse>(null as any);
-    }
-
-    eans_DeleteEan(id: number): Promise<DeleteEanResponse> {
-        let url_ = this.baseUrl + "/api/eans/{id}";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "DELETE",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processEans_DeleteEan(_response);
-        });
-    }
-
-    protected processEans_DeleteEan(response: Response): Promise<DeleteEanResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = DeleteEanResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<DeleteEanResponse>(null as any);
-    }
-
     expeditionListArchive_GetDates(page: number | undefined, pageSize: number | undefined): Promise<GetExpeditionDatesResponse> {
         let url_ = this.baseUrl + "/api/expedition-list-archive/dates?";
         if (page === null)
@@ -7437,6 +7279,202 @@ export class ApiClient {
         return Promise.resolve<ImportFromOutlookResponse>(null as any);
     }
 
+    materialContainers_GetMaterialContainers(materialCode: string | null | undefined, lotCode: string | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListMaterialContainersResponse> {
+        let url_ = this.baseUrl + "/api/material-containers?";
+        if (materialCode !== undefined && materialCode !== null)
+            url_ += "materialCode=" + encodeURIComponent("" + materialCode) + "&";
+        if (lotCode !== undefined && lotCode !== null)
+            url_ += "lotCode=" + encodeURIComponent("" + lotCode) + "&";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMaterialContainers_GetMaterialContainers(_response);
+        });
+    }
+
+    protected processMaterialContainers_GetMaterialContainers(response: Response): Promise<ListMaterialContainersResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListMaterialContainersResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListMaterialContainersResponse>(null as any);
+    }
+
+    materialContainers_Create(request: CreateMaterialContainersRequest): Promise<CreateMaterialContainersResponse> {
+        let url_ = this.baseUrl + "/api/material-containers";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMaterialContainers_Create(_response);
+        });
+    }
+
+    protected processMaterialContainers_Create(response: Response): Promise<CreateMaterialContainersResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateMaterialContainersResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateMaterialContainersResponse>(null as any);
+    }
+
+    materialContainers_GetLastUsedLot(materialCode: string | undefined): Promise<GetLastUsedLotForMaterialResponse> {
+        let url_ = this.baseUrl + "/api/material-containers/last-used-lot?";
+        if (materialCode === null)
+            throw new Error("The parameter 'materialCode' cannot be null.");
+        else if (materialCode !== undefined)
+            url_ += "materialCode=" + encodeURIComponent("" + materialCode) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMaterialContainers_GetLastUsedLot(_response);
+        });
+    }
+
+    protected processMaterialContainers_GetLastUsedLot(response: Response): Promise<GetLastUsedLotForMaterialResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetLastUsedLotForMaterialResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetLastUsedLotForMaterialResponse>(null as any);
+    }
+
+    materialContainers_GetByCode(code: string): Promise<GetMaterialContainerByCodeResponse> {
+        let url_ = this.baseUrl + "/api/material-containers/by-code/{code}";
+        if (code === undefined || code === null)
+            throw new Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMaterialContainers_GetByCode(_response);
+        });
+    }
+
+    protected processMaterialContainers_GetByCode(response: Response): Promise<GetMaterialContainerByCodeResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMaterialContainerByCodeResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMaterialContainerByCodeResponse>(null as any);
+    }
+
+    materialContainers_Discard(id: number): Promise<DiscardMaterialContainerResponse> {
+        let url_ = this.baseUrl + "/api/material-containers/{id}/discard";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMaterialContainers_Discard(_response);
+        });
+    }
+
+    protected processMaterialContainers_Discard(response: Response): Promise<DiscardMaterialContainerResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DiscardMaterialContainerResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DiscardMaterialContainerResponse>(null as any);
+    }
+
     meetingTasks_List(statusFilter: string | null | undefined, searchText: string | null | undefined, searchInTranscript: boolean | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetTranscriptListResponse> {
         let url_ = this.baseUrl + "/api/meeting-tasks?";
         if (statusFilter !== undefined && statusFilter !== null)
@@ -10262,6 +10300,17 @@ export class ApiClient {
             result404 = ProblemDetails.fromJS(resultData404);
             return throwException("A server side error occurred.", status, _responseText, _headers, result404);
             });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -12162,6 +12211,7 @@ export enum ErrorCodes {
     InvalidPurchaseOrderStatus = "InvalidPurchaseOrderStatus",
     InvalidSupplier = "InvalidSupplier",
     PurchaseOrderUpdateFailed = "PurchaseOrderUpdateFailed",
+    PurchaseOrderLineNotFound = "PurchaseOrderLineNotFound",
     ManufacturingDataNotAvailable = "ManufacturingDataNotAvailable",
     ManufactureAnalysisCalculationFailed = "ManufactureAnalysisCalculationFailed",
     InvalidAnalysisParameters = "InvalidAnalysisParameters",
@@ -12225,6 +12275,8 @@ export enum ErrorCodes {
     RecurringJobNotFound = "RecurringJobNotFound",
     RecurringJobUpdateFailed = "RecurringJobUpdateFailed",
     InvalidCronExpression = "InvalidCronExpression",
+    RecurringJobDisabled = "RecurringJobDisabled",
+    RecurringJobEnqueueFailed = "RecurringJobEnqueueFailed",
     KnowledgeBaseFeedbackLogNotFound = "KnowledgeBaseFeedbackLogNotFound",
     KnowledgeBaseFeedbackAlreadySubmitted = "KnowledgeBaseFeedbackAlreadySubmitted",
     KnowledgeBaseChunkNotFound = "KnowledgeBaseChunkNotFound",
@@ -12270,11 +12322,13 @@ export enum ErrorCodes {
     SmartsuppAgentMappingNotFound = "SmartsuppAgentMappingNotFound",
     SmartsuppCloseConversationUnavailable = "SmartsuppCloseConversationUnavailable",
     LotNotFound = "LotNotFound",
-    EanNotFound = "EanNotFound",
+    MaterialContainerNotFound = "MaterialContainerNotFound",
     LotAlreadyExists = "LotAlreadyExists",
     InventoryMaterialNotFound = "InventoryMaterialNotFound",
     InventoryMaterialInvalidType = "InventoryMaterialInvalidType",
     LotHasEans = "LotHasEans",
+    MaterialContainerCodeExists = "MaterialContainerCodeExists",
+    MaterialContainerCodeInvalidFormat = "MaterialContainerCodeInvalidFormat",
     WeatherForecastUnavailable = "WeatherForecastUnavailable",
     ShipmentLabelsNoShipmentFound = "ShipmentLabelsNoShipmentFound",
     ShipmentLabelsNotGenerated = "ShipmentLabelsNotGenerated",
@@ -17428,384 +17482,6 @@ export class Department implements IDepartment {
 export interface IDepartment {
     id?: string;
     name?: string;
-}
-
-export class ListEansResponse extends BaseResponse implements IListEansResponse {
-    eans?: EanDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-
-    constructor(data?: IListEansResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["eans"])) {
-                this.eans = [] as any;
-                for (let item of _data["eans"])
-                    this.eans!.push(EanDto.fromJS(item));
-            }
-            this.totalCount = _data["totalCount"];
-            this.pageNumber = _data["pageNumber"];
-            this.pageSize = _data["pageSize"];
-        }
-    }
-
-    static override fromJS(data: any): ListEansResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new ListEansResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.eans)) {
-            data["eans"] = [];
-            for (let item of this.eans)
-                data["eans"].push(item.toJSON());
-        }
-        data["totalCount"] = this.totalCount;
-        data["pageNumber"] = this.pageNumber;
-        data["pageSize"] = this.pageSize;
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface IListEansResponse extends IBaseResponse {
-    eans?: EanDto[];
-    totalCount?: number;
-    pageNumber?: number;
-    pageSize?: number;
-}
-
-export class EanDto implements IEanDto {
-    id?: number;
-    code?: string;
-    lotId?: number;
-    amount?: number;
-    unit?: string;
-    createdAt?: Date;
-    createdBy?: string;
-
-    constructor(data?: IEanDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.code = _data["code"];
-            this.lotId = _data["lotId"];
-            this.amount = _data["amount"];
-            this.unit = _data["unit"];
-            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
-            this.createdBy = _data["createdBy"];
-        }
-    }
-
-    static fromJS(data: any): EanDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new EanDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["code"] = this.code;
-        data["lotId"] = this.lotId;
-        data["amount"] = this.amount;
-        data["unit"] = this.unit;
-        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
-        data["createdBy"] = this.createdBy;
-        return data;
-    }
-}
-
-export interface IEanDto {
-    id?: number;
-    code?: string;
-    lotId?: number;
-    amount?: number;
-    unit?: string;
-    createdAt?: Date;
-    createdBy?: string;
-}
-
-export class GetEanByCodeResponse extends BaseResponse implements IGetEanByCodeResponse {
-    ean?: EanDto;
-    lot?: LotDto2;
-
-    constructor(data?: IGetEanByCodeResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.ean = _data["ean"] ? EanDto.fromJS(_data["ean"]) : <any>undefined;
-            this.lot = _data["lot"] ? LotDto2.fromJS(_data["lot"]) : <any>undefined;
-        }
-    }
-
-    static override fromJS(data: any): GetEanByCodeResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetEanByCodeResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["ean"] = this.ean ? this.ean.toJSON() : <any>undefined;
-        data["lot"] = this.lot ? this.lot.toJSON() : <any>undefined;
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface IGetEanByCodeResponse extends IBaseResponse {
-    ean?: EanDto;
-    lot?: LotDto2;
-}
-
-export class LotDto2 implements ILotDto2 {
-    id?: number;
-    materialCode?: string;
-    lotCode?: string;
-    expiration?: Date | undefined;
-    receivedDate?: Date;
-    notes?: string | undefined;
-    createdAt?: Date;
-    createdBy?: string;
-    updatedAt?: Date | undefined;
-    updatedBy?: string | undefined;
-
-    constructor(data?: ILotDto2) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.materialCode = _data["materialCode"];
-            this.lotCode = _data["lotCode"];
-            this.expiration = _data["expiration"] ? new Date(_data["expiration"].toString()) : <any>undefined;
-            this.receivedDate = _data["receivedDate"] ? new Date(_data["receivedDate"].toString()) : <any>undefined;
-            this.notes = _data["notes"];
-            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
-            this.createdBy = _data["createdBy"];
-            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
-            this.updatedBy = _data["updatedBy"];
-        }
-    }
-
-    static fromJS(data: any): LotDto2 {
-        data = typeof data === 'object' ? data : {};
-        let result = new LotDto2();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["materialCode"] = this.materialCode;
-        data["lotCode"] = this.lotCode;
-        data["expiration"] = this.expiration ? formatDate(this.expiration) : <any>undefined;
-        data["receivedDate"] = this.receivedDate ? formatDate(this.receivedDate) : <any>undefined;
-        data["notes"] = this.notes;
-        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
-        data["createdBy"] = this.createdBy;
-        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
-        data["updatedBy"] = this.updatedBy;
-        return data;
-    }
-}
-
-export interface ILotDto2 {
-    id?: number;
-    materialCode?: string;
-    lotCode?: string;
-    expiration?: Date | undefined;
-    receivedDate?: Date;
-    notes?: string | undefined;
-    createdAt?: Date;
-    createdBy?: string;
-    updatedAt?: Date | undefined;
-    updatedBy?: string | undefined;
-}
-
-export class CreateEansResponse extends BaseResponse implements ICreateEansResponse {
-    eans?: EanDto[];
-
-    constructor(data?: ICreateEansResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["eans"])) {
-                this.eans = [] as any;
-                for (let item of _data["eans"])
-                    this.eans!.push(EanDto.fromJS(item));
-            }
-        }
-    }
-
-    static override fromJS(data: any): CreateEansResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreateEansResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.eans)) {
-            data["eans"] = [];
-            for (let item of this.eans)
-                data["eans"].push(item.toJSON());
-        }
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface ICreateEansResponse extends IBaseResponse {
-    eans?: EanDto[];
-}
-
-export class CreateEansRequest implements ICreateEansRequest {
-    lotId?: number;
-    items?: CreateEanItem[];
-
-    constructor(data?: ICreateEansRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.lotId = _data["lotId"];
-            if (Array.isArray(_data["items"])) {
-                this.items = [] as any;
-                for (let item of _data["items"])
-                    this.items!.push(CreateEanItem.fromJS(item));
-            }
-        }
-    }
-
-    static fromJS(data: any): CreateEansRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreateEansRequest();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["lotId"] = this.lotId;
-        if (Array.isArray(this.items)) {
-            data["items"] = [];
-            for (let item of this.items)
-                data["items"].push(item.toJSON());
-        }
-        return data;
-    }
-}
-
-export interface ICreateEansRequest {
-    lotId?: number;
-    items?: CreateEanItem[];
-}
-
-export class CreateEanItem implements ICreateEanItem {
-    amount?: number;
-    unit?: string;
-
-    constructor(data?: ICreateEanItem) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.amount = _data["amount"];
-            this.unit = _data["unit"];
-        }
-    }
-
-    static fromJS(data: any): CreateEanItem {
-        data = typeof data === 'object' ? data : {};
-        let result = new CreateEanItem();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["amount"] = this.amount;
-        data["unit"] = this.unit;
-        return data;
-    }
-}
-
-export interface ICreateEanItem {
-    amount?: number;
-    unit?: string;
-}
-
-export class DeleteEanResponse extends BaseResponse implements IDeleteEanResponse {
-
-    constructor(data?: IDeleteEanResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-    }
-
-    static override fromJS(data: any): DeleteEanResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new DeleteEanResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface IDeleteEanResponse extends IBaseResponse {
 }
 
 export class GetExpeditionDatesResponse extends BaseResponse implements IGetExpeditionDatesResponse {
@@ -23550,9 +23226,81 @@ export interface IListLotsResponse extends IBaseResponse {
     pageSize?: number;
 }
 
+export class LotDto2 implements ILotDto2 {
+    id?: number;
+    materialCode?: string;
+    lotCode?: string;
+    expiration?: Date | undefined;
+    receivedDate?: Date;
+    notes?: string | undefined;
+    createdAt?: Date;
+    createdBy?: string;
+    updatedAt?: Date | undefined;
+    updatedBy?: string | undefined;
+
+    constructor(data?: ILotDto2) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.materialCode = _data["materialCode"];
+            this.lotCode = _data["lotCode"];
+            this.expiration = _data["expiration"] ? new Date(_data["expiration"].toString()) : <any>undefined;
+            this.receivedDate = _data["receivedDate"] ? new Date(_data["receivedDate"].toString()) : <any>undefined;
+            this.notes = _data["notes"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.createdBy = _data["createdBy"];
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+            this.updatedBy = _data["updatedBy"];
+        }
+    }
+
+    static fromJS(data: any): LotDto2 {
+        data = typeof data === 'object' ? data : {};
+        let result = new LotDto2();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["materialCode"] = this.materialCode;
+        data["lotCode"] = this.lotCode;
+        data["expiration"] = this.expiration ? formatDate(this.expiration) : <any>undefined;
+        data["receivedDate"] = this.receivedDate ? formatDate(this.receivedDate) : <any>undefined;
+        data["notes"] = this.notes;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["createdBy"] = this.createdBy;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        data["updatedBy"] = this.updatedBy;
+        return data;
+    }
+}
+
+export interface ILotDto2 {
+    id?: number;
+    materialCode?: string;
+    lotCode?: string;
+    expiration?: Date | undefined;
+    receivedDate?: Date;
+    notes?: string | undefined;
+    createdAt?: Date;
+    createdBy?: string;
+    updatedAt?: Date | undefined;
+    updatedBy?: string | undefined;
+}
+
 export class GetLotResponse extends BaseResponse implements IGetLotResponse {
     lot?: LotDto2;
-    eans?: EanDto[];
+    containers?: MaterialContainerDto[];
 
     constructor(data?: IGetLotResponse) {
         super(data);
@@ -23562,10 +23310,10 @@ export class GetLotResponse extends BaseResponse implements IGetLotResponse {
         super.init(_data);
         if (_data) {
             this.lot = _data["lot"] ? LotDto2.fromJS(_data["lot"]) : <any>undefined;
-            if (Array.isArray(_data["eans"])) {
-                this.eans = [] as any;
-                for (let item of _data["eans"])
-                    this.eans!.push(EanDto.fromJS(item));
+            if (Array.isArray(_data["containers"])) {
+                this.containers = [] as any;
+                for (let item of _data["containers"])
+                    this.containers!.push(MaterialContainerDto.fromJS(item));
             }
         }
     }
@@ -23580,10 +23328,10 @@ export class GetLotResponse extends BaseResponse implements IGetLotResponse {
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["lot"] = this.lot ? this.lot.toJSON() : <any>undefined;
-        if (Array.isArray(this.eans)) {
-            data["eans"] = [];
-            for (let item of this.eans)
-                data["eans"].push(item.toJSON());
+        if (Array.isArray(this.containers)) {
+            data["containers"] = [];
+            for (let item of this.containers)
+                data["containers"].push(item.toJSON());
         }
         super.toJSON(data);
         return data;
@@ -23592,7 +23340,75 @@ export class GetLotResponse extends BaseResponse implements IGetLotResponse {
 
 export interface IGetLotResponse extends IBaseResponse {
     lot?: LotDto2;
-    eans?: EanDto[];
+    containers?: MaterialContainerDto[];
+}
+
+export class MaterialContainerDto implements IMaterialContainerDto {
+    id?: number;
+    code?: string;
+    materialCode?: string;
+    lotCode?: string;
+    amount?: number | undefined;
+    unit?: string | undefined;
+    createdAt?: Date;
+    createdBy?: string;
+    purchaseOrderLineId?: number | undefined;
+
+    constructor(data?: IMaterialContainerDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.code = _data["code"];
+            this.materialCode = _data["materialCode"];
+            this.lotCode = _data["lotCode"];
+            this.amount = _data["amount"];
+            this.unit = _data["unit"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.createdBy = _data["createdBy"];
+            this.purchaseOrderLineId = _data["purchaseOrderLineId"];
+        }
+    }
+
+    static fromJS(data: any): MaterialContainerDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MaterialContainerDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["code"] = this.code;
+        data["materialCode"] = this.materialCode;
+        data["lotCode"] = this.lotCode;
+        data["amount"] = this.amount;
+        data["unit"] = this.unit;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["createdBy"] = this.createdBy;
+        data["purchaseOrderLineId"] = this.purchaseOrderLineId;
+        return data;
+    }
+}
+
+export interface IMaterialContainerDto {
+    id?: number;
+    code?: string;
+    materialCode?: string;
+    lotCode?: string;
+    amount?: number | undefined;
+    unit?: string | undefined;
+    createdAt?: Date;
+    createdBy?: string;
+    purchaseOrderLineId?: number | undefined;
 }
 
 export class CreateLotResponse extends BaseResponse implements ICreateLotResponse {
@@ -28635,6 +28451,293 @@ export interface IImportFromOutlookRequest {
     fromUtc?: Date;
     toUtc?: Date;
     dryRun?: boolean;
+}
+
+export class ListMaterialContainersResponse extends BaseResponse implements IListMaterialContainersResponse {
+    containers?: MaterialContainerDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+
+    constructor(data?: IListMaterialContainersResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["containers"])) {
+                this.containers = [] as any;
+                for (let item of _data["containers"])
+                    this.containers!.push(MaterialContainerDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+        }
+    }
+
+    static override fromJS(data: any): ListMaterialContainersResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListMaterialContainersResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.containers)) {
+            data["containers"] = [];
+            for (let item of this.containers)
+                data["containers"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListMaterialContainersResponse extends IBaseResponse {
+    containers?: MaterialContainerDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+}
+
+export class GetLastUsedLotForMaterialResponse extends BaseResponse implements IGetLastUsedLotForMaterialResponse {
+    lotCode?: string | undefined;
+
+    constructor(data?: IGetLastUsedLotForMaterialResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.lotCode = _data["lotCode"];
+        }
+    }
+
+    static override fromJS(data: any): GetLastUsedLotForMaterialResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetLastUsedLotForMaterialResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["lotCode"] = this.lotCode;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetLastUsedLotForMaterialResponse extends IBaseResponse {
+    lotCode?: string | undefined;
+}
+
+export class GetMaterialContainerByCodeResponse extends BaseResponse implements IGetMaterialContainerByCodeResponse {
+    container?: MaterialContainerDto;
+
+    constructor(data?: IGetMaterialContainerByCodeResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.container = _data["container"] ? MaterialContainerDto.fromJS(_data["container"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetMaterialContainerByCodeResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMaterialContainerByCodeResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["container"] = this.container ? this.container.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMaterialContainerByCodeResponse extends IBaseResponse {
+    container?: MaterialContainerDto;
+}
+
+export class CreateMaterialContainersResponse extends BaseResponse implements ICreateMaterialContainersResponse {
+    containers?: MaterialContainerDto[];
+
+    constructor(data?: ICreateMaterialContainersResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["containers"])) {
+                this.containers = [] as any;
+                for (let item of _data["containers"])
+                    this.containers!.push(MaterialContainerDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): CreateMaterialContainersResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateMaterialContainersResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.containers)) {
+            data["containers"] = [];
+            for (let item of this.containers)
+                data["containers"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateMaterialContainersResponse extends IBaseResponse {
+    containers?: MaterialContainerDto[];
+}
+
+export class CreateMaterialContainersRequest implements ICreateMaterialContainersRequest {
+    items?: CreateMaterialContainerItem[];
+
+    constructor(data?: ICreateMaterialContainersRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(CreateMaterialContainerItem.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): CreateMaterialContainersRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateMaterialContainersRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ICreateMaterialContainersRequest {
+    items?: CreateMaterialContainerItem[];
+}
+
+export class CreateMaterialContainerItem implements ICreateMaterialContainerItem {
+    code?: string;
+    materialCode?: string;
+    lotCode?: string;
+    amount?: number | undefined;
+    unit?: string | undefined;
+    purchaseOrderLineId?: number | undefined;
+
+    constructor(data?: ICreateMaterialContainerItem) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.materialCode = _data["materialCode"];
+            this.lotCode = _data["lotCode"];
+            this.amount = _data["amount"];
+            this.unit = _data["unit"];
+            this.purchaseOrderLineId = _data["purchaseOrderLineId"];
+        }
+    }
+
+    static fromJS(data: any): CreateMaterialContainerItem {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateMaterialContainerItem();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["materialCode"] = this.materialCode;
+        data["lotCode"] = this.lotCode;
+        data["amount"] = this.amount;
+        data["unit"] = this.unit;
+        data["purchaseOrderLineId"] = this.purchaseOrderLineId;
+        return data;
+    }
+}
+
+export interface ICreateMaterialContainerItem {
+    code?: string;
+    materialCode?: string;
+    lotCode?: string;
+    amount?: number | undefined;
+    unit?: string | undefined;
+    purchaseOrderLineId?: number | undefined;
+}
+
+export class DiscardMaterialContainerResponse extends BaseResponse implements IDiscardMaterialContainerResponse {
+
+    constructor(data?: IDiscardMaterialContainerResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DiscardMaterialContainerResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DiscardMaterialContainerResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDiscardMaterialContainerResponse extends IBaseResponse {
 }
 
 export class GetTranscriptListResponse extends BaseResponse implements IGetTranscriptListResponse {
