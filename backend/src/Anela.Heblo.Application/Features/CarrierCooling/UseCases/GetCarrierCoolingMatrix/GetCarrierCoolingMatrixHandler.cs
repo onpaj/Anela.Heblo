@@ -22,17 +22,22 @@ public class GetCarrierCoolingMatrixHandler : IRequestHandler<GetCarrierCoolingM
     {
         var available = _catalog.GetAvailableDeliveryOptions();
         var stored = await _repository.GetAllAsync(cancellationToken);
-        var storedLookup = stored.ToDictionary(s => (s.Carrier, s.DeliveryHandling), s => s.Cooling);
+        var storedLookup = stored.ToDictionary(s => (s.Carrier, s.DeliveryHandling));
 
         var groups = available
             .GroupBy(x => x.Carrier)
             .Select(g => new CarrierGroupDto
             {
                 Carrier = g.Key,
-                Rows = g.Select(x => new CarrierCoolingRowDto
+                Rows = g.Select(x =>
                 {
-                    DeliveryHandling = x.Handling,
-                    Cooling = storedLookup.TryGetValue((x.Carrier, x.Handling), out var c) ? c : Cooling.None,
+                    storedLookup.TryGetValue((x.Carrier, x.Handling), out var setting);
+                    return new CarrierCoolingRowDto
+                    {
+                        DeliveryHandling = x.Handling,
+                        Cooling = setting?.Cooling ?? Cooling.None,
+                        CoolingText = setting?.CoolingText,
+                    };
                 }).ToList(),
             })
             .ToList();
