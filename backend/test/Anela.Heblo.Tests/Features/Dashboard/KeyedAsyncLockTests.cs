@@ -105,7 +105,7 @@ public sealed class KeyedAsyncLockTests : IDisposable
         var held = new TaskCompletionSource();
         var released = new TaskCompletionSource();
 
-        _ = Task.Run(async () =>
+        var holderTask = Task.Run(async () =>
         {
             await using (await _sut.AcquireAsync("cancel-key", TimeSpan.FromMinutes(1)))
             {
@@ -131,6 +131,7 @@ public sealed class KeyedAsyncLockTests : IDisposable
 
         // Now a third acquirer should be able to get the lock normally
         await using var finalHandle = await _sut.AcquireAsync("cancel-key", TimeSpan.FromMinutes(1));
+        await holderTask;
     }
 
     [Fact]

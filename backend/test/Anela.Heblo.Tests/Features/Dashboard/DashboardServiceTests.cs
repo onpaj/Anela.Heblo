@@ -355,7 +355,7 @@ public class DashboardServiceTests
     public async Task GetUserSettingsAsync_WhenCalledConcurrently_ShouldCreateSettingsOnce()
     {
         // Arrange — use a real lock pool, not the mock
-        var realLockPool = new KeyedAsyncLock();
+        using var realLockPool = new KeyedAsyncLock();
         var options = Options.Create(new DashboardOptions());
         var serviceWithRealLock = new DashboardService(
             _tileRegistryMock.Object,
