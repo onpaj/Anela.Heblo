@@ -1,4 +1,3 @@
-using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.Application.Shared.Printing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,15 +33,6 @@ public static class CupsAdapterServiceCollectionExtensions
         services.AddScoped<ICupsPrintingService, CupsPrintingService>();
         services.AddScoped<ILabelPrintingService, CupsLabelPrintingService>();
 
-        return services;
-    }
-
-    public static IServiceCollection AddCupsAdapter(
-        this IServiceCollection services,
-        IConfiguration configuration)
-    {
-        services.AddCupsPrinting(configuration);
-        services.AddScoped<IPrintQueueSink, CupsPrintQueueSink>();
         return services;
     }
 }
