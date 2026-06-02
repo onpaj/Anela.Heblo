@@ -273,4 +273,6 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
         await _db.SaveChangesAsync(cancellationToken);
+
+    public void DiscardChanges() => _db.ChangeTracker.Clear();
 }
