@@ -1,131 +1,166 @@
-# Architecture Review: Relocate `PurchaseOrdersInTransitTile` to Purchase Module
+# Architecture Review: Relocate PurchaseOrdersInTransitTile to Purchase Module
 
 ## Skip Design: true
 
 ## Architectural Fit Assessment
 
-This refactor is a textbook alignment with the codebase's established conventions. The verified state:
+The proposal aligns perfectly with the established Vertical Slice + module-independence convention enforced elsewhere in the codebase. Verification confirms:
 
-- **Pattern is established and consistent.** Eight modules register their own dashboard tiles via `services.RegisterTile<T>()`: `Purchase` (`LowStockEfficiencyTile`), `Logistics` (4 tiles), `Manufacture` (4 tiles), `Catalog` (6 tiles), `Analytics`, `WeatherForecast`, plus `Xcc` for its own `BackgroundTaskStatusTile`. Each tile lives at `Features/{Module}/DashboardTiles/` (or equivalent) and is registered in `{Module}Module.cs`. `LowStockEfficiencyTile.cs:5` is the direct sibling reference for the move.
-- **Module-independence rule applies.** `docs/architecture/development_guidelines.md` line 34 explicitly forbids "Direct access to another module's entities." `PurchaseOrdersInTransitTile.cs:1` violates it by importing `Anela.Heblo.Domain.Features.Purchase` from within the Dashboard module's namespace.
-- **Boundary enforcement exists but does not yet cover this edge.** `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` enforces eight namespace-prefix rules (Leaflet→KnowledgeBase, Logistics→Manufacture, Purchase→Catalog, etc.). There is no `Dashboard → Purchase` rule today, which is why the violation went undetected by CI until the daily arch-review found it.
-- **No test fallout.** Grep for `PurchaseOrdersInTransitTile` across `backend/test/**` returns zero matches; the type is consumed only by the registration line in `DashboardModule.cs:20` and instantiated reflectively via the tile registry.
-- **Frontend independence confirmed.** `frontend/src/components/dashboard/tiles/PurchaseOrdersInTransitTile.tsx` and `TileContent.tsx` reference the tile by its registered string key, not by backend namespace. No frontend change is required.
+- **Destination convention exists** — `backend/src/Anela.Heblo.Application/Features/Purchase/DashboardTiles/` already contains `LowStockEfficiencyTile.cs`. `PurchaseModule.cs:32` already calls `services.RegisterTile<LowStockEfficiencyTile>();` and already has `using Anela.Heblo.Application.Features.Purchase.DashboardTiles;` (line 2).
+- **Tile framework supports the move transparently** — `[TileId("purchaseordersintransit")]` on the class (verified at `PurchaseOrdersInTransitTile.cs:6`) decouples persisted dashboard layouts from the C# namespace. Moving the class does not change its public tile id.
+- **Cross-module coupling is real** — `DashboardModule.cs:2` carries `using Anela.Heblo.Application.Features.Dashboard.Tiles;` and `DashboardModule.cs:22` registers the tile. After the relocation, both lines become unused and can be removed cleanly.
+- **One hidden coupling the spec misses** — `backend/test/Anela.Heblo.Tests/Features/Dashboard/TileIdContractTests.cs:15` uses `typeof(Anela.Heblo.Application.Features.Dashboard.Tiles.PurchaseOrdersInTransitTile).Assembly` as a marker type to pin the application assembly for reflection scanning. The fully qualified namespace will no longer exist after the move; the test will not compile. **This must be addressed as part of the change (see Specification Amendments).**
 
-The refactor is structurally sound and low-risk. No architectural objections.
+The fit is otherwise mechanical. No new contracts, no new lifecycles, no new persistence.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-Before                                          After
-──────────────────────────────────────          ──────────────────────────────────────
-Features/                                       Features/
-├── Dashboard/                                  ├── Dashboard/
-│   ├── DashboardModule.cs                      │   ├── DashboardModule.cs
-│   │   └─ RegisterTile<PurchaseOrders…>  ✗     │   │   (no Purchase reference)         ✓
-│   └── Tiles/                                  │   └── (Tiles/ folder may be empty,
-│       └── PurchaseOrdersInTransitTile  ✗     │        see spec amendment below)
-│           └─ uses IPurchaseOrderRepo          │
-│              (cross-module dep)               │
-│                                               │
-└── Purchase/                                   └── Purchase/
-    ├── PurchaseModule.cs                           ├── PurchaseModule.cs
-    │   └─ RegisterTile<LowStockEff…>               │   ├─ RegisterTile<LowStockEff…>
-    │                                               │   └─ RegisterTile<PurchaseOrders…> ✓
-    └── DashboardTiles/                             └── DashboardTiles/
-        └── LowStockEfficiencyTile                       ├── LowStockEfficiencyTile
-                                                         └── PurchaseOrdersInTransitTile ✓
-                                                             └─ uses IPurchaseOrderRepo
-                                                                (intra-module — OK)
+Before:
+  Anela.Heblo.Application
+    Features/
+      Dashboard/
+        DashboardModule.cs ──RegisterTile──► PurchaseOrdersInTransitTile ──► IPurchaseOrderRepository
+        Tiles/
+          PurchaseOrdersInTransitTile.cs                              (Domain.Features.Purchase)
+      Purchase/
+        PurchaseModule.cs ──RegisterTile──► LowStockEfficiencyTile
+
+  ⇒ DashboardModule has compile-time edge into Domain.Features.Purchase (via tile)
+
+After:
+  Anela.Heblo.Application
+    Features/
+      Dashboard/
+        DashboardModule.cs   (no Purchase-domain references)
+      Purchase/
+        PurchaseModule.cs ──RegisterTile──► LowStockEfficiencyTile
+                          ──RegisterTile──► PurchaseOrdersInTransitTile ──► IPurchaseOrderRepository
+        DashboardTiles/
+          LowStockEfficiencyTile.cs
+          PurchaseOrdersInTransitTile.cs
+
+  ⇒ Cross-module edge eliminated; tile co-located with the domain it consumes
 ```
 
 ### Key Design Decisions
 
-#### Decision 1: Mirror the `LowStockEfficiencyTile` placement exactly
+#### Decision 1: Preserve direct `IPurchaseOrderRepository` injection (do not switch to MediatR)
 **Options considered:**
-- A) Place under `Features/Purchase/DashboardTiles/` (matches `LowStockEfficiencyTile`).
-- B) Place under `Features/Purchase/UseCases/Dashboard/` or similar to group with use-case handlers.
-- C) Create a new `Features/Purchase/Tiles/` folder.
+- (A) Keep direct repository injection as-is.
+- (B) Refactor to send a MediatR request, mirroring `LowStockEfficiencyTile`'s pattern.
 
-**Chosen approach:** A — `backend/src/Anela.Heblo.Application/Features/Purchase/DashboardTiles/PurchaseOrdersInTransitTile.cs`.
+**Chosen approach:** (A) — keep direct repository injection.
 
-**Rationale:** `LowStockEfficiencyTile` is the canonical Purchase-domain tile and already establishes this folder name. The spec explicitly references mirroring it. Diverging here would create yet another inconsistency.
+**Rationale:** The spec is explicit that this is a pure relocation with no behavior change (FR-1, FR-4, NFR-1). The MediatR migration is a separate refactor that would expand scope, alter test surface, and risk subtle behavior shifts (caching, pipeline behaviors, error mapping). Convergence on the MediatR pattern can be filed as a follow-up.
 
-#### Decision 2: Keep the dependency on `IPurchaseOrderRepository`, don't introduce an interface inversion
+#### Decision 2: Preserve the existing `TileId` value (`"purchaseordersintransit"`)
 **Options considered:**
-- A) Direct dependency on `IPurchaseOrderRepository` (status quo, now legal because tile and repo are in the same module).
-- B) Define a Dashboard-owned `IPurchaseOrderInTransitSource` contract implemented by Purchase (pattern from `ILeafletKnowledgeSource`).
+- (A) Keep `[TileId("purchaseordersintransit")]` unchanged.
+- (B) Rename to something Purchase-prefixed.
 
-**Chosen approach:** A — direct dependency, no inversion.
+**Chosen approach:** (A).
 
-**Rationale:** The `ILeafletKnowledgeSource` adapter pattern exists for *cross-module read access* (consumer in module X, provider in module Y). After this refactor, both the tile and the repository live in the same Purchase module — there is no boundary to invert. The tile is a Purchase capability that happens to render on the dashboard surface; the cross-cutting contract is `ITile` (in `Xcc.Services.Dashboard`), not the repository access.
+**Rationale:** NFR-4 mandates backward compatibility. `UserDashboardTiles` rows and any persisted user preferences reference this exact string. The `TileIdContractTests.AllConcreteTiles_WhoseNameEndsInTile_HaveBackwardCompatibleTileId` test enforces it: the attribute value must equal `ClassName.ToLower().Replace("tile","")`. The current value already satisfies this; do not change it.
 
-#### Decision 3: Do not extend `ModuleBoundariesTests` in this PR
+#### Decision 3: Update the contract-test marker type rather than introducing a new sentinel
 **Options considered:**
-- A) Add a `Dashboard → Purchase` rule to `ModuleBoundariesTests.Rules()` to prevent regression.
-- B) Leave the test suite untouched.
+- (A) Update `TileIdContractTests.cs:15` to reference the new fully qualified type `Anela.Heblo.Application.Features.Purchase.DashboardTiles.PurchaseOrdersInTransitTile`.
+- (B) Replace the marker with any stable application-layer type (e.g., `DashboardModule` itself or `LowStockEfficiencyTile`).
+- (C) Introduce a dedicated `AssemblyMarker` empty class.
 
-**Chosen approach:** B — leave untouched (with caveat below).
+**Chosen approach:** (B) — switch the marker to `LowStockEfficiencyTile` (already a stable, conventional tile in the application assembly).
 
-**Rationale:** Spec's "Out of Scope" explicitly excludes "Adding or modifying tests beyond what is required to keep the existing suite green." Adding the rule is a *legitimate* follow-up — see Risk R3 — but belongs in its own brief alongside a broader audit of which module pairs should have boundary rules. Doing it inline expands scope and invites incidental findings.
+**Rationale:** (A) re-creates the same fragility under a new name. (C) adds a new abstraction the codebase does not currently use. (B) is the minimal, intent-preserving change: the test only needs *some* type from the application assembly, and `LowStockEfficiencyTile` is the canonical example tile.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-**Files to modify:**
+Create one file, delete one file, edit two:
 
-| Action | Path | Change |
-|---|---|---|
-| Move | `backend/src/Anela.Heblo.Application/Features/Dashboard/Tiles/PurchaseOrdersInTransitTile.cs` → `backend/src/Anela.Heblo.Application/Features/Purchase/DashboardTiles/PurchaseOrdersInTransitTile.cs` | File location + `namespace` line only |
-| Edit | `backend/src/Anela.Heblo.Application/Features/Dashboard/DashboardModule.cs` | Remove `using Anela.Heblo.Application.Features.Dashboard.Tiles;` (line 2) and `services.RegisterTile<PurchaseOrdersInTransitTile>();` (line 20) |
-| Edit | `backend/src/Anela.Heblo.Application/Features/Purchase/PurchaseModule.cs` | Add `services.RegisterTile<PurchaseOrdersInTransitTile>();` adjacent to the existing `LowStockEfficiencyTile` registration on line 26. `using Anela.Heblo.Application.Features.Purchase.DashboardTiles;` is already imported on line 5 — no new using needed. |
-
-**Files NOT to modify:**
-- `PurchaseOrdersInTransitTile.cs` body — class name, members, ctor, `LoadDataAsync` logic, `FormatAmountInThousands` helper all stay byte-identical.
-- `frontend/src/components/dashboard/tiles/PurchaseOrdersInTransitTile.tsx` — frontend resolves tiles by registered key, not backend namespace.
-- `ITile` / `TileRegistry` / `TileRegistryExtensions` — registration contract is stable.
+| Action | Path |
+|---|---|
+| **Create** | `backend/src/Anela.Heblo.Application/Features/Purchase/DashboardTiles/PurchaseOrdersInTransitTile.cs` |
+| **Delete** | `backend/src/Anela.Heblo.Application/Features/Dashboard/Tiles/PurchaseOrdersInTransitTile.cs` |
+| **Delete (empty folder)** | `backend/src/Anela.Heblo.Application/Features/Dashboard/Tiles/` (only if empty after the move — verified: it is) |
+| **Edit** | `backend/src/Anela.Heblo.Application/Features/Dashboard/DashboardModule.cs` |
+| **Edit** | `backend/src/Anela.Heblo.Application/Features/Purchase/PurchaseModule.cs` |
+| **Edit** | `backend/test/Anela.Heblo.Tests/Features/Dashboard/TileIdContractTests.cs` |
 
 ### Interfaces and Contracts
 
-- **`ITile` interface** (`Anela.Heblo.Xcc.Services.Dashboard.ITile`) — unchanged. The tile implements `Title`, `Description`, `Size`, `Category`, `DefaultEnabled`, `AutoShow`, `ComponentType`, `RequiredPermissions`, and `LoadDataAsync(...)`. Category remains `TileCategory.Purchase`.
-- **`IPurchaseOrderRepository.GetByStatusAsync(PurchaseOrderStatus.InTransit, ct)`** — unchanged contract, unchanged call site, just now invoked from inside the owning module.
-- **`RegisterTile<T>()` extension** — unchanged; PurchaseModule already uses it for `LowStockEfficiencyTile`.
+No changes. Preserve verbatim:
+- `[TileId("purchaseordersintransit")]`
+- `ITile` implementation (all properties and `LoadDataAsync` signature)
+- Constructor signature `(IPurchaseOrderRepository purchaseOrderRepository)`
+- Returned anonymous payload shape (`status`, `data{ count, totalAmount, formattedAmount }`, `metadata`, `drillDown`)
+
+The new class declaration must be:
+```csharp
+namespace Anela.Heblo.Application.Features.Purchase.DashboardTiles;
+```
 
 ### Data Flow
 
-Identical before and after. The tile registry instantiates the tile via DI; the dashboard `GetTileData` handler calls `LoadDataAsync`; the tile queries `IPurchaseOrderRepository`, computes a sum, formats it, and returns the response object. None of this changes.
+Unchanged from the user perspective:
+
+```
+Frontend tile lookup ──► GetTileDataHandler ──► tile registry resolves "purchaseordersintransit"
+                                              ──► PurchaseOrdersInTransitTile.LoadDataAsync
+                                              ──► IPurchaseOrderRepository.GetByStatusAsync(InTransit)
+                                              ──► aggregated payload returned
+```
+
+The only flow change is at composition time: DI registration now occurs inside `AddPurchaseModule()` instead of `AddDashboardModule()`. Provided both modules are registered in `Program.cs` (they are, since `LowStockEfficiencyTile` works today), runtime resolution is identical.
+
+### Edits in Detail
+
+**`DashboardModule.cs`** — remove line 2 `using Anela.Heblo.Application.Features.Dashboard.Tiles;` and line 22 `services.RegisterTile<PurchaseOrdersInTransitTile>();`. The comment on line 21 (`// Register dashboard tiles`) becomes dead — remove it as well, since no Dashboard-owned tiles remain.
+
+**`PurchaseModule.cs`** — add `services.RegisterTile<PurchaseOrdersInTransitTile>();` immediately after line 32. No new `using` directive is needed — line 2 already imports `Anela.Heblo.Application.Features.Purchase.DashboardTiles`.
+
+**`TileIdContractTests.cs:15`** — replace
+```csharp
+typeof(Anela.Heblo.Application.Features.Dashboard.Tiles.PurchaseOrdersInTransitTile).Assembly
+```
+with
+```csharp
+typeof(Anela.Heblo.Application.Features.Purchase.DashboardTiles.LowStockEfficiencyTile).Assembly
+```
+The comment `// Anela.Heblo.Application` remains accurate.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
-|---|---|---|
-| **R1.** A stale string literal (e.g. type name as a registration key, log filter, or feature-flag key) references the old fully-qualified namespace. | Low | Grep before merging: `rg "Anela\.Heblo\.Application\.Features\.Dashboard\.Tiles\.PurchaseOrdersInTransitTile"` and `rg "Features\.Dashboard\.Tiles\.PurchaseOrders"` across the repo. Verified zero matches today other than the file itself; re-run after the move to confirm cleanup. |
-| **R2.** Tile-enabled state stored per user (e.g. in `UserDashboardSettings`) keys off the type name and breaks on migration. | Low | Inspect `Features/Dashboard/Contracts/UserDashboardTileDto.cs` and the `GetAvailableTiles` / `SaveUserSettings` handlers to confirm the persisted key is the unqualified type name (`"PurchaseOrdersInTransitTile"`) or a registry-assigned ID, not the full namespace. If the FQN is persisted, add a data-migration note to the spec. |
-| **R3.** Regression: a future change re-introduces a Dashboard module dependency on `Anela.Heblo.Domain.Features.Purchase`, since no `ModuleBoundariesTests` rule guards this edge. | Medium | Out of scope per spec, but file a follow-up brief: add `Dashboard → Purchase` to `Rules()` in `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` with an empty allowlist. Same pattern as the existing `Purchase → Catalog` rule (line 142–151). |
-| **R4.** The orphaned `Features/Dashboard/Tiles/` folder remains after the move with no tiles inside it, becoming a "dead" folder that invites confusion. | Low | After move, `Features/Dashboard/Tiles/` will be empty (no other tile lives there). Decide explicitly: either delete the folder or leave it (and remove the stray folder later if no tile is added back). See spec amendment below. |
-| **R5.** Architecture-test suite (`ModuleBoundariesTests`) is reflection-based and only runs at test-time. A misregistration (e.g. forgot to add to PurchaseModule, forgot to remove from DashboardModule, or accidentally double-registered) is not caught by `dotnet build`. | Low | Run `dotnet test --filter FullyQualifiedName~Anela.Heblo.Tests` after the move; the existing dashboard tile-discovery integration test (if any) plus a manual sanity check that the dashboard still lists "Suma nákupních objednávek" at staging confirms registration. |
+|------|----------|------------|
+| `TileIdContractTests` fails to compile because its marker type vanished | **HIGH** | Update marker to `LowStockEfficiencyTile` in the same commit (Decision 3). Spec currently misses this — see Amendments. |
+| Stale persisted `UserDashboardTiles` rows fail to resolve due to a hidden namespace check | LOW | `[TileId("purchaseordersintransit")]` is the only resolution key; namespace is not persisted. Contract tests in `TileIdContractTests` enforce this. |
+| Empty `Features/Dashboard/Tiles/` folder remains in source control | LOW | Delete folder as part of the change so the directory layout reflects ownership. |
+| Frontend hardcodes the tile id and breaks if anything changes | LOW | Spec preserves the id verbatim; commit `33ed409a` introduced the stable-id contract precisely for this case. |
+| Future Dashboard tiles regress and reintroduce cross-module coupling | LOW | Out of scope, but worth filing a separate task for an analyzer/test that asserts `Features/Dashboard/` does not reference `Domain.Features.<other>`. |
 
 ## Specification Amendments
 
-1. **FR-3 first bullet is moot as written.** The spec says: *"`DashboardModule.cs` no longer carries the `using Anela.Heblo.Domain.Features.Purchase;` statement…"* That using is **not present** in the current `DashboardModule.cs` (verified at `backend/src/Anela.Heblo.Application/Features/Dashboard/DashboardModule.cs:1-6`). The actual stale using that must be removed is `using Anela.Heblo.Application.Features.Dashboard.Tiles;` (line 2), since after the move no other registered tile in that file lives in the `Dashboard.Tiles` namespace. **Amend FR-3** to read: *"Remove `using Anela.Heblo.Application.Features.Dashboard.Tiles;` from `DashboardModule.cs` once the registration line is deleted."*
+The spec is otherwise complete and correctly scoped. Two amendments are required:
 
-2. **Add explicit instruction about the empty source folder.** After the move, `backend/src/Anela.Heblo.Application/Features/Dashboard/Tiles/` will be empty. Add an FR-5 (or amend FR-1): *"Delete the now-empty `Features/Dashboard/Tiles/` folder if your VCS / build tooling does not preserve empty directories. Do not leave a `.gitkeep` placeholder."*
+1. **Add FR-6: Update `TileIdContractTests` assembly marker.** The spec does not mention `backend/test/Anela.Heblo.Tests/Features/Dashboard/TileIdContractTests.cs:15`, which hard-codes the fully qualified type `Anela.Heblo.Application.Features.Dashboard.Tiles.PurchaseOrdersInTransitTile` as an assembly-scanning marker. After the move this no longer compiles. The amendment: replace the marker with `typeof(Anela.Heblo.Application.Features.Purchase.DashboardTiles.LowStockEfficiencyTile).Assembly` in the same change.
+   *Acceptance:* `dotnet test` runs `TileIdContractTests` green; no other test references the old namespace.
 
-3. **Confirm tile-identity key.** Before declaring the spec complete, add a check item under FR-4: *"Verify that the per-user tile-enabled persistence (in `UserDashboardSettings`) is unaffected — i.e., the persisted key is the unqualified class name `\"PurchaseOrdersInTransitTile\"` (or a registry-assigned ID) and not the assembly-qualified type name. If it is the FQN, ship a data migration."* This is the only place where the namespace change has a non-zero chance of producing user-visible breakage.
+2. **Add FR-7: Remove the empty `Features/Dashboard/Tiles/` folder.** Verified that this tile is the only file in that folder. Leaving an empty `Tiles/` directory in the Dashboard module suggests Dashboard-owned tiles exist when they do not. Delete the folder as part of the commit.
+   *Acceptance:* `Features/Dashboard/Tiles/` no longer exists in the working tree.
 
-4. **Optional follow-up (not blocking).** Mention in the spec's "Out of Scope" section that `DashboardModule.cs` continues to register `DqtYesterdayStatusTile` and `FailedJobsTile` (both lives under `DataQuality.DashboardTiles` and `BackgroundJobs.DashboardTiles` respectively). This split-registration pattern is inconsistent with the convention but is explicitly *not* this brief's concern; document it as a known follow-up so the reviewer doesn't flag it as an oversight.
+No other amendments are required. FR-1 through FR-5 are accurate and verified against the actual source.
 
 ## Prerequisites
 
-None. This is a self-contained source-tree refactor:
-- No database migrations.
-- No configuration changes (no Azure Key Vault entries, no App Settings).
-- No infrastructure or CI/CD changes.
-- No frontend changes.
-- No new NuGet packages.
-- No coordinated deployment — a single build artifact contains both the removal and the re-registration; runtime DI resolution at startup picks up the tile from PurchaseModule, no in-flight requests are impacted.
+None. The change is self-contained:
 
-Implementation can begin immediately. Validation gate is the standard `dotnet build` + `dotnet format` + existing test suite (per `CLAUDE.md`'s "Validation before completion"), plus a smoke check of the dashboard at staging that the "Suma nákupních objednávek" tile still renders.
+- `Anela.Heblo.Application.Features.Purchase.DashboardTiles` namespace already exists (verified — `LowStockEfficiencyTile.cs` lives there).
+- `PurchaseModule.cs` is already wired into the composition root (`LowStockEfficiencyTile` works today via the same path).
+- `RegisterTile<T>()` extension is already in use by both modules.
+- No database migration, no config change, no infrastructure change.
+
+Validation gate before merge: `dotnet build`, `dotnet format`, `dotnet test` (specifically `TileIdContractTests` and any existing `PurchaseOrdersInTransitTile` unit tests — verified there are none under `backend/test`, so no test-file moves are needed beyond the marker fix).
