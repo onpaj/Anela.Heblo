@@ -204,20 +204,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
     {
         try
         {
-            var currentDate = _timeProvider.GetUtcNow().Date;
-
-            // Calculate date range
-            DateTime fromDate;
-
-            if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
-            {
-                // For "all history", start from a very early date
-                fromDate = new DateTime(2020, 1, 1);
-            }
-            else
-            {
-                fromDate = currentDate.AddMonths(-monthsBack);
-            }
+            var fromDate = ComputeFromDate(monthsBack);
 
             // Use pre-calculated margin data from CatalogAggregate.Margins
             var marginHistory = catalogItem.Margins;
@@ -243,20 +230,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
 
     private List<MarginHistoryDto> GetMarginHistoryFromMargins(CatalogAggregate catalogItem, int monthsBack)
     {
-        var currentDate = _timeProvider.GetUtcNow().Date;
-
-        // Calculate date range
-        DateTime fromDate;
-
-        if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
-        {
-            // For "all history", start from a very early date
-            fromDate = new DateTime(2020, 1, 1);
-        }
-        else
-        {
-            fromDate = currentDate.AddMonths(-monthsBack);
-        }
+        var fromDate = ComputeFromDate(monthsBack);
 
         // Use pre-calculated margin data from CatalogAggregate.Margins
         var marginHistory = catalogItem.Margins;
@@ -298,5 +272,21 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                     CostTotal = m.Value.M2.CostTotal
                 }
             }).ToList();
+    }
+
+    /// <summary>
+    /// Encodes the "all history vs. N months back" convention used by the four
+    /// history-projection helpers in this handler. NOT a general "now()" accessor —
+    /// it deliberately collapses the two branches governed by
+    /// <see cref="CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD"/>.
+    /// </summary>
+    private DateTime ComputeFromDate(int monthsBack)
+    {
+        if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
+        {
+            return CatalogConstants.HISTORY_FLOOR_DATE;
+        }
+
+        return _timeProvider.GetUtcNow().Date.AddMonths(-monthsBack);
     }
 }
