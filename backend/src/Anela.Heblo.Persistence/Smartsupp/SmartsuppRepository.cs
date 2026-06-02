@@ -274,5 +274,7 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
         await _db.SaveChangesAsync(cancellationToken);
 
+    // Clears all staged EF changes before a retry. Safe because HandleAsync is idempotent —
+    // all repository calls re-read from the DB before staging new state.
     public void DiscardChanges() => _db.ChangeTracker.Clear();
 }

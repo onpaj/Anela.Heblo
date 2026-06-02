@@ -52,7 +52,7 @@ public class ProcessWebhookEventHandlerTests
             "foreign key violation",
             "ERROR",
             "ERROR",
-            "23503"));
+            PostgresErrorCodes.ForeignKeyViolation));
 
     [Fact]
     public async Task Handle_KnownEvent_InvokesMatchingReaction_AndSavesChanges()

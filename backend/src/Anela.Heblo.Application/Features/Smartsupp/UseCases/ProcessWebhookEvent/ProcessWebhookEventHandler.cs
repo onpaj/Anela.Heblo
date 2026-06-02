@@ -64,8 +64,8 @@ public class ProcessWebhookEventHandler : IRequestHandler<ProcessWebhookEventReq
             catch (DbUpdateException ex) when (IsUniqueViolation(ex) && attempt == 0)
             {
                 _logger.LogWarning(ex,
-                    "smartsupp webhook unique violation on {Event}, retrying once",
-                    ctx.EventName);
+                    "smartsupp webhook unique violation on {Event} for account {AccountId}, retrying once",
+                    ctx.EventName, ctx.AccountId);
                 _repository.DiscardChanges();
             }
             catch (Exception ex)
