@@ -70,8 +70,7 @@ public sealed class CatalogRepository : ICatalogRepository
 
     public async Task<IEnumerable<CatalogAggregate>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var data = await GetCatalogDataAsync(cancellationToken);
-        return data.AsEnumerable();
+        return await GetCatalogDataAsync(cancellationToken);
     }
 
     public Task<IEnumerable<CatalogAggregate>> FindAsync(Expression<Func<CatalogAggregate, bool>> predicate, CancellationToken cancellationToken = default)
