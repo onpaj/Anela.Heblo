@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Domain.Features.Configuration;
+namespace Anela.Heblo.Application.Features.FileStorage;
 
 /// <summary>
 /// Configuration options for product export functionality
