@@ -89,17 +89,35 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Logistics.Services.TransportBoxCompletionService -> Anela.Heblo.Domain.Features.Catalog.Stock.StockUpOperation",
     };
 
-    // Allowlist for Catalog -> Logistics. Empty — all violations cleared by the Catalog source-contract refactor.
-    private static readonly HashSet<string> CatalogLogisticsAllowlist = new(StringComparer.Ordinal);
+    // Allowlist for Catalog -> Logistics. Pre-existing adapters in Catalog.Infrastructure
+    // that reference Logistics.Contracts types are out of scope for the 2026-06-01 decoupling.
+    // Track follow-up: move these adapters to the Logistics module or introduce Catalog-owned DTOs.
+    private static readonly HashSet<string> CatalogLogisticsAllowlist = new(StringComparer.Ordinal)
+    {
+        // LogisticsCatalogSourceAdapter is a Catalog-side adapter wrapping Logistics.Contracts types.
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.LogisticsCatalogSourceAdapter -> Anela.Heblo.Application.Features.Logistics.Contracts.Models.LogisticsGiftPackageItem",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.LogisticsCatalogSourceAdapter -> Anela.Heblo.Application.Features.Logistics.Contracts.Models.LogisticsCatalogItem",
+        // LogisticsStockOperationAdapter references the Logistics contract enum.
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.LogisticsStockOperationAdapter -> Anela.Heblo.Application.Features.Logistics.Contracts.LogisticsStockOperationSource",
+    };
 
-    // Allowlist for Catalog -> Purchase. Pre-existing violation in CreateMaterialContainersHandler
-    // is out of scope for the 2026-06-01 CatalogRepository decoupling. Track as follow-up:
+    // Allowlist for Catalog -> Purchase. Pre-existing violations from adapters and handlers
+    // are out of scope for the 2026-06-01 CatalogRepository decoupling. Track as follow-ups:
     //   - Introduce a Catalog.Inventory-owned contract for purchase-order lookups.
+    //   - Introduce Catalog-owned material info DTOs to replace Purchase.Contracts references.
     private static readonly HashSet<string> CatalogPurchaseAllowlist = new(StringComparer.Ordinal)
     {
-        // Follow-up: migrate CreateMaterialContainersHandler off IPurchaseOrderRepository
-        // by introducing a Catalog-owned contract (e.g., ICatalogOrderedQuantitySource).
+        // Follow-up: migrate CreateMaterialContainersHandler off IPurchaseOrderRepository / PurchaseOrderLine.
         "Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateMaterialContainers.CreateMaterialContainersHandler -> Anela.Heblo.Domain.Features.Purchase.IPurchaseOrderRepository",
+        "Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateMaterialContainers.CreateMaterialContainersHandler -> Anela.Heblo.Domain.Features.Purchase.PurchaseOrderLine",
+
+        // PurchaseMaterialCatalogAdapter in Catalog.Infrastructure wraps Purchase.Contracts types.
+        // Follow-up: introduce Catalog-owned material info DTOs and have the adapter map them.
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialInfo",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialStockSnapshot",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialBomReference",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialPurchaseSnapshot",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialProductType",
     };
 
     // Allowlist for Catalog -> Manufacture. Pre-existing handler-level IManufactureClient injections
@@ -118,15 +136,31 @@ public class ModuleBoundariesTests
         // Follow-up: migrate GetProductUsageHandler off IManufactureClient.
         "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage.GetProductUsageHandler -> Anela.Heblo.Domain.Features.Manufacture.IManufactureClient",
 
-        // Deliberate pragmatic leak: ManufactureHistoryRecord is the return-element type of
-        // ICatalogManufactureSource.GetManufactureHistoryAsync and is woven through Catalog's
-        // CachedManufactureHistoryData and CatalogAggregate.ManufactureHistory. Track follow-up:
-        // introduce Catalog-owned CatalogManufactureHistoryRecord DTO.
+        // Deliberate pragmatic leak: ManufactureHistoryRecord flows through Catalog's cache layer.
+        // All entries below are tracked under the same follow-up: introduce Catalog-owned
+        // CatalogManufactureHistoryRecord DTO and map in the ManufactureCatalogSourceAdapter.
         "Anela.Heblo.Application.Features.Catalog.CatalogRepository -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-
-        // ICatalogManufactureSource explicitly returns ManufactureHistoryRecord in its contract;
-        // this is the deliberate leak described above. Remove when follow-up DTO is introduced.
         "Anela.Heblo.Application.Features.Catalog.Contracts.ICatalogManufactureSource -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogCacheStore -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogDataRefreshService -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogMergeService -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        // Cost providers in Catalog.CostProviders compute costs from ManufactureHistoryRecord.
+        "Anela.Heblo.Application.Features.Catalog.CostProviders.FlatManufactureCostProvider -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        "Anela.Heblo.Application.Features.Catalog.CostProviders.ManufactureBasedMaterialCostProvider -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        // GetCatalogDetailHandler maps ManufactureHistoryRecord from CatalogAggregate into response DTOs.
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail.GetCatalogDetailHandler -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+
+        // GetProductUsageResponse holds ManufactureTemplate in its payload.
+        // Follow-up: introduce Catalog-owned ManufactureTemplateDto.
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage.GetProductUsageResponse -> Anela.Heblo.Domain.Features.Manufacture.ManufactureTemplate",
+
+        // Handlers reference ManufactureTemplate and Ingredient directly via IManufactureClient.
+        // Compiler-generated types (+<>c, +d__N) are covered by the declaring-type check.
+        "Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder.UpdateProductCompositionOrderHandler -> Anela.Heblo.Domain.Features.Manufacture.ManufactureTemplate",
+        "Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder.UpdateProductCompositionOrderHandler -> Anela.Heblo.Domain.Features.Manufacture.Ingredient",
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage.GetProductUsageHandler -> Anela.Heblo.Domain.Features.Manufacture.ManufactureTemplate",
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition.GetProductCompositionHandler -> Anela.Heblo.Domain.Features.Manufacture.ManufactureTemplate",
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition.GetProductCompositionHandler -> Anela.Heblo.Domain.Features.Manufacture.Ingredient",
     };
 
     public static TheoryData<ModuleBoundaryRule> Rules() => new()

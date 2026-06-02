@@ -12,6 +12,7 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
@@ -473,11 +474,14 @@ public class CatalogRepositoryTests
 
         // Setup transport source to return the quarantined product
         _transportSourceMock
-            .Setup(x => x.GetProductsInTransportAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetProductsInReserveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int>());
+        _transportSourceMock
+            .Setup(x => x.GetProductsInQuarantineAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { { "TEST001", 15 } });
 
         // Act
-        await _repository.RefreshTransportData(CancellationToken.None);
+        await _repository.RefreshReserveData(CancellationToken.None);
         var products = await _repository.GetAllAsync(CancellationToken.None);
 
         // Assert
@@ -494,7 +498,7 @@ public class CatalogRepositoryTests
         _repository.QuarantineLoadDate.Should().BeNull(); // before any refresh
 
         // Act
-        await _repository.RefreshTransportData(CancellationToken.None);
+        await _repository.RefreshReserveData(CancellationToken.None);
 
         // Assert
         _repository.QuarantineLoadDate.Should().NotBeNull();
@@ -517,6 +521,10 @@ public class CatalogRepositoryTests
         _stockTakingRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<StockTakingRecord>());
         _transportSourceMock.Setup(x => x.GetProductsInTransportAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int>());
+        _transportSourceMock.Setup(x => x.GetProductsInReserveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int>());
+        _transportSourceMock.Setup(x => x.GetProductsInQuarantineAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int>());
     }
 

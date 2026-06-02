@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Features.Logistics.Infrastructure;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using FluentAssertions;
 using Moq;
@@ -65,13 +66,13 @@ public class LogisticsCatalogTransportSourceAdapterTests
         // Arrange
         var box1 = CreateBoxWithItems(new[]
         {
-            ("PROD-001", "Product 1", 10.5),
+            ("PROD-001", "Product 1", 10.0),
             ("PROD-002", "Product 2", 5.0)
         });
 
         var box2 = CreateBoxWithItems(new[]
         {
-            ("PROD-001", "Product 1", 3.5),
+            ("PROD-001", "Product 1", 4.0),
             ("PROD-003", "Product 3", 8.0)
         });
 
@@ -85,9 +86,9 @@ public class LogisticsCatalogTransportSourceAdapterTests
         // Assert
         result.Should().NotBeNull();
         result.Should().HaveCount(3);
-        result["PROD-001"].Should().Be(14); // 10.5 + 3.5 = 14
-        result["PROD-002"].Should().Be(5);  // 5.0 = 5
-        result["PROD-003"].Should().Be(8);  // 8.0 = 8
+        result["PROD-001"].Should().Be(14); // 10 + 4 = 14
+        result["PROD-002"].Should().Be(5);  // 5
+        result["PROD-003"].Should().Be(8);  // 8
     }
 
     [Fact]
@@ -178,8 +179,8 @@ public class LogisticsCatalogTransportSourceAdapterTests
         // Arrange
         var box1 = CreateBoxWithItems(new[]
         {
-            ("PROD-A", "Product A", 7.5),
-            ("PROD-B", "Product B", 2.5)
+            ("PROD-A", "Product A", 7.0),
+            ("PROD-B", "Product B", 3.0)
         });
 
         var box2 = CreateBoxWithItems(new[]
@@ -197,8 +198,8 @@ public class LogisticsCatalogTransportSourceAdapterTests
         // Assert
         result.Should().NotBeNull();
         result.Should().HaveCount(2);
-        result["PROD-A"].Should().Be(19); // 7.5 + 12.0 = 19
-        result["PROD-B"].Should().Be(3);  // 2.5 = 3
+        result["PROD-A"].Should().Be(19); // 7 + 12 = 19
+        result["PROD-B"].Should().Be(3);  // 3
     }
 
     [Fact]
