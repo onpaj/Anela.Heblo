@@ -5,7 +5,6 @@ using Anela.Heblo.Domain.Features.Invoices;
 using FluentAssertions;
 using Moq;
 using Xunit;
-using IIssuedInvoiceRepository = Anela.Heblo.Application.Features.Invoices.Contracts.IIssuedInvoiceRepository;
 
 namespace Anela.Heblo.Tests.Features.Invoices.Infrastructure;
 

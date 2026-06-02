@@ -11,7 +11,7 @@ namespace Anela.Heblo.Application.Features.Invoices.Infrastructure;
 /// <summary>
 /// Repository implementation for IssuedInvoice entity
 /// </summary>
-public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, Contracts.IIssuedInvoiceRepository
+public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, IIssuedInvoiceRepository
 {
     private readonly ILogger<IssuedInvoiceRepository> _logger;
 
@@ -128,7 +128,7 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, Co
         await base.UpdateAsync(entity, cancellationToken);
     }
 
-    public async Task<Application.Shared.PaginatedResult<IssuedInvoice>> GetPaginatedAsync(Contracts.IssuedInvoiceFilters filters, CancellationToken cancellationToken = default)
+    public async Task<PaginatedResult<IssuedInvoice>> GetPaginatedAsync(IssuedInvoiceFilters filters, CancellationToken cancellationToken = default)
     {
         var query = DbSet.AsQueryable();
 
@@ -190,7 +190,7 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, Co
         _logger.LogInformation("Retrieved {Count} issued invoices (page {PageNumber}/{TotalPages}, total: {TotalCount})",
             items.Count, filters.PageNumber, totalPages, totalCount);
 
-        return new Application.Shared.PaginatedResult<IssuedInvoice>
+        return new PaginatedResult<IssuedInvoice>
         {
             Items = items,
             TotalCount = totalCount,

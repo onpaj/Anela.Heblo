@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using IssuedInvoiceFilters = Anela.Heblo.Application.Features.Invoices.Contracts.IssuedInvoiceFilters;
 
 namespace Anela.Heblo.Tests.Features.Invoices;
 
