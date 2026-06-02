@@ -7,17 +7,14 @@ namespace Anela.Heblo.Tests.Domain.Marketing
 {
     public class MarketingActionAssociateWithProductTests
     {
-        private static MarketingAction CreateAction()
-        {
-            return new MarketingAction
-            {
-                Title = "Test Action",
-                StartDate = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedAt = DateTime.UtcNow,
-                CreatedByUserId = "user-1",
-            };
-        }
+        private static MarketingAction CreateAction() =>
+            new MarketingActionTestBuilder()
+                .WithTitle("Test Action")
+                .WithStartDate(DateTime.UtcNow)
+                .WithCreatedAt(DateTime.UtcNow)
+                .WithModifiedAt(DateTime.UtcNow)
+                .WithCreatedBy("user-1")
+                .Build();
 
         [Fact]
         public void AssociateWithProduct_DeduplicatesAcrossCase_WhenCalledTwiceWithMixedCasing()
