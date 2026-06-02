@@ -1,143 +1,197 @@
-# Specification: Decouple Article Module from KnowledgeBase Module via Consumer-Owned Contract
+# Specification: Decouple Article Module from KnowledgeBase Internals via Consumer-Owned Contract
 
 ## Summary
-The Article module's `GatherContextStep` currently injects `IOneDriveService` directly from the `KnowledgeBase` namespace, violating the codebase's documented cross-module communication pattern. This specification replaces that direct dependency with a consumer-owned contract (`IArticleStyleGuideSource`) defined in the Article module and implemented by a KnowledgeBase adapter, mirroring the existing `ILeafletKnowledgeSource` pattern. An architecture test will lock the invariant going forward.
+The `GatherContextStep` in the Article module currently depends on `SearchDocumentsRequest`, an internal MediatR request type owned by the KnowledgeBase module's `UseCases/` folder. This violates the module boundary rule that cross-module communication must go through `Contracts/`. We will introduce a consumer-owned `IArticleKnowledgeSource` contract in the Article module, implemented by a KnowledgeBase adapter, mirroring the existing `IArticleStyleGuideSource` pattern.
 
 ## Background
-`docs/architecture/development_guidelines.md` mandates that all inter-module communication go through consumer-owned `Contracts/` interfaces. Today, `backend/src/Anela.Heblo.Application/Features/Article/.../GatherContextStep.cs` imports `Anela.Heblo.Application.Features.KnowledgeBase.Services` and injects `IOneDriveService` directly. This:
+`development_guidelines.md` mandates: *"Communication between modules exclusively through `contracts/`."* The Article module already follows this pattern correctly for style-guide access — `IArticleStyleGuideSource` lives in `Article/Contracts/` and is implemented by a KnowledgeBase adapter. However, the knowledge-base search path in `GatherContextStep` bypasses the contract layer entirely and sends a KnowledgeBase-internal MediatR request directly:
 
-- Creates a compile-time dependency from Article on KnowledgeBase internals.
-- Bypasses the module-boundary invariant enforced elsewhere by `ModuleBoundariesTests.cs`.
-- Breaks Article silently if KnowledgeBase reorganises, renames, or relocates `IOneDriveService`.
-- Blocks future extraction of either module into a separate deployable without refactoring.
+```csharp
+// backend/src/Anela.Heblo.Application/Features/Article/UseCases/Generate/Pipeline/GatherContextStep.cs:2
+using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+...
+var response = await _mediator.Send(
+    new SearchDocumentsRequest { Query = query, TopK = _options.KnowledgeBaseTopK }, ct);
+```
 
-A precedent fix already exists in the codebase: `ILeafletKnowledgeSource` was introduced specifically for this scenario. This spec applies the same pattern to the Article → KnowledgeBase relationship for style guide retrieval.
-
-The only consumption point identified is the style guide retrieval performed by `GatherContextStep`. The new contract is scoped narrowly to that use case rather than re-exposing the full `IOneDriveService` surface.
+This creates hard compile-time coupling: any rename, restructuring, or split of `SearchDocumentsRequest`/`SearchDocumentsResponse` inside KnowledgeBase will break Article (and Smartsupp, which uses the same shortcut). The existing `ModuleBoundariesTests` namespace allowlist permits the coupling today but does not enforce contract-only access, so the violation slipped in and has already set a precedent across two modules. This spec addresses the Article-side cleanup; the Smartsupp equivalent is explicitly deferred as a follow-up.
 
 ## Functional Requirements
 
-### FR-1: Define consumer-owned contract in Article module
-Introduce `IArticleStyleGuideSource` in `backend/src/Anela.Heblo.Application/Features/Article/Contracts/IArticleStyleGuideSource.cs`. The interface exposes only what `GatherContextStep` needs to retrieve the article style guide content.
+### FR-1: Define `IArticleKnowledgeSource` contract in Article module
+Introduce a new contract owned by the Article module that exposes knowledge-base search capability in Article-domain terms.
 
-**Signature:**
+**Location:** `backend/src/Anela.Heblo.Application/Features/Article/Contracts/IArticleKnowledgeSource.cs`
+
+**Shape:**
 ```csharp
-namespace Anela.Heblo.Application.Features.Article.Contracts;
-
-public interface IArticleStyleGuideSource
+public interface IArticleKnowledgeSource
 {
-    Task<string> DownloadStyleGuideTextAsync(
-        string driveId,
-        string path,
-        CancellationToken cancellationToken);
+    Task<IReadOnlyList<ArticleKnowledgeChunk>> SearchAsync(
+        string query, int topK, CancellationToken ct);
+}
+
+public class ArticleKnowledgeChunk
+{
+    public Guid ChunkId { get; set; }
+    public string SourceFilename { get; set; } = "";
+    public string Content { get; set; } = "";
+    public double Score { get; set; }
 }
 ```
 
 **Acceptance criteria:**
-- File exists at `backend/src/Anela.Heblo.Application/Features/Article/Contracts/IArticleStyleGuideSource.cs`.
-- Namespace is `Anela.Heblo.Application.Features.Article.Contracts`.
-- Interface contains no references to any `KnowledgeBase` namespace, type, or DTO.
-- Method signature matches the behaviour previously obtained via `IOneDriveService.DownloadFileTextByPathAsync(driveId, path, ct)`.
-- XML doc comment on the interface describes its purpose ("Retrieves the Article module's style guide text from an external source").
+- File exists at the specified path, under the `Anela.Heblo.Application.Features.Article.Contracts` namespace.
+- `ArticleKnowledgeChunk` is a class (not a record), consistent with project DTO conventions.
+- The interface and DTO contain no references to KnowledgeBase types (no `SearchDocumentsRequest`, `SearchDocumentsResponse`, or chunk types from that module).
+- The contract sits alongside `IArticleStyleGuideSource` in the same `Contracts/` folder.
 
-### FR-2: KnowledgeBase implements the contract via adapter
-Add `OneDriveArticleStyleGuideSource` inside the KnowledgeBase module's `Infrastructure/` folder. It implements `IArticleStyleGuideSource` by delegating to the existing `IOneDriveService`.
+### FR-2: KnowledgeBase provides adapter implementation
+Implement `IArticleKnowledgeSource` inside the KnowledgeBase module by delegating to the existing `SearchDocumentsRequest` MediatR handler.
 
-**Acceptance criteria:**
-- File lives under `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Infrastructure/OneDriveArticleStyleGuideSource.cs` (or `Adapters/` if that subfolder is the established convention — match the location used by `Leaflet` adapter).
-- Class is `internal` if all existing adapters in KnowledgeBase are internal; otherwise match local convention.
-- Class depends on `IOneDriveService` via constructor injection; no `IOneDriveService` reference exists in the Article module after the refactor.
-- `DownloadStyleGuideTextAsync` forwards arguments directly to `IOneDriveService.DownloadFileTextByPathAsync` and returns its result without transformation.
-- Cancellation token is propagated unchanged.
+**Location:** `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Infrastructure/KnowledgeBaseArticleSourceAdapter.cs`
 
-### FR-3: Register the contract binding in KnowledgeBase module DI
-The KnowledgeBase module's composition root (`KnowledgeBaseModule.cs` or equivalent `IServiceCollection` extension) registers `IArticleStyleGuideSource` → `OneDriveArticleStyleGuideSource`.
+**Shape:**
+```csharp
+public sealed class KnowledgeBaseArticleSourceAdapter : IArticleKnowledgeSource
+{
+    private readonly IMediator _mediator;
+    public KnowledgeBaseArticleSourceAdapter(IMediator mediator) => _mediator = mediator;
 
-**Acceptance criteria:**
-- Registration uses the same lifetime (`Scoped`/`Singleton`/`Transient`) as `ILeafletKnowledgeSource` — match the precedent.
-- Article module's DI registration contains no reference to `OneDriveArticleStyleGuideSource` or any KnowledgeBase type.
-- Application starts successfully and resolves `IArticleStyleGuideSource` when `GatherContextStep` is constructed.
-
-### FR-4: Refactor `GatherContextStep` to use the new contract
-`GatherContextStep` no longer imports any `KnowledgeBase` namespace. It injects `IArticleStyleGuideSource` in place of `IOneDriveService` and calls `DownloadStyleGuideTextAsync` where it previously called `IOneDriveService.DownloadFileTextByPathAsync`.
-
-**Acceptance criteria:**
-- `GatherContextStep.cs` contains no `using Anela.Heblo.Application.Features.KnowledgeBase...` line.
-- The private field is renamed from `_oneDrive` to a name consistent with the new contract (e.g., `_styleGuideSource`).
-- All existing call sites within `GatherContextStep` route through `IArticleStyleGuideSource` — no other `IOneDriveService` member is used by Article code.
-- Behaviour observable from the step's output is unchanged (same text returned for same `driveId` + `path`).
-- Existing unit/integration tests for `GatherContextStep` pass after the refactor; mocks/fakes are updated to `IArticleStyleGuideSource`.
-
-### FR-5: Add module-boundary architecture test
-Extend `ModuleBoundariesTests.cs` (or add a sibling test class following the established pattern) with a reflection-based assertion that types in the Article module's assembly do not reference any `Anela.Heblo.Application.Features.KnowledgeBase` namespace.
+    public async Task<IReadOnlyList<ArticleKnowledgeChunk>> SearchAsync(
+        string query, int topK, CancellationToken ct)
+    {
+        var response = await _mediator.Send(
+            new SearchDocumentsRequest { Query = query, TopK = topK }, ct);
+        return response.Chunks.Select(c => new ArticleKnowledgeChunk
+        {
+            ChunkId = c.ChunkId,
+            SourceFilename = c.SourceFilename,
+            Content = c.Content,
+            Score = c.Score,
+        }).ToArray();
+    }
+}
+```
 
 **Acceptance criteria:**
-- New test method named in line with existing conventions (e.g., `Article_Module_Should_Not_Reference_KnowledgeBase_Namespaces`).
-- Test scans all types within the Article namespace and inspects field types, method parameters, return types, base types, generic arguments, and attribute usages — mirror the scope of the existing `Leaflet`/`KnowledgeBase` test.
-- Test fails if a future change reintroduces a direct `KnowledgeBase` dependency in Article.
-- Test passes after the refactor in this spec is applied.
-- Test runs as part of the standard `dotnet test` suite (no new test project required if an existing architecture-test project already exists).
+- Adapter lives in the KnowledgeBase module's `Infrastructure/` folder (mirroring how `IArticleStyleGuideSource`'s KB-side adapter is organized).
+- Adapter is `sealed` and constructor-injects `IMediator`.
+- Adapter projects every field present on `SearchDocumentsResponse.Chunks` items into `ArticleKnowledgeChunk` (chunk id, source filename, content, score). Field-by-field projection is explicit; no AutoMapper.
+- Adapter returns `IReadOnlyList<ArticleKnowledgeChunk>` and never `null` (returns an empty list when the underlying response has none).
+- Cancellation token is propagated to `_mediator.Send`.
 
-### FR-6: No regression in style guide retrieval
-The end-to-end behaviour of article context gathering (including the style guide text content, error propagation, and cancellation handling) is identical before and after the refactor.
+### FR-3: Register the adapter in `KnowledgeBaseModule`
+The KnowledgeBase module registers the binding so that any consumer of `IArticleKnowledgeSource` resolves to the adapter.
+
+**Location:** `KnowledgeBaseModule.cs` (the module's DI registration class).
 
 **Acceptance criteria:**
-- Any existing automated test exercising `GatherContextStep` and style guide retrieval continues to pass with no behavioural changes expected.
-- Exceptions thrown by the underlying `IOneDriveService` propagate through the adapter unchanged (no wrapping, no swallowing).
-- Cancellation behaviour is preserved — cancelling the token surfaces an `OperationCanceledException` to the caller as it did previously.
+- `services.AddScoped<IArticleKnowledgeSource, KnowledgeBaseArticleSourceAdapter>();` is added alongside the existing `IArticleStyleGuideSource` registration.
+- Scope is `Scoped`, matching the existing pattern for analogous adapters.
+- No registration exists in the Article module for this interface (Article owns the contract; KnowledgeBase owns the binding).
+
+### FR-4: `GatherContextStep` consumes `IArticleKnowledgeSource`
+Replace the direct MediatR + `SearchDocumentsRequest` call in `GatherContextStep` with the new contract.
+
+**Location:** `backend/src/Anela.Heblo.Application/Features/Article/UseCases/Generate/Pipeline/GatherContextStep.cs`
+
+**Acceptance criteria:**
+- The `using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;` import is removed.
+- A constructor-injected `IArticleKnowledgeSource _knowledgeSource` field is added.
+- `GatherKnowledgeBaseSnippetsAsync` (or the equivalent KB-fetch branch) calls `_knowledgeSource.SearchAsync(query, _options.KnowledgeBaseTopK, ct)` and maps `ArticleKnowledgeChunk` items into `ContextSnippet` instances using the same field mapping currently applied to `SearchDocumentsResponse.Chunks`.
+- The `IMediator` dependency is retained only if it is still used by other branches of `GatherContextStep`; if the KB path was its sole consumer, `IMediator` is removed from the constructor.
+- Behavior is unchanged: same query, same `TopK`, same resulting `ContextSnippet` shape, same ordering, same cancellation semantics.
+
+### FR-5: Update / extend tests for `GatherContextStep`
+Existing unit tests for `GatherContextStep` must continue to pass with the new dependency, and a new test must verify the contract-mediated path.
+
+**Acceptance criteria:**
+- All existing `GatherContextStep` unit tests pass after switching the mock from `IMediator` (KB branch) to `IArticleKnowledgeSource`.
+- At least one unit test exercises the KB branch by stubbing `IArticleKnowledgeSource.SearchAsync` and asserting that returned chunks become `ContextSnippet` entries with the expected field values.
+- A unit test (new or existing) for `KnowledgeBaseArticleSourceAdapter` asserts that it dispatches `SearchDocumentsRequest` with the given `query`/`topK` and maps `SearchDocumentsResponse.Chunks` field-for-field into `ArticleKnowledgeChunk`.
+
+### FR-6: Architecture test enforces contract-only cross-module access for this path
+Strengthen `ModuleBoundariesTests` so a future regression (e.g., re-introducing `using ...KnowledgeBase.UseCases.SearchDocuments`) fails at build/test time.
+
+**Acceptance criteria:**
+- A test asserts that no type under `Anela.Heblo.Application.Features.Article` references any type whose namespace matches `Anela.Heblo.Application.Features.KnowledgeBase.UseCases.*`.
+- The test exempts (or is scoped to exclude) the KnowledgeBase-side adapter itself, since the adapter legitimately bridges the two.
+- The test fails with a clear message naming the offending caller and the forbidden namespace.
+
+### FR-7: No behavior change for end users or downstream pipeline steps
+The Article generation pipeline must produce the same `ContextSnippet` set for any given input it did before the refactor.
+
+**Acceptance criteria:**
+- Snapshot/golden tests covering the article-generation pipeline (if any exist) continue to pass without snapshot updates.
+- Manual smoke check: invoking the Article generation pipeline against a fixture article that triggers a KB lookup yields the same number of snippets, same source filenames, and same content text as before.
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
-- The adapter introduces a single virtual method call; no measurable latency impact on `GatherContextStep`.
-- No additional allocations beyond the adapter instance itself (lifetime determined by FR-3).
+- The adapter adds one projection (`Select(...).ToArray()`) over the response chunks. Acceptable overhead given typical `TopK ≤ 20`.
+- No additional network or database calls are introduced.
+- No regression in `GatherContextStep` end-to-end latency beyond the projection cost above.
 
-### NFR-2: Security
-- No change to authentication, authorisation, or data sensitivity. The adapter performs no transformation; it forwards arguments verbatim to the existing `IOneDriveService`.
-- No new secrets, configuration, or network surface introduced.
+### NFR-2: Architecture compliance
+- After this change, the Article module contains zero `using` statements referencing `Anela.Heblo.Application.Features.KnowledgeBase.UseCases.*`.
+- The new contract follows the same conventions as `IArticleStyleGuideSource` (location, naming, scope, sealed adapter).
 
-### NFR-3: Maintainability
-- Article module is fully compilable without referencing any `KnowledgeBase` symbol after the change.
-- The architecture test (FR-5) acts as the long-term guarantor — any future regression is caught at CI time.
+### NFR-3: Backward compatibility
+- `SearchDocumentsRequest`, `SearchDocumentsResponse`, and the existing `SearchDocuments` MediatR handler remain unchanged. Other consumers (e.g., direct API callers, Smartsupp) are not touched by this spec.
 
-### NFR-4: Backwards compatibility
-- `IOneDriveService` remains in place and unchanged. Other consumers (e.g., the Leaflet flow) continue to use it directly as before. This refactor is local to the Article ↔ KnowledgeBase boundary.
+### NFR-4: Validation
+- `dotnet build` and `dotnet format` succeed.
+- All BE unit + integration tests pass.
+- `ModuleBoundariesTests` pass, including the new assertion in FR-6.
 
 ## Data Model
-No data-model changes. Existing `driveId` / `path` parameters carry the same semantics as today and are passed through unchanged.
+
+**New DTO:** `ArticleKnowledgeChunk` (class, not record — per project DTO rules)
+
+| Field            | Type     | Source                                                  |
+|------------------|----------|---------------------------------------------------------|
+| `ChunkId`        | `Guid`   | `SearchDocumentsResponse.Chunks[i].ChunkId`             |
+| `SourceFilename` | `string` | `SearchDocumentsResponse.Chunks[i].SourceFilename`      |
+| `Content`        | `string` | `SearchDocumentsResponse.Chunks[i].Content`             |
+| `Score`          | `double` | `SearchDocumentsResponse.Chunks[i].Score`               |
+
+`SearchDocumentsRequest` / `SearchDocumentsResponse` and their existing handler are unchanged.
 
 ## API / Interface Design
 
-### New contract (consumer-owned)
-- Location: `Anela.Heblo.Application/Features/Article/Contracts/IArticleStyleGuideSource.cs`
-- Namespace: `Anela.Heblo.Application.Features.Article.Contracts`
-- Single method: `Task<string> DownloadStyleGuideTextAsync(string driveId, string path, CancellationToken cancellationToken)`
+**New contract:**
+```csharp
+namespace Anela.Heblo.Application.Features.Article.Contracts;
 
-### New adapter (provider-owned)
-- Location: `Anela.Heblo.Application/Features/KnowledgeBase/Infrastructure/OneDriveArticleStyleGuideSource.cs` (match local convention if it differs)
-- Implements: `IArticleStyleGuideSource`
-- Depends on: `IOneDriveService` (constructor injection)
+public interface IArticleKnowledgeSource
+{
+    Task<IReadOnlyList<ArticleKnowledgeChunk>> SearchAsync(
+        string query, int topK, CancellationToken ct);
+}
+```
 
-### DI registration
-- Module composition root within KnowledgeBase wires the contract → adapter binding using the same lifetime as `ILeafletKnowledgeSource`.
+**Adapter (KnowledgeBase side):**
+- `KnowledgeBaseArticleSourceAdapter : IArticleKnowledgeSource`, dispatches `SearchDocumentsRequest` via `IMediator`.
 
-### No external API changes
-- No HTTP endpoints, MediatR handlers, MVC controllers, or OpenAPI surfaces change.
-- No frontend changes; OpenAPI generation is unaffected.
+**Caller change (Article side):**
+- `GatherContextStep` constructor swaps direct `IMediator`-for-KB usage for `IArticleKnowledgeSource _knowledgeSource`.
+
+No HTTP endpoints, UI flows, or external API surfaces are added or modified.
 
 ## Dependencies
-- Existing `IOneDriveService` in the KnowledgeBase module (unchanged).
-- Existing reflection-based architecture test infrastructure (e.g., `ModuleBoundariesTests.cs` and its supporting helpers).
-- No new NuGet packages.
-- No database migrations.
+- **Existing `SearchDocuments` use case** in the KnowledgeBase module (request, response, handler) — used unchanged by the adapter.
+- **MediatR** — used by the adapter only; no longer used by `GatherContextStep` for the KB path.
+- **Existing DI infrastructure** in `KnowledgeBaseModule` (mirrors `IArticleStyleGuideSource` registration).
+- **Existing `IArticleStyleGuideSource` pattern** in `Article/Contracts/` — used as the reference template.
 
 ## Out of Scope
-- Refactoring or splitting `IOneDriveService` itself.
-- Generalising the contract to support arbitrary file downloads — the interface is intentionally scoped to the Article style guide use case.
-- Auditing other Article-module files for additional cross-module dependencies beyond `GatherContextStep`. Only the documented violation is addressed here. (If the implementer encounters another Article→KnowledgeBase dependency during the refactor, surface it for a follow-up task — do not silently expand scope.)
-- Moving the adapter into a hypothetical shared infrastructure project.
-- Changes to the frontend or to any HTTP/OpenAPI surface.
-- Documentation updates beyond inline XML doc comments.
+- **Smartsupp/`GenerateDraftReplyHandler` cleanup.** The same coupling exists at `Smartsupp/UseCases/GenerateDraftReply/GenerateDraftReplyHandler.cs:1` and should be fixed with the same contract-owned-by-consumer pattern, but it is explicitly deferred to a follow-up task.
+- **Restructuring or renaming `SearchDocumentsRequest` / `SearchDocumentsResponse`.** They remain as-is; only the cross-module coupling is removed.
+- **Replacing MediatR with a different dispatch mechanism** inside the adapter.
+- **Adding caching, retries, or telemetry** to the new code path.
+- **Frontend changes.** This refactor is BE-only.
+- **Database / migration changes.** None required.
 
 ## Open Questions
 None.

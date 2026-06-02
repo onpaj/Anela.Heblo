@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Anela.Heblo.Application.Features.CarrierCooling.UseCases.GetCarrierCoolingMatrix;
 using Anela.Heblo.Application.Features.CarrierCooling.UseCases.SetCarrierCooling;
 using MediatR;
@@ -35,13 +34,5 @@ public class CarrierCoolingController : BaseApiController
         request.ModifiedBy = GetCurrentUserId();
         var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
-    }
-
-    private string GetCurrentUserId()
-    {
-        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? User.FindFirst("sub")?.Value
-            ?? User.FindFirst("oid")?.Value
-            ?? throw new InvalidOperationException("Authenticated user has no identity claim.");
     }
 }

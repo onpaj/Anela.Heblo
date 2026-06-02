@@ -85,6 +85,11 @@ public static class ApplicationBuilderExtensions
             app.UseMiddleware<E2ETestAuthenticationMiddleware>();
         }
 
+        // Global exception handler — must come before UseRouting so it can catch
+        // exceptions thrown by any later middleware (auth, endpoints, etc.).
+        // Handler chain is composed via AddExceptionHandler<T>() in DI.
+        app.UseExceptionHandler();
+
         // Routing must be explicitly configured before authentication/authorization
         app.UseRouting();
 

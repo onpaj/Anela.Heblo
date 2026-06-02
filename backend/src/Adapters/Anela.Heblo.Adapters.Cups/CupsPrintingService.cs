@@ -22,7 +22,7 @@ public class CupsPrintingService : ICupsPrintingService
         _logger = logger;
     }
 
-    public async Task PrintAsync(string filePath, string? printerName = null, CancellationToken cancellationToken = default)
+    public async Task PrintAsync(string filePath, string? printerName = null, string documentFormat = "application/pdf", CancellationToken cancellationToken = default)
     {
         var opts = _options.Value;
 
@@ -48,7 +48,7 @@ public class CupsPrintingService : ICupsPrintingService
             OperationAttributes = new PrintJobOperationAttributes
             {
                 PrinterUri = new Uri($"{opts.ServerUrl.TrimEnd('/')}/printers/{resolvedPrinter}"),
-                DocumentFormat = "application/pdf"
+                DocumentFormat = documentFormat
             }
         };
 

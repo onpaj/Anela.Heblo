@@ -1,0 +1,295 @@
+import { renderHook, waitFor, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
+import {
+  useCreateMaterialContainers,
+  useMaterialContainerByCode,
+  useLastUsedLotForMaterial,
+  useMaterialContainersList,
+  usePrintMaterialContainerLabels,
+} from '../useMaterialContainers';
+import * as clientModule from '../../client';
+
+jest.mock('../../client', () => ({
+  getAuthenticatedApiClient: jest.fn(),
+  QUERY_KEYS: {
+    materialContainers: ['materialContainers'],
+  },
+}));
+
+const mockGetAuthenticatedApiClient = clientModule.getAuthenticatedApiClient as jest.MockedFunction<typeof clientModule.getAuthenticatedApiClient>;
+
+const createWrapper = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return React.createElement(QueryClientProvider, { client: queryClient }, children);
+};
+
+describe('useCreateMaterialContainers', () => {
+  let mockCreate: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCreate = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      materialContainers_Create: mockCreate,
+    } as any);
+  });
+
+  it('posts items and returns response with containers[0].code', async () => {
+    const mockResponse = {
+      success: true,
+      containers: [
+        {
+          id: 1,
+          code: 'M00000001',
+          materialCode: 'MAT001',
+          lotCode: 'LOT001',
+          createdAt: new Date('2026-01-15T10:00:00Z'),
+          createdBy: 'user@anela.cz',
+        },
+      ],
+    };
+    mockCreate.mockResolvedValue(mockResponse);
+
+    const { result } = renderHook(() => useCreateMaterialContainers(), {
+      wrapper: createWrapper,
+    });
+
+    await act(async () => {
+      result.current.mutate({
+        items: [{ code: 'M00000001', materialCode: 'MAT001', lotCode: 'LOT001' }],
+      });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(result.current.data?.containers?.[0].code).toBe('M00000001');
+  });
+
+  it('forwards all item fields to the generated client', async () => {
+    mockCreate.mockResolvedValue({ success: true, containers: [] });
+
+    const { result } = renderHook(() => useCreateMaterialContainers(), {
+      wrapper: createWrapper,
+    });
+
+    const items = [
+      {
+        code: 'M00000002',
+        materialCode: 'MAT002',
+        lotCode: 'LOT002',
+        amount: 5,
+        unit: 'kg',
+        purchaseOrderLineId: 42,
+      },
+    ];
+
+    await act(async () => {
+      result.current.mutate({ items });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ items }),
+    );
+  });
+
+  it('surfaces errors from the API', async () => {
+    mockCreate.mockRejectedValue(new Error('API Error'));
+
+    const { result } = renderHook(() => useCreateMaterialContainers(), {
+      wrapper: createWrapper,
+    });
+
+    await act(async () => {
+      result.current.mutate({ items: [] });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect((result.current.error as Error).message).toBe('API Error');
+  });
+});
+
+describe('usePrintMaterialContainerLabels', () => {
+  let mockPrintLabels: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockPrintLabels = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      materialContainers_PrintLabels: mockPrintLabels,
+    } as any);
+  });
+
+  it('posts the requested count and returns the printed containers', async () => {
+    const mockResponse = {
+      success: true,
+      containers: [
+        { id: 1, code: 'M00000001', status: 'Unassigned' },
+        { id: 2, code: 'M00000002', status: 'Unassigned' },
+      ],
+    };
+    mockPrintLabels.mockResolvedValue(mockResponse);
+
+    const { result } = renderHook(() => usePrintMaterialContainerLabels(), {
+      wrapper: createWrapper,
+    });
+
+    await act(async () => {
+      result.current.mutate({ count: 5 });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockPrintLabels).toHaveBeenCalledTimes(1);
+    expect(mockPrintLabels).toHaveBeenCalledWith(
+      expect.objectContaining({ count: 5 }),
+    );
+    expect(result.current.data?.containers?.[0].code).toBe('M00000001');
+  });
+
+  it('surfaces errors from the API', async () => {
+    mockPrintLabels.mockRejectedValue(new Error('API Error'));
+
+    const { result } = renderHook(() => usePrintMaterialContainerLabels(), {
+      wrapper: createWrapper,
+    });
+
+    await act(async () => {
+      result.current.mutate({ count: 1 });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect((result.current.error as Error).message).toBe('API Error');
+  });
+});
+
+describe('useMaterialContainerByCode', () => {
+  let mockGetByCode: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetByCode = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      materialContainers_GetByCode: mockGetByCode,
+    } as any);
+  });
+
+  it('fetches container by code when code is provided', async () => {
+    const mockResponse = {
+      success: true,
+      container: {
+        id: 1,
+        code: 'M00000001',
+        materialCode: 'MAT001',
+        lotCode: 'LOT001',
+      },
+    };
+    mockGetByCode.mockResolvedValue(mockResponse);
+
+    const { result } = renderHook(() => useMaterialContainerByCode('M00000001'), {
+      wrapper: createWrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockGetByCode).toHaveBeenCalledWith('M00000001');
+    expect(result.current.data?.container?.code).toBe('M00000001');
+  });
+
+  it('does not fetch when code is null', () => {
+    const { result } = renderHook(() => useMaterialContainerByCode(null), {
+      wrapper: createWrapper,
+    });
+
+    expect(result.current.fetchStatus).toBe('idle');
+    expect(mockGetByCode).not.toHaveBeenCalled();
+  });
+});
+
+describe('useLastUsedLotForMaterial', () => {
+  let mockGetLastUsedLot: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetLastUsedLot = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      materialContainers_GetLastUsedLot: mockGetLastUsedLot,
+    } as any);
+  });
+
+  it('fetches last used lot when materialCode is provided', async () => {
+    const mockResponse = { success: true, lotCode: 'LOT001' };
+    mockGetLastUsedLot.mockResolvedValue(mockResponse);
+
+    const { result } = renderHook(
+      () => useLastUsedLotForMaterial('MAT001'),
+      { wrapper: createWrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockGetLastUsedLot).toHaveBeenCalledWith('MAT001');
+    expect(result.current.data?.lotCode).toBe('LOT001');
+  });
+
+  it('does not fetch when materialCode is null', () => {
+    const { result } = renderHook(() => useLastUsedLotForMaterial(null), {
+      wrapper: createWrapper,
+    });
+
+    expect(result.current.fetchStatus).toBe('idle');
+    expect(mockGetLastUsedLot).not.toHaveBeenCalled();
+  });
+});
+
+describe('useMaterialContainersList', () => {
+  let mockList: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockList = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      materialContainers_GetMaterialContainers: mockList,
+    } as any);
+  });
+
+  it('passes all filters and pagination to the generated client', async () => {
+    mockList.mockResolvedValue({ success: true, containers: [], totalCount: 0, pageNumber: 1, pageSize: 20 });
+
+    const { result } = renderHook(
+      () =>
+        useMaterialContainersList({
+          materialCode: 'MAT001',
+          lotCode: 'LOT001',
+          code: 'M00001234',
+          page: 2,
+          pageSize: 50,
+        }),
+      { wrapper: createWrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockList).toHaveBeenCalledWith('MAT001', 'LOT001', 'M00001234', 2, 50);
+  });
+
+  it('sends undefined for empty filters and default pagination', async () => {
+    mockList.mockResolvedValue({ success: true, containers: [], totalCount: 0, pageNumber: 1, pageSize: 20 });
+
+    const { result } = renderHook(() => useMaterialContainersList({}), {
+      wrapper: createWrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockList).toHaveBeenCalledWith(undefined, undefined, undefined, 1, 20);
+  });
+});

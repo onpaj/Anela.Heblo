@@ -1,10 +1,12 @@
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 
 /// <summary>
 /// Dashboard tile showing count of products inventoried in the last 30 days.
 /// </summary>
+[TileId("productinventorycount")]
 public class ProductInventoryCountTile : InventoryCountTileBase
 {
     public ProductInventoryCountTile(
