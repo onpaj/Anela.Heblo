@@ -8,7 +8,7 @@ using Anela.Heblo.Application.Features.FileStorage.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Xcc.Telemetry;
 using FluentAssertions;
 using Hangfire;
