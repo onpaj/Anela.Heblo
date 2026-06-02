@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.API.Infrastructure;
 using Hangfire;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using Microsoft.AspNetCore.HttpLogging;
@@ -69,7 +69,7 @@ public static class ApplicationBuilderExtensions
         app.UseForwardedHeaders();
 
         // Use CORS - MUST be before UseHttpsRedirection to ensure CORS headers are included in redirect responses
-        app.UseCors(ConfigurationConstants.CORS_POLICY_NAME);
+        app.UseCors(InfrastructureConstants.CORS_POLICY_NAME);
 
         app.UseHttpsRedirection();
 
@@ -173,7 +173,7 @@ public static class ApplicationBuilderExtensions
         app.MapHealthChecks("/health").WithHttpLogging(HttpLoggingFields.None);
         app.MapHealthChecks("/health/ready", new HealthCheckOptions
         {
-            Predicate = check => check.Tags.Contains(ConfigurationConstants.DB_TAG) || check.Tags.Contains("ready"),
+            Predicate = check => check.Tags.Contains(InfrastructureConstants.DB_TAG) || check.Tags.Contains("ready"),
             ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
         }).WithHttpLogging(HttpLoggingFields.None);
         app.MapHealthChecks("/health/live", new HealthCheckOptions

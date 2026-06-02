@@ -7,7 +7,7 @@ using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Telemetry;
 using Anela.Heblo.API.Infrastructure.ExceptionHandling;
 using Anela.Heblo.API.Infrastructure.Telemetry;
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Microsoft.OpenApi.Models;
 using Hangfire;
@@ -34,9 +34,9 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationInsightsServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
-        var appInsightsConnectionString = configuration[ConfigurationConstants.APPLICATION_INSIGHTS_CONNECTION_STRING]
-                                        ?? configuration[ConfigurationConstants.APPINSIGHTS_INSTRUMENTATION_KEY]
-                                        ?? configuration[ConfigurationConstants.APPLICATIONINSIGHTS_CONNECTION_STRING];
+        var appInsightsConnectionString = configuration[InfrastructureConstants.APPLICATION_INSIGHTS_CONNECTION_STRING]
+                                        ?? configuration[InfrastructureConstants.APPINSIGHTS_INSTRUMENTATION_KEY]
+                                        ?? configuration[InfrastructureConstants.APPLICATIONINSIGHTS_CONNECTION_STRING];
 
         if (!string.IsNullOrEmpty(appInsightsConnectionString))
         {
@@ -64,7 +64,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddCorsServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var allowedOrigins = configuration.GetSection(ConfigurationConstants.CORS_ALLOWED_ORIGINS).Get<string[]>() ?? Array.Empty<string>();
+        var allowedOrigins = configuration.GetSection(InfrastructureConstants.CORS_ALLOWED_ORIGINS).Get<string[]>() ?? Array.Empty<string>();
 
         // Conductor parallel instances serve the frontend on a dynamically chosen port,
         // so the exact origin is unknown ahead of time. Under Conductor overrides, allow
@@ -73,7 +73,7 @@ public static class ServiceCollectionExtensions
 
         services.AddCors(options =>
         {
-            options.AddPolicy(ConfigurationConstants.CORS_POLICY_NAME, policy =>
+            options.AddPolicy(InfrastructureConstants.CORS_POLICY_NAME, policy =>
             {
                 if (allowAnyLoopbackOrigin)
                 {
@@ -108,13 +108,13 @@ public static class ServiceCollectionExtensions
         // Add database health check via the shared NpgsqlDataSource so the probe
         // reuses the application connection pool instead of opening a fresh connection
         // on every health-check probe (which caused TaskCanceledException spikes).
-        var dbConnectionString = configuration.GetConnectionString(ConfigurationConstants.DEFAULT_CONNECTION);
+        var dbConnectionString = configuration.GetConnectionString(InfrastructureConstants.DEFAULT_CONNECTION);
         if (!string.IsNullOrEmpty(dbConnectionString))
         {
             healthChecksBuilder.AddNpgSql(
                 sp => sp.GetRequiredService<NpgsqlDataSource>(),
-                name: ConfigurationConstants.DATABASE_HEALTH_CHECK,
-                tags: new[] { ConfigurationConstants.DB_TAG, ConfigurationConstants.POSTGRESQL_TAG });
+                name: InfrastructureConstants.DATABASE_HEALTH_CHECK,
+                tags: new[] { InfrastructureConstants.DB_TAG, InfrastructureConstants.POSTGRESQL_TAG });
         }
 
         return services;

@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.API.Infrastructure;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -14,9 +14,9 @@ public static class LoggingExtensions
         logging.AddConfiguration(configuration.GetSection("Logging"));
 
         // Add Application Insights logging if configured
-        var appInsightsConnectionString = configuration[ConfigurationConstants.APPLICATION_INSIGHTS_CONNECTION_STRING]
-                                        ?? configuration[ConfigurationConstants.APPINSIGHTS_INSTRUMENTATION_KEY]
-                                        ?? configuration[ConfigurationConstants.APPLICATIONINSIGHTS_CONNECTION_STRING];
+        var appInsightsConnectionString = configuration[InfrastructureConstants.APPLICATION_INSIGHTS_CONNECTION_STRING]
+                                        ?? configuration[InfrastructureConstants.APPINSIGHTS_INSTRUMENTATION_KEY]
+                                        ?? configuration[InfrastructureConstants.APPLICATIONINSIGHTS_CONNECTION_STRING];
 
         if (!string.IsNullOrEmpty(appInsightsConnectionString))
         {
