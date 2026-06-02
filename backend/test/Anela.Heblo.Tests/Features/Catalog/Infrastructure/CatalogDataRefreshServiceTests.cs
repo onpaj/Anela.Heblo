@@ -110,7 +110,7 @@ public class CatalogDataRefreshServiceTests
     {
         _resilienceMock
             .Setup(r => r.ExecuteWithResilienceAsync(
-                It.IsAny<Func<CancellationToken, Task<IEnumerable<CatalogSaleRecord>>>>(),
+                It.IsAny<Func<CancellationToken, Task<IList<CatalogSaleRecord>>>>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("boom"));
@@ -130,7 +130,7 @@ public class CatalogDataRefreshServiceTests
         {
             new() { ProductCode = "ABC", ValidFrom = DateTime.UtcNow.AddDays(-1) }
         };
-        _difficultyMock.Setup(r => r.ListAsync("ABC", It.IsAny<CancellationToken>())).ReturnsAsync(settings);
+        _difficultyMock.Setup(r => r.ListAsync("ABC", It.IsAny<DateTime?>(), It.IsAny<CancellationToken>())).ReturnsAsync(settings);
 
         var service = CreateService();
         await _store.ReplaceCacheAtomicallyAsync(new List<CatalogAggregate>
