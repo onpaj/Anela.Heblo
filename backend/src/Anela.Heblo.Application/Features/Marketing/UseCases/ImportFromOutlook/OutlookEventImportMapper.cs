@@ -64,14 +64,20 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
             CurrentUser currentUser,
             DateTime utcNow)
         {
-            existing.Title = ParseTitle(evt.Subject);
-            existing.Description = ParseDescription(evt.BodyText);
-            existing.StartDate = evt.StartUtc;
-            existing.EndDate = ParseEndDate(evt);
-            existing.ActionType = actionType;
-            existing.ModifiedAt = utcNow;
-            existing.ModifiedByUserId = currentUser.Id;
-            existing.ModifiedByUsername = currentUser.Name ?? "Unknown User";
+            var modifiedByUserId = currentUser.Id
+                ?? throw new InvalidOperationException(
+                    "Outlook import requires an authenticated user context for modifiedByUserId.");
+
+            existing.UpdateDetails(
+                title: ParseTitle(evt.Subject),
+                description: ParseDescription(evt.BodyText),
+                actionType: actionType,
+                startDate: evt.StartUtc,
+                endDate: ParseEndDate(evt),
+                modifiedByUserId: modifiedByUserId,
+                modifiedByUsername: currentUser.Name,
+                utcNow: utcNow);
+
             existing.MarkOutlookSynced(evt.Id, utcNow);
         }
 
