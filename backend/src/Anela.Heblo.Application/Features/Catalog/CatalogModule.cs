@@ -49,6 +49,8 @@ public static class CatalogModule
         services.AddTransient<IAnalyticsProductSource, CatalogAnalyticsSourceAdapter>();
         services.AddTransient<ILogisticsCatalogSource, LogisticsCatalogSourceAdapter>();
         services.AddTransient<ILogisticsStockOperationService, LogisticsStockOperationAdapter>();
+        // Logistics owns the query contract; Catalog (this module) provides the adapter implementation.
+        services.AddTransient<ILogisticsStockOperationQueryService, LogisticsStockOperationQueryAdapter>();
 
         // Register cost repositories
         services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others

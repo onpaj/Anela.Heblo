@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Domain.Features.Logistics.Picking;
+namespace Anela.Heblo.Application.Features.Logistics.Picking;
 
 public interface IPickingListSource
 {

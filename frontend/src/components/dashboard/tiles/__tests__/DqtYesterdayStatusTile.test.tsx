@@ -9,11 +9,17 @@ jest.mock('react-router-dom', () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
+jest.mock('../../../../config/runtimeConfig', () => ({
+  getConfig: () => ({ apiUrl: 'http://localhost:5001' }),
+}));
+
+const drillDown = { routeKey: 'dataQuality', enabled: true };
+
 const renderTile = (data: any) =>
   render(
     <BrowserRouter>
       <DqtYesterdayStatusTile data={data} />
-    </BrowserRouter>
+    </BrowserRouter>,
   );
 
 beforeEach(() => {
@@ -22,14 +28,14 @@ beforeEach(() => {
 
 describe('DqtYesterdayStatusTile', () => {
   it('renders no_data state', () => {
-    renderTile({ status: 'no_data', data: null });
+    renderTile({ status: 'no_data', data: null, drillDown });
 
     expect(screen.getByText('Žádná data')).toBeInTheDocument();
     expect(screen.getByText('Včerejší test neproběhl')).toBeInTheDocument();
   });
 
   it('renders error state and does not navigate on click', () => {
-    renderTile({ status: 'error', data: null });
+    renderTile({ status: 'error', data: null, drillDown });
 
     expect(screen.getByText('Chyba při načítání dat')).toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
@@ -46,6 +52,7 @@ describe('DqtYesterdayStatusTile', () => {
         totalChecked: 0,
         totalMismatches: 0,
       },
+      drillDown,
     });
 
     expect(screen.getByText('probíhá')).toBeInTheDocument();
@@ -63,6 +70,7 @@ describe('DqtYesterdayStatusTile', () => {
         totalChecked: 123,
         totalMismatches: 4,
       },
+      drillDown,
     });
 
     expect(screen.getByText('4')).toBeInTheDocument();
@@ -82,6 +90,7 @@ describe('DqtYesterdayStatusTile', () => {
         totalChecked: 200,
         totalMismatches: 0,
       },
+      drillDown,
     });
 
     expect(screen.getByText('0')).toBeInTheDocument();
@@ -99,6 +108,7 @@ describe('DqtYesterdayStatusTile', () => {
         totalChecked: 0,
         totalMismatches: 0,
       },
+      drillDown,
     });
 
     expect(screen.getByText('včera')).toBeInTheDocument();
@@ -115,10 +125,32 @@ describe('DqtYesterdayStatusTile', () => {
         totalChecked: 50,
         totalMismatches: 0,
       },
+      drillDown,
     });
 
     const tile = screen.getByTestId('dqt-yesterday-tile');
     fireEvent.click(tile);
     expect(mockNavigate).toHaveBeenCalledWith('/automation/data-quality');
+  });
+
+  it('does not navigate when the route key is unknown', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    renderTile({
+      status: 'success',
+      data: {
+        runId: 'r6',
+        runStatus: 'Completed',
+        dateFrom: '2026-05-05',
+        dateTo: '2026-05-05',
+        totalChecked: 50,
+        totalMismatches: 0,
+      },
+      drillDown: { routeKey: 'somethingNew', enabled: true },
+    });
+
+    fireEvent.click(screen.getByTestId('dqt-yesterday-tile'));
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('somethingNew'));
+    warnSpy.mockRestore();
   });
 });

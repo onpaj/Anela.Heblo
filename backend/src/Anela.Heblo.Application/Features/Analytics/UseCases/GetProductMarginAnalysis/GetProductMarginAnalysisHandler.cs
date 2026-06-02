@@ -28,19 +28,6 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
 
     public async Task<GetProductMarginAnalysisResponse> Handle(GetProductMarginAnalysisRequest request, CancellationToken cancellationToken)
     {
-        // Basic input validation (kept here for backward compatibility with tests)
-        if (string.IsNullOrWhiteSpace(request.ProductId))
-        {
-            return CreateErrorResponse(ErrorCodes.RequiredFieldMissing, ("field", "ProductId"));
-        }
-
-        if (request.StartDate > request.EndDate)
-        {
-            return CreateErrorResponse(ErrorCodes.InvalidDateRange,
-                ("startDate", request.StartDate.ToString("yyyy-MM-dd")),
-                ("endDate", request.EndDate.ToString("yyyy-MM-dd")));
-        }
-
         try
         {
             // Get product data

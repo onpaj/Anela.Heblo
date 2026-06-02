@@ -1,6 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, AlertTriangle, XCircle, Clock } from 'lucide-react';
+import {
+  DashboardTileDrillDown,
+  resolveDrillDown,
+} from '../drillDownRoutes';
 
 interface DqtYesterdayStatusTileData {
   status?: 'success' | 'warning' | 'error' | 'no_data';
@@ -12,10 +16,7 @@ interface DqtYesterdayStatusTileData {
     totalChecked?: number;
     totalMismatches?: number;
   } | null;
-  drillDown?: {
-    href: string;
-    enabled: boolean;
-  };
+  drillDown?: DashboardTileDrillDown;
 }
 
 interface DqtYesterdayStatusTileProps {
@@ -32,7 +33,18 @@ const formatYesterdayLabel = (iso?: string): string => {
 
 export const DqtYesterdayStatusTile: React.FC<DqtYesterdayStatusTileProps> = ({ data }) => {
   const navigate = useNavigate();
-  const handleClick = () => navigate('/automation/data-quality');
+  const resolution = resolveDrillDown(data.drillDown);
+
+  const handleClick = () => {
+    if (!resolution) {
+      return;
+    }
+    if (resolution.strategy === 'react-router') {
+      navigate(resolution.url);
+    } else {
+      window.open(resolution.url, '_blank');
+    }
+  };
 
   if (data.status === 'error') {
     return (

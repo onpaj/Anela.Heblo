@@ -1,7 +1,7 @@
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Xcc.Services.Dashboard;
 
-namespace Anela.Heblo.Application.Features.Dashboard.Tiles;
+namespace Anela.Heblo.Application.Features.Purchase.DashboardTiles;
 
 [TileId("purchaseordersintransit")]
 public class PurchaseOrdersInTransitTile : ITile
