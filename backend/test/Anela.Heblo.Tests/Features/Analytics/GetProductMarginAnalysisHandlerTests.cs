@@ -31,7 +31,8 @@ public class GetProductMarginAnalysisHandlerTests
 
         _handler = new GetProductMarginAnalysisHandler(
             _analyticsRepositoryMock.Object,
-            _reportBuilderServiceMock.Object);
+            _reportBuilderServiceMock.Object,
+            new MarginCalculator());
     }
 
     [Fact]
