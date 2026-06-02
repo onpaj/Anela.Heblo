@@ -136,7 +136,7 @@ public sealed class CatalogCacheStore
         var lastUpdate = _cache.Get<DateTime?>(CacheUpdateTimeKey);
         if (!lastUpdate.HasValue) return false;
 
-        var timeSinceLastUpdate = DateTime.UtcNow - lastUpdate.Value;
+        var timeSinceLastUpdate = _timeProvider.GetUtcNow().DateTime - lastUpdate.Value;
         return timeSinceLastUpdate < _cacheOptions.Value.CacheValidityPeriod;
     }
 

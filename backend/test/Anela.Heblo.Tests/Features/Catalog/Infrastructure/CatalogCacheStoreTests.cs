@@ -166,4 +166,34 @@ public class CatalogCacheStoreTests
             m => m.ScheduleMerge("CachedSalesData"),
             Times.Once);
     }
+
+    [Fact]
+    public void GetCatalogData_WhenScheduleMergeThrows_StillReturnsStaleData()
+    {
+        // Arrange
+        var store = new CatalogCacheStore(
+            _memoryCache,
+            _timeProvider,
+            _cacheOptions,
+            _mergeSchedulerMock.Object,
+            _loggerMock.Object);
+
+        // Put data in stale cache
+        var staleData = new List<CatalogAggregate>
+        {
+            new CatalogAggregate { ProductCode = "STALE001" }
+        };
+        _memoryCache.Set("CatalogData_Stale", staleData);
+
+        // Make ScheduleMerge throw
+        _mergeSchedulerMock.Setup(x => x.ScheduleMerge(It.IsAny<string>()))
+            .Throws(new InvalidOperationException("Scheduler unavailable"));
+
+        // Act - should NOT throw
+        var result = store.GetCatalogData();
+
+        // Assert
+        result.Should().HaveCount(1);
+        result.First().ProductCode.Should().Be("STALE001");
+    }
 }
