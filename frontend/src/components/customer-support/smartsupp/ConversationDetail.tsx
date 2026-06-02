@@ -59,6 +59,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
 }) => {
   const { data, isLoading } = useSmartsuppConversation(conversationId);
   const { mutate: closeConversation, isPending: isClosing } = useCloseConversation();
+  const liveStatus = data?.conversation?.status ?? conversation.status;
 
   const handleClose = () => {
     closeConversation(conversationId, {
@@ -95,7 +96,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-gray-900 truncate">{displayName}</h3>
-            <StatusPill status={conversation.status} />
+            <StatusPill status={liveStatus} />
           </div>
           {conversation.contactEmail && (
             <p className="text-xs text-gray-500 truncate">{conversation.contactEmail}</p>
@@ -105,7 +106,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
           {conversation.assignedAgentIds.map((id) => (
             <AgentBadge key={id} agentId={id} name={agentNames[id] ?? id} />
           ))}
-          {conversation.status.toLowerCase() === 'open' && (
+          {liveStatus.toLowerCase() === 'open' && (
             <button
               type="button"
               data-testid="close-conversation-btn"

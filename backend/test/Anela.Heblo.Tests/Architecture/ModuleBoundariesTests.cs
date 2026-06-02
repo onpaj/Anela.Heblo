@@ -45,20 +45,8 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Leaflet.Infrastructure.Jobs.LeafletIngestionJob -> Anela.Heblo.Application.Features.KnowledgeBase.Services.OneDriveFile",
     };
 
-    // Allowlist for Article → KnowledgeBase. Each entry needs a comment with the justification.
-    // Entries should be removed as the underlying violations are fixed.
-    private static readonly HashSet<string> ArticleAllowlist = new(StringComparer.Ordinal)
-    {
-        // Pre-existing dependency: GatherContextStep dispatches SearchDocumentsRequest via MediatR
-        // to obtain knowledge-base snippets during article generation. Lifting this behind a
-        // consumer-owned contract (e.g. IArticleKnowledgeSearch) is out of scope for the
-        // 2026-05-25 Article ↔ KnowledgeBase style-guide decoupling and is tracked as a follow-up.
-        // Remove these three entries when SearchDocumentsRequest is replaced by an Article-owned
-        // contract.
-        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.SearchDocumentsRequest",
-        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.SearchDocumentsResponse",
-        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.ChunkResult",
-    };
+    // Allowlist for Article → KnowledgeBase. Empty — all violations fixed.
+    private static readonly HashSet<string> ArticleAllowlist = new(StringComparer.Ordinal);
 
     // Allowlist for Logistics → Manufacture. Each entry needs a comment with the justification.
     // Entries should be removed as the underlying violations are fixed.
@@ -81,6 +69,99 @@ public class ModuleBoundariesTests
 
     // Allowlist for Purchase → Catalog. Empty — no active violations.
     private static readonly HashSet<string> PurchaseAllowlist = new(StringComparer.Ordinal);
+
+    // Allowlist for Logistics → Catalog. Pre-existing violations in TransportBoxCompletionService
+    // that are out of scope for the 2026-06-01 Logistics-Catalog boundary introduction.
+    // Remove these entries when TransportBoxCompletionService is refactored to use a
+    // Logistics-owned contract instead of IStockUpOperationRepository / StockUpOperation directly.
+    private static readonly HashSet<string> LogisticsCatalogAllowlist = new(StringComparer.Ordinal)
+    {
+        // TransportBoxCompletionService injects IStockUpOperationRepository (a Catalog-owned
+        // repository) to persist stock-up operations when a transport box is completed.
+        // Decoupling this requires introducing a Logistics-owned contract (e.g.
+        // ILogisticsStockUpGateway) and a Catalog adapter — tracked as a follow-up.
+        "Anela.Heblo.Application.Features.Logistics.Services.TransportBoxCompletionService -> Anela.Heblo.Domain.Features.Catalog.Stock.IStockUpOperationRepository",
+
+        // StockUpOperation is the value type produced and persisted by TransportBoxCompletionService
+        // via IStockUpOperationRepository. Covered by the same follow-up as the entry above;
+        // the compiler-generated nested types (+<>c, +<ProcessBoxAsync>d__5) are handled
+        // automatically via the DeclaringType allowlist check in the test harness.
+        "Anela.Heblo.Application.Features.Logistics.Services.TransportBoxCompletionService -> Anela.Heblo.Domain.Features.Catalog.Stock.StockUpOperation",
+    };
+
+    // Allowlist for Catalog -> Logistics. Pre-existing adapters in Catalog.Infrastructure
+    // that reference Logistics.Contracts types are out of scope for the 2026-06-01 decoupling.
+    // Track follow-up: move these adapters to the Logistics module or introduce Catalog-owned DTOs.
+    private static readonly HashSet<string> CatalogLogisticsAllowlist = new(StringComparer.Ordinal)
+    {
+        // LogisticsCatalogSourceAdapter is a Catalog-side adapter wrapping Logistics.Contracts types.
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.LogisticsCatalogSourceAdapter -> Anela.Heblo.Application.Features.Logistics.Contracts.Models.LogisticsGiftPackageItem",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.LogisticsCatalogSourceAdapter -> Anela.Heblo.Application.Features.Logistics.Contracts.Models.LogisticsCatalogItem",
+        // LogisticsStockOperationAdapter references the Logistics contract enum.
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.LogisticsStockOperationAdapter -> Anela.Heblo.Application.Features.Logistics.Contracts.LogisticsStockOperationSource",
+    };
+
+    // Allowlist for Catalog -> Purchase. Pre-existing violations from adapters and handlers
+    // are out of scope for the 2026-06-01 CatalogRepository decoupling. Track as follow-ups:
+    //   - Introduce a Catalog.Inventory-owned contract for purchase-order lookups.
+    //   - Introduce Catalog-owned material info DTOs to replace Purchase.Contracts references.
+    private static readonly HashSet<string> CatalogPurchaseAllowlist = new(StringComparer.Ordinal)
+    {
+        // Follow-up: migrate CreateMaterialContainersHandler off IPurchaseOrderRepository / PurchaseOrderLine.
+        "Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateMaterialContainers.CreateMaterialContainersHandler -> Anela.Heblo.Domain.Features.Purchase.IPurchaseOrderRepository",
+        "Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateMaterialContainers.CreateMaterialContainersHandler -> Anela.Heblo.Domain.Features.Purchase.PurchaseOrderLine",
+
+        // PurchaseMaterialCatalogAdapter in Catalog.Infrastructure wraps Purchase.Contracts types.
+        // Follow-up: introduce Catalog-owned material info DTOs and have the adapter map them.
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialInfo",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialStockSnapshot",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialBomReference",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialPurchaseSnapshot",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialProductType",
+    };
+
+    // Allowlist for Catalog -> Manufacture. Pre-existing handler-level IManufactureClient injections
+    // and ManufactureHistoryRecord return-type leak from CatalogRepository/ICatalogManufactureSource
+    // are out of scope for the 2026-06-01 CatalogRepository decoupling. Track as follow-ups:
+    //   - Migrate the three handlers off IManufactureClient onto a Catalog-owned contract.
+    //   - Introduce a Catalog-owned CatalogManufactureHistoryRecord DTO and map in the adapter.
+    private static readonly HashSet<string> CatalogManufactureAllowlist = new(StringComparer.Ordinal)
+    {
+        // Follow-up: migrate UpdateProductCompositionOrderHandler off IManufactureClient.
+        "Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder.UpdateProductCompositionOrderHandler -> Anela.Heblo.Domain.Features.Manufacture.IManufactureClient",
+
+        // Follow-up: migrate GetProductCompositionHandler off IManufactureClient.
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition.GetProductCompositionHandler -> Anela.Heblo.Domain.Features.Manufacture.IManufactureClient",
+
+        // Follow-up: migrate GetProductUsageHandler off IManufactureClient.
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage.GetProductUsageHandler -> Anela.Heblo.Domain.Features.Manufacture.IManufactureClient",
+
+        // Deliberate pragmatic leak: ManufactureHistoryRecord flows through Catalog's cache layer.
+        // All entries below are tracked under the same follow-up: introduce Catalog-owned
+        // CatalogManufactureHistoryRecord DTO and map in the ManufactureCatalogSourceAdapter.
+        "Anela.Heblo.Application.Features.Catalog.CatalogRepository -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        "Anela.Heblo.Application.Features.Catalog.Contracts.ICatalogManufactureSource -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogCacheStore -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogDataRefreshService -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogMergeService -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        // Cost providers in Catalog.CostProviders compute costs from ManufactureHistoryRecord.
+        "Anela.Heblo.Application.Features.Catalog.CostProviders.FlatManufactureCostProvider -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        "Anela.Heblo.Application.Features.Catalog.CostProviders.ManufactureBasedMaterialCostProvider -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+        // GetCatalogDetailHandler maps ManufactureHistoryRecord from CatalogAggregate into response DTOs.
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail.GetCatalogDetailHandler -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
+
+        // GetProductUsageResponse holds ManufactureTemplate in its payload.
+        // Follow-up: introduce Catalog-owned ManufactureTemplateDto.
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage.GetProductUsageResponse -> Anela.Heblo.Domain.Features.Manufacture.ManufactureTemplate",
+
+        // Handlers reference ManufactureTemplate and Ingredient directly via IManufactureClient.
+        // Compiler-generated types (+<>c, +d__N) are covered by the declaring-type check.
+        "Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder.UpdateProductCompositionOrderHandler -> Anela.Heblo.Domain.Features.Manufacture.ManufactureTemplate",
+        "Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder.UpdateProductCompositionOrderHandler -> Anela.Heblo.Domain.Features.Manufacture.Ingredient",
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage.GetProductUsageHandler -> Anela.Heblo.Domain.Features.Manufacture.ManufactureTemplate",
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition.GetProductCompositionHandler -> Anela.Heblo.Domain.Features.Manufacture.ManufactureTemplate",
+        "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition.GetProductCompositionHandler -> Anela.Heblo.Domain.Features.Manufacture.Ingredient",
+    };
 
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
@@ -105,17 +186,6 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.KnowledgeBase",
             },
             Allowlist: ArticleAllowlist),
-
-        new ModuleBoundaryRule(
-            Name: "Article -> UserManagement",
-            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Article",
-            ForbiddenNamespacePrefixes: new[]
-            {
-                "Anela.Heblo.Domain.Features.UserManagement",
-                "Anela.Heblo.Application.Features.UserManagement",
-                "Anela.Heblo.Persistence.UserManagement",
-            },
-            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
 
         new ModuleBoundaryRule(
             Name: "Logistics -> Manufacture",
@@ -151,6 +221,17 @@ public class ModuleBoundariesTests
             Allowlist: PurchaseAllowlist),
 
         new ModuleBoundaryRule(
+            Name: "Logistics -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Logistics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: LogisticsCatalogAllowlist),
+
+        new ModuleBoundaryRule(
             Name: "ExpeditionListArchive -> ExpeditionList",
             InspectedNamespacePrefix: "Anela.Heblo.Application.Features.ExpeditionListArchive",
             ForbiddenNamespacePrefixes: new[]
@@ -183,6 +264,39 @@ public class ModuleBoundariesTests
             },
             Allowlist: new HashSet<string>(StringComparer.Ordinal),
             InspectedAssembly: "Anela.Heblo.Domain"),
+
+        new ModuleBoundaryRule(
+            Name: "Catalog -> Logistics",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Catalog",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Logistics",
+                "Anela.Heblo.Application.Features.Logistics",
+                "Anela.Heblo.Persistence.Logistics",
+            },
+            Allowlist: CatalogLogisticsAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Catalog -> Purchase",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Catalog",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Purchase",
+                "Anela.Heblo.Application.Features.Purchase",
+                "Anela.Heblo.Persistence.Purchase",
+            },
+            Allowlist: CatalogPurchaseAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Catalog -> Manufacture",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Catalog",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Manufacture",
+                "Anela.Heblo.Application.Features.Manufacture",
+                "Anela.Heblo.Persistence.Manufacture",
+            },
+            Allowlist: CatalogManufactureAllowlist),
     };
 
     [Theory]

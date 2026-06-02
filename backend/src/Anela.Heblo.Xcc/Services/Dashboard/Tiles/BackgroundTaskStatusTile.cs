@@ -2,6 +2,7 @@ using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
 namespace Anela.Heblo.Xcc.Services.Dashboard.Tiles;
 
+[TileId("backgroundtaskstatus")]
 public class BackgroundTaskStatusTile : ITile
 {
     private readonly IBackgroundRefreshTaskRegistry _taskRegistry;

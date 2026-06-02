@@ -53,6 +53,32 @@ public class SetCarrierCoolingHandlerTests
     }
 
     [Fact]
+    public async Task Handle_PersistsCoolingText_WhenProvided()
+    {
+        SetupValidCombo(Carriers.PPL, DeliveryHandling.NaRuky);
+        var request = new SetCarrierCoolingRequest
+        {
+            Carrier = Carriers.PPL,
+            DeliveryHandling = DeliveryHandling.NaRuky,
+            Cooling = Cooling.L1,
+            CoolingText = "MRAZ",
+            ModifiedBy = "user-123",
+        };
+        _repositoryMock
+            .Setup(r => r.UpsertAsync(It.IsAny<CarrierCoolingSetting>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await CreateSut().Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        _repositoryMock.Verify(
+            r => r.UpsertAsync(
+                It.Is<CarrierCoolingSetting>(s => s.CoolingText == "MRAZ"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsValidationError_WhenComboIsUnavailable()
     {
         _catalogMock.Setup(c => c.GetAvailableDeliveryOptions())

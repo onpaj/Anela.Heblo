@@ -1,11 +1,17 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useArticleFeedbackListQuery } from '../useArticles';
+import {
+  useArticleFeedbackListQuery,
+  useSubmitArticleFeedbackMutation,
+  SubmitArticleFeedbackPayload,
+} from '../useArticles';
 import * as clientModule from '../../client';
 
 jest.mock('../../client', () => ({
   getAuthenticatedApiClient: jest.fn(),
+  getApiBaseUrl: jest.fn(() => 'https://api.example.test'),
+  getAuthenticatedFetch: jest.fn(),
   QUERY_KEYS: {
     articles: ['articles'],
   },
@@ -14,6 +20,16 @@ jest.mock('../../client', () => ({
 const mockGetAuthenticatedApiClient =
   clientModule.getAuthenticatedApiClient as jest.MockedFunction<
     typeof clientModule.getAuthenticatedApiClient
+  >;
+
+const mockGetAuthenticatedFetch =
+  clientModule.getAuthenticatedFetch as jest.MockedFunction<
+    typeof clientModule.getAuthenticatedFetch
+  >;
+
+const mockGetApiBaseUrl =
+  clientModule.getApiBaseUrl as jest.MockedFunction<
+    typeof clientModule.getApiBaseUrl
   >;
 
 const createWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -257,5 +273,102 @@ describe('useArticleFeedbackListQuery parameter passing', () => {
       2,
       10,
     );
+  });
+});
+
+describe('useSubmitArticleFeedbackMutation', () => {
+  let mockFetch: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockFetch = jest.fn();
+    mockGetAuthenticatedFetch.mockReturnValue(mockFetch);
+    mockGetApiBaseUrl.mockReturnValue('https://api.example.test');
+  });
+
+  const createMutationWrapper = ({ children }: { children: React.ReactNode }) => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    return React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    );
+  };
+
+  const payload: SubmitArticleFeedbackPayload = {
+    precisionScore: 4,
+    styleScore: 5,
+    comment: 'great',
+  };
+
+  it('resolves with parsed body on 2xx and fires mutation success', async () => {
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({
+        precisionScore: 4,
+        styleScore: 5,
+        feedbackComment: 'great',
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useSubmitArticleFeedbackMutation('article-1'),
+      { wrapper: createMutationWrapper },
+    );
+
+    result.current.mutate(payload);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockGetAuthenticatedFetch).toHaveBeenCalled();
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://api.example.test/api/articles/article-1/feedback',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(result.current.data).toEqual({
+      precisionScore: 4,
+      styleScore: 5,
+      feedbackComment: 'great',
+    });
+  });
+
+  it('resolves with alreadySubmitted on 409 (fires mutation success, not error)', async () => {
+    mockFetch.mockResolvedValue(new Response(null, { status: 409 }));
+
+    const { result } = renderHook(
+      () => useSubmitArticleFeedbackMutation('article-1'),
+      { wrapper: createMutationWrapper },
+    );
+
+    result.current.mutate(payload);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data).toEqual({ alreadySubmitted: true });
+    expect(result.current.isError).toBe(false);
+  });
+
+  it('rejects with an Error on non-2xx non-409 and fires mutation error', async () => {
+    mockFetch.mockResolvedValue(new Response(null, { status: 500 }));
+
+    const { result } = renderHook(
+      () => useSubmitArticleFeedbackMutation('article-1'),
+      { wrapper: createMutationWrapper },
+    );
+
+    result.current.mutate(payload);
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.isSuccess).toBe(false);
+    expect(result.current.error).toBeInstanceOf(Error);
+    expect((result.current.error as Error).message).toContain('500');
   });
 });

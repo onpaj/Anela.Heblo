@@ -5,7 +5,6 @@ using Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 using Anela.Heblo.Application.Shared.WebSearch;
 using Anela.Heblo.Domain.Features.Article;
 using FluentAssertions;
-using MediatR;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -18,7 +17,7 @@ public class GenerateArticleJobTests
 {
     private readonly Mock<IArticleRepository> _repository = new();
     private readonly Mock<IChatClient> _chat = new();
-    private readonly Mock<IMediator> _mediator = new();
+    private readonly Mock<IArticleKnowledgeSource> _knowledgeSource = new();
     private readonly Mock<IWebSearchClient> _webSearch = new();
     private readonly Mock<IArticleStyleGuideSource> _styleGuideSource = new();
     private readonly ArticleOptions _options = new();
@@ -52,7 +51,7 @@ public class GenerateArticleJobTests
         return new GenerateArticleJob(
             _repository.Object,
             planQueries ?? new PlanQueriesStep(_chat.Object, optionsWrapper, NullLogger<PlanQueriesStep>.Instance, recorder),
-            gatherContext ?? new GatherContextStep(_mediator.Object, _webSearch.Object, _styleGuideSource.Object, optionsWrapper, NullLogger<GatherContextStep>.Instance, recorder),
+            gatherContext ?? new GatherContextStep(_knowledgeSource.Object, _webSearch.Object, _styleGuideSource.Object, optionsWrapper, NullLogger<GatherContextStep>.Instance, recorder),
             aggregateFacts ?? new AggregateFactsStep(_chat.Object, optionsWrapper, NullLogger<AggregateFactsStep>.Instance, recorder),
             validateFacts ?? new ValidateFactsStep(_chat.Object, optionsWrapper, NullLogger<ValidateFactsStep>.Instance, recorder),
             writeArticle ?? new WriteArticleStep(_chat.Object, optionsWrapper, NullLogger<WriteArticleStep>.Instance, recorder),
