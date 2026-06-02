@@ -9,6 +9,7 @@ using Anela.Heblo.API.Infrastructure.ExceptionHandling;
 using Anela.Heblo.API.Infrastructure.Telemetry;
 using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.Configuration;
 using Microsoft.OpenApi.Models;
 using Hangfire;
 using Hangfire.MemoryStorage;
