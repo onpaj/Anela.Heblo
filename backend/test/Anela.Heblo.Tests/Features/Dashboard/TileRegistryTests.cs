@@ -73,6 +73,7 @@ public class ScopeDisposalTracker
     public void RecordDisposal() => WasDisposed = true;
 }
 
+[TileId("tracked")]
 public class TrackedTile : ITile, IDisposable
 {
     private readonly ScopeDisposalTracker _tracker;
