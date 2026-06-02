@@ -47,24 +47,34 @@ namespace Anela.Heblo.Tests.Domain.Marketing
 
         public MarketingAction Build()
         {
-            // Phase 1: object initializer (will be migrated to ctor in Task 12)
-            var action = new MarketingAction
+            // Construct via the public ctor (FR-1). Then layer modified-audit
+            // and Id/Outlook fields on top — the latter still expose public setters.
+            var action = new MarketingAction(
+                title: _title,
+                description: _description,
+                actionType: _actionType,
+                startDate: _startDate,
+                endDate: _endDate,
+                createdByUserId: _createdByUserId,
+                createdByUsername: _createdByUsername,
+                utcNow: _createdAt);
+
+            if (_modifiedByUserId is not null || _modifiedByUsername is not null || _modifiedAt != _createdAt)
             {
-                Id = _id,
-                Title = _title,
-                Description = _description,
-                ActionType = _actionType,
-                StartDate = _startDate,
-                EndDate = _endDate,
-                CreatedAt = _createdAt,
-                ModifiedAt = _modifiedAt,
-                CreatedByUserId = _createdByUserId,
-                CreatedByUsername = _createdByUsername,
-                ModifiedByUserId = _modifiedByUserId,
-                ModifiedByUsername = _modifiedByUsername,
-                OutlookEventId = _outlookEventId,
-                OutlookSyncStatus = _outlookSyncStatus,
-            };
+                action.UpdateDetails(
+                    title: _title,
+                    description: _description,
+                    actionType: _actionType,
+                    startDate: _startDate,
+                    endDate: _endDate,
+                    modifiedByUserId: _modifiedByUserId ?? _createdByUserId,
+                    modifiedByUsername: _modifiedByUsername,
+                    utcNow: _modifiedAt);
+            }
+
+            action.Id = _id;
+            action.OutlookEventId = _outlookEventId;
+            action.OutlookSyncStatus = _outlookSyncStatus;
             return action;
         }
     }

@@ -12,36 +12,36 @@ namespace Anela.Heblo.Domain.Features.Marketing
 
         [Required]
         [MaxLength(200)]
-        public string Title { get; set; } = null!;
+        public string Title { get; private set; } = null!;
 
         [MaxLength(5000)]
-        public string? Description { get; set; }
+        public string? Description { get; private set; }
 
-        public MarketingActionType ActionType { get; set; }
-
-        [Required]
-        public DateTime StartDate { get; set; }
-
-        public DateTime? EndDate { get; set; }
+        public MarketingActionType ActionType { get; private set; }
 
         [Required]
-        public DateTime CreatedAt { get; set; }
+        public DateTime StartDate { get; private set; }
+
+        public DateTime? EndDate { get; private set; }
 
         [Required]
-        public DateTime ModifiedAt { get; set; }
+        public DateTime CreatedAt { get; private set; }
+
+        [Required]
+        public DateTime ModifiedAt { get; private set; }
 
         [Required]
         [MaxLength(100)]
-        public string CreatedByUserId { get; set; } = null!;
+        public string CreatedByUserId { get; private set; } = null!;
 
         [MaxLength(100)]
-        public string? CreatedByUsername { get; set; }
+        public string? CreatedByUsername { get; private set; }
 
         [MaxLength(100)]
-        public string? ModifiedByUserId { get; set; }
+        public string? ModifiedByUserId { get; private set; }
 
         [MaxLength(100)]
-        public string? ModifiedByUsername { get; set; }
+        public string? ModifiedByUsername { get; private set; }
 
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
@@ -88,7 +88,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
             CreatedByUsername = createdByUsername ?? "Unknown User";
         }
 
-        public MarketingAction() { }
+        private MarketingAction() { }
 
         // Domain methods
         public void AssociateWithProduct(string productCode)
