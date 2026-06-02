@@ -1,80 +1,63 @@
-# Implementation: Move PrintPickingList DTOs and IPickingListSource from Domain to Application Layer
+All tasks complete. Here is the output summary:
+
+---
+
+# Implementation: Relocate Picking List Operation DTOs from Domain to Application
 
 ## What was implemented
 
-Nothing was implemented. All write operations (Edit, Write, git mv, git add, git commit, sed, perl, python3, output redirection) require user approval that is not being automatically granted in this automated pipeline environment. The project's `.claude/settings.json` contains no permission allowlist, and the automated pipeline cannot interactively grant approvals.
+Pure namespace relocation of `PrintPickingListRequest`, `PrintPickingListResult`, and `IPickingListSource` from `Anela.Heblo.Domain.Features.Logistics.Picking` to `Anela.Heblo.Application.Features.Logistics.Picking`. All 11 consumer files had their `using` directives flipped. The empty Domain `Picking/` folder was deleted.
+
+One non-obvious fix beyond the plan's prescription: `PrintPickingListRequest.cs` has a property named `Carriers`, which caused C# to resolve `Carriers.Zasilkovna` etc. in the static `DefaultCarriers` initializer as the instance property rather than the enum type. Fixed by using fully qualified `Anela.Heblo.Domain.Features.Logistics.Carriers.X` names in the initializer.
 
 ## Files created/modified
 
-None — all write operations were blocked by the permission system.
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListResult.cs` — new location (renamed from Domain)
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListRequest.cs` — new location; added `using Anela.Heblo.Domain.Features.Logistics;`; enum values in `DefaultCarriers` use fully qualified names to avoid shadowing by the `Carriers` property
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/IPickingListSource.cs` — new location (renamed from Domain)
+- `backend/src/Anela.Heblo.Domain/Features/Logistics/Picking/` — deleted (all 3 files + empty folder removed)
+- 11 consumer files — one-line `using` directive flip each (4 Application, 2 Adapter, 5 test)
 
 ## Tests
 
-Not applicable (no code was changed).
+No new tests added (per FR-6). Existing tests in:
+- `backend/test/Anela.Heblo.Tests/` — 4214 passing (32 pre-existing infra failures, unchanged)
+- `backend/test/Anela.Heblo.Adapters.Shoptet.Tests/` — 82 passing
+
+Only `using` directives updated in test files.
 
 ## How to verify
 
-N/A — nothing to verify yet.
+```bash
+# No Domain references remain in source
+grep -rln "Anela.Heblo.Domain.Features.Logistics.Picking" backend/src backend/test
+# → no output
+
+# Domain has no Application dependency
+grep -rn "Anela.Heblo.Application" backend/src/Anela.Heblo.Domain/ || echo "CLEAN"
+# → CLEAN
+
+# Build and tests
+dotnet build Anela.Heblo.sln --nologo  # 0 errors
+dotnet test Anela.Heblo.sln --nologo   # matches baseline
+```
 
 ## Notes
 
-**Root cause:** The project `.claude/settings.json` only contains plugin configuration. No `permissions.allow` rules are present, so every write operation in this session requires interactive user approval. In a non-interactive automated pipeline, those approval prompts fail immediately.
-
-**What must be done to unblock:** One of:
-
-1. **Add permissions to `.claude/settings.json`** before running the pipeline:
-
-```json
-{
-  "enabledPlugins": { ... },
-  "permissions": {
-    "allow": [
-      "Bash(git mv *)",
-      "Bash(git rm *)",
-      "Bash(git add *)",
-      "Bash(git commit *)",
-      "Bash(dotnet *)",
-      "Bash(rmdir *)",
-      "Write(*)",
-      "Edit(*)"
-    ]
-  }
-}
-```
-
-2. **Run Claude Code with** `--dangerously-skip-permissions` (bypasses all approval prompts — suitable for trusted pipelines).
-
-**What would be implemented once unblocked:** The refactor is straightforward and fully planned:
-- `git mv` 3 files from `Domain/Features/Logistics/Picking/` to `Application/Features/Logistics/Picking/`
-- Change namespace from `Anela.Heblo.Domain.Features.Logistics.Picking` → `Anela.Heblo.Application.Features.Logistics.Picking` in all 3 files
-- Add `using Anela.Heblo.Domain.Features.Logistics;` to `PrintPickingListRequest.cs` (needed for `Carriers` enum)
-- Update `using` directive in 6 production files and 5 test files
-- `rmdir backend/src/Anela.Heblo.Domain/Features/Logistics/Picking/`
-- `dotnet clean && dotnet build && dotnet test`
-- Commit
+The plan prescribed bare `Carriers.X` enum values after adding `using Anela.Heblo.Domain.Features.Logistics;`. This fails at compile time because the class member `Carriers` (the property) takes precedence over the imported type name in the static initializer context (CS0236). The fix uses fully qualified enum values — the only deviation from the plan, and the correct resolution for the name collision.
 
 ## PR Summary
 
-This refactor moves `PrintPickingListRequest`, `PrintPickingListResult`, and `IPickingListSource` from `Anela.Heblo.Domain.Features.Logistics.Picking` to `Anela.Heblo.Application.Features.Logistics.Picking`, correcting a Clean Architecture violation where application-layer DTOs (encoding I/O flags and workflow side-effects) and a use-case port were placed in the innermost Domain layer.
+Restores Clean Architecture's dependency rule for the Logistics picking subsystem by moving `PrintPickingListRequest`, `PrintPickingListResult`, and `IPickingListSource` from the Domain layer to the Application layer. The three types carry use-case workflow concerns (`SendToPrinter`, `ChangeOrderState`, `ExportedFiles`) that have no business being in the most stable layer. Eleven consumer files across Application, Adapters.ShoptetApi, and two test projects received a one-line `using` directive flip each. The now-empty Domain `Picking/` folder was removed.
 
-The three types are relocated to `Application/Features/Logistics/Picking/`, namespaces updated across 11 consumer files (6 production, 5 test), the empty Domain `Picking/` directory removed, and `dotnet build` + existing tests verified to continue passing. No behavioral changes.
+The only non-trivial detail: `PrintPickingListRequest` has a property named `Carriers` that shadows the `Carriers` enum type from the Domain namespace in the static `DefaultCarriers` initializer — resolved by using fully qualified `Anela.Heblo.Domain.Features.Logistics.Carriers.X` enum values there.
 
 ### Changes
-- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListRequest.cs` — moved from Domain, namespace updated, `using Anela.Heblo.Domain.Features.Logistics;` added for `Carriers` enum
-- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListResult.cs` — moved from Domain, namespace updated
-- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/IPickingListSource.cs` — moved from Domain, namespace updated
-- `backend/src/Anela.Heblo.Domain/Features/Logistics/Picking/` — directory removed (empty after moves)
-- `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Services/ExpeditionListService.cs` — using directive updated
-- `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Services/IExpeditionListService.cs` — using directive updated
-- `backend/src/Anela.Heblo.Application/Features/ExpeditionList/UseCases/RunExpeditionListPrintFix/RunExpeditionListPrintFixHandler.cs` — using directive updated
-- `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Infrastructure/Jobs/PrintPickingListJob.cs` — using directive updated
-- `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/ShoptetApiAdapterServiceCollectionExtensions.cs` — using directive updated
-- `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Expedition/ShoptetApiExpeditionListSource.cs` — using directive updated
-- `backend/test/Anela.Heblo.Tests/Features/ExpeditionList/ExpeditionListServiceOrderStateTests.cs` — using directive updated
-- `backend/test/Anela.Heblo.Tests/Features/ExpeditionList/ExpeditionListServicePrintSinkTests.cs` — using directive updated
-- `backend/test/Anela.Heblo.Tests/Adapters/ShoptetApi/ShoptetApiExpeditionListSourceTests.cs` — using directive updated
-- `backend/test/Anela.Heblo.Adapters.Shoptet.Tests/Integration/PickingListIntegrationTests.cs` — using directive updated
-- `backend/test/Anela.Heblo.Adapters.Shoptet.Tests/Expedition/ShoptetApiExpeditionListSource_CoolingMarkerTests.cs` — using directive updated
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListRequest.cs` — created (moved from Domain); added `using` for Domain.Logistics; fully qualified enum values in `DefaultCarriers`
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListResult.cs` — created (moved from Domain); namespace flip only
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/IPickingListSource.cs` — created (moved from Domain); namespace flip only
+- `backend/src/Anela.Heblo.Domain/Features/Logistics/Picking/` — deleted (3 files + empty folder)
+- 11 consumer files — one-line `using` directive flip each
 
 ## Status
-BLOCKED
+DONE
