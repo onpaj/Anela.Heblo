@@ -1,130 +1,104 @@
-# Specification: Remove Duplicate Validation from Analytics Margin Report Handlers
+# Specification: Remove Duplicate Validation Logic from Margin Report Handlers
 
 ## Summary
-Two analytics handlers (`GetMarginReportHandler` and `GetProductMarginAnalysisHandler`) contain manual `if`-check validation that duplicates rules already declared in their corresponding FluentValidation classes registered in the MediatR pipeline. This spec covers removing the duplicate handler-level validation, ensuring the FluentValidation classes remain the single source of truth, and migrating impacted tests to either use the pipeline or test the validators directly.
+Remove redundant manual validation checks from `GetMarginReportHandler` and `GetProductMarginAnalysisHandler` that duplicate rules already enforced by their respective FluentValidation classes in the MediatR pipeline. Consolidate validation responsibility into the validator classes, eliminating dead code and the risk of validation drift.
 
 ## Background
-A daily architecture review (2026-05-28) flagged dead-code validation in `Anela.Heblo.Application.Features.Analytics`:
+A daily architecture review identified that two Analytics handlers contain manual `if`-checks that re-validate the same three rules (date range, max period, min period) already declared in their corresponding FluentValidation validators. The validators are registered in `AnalyticsModule` and wired into the MediatR validation pipeline, making the handler-level checks unreachable for any invalid input that arrives through normal MediatR dispatch.
 
-- `GetMarginReportHandler.Handle()` lines 33–52 re-checks `StartDate <= EndDate`, `TotalDays <= MAX_REPORT_PERIOD_DAYS`, and `TotalDays >= MIN_REPORT_PERIOD_DAYS`. The handler's own comment (line 33) admits the checks exist *"for backward compatibility with tests"*.
-- `GetProductMarginAnalysisHandler.Handle()` lines 30–39 carries the equivalent duplication against `GetProductMarginAnalysisRequestValidator`.
+A code comment in `GetMarginReportHandler` explicitly states the checks are "kept here for backward compatibility with tests" — meaning the duplication exists solely because unit tests bypass the MediatR pipeline by instantiating handlers directly and calling `Handle()` with invalid input. This is a test-design smell that has leaked into production code.
 
-Both validators are registered in `AnalyticsModule` and wired into the MediatR pipeline. For any request flowing through MediatR, validation runs *before* the handler, making the in-handler checks unreachable for invalid input.
-
-Problems this creates:
-1. **Drift risk** — if `AnalyticsConstants.MAX_REPORT_PERIOD_DAYS`/`MIN_REPORT_PERIOD_DAYS` semantics change, two code sites must move in lockstep with no compile-time link.
-2. **Misleading intent** — a reader of the handler may infer the validator isn't pipelined.
-3. **Test coupling** — handler unit tests bypass the pipeline and re-test validation rules instead of business logic, blocking the handler from being simplified.
-
-The codebase convention (per `docs/architecture/development_guidelines.md` and existing handlers) is that input validation belongs exclusively in FluentValidation classes consumed by the MediatR validation behavior.
+**Risks of the current state:**
+- **Dead code in production paths** — handler checks are unreachable when validators run in the pipeline.
+- **Silent divergence** — if `AnalyticsConstants` (e.g., `MAX_REPORT_PERIOD_DAYS`, `MIN_REPORT_PERIOD_DAYS`) changes, both validator and handler must be updated in lockstep.
+- **Misleading intent** — readers may infer the validator is not in the pipeline.
 
 ## Functional Requirements
 
-### FR-1: Remove duplicate validation from `GetMarginReportHandler`
-Delete lines 33–52 of `GetMarginReportHandler.Handle()` (the three manual `if`-checks producing `ErrorCodes.InvalidDateRange` and `ErrorCodes.InvalidReportPeriod` results, plus the `totalDays` local used only by those checks). The handler must rely solely on `GetMarginReportRequestValidator` running in the MediatR pipeline for these rules.
+### FR-1: Remove Duplicate Validation from `GetMarginReportHandler`
+Delete the three manual validation `if`-checks (lines 33–52) from `GetMarginReportHandler.Handle()`:
+- `request.StartDate > request.EndDate` → `InvalidDateRange`
+- `totalDays > MAX_REPORT_PERIOD_DAYS` → `InvalidReportPeriod`
+- `totalDays < MIN_REPORT_PERIOD_DAYS` → `InvalidReportPeriod`
+
+Also remove the associated "Basic input validation (kept here for backward compatibility with tests)" comment and any now-unused local variables (e.g., the `totalDays` calculation if no longer needed) introduced solely to support these checks.
 
 **Acceptance criteria:**
-- The `if (request.StartDate > request.EndDate)` block is removed.
-- Both `totalDays > MAX_REPORT_PERIOD_DAYS` and `totalDays < MIN_REPORT_PERIOD_DAYS` blocks are removed.
-- Any local variable (e.g. `totalDays`) that becomes unused after removal is also deleted.
-- The `// Basic input validation (kept here for backward compatibility with tests)` comment is removed.
-- The handler still returns successfully for valid inputs with no behavior change for valid requests (verified by passing handler tests with valid fixtures).
-- No reference to `ErrorCodes.InvalidDateRange` or `ErrorCodes.InvalidReportPeriod` remains in `GetMarginReportHandler`.
+- `GetMarginReportHandler.Handle()` no longer contains any of the three validation `if`-checks.
+- The "kept here for backward compatibility with tests" comment is removed.
+- The handler still produces the same successful output for valid inputs.
+- For invalid input arriving through the MediatR pipeline, `GetMarginReportRequestValidator` produces the same `InvalidDateRange` / `InvalidReportPeriod` error codes as before (no regression in error contract).
 
-### FR-2: Remove duplicate validation from `GetProductMarginAnalysisHandler`
-Apply the equivalent removal in `GetProductMarginAnalysisHandler.Handle()` lines 30–39.
+### FR-2: Remove Duplicate Validation from `GetProductMarginAnalysisHandler`
+Delete the equivalent manual validation `if`-checks (lines 30–39) from `GetProductMarginAnalysisHandler.Handle()` that duplicate rules in `GetProductMarginAnalysisRequestValidator`.
 
 **Acceptance criteria:**
-- Manual `if`-checks that duplicate rules in `GetProductMarginAnalysisRequestValidator` are removed.
-- Any locals (e.g. `totalDays`) that become unused after removal are deleted.
-- Handler returns successfully for valid inputs with no behavior change for valid requests.
-- No reference to validator-owned `ErrorCodes` remains in this handler.
+- `GetProductMarginAnalysisHandler.Handle()` no longer contains validation checks duplicated by `GetProductMarginAnalysisRequestValidator`.
+- Any associated dead local variables/comments are removed.
+- Handler still produces the same successful output for valid inputs.
+- Validation errors for invalid input continue to surface through the validator with identical error codes.
 
-### FR-3: Preserve external behavior through the MediatR pipeline
-For any request flowing through MediatR (the production code path and integration tests), the validation behavior must continue to reject invalid input with the same `ErrorCodes` (`InvalidDateRange`, `InvalidReportPeriod`) the handler used to return.
+### FR-3: Update Affected Unit Tests
+Identify all unit tests that invoke `GetMarginReportHandler.Handle()` or `GetProductMarginAnalysisHandler.Handle()` directly (bypassing the MediatR pipeline) and rely on the handler-level validation. For each such test, apply one of the following:
 
-**Acceptance criteria:**
-- `GetMarginReportRequestValidator` and `GetProductMarginAnalysisRequestValidator` already produce these `ErrorCodes` (verify by reading the validators). If any code is needed to map FluentValidation failures to the existing `ErrorCodes` shape, that mapping must remain functional after the change.
-- An end-to-end / handler-via-mediator test demonstrates that an invalid request (e.g. `StartDate > EndDate`) still yields the same `ErrorCodes.InvalidDateRange` response surface that callers see today.
-- The HTTP-facing controller(s) consuming these requests show no behavior change for valid or invalid inputs.
-
-### FR-4: Update unit tests that directly invoke `Handle()`
-Any test that constructs the handler and calls `Handle()` directly (bypassing MediatR) and relies on the removed validation must be migrated. Two acceptable migration paths:
-
-(a) **Pass valid inputs** — rewrite the test so the handler call uses valid data, and the test focuses on the business-logic path it actually intends to cover.
-
-(b) **Move to validator tests** — if the test's true intent was to verify the rule, move (or merge) the assertion into the corresponding validator unit-test class (`GetMarginReportRequestValidatorTests` / `GetProductMarginAnalysisRequestValidatorTests`, creating them if absent).
+- **(a)** If the test's purpose is to exercise business-logic paths, update the test to pass valid inputs and remove the validation-error assertion.
+- **(b)** If the test's purpose is to verify a validation rule, move the test to (or merge it with) the existing validator unit-test suite (`GetMarginReportRequestValidatorTests` / `GetProductMarginAnalysisRequestValidatorTests`), asserting on the validator's `ValidationResult` rather than on handler output.
 
 **Acceptance criteria:**
-- After the change, no test in the solution invokes `GetMarginReportHandler.Handle()` or `GetProductMarginAnalysisHandler.Handle()` with intentionally invalid input and asserts on `ErrorCodes.InvalidDateRange` or `ErrorCodes.InvalidReportPeriod`.
-- Validation-rule coverage (each of the three rules, per handler) is still asserted somewhere — either in validator unit tests or in pipeline/integration tests.
-- All Analytics tests pass: `dotnet test` for the Analytics test project is green.
-- No test is silently deleted: every migrated test either remains (with valid inputs / different intent) or has been re-homed to a validator test with equivalent or stronger assertions.
+- No remaining unit test instantiates a handler directly and asserts on `InvalidDateRange` or `InvalidReportPeriod` results.
+- Validation rule coverage (one test per rule per request type, at minimum: invalid date range, period > max, period < min) exists in the validator test suites.
+- All affected tests pass after the change.
+- Total test count for the Analytics module does not decrease without justification — moved tests are preserved, not deleted.
 
-### FR-5: No drift in validation constants
-Confirm both validators reference `AnalyticsConstants.MAX_REPORT_PERIOD_DAYS` and `AnalyticsConstants.MIN_REPORT_PERIOD_DAYS` (the same constants the handlers used). If a validator currently inlines a literal, update it to reference the constant so the single source of truth holds.
+### FR-4: Verify Validator Pipeline Wiring
+Confirm that the MediatR validation pipeline behavior (the `ValidationBehavior` or equivalent) actually short-circuits invalid requests before they reach the handler, producing the same response contract (error codes, HTTP status, response shape) that the handler-level checks previously produced.
 
 **Acceptance criteria:**
-- `GetMarginReportRequestValidator` and `GetProductMarginAnalysisRequestValidator` reference `AnalyticsConstants` for both period bounds.
-- A grep for the literal numeric values of those constants outside `AnalyticsConstants` returns no results inside the Analytics validators or handlers.
+- An integration or end-to-end test exists (or is added if absent) that submits an invalid request through the MediatR pipeline for each of: `GetMarginReportRequest`, `GetProductMarginAnalysisRequest`, and verifies the response carries the expected `InvalidDateRange` / `InvalidReportPeriod` error codes.
+- No change to the public error contract observable by API consumers.
 
 ## Non-Functional Requirements
 
-### NFR-1: Performance
-Removing the redundant in-handler checks slightly shortens the hot path (a `TimeSpan` subtraction and three branches per request). No measurable regression expected; no performance test required.
+### NFR-1: Behavioral Equivalence
+External behavior — both for the API consumer and for MediatR-dispatched callers — must be identical before and after the change. Error codes, error messages, and HTTP status codes for invalid requests must remain unchanged.
 
-### NFR-2: Security
-No change to authn/authz, no change to data exposure. Invalid-input rejection remains gated by the FluentValidation pipeline as today, so the security posture is unchanged.
+### NFR-2: No Performance Regression
+Removing the handler checks is expected to be performance-neutral or marginally positive (one fewer redundant validation pass per invalid request). No new allocations or hot-path work is introduced.
 
-### NFR-3: Maintainability
-The change reduces duplication and eliminates the documented "backward compatibility with tests" anti-pattern. After the change, a single grep for the validation rule lands in exactly one place per handler.
+### NFR-3: Build & Format Compliance
+`dotnet build` and `dotnet format` must pass cleanly after the change. No new warnings introduced.
 
-### NFR-4: Backwards compatibility (API contract)
-Callers of the affected MediatR requests (controllers, MCP tools, internal callers) must observe no change in the response shape for either valid or invalid inputs. Error codes returned to API consumers for invalid input remain `InvalidDateRange` / `InvalidReportPeriod`.
+### NFR-4: Test Suite Stability
+All existing tests (unit + integration) must pass after the change. The Analytics module's test coverage must not regress on the validation rules.
 
 ## Data Model
-No data-model changes. No EF Core migration. No DTO shape change.
-
-Entities touched (code-only, no schema):
-- `GetMarginReportRequest` / `GetMarginReportResponse` — unchanged.
-- `GetProductMarginAnalysisRequest` / `GetProductMarginAnalysisResponse` — unchanged.
-- `AnalyticsConstants` — unchanged, but verified as the canonical source of bounds.
-- `ErrorCodes.InvalidDateRange`, `ErrorCodes.InvalidReportPeriod` — unchanged; ownership shifts wholly to the validators.
+No data model changes. This is a code-quality refactor with no impact on persisted entities, request/response DTOs, or database schema.
 
 ## API / Interface Design
-No public-API surface changes.
+No public API surface changes:
+- Request DTOs (`GetMarginReportRequest`, `GetProductMarginAnalysisRequest`) unchanged.
+- Response DTOs and error codes (`InvalidDateRange`, `InvalidReportPeriod`) unchanged.
+- HTTP endpoints unchanged.
+- MediatR request/response contracts unchanged.
 
-Internal flow after the change:
-
-```
-HTTP request
-  → Controller
-    → MediatR Send(request)
-      → ValidationBehavior runs IValidator<TRequest>
-        → on failure: returns response with ErrorCodes.* (same as today)
-        → on success: invokes Handler.Handle()
-          → Handler executes business logic only (no input-validation if-blocks)
-```
-
-No new endpoints. No event/contract changes.
+Internal changes only:
+- `GetMarginReportHandler.Handle()` body shrinks.
+- `GetProductMarginAnalysisHandler.Handle()` body shrinks.
+- Possibly one or more test files updated/moved.
 
 ## Dependencies
-- **FluentValidation** — already in use; this change only relies on existing infrastructure.
-- **MediatR ValidationBehavior** — must already be registered in the pipeline for the affected requests. (Per the brief, it is; verify in `AnalyticsModule` / global MediatR configuration during implementation.)
-- **Existing validators**: `GetMarginReportRequestValidator`, `GetProductMarginAnalysisRequestValidator`.
-- **Existing constants**: `AnalyticsConstants.MAX_REPORT_PERIOD_DAYS`, `AnalyticsConstants.MIN_REPORT_PERIOD_DAYS`.
-
-No new packages. No new infrastructure.
+- **FluentValidation** — already in use; no version change.
+- **MediatR** — already in use; relies on existing `ValidationBehavior` (or equivalent) in the pipeline.
+- **AnalyticsModule DI registration** — already registers both validators; no change.
+- **AnalyticsConstants** — `MAX_REPORT_PERIOD_DAYS` and `MIN_REPORT_PERIOD_DAYS` remain the single source of truth, consumed only by validators after this change.
 
 ## Out of Scope
-- Refactoring other Analytics handlers not flagged by the brief.
-- Auditing the whole solution for the same pattern elsewhere (separate arch-review item).
-- Changing `ErrorCodes` enum values, names, or numeric codes.
-- Changing the response envelope or any DTO shape.
-- Restructuring `AnalyticsModule` DI registration beyond what FR-5 requires.
-- Adding new validation rules or relaxing existing ones.
-- Changing how the MediatR ValidationBehavior surfaces failures to controllers.
-- Updating documentation in `docs/` (unless a doc currently teaches the handler-level pattern; if so, fix it — but this is a stretch, not core scope).
+- Auditing other handlers across the codebase for similar duplication. Only `GetMarginReportHandler` and `GetProductMarginAnalysisHandler` are addressed here. (A follow-up arch-review finding may broaden this scope.)
+- Refactoring the validator classes themselves (rules, error codes, messages).
+- Changing `AnalyticsConstants` values.
+- Modifying the MediatR `ValidationBehavior` implementation.
+- Changing the public error contract (codes, messages, HTTP status).
+- Frontend changes — the TypeScript API client is auto-generated and unaffected.
 
 ## Open Questions
 None.
