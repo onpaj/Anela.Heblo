@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
-using Anela.Heblo.Application.Features.Dashboard.Tiles;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Hangfire;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,9 +16,6 @@ public static class DashboardModule
 
         // Per-user async lock for serializing concurrent UserDashboardSettings mutations
         services.AddSingleton<IUserDashboardSettingsLock, UserDashboardSettingsLock>();
-
-        // Register dashboard tiles
-        services.RegisterTile<PurchaseOrdersInTransitTile>();
 
         return services;
     }
