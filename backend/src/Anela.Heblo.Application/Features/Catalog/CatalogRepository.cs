@@ -140,7 +140,6 @@ public sealed class CatalogRepository : ICatalogRepository
     public DateTime? ErpPricesLoadDate => _cacheStore.GetLoadDateFromCache("CachedErpPriceData");
     public DateTime? EshopUrlLoadDate => _cacheStore.GetLoadDateFromCache("CachedEshopUrlData");
     public DateTime? ManufactureDifficultySettingsLoadDate => _cacheStore.GetLoadDateFromCache("CachedManufactureDifficultySettingsData");
-    public DateTime? ManufactureCostLoadDate => _cacheStore.GetLoadDateFromCache("CachedManufactureCostData");
 
     // --- Merge tracking ---
 
