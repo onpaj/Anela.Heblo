@@ -1,12 +1,10 @@
 using Anela.Heblo.Application.Features.Bank.Contracts;
+using Anela.Heblo.Application.Features.Bank.UseCases.GetBankAccounts;
 using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementList;
 using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
-using Anela.Heblo.Domain.Features.Bank;
-using Anela.Heblo.Domain.Shared;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -17,31 +15,21 @@ public class BankStatementsController : BaseApiController
 {
     private readonly IMediator _mediator;
     private readonly ILogger<BankStatementsController> _logger;
-    private readonly BankAccountSettings _bankSettings;
 
-    public BankStatementsController(IMediator mediator, ILogger<BankStatementsController> logger, IOptions<BankAccountSettings> bankSettings)
+    public BankStatementsController(IMediator mediator, ILogger<BankStatementsController> logger)
     {
         _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _bankSettings = bankSettings.Value ?? throw new ArgumentNullException(nameof(bankSettings));
     }
 
     /// <summary>
     /// Get list of configured bank accounts available for import
     /// </summary>
     [HttpGet("accounts")]
-    public ActionResult<IEnumerable<BankAccountDto>> GetAccounts()
+    public async Task<ActionResult<IEnumerable<BankAccountDto>>> GetAccounts(CancellationToken cancellationToken)
     {
-        var accounts = (_bankSettings.Accounts ?? [])
-            .Select(a => new BankAccountDto
-            {
-                Name = a.Name,
-                AccountNumber = a.AccountNumber,
-                Provider = a.Provider.ToString(),
-                Currency = a.Currency.ToString(),
-            });
-
-        return Ok(accounts);
+        var response = await _mediator.Send(new GetBankAccountsRequest(), cancellationToken);
+        return Ok(response.Accounts);
     }
 
     /// <summary>
