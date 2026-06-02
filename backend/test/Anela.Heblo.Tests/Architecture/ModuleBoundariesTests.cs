@@ -449,6 +449,62 @@ public class ModuleBoundariesTests
             "Found:\n  " + string.Join("\n  ", violations));
     }
 
+    [Fact]
+    public void Domain_must_not_reference_Application_and_relocated_invoice_types_must_be_gone()
+    {
+        // NFR-6: after relocating IssuedInvoiceFilters, PaginatedResult<T>, and
+        // IIssuedInvoiceRepository out of Domain, the Domain assembly must
+        // (a) not reference any Anela.Heblo.Application.* type, and
+        // (b) not contain types with the three relocated names anywhere under
+        // Anela.Heblo.Domain.Features.Invoices.
+        const string DomainNamespacePrefix = "Anela.Heblo.Domain";
+        const string ForbiddenPrefix = "Anela.Heblo.Application";
+        var relocatedTypeNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "IssuedInvoiceFilters",
+            "PaginatedResult`1",
+            "IIssuedInvoiceRepository",
+        };
+
+        var assembly = Assembly.Load("Anela.Heblo.Domain");
+        var domainTypes = assembly.GetTypes()
+            .Where(t => t.Namespace is not null
+                && t.Namespace.StartsWith(DomainNamespacePrefix, StringComparison.Ordinal))
+            .ToList();
+
+        // (a) No Domain type references any Application type.
+        var crossLayerViolations = new List<string>();
+        foreach (var domainType in domainTypes)
+        {
+            foreach (var (referencedType, memberDescription) in EnumerateReferencedTypes(domainType))
+            {
+                if (referencedType.Namespace is null)
+                    continue;
+
+                if (!referencedType.Namespace.Equals(ForbiddenPrefix, StringComparison.Ordinal)
+                    && !referencedType.Namespace.StartsWith(ForbiddenPrefix + ".", StringComparison.Ordinal))
+                    continue;
+
+                crossLayerViolations.Add($"{domainType.FullName} -> {referencedType.FullName} (via {memberDescription})");
+            }
+        }
+
+        crossLayerViolations.Should().BeEmpty(
+            "Domain layer must not reference Anela.Heblo.Application.* types. " +
+            "Found:\n  " + string.Join("\n  ", crossLayerViolations));
+
+        // (b) The three relocated type names must not exist anywhere under Domain.
+        var orphanRelocations = domainTypes
+            .Where(t => relocatedTypeNames.Contains(t.Name))
+            .Select(t => t.FullName)
+            .ToList();
+
+        orphanRelocations.Should().BeEmpty(
+            "Relocated types (IssuedInvoiceFilters, PaginatedResult<T>, IIssuedInvoiceRepository) " +
+            "must not exist in Anela.Heblo.Domain after the 2026-06-02 relocation. " +
+            "Found:\n  " + string.Join("\n  ", orphanRelocations));
+    }
+
     private static bool IsForbidden(Type type, IReadOnlyList<string> forbiddenPrefixes)
     {
         if (type.Namespace is null)
