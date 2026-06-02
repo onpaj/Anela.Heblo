@@ -1,24 +1,26 @@
-```markdown
-# Specification: Extract Single-Product Margin Calculation Helper
+# Specification: Consolidate Per-Product Margin Calculation in Analytics Module
 
 ## Summary
-Consolidate the duplicated per-product margin formula (`revenue = units × SellingPrice`, `cost = units × (SellingPrice − MarginAmount)`, `margin = revenue − cost`) into a single reusable method on `IMarginCalculator`. Three call sites currently re-implement this formula inline, and at least one has already drifted semantically from the others. Update all call sites to use the new method so the business definition of margin lives in exactly one place.
+The core per-product margin formula (`revenue = units × SellingPrice`, `cost = units × (SellingPrice − MarginAmount)`, `margin = revenue − cost`) is duplicated inline across three Analytics components, has already drifted semantically between them, and bypasses the existing `IMarginCalculator` service. This refactor consolidates the formula into a single method on `IMarginCalculator`, replaces all three inline copies with calls to it, and removes the now-redundant private helper in `GetProductMarginAnalysisHandler`.
 
 ## Background
-The Analytics module has an `IMarginCalculator` / `MarginCalculator` service that already centralizes margin aggregation for the `GetProductMarginSummary` use case. However, three other locations in the same module re-implement the single-product margin formula inline:
+The Analytics module computes per-product margin data in three call sites:
 
-1. `GetMarginReportHandler.ProcessProductsForReport()` (`backend/src/Anela.Heblo.Application/Features/Analytics/UseCases/GetMarginReport/GetMarginReportHandler.cs:113-117`)
-2. `GetProductMarginAnalysisHandler.CalculateProductMargins()` (`backend/src/Anela.Heblo.Application/Features/Analytics/UseCases/GetProductMarginAnalysis/GetProductMarginAnalysisHandler.cs:134-138`)
-3. `ReportBuilderService.BuildMonthlyBreakdown()` (`backend/src/Anela.Heblo.Application/Features/Analytics/Services/ReportBuilderService.cs:43-46`)
+1. `GetMarginReportHandler.ProcessProductsForReport()` (lines 112–116) — sums **all** `SalesHistory` entries on the product, ignoring the request's date range.
+2. `GetProductMarginAnalysisHandler.CalculateProductMargins()` (lines 138–146) — filters `SalesHistory` to the request's date range, then sums.
+3. `ReportBuilderService.BuildMonthlyBreakdown()` (lines 41–44) — operates on pre-filtered, per-month sales passed in by the caller.
 
-The three copies have already drifted semantically: `GetMarginReportHandler` sums **all** of `product.SalesHistory` (unfiltered by the request period), whereas `GetProductMarginAnalysisHandler` filters by date range first. Any future change to the margin definition (e.g. a different cost component) would require finding and updating each copy with the risk of further drift.
+All three implement the same arithmetic with the same fields (`SellingPrice`, `MarginAmount`, `AmountB2B + AmountB2C`). The shared `IMarginCalculator` / `MarginCalculator` already exists in `Application/Features/Analytics/Services/MarginCalculator.cs`, is registered in `AnalyticsModule`, and is used correctly by `GetProductMarginSummaryHandler`. However, it only exposes a *streaming aggregation* method (`CalculateAsync`); it has no single-product entry point, which is why the three handlers/services duplicate the formula instead of reusing it.
 
-The algebraic identity `units × SellingPrice − units × (SellingPrice − MarginAmount) = units × MarginAmount` is preserved by the new helper. The helper is a pure refactor — it must not change observed outputs for the period-filtered call sites — except for `GetMarginReportHandler`, where the pre-existing "all-history" behavior is a latent bug that this work corrects (see FR-2 below).
+Two real consequences of this duplication:
+
+- **Semantic drift already present.** `GetMarginReportHandler` and `GetProductMarginAnalysisHandler` ask the same business question ("margin for a product in a period") but compute different totals because one filters `SalesHistory` and the other does not. The duplication makes this drift invisible at review time.
+- **Change amplification.** The formula simplifies to `units × MarginAmount`. Any change to the business definition of margin (different cost component, different unit aggregation, additional fees) requires synchronized edits across three files and the risk of further drift.
 
 ## Functional Requirements
 
-### FR-1: Add single-product margin method to `IMarginCalculator`
-Add a method on `IMarginCalculator` that computes `AnalysisMarginData` for a single product given a pre-filtered sequence of `SalesDataPoint`s:
+### FR-1: Add a single-product margin calculation method to `IMarginCalculator`
+Extend the existing `IMarginCalculator` interface (`backend/src/Anela.Heblo.Application/Features/Analytics/Services/MarginCalculator.cs`) with a new method:
 
 ```csharp
 AnalysisMarginData CalculateForProduct(
@@ -26,107 +28,125 @@ AnalysisMarginData CalculateForProduct(
     IEnumerable<SalesDataPoint> salesInPeriod);
 ```
 
-The implementation must compute:
-- `UnitsSold = sum(salesInPeriod.AmountB2B + salesInPeriod.AmountB2C)` cast to `int`
-- `Revenue = (decimal)UnitsSold * product.SellingPrice`
-- `Cost = (decimal)UnitsSold * (product.SellingPrice - product.MarginAmount)`
-- `Margin = Revenue - Cost`
-- `MarginPercentage = Revenue > 0 ? (Margin / Revenue) * 100 : 0`
+Implement it once in `MarginCalculator` using the canonical formula:
+
+```csharp
+var units = (int)salesInPeriod.Sum(s => s.AmountB2B + s.AmountB2C);
+var revenue = (decimal)units * product.SellingPrice;
+var cost = (decimal)units * (product.SellingPrice - product.MarginAmount);
+var margin = revenue - cost;
+var marginPercentage = revenue > 0 ? (margin / revenue) * 100m : 0m;
+return new AnalysisMarginData { Revenue = revenue, Cost = cost, Margin = margin, MarginPercentage = marginPercentage, UnitsSold = units };
+```
+
+The caller is responsible for filtering `SalesHistory` to the desired period before passing it in. This makes the period-filtering decision an explicit, visible call-site concern instead of a hidden behavior of the calculator.
 
 **Acceptance criteria:**
-- `IMarginCalculator.CalculateForProduct(product, salesInPeriod)` returns `AnalysisMarginData` matching the formulas above.
-- Method is a pure function: no I/O, no DI on additional services, no state.
-- When `salesInPeriod` is empty: `UnitsSold = 0`, `Revenue = 0`, `Cost = 0`, `Margin = 0`, `MarginPercentage = 0`.
-- New unit tests in `MarginCalculatorTests` cover: (a) non-empty sales producing expected values, (b) empty sales producing zeros, (c) `SellingPrice = 0` producing `MarginPercentage = 0`, (d) mixed B2B+B2C sales summed correctly.
+- New method `CalculateForProduct(AnalyticsProduct, IEnumerable<SalesDataPoint>)` exists on both `IMarginCalculator` and `MarginCalculator`.
+- Existing `CalculateAsync` / `GetGroupKey` / `GetGroupDisplayName` / `GetMarginAmountForLevel` methods remain unchanged in signature and behavior.
+- New method is covered by direct unit tests: empty sales → zero result; mixed B2B/B2C entries → correct sums; `SellingPrice = 0` → zero revenue and `marginPercentage = 0`; large `decimal` values → no overflow.
+- `MarginCalculator` continues to be registered as scoped in `AnalyticsModule.AddAnalyticsModule()`.
 
-### FR-2: Update `GetMarginReportHandler` to use `IMarginCalculator`
-Inject `IMarginCalculator` into `GetMarginReportHandler` and replace the inline formula at lines 113-117 with a call to `CalculateForProduct`. The handler must pass **only the sales filtered to the request period** (`product.SalesHistory.Where(s => s.Date >= startDate && s.Date <= endDate)`), bringing it into alignment with `GetProductMarginAnalysisHandler`.
+### FR-2: Replace inline formula in `GetMarginReportHandler` with `IMarginCalculator`
+Inject `IMarginCalculator` into `GetMarginReportHandler` (constructor) and replace the inline calculation in `ProcessProductsForReport()` (lines 111–127) with a call to `_marginCalculator.CalculateForProduct(product, salesInPeriod)`.
 
-**Acceptance criteria:**
-- `GetMarginReportHandler` constructor accepts `IMarginCalculator`.
-- Inline computation of `revenue`, `cost`, `margin`, `marginPercentage`, and `totalSales` is removed from `ProcessProductsForReport`.
-- The handler now filters `SalesHistory` by `startDate`/`endDate` before passing to `CalculateForProduct` (correcting the pre-existing bug where unfiltered history was summed).
-- Existing `GetMarginReportHandlerTests` still pass; any test that asserts on "all history" behavior is updated to reflect the corrected period-filtered semantics, with the change noted in the PR description.
-- The check at `HasSalesInPeriod` (line 154) is retained as an early-skip for products with zero sales in the period.
-
-### FR-3: Update `GetProductMarginAnalysisHandler` to use `IMarginCalculator`
-Inject `IMarginCalculator` into `GetProductMarginAnalysisHandler` and replace the private `CalculateProductMargins` method (lines 128-148) with a call to `CalculateForProduct`. Remove the private method.
+**Behavior change — intentional.** The current handler sums `product.SalesHistory` without filtering by `request.StartDate / request.EndDate`. This is a latent bug: the existing `HasSalesInPeriod` check is a gate, but once a product passes the gate, sales from *outside* the period are also counted. After this refactor, the handler MUST filter `SalesHistory` to `[StartDate, EndDate]` before passing it to the calculator, matching the behavior of `GetProductMarginAnalysisHandler`.
 
 **Acceptance criteria:**
-- `GetProductMarginAnalysisHandler` constructor accepts `IMarginCalculator`.
-- `private static AnalysisMarginData CalculateProductMargins(...)` is deleted.
-- Filtering `SalesHistory` by date range happens at the call site (as it does today) before invoking `CalculateForProduct`.
-- Existing `GetProductMarginAnalysisHandlerTests` continue to pass without semantic changes.
+- `GetMarginReportHandler` constructor takes `IMarginCalculator`.
+- The inline revenue/cost/margin/marginPercentage computation in `ProcessProductsForReport()` is removed.
+- Per-product sales are filtered to `[request.StartDate, request.EndDate]` before being passed to `CalculateForProduct`.
+- Existing `GetMarginReportHandlerTests` are updated to reflect the new (correct) period-filtered totals and the new constructor signature.
+- A regression test is added: a product with sales both inside and outside the report period produces totals that count only the in-period sales.
 
-### FR-4: Update `ReportBuilderService.BuildMonthlyBreakdown` to use `IMarginCalculator`
-Inject `IMarginCalculator` into `ReportBuilderService` and update `BuildMonthlyBreakdown` to call `CalculateForProduct` once per month, using sales filtered to that month. The fields `Revenue`, `Cost`, `MarginAmount`, and `UnitsSold` on `MonthlyMarginBreakdown` are populated from the returned `AnalysisMarginData`.
+### FR-3: Replace inline formula in `GetProductMarginAnalysisHandler` with `IMarginCalculator`
+Inject `IMarginCalculator` into `GetProductMarginAnalysisHandler`, remove the private static `CalculateProductMargins()` method (lines 133–156), and call `_marginCalculator.CalculateForProduct(productData, salesInPeriod)` from `Handle()`.
 
 **Acceptance criteria:**
-- `ReportBuilderService` constructor accepts `IMarginCalculator`.
-- The inline formula at lines 43-46 is removed.
-- Each month's breakdown is computed by passing the month-filtered sales to `CalculateForProduct`.
-- Existing `ReportBuilderServiceTests` (if any) continue to pass; values per month are identical to current behavior.
+- `GetProductMarginAnalysisHandler` constructor takes `IMarginCalculator`.
+- Private static `CalculateProductMargins` is deleted.
+- The handler filters `SalesHistory` to `[request.StartDate, request.EndDate]` before passing to the calculator (preserving today's behavior).
+- Existing `GetProductMarginAnalysisHandlerTests` continue to pass with no expected-value changes; the only test edits are to constructor wiring.
+
+### FR-4: Replace inline formula in `ReportBuilderService.BuildMonthlyBreakdown`
+Inject `IMarginCalculator` into `ReportBuilderService` and replace the inline revenue/cost/margin computation in `BuildMonthlyBreakdown()` (lines 41–44) with a call to `_marginCalculator.CalculateForProduct(productData, monthSales)`.
+
+The caller of `BuildMonthlyBreakdown` continues to pass `salesData` already filtered to the analysis period; this method then sub-filters per month and delegates the arithmetic.
+
+**Note:** The brief suggests an alternative shape — making the caller pass pre-computed `AnalysisMarginData` per month into a smaller `BuildMonthlyBreakdown` overload. This spec rejects that alternative because (a) it pushes the month-bucketing loop up into the only caller (`GetProductMarginAnalysisHandler`), increasing call-site complexity, and (b) the current shape already accepts `salesData` plus `productData`, so injecting `IMarginCalculator` is the minimal change. The bucketing-by-month logic stays in `ReportBuilderService`; only the per-bucket arithmetic is delegated.
+
+**Acceptance criteria:**
+- `ReportBuilderService` constructor takes `IMarginCalculator`; `IReportBuilderService` interface is unchanged.
+- The inline `monthlyRevenue / monthlyCost / monthlyMargin` lines are removed.
+- `MonthlyMarginBreakdownDto` continues to be populated with the same field semantics as today (verified by existing tests).
+- Unit test confirms a month with zero sales produces a row with `UnitsSold = 0`, `Revenue = 0`, `Cost = 0`, `MarginAmount = 0`.
 
 ### FR-5: DI registration unchanged
-`IMarginCalculator` is already registered in `AnalyticsModule.AddAnalyticsModule()` as `Scoped`. No registration changes are required. The two newly-injecting consumers (`GetMarginReportHandler`, `GetProductMarginAnalysisHandler`) are auto-registered by MediatR; `ReportBuilderService` is already registered as `Scoped`.
+`AnalyticsModule.AddAnalyticsModule()` already registers `IMarginCalculator` as scoped. No new registrations are required. The three components that now depend on `IMarginCalculator` resolve it from the existing scoped registration.
 
 **Acceptance criteria:**
-- No edits to `AnalyticsModule.cs` are needed.
-- App boots successfully (`dotnet build` + integration smoke).
+- `AnalyticsModule.cs` requires no edits beyond what the compiler forces (none expected).
+- Application starts and the DI container resolves `GetMarginReportHandler`, `GetProductMarginAnalysisHandler`, and `IReportBuilderService` without error (verified by an integration test or smoke run).
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
-The refactor must not regress measured throughput of any of the three use cases. `CalculateForProduct` is O(n) over the supplied sales sequence — same as the inline code it replaces. The method must enumerate `salesInPeriod` exactly once (no double-iteration via repeated `.Sum()` calls).
+Refactor must be performance-neutral. The new method does the same arithmetic as the inlined version; the only added cost per call is one virtual dispatch and one IEnumerable enumeration. Both are negligible against the existing per-product LINQ work. No new allocations on hot paths beyond the `AnalysisMarginData` instance already created today.
 
-### NFR-2: Correctness / Determinism
-Outputs for `GetProductMarginAnalysis` and `ReportBuilderService.BuildMonthlyBreakdown` must be bit-identical to current behavior for the same inputs. Outputs for `GetMarginReport` change only insofar as sales outside the requested period are no longer counted (the bug fix in FR-2).
+### NFR-2: Correctness & test coverage
+- All existing tests in `backend/test/Anela.Heblo.Tests/Features/Analytics/` continue to pass after updates (test edits limited to constructor wiring and the FR-2 period-filtering correction).
+- New direct unit tests for `MarginCalculator.CalculateForProduct` cover: empty input, B2B-only, B2C-only, mixed B2B+B2C, zero `SellingPrice`, zero `MarginAmount`, large-value safety.
+- Regression test for FR-2 proves the period-filter fix.
 
-### NFR-3: Testability
-The new method must be unit-testable without DI infrastructure or mocks. Existing handler tests should not require new mocks for `IMarginCalculator` beyond a simple substitute, since the production implementation is a pure function and can be used directly in tests via `new MarginCalculator()`.
+### NFR-3: Backward compatibility
+- Public API responses (`GetMarginReportResponse`, `GetProductMarginAnalysisResponse`) are unchanged in shape.
+- The only observable behavior change is the FR-2 correction (margin-report totals now exclude out-of-period sales). This is a bug fix, not a contract change.
+
+### NFR-4: Coding standards
+- `IMarginCalculator` lives in `Application/Features/Analytics/Services/` — keep it there.
+- Follow project rules from `CLAUDE.md`: surgical changes only; no formatting churn outside touched lines; no new comments unless the why is non-obvious.
 
 ## Data Model
-No data model changes. The refactor uses existing types:
-- `Anela.Heblo.Domain.Features.Analytics.AnalyticsProduct`
-- `Anela.Heblo.Domain.Features.Analytics.SalesDataPoint`
-- `Anela.Heblo.Application.Features.Analytics.Contracts.AnalysisMarginData`
+No schema changes. The refactor relies entirely on existing types:
+- `Anela.Heblo.Domain.Features.Analytics.AnalyticsProduct` — source of `SellingPrice`, `MarginAmount`, `SalesHistory`.
+- `Anela.Heblo.Domain.Features.Analytics.SalesDataPoint` — source of `AmountB2B`, `AmountB2C`, `Date`.
+- `Anela.Heblo.Application.Features.Analytics.Contracts.AnalysisMarginData` — return type, unchanged.
 
 ## API / Interface Design
-**Interface change** (additive only):
+
+**Modified interface** (additive):
 ```csharp
+// Application/Features/Analytics/Services/MarginCalculator.cs
 public interface IMarginCalculator
 {
-    // existing members unchanged ...
-
+    // ...existing members unchanged...
     AnalysisMarginData CalculateForProduct(
         AnalyticsProduct product,
         IEnumerable<SalesDataPoint> salesInPeriod);
 }
 ```
 
-**Constructor signature changes:**
+**Modified constructors**:
 - `GetMarginReportHandler(IAnalyticsRepository, IProductFilterService, IReportBuilderService, IMarginCalculator)`
 - `GetProductMarginAnalysisHandler(IAnalyticsRepository, IReportBuilderService, IMarginCalculator)`
 - `ReportBuilderService(IMarginCalculator)`
 
-No public HTTP API surface changes. No DTO changes. No frontend impact.
+No HTTP/MediatR contract changes. No frontend changes. No database migration.
 
 ## Dependencies
-- `Anela.Heblo.Application.Features.Analytics.Services.IMarginCalculator` (already exists, already DI-registered)
-- `Anela.Heblo.Application.Features.Analytics.Contracts.AnalysisMarginData` (existing type)
-- `Anela.Heblo.Domain.Features.Analytics.AnalyticsProduct` / `SalesDataPoint` (existing types)
-
-No new NuGet packages. No new external services.
+- Existing `IMarginCalculator` / `MarginCalculator` (in-module).
+- Existing DI registration in `AnalyticsModule`.
+- Existing test fixtures and mocks in `backend/test/Anela.Heblo.Tests/Features/Analytics/`.
+- No new NuGet packages.
 
 ## Out of Scope
-- Consolidating the `M0/M1/M2`-level margin formulas (`product.M{n}Amount × totalSales`) that appear in `MarginCalculator.CalculateAsync` and `GetProductMarginSummaryHandler.CalculateTotalMarginForLevel`. Those use a different formula (per-level margin amount, not selling-price-minus-cost) and are a separate consolidation opportunity.
-- Changing the `AnalysisMarginData` shape or adding new fields.
-- Touching the `SafeMarginCalculator` in the Catalog module — it serves a different purpose (catalog-level margin computation from cost components) and is not duplicating the analytics formula.
-- Frontend changes; all consumers receive the same DTO shape.
-- Performance optimization beyond avoiding double-enumeration of the sales sequence.
+- Catalog module's `SafeMarginCalculator` (`Application/Features/Catalog/Services/SafeMarginCalculator.cs`) — separate concern, different domain, different formula contract. Not touched.
+- `GetProductMarginSummaryHandler` — already uses `IMarginCalculator` correctly; the group-level aggregation in `CalculateGroupMarginData` / `CalculateTotalMarginForLevel` is a different shape and stays as-is.
+- `MonthlyBreakdownGenerator` (used by `GetProductMarginSummaryHandler`) — not one of the three duplicated sites; out of scope.
+- Generalizing `AnalysisMarginData` into a value object or making `IMarginCalculator` work with M0/M1/M2 levels for the single-product path. The current single-product call sites use only `MarginAmount` (the legacy field), not the M0–M2 amounts; preserving that keeps the refactor surgical.
+- Frontend changes; OpenAPI client regeneration is not required because no DTOs change.
 
 ## Open Questions
 None.
 
 ## Status: COMPLETE
-```
