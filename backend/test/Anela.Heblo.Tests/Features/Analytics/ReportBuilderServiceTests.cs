@@ -14,6 +14,10 @@ public class ReportBuilderServiceTests
     {
         var product = new AnalyticsProduct
         {
+            ProductCode = "TEST",
+            ProductName = "Test Product",
+            Type = AnalyticsProductType.Product,
+            SalesHistory = [],
             SellingPrice = 100m,
             MarginAmount = 30m
         };
@@ -42,6 +46,10 @@ public class ReportBuilderServiceTests
     {
         var product = new AnalyticsProduct
         {
+            ProductCode = "TEST",
+            ProductName = "Test Product",
+            Type = AnalyticsProductType.Product,
+            SalesHistory = [],
             SellingPrice = 150m,
             MarginAmount = 100m
         };

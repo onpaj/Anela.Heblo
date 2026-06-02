@@ -11,7 +11,15 @@ public class MarginCalculatorTests
     private readonly MarginCalculator _calculator = new();
 
     private static AnalyticsProduct MakeProduct(decimal sellingPrice, decimal marginAmount) =>
-        new() { SellingPrice = sellingPrice, MarginAmount = marginAmount };
+        new()
+        {
+            ProductCode = "TEST",
+            ProductName = "Test Product",
+            Type = AnalyticsProductType.Product,
+            SalesHistory = [],
+            SellingPrice = sellingPrice,
+            MarginAmount = marginAmount
+        };
 
     [Fact]
     public void CalculateForProduct_EmptySales_ReturnsAllZeros()
@@ -28,7 +36,7 @@ public class MarginCalculatorTests
     [Fact]
     public void CalculateForProduct_B2BOnly_ComputesCorrectly()
     {
-        var sales = new List<SalesDataPoint> { new() { AmountB2B = 10, AmountB2C = 0 } };
+        var sales = new List<SalesDataPoint> { new() { Date = default, AmountB2B = 10, AmountB2C = 0 } };
         var result = _calculator.CalculateForProduct(MakeProduct(100m, 30m), sales);
 
         result.UnitsSold.Should().Be(10);
@@ -41,7 +49,7 @@ public class MarginCalculatorTests
     [Fact]
     public void CalculateForProduct_B2COnly_ComputesCorrectly()
     {
-        var sales = new List<SalesDataPoint> { new() { AmountB2B = 0, AmountB2C = 5 } };
+        var sales = new List<SalesDataPoint> { new() { Date = default, AmountB2B = 0, AmountB2C = 5 } };
         var result = _calculator.CalculateForProduct(MakeProduct(200m, 50m), sales);
 
         result.UnitsSold.Should().Be(5);
@@ -56,8 +64,8 @@ public class MarginCalculatorTests
     {
         var sales = new List<SalesDataPoint>
         {
-            new() { AmountB2B = 10, AmountB2C = 5 },
-            new() { AmountB2B = 20, AmountB2C = 10 }
+            new() { Date = default, AmountB2B = 10, AmountB2C = 5 },
+            new() { Date = default, AmountB2B = 20, AmountB2C = 10 }
         };
         var result = _calculator.CalculateForProduct(MakeProduct(150m, 100m), sales);
 
@@ -71,7 +79,7 @@ public class MarginCalculatorTests
     [Fact]
     public void CalculateForProduct_ZeroSellingPrice_ReturnsZeroRevenueAndZeroMarginPercentage()
     {
-        var sales = new List<SalesDataPoint> { new() { AmountB2B = 10, AmountB2C = 0 } };
+        var sales = new List<SalesDataPoint> { new() { Date = default, AmountB2B = 10, AmountB2C = 0 } };
         var result = _calculator.CalculateForProduct(MakeProduct(0m, 0m), sales);
 
         result.Revenue.Should().Be(0m);
@@ -81,7 +89,7 @@ public class MarginCalculatorTests
     [Fact]
     public void CalculateForProduct_ZeroMarginAmount_ReturnsZeroMargin()
     {
-        var sales = new List<SalesDataPoint> { new() { AmountB2B = 10, AmountB2C = 0 } };
+        var sales = new List<SalesDataPoint> { new() { Date = default, AmountB2B = 10, AmountB2C = 0 } };
         var result = _calculator.CalculateForProduct(MakeProduct(100m, 0m), sales);
 
         result.Margin.Should().Be(0m);
@@ -91,7 +99,7 @@ public class MarginCalculatorTests
     [Fact]
     public void CalculateForProduct_NegativeMarginAmount_ComputesCorrectly()
     {
-        var sales = new List<SalesDataPoint> { new() { AmountB2B = 10, AmountB2C = 0 } };
+        var sales = new List<SalesDataPoint> { new() { Date = default, AmountB2B = 10, AmountB2C = 0 } };
         var result = _calculator.CalculateForProduct(MakeProduct(100m, -20m), sales);
 
         result.Margin.Should().Be(-200m);
@@ -100,7 +108,7 @@ public class MarginCalculatorTests
     [Fact]
     public void CalculateForProduct_LargeValues_NoOverflow()
     {
-        var sales = new List<SalesDataPoint> { new() { AmountB2B = 1_000_000, AmountB2C = 0 } };
+        var sales = new List<SalesDataPoint> { new() { Date = default, AmountB2B = 1_000_000, AmountB2C = 0 } };
         var result = _calculator.CalculateForProduct(MakeProduct(9999.99m, 5000m), sales);
 
         result.UnitsSold.Should().Be(1_000_000);
@@ -111,16 +119,16 @@ public class MarginCalculatorTests
     [Fact]
     public void CalculateForProduct_EnumeratesSequenceExactlyOnce()
     {
-        var enumerationCount = 0;
-        var sales = GetSalesWithCounter(ref enumerationCount);
+        var enumerationCount = new[] { 0 };
+        var sales = GetSalesWithCounter(enumerationCount);
         _calculator.CalculateForProduct(MakeProduct(100m, 30m), sales);
 
-        enumerationCount.Should().Be(1);
+        enumerationCount[0].Should().Be(1);
     }
 
-    private static IEnumerable<SalesDataPoint> GetSalesWithCounter(ref int counter)
+    private static IEnumerable<SalesDataPoint> GetSalesWithCounter(int[] counter)
     {
-        counter++;
-        yield return new SalesDataPoint { AmountB2B = 5, AmountB2C = 0 };
+        counter[0]++;
+        yield return new SalesDataPoint { Date = default, AmountB2B = 5, AmountB2C = 0 };
     }
 }
