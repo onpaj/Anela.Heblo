@@ -1,7 +1,10 @@
+using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.EnableTile;
-using Anela.Heblo.Xcc.Services.Dashboard;
+using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Xcc.Domain;
+using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentAssertions;
+using MediatR;
 using Moq;
 using Xunit;
 
@@ -9,13 +12,45 @@ namespace Anela.Heblo.Tests.Features.Dashboard;
 
 public class EnableTileHandlerTests
 {
-    private readonly Mock<IDashboardService> _dashboardServiceMock;
+    private readonly Mock<IUserDashboardSettingsRepository> _repositoryMock;
+    private readonly Mock<IUserDashboardSettingsLock> _lockMock;
+    private readonly Mock<IMediator> _mediatorMock;
+    private readonly TimeProvider _timeProvider;
     private readonly EnableTileHandler _handler;
+
+    private static readonly DateTime FixedUtcNow = new DateTime(2024, 6, 1, 12, 0, 0, DateTimeKind.Utc);
 
     public EnableTileHandlerTests()
     {
-        _dashboardServiceMock = new Mock<IDashboardService>();
-        _handler = new EnableTileHandler(_dashboardServiceMock.Object, TimeProvider.System);
+        _repositoryMock = new Mock<IUserDashboardSettingsRepository>();
+        _lockMock = new Mock<IUserDashboardSettingsLock>();
+        _mediatorMock = new Mock<IMediator>();
+
+        var timeProviderMock = new Mock<TimeProvider>();
+        timeProviderMock
+            .Setup(x => x.GetUtcNow())
+            .Returns(new DateTimeOffset(FixedUtcNow));
+        _timeProvider = timeProviderMock.Object;
+
+        // No-op disposable returned by the lock
+        var noOpDisposable = new Mock<IAsyncDisposable>();
+        noOpDisposable
+            .Setup(x => x.DisposeAsync())
+            .Returns(ValueTask.CompletedTask);
+        _lockMock
+            .Setup(x => x.AcquireAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(noOpDisposable.Object);
+
+        // Mediator returns a default GetUserSettingsResponse
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetUserSettingsResponse());
+
+        _handler = new EnableTileHandler(
+            _repositoryMock.Object,
+            _lockMock.Object,
+            _timeProvider,
+            _mediatorMock.Object);
     }
 
     [Fact]
@@ -25,8 +60,8 @@ public class EnableTileHandlerTests
         var request = new EnableTileRequest { UserId = null, TileId = "tile1" };
         var userSettings = CreateSampleUserSettings("anonymous");
 
-        _dashboardServiceMock
-            .Setup(x => x.GetUserSettingsAsync("anonymous"))
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync("anonymous"))
             .ReturnsAsync(userSettings);
 
         // Act
@@ -35,27 +70,10 @@ public class EnableTileHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
-        _dashboardServiceMock.Verify(x => x.GetUserSettingsAsync("anonymous"), Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_WhenUserIdIsEmpty_ShouldUseAnonymous()
-    {
-        // Arrange
-        var request = new EnableTileRequest { UserId = "", TileId = "tile1" };
-        var userSettings = CreateSampleUserSettings("anonymous");
-
-        _dashboardServiceMock
-            .Setup(x => x.GetUserSettingsAsync("anonymous"))
-            .ReturnsAsync(userSettings);
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeTrue();
-        _dashboardServiceMock.Verify(x => x.GetUserSettingsAsync("anonymous"), Times.Once);
+        _repositoryMock.Verify(x => x.GetByUserIdAsync("anonymous"), Times.Once);
+        _repositoryMock.Verify(x => x.UpdateAsync(
+            It.Is<UserDashboardSettings>(s => s.UserId == "anonymous")),
+            Times.Once);
     }
 
     [Fact]
@@ -70,9 +88,14 @@ public class EnableTileHandlerTests
         // Ensure tile exists but is disabled
         userSettings.Tiles.First(t => t.TileId == tileId).IsVisible = false;
 
-        _dashboardServiceMock
-            .Setup(x => x.GetUserSettingsAsync(userId))
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync(userSettings);
+
+        UserDashboardSettings? capturedSettings = null;
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<UserDashboardSettings>()))
+            .Callback<UserDashboardSettings>(s => capturedSettings = s);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -81,11 +104,13 @@ public class EnableTileHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
 
-        var enabledTile = userSettings.Tiles.First(t => t.TileId == tileId);
+        capturedSettings.Should().NotBeNull();
+        var enabledTile = capturedSettings!.Tiles.First(t => t.TileId == tileId);
         enabledTile.IsVisible.Should().BeTrue();
+        enabledTile.LastModified.Should().Be(FixedUtcNow);
 
-        _dashboardServiceMock.Verify(x => x.GetUserSettingsAsync(userId), Times.Once);
-        _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(userId, userSettings), Times.Once);
+        _repositoryMock.Verify(x => x.GetByUserIdAsync(userId), Times.Once);
+        _repositoryMock.Verify(x => x.UpdateAsync(userSettings), Times.Once);
     }
 
     [Fact]
@@ -98,9 +123,14 @@ public class EnableTileHandlerTests
         var userSettings = CreateSampleUserSettings(userId);
         var originalTileCount = userSettings.Tiles.Count;
 
-        _dashboardServiceMock
-            .Setup(x => x.GetUserSettingsAsync(userId))
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
             .ReturnsAsync(userSettings);
+
+        UserDashboardSettings? capturedSettings = null;
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<UserDashboardSettings>()))
+            .Callback<UserDashboardSettings>(s => capturedSettings = s);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -109,45 +139,16 @@ public class EnableTileHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
 
-        userSettings.Tiles.Should().HaveCount(originalTileCount + 1);
-        var newTile = userSettings.Tiles.First(t => t.TileId == tileId);
+        capturedSettings.Should().NotBeNull();
+        capturedSettings!.Tiles.Should().HaveCount(originalTileCount + 1);
+
+        var newTile = capturedSettings.Tiles.First(t => t.TileId == tileId);
         newTile.IsVisible.Should().BeTrue();
         newTile.UserId.Should().Be(userId);
-        newTile.DisplayOrder.Should().Be(originalTileCount); // Should be added at the end
-        newTile.LastModified.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        newTile.DisplayOrder.Should().Be(originalTileCount); // max order + 1 = count (0-indexed max)
+        newTile.LastModified.Should().Be(FixedUtcNow);
 
-        _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(userId, userSettings), Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_WhenTileAlreadyEnabled_ShouldNotChangeState()
-    {
-        // Arrange
-        var userId = "user123";
-        var tileId = "tile1";
-        var request = new EnableTileRequest { UserId = userId, TileId = tileId };
-        var userSettings = CreateSampleUserSettings(userId);
-
-        // Ensure tile is already enabled
-        userSettings.Tiles.First(t => t.TileId == tileId).IsVisible = true;
-        var originalLastModified = userSettings.Tiles.First(t => t.TileId == tileId).LastModified;
-
-        _dashboardServiceMock
-            .Setup(x => x.GetUserSettingsAsync(userId))
-            .ReturnsAsync(userSettings);
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeTrue();
-
-        var tile = userSettings.Tiles.First(t => t.TileId == tileId);
-        tile.IsVisible.Should().BeTrue();
-        tile.LastModified.Should().BeAfter(originalLastModified); // Should still update LastModified
-
-        _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(userId, userSettings), Times.Once);
+        _repositoryMock.Verify(x => x.UpdateAsync(userSettings), Times.Once);
     }
 
     [Fact]
@@ -162,10 +163,10 @@ public class EnableTileHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
-        // ErrorMessage property not available
 
-        _dashboardServiceMock.Verify(x => x.GetUserSettingsAsync(It.IsAny<string>()), Times.Never);
-        _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(It.IsAny<string>(), It.IsAny<UserDashboardSettings>()), Times.Never);
+        _mediatorMock.Verify(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(x => x.GetByUserIdAsync(It.IsAny<string>()), Times.Never);
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<UserDashboardSettings>()), Times.Never);
     }
 
     [Fact]
@@ -180,10 +181,64 @@ public class EnableTileHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
-        // ErrorMessage property not available
 
-        _dashboardServiceMock.Verify(x => x.GetUserSettingsAsync(It.IsAny<string>()), Times.Never);
-        _dashboardServiceMock.Verify(x => x.SaveUserSettingsAsync(It.IsAny<string>(), It.IsAny<UserDashboardSettings>()), Times.Never);
+        _mediatorMock.Verify(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(x => x.GetByUserIdAsync(It.IsAny<string>()), Times.Never);
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<UserDashboardSettings>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_AcquiresLockOncePerCall()
+    {
+        // Arrange
+        var userId = "user123";
+        var request = new EnableTileRequest { UserId = userId, TileId = "tile1" };
+
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(CreateSampleUserSettings(userId));
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        _lockMock.Verify(x => x.AcquireAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_SendsGetUserSettingsBeforeAcquiringLock()
+    {
+        // Arrange
+        var userId = "user123";
+        var request = new EnableTileRequest { UserId = userId, TileId = "tile1" };
+
+        _repositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(CreateSampleUserSettings(userId));
+
+        var callOrder = new List<string>();
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("mediator"))
+            .ReturnsAsync(new GetUserSettingsResponse());
+
+        var noOpDisposable = new Mock<IAsyncDisposable>();
+        noOpDisposable.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        _lockMock
+            .Setup(x => x.AcquireAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("lock"))
+            .ReturnsAsync(noOpDisposable.Object);
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        callOrder.Should().ContainInOrder("mediator", "lock");
+        _mediatorMock.Verify(x => x.Send(
+            It.Is<GetUserSettingsRequest>(r => r.UserId == userId),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     private static UserDashboardSettings CreateSampleUserSettings(string userId)

@@ -52,13 +52,3 @@ public class SalesDataPoint
 /// Value object for date range queries
 /// </summary>
 public record DateRange(DateTime FromDate, DateTime ToDate);
-
-/// <summary>
-/// Result object for margin calculations
-/// </summary>
-public class MarginCalculationResult
-{
-    public required Dictionary<string, decimal> GroupTotals { get; init; }
-    public required Dictionary<string, List<AnalyticsProduct>> GroupProducts { get; init; }
-    public required decimal TotalMargin { get; init; }
-}

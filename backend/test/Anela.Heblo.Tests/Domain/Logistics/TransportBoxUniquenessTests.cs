@@ -1,10 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases;
 using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Persistence;
@@ -25,7 +23,7 @@ public class TransportBoxUniquenessTests : IDisposable
     private readonly ChangeTransportBoxStateHandler _handler;
     private readonly Mock<ICurrentUserService> _mockUserService;
     private readonly Mock<IMediator> _mockMediator;
-    private readonly Mock<IStockUpProcessingService> _mockStockUpProcessingService;
+    private readonly Mock<ILogisticsStockOperationService> _mockStockUpProcessingService;
     private readonly Mock<IInventoryReservationService> _mockInventoryReservationService;
 
     private const string TestUser = "TestUser";
@@ -42,7 +40,7 @@ public class TransportBoxUniquenessTests : IDisposable
         _repository = new TransportBoxRepository(_dbContext, NullLogger<TransportBoxRepository>.Instance);
         _mockUserService = new Mock<ICurrentUserService>();
         _mockMediator = new Mock<IMediator>();
-        _mockStockUpProcessingService = new Mock<IStockUpProcessingService>();
+        _mockStockUpProcessingService = new Mock<ILogisticsStockOperationService>();
         _mockInventoryReservationService = new Mock<IInventoryReservationService>();
 
         _mockUserService.Setup(x => x.GetCurrentUser())
@@ -53,7 +51,7 @@ public class TransportBoxUniquenessTests : IDisposable
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<int>(),
-                It.IsAny<StockUpSourceType>(),
+                It.IsAny<LogisticsStockOperationSource>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);

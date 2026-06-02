@@ -1,9 +1,8 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.BackgroundJobs.DashboardTiles;
+using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentAssertions;
-using Hangfire;
-using Hangfire.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -12,20 +11,20 @@ namespace Anela.Heblo.Tests.Features.BackgroundJobs.DashboardTiles;
 
 public sealed class FailedJobsTileTests
 {
-    private readonly Mock<JobStorage> _storageMock = new();
-    private readonly Mock<IMonitoringApi> _monitoringApiMock = new();
+    private readonly Mock<IFailedJobCounter> _counterMock = new();
     private readonly FailedJobsTile _tile;
 
     public FailedJobsTileTests()
     {
-        _storageMock.Setup(s => s.GetMonitoringApi()).Returns(_monitoringApiMock.Object);
-        _tile = new FailedJobsTile(_storageMock.Object, NullLogger<FailedJobsTile>.Instance);
+        _tile = new FailedJobsTile(_counterMock.Object, NullLogger<FailedJobsTile>.Instance);
     }
 
     [Fact]
     public async Task LoadDataAsync_ZeroFailures_ReturnsSuccessWithCountZero()
     {
-        _monitoringApiMock.Setup(a => a.FailedCount()).Returns(0L);
+        _counterMock
+            .Setup(c => c.GetFailedCountAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0L);
 
         var result = await _tile.LoadDataAsync();
 
@@ -40,7 +39,9 @@ public sealed class FailedJobsTileTests
     [Fact]
     public async Task LoadDataAsync_PositiveFailureCount_ReturnsSuccessWithCount()
     {
-        _monitoringApiMock.Setup(a => a.FailedCount()).Returns(7L);
+        _counterMock
+            .Setup(c => c.GetFailedCountAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(7L);
 
         var result = await _tile.LoadDataAsync();
 
@@ -50,9 +51,11 @@ public sealed class FailedJobsTileTests
     }
 
     [Fact]
-    public async Task LoadDataAsync_MonitoringApiThrows_ReturnsErrorAndDoesNotPropagate()
+    public async Task LoadDataAsync_CounterThrows_ReturnsErrorAndDoesNotPropagate()
     {
-        _monitoringApiMock.Setup(a => a.FailedCount()).Throws(new InvalidOperationException("storage unavailable"));
+        _counterMock
+            .Setup(c => c.GetFailedCountAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("storage unavailable"));
 
         var result = await _tile.LoadDataAsync();
 

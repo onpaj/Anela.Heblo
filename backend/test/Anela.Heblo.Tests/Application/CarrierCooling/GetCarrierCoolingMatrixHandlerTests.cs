@@ -89,6 +89,36 @@ public class GetCarrierCoolingMatrixHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ReturnsStoredCoolingText_WhenSettingExists()
+    {
+        _catalogMock.Setup(c => c.GetAvailableDeliveryOptions()).Returns(
+            new List<(Carriers, DeliveryHandling)> { (Carriers.PPL, DeliveryHandling.Box) }.AsReadOnly());
+
+        _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CarrierCoolingSetting>
+            {
+                new(Carriers.PPL, DeliveryHandling.Box, Cooling.L1, "user1", "MRAZ"),
+            });
+
+        var result = await _sut.Handle(new GetCarrierCoolingMatrixRequest(), CancellationToken.None);
+
+        result.Groups[0].Rows[0].CoolingText.Should().Be("MRAZ");
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNullCoolingText_WhenNoStoredSetting()
+    {
+        _catalogMock.Setup(c => c.GetAvailableDeliveryOptions()).Returns(
+            new List<(Carriers, DeliveryHandling)> { (Carriers.Zasilkovna, DeliveryHandling.NaRuky) }.AsReadOnly());
+        _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CarrierCoolingSetting>());
+
+        var result = await _sut.Handle(new GetCarrierCoolingMatrixRequest(), CancellationToken.None);
+
+        result.Groups[0].Rows[0].CoolingText.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Handle_IgnoresStoredSettingsNotInCatalog()
     {
         // Arrange — catalog has only PPL/NaRuky, but DB has a stale Osobak entry
