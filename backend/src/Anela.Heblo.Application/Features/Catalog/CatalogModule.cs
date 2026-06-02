@@ -58,6 +58,11 @@ public static class CatalogModule
 
         // Register cache services (scoped - data persists in IMemoryCache singleton)
         services.AddMemoryCache(); // Required for IMemoryCache injection
+        // CatalogRepository decomposed collaborators
+        services.AddSingleton<CatalogCacheStore>();
+        services.AddSingleton<CatalogMergeService>();
+        services.AddTransient<CatalogDataRefreshService>();
+        services.AddHostedService<CatalogMergeCallbackWiring>();
         services.AddScoped<IMaterialCostCache, MaterialCostCache>();
         services.AddScoped<IFlatManufactureCostCache, FlatManufactureCostCache>();
         services.AddScoped<IDirectManufactureCostCache, DirectManufactureCostCache>();
