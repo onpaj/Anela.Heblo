@@ -196,7 +196,9 @@ const IssuedInvoicesPage: React.FC = () => {
   // Load running jobs on page load and keep in sync
   React.useEffect(() => {
     if (runningJobs) {
-      const jobIds = runningJobs.map(job => job.id).filter(Boolean);
+      const jobIds = runningJobs
+        .map(job => job.id)
+        .filter((id): id is string => Boolean(id));
       setActiveJobIds(jobIds);
     }
   }, [runningJobs]);
