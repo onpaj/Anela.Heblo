@@ -70,24 +70,11 @@ public class ModuleBoundariesTests
     // Allowlist for Purchase → Catalog. Empty — no active violations.
     private static readonly HashSet<string> PurchaseAllowlist = new(StringComparer.Ordinal);
 
-    // Allowlist for Logistics → Catalog. Pre-existing violations in TransportBoxCompletionService
-    // that are out of scope for the 2026-06-01 Logistics-Catalog boundary introduction.
-    // Remove these entries when TransportBoxCompletionService is refactored to use a
-    // Logistics-owned contract instead of IStockUpOperationRepository / StockUpOperation directly.
-    private static readonly HashSet<string> LogisticsCatalogAllowlist = new(StringComparer.Ordinal)
-    {
-        // TransportBoxCompletionService injects IStockUpOperationRepository (a Catalog-owned
-        // repository) to persist stock-up operations when a transport box is completed.
-        // Decoupling this requires introducing a Logistics-owned contract (e.g.
-        // ILogisticsStockUpGateway) and a Catalog adapter — tracked as a follow-up.
-        "Anela.Heblo.Application.Features.Logistics.Services.TransportBoxCompletionService -> Anela.Heblo.Domain.Features.Catalog.Stock.IStockUpOperationRepository",
-
-        // StockUpOperation is the value type produced and persisted by TransportBoxCompletionService
-        // via IStockUpOperationRepository. Covered by the same follow-up as the entry above;
-        // the compiler-generated nested types (+<>c, +<ProcessBoxAsync>d__5) are handled
-        // automatically via the DeclaringType allowlist check in the test harness.
-        "Anela.Heblo.Application.Features.Logistics.Services.TransportBoxCompletionService -> Anela.Heblo.Domain.Features.Catalog.Stock.StockUpOperation",
-    };
+    // Allowlist for Logistics → Catalog. Empty — TransportBoxCompletionService now consumes
+    // the Logistics-owned ILogisticsStockOperationQueryService contract; the Catalog adapter
+    // lives in Catalog.Infrastructure and is captured by the reverse-direction
+    // CatalogLogisticsAllowlist below.
+    private static readonly HashSet<string> LogisticsCatalogAllowlist = new(StringComparer.Ordinal);
 
     // Allowlist for Catalog -> Logistics. Pre-existing adapters in Catalog.Infrastructure
     // that reference Logistics.Contracts types are out of scope for the 2026-06-01 decoupling.
@@ -97,8 +84,16 @@ public class ModuleBoundariesTests
         // LogisticsCatalogSourceAdapter is a Catalog-side adapter wrapping Logistics.Contracts types.
         "Anela.Heblo.Application.Features.Catalog.Infrastructure.LogisticsCatalogSourceAdapter -> Anela.Heblo.Application.Features.Logistics.Contracts.Models.LogisticsGiftPackageItem",
         "Anela.Heblo.Application.Features.Catalog.Infrastructure.LogisticsCatalogSourceAdapter -> Anela.Heblo.Application.Features.Logistics.Contracts.Models.LogisticsCatalogItem",
-        // LogisticsStockOperationAdapter references the Logistics contract enum.
+        // LogisticsStockOperationAdapter references the Logistics contract enum for backward compatibility.
         "Anela.Heblo.Application.Features.Catalog.Infrastructure.LogisticsStockOperationAdapter -> Anela.Heblo.Application.Features.Logistics.Contracts.LogisticsStockOperationSource",
+        // LogisticsStockOperationQueryAdapter references the Logistics contract enums and types.
+        // This adapter is produced by TransportBoxCompletionService refactoring to use
+        // the Logistics-owned ILogisticsStockOperationQueryService contract. The adapter
+        // lives in Catalog.Infrastructure and acts as a bridge from the Catalog-owned
+        // IStockUpOperationRepository pattern. Decouple to Catalog-owned DTOs in follow-up.
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.LogisticsStockOperationQueryAdapter -> Anela.Heblo.Application.Features.Logistics.Contracts.Models.LogisticsStockOperationStatus",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.LogisticsStockOperationQueryAdapter -> Anela.Heblo.Application.Features.Logistics.Contracts.LogisticsStockOperationSource",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.LogisticsStockOperationQueryAdapter -> Anela.Heblo.Application.Features.Logistics.Contracts.LogisticsStockOperationState",
     };
 
     // Allowlist for Catalog -> Purchase. Pre-existing violations from adapters and handlers
