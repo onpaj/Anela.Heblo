@@ -30,7 +30,7 @@ public class CarrierCoolingRepository : ICarrierCoolingRepository
         }
         else
         {
-            existing.UpdateCooling(setting.Cooling, setting.ModifiedBy);
+            existing.UpdateCooling(setting.Cooling, setting.ModifiedBy, setting.CoolingText);
         }
 
         await _context.SaveChangesAsync(cancellationToken);

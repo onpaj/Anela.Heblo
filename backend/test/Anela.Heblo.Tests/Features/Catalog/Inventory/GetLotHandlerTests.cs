@@ -11,33 +11,33 @@ namespace Anela.Heblo.Tests.Features.Catalog.Inventory;
 public class GetLotHandlerTests
 {
     private readonly Mock<ILotRepository> _lotRepo = new();
-    private readonly Mock<IEanRepository> _eanRepo = new();
+    private readonly Mock<IMaterialContainerRepository> _containerRepo = new();
     private readonly GetLotHandler _handler;
 
     public GetLotHandlerTests()
     {
-        _handler = new GetLotHandler(NullLogger<GetLotHandler>.Instance, _lotRepo.Object, _eanRepo.Object);
+        _handler = new GetLotHandler(NullLogger<GetLotHandler>.Instance, _lotRepo.Object, _containerRepo.Object);
     }
 
     [Fact]
-    public async Task Handle_ExistingLot_ReturnsDtoWithEans()
+    public async Task Handle_ExistingLot_ReturnsDtoWithContainers()
     {
         // Arrange
         var lot = new Lot("MAT001", "LOT-A", new DateOnly(2027, 1, 1), new DateOnly(2026, 5, 13), null, "user");
         _lotRepo.Setup(r => r.GetByIdWithEansAsync(1, default)).ReturnsAsync(lot);
 
-        var eans = new PagedResult<Ean>
+        var containers = new PagedResult<MaterialContainer>
         {
-            Items = new List<Ean>
+            Items = new List<MaterialContainer>
             {
-                new Ean("INT-00000001", 1, 25m, "kg", "user"),
-                new Ean("INT-00000002", 1, 25m, "kg", "user")
+                new MaterialContainer("INT-00000001", "MAT001", "LOT-A", 25m, "kg", "user"),
+                new MaterialContainer("INT-00000002", "MAT001", "LOT-A", 25m, "kg", "user")
             },
             TotalCount = 2,
             PageNumber = 1,
             PageSize = 100
         };
-        _eanRepo.Setup(r => r.GetPaginatedAsync(1, null, 1, 100, default)).ReturnsAsync(eans);
+        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "LOT-A", null, 1, 100, default)).ReturnsAsync(containers);
 
         // Act
         var result = await _handler.Handle(new GetLotRequest { Id = 1 }, default);
@@ -45,8 +45,8 @@ public class GetLotHandlerTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal("MAT001", result.Lot.MaterialCode);
-        Assert.Equal(2, result.Eans.Count);
-        Assert.Equal("INT-00000001", result.Eans[0].Code);
+        Assert.Equal(2, result.Containers.Count);
+        Assert.Equal("INT-00000001", result.Containers[0].Code);
     }
 
     [Fact]

@@ -1,0 +1,12 @@
+namespace Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
+
+public class RefreshTaskDto
+{
+    public required string TaskId { get; init; }
+    public required TimeSpan InitialDelay { get; init; }
+    public required TimeSpan RefreshInterval { get; init; }
+    public required bool Enabled { get; init; }
+    public int HydrationTier { get; init; }
+    public DateTime? NextScheduledRun { get; init; }
+    public RefreshTaskExecutionLogDto? LastExecution { get; init; }
+}
