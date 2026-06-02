@@ -67,6 +67,29 @@ namespace Anela.Heblo.Domain.Features.Marketing
         public virtual ICollection<MarketingActionProduct> ProductAssociations { get; set; } = new List<MarketingActionProduct>();
         public virtual ICollection<MarketingActionFolderLink> FolderLinks { get; set; } = new List<MarketingActionFolderLink>();
 
+        public MarketingAction(
+            string title,
+            string? description,
+            MarketingActionType actionType,
+            DateTime startDate,
+            DateTime? endDate,
+            string createdByUserId,
+            string? createdByUsername,
+            DateTime utcNow)
+        {
+            Title = NormalizeTitle(title);
+            Description = NormalizeDescription(description);
+            ActionType = actionType;
+            StartDate = startDate;
+            EndDate = endDate;
+            CreatedAt = utcNow;
+            ModifiedAt = utcNow;
+            CreatedByUserId = createdByUserId;
+            CreatedByUsername = createdByUsername ?? "Unknown User";
+        }
+
+        public MarketingAction() { }
+
         // Domain methods
         public void AssociateWithProduct(string productCode)
         {
