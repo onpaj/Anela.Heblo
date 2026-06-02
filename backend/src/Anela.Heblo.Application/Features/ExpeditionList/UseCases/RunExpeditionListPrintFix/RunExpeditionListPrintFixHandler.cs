@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
-using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.Logistics.Picking;
 using MediatR;
 using Microsoft.Extensions.Options;
 

@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
-using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.Logistics.Picking;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 

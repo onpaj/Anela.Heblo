@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.Logistics.Picking;
 
 namespace Anela.Heblo.Application.Features.ExpeditionList.Services;
 
