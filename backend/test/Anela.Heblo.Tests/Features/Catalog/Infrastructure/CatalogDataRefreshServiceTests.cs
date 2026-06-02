@@ -62,7 +62,7 @@ public sealed class CatalogDataRefreshServiceTests
         // Arrange
         var staleData = new List<CatalogSaleRecord>
         {
-            new CatalogSaleRecord { Id = Guid.NewGuid(), ProductCode = "P001", Quantity = 10, SaleDate = DateTime.UtcNow }
+            new CatalogSaleRecord { ProductCode = "P001", Date = DateTime.UtcNow, AmountTotal = 10 }
         };
         _cacheStore.SetSalesData(staleData);
 
@@ -74,7 +74,7 @@ public sealed class CatalogDataRefreshServiceTests
             .ThrowsAsync(new InvalidOperationException("Test failure"));
 
         var options = Options.Create(new DataSourceOptions { SalesHistoryDays = 30 });
-        var service = CreateService(resilienceServiceMock.Object, options);
+        var service = CreateService(resilienceService: resilienceServiceMock.Object, options: options);
 
         // Act
         var ex = await Record.ExceptionAsync(() => service.RefreshSalesData(CancellationToken.None));
@@ -104,14 +104,14 @@ public sealed class CatalogDataRefreshServiceTests
 
         var newSetting = new ManufactureDifficultySetting
         {
-            Id = Guid.NewGuid(),
+            Id = 1,
             ProductCode = "ABC",
             DifficultyValue = 5,
             ValidFrom = DateTime.UtcNow
         };
 
         var manufactureDifficultyRepoMock = new Mock<IManufactureDifficultyRepository>();
-        manufactureDifficultyRepoMock.Setup(r => r.ListAsync("ABC", It.IsAny<CancellationToken>()))
+        manufactureDifficultyRepoMock.Setup(r => r.ListAsync("ABC", It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureDifficultySetting> { newSetting });
 
         var options = Options.Create(new DataSourceOptions());
@@ -134,7 +134,7 @@ public sealed class CatalogDataRefreshServiceTests
         // Arrange
         var erpStockData = new List<ErpStock>
         {
-            new ErpStock { Id = Guid.NewGuid(), ProductCode = "P001", Quantity = 100 }
+            new ErpStock { ProductCode = "P001", Stock = 100 }
         };
 
         var erpStockClientMock = new Mock<IErpStockClient>();
@@ -161,7 +161,7 @@ public sealed class CatalogDataRefreshServiceTests
         // Assert
         _cacheStore.GetErpStockData().Should().HaveCount(1);
         _cacheStore.GetErpStockData().First().ProductCode.Should().Be("P001");
-        _cacheStore.GetErpStockData().First().Quantity.Should().Be(100);
+        _cacheStore.GetErpStockData().First().Stock.Should().Be(100m);
     }
 
     /// <summary>
