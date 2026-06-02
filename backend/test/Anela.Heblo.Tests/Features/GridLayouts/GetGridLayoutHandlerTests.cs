@@ -5,7 +5,6 @@ using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.Users;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Npgsql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.GridLayouts;
@@ -62,7 +61,10 @@ public class GetGridLayoutHandlerTests
         _currentUserMock.Setup(x => x.GetCurrentUser()).Returns(new CurrentUser("user-1", "Test", "test@test.com", true));
         _repositoryMock
             .Setup(x => x.GetAsync("user-1", "test-grid", default))
-            .ThrowsAsync(new NpgsqlException("relation \"GridLayouts\" does not exist"));
+            .ThrowsAsync(new GridLayoutPersistenceException(
+                "GridLayout persistence error during GetAsync: relation \"GridLayouts\" does not exist",
+                sqlState: "42P01",
+                new InvalidOperationException("simulated underlying driver exception")));
 
         var handler = CreateHandler();
         var response = await handler.Handle(new GetGridLayoutRequest { GridKey = "test-grid" }, default);
@@ -73,7 +75,7 @@ public class GetGridLayoutHandlerTests
                 LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Database error reading GridLayout")),
-                It.IsAny<NpgsqlException>(),
+                It.IsAny<GridLayoutPersistenceException>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
