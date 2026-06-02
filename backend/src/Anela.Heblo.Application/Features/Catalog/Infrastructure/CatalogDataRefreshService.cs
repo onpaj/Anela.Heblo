@@ -242,10 +242,11 @@ public sealed class CatalogDataRefreshService
             .ToDictionary(k => k.Key, v => v.ToList());
 
         var catalogData = _cacheStore.GetCatalogData();
-        foreach (var product in catalogData)
+        foreach (var product in catalogData ?? [])
         {
             if (manufactureMap.TryGetValue(product.ProductCode, out var manufactures))
             {
+                // Pre-existing behavior: mutates live aggregate in-place. Thread safety relies on the caller ordering.
                 product.ManufactureHistory = manufactures.ToList();
             }
         }
