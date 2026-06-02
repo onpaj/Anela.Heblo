@@ -118,7 +118,7 @@ public sealed class CatalogCacheStore
             }
 
             _cache.Set(CurrentCatalogCacheKey, newData);
-            _cache.Set(CacheUpdateTimeKey, DateTime.UtcNow);
+            _cache.Set(CacheUpdateTimeKey, _timeProvider.GetUtcNow().DateTime);
 
             _logger.LogDebug("Cache updated atomically with {ProductCount} products", newData.Count);
         }
