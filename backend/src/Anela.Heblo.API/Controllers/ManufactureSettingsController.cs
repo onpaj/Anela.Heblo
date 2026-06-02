@@ -13,7 +13,7 @@ public class ManufactureSettingsController : ControllerBase
 
     public ManufactureSettingsController(IMediator mediator)
     {
-        _mediator = mediator;
+        _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
     }
 
     [HttpGet]
