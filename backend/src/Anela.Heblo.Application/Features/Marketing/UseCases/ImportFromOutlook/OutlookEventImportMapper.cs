@@ -29,18 +29,19 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
             DateTime utcNow,
             MarketingActionType actionType)
         {
-            var action = new MarketingAction
-            {
-                Title = ParseTitle(evt.Subject),
-                Description = ParseDescription(evt.BodyText),
-                ActionType = actionType,
-                StartDate = evt.StartUtc,
-                EndDate = ParseEndDate(evt),
-                CreatedAt = utcNow,
-                ModifiedAt = utcNow,
-                CreatedByUserId = currentUser.Id!,
-                CreatedByUsername = currentUser.Name ?? "Unknown User",
-            };
+            var createdByUserId = currentUser.Id
+                ?? throw new InvalidOperationException(
+                    "Outlook import requires an authenticated user context for createdByUserId.");
+
+            var action = new MarketingAction(
+                title: ParseTitle(evt.Subject),
+                description: ParseDescription(evt.BodyText),
+                actionType: actionType,
+                startDate: evt.StartUtc,
+                endDate: ParseEndDate(evt),
+                createdByUserId: createdByUserId,
+                createdByUsername: currentUser.Name,
+                utcNow: utcNow);
 
             action.MarkOutlookSynced(evt.Id, utcNow);
 
