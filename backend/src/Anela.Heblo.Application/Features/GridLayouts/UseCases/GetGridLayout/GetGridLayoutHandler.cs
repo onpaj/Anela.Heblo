@@ -35,7 +35,24 @@ public class GetGridLayoutHandler : IRequestHandler<GetGridLayoutRequest, GetGri
                 return new GetGridLayoutResponse { Layout = null };
             }
 
-            var dto = JsonSerializer.Deserialize<GridLayoutDto>(entity.LayoutJson) ?? new GridLayoutDto();
+            GridLayoutDto? dto;
+            try
+            {
+                dto = JsonSerializer.Deserialize<GridLayoutDto>(entity.LayoutJson);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex,
+                    "Malformed LayoutJson for user={UserId} gridKey={GridKey}; returning null layout",
+                    userId, request.GridKey);
+                return new GetGridLayoutResponse { Layout = null };
+            }
+
+            if (dto is null)
+            {
+                return new GetGridLayoutResponse { Layout = null };
+            }
+
             dto.GridKey = entity.GridKey;
             dto.LastModified = entity.LastModified;
 
