@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Bank.Contracts;
 using Anela.Heblo.Domain.Features.Bank;
 using AutoMapper;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Bank;
@@ -11,14 +12,18 @@ public class BankMappingProfileTests
 {
     private static IMapper CreateMapper()
     {
-        var configuration = new MapperConfiguration(cfg => cfg.AddProfile<BankMappingProfile>());
+        var configuration = new MapperConfiguration(
+            cfg => cfg.AddProfile<BankMappingProfile>(),
+            NullLoggerFactory.Instance);
         return configuration.CreateMapper();
     }
 
     [Fact]
     public void Profile_Configuration_IsValid()
     {
-        var configuration = new MapperConfiguration(cfg => cfg.AddProfile<BankMappingProfile>());
+        var configuration = new MapperConfiguration(
+            cfg => cfg.AddProfile<BankMappingProfile>(),
+            NullLoggerFactory.Instance);
 
         configuration.AssertConfigurationIsValid();
     }
