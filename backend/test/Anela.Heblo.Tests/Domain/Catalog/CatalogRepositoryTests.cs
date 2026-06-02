@@ -58,6 +58,17 @@ public class CatalogRepositoryTests
 
     public CatalogRepositoryTests()
     {
+        _salesClientMock = new Mock<ICatalogSalesClient>();
+        _attributesClientMock = new Mock<ICatalogAttributesClient>();
+        _eshopStockClientMock = new Mock<IEshopStockClient>();
+        _consumedMaterialClientMock = new Mock<IConsumedMaterialsClient>();
+        _purchaseHistoryClientMock = new Mock<IPurchaseHistoryClient>();
+        _erpStockClientMock = new Mock<IErpStockClient>();
+        _lotsClientMock = new Mock<ILotsClient>();
+        _productPriceEshopClientMock = new Mock<IProductPriceEshopClient>();
+        _productPriceErpClientMock = new Mock<IProductPriceErpClient>();
+        _productEshopUrlClientMock = new Mock<IProductEshopUrlClient>();
+
         _productEshopUrlClientMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ProductEshopUrl>());
         _transportBoxRepositoryMock = new Mock<ITransportBoxRepository>();

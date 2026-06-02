@@ -56,11 +56,21 @@ public class CatalogRepositoryCacheOptimizationTests
     private readonly CatalogMergeService _mergeService;
     private readonly CatalogDataRefreshService _refreshService;
     private readonly CatalogRepository _repository;
-    private readonly CatalogMergeService _mergeService;
     private readonly CatalogCacheOptions _cacheOptions;
 
     public CatalogRepositoryCacheOptimizationTests()
     {
+        _salesClientMock = new Mock<ICatalogSalesClient>();
+        _attributesClientMock = new Mock<ICatalogAttributesClient>();
+        _eshopStockClientMock = new Mock<IEshopStockClient>();
+        _consumedMaterialClientMock = new Mock<IConsumedMaterialsClient>();
+        _purchaseHistoryClientMock = new Mock<IPurchaseHistoryClient>();
+        _erpStockClientMock = new Mock<IErpStockClient>();
+        _lotsClientMock = new Mock<ILotsClient>();
+        _productPriceEshopClientMock = new Mock<IProductPriceEshopClient>();
+        _productPriceErpClientMock = new Mock<IProductPriceErpClient>();
+        _productEshopUrlClientMock = new Mock<IProductEshopUrlClient>();
+
         _productEshopUrlClientMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ProductEshopUrl>());
         _transportBoxRepositoryMock = new Mock<ITransportBoxRepository>();
@@ -77,6 +87,13 @@ public class CatalogRepositoryCacheOptimizationTests
         _cache = new MemoryCache(new MemoryCacheOptions());
         _timeProviderMock = new Mock<TimeProvider>();
         _optionsMock = new Mock<IOptions<DataSourceOptions>>();
+        _optionsMock.Setup(x => x.Value).Returns(new DataSourceOptions
+        {
+            SalesHistoryDays = 30,
+            PurchaseHistoryDays = 30,
+            ConsumedHistoryDays = 30,
+            ManufactureHistoryDays = 30,
+        });
         _cacheOptionsMock = new Mock<IOptions<CatalogCacheOptions>>();
         _loggerMock = new Mock<ILogger<CatalogRepository>>();
         _refreshServiceLoggerMock = new Mock<ILogger<CatalogDataRefreshService>>();
@@ -164,12 +181,6 @@ public class CatalogRepositoryCacheOptimizationTests
             _mergeSchedulerMock.Object,
             _cacheOptionsMock.Object,
             _loggerMock.Object);
-
-        _repository = new CatalogRepository(
-            cacheStore,
-            _mergeService,
-            refreshService,
-            _mergeSchedulerMock.Object);
     }
 
     private void SetupBasicMockData()

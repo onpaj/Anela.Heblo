@@ -28,7 +28,6 @@ public class CatalogMergeServiceTests
             Mock.Of<ILogger<CatalogCacheStore>>());
         var service = new CatalogMergeService(
             store,
-            _schedulerMock.Object,
             _timeProviderMock.Object,
             Mock.Of<ILogger<CatalogMergeService>>());
         return (store, service);
