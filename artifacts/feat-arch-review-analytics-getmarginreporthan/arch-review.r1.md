@@ -1,22 +1,25 @@
-I have enough to write a grounded architecture review. The discovery is significant: the spec is built on a false premise — the validators are registered but **never wired into the pipeline** for these Analytics requests, and the default `ValidationBehavior` throws rather than producing an ErrorCode response. I'll now produce the architecture review.
-
 # Architecture Review: Remove Duplicate Validation from Analytics Margin Report Handlers
 
 ## Skip Design: true
 
 ## Architectural Fit Assessment
 
-**The spec is built on a false premise that must be corrected before any code is touched.**
+The intent — single-source-of-truth validation via FluentValidation — is sound and matches the convention used in `CatalogModule`, `PhotobankModule`, `CarrierCoolingModule`, `GiftSettingsModule`, etc. However, **the brief and spec contain a load-bearing factual error** that invalidates several acceptance criteria as written:
 
-Verified by reading the source:
+> "`GetMarginReportRequestValidator` is registered in `AnalyticsModule` … and is wired into the MediatR validation pipeline."
 
-1. `backend/src/Anela.Heblo.Application/Features/Analytics/AnalyticsModule.cs:33-34` registers `IValidator<GetMarginReportRequest>` and `IValidator<GetProductMarginAnalysisRequest>` — but it does **not** register the corresponding `IPipelineBehavior<TRequest, TResponse>` that actually invokes those validators. Compare with `PhotobankModule.cs:71-81`, `CatalogModule.cs:101-107`, `InventoryModule.cs:26-28`, etc., which all register both the validator **and** a `ValidationBehavior<TReq, TResp>` per request/response pair. Analytics does only half of that wiring.
-2. Consequence: `GetMarginReportRequestValidator` and `GetProductMarginAnalysisRequestValidator` are **never executed** for production traffic today. The handler `if`-blocks at `GetMarginReportHandler.cs:33-52` and `GetProductMarginAnalysisHandler.cs:30-39` are **not dead code** — they are the only validation in effect. The misleading "kept here for backward compatibility with tests" comment is itself misleading.
-3. The default `ValidationBehavior` at `backend/src/Anela.Heblo.Application/Common/Behaviors/ValidationBehavior.cs:32` **throws** `FluentValidation.ValidationException` on failure. There is no global exception handler, `IExceptionFilter`, or middleware in `Anela.Heblo.API` that translates that exception into a `BaseResponse` populated with `ErrorCodes.InvalidDateRange` / `InvalidReportPeriod`. I grepped: `Grep ValidationException src/Anela.Heblo.API` returns no matches, and `Program.cs` registers no exception handler. `BaseApiController.HandleResponse<T>` (`backend/src/Anela.Heblo.API/Controllers/BaseApiController.cs:28-72`) operates only on `BaseResponse` values, not on exceptions.
+It is **not** wired into the pipeline. Verified in `backend/src/Anela.Heblo.Application/Features/Analytics/AnalyticsModule.cs:29-30`:
 
-Therefore the brief's claim — *"FluentValidation classes already produce these `ErrorCodes`"* — is wrong. They produce `ValidationFailure` objects with string messages, and the behavior throws them. **Removing the handler `if`-blocks without also building an ErrorCode-aware validation behavior will break the API contract for invalid input** (callers will stop receiving `ErrorCodes.InvalidDateRange` and start receiving an unhandled 500 — or, depending on whether you wire the behavior at all, will pass invalid dates straight through to the repository).
+```csharp
+services.AddScoped<IValidator<GetMarginReportRequest>, GetMarginReportRequestValidator>();
+services.AddScoped<IValidator<GetProductMarginAnalysisRequest>, GetProductMarginAnalysisRequestValidator>();
+```
 
-The feature **does** fit the codebase's stated direction (input validation belongs in FluentValidation classes per the modules listed above), but it cannot be implemented as a 20-line surgical deletion. It must include a small piece of pipeline infrastructure.
+Only `IValidator<T>` is registered. There is no `IPipelineBehavior<TRequest, TResponse>` registration for either request, and **no open-generic pipeline behavior** registered anywhere in `ApplicationModule.cs` (confirmed by exhaustive grep — only `CatalogModule`, `PhotobankModule`, etc. register `ValidationBehavior` explicitly per-request). Therefore the handler-level checks at `GetMarginReportHandler.cs:36-54` and `GetProductMarginAnalysisHandler.cs:32-42` are **not** dead code today — they are the *only* runtime enforcement of those rules. Removing them without first wiring the pipeline behavior would silently regress production behavior: invalid input would flow straight into business logic.
+
+Additionally, even when `ValidationBehavior` runs elsewhere in the codebase, it **throws `FluentValidation.ValidationException`** (`backend/src/Anela.Heblo.Application/Common/Behaviors/ValidationBehavior.cs:32`) — it does **not** return a `BaseResponse` envelope with `ErrorCode`. No `IExceptionHandler<ValidationException>` is registered (only `UnauthorizedAccessExceptionHandler` in `ServiceCollectionExtensions.cs:130`). So FR-3's acceptance criterion — *"Invalid requests continue to fail with the same `ErrorCodes.InvalidDateRange` / `ErrorCodes.InvalidReportPeriod` error codes when sent through the MediatR pipeline"* — **cannot be satisfied by the current infrastructure**. It would degrade to an unhandled `ValidationException` → generic 500 (or whatever the default `UseExceptionHandler` produces), losing the structured error envelope the React frontend consumes.
+
+This is the central architectural issue. The rest of the spec is fine.
 
 ## Proposed Architecture
 
@@ -24,66 +27,62 @@ The feature **does** fit the codebase's stated direction (input validation belon
 
 ```
 HTTP request
-  → AnalyticsController
-      → IMediator.Send(request)
-          → ResponseValidationBehavior<TRequest, TResponse : BaseResponse, new()>   ← NEW
-              ├─ runs all IValidator<TRequest>
-              ├─ on failure: builds TResponse { Success=false, ErrorCode=<from WithErrorCode>, Params=<from placeholders> } and returns it
-              └─ on success: invokes next()
-                  → Handler.Handle()                                                  ← simplified
-                      └─ business logic only (no input-validation if-blocks)
+   │
+   ▼
+AnalyticsController.GetMarginReport / GetProductMarginAnalysis (MVC action)
+   │  IMediator.Send(request)
+   ▼
+MediatR pipeline
+   ├── (NEW) ValidationBehavior<GetMarginReportRequest, GetMarginReportResponse>
+   │           └─ runs GetMarginReportRequestValidator
+   │              └─ on failure: short-circuit with BaseResponse(ErrorCode=…) — see Decision 2
+   └── GetMarginReportHandler.Handle   ← validation block removed
+          └─ business logic only
 ```
 
-Two pieces change:
-
-- **New pipeline behavior** `ResponseValidationBehavior<TRequest, TResponse>` in `backend/src/Anela.Heblo.Application/Common/Behaviors/` that returns a populated `TResponse` instead of throwing. The existing `ValidationBehavior` is left untouched (it is the contract for modules that prefer the throw-and-rely-on-some-future-filter shape, and we don't want to perturb the already-wired Photobank/Catalog/Inventory modules in this PR).
-- **`AnalyticsModule`** wires the new behavior for both Analytics request/response pairs.
+The structural change is: **add the pipeline behavior wiring** for the two requests (matching the per-request style already used in `CatalogModule.cs:113-119`), and **decide how validation failures translate to `ErrorCodes`**.
 
 ### Key Design Decisions
 
-#### Decision 1: New `ResponseValidationBehavior` vs. modifying the existing `ValidationBehavior`
+#### Decision 1: Wire `ValidationBehavior` per-request, matching the project convention
 
 **Options considered:**
-1. Modify `ValidationBehavior<TRequest, TResponse>` to construct a `TResponse` when `TResponse : BaseResponse, new()` and throw otherwise.
-2. Introduce a sibling behavior `ResponseValidationBehavior<TRequest, TResponse>` constrained to `BaseResponse, new()`, and leave the existing one alone.
-3. Add a global `IExceptionFilter` / `IExceptionHandler` that maps `ValidationException` → `BaseResponse` with `ErrorCodes.*`, keeping the existing throw behavior.
+- (a) Per-request registration in `AnalyticsModule.cs` (matches Catalog, Photobank, CarrierCooling, GiftSettings, ShipmentLabels, Inventory).
+- (b) Register `ValidationBehavior` as an open generic (`services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>))`) in `ApplicationModule.cs` for the entire app.
 
-**Chosen approach:** Option 2.
+**Chosen approach:** (a). Add two lines to `AnalyticsModule`:
 
-**Rationale:**
-- Option 1 changes behavior for every module that has already wired the throwing variant (Photobank, Catalog, etc.). That is out of scope per the brief and would require auditing each of those handlers and their tests. Forbidden by the spec's "Out of Scope."
-- Option 3 is the architecturally cleanest long-term answer, but it cannot encode per-rule `ErrorCodes` mapping (one validator may produce both `InvalidDateRange` and `InvalidReportPeriod`). The filter would need to read state attached to each failure anyway — which is the same mechanism we'd build inside the behavior — so it adds an extra hop without removing the per-rule tagging.
-- Option 2 is local, additive, and matches the spec's intent: Analytics handlers stop carrying input validation, validators become the single source of truth, and the `ErrorCodes` API contract is preserved.
+```csharp
+services.AddScoped<IPipelineBehavior<GetMarginReportRequest, GetMarginReportResponse>,
+                   ValidationBehavior<GetMarginReportRequest, GetMarginReportResponse>>();
+services.AddScoped<IPipelineBehavior<GetProductMarginAnalysisRequest, GetProductMarginAnalysisResponse>,
+                   ValidationBehavior<GetProductMarginAnalysisRequest, GetProductMarginAnalysisResponse>>();
+```
 
-#### Decision 2: How the behavior knows which `ErrorCodes` to produce
+**Rationale:** Option (b) would change behavior for every MediatR request in the app — many of which lack validators or rely on handler-internal error-result patterns that don't tolerate thrown `ValidationException`. The project's deliberate per-request opt-in is a safety mechanism. Stay consistent.
+
+#### Decision 2: Translate validation failures into the `BaseResponse` envelope (not throw)
 
 **Options considered:**
-1. `WithErrorCode("InvalidDateRange")` on each `RuleFor` — FluentValidation's built-in `ErrorCode` string field. The behavior parses the string back to the `ErrorCodes` enum.
-2. `WithState(_ => ErrorCodes.InvalidDateRange)` — attach the enum value directly as `CustomState`; the behavior reads it back without string parsing.
-3. Convention: first failure → fixed `ErrorCodes.ValidationError`. (Loses fidelity vs. today.)
+- (a) **Typed `ValidationBehavior<TRequest, TResponse> where TResponse : BaseResponse, new()`** that, on failure, returns a `TResponse` populated with `Success=false`, `ErrorCode`, and `Params`. The error code is read from FluentValidation's `WithErrorCode("…")` metadata on each rule (precedent exists at `Photobank/Validators/BulkAddPhotoTagRequestValidator.cs:21`).
+- (b) Keep `ValidationBehavior` throwing, add an `IExceptionHandler<ValidationException>` that materializes the `BaseResponse` envelope and writes it to the HTTP response.
+- (c) Convert `ValidationException` into the result envelope inside the controller(s).
 
-**Chosen approach:** Option 2 (`WithState`).
+**Chosen approach:** (a) with a **new, scoped** behavior class — call it `ValidationResultBehavior<TRequest, TResponse>` — registered only for the two Analytics requests. Leave the existing `ValidationBehavior` (throwing variant) untouched so other modules are not disturbed. The validators add `WithErrorCode(((int)ErrorCodes.InvalidDateRange).ToString())` etc. to each rule so the behavior maps the first failure to the correct enum.
 
 **Rationale:**
-- Strongly typed: enum value flows through unchanged, no string conversion failure mode.
-- `WithErrorCode` is a string slot; using it forces `Enum.TryParse` and a fallback path, adding code without value.
-- Option 3 changes the public error code that controllers expose — breaks NFR-4.
+- Preserves the exact response shape (`GetMarginReportResponse { Success=false, ErrorCode, Params }`) that the frontend and existing tests already depend on — meeting FR-3 and FR-6 literally.
+- Avoids the cross-cutting risk of (b)/(c), which would change behavior for every other module using `ValidationBehavior`.
+- Reuses an already-established project idiom (`WithErrorCode`).
+- Keeps `ErrorCodes` enum as the single source of truth for error semantics.
 
-#### Decision 3: Behavior output shape on multi-rule failures
+**Trade-off:** Requires adding `WithErrorCode(...)` metadata to the two existing validators and a new ~30-line `ValidationResultBehavior<TRequest, TResponse>` class. This is a real expansion of the spec's scope but is **necessary** to satisfy FR-3 and FR-6.
 
-The current handler returns on the first failed check (early-return). FluentValidation collects **all** failures by default.
+#### Decision 3: Test layering
 
-**Chosen approach:** The behavior uses the **first** failure's state to populate `ErrorCode` and that failure's placeholder values to populate `Params`. This preserves today's externally observable behavior exactly (one error code per response). A future enhancement could surface multiple, but doing so is a contract change and out of scope.
-
-**Rationale:** NFR-4 says no API change. Returning a single `ErrorCode` matches what callers see today.
-
-#### Decision 4: `Params` shape for invalid date range
-
-The current `GetMarginReportHandler` produces `Params = { "startDate": "...", "endDate": "..." }` for `InvalidDateRange` and `Params = { "period": "{n} days (max {N})" }` for `InvalidReportPeriod`. The validator must reproduce these exact keys and values to keep NFR-4 honest.
-
-**Chosen approach:** Each rule, in addition to `WithState(ErrorCodes.X)`, attaches a placeholder dictionary (via `WithState` carrying a small `(ErrorCodes, Func<T, Dictionary<string,string>>)` tuple, or by composing the placeholders inline). The behavior calls the function with the request and writes the result to `response.Params`.
-
-**Rationale:** Keeping the same `Params` shape is required for the controller's downstream serialization and any frontend or MCP consumer that reads those keys.
+- **Validator unit tests** (new files): use FluentValidation `TestHelper` (`TestValidate` / `ShouldHaveValidationErrorFor`), following the exact pattern in `GetManufacturingStockAnalysisRequestValidatorTests.cs`. Cover happy path + each failure rule + boundary values.
+- **Pipeline integration tests** (new, minimal): use `ServiceCollection`-built `IMediator` (or `WebApplicationFactory` style) to send one invalid request per handler and assert the returned `BaseResponse` carries the correct `ErrorCode`. This guards the wiring decision in Decision 1 and the translation decision in Decision 2.
+- **Handler unit tests**: rewrite or delete each test in `GetMarginReportHandlerTests.cs` and `GetProductMarginAnalysisHandlerTests.cs` that currently feeds invalid input directly to `Handle()` (lines 173-232, 262-288 of `GetMarginReportHandlerTests.cs`; lines 109-152 of `GetProductMarginAnalysisHandlerTests.cs`). These are: `Handle_InvalidDateRange_ReturnsErrorResponse`, `Handle_PeriodTooLong_ReturnsErrorResponse`, `Handle_ZeroDaysPeriod_ReturnsErrorResponse`, `Handle_EmptyProductId_ReturnsErrorResponse`.
 
 ## Implementation Guidance
 
@@ -92,144 +91,129 @@ The current `GetMarginReportHandler` produces `Params = { "startDate": "...", "e
 ```
 backend/src/Anela.Heblo.Application/
   Common/Behaviors/
-    ValidationBehavior.cs                       (unchanged)
-    ResponseValidationBehavior.cs               ← NEW
+    ValidationBehavior.cs                    ← UNCHANGED (throws — used by other modules)
+    ValidationResultBehavior.cs              ← NEW: returns BaseResponse envelope
   Features/Analytics/
-    AnalyticsModule.cs                          (add 2 IPipelineBehavior registrations)
+    AnalyticsModule.cs                       ← ADD 2 IPipelineBehavior registrations
     Validators/
-      GetMarginReportRequestValidator.cs        (add WithState per rule + placeholder lambdas)
-      GetProductMarginAnalysisRequestValidator.cs   (same)
+      GetMarginReportRequestValidator.cs     ← ADD WithErrorCode() to each rule
+      GetProductMarginAnalysisRequestValidator.cs ← same
     UseCases/GetMarginReport/
-      GetMarginReportHandler.cs                 (delete lines 33-52, delete totalDays local)
+      GetMarginReportHandler.cs              ← REMOVE lines 35-54
     UseCases/GetProductMarginAnalysis/
-      GetProductMarginAnalysisHandler.cs        (delete lines 30-39)
+      GetProductMarginAnalysisHandler.cs     ← REMOVE lines 31-42
 
-backend/test/Anela.Heblo.Tests/
-  Common/Behaviors/
-    ResponseValidationBehaviorTests.cs          ← NEW (covers ErrorCode mapping, Params, multi-failure-takes-first)
-  Features/Analytics/
-    GetMarginReportHandlerTests.cs              (delete the 3 validation tests OR migrate them — see below)
-    GetProductMarginAnalysisHandlerTests.cs     (delete the 2 validation tests OR migrate them)
-    Validators/                                 ← NEW folder
-      GetMarginReportRequestValidatorTests.cs   ← NEW
-      GetProductMarginAnalysisRequestValidatorTests.cs   ← NEW
+backend/test/Anela.Heblo.Tests/Features/Analytics/
+  Validators/
+    GetMarginReportRequestValidatorTests.cs              ← NEW
+    GetProductMarginAnalysisRequestValidatorTests.cs     ← NEW
+  Pipeline/
+    AnalyticsValidationPipelineTests.cs                  ← NEW (1 IMediator test per handler)
+  GetMarginReportHandlerTests.cs                         ← REMOVE invalid-input tests
+  GetProductMarginAnalysisHandlerTests.cs                ← REMOVE invalid-input tests
 ```
 
 ### Interfaces and Contracts
 
+`ValidationResultBehavior<TRequest, TResponse>` shape:
+
 ```csharp
-// New behavior — Common/Behaviors/ResponseValidationBehavior.cs
-public class ResponseValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+public class ValidationResultBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
     where TResponse : BaseResponse, new()
 {
-    public ResponseValidationBehavior(IEnumerable<IValidator<TRequest>> validators) { ... }
+    private readonly IEnumerable<IValidator<TRequest>> _validators;
 
-    public async Task<TResponse> Handle(
-        TRequest request,
-        RequestHandlerDelegate<TResponse> next,
-        CancellationToken cancellationToken)
+    public ValidationResultBehavior(IEnumerable<IValidator<TRequest>> validators)
+        => _validators = validators;
+
+    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
     {
-        // Run validators. If any failure has CustomState of type ValidationErrorInfo,
-        // build TResponse { Success=false, ErrorCode=info.Code, Params=info.Params(request) }
-        // using the FIRST such failure. If no validators, call next().
+        if (!_validators.Any()) return await next();
+
+        var failures = (await Task.WhenAll(_validators.Select(v => v.ValidateAsync(new ValidationContext<TRequest>(request), ct))))
+            .SelectMany(r => r.Errors)
+            .Where(e => e is not null)
+            .ToList();
+
+        if (failures.Count == 0) return await next();
+
+        var first = failures.First();
+        var errorCode = Enum.TryParse<ErrorCodes>(first.ErrorCode, out var parsed)
+            ? parsed
+            : ErrorCodes.ValidationError;
+
+        return new TResponse
+        {
+            Success = false,
+            ErrorCode = errorCode,
+            Params = BuildParams(failures),
+        };
     }
 }
-
-// State payload validators attach via WithState(...)
-public sealed record ValidationErrorInfo(
-    ErrorCodes Code,
-    Func<object, Dictionary<string, string>> Params);
 ```
 
-Validator rule shape (sketch — exact `Params` keys must match what the handler emits today):
+Validator updates (illustrative, both validators):
 
 ```csharp
 RuleFor(x => x.StartDate)
     .LessThanOrEqualTo(x => x.EndDate)
-    .WithMessage(AnalyticsConstants.ValidationMessages.INVALID_DATE_RANGE)
-    .WithState(x => new ValidationErrorInfo(
-        ErrorCodes.InvalidDateRange,
-        req => new() {
-            ["startDate"] = ((GetMarginReportRequest)req).StartDate.ToString(AnalyticsConstants.DATE_FORMAT),
-            ["endDate"]   = ((GetMarginReportRequest)req).EndDate.ToString(AnalyticsConstants.DATE_FORMAT),
-        }));
+    .WithErrorCode(((int)ErrorCodes.InvalidDateRange).ToString())
+    .WithMessage(AnalyticsConstants.ValidationMessages.INVALID_DATE_RANGE);
+
+RuleFor(x => x)
+    .Must(x => (x.EndDate - x.StartDate).TotalDays <= AnalyticsConstants.MAX_REPORT_PERIOD_DAYS)
+    .WithErrorCode(((int)ErrorCodes.InvalidReportPeriod).ToString())
+    .WithMessage(string.Format(AnalyticsConstants.ValidationMessages.PERIOD_TOO_LONG, AnalyticsConstants.MAX_REPORT_PERIOD_DAYS));
+// … same for MIN, and for ProductId on the analysis validator (ErrorCodes.RequiredFieldMissing)
 ```
 
-`AnalyticsModule.cs` additions:
-
-```csharp
-services.AddScoped<
-    IPipelineBehavior<GetMarginReportRequest, GetMarginReportResponse>,
-    ResponseValidationBehavior<GetMarginReportRequest, GetMarginReportResponse>>();
-
-services.AddScoped<
-    IPipelineBehavior<GetProductMarginAnalysisRequest, GetProductMarginAnalysisResponse>,
-    ResponseValidationBehavior<GetProductMarginAnalysisRequest, GetProductMarginAnalysisResponse>>();
-```
+Note that the precedent in `Photobank/Validators/BulkAddPhotoTagRequestValidator.cs:21` parses the error code via `((int)ErrorCodes.X).ToString()`. Match that exactly so a future generic translator can be unified later.
 
 ### Data Flow
 
-**Valid request** — Controller → MediatR → `ResponseValidationBehavior` runs validators, all pass → invokes handler → handler runs business logic and returns success response. Identical to today's happy path.
+**Invalid request (e.g., `StartDate > EndDate`):**
+1. `AnalyticsController` invokes `IMediator.Send(request)`.
+2. `ValidationResultBehavior<GetMarginReportRequest, GetMarginReportResponse>` runs `GetMarginReportRequestValidator`.
+3. Validator returns failure with `ErrorCode = "<InvalidDateRange int value>"`.
+4. Behavior short-circuits without calling `next()`, returns `new GetMarginReportResponse { Success=false, ErrorCode=ErrorCodes.InvalidDateRange, Params={ startDate, endDate } }`.
+5. Handler is **never invoked**. Controller serializes the envelope to JSON. Frontend receives identical shape to today.
 
-**Invalid request (e.g. `StartDate > EndDate`)** — Controller → MediatR → `ResponseValidationBehavior` runs the validator → `StartDate.LessThanOrEqualTo(EndDate)` fails with `CustomState = ValidationErrorInfo(ErrorCodes.InvalidDateRange, ...)` → behavior constructs `GetMarginReportResponse { Success=false, ErrorCode=InvalidDateRange, Params={startDate,endDate} }` and returns it without calling the handler → `BaseApiController.HandleResponse` maps `InvalidDateRange` → `400 BadRequest` via its existing `HttpStatusCodeAttribute` lookup. **Identical externally to today's response.**
-
-**Direct handler unit test (`new GetMarginReportHandler(...).Handle(...)`)** — Bypasses MediatR and therefore bypasses the new behavior. After removing the handler `if`-blocks, calling `Handle` with invalid input no longer returns an error — it either crashes inside the repository call or produces a misleading result. This is why FR-4 mandates migrating those tests (see Specification Amendments).
+**Valid request:**
+1. Behavior validates → no failures → calls `next()`.
+2. Handler executes business logic (with the removed `if`-blocks gone).
+3. Returns `GetMarginReportResponse { Success=true, … }`.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
-|---|---|---|
-| Removing handler checks without wiring the behavior leaves Analytics with **no input validation** in production | **Critical** | Make wiring the new `ResponseValidationBehavior` in `AnalyticsModule` a non-optional task in the implementation plan. Add an integration test that calls the handlers through `IMediator` with invalid input and asserts `ErrorCodes.InvalidDateRange` / `InvalidReportPeriod` are returned. |
-| `Params` shape drifts (key names, date format) and breaks downstream consumers (frontend, MCP) | High | Diff the validator-produced `Params` against the current handler output for each of the three rules. Encode this as a per-rule fixture in the new behavior tests so any drift fails CI. Keys to preserve: `startDate`, `endDate` (InvalidDateRange); `period` (InvalidReportPeriod). |
-| `GetProductMarginAnalysisHandler` line 30 also checks `string.IsNullOrWhiteSpace(ProductId)` and returns `ErrorCodes.RequiredFieldMissing` with `Params["field"]="ProductId"`. The validator uses `NotEmpty()` and produces a string message — but its `ErrorCodes` mapping today is **none**. | High | Add `WithState(ValidationErrorInfo(ErrorCodes.RequiredFieldMissing, _ => new(){["field"]="ProductId"}))` to the `ProductId.NotEmpty()` rule. Without this the existing `Handle_EmptyProductId_ReturnsErrorResponse` test (line 132 of `GetProductMarginAnalysisHandlerTests.cs`) and the external API contract change. The brief / spec did not mention this rule but it is in scope by FR-2 ("manual `if`-checks that duplicate rules ... are removed") and FR-3 ("response surface ... callers see today"). |
-| Other modules using the existing throwing `ValidationBehavior` may currently produce 500s on invalid input (no global filter exists) | Medium | Out of scope for this brief. Note as a follow-up arch item. Mention in `memory/gotchas/` so future work can address. |
-| Direct-`Handle()` tests that assert `ErrorCodes.InvalidDateRange` will fail silently if mis-migrated (returning success or crashing) | Medium | Mandate **either** delete-with-replacement-in-validator-tests **or** delete-with-pipeline-integration-test. Forbid "delete and forget." Reviewer must confirm each removed assertion has a new home. |
-| `MaxProducts` validation in `GetMarginReportRequestValidator` (lines 22-26) has no `ErrorCodes` mapping today and is not invoked in production (validator not wired). After this change it **will** run. Today's behavior: invalid `MaxProducts` silently passes; after change: returns an error. | Medium | Decide explicitly: either (a) attach `WithState(ValidationErrorInfo(ErrorCodes.ValidationError, ...))` matching some sensible code, or (b) remove the `MaxProducts` rule from the validator (it's a sanity bound, not a domain rule). Recommendation: (a) — use a generic code like `ErrorCodes.ValidationError` if it exists; otherwise add one. Flag for the implementer. |
+|------|----------|------------|
+| Spec assumes validators are pipeline-wired; they aren't. Removing handler checks without wiring would silently regress production. | **CRITICAL** | Decision 1 + 2 add wiring as a **prerequisite step** of the same PR. Pipeline integration tests (Decision 3) lock it in. |
+| `ValidationException`-throwing variant of behavior would produce 500s instead of `ErrorCodes.InvalidDateRange` envelopes. | **CRITICAL** | Decision 2: introduce a separate `ValidationResultBehavior` that returns the envelope. Do not reuse the existing throwing behavior. |
+| `Params` shape today includes `startDate`/`endDate` keys; behavior must emit equivalent params or frontend localization breaks. | HIGH | Map FluentValidation `PropertyName`/`AttemptedValue` into the same key names. Add explicit pipeline integration test asserting params dictionary keys match today's contract. |
+| Migrating `Handle_EmptyProductId_ReturnsErrorResponse` is in scope (block is the full lines 30-39 of analysis handler) but spec FR-1/FR-2 wording emphasizes only "date-range and report-period". | MEDIUM | Spec amendment below — make ProductId guard removal explicit. Add validator test for `ProductId` empty → `ErrorCodes.RequiredFieldMissing`. |
+| Other modules without pipeline-behavior wiring may have the same hidden duplication. | LOW | Out of scope per spec ("Modifying any other Analytics module handlers... is out of scope"). Note in PR description for follow-up. |
+| `dotnet format` and analyzer warnings on the new behavior class. | LOW | Run `dotnet format` per CLAUDE.md validation gate. |
 
 ## Specification Amendments
 
-The spec must be revised before implementation. The amendments below are **required**, not optional.
+The spec must be updated **before implementation begins**:
 
-1. **Add FR-0 (prerequisite, blocking): Wire `IPipelineBehavior` for Analytics requests.**
-   The validators are not currently in the MediatR pipeline. The spec's central assumption is false. Before any handler code is removed, a `ResponseValidationBehavior<TRequest, TResponse>` must exist and be registered in `AnalyticsModule` for both `(GetMarginReportRequest, GetMarginReportResponse)` and `(GetProductMarginAnalysisRequest, GetProductMarginAnalysisResponse)`. Acceptance: a test that constructs the full DI container and sends an invalid request through `IMediator` returns a `BaseResponse` with the expected `ErrorCode`.
+1. **Add FR-0 (Prerequisite — pipeline wiring):** Before any handler code is deleted, register `IPipelineBehavior` for both requests in `AnalyticsModule`. Acceptance: a pipeline integration test (sending invalid input via `IMediator.Send`) fails before the wiring change and passes after.
 
-2. **Revise FR-3: clarify that validators do NOT produce `ErrorCodes` today.**
-   The current line *"`GetMarginReportRequestValidator` and `GetProductMarginAnalysisRequestValidator` already produce these `ErrorCodes` (verify by reading the validators)"* is wrong. They produce only string messages. Replace with: *"Validators must be augmented with `WithState(new ValidationErrorInfo(ErrorCodes.X, req => params))` on each rule so the new `ResponseValidationBehavior` can construct the same `BaseResponse` shape callers see today."*
+2. **Add FR-0b (Validation result translation):** Introduce `ValidationResultBehavior<TRequest, TResponse>` in `Application/Common/Behaviors/` that returns a `BaseResponse`-shaped failure (does **not** throw). Annotate the two validators' rules with `WithErrorCode(((int)ErrorCodes.XXX).ToString())` matching the codes currently returned by the handlers.
 
-3. **Extend FR-2: include `ProductId` `NotEmpty()` mapping.**
-   `GetProductMarginAnalysisHandler.cs:30-33` returns `ErrorCodes.RequiredFieldMissing` with `Params["field"]="ProductId"`. FR-2 currently mentions only "manual `if`-checks that duplicate rules ... are removed" — make it explicit that this `if`-check is one of them and the validator's `NotEmpty()` rule must carry the `ErrorCodes.RequiredFieldMissing` state and the `field` param.
+3. **Clarify FR-2 acceptance:** Also remove the `string.IsNullOrWhiteSpace(request.ProductId)` guard at `GetProductMarginAnalysisHandler.cs:32-35`. The validator already enforces `ProductId.NotEmpty()`. Acceptance: handler returns `ErrorCodes.RequiredFieldMissing` (via pipeline) when `ProductId` is empty, verified by validator + pipeline tests.
 
-4. **Refine FR-4 with a concrete migration matrix.**
-   The following tests directly invoke `Handle()` with invalid input and must be re-homed (do not silently delete):
+4. **Strengthen FR-3 acceptance:** Replace *"validation behavior is verified by an existing integration/pipeline test"* with: "A new test under `Tests/Features/Analytics/Pipeline/` constructs a real `IMediator` with `ValidationResultBehavior` registered and asserts the exact `ErrorCode` and `Params` shape returned for each failure mode."
 
-   | Test | File:line | Migration target |
-   |---|---|---|
-   | `Handle_InvalidDateRange_ReturnsErrorResponse` | `GetMarginReportHandlerTests.cs:173-192` | New `GetMarginReportRequestValidatorTests` + one integration test through `IMediator` |
-   | `Handle_PeriodTooLong_ReturnsErrorResponse` | `GetMarginReportHandlerTests.cs:194-212` | New `GetMarginReportRequestValidatorTests` |
-   | `Handle_ZeroDaysPeriod_ReturnsErrorResponse` | `GetMarginReportHandlerTests.cs:214-232` | New `GetMarginReportRequestValidatorTests` |
-   | `Handle_InvalidDateRange_ReturnsErrorResponse` | `GetProductMarginAnalysisHandlerTests.cs:109-130` | New `GetProductMarginAnalysisRequestValidatorTests` + integration test |
-   | `Handle_EmptyProductId_ReturnsErrorResponse` | `GetProductMarginAnalysisHandlerTests.cs:132-152` | New `GetProductMarginAnalysisRequestValidatorTests` |
+5. **Update FR-6 verification:** Add a step to confirm the `Params` dictionary keys/values returned by the pipeline behavior match what the handlers return today (frontend depends on these for error-message interpolation).
 
-5. **Add FR-6: pipeline integration test.**
-   Add at least one test per handler that exercises the full MediatR pipeline (validator → behavior → handler) and asserts that an invalid request still produces the historical `ErrorCodes.InvalidDateRange` response shape. This is the only test that proves FR-3.
-
-6. **Revise NFR-2 ("Security ... unchanged").**
-   Strictly true only after FR-0 is implemented. Until then, security posture is **stronger now than after the change** because the in-handler checks are catching invalid input that would otherwise reach the repository.
-
-7. **Out of Scope clarification.**
-   Modifying the existing `ValidationBehavior<,>` is out of scope. Auditing other modules' validator wiring is out of scope (but should be filed as a separate arch-review item — none of them have ErrorCode mapping either).
+6. **Update Out of Scope:** It is **not** acceptable to defer the pipeline-wiring fix to a separate PR — the spec's own correctness depends on it. Move "wire `IPipelineBehavior` for the two requests" *into* scope.
 
 ## Prerequisites
 
-Before implementation starts, the implementer must verify (and the reviewer must confirm in the PR):
-
-1. **`AnalyticsConstants` constants are stable** — no other PR is mid-flight that changes `MAX_REPORT_PERIOD_DAYS` or `MIN_REPORT_PERIOD_DAYS`. Grep confirms only the validators and `AnalyticsConstants.cs` itself reference them (other than the handlers being modified). ✓ verified.
-
-2. **`ErrorCodes.InvalidDateRange`, `InvalidReportPeriod`, `RequiredFieldMissing` exist and carry the correct `HttpStatusCodeAttribute`** so `BaseApiController.HandleResponse` returns 400. (Implementer must read `ErrorCodes.cs` and confirm.) If `RequiredFieldMissing` doesn't carry `[HttpStatusCode(BadRequest)]`, the status code seen by clients for empty `ProductId` would change — fix the attribute, do not work around it.
-
-3. **`BaseResponse` has a public parameterless constructor** so the new behavior's `where TResponse : new()` constraint is satisfiable. Confirmed — `BaseResponse` has a protected parameterless `protected BaseResponse() { Success = true; }` and derived classes (e.g. `GetMarginReportResponse`) have implicit public parameterless constructors. ✓ verified.
-
-4. **No other code constructs `GetMarginReportResponse` or `GetProductMarginAnalysisResponse` outside the handler** in a way that would conflict with the behavior populating them. Grep both response types to confirm. (Likely true; verify before submitting.)
-
-5. **MediatR pipeline behavior ordering** — if other behaviors are registered globally for these requests (logging, transaction, etc.), confirm `ResponseValidationBehavior` runs *before* any side-effecting behavior. Standard pattern: register validation first.
+- No infrastructure changes required (no migrations, no config, no Key Vault changes).
+- `WithErrorCode` is already a known FluentValidation idiom in this codebase — no new package versions.
+- Existing test infrastructure (xUnit, Moq, FluentAssertions, `FluentValidation.TestHelper`) is sufficient — `FluentValidation.TestHelper` is already used in `GetManufacturingStockAnalysisRequestValidatorTests.cs`.
+- Verify build + format gates pass per project CLAUDE.md: `dotnet build`, `dotnet format`, and all touched test projects must pass.
