@@ -1,6 +1,9 @@
 import React from 'react';
 import { AlertTriangle, XCircle } from 'lucide-react';
-import { getConfig } from '../../../config/runtimeConfig';
+import {
+  DashboardTileDrillDown,
+  resolveDrillDown,
+} from '../drillDownRoutes';
 
 interface FailedJobsTileProps {
   data: {
@@ -9,15 +12,21 @@ interface FailedJobsTileProps {
       count?: number;
     };
     error?: string;
+    drillDown?: DashboardTileDrillDown;
   };
 }
 
-const HANGFIRE_PATH = '/hangfire/jobs/failed';
-
 export const FailedJobsTile: React.FC<FailedJobsTileProps> = ({ data }) => {
+  const resolution = resolveDrillDown(data.drillDown);
+
   const handleClick = () => {
-    const { apiUrl } = getConfig();
-    window.open(`${apiUrl}${HANGFIRE_PATH}`, '_blank');
+    if (!resolution) {
+      return;
+    }
+    if (resolution.strategy === 'external') {
+      window.open(resolution.url, '_blank');
+    }
+    // react-router strategy is not used by this tile
   };
 
   if (data.status === 'error') {
