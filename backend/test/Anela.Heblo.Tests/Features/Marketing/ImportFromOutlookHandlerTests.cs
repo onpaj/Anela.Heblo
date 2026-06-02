@@ -673,4 +673,28 @@ public class ImportFromOutlookHandlerTests
         result.Updated.Should().Be(0);
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_WhenNewOutlookEventHasWhitespaceTitle_PersistsTrimmedTitle()
+    {
+        // Arrange
+        var evt = BuildEvent(id: "evt-trim-new", subject: "  Summer Launch  ");
+
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OutlookEventDto> { evt });
+
+        MarketingAction? captured = null;
+        _repositoryMock
+            .Setup(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
+            .Callback<MarketingAction, CancellationToken>((a, _) => captured = a)
+            .ReturnsAsync((MarketingAction a, CancellationToken _) => { a.Id = 1; return a; });
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        result.Created.Should().Be(1);
+        captured!.Title.Should().Be("Summer Launch");
+    }
 }
