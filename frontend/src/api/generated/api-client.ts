@@ -16860,7 +16860,6 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
     environment?: string;
     useMockAuth?: boolean;
     timestamp?: Date;
-    manufactureGroupId?: string | undefined;
 
     constructor(data?: IGetConfigurationResponse) {
         super(data);
@@ -16873,7 +16872,6 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
             this.environment = _data["environment"];
             this.useMockAuth = _data["useMockAuth"];
             this.timestamp = _data["timestamp"] ? new Date(_data["timestamp"].toString()) : <any>undefined;
-            this.manufactureGroupId = _data["manufactureGroupId"];
         }
     }
 
@@ -16890,7 +16888,6 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
         data["environment"] = this.environment;
         data["useMockAuth"] = this.useMockAuth;
         data["timestamp"] = this.timestamp ? this.timestamp.toISOString() : <any>undefined;
-        data["manufactureGroupId"] = this.manufactureGroupId;
         super.toJSON(data);
         return data;
     }
@@ -16901,7 +16898,6 @@ export interface IGetConfigurationResponse extends IBaseResponse {
     environment?: string;
     useMockAuth?: boolean;
     timestamp?: Date;
-    manufactureGroupId?: string | undefined;
 }
 
 export class DashboardTileDto implements IDashboardTileDto {
