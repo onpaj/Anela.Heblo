@@ -1,166 +1,195 @@
-```markdown
-# Architecture Review: Move PrintPickingList DTOs and IPickingListSource from Domain to Application
+# Architecture Review: Relocate Picking List Operation DTOs from Domain to Application Layer
 
 ## Skip Design: true
 
-This is a backend-only namespace relocation. No UI, screens, layouts, components, or visual decisions are involved.
+This is a backend-only namespace relocation. No UI, components, layouts, or visual changes.
 
 ## Architectural Fit Assessment
 
-The proposed move is correct and aligns with the project's Clean Architecture intent stated in `docs/architecture/filesystem.md` and `docs/architecture/development_guidelines.md`:
+The proposed move aligns with the project's documented Clean Architecture rules (`docs/architecture/development_guidelines.md`) and Vertical Slice conventions. The three types are unambiguously application-layer concerns:
 
-- **Domain** should hold entities, value objects, and pure domain ports.
-- **Application** should hold use-case DTOs (`Request`/`Response`) and use-case ports.
+- `PrintPickingListRequest` carries `SendToPrinter` (I/O switch), `ChangeOrderState` (workflow effect), and `DefaultCarriers` (config) — none are domain invariants.
+- `PrintPickingListResult` exposes `ExportedFiles` (file paths) and `OrderIds` — use-case output, not value-object semantics.
+- `IPickingListSource` is an Application-side port whose only implementation is `ShoptetApiExpeditionListSource` in the Shoptet adapter.
 
-The three relocated types are clearly application-layer concerns: they encode I/O flags (`SendToPrinter`), workflow toggles (`ChangeOrderState`), output artefacts (`ExportedFiles`), and a port whose contract is dictated by an Application service (`ExpeditionListService`). Keeping them in Domain inverts the dependency rule.
+**Critical correction to the brief and spec:** the brief asserts "the single namespace reference in any handler that currently imports them from the Domain path." This is wrong — a solution-wide search returns **11 source/test files** across 4 projects:
 
-Verified integration points (10 source/test files touch the old namespace):
+- `Anela.Heblo.Application` (4 files): `ExpeditionListService`, `IExpeditionListService`, `RunExpeditionListPrintFixHandler`, `PrintPickingListJob`
+- `Anela.Heblo.Adapters.ShoptetApi` (2 files): `ShoptetApiExpeditionListSource`, `ShoptetApiAdapterServiceCollectionExtensions`
+- `Anela.Heblo.Tests` (3 files): `ShoptetApiExpeditionListSourceTests`, `ExpeditionListServicePrintSinkTests`, `ExpeditionListServiceOrderStateTests`
+- `Anela.Heblo.Adapters.Shoptet.Tests` (2 files): `PickingListIntegrationTests`, `ShoptetApiExpeditionListSource_CoolingMarkerTests`
 
-- Application consumers (`ExpeditionListService`, `IExpeditionListService`, `RunExpeditionListPrintFixHandler`, `PrintPickingListJob`) — all live under `Application/Features/ExpeditionList/`.
-- Adapter implementer + DI extension (`ShoptetApiExpeditionListSource`, `ShoptetApiAdapterServiceCollectionExtensions`).
-- Five test files across two test projects.
+FR-4's "search scope" already says "the entire backend tree" — that requirement is correct and supersedes the brief's wrong "single reference" claim. The spec must be implemented per FR-4, not per the brief's miscount.
 
-The Application project already references Domain, so the move does not create a new project dependency. The `Carriers` enum referenced by `PrintPickingListRequest` correctly remains in Domain.
+**Project references are already in shape** to absorb the move with zero `.csproj` edits:
 
-**One non-trivial architectural choice deserves explicit attention** (see Decision 1 below): the spec proposes putting the types under `Application/Features/Logistics/Picking/`, but the *only* consumer feature is `ExpeditionList`, and project convention says "DTOs live in `contracts/` of the specific module".
+| Project | References Domain | References Application |
+|---|---|---|
+| `Anela.Heblo.Application` | ✓ | (self) |
+| `Anela.Heblo.Adapters.ShoptetApi` | ✓ | ✓ |
+| `Anela.Heblo.Tests` | ✓ | ✓ |
+| `Anela.Heblo.Adapters.Shoptet.Tests` | ✓ | ✓ |
+
+Domain remains unchanged — no Application reference is being introduced into Domain.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-Anela.Heblo.Domain
-└── Features/Logistics/
-    ├── Carriers.cs                 (unchanged — domain enum)
-    ├── CarrierCoolingSetting.cs    (unchanged)
-    ├── ICarrierCoolingRepository.cs (unchanged)
-    ├── IShippingMethodCatalog.cs   (unchanged)
-    └── Picking/                    ← DELETED (empty after move)
+After the move:
 
-Anela.Heblo.Application
-└── Features/Logistics/Picking/     ← NEW
-    ├── PrintPickingListRequest.cs  ← moved
-    ├── PrintPickingListResult.cs   ← moved
-    └── IPickingListSource.cs       ← moved
+  Anela.Heblo.Domain
+    Features/Logistics/
+      Carriers.cs                     (unchanged — still Domain enum)
+      [Picking/ folder DELETED]       (empty after move)
 
-         ▲
-         │ used by
-         │
-Anela.Heblo.Application/Features/ExpeditionList/
-    ├── Services/ExpeditionListService.cs        (using update)
-    ├── Services/IExpeditionListService.cs       (using update)
-    ├── UseCases/RunExpeditionListPrintFix/…     (using update)
-    └── Infrastructure/Jobs/PrintPickingListJob  (using update)
+  Anela.Heblo.Application                          ← already refs Domain
+    Features/Logistics/Picking/                    ← NEW folder
+      PrintPickingListRequest.cs                   (uses Domain.Carriers)
+      PrintPickingListResult.cs
+      IPickingListSource.cs                        (port)
 
-         ▲
-         │ implements IPickingListSource
-         │
-Adapters/Anela.Heblo.Adapters.ShoptetApi/
-    ├── Expedition/ShoptetApiExpeditionListSource.cs (using update)
-    └── ShoptetApiAdapterServiceCollectionExtensions.cs (using update)
+  Anela.Heblo.Adapters.ShoptetApi                  ← already refs Application
+    Expedition/
+      ShoptetApiExpeditionListSource.cs            (implements IPickingListSource;
+                                                    using directive flips namespace)
+
+  Anela.Heblo.Application
+    Features/ExpeditionList/
+      Services/{I,}ExpeditionListService.cs        (using directive flips)
+      Infrastructure/Jobs/PrintPickingListJob.cs   (using directive flips)
+      UseCases/RunExpeditionListPrintFix/…Handler  (using directive flips)
 ```
+
+The dependency arrows are unchanged in direction; only the home of the three types moves outward from Domain to Application, which is exactly the Clean Architecture correction the brief requires.
 
 ### Key Design Decisions
 
-#### Decision 1: Target location — `Application/Features/Logistics/Picking/` vs `Application/Features/ExpeditionList/Contracts/`
-
+#### Decision 1: Target subfolder — `Picking/` vs `Contracts/`
 **Options considered:**
+- (A) `Application/Features/Logistics/Picking/` — mirrors the Domain folder name exactly; the spec's choice.
+- (B) `Application/Features/Logistics/Contracts/` — matches the documented convention in `development_guidelines.md` ("DTO objects … live in `contracts/` of the specific module") and matches the existing layout of `Application/Features/Logistics/Contracts/` which already houses `ILogisticsCatalogSource`, `ILogisticsStockOperationService`, etc.
+- (C) `Application/Features/ExpeditionList/Contracts/` — the actual consumer of `IPickingListSource` is `ExpeditionListService`, not the Logistics module; per the "Consumer owns the contract" pattern documented in `development_guidelines.md` (lines 194–207), the contract belongs in the consumer's module.
 
-- **(A)** `Application/Features/Logistics/Picking/` — what the spec proposes; mirrors the existing Domain path 1:1.
-- **(B)** `Application/Features/ExpeditionList/Contracts/` — co-locate DTOs and port with the feature that actually consumes them, matching the `Contracts/` convention documented in `docs/architecture/development_guidelines.md` and already used by `Application/Features/Logistics/Contracts/` (`TransportBoxDto.cs`, `IInventoryReservationService.cs`, etc.).
+**Chosen approach:** **Stick with option (A) — `Application/Features/Logistics/Picking/`** as the spec prescribes.
 
-**Chosen approach:** Stay with the spec's choice — **(A) `Application/Features/Logistics/Picking/`**.
+**Rationale:** Option (C) is architecturally the cleanest long-term home (it matches the `ILeafletKnowledgeSource` precedent in the docs), but moving across feature boundaries widens the blast radius beyond what FR-1–FR-6 authorise and exceeds the "surgical changes" rule in `CLAUDE.md`. Option (B) is closer to the documented convention but the spec is marked COMPLETE and explicitly names `Picking/`; renaming the folder would force the spec to be reopened for a marginal naming gain. Option (A) preserves the conceptual grouping ("picking-list operation contracts"), matches the spec verbatim, and leaves option (C) available as a deliberate follow-up. Document this trade-off in the commit message so the follow-up is not lost.
 
-**Rationale:**
+#### Decision 2: Preserve type kind (`class`) — do not convert DTOs to `record`
+**Options considered:**
+- Keep `PrintPickingListRequest`/`PrintPickingListResult` as `class` with mutable properties.
+- Convert to `record` for immutability per the global C# coding-style rule.
 
-- The brief and spec both explicitly call out this path; the goal is a surgical relocation, not a feature reorganization.
-- `IPickingListSource` is *implemented* by a Shoptet adapter and is conceptually a Logistics-bounded concern (picking lists pull from carriers/orders). Putting it inside `ExpeditionList` would couple the adapter to a sibling feature's namespace.
-- The naming `Picking` is shared vocabulary across `ExpeditionList`, the Shoptet adapter, and the recurring Hangfire job — a Logistics subfolder reflects that better than burying it in one consumer's `Contracts/`.
-- Option (B) is a reasonable future refinement but expands the diff beyond what the brief authorizes ("Out of Scope: Splitting `PrintPickingListRequest`…", "Reorganizing other types in `Domain.Features.Logistics`…").
+**Chosen approach:** Keep as `class` with mutable properties — preserve the public surface exactly.
 
-**Note for spec:** the spec is internally consistent on this; no amendment required, but **call out Option (B) as a future improvement** so the next architecture review pass can revisit if `ExpeditionList` grows additional picking-related DTOs.
+**Rationale:** FR-1, FR-2, and FR-6 require behavioural and shape parity. The project-specific rule in `CLAUDE.md` says "DTOs are classes, never C# records" because OpenAPI client generators mishandle record parameter order. Even though these specific DTOs are internal (not exposed via OpenAPI today), changing the type kind during a relocation violates the "surgical changes" directive and the spec's Out-of-Scope clause.
 
-#### Decision 2: Delete the empty `Domain/Features/Logistics/Picking/` directory
+#### Decision 3: Domain `Picking` folder cleanup
+**Options considered:**
+- Delete the folder once empty.
+- Leave the empty folder in place.
 
-**Options considered:** leave it empty (with a `.gitkeep` or untouched) vs delete it.
+**Chosen approach:** Delete it if and only if empty after the three moves (per FR-5).
 
-**Chosen approach:** delete (matches FR-6).
+**Rationale:** An empty `Domain/Features/Logistics/Picking/` folder would falsely suggest Domain still owns picking concerns, undermining the whole point of this work. Verified: the folder currently contains exactly the three files being moved (`PrintPickingListRequest.cs`, `PrintPickingListResult.cs`, `IPickingListSource.cs`) and nothing else — it will be empty after the move and must be removed.
 
-**Rationale:** an empty folder under Domain is misleading — it signals a domain concept that no longer exists there. Git tracks files, not directories, so deletion is a no-op in version control once the three files are removed. Confirm with `git status` after the move that the directory disappears.
+#### Decision 4: No DI registration changes
+**Options considered:**
+- Re-check or re-register the `IPickingListSource` → `ShoptetApiExpeditionListSource` binding.
+- Leave registration untouched.
 
-#### Decision 3: Preserve file-scoped namespaces and existing style
+**Chosen approach:** Leave the DI registration untouched (verify only).
 
-**Chosen approach:** change only the namespace token; do not reformat, reorder members, or convert between brace and file-scoped namespace forms.
-
-**Rationale:** matches the project's "surgical changes" rule in `CLAUDE.md` and NFR-4. `dotnet format` is run only on the changed files.
+**Rationale:** Registration in `ShoptetApiAdapterServiceCollectionExtensions.cs` is type-based (`services.AddScoped<IPickingListSource, ShoptetApiExpeditionListSource>()` or similar). Updating the `using` directive at the top of that file from `Anela.Heblo.Domain.Features.Logistics.Picking` to `Anela.Heblo.Application.Features.Logistics.Picking` resolves the interface to the new location with no API call changes.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-Create the new folder and three files in this order to minimize broken-build windows:
+Create new files:
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListRequest.cs`
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListResult.cs`
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/IPickingListSource.cs`
 
-1. `backend/src/Anela.Heblo.Application/Features/Logistics/` already exists. Create subdirectory `Picking/`.
-2. Move (rename) — preferably via `git mv` to preserve history:
-   - `Domain/Features/Logistics/Picking/PrintPickingListRequest.cs` → `Application/Features/Logistics/Picking/PrintPickingListRequest.cs`
-   - `Domain/Features/Logistics/Picking/PrintPickingListResult.cs` → `Application/Features/Logistics/Picking/PrintPickingListResult.cs`
-   - `Domain/Features/Logistics/Picking/IPickingListSource.cs` → `Application/Features/Logistics/Picking/IPickingListSource.cs`
-3. Update each moved file's namespace declaration to `Anela.Heblo.Application.Features.Logistics.Picking`.
-4. Inside `PrintPickingListRequest.cs`, add `using Anela.Heblo.Domain.Features.Logistics;` (to keep `Carriers` resolvable, since the file no longer sits inside the Domain.Logistics namespace tree where `Carriers` was implicitly accessible via the parent namespace).
-5. Update the 6 production `using` directives and 5 test `using` directives enumerated in FR-4/FR-5.
-6. Remove the now-empty `Domain/Features/Logistics/Picking/` directory.
+Delete:
+- `backend/src/Anela.Heblo.Domain/Features/Logistics/Picking/PrintPickingListRequest.cs`
+- `backend/src/Anela.Heblo.Domain/Features/Logistics/Picking/PrintPickingListResult.cs`
+- `backend/src/Anela.Heblo.Domain/Features/Logistics/Picking/IPickingListSource.cs`
+- `backend/src/Anela.Heblo.Domain/Features/Logistics/Picking/` (the folder, since it becomes empty)
 
 ### Interfaces and Contracts
 
-No signature changes. To make this auditable, the implementer should diff each moved file before/after and confirm only the namespace line and (in `PrintPickingListRequest`) the new `using` for `Carriers` differ.
+Namespace flip — and nothing else — for these three types:
 
-Specifically:
+```
+Old: Anela.Heblo.Domain.Features.Logistics.Picking
+New: Anela.Heblo.Application.Features.Logistics.Picking
+```
 
-- **`PrintPickingListRequest`** — currently references `Carriers` as a bare type (resolvable because of the parent namespace `Anela.Heblo.Domain.Features.Logistics`). After the move, either:
-  - add `using Anela.Heblo.Domain.Features.Logistics;` at the top, **or**
-  - fully-qualify both `Carriers` references (`IList<Anela.Heblo.Domain.Features.Logistics.Carriers>` and the `DefaultCarriers` initializer).
-  Prefer the `using` directive — less noise, matches existing project style. Note that the current file uses `Logistics.Carriers.Zasilkovna` in `DefaultCarriers`; after adding the using directive this can stay as-is, but a developer should verify there is no name collision with `Anela.Heblo.Application.Features.Logistics`. (There is no `Carriers` symbol in the Application/Logistics namespace today — verified.)
+`PrintPickingListRequest` continues to use `Anela.Heblo.Domain.Features.Logistics.Carriers`. Because `Carriers` lives in a parent namespace, the moved file should add `using Anela.Heblo.Domain.Features.Logistics;` if it does not have it implicitly (currently it relied on being in the same root namespace). Verify by inspecting `PrintPickingListRequest.cs` after the move — `IList<Carriers>` and `Logistics.Carriers.Zasilkovna` (line 16 of the original) both need either a `using` directive or fully qualified references.
 
-- **`IPickingListSource`** — exact signature preserved. `ShoptetApiExpeditionListSource` already implicitly will pick up the new namespace once its `using` is updated.
+`IPickingListSource` signature is unchanged: `Task<PrintPickingListResult> CreatePickingList(PrintPickingListRequest, Func<IList<string>, Task>?, CancellationToken)`.
 
 ### Data Flow
 
-No change in runtime data flow. Compile-time: the type identity changes (`System.Type.FullName` differs), but no callers serialize these by full type name:
+Unchanged end to end. For reference, the existing call chain is:
 
-- `PrintPickingListJob` constructs `PrintPickingListRequest` in-process and passes it to `IExpeditionListService.PrintPickingListAsync` — Hangfire stores only the *job* identifier (`PrintPickingListJob.ExecuteAsync()`), not the DTO. Confirmed by reading `PrintPickingListJob.cs:49-62`.
-- No queue messages, blob payloads, or DB rows persist these types.
+```
+PrintPickingListJob (Hangfire trigger, Application)
+  → ExpeditionListService.PrintPickingListAsync (Application)
+    → IPickingListSource.CreatePickingList (port; was Domain, now Application)
+      → ShoptetApiExpeditionListSource.CreatePickingList (Adapter)
+        ← PrintPickingListResult
+    → IPrintQueueSink (Application)
+    → IEmailSender (Xcc)
+```
+
+No method bodies or call sites change; only the namespace `using` directives at the top of caller files.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| `PrintPickingListRequest` loses access to `Carriers` after namespace change (compiler error) | Low | Add `using Anela.Heblo.Domain.Features.Logistics;` to the moved file. Verified locally that no shadowing `Carriers` type exists in `Application.Features.Logistics`. |
-| Hidden serializer (Hangfire, Newtonsoft with `TypeNameHandling.All`, MassTransit, blob cache) holds a fully-qualified type name | Low | Verified: the Hangfire job stores no DTO arguments. Still, before merge run `grep -rni "PrintPickingListRequest\|PrintPickingListResult\|IPickingListSource" backend/` and inspect any matches in serialization/job-scheduling code. |
-| Lost git history because move is detected as delete+add | Low | Use `git mv` (or `git add -A` followed by `git status` confirming "renamed:"). Verify rename detection survives the namespace edit by making the namespace change in a second commit if rename heuristic falls below the default threshold. |
-| `Anela.Heblo.Domain/Features/Logistics/Picking/` directory persists in working tree after files are removed | Low | Explicit `rmdir` (or in Visual Studio: "delete empty folder"). FR-6 requires its removal. |
-| Test projects fail to find moved types due to stale build cache | Low | After edits, run `dotnet clean && dotnet build` once before declaring success. |
-| `using` cleanup misses a file (e.g. a transitively touched test helper) | Low | FR-7's `grep` check on `backend/src` **and** `backend/test` is the gate. Run it before commit. |
-| Reviewer confuses "Logistics" location with the unrelated `Features/Logistics/UseCases/` (TransportBox) area | Low (cosmetic) | Add a brief PR description noting the new `Picking/` subfolder is distinct from the TransportBox use cases under the same feature. |
+| Brief understates consumer count ("single namespace reference"); a developer who reads only the brief misses 10 of 11 references and produces a half-broken build. | High | Implement per FR-4's "entire `backend/` tree" scope. Verify with a solution-wide grep for `Anela.Heblo.Domain.Features.Logistics.Picking` after the change; the only remaining hits should be in the docs/superpowers/plans/ history (which are historical artefacts and must not be edited). |
+| `PrintPickingListRequest.cs` line 16 references `Logistics.Carriers.Zasilkovna` using a relative namespace path; after relocation the resolution context changes. | Medium | After moving the file, change line 16's `Logistics.Carriers.Zasilkovna` (and surrounding entries) to either fully qualified `Anela.Heblo.Domain.Features.Logistics.Carriers.Zasilkovna` or add `using Anela.Heblo.Domain.Features.Logistics;` and reference `Carriers.Zasilkovna`. Confirmed by `dotnet build`. |
+| Adapters.ShoptetApi imports both Domain and Application; if a future contributor removes the Application reference, the move silently breaks. | Low | Out of scope for this change. Consider an architecture test in a follow-up that asserts `Adapters.ShoptetApi` references `Anela.Heblo.Application`. |
+| Empty Domain `Picking` folder remains and misleads future readers. | Medium | Enforced by FR-5 — delete the folder. Confirmed empty after the three-file move. |
+| `dotnet format` introduces unrelated whitespace churn in the moved files, breaking surgical-changes rule. | Low | Run `dotnet format` only on the three new files plus the files whose `using` directives changed. Stage and review the diff before committing. |
+| Inadvertent introduction of Domain → Application dependency by a sloppy fix-on-build attempt. | High | Verify after the change: `grep -r "Anela.Heblo.Application" backend/src/Anela.Heblo.Domain/` must return zero hits. Also confirm `Anela.Heblo.Domain.csproj` is unchanged. |
+| Test file changes drift outside `using` updates. | Low | FR-6 forbids it. Diff each test file and confirm only the `using` directive line changed. |
 
 ## Specification Amendments
 
-The spec is sound; two minor amendments to make it implementable without judgement calls:
+1. **Amend the brief's "single namespace reference" claim** at the top of the spec's Background section by adding a one-line correction: there are **11 files** to update across 4 projects (Application: 4 files, Adapters.ShoptetApi: 2 files, Anela.Heblo.Tests: 3 files, Anela.Heblo.Adapters.Shoptet.Tests: 2 files). FR-4 already covers this scope correctly; this amendment just removes the misleading line so a future reader is not lulled by it.
 
-1. **Amend FR-1 acceptance criteria** to explicitly require: *"`PrintPickingListRequest.cs` adds `using Anela.Heblo.Domain.Features.Logistics;` (for the `Carriers` enum). Bare references such as `Logistics.Carriers.Zasilkovna` in `DefaultCarriers` are preserved unchanged."* — this prevents a developer from over-rewriting the `DefaultCarriers` initializer or, alternatively, from missing the `using` and producing a compile error.
+2. **Amend FR-1's acceptance criteria** to explicitly require either:
+   - adding `using Anela.Heblo.Domain.Features.Logistics;` to the relocated `PrintPickingListRequest.cs`, or
+   - rewriting line 16's relative `Logistics.Carriers.X` references to either bare `Carriers.X` (with the using above) or fully qualified `Anela.Heblo.Domain.Features.Logistics.Carriers.X`.
 
-2. **Amend NFR-3 (Backwards compatibility)** to record the verification result: *"Verified during architectural review that `PrintPickingListJob` constructs `PrintPickingListRequest` in-process and Hangfire serializes only the `IRecurringJob.ExecuteAsync()` invocation, not the DTO. No serialized payload references the moved type names."* — closes the open hedge in the original NFR-3 text.
+   The current spec wording ("public properties … preserved verbatim") could be read as forbidding even this benign namespace tweak; clarify that it applies to the **public surface** (property names, types, defaults), not to internal `using` directives.
 
-3. **Add to "Future improvements" (informational, no action this iteration)**: *"Consider moving these types to `Application/Features/ExpeditionList/Contracts/` if `ExpeditionList` remains the sole consumer, to conform to the `Contracts/`-per-feature convention in `docs/architecture/development_guidelines.md`."* — captures Decision 1's runner-up so it isn't lost.
+3. **Add a verification step to FR-3 / NFR-3:** after the move, assert `grep -r "Anela.Heblo.Application" backend/src/Anela.Heblo.Domain/` returns zero matches. The spec mentions the dependency rule in prose but does not give a concrete verification command.
 
-No other changes. Open Questions remains "None".
+4. **Clarify FR-5** to note that "empty" must be verified — the folder contains exactly the three files being moved (confirmed during this review), so it will be empty post-move.
+
+5. **Consider follow-up note (non-blocking):** the consumer of `IPickingListSource` is `ExpeditionListService` in the `ExpeditionList` feature. The cross-module-communication pattern in `docs/architecture/development_guidelines.md` (lines 194–207, "Consumer owns the contract") suggests that the ideal long-term home is `Application/Features/ExpeditionList/Contracts/IPickingListSource.cs`, with `PrintPickingListRequest`/`Result` in the same `Contracts/` folder. This is intentionally **out of scope** for this relocation but should be filed as a follow-up arch-review item so the conceptual misplacement is not lost when the immediate fix lands.
 
 ## Prerequisites
 
-None. No migrations, configuration, infrastructure, or new project references are required. The work can begin immediately on this branch.
+None. All project references, package dependencies, and module-level DI registrations are already in place to absorb the move. No migrations, no infrastructure, no config keys, and no feature flags are involved.
 
-Pre-flight checklist for the implementer:
+Verification commands (run before and after the change):
 
-- Working tree is clean (`git status` shows nothing pending).
-- `dotnet build` of the solution currently succeeds (baseline).
-- The five test files identified in FR-5 currently compile and pass (`dotnet test --filter` on the two test projects) — establishes the baseline that FR-5 must preserve.
+```
+# Must return only references in docs/superpowers/plans/ after the change
+grep -rn "Anela.Heblo.Domain.Features.Logistics.Picking" backend/
+
+# Must return zero
+grep -rn "Anela.Heblo.Application" backend/src/Anela.Heblo.Domain/
+
+# Build + tests + format gate
+dotnet build
+dotnet test
+dotnet format
 ```
