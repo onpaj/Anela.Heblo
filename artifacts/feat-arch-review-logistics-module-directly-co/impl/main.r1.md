@@ -1,60 +1,62 @@
-Both reviews complete. Spec compliance: **SPEC COMPLIANT ✅**. Code quality: **APPROVED WITH MINOR ISSUES** — the pre-existing commit (`79178cac`) included an unrelated change to `PurchaseOrderHelpers.tsx` alongside the enum removal; that change is already merged and correct, just not scoped to this commit.
+All 5 implementation commits are on the branch. The implementation is complete.
 
 ---
 
-# Implementation: Remove Unused `Severe` Member from `StockSeverity` Enum
+# Implementation: Decouple Logistics Module From Catalog-Owned Interfaces (TransportBoxCompletionService)
 
 ## What was implemented
 
-The dead `StockSeverity.Severe` enum member was removed from the Purchase module's backend enum, and the TypeScript API client was regenerated to reflect the removal. This was already completed in commit `79178cac` (merged as PR #1895) before this session; the current branch includes that commit.
-
-`StockSeverityCalculator` never emitted `Severe`, no consumer ever branched on it, and `JsonStringEnumConverter` is active (string-named wire format), so no ordinal shifts occurred. The separate `GiftPackageSeverity.Severe` in the Logistics module is untouched.
+Removed all direct Catalog dependencies from `TransportBoxCompletionService` by introducing a Logistics-owned query contract and a Catalog-side adapter. Applied the same consumer-owns-the-contract pattern that PR #2201 established for the write side.
 
 ## Files created/modified
 
-- `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/GetPurchaseStockAnalysis/GetPurchaseStockAnalysisResponse.cs` — `StockSeverity` enum now has exactly `Critical, Low, Optimal, Overstocked, NotConfigured`
-- `frontend/src/api/generated/api-client.ts` — NSwag-regenerated; `StockSeverity` no longer contains `Severe = "Severe",`; `GiftPackageSeverity.Severe` preserved
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Contracts/LogisticsStockOperationState.cs` — new enum mirroring `StockUpOperationState` with explicit integer values
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Contracts/Models/LogisticsStockOperationStatus.cs` — new DTO class (DocumentNumber + State only)
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Contracts/ILogisticsStockOperationQueryService.cs` — new Logistics-owned query contract
+- `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/LogisticsStockOperationQueryAdapter.cs` — new `internal sealed` adapter in Catalog that implements the contract, delegates to `IStockUpOperationRepository`, exhaustive switch mappers for both source type and state
+- `backend/src/Anela.Heblo.Application/Features/Catalog/CatalogModule.cs` — added `AddTransient<ILogisticsStockOperationQueryService, LogisticsStockOperationQueryAdapter>()` next to existing write-side adapter
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Services/TransportBoxCompletionService.cs` — replaced `IStockUpOperationRepository` dependency with `ILogisticsStockOperationQueryService`; removed all Catalog imports; updated call site and state comparisons
+- `backend/test/Anela.Heblo.Tests/Features/Catalog/Infrastructure/LogisticsStockOperationQueryAdapterTests.cs` — new tests: source mapping, state mapping theory, enum-parity guard, DocumentNumber projection, cancellation token propagation
+- `backend/test/Anela.Heblo.Tests/Features/Logistics/Services/TransportBoxCompletionServiceTests.cs` — swapped mock from `IStockUpOperationRepository` to `ILogisticsStockOperationQueryService`; replaced `CreateOperation` with `CreateStatus` helper
+- `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` — emptied `LogisticsCatalogAllowlist`; added `CatalogLogisticsAllowlist` entries for the new adapter's Logistics type references
 
 ## Tests
 
-No new tests were required. The task plan called for running the existing Purchase-module test suite and the full backend suite as a safety net. Both pass (verified by the implementer subagent and confirmed by the clean working tree state). No frontend test failures.
+- `LogisticsStockOperationQueryAdapterTests` — 11 tests: source type mapping (×2), unknown source throws, state mapping theory (×4), DocumentNumber projection, empty result, enum-parity guard, CancellationToken propagation
+- `TransportBoxCompletionServiceTests` — 7 tests: same scenarios as before, now using `LogisticsStockOperationStatus` DTOs
+- `ModuleBoundariesTests` — 14/14 architecture boundary rules pass; `Logistics → Catalog` is now actively enforced with empty allowlist
 
 ## How to verify
 
 ```bash
-# Backend enum — must show Critical, Low, Optimal, Overstocked, NotConfigured only
-grep -n -A 8 "public enum StockSeverity" backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/GetPurchaseStockAnalysis/GetPurchaseStockAnalysisResponse.cs
-
-# TS client — must show same five members, no Severe
-grep -n -A 8 "^export enum StockSeverity" frontend/src/api/generated/api-client.ts
-
-# GiftPackageSeverity must still have Severe
-grep -n -A 8 "^export enum GiftPackageSeverity" frontend/src/api/generated/api-client.ts
-
-# No live StockSeverity.Severe references anywhere
-grep -nR "StockSeverity.Severe" backend frontend/src --include="*.cs" --include="*.ts" --include="*.tsx"
+cd backend && dotnet build Anela.Heblo.sln
+dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --no-build
+grep -rn "IStockUpOperationRepository\|StockUpSourceType\|StockUpOperationState" src/Anela.Heblo.Application/Features/Logistics
+# expected: zero matches
 ```
-
-All four checks pass on the current branch.
 
 ## Notes
 
-- The task was already fully implemented before this session started (commit `79178cac`, merged as PR #1895). This session verified spec compliance and code quality against the task plan.
-- The code quality reviewer flagged a minor scope concern: commit `79178cac` also included an unrelated 4-line change to `frontend/src/components/purchase-orders/form/PurchaseOrderHelpers.tsx` (supplier ID handling). The change is correct and already merged; it should have been a separate commit but cannot be unwound now.
-- `docs/features/gift-package-manufacture.md:476` contains a stale `StockSeverity.Severe` reference that should read `GiftPackageSeverity.Severe`. Per the task plan, this is out of scope and tracked for a separate docs PR.
+All 4 architecture-review amendments incorporated:
+1. `AddTransient` (not `AddScoped`) — matches existing sibling registration
+2. Emptied existing allowlist entries rather than adding a new test method
+3. Enum-parity guard test in `LogisticsStockOperationQueryAdapterTests`
+4. Pre-existing reverse-direction references (`LogisticsCatalogTransportSourceAdapter`, `LogisticsModule.cs`) are expected and architecture-test-allowlisted
+
+The 32 pre-existing test failures are Docker-dependent integration tests unrelated to this change.
 
 ## PR Summary
 
-Removed the unreachable `StockSeverity.Severe` member from the Purchase module and regenerated the TypeScript API client. `StockSeverityCalculator` never emitted this value, no frontend consumer branched on it, and string-based serialization (`JsonStringEnumConverter`) means no wire-format ordinal shift. The generated client now reflects only the five values the backend actually produces.
+Finishes the Logistics–Catalog module boundary decoupling started by PR #2201. That PR covered `GiftPackageManufactureService`, `ChangeTransportBoxStateHandler`, and `GetTransportBoxByCodeHandler`; this change addresses the residual leak in `TransportBoxCompletionService` which still injected Catalog-owned `IStockUpOperationRepository` directly.
 
-`GiftPackageSeverity.Severe` (Logistics module) is unaffected.
-
-Note: `docs/features/gift-package-manufacture.md:476` has a stale `StockSeverity.Severe` reference that should read `GiftPackageSeverity.Severe` — tracked for a separate docs fix.
+Introduces a Logistics-owned query contract (`ILogisticsStockOperationQueryService`) and a Catalog-side read-only adapter (`LogisticsStockOperationQueryAdapter`) following the same consumer-owns-the-contract pattern. The `LogisticsCatalogAllowlist` in the architecture test is now empty, meaning the reflection-based boundary check actively enforces that no Logistics type references Catalog-owned namespaces.
 
 ### Changes
-- `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/GetPurchaseStockAnalysis/GetPurchaseStockAnalysisResponse.cs` — removed `Severe,` from `StockSeverity`
-- `frontend/src/api/generated/api-client.ts` — NSwag-regenerated; `StockSeverity` no longer includes `Severe = "Severe",`
+- `Logistics/Contracts/` — 3 new files: `ILogisticsStockOperationQueryService`, `LogisticsStockOperationState`, `Contracts/Models/LogisticsStockOperationStatus`
+- `Catalog/Infrastructure/LogisticsStockOperationQueryAdapter.cs` — new `internal sealed` provider-side adapter with exhaustive enum mappers
+- `Catalog/CatalogModule.cs` — one `AddTransient` line for the new adapter
+- `Logistics/Services/TransportBoxCompletionService.cs` — swap `IStockUpOperationRepository` for `ILogisticsStockOperationQueryService`; remove all Catalog imports
+- `Tests/Architecture/ModuleBoundariesTests.cs` — empty `LogisticsCatalogAllowlist`; extend `CatalogLogisticsAllowlist` for new adapter
 
 ## Status
-
-DONE_WITH_CONCERNS
+DONE
