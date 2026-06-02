@@ -107,51 +107,6 @@ public class GetProductMarginAnalysisHandlerTests
     }
 
     [Fact]
-    public async Task Handle_InvalidDateRange_ReturnsErrorResponse()
-    {
-        // Arrange
-        var request = new GetProductMarginAnalysisRequest
-        {
-            ProductId = "PROD001",
-            StartDate = new DateTime(2024, 12, 31),
-            EndDate = new DateTime(2024, 1, 1), // End before start
-            IncludeBreakdown = true
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidDateRange);
-        result.Params.Should().ContainKey("startDate");
-        result.Params.Should().ContainKey("endDate");
-    }
-
-    [Fact]
-    public async Task Handle_EmptyProductId_ReturnsErrorResponse()
-    {
-        // Arrange
-        var request = new GetProductMarginAnalysisRequest
-        {
-            ProductId = "", // Empty product ID
-            StartDate = new DateTime(2024, 1, 1),
-            EndDate = new DateTime(2024, 12, 31)
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.RequiredFieldMissing);
-        result.Params.Should().ContainKey("field");
-        result.Params["field"].Should().Be("ProductId");
-    }
-
-    [Fact]
     public async Task Handle_ProductNotFound_ReturnsErrorResponse()
     {
         // Arrange

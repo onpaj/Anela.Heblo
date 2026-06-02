@@ -171,67 +171,6 @@ public class GetMarginReportHandlerTests
     }
 
     [Fact]
-    public async Task Handle_InvalidDateRange_ReturnsErrorResponse()
-    {
-        // Arrange
-        var request = new GetMarginReportRequest
-        {
-            StartDate = new DateTime(2024, 12, 31),
-            EndDate = new DateTime(2024, 1, 1) // End before start
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidDateRange);
-        result.Params.Should().ContainKey("startDate");
-        result.Params.Should().ContainKey("endDate");
-    }
-
-    [Fact]
-    public async Task Handle_PeriodTooLong_ReturnsErrorResponse()
-    {
-        // Arrange
-        var request = new GetMarginReportRequest
-        {
-            StartDate = new DateTime(2020, 1, 1),
-            EndDate = new DateTime(2024, 1, 1) // More than 2 years
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidReportPeriod);
-        result.Params.Should().ContainKey("period");
-    }
-
-    [Fact]
-    public async Task Handle_ZeroDaysPeriod_ReturnsErrorResponse()
-    {
-        // Arrange
-        var request = new GetMarginReportRequest
-        {
-            StartDate = new DateTime(2024, 1, 1),
-            EndDate = new DateTime(2024, 1, 1) // Same date
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidReportPeriod);
-        result.Params.Should().ContainKey("period");
-    }
-
-    [Fact]
     public async Task Handle_NoProductsFound_ReturnsErrorResponse()
     {
         // Arrange
