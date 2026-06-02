@@ -1,0 +1,3 @@
+Plan saved to `docs/superpowers/plans/2026-06-02-decouple-manufacturegroupid-from-configuration.md` (17 tasks covering backend handler/controller/tests, frontend hook swap across 3 components, doc update, and a validation sweep).
+
+The plan follows the architecture review's six amendments: separate `ManufactureSettingsController`, constant in its own `ManufactureConfigurationKeys.cs`, `UseCases/GetManufactureSettings/` folder layout, literal route, explicit `[AllowAnonymous]`, no `ManufactureModule.cs` edit, and deletion of the now-empty `GetConfigurationHandlerTests.cs`. Each task is TDD-shaped (RED → GREEN → commit) with exact file paths, full code blocks, and verifiable expected outputs.
