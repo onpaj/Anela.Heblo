@@ -1,116 +1,131 @@
+I have enough context now to write the architecture review.
+
 # Architecture Review: Decompose CatalogRepository
 
 ## Skip Design: true
 
-Pure backend refactor with no UI, no API surface change, no new endpoints, and no visible behavior change.
-
 ## Architectural Fit Assessment
 
-The proposal aligns cleanly with established patterns in this module:
+This refactor aligns cleanly with existing project conventions:
 
-- **Vertical Slice + Infrastructure subfolder** is already the convention. `CatalogMergeScheduler`, `CatalogResilienceService`, and `CatalogCacheOptions` live in `Application/Features/Catalog/Infrastructure/`. Adding `CatalogCacheStore`, `CatalogMergeService`, and `CatalogDataRefreshService` there is the obvious placement.
-- **`ICatalogRepository` is the existing seam** for the background refresh framework. `BackgroundRefreshExtensions.RegisterRefreshTask<TOwner>` builds task IDs from `typeof(TOwner).Name` (verified at `backend/src/Anela.Heblo.Xcc/Services/BackgroundRefresh/BackgroundRefreshExtensions.cs:91`), so task IDs like `"ICatalogRepository.RefreshSalesData"` (and matching `appsettings.json` keys) are preserved as long as `ICatalogRepository` stays the registration owner — which is exactly what the spec requires.
-- **Three distinct lifetimes already coexist:** `CatalogMergeScheduler` is singleton, `ICatalogRepository` is transient, `IMemoryCache` is singleton. The proposal's lifetime choices (cache store + merge service singleton; refresh service transient; repository transient) are correct and necessary — the merge callback wired at startup must outlive request scopes, and `_cacheReplacementSemaphore` plus the in-flight invalidation tracking are process-wide concerns.
-- **Cross-module access:** the cross-source helpers (`GetProductsInTransport`/`Reserve`/`Quarantine`/`Ordered`/`Planned`) belong in `CatalogDataRefreshService`, not `CatalogMergeService`. They're invoked only from `Refresh*Data` methods today (verified: lines 121–152 of `CatalogRepository.cs`), and they hit `ITransportBoxRepository`, `IPurchaseOrderRepository`, `IManufactureOrderRepository` — wiring them through the merge service would re-import all those collaborators unnecessarily.
+- **Vertical Slice + Infrastructure subfolder.** The Catalog feature already groups feature-scoped infrastructure under `Application/Features/Catalog/Infrastructure/` (`CatalogMergeScheduler`, `CatalogResilienceService`, `CatalogCacheOptions`). The proposed `CatalogCacheStore`, `CatalogMergeService`, and `CatalogDataRefreshService` fit that bucket exactly.
+- **Public surface preserved.** `ICatalogRepository` lives in `Anela.Heblo.Domain.Features.Catalog` and is consumed by 89 sites including `MockCatalogRepository`, dashboard tiles, `CatalogModule.RegisterBackgroundRefreshTasks`, and a `RegisterRefreshTask<ICatalogRepository>` registration that depends on the owner-type name as a literal in task IDs (e.g. `"ICatalogRepository.RefreshTransportData"`). Keeping the interface intact preserves all of that — confirmed by reading `CatalogModule.cs:128–216`.
+- **DI lifetime story is already in place.** `ICatalogMergeScheduler` is a singleton wired by `CatalogModule.cs:69`. `IMemoryCache` is a singleton. `ICatalogRepository` is currently transient (`CatalogModule.cs:44`). The callback wiring in the constructor (`CatalogRepository.cs:118`) is the leak that makes this refactor necessary: a transient constructor is mutating singleton state on every resolve.
+- **`IHostedService` pattern is in use.** `BackgroundRefreshExtensions` already calls `AddHostedService` for `BackgroundRefreshSchedulerService`/`TierBasedHydrationOrchestrator`. A new `CatalogMergeCallbackWiring : IHostedService` (the spec's option 1) is consistent with that pattern.
 
-The only architectural risk is the merge-callback wiring cycle, addressed below.
+**Risk reduction in the existing setup that this work removes:** today, every transient resolution of `ICatalogRepository` calls `_mergeScheduler.SetMergeCallback(ExecuteBackgroundMergeAsync)`. Each scope's repository instance overwrites the singleton's callback with a closure bound to a different instance — when a scope disposes, the callback still points to the disposed instance's `Merge()` (which reads `_cache` and `_timeProvider`, both singletons, so it accidentally still works). The new singleton `CatalogMergeService` resolves this latent bug.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│ BackgroundRefreshSchedulerService (hosted, from Xcc)               │
-│   - Resolves ICatalogRepository per task, calls Refresh*Data(ct)   │
-└────────────────────────────────────────────────────────────────────┘
-                              │
+                        ┌─────────────────────────────────┐
+                        │     ICatalogRepository (89      │
+                        │     consumers, unchanged)       │
+                        └────────────────┬────────────────┘
+                                         │ implements
+                                         ▼
+                ┌────────────────────────────────────────────────┐
+                │  CatalogRepository (transient, ≤ 250 LOC)      │
+                │  - read-side queries (Get/Find/Single/Any/...) │
+                │  - LoadDate properties (delegating)            │
+                │  - Refresh* methods (delegating)               │
+                └───────┬────────────────┬───────────────────────┘
+                        │                │
+              delegates │                │ delegates
+                        ▼                ▼
+   ┌────────────────────────────┐   ┌──────────────────────────────────┐
+   │ CatalogDataRefreshService  │   │ CatalogMergeService (singleton)  │
+   │ (transient)                │   │ - Merge(), GetProductType()      │
+   │ - 19× Refresh*Data         │   │ - ExecuteBackgroundMergeAsync    │
+   │ - GetProductsInTransport/  │   │ - ExecutePriorityMergeAsync      │
+   │   Reserve/Quarantine/      │   │                                  │
+   │   Ordered/Planned          │   └──────────────┬───────────────────┘
+   └──────────────┬─────────────┘                  │
+                  │                                │
+                  │                                │
+                  └───────────┬────────────────────┘
+                              │ reads/writes
                               ▼
-┌────────────────────────────────────────────────────────────────────┐
-│ CatalogRepository (transient, ≤5 deps)            « ICatalogRepository »
-│   - Read API: GetByIdAsync, GetAllAsync, FindAsync, ...            │
-│   - Refresh* delegates → CatalogDataRefreshService                 │
-│   - *LoadDate / LastMergeDateTime / ChangesPendingForMerge         │
-│     delegate → CatalogCacheStore                                   │
-│   - WaitForCurrentMergeAsync → ICatalogMergeScheduler              │
-└────────────────────────────────────────────────────────────────────┘
-        │ read              │ refresh                │ priority merge
-        ▼                   ▼                        ▼
-┌──────────────────┐ ┌──────────────────────┐ ┌──────────────────────┐
-│ CatalogCache     │ │ CatalogDataRefresh   │ │ CatalogMergeService  │
-│ Store (singleton)│ │ Service (transient)  │ │ (singleton)          │
-│                  │ │                      │ │                      │
-│ - IMemoryCache   │ │ - 17 source clients  │ │ - Merge()            │
-│ - dual-key cache │ │ - ICatalogResilience │ │ - Background+Priority│
-│ - 19 per-source  │ │ - Reads CatalogData  │ │   merge execution    │
-│   typed accessors│ │   (for difficulty    │ │ - Reads cache store, │
-│ - LoadDate write │ │   single-product)    │ │   writes cache store │
-│ - LastMergeDate  │ │ - Writes cache store │ │                      │
-└──────────────────┘ └──────────────────────┘ └──────────────────────┘
-        │                       │                        │
-        │                       └─→ scheduler.ScheduleMerge(source)
-        │                                                │
-        ▼                                                ▼
-┌─────────────────────┐                  ┌────────────────────────────┐
-│ IMemoryCache        │                  │ ICatalogMergeScheduler     │
-│ (singleton)         │                  │ (singleton, debounce timer)│
-└─────────────────────┘                  └────────────────────────────┘
-                                                         │
-                                                         │ callback
-                              ┌──────────────────────────┘
-                              ▼
-                ┌────────────────────────────────────┐
-                │ CatalogMergeCallbackInitializer    │
-                │ (IHostedService — runs at startup, │
-                │  wires scheduler.SetMergeCallback) │
-                └────────────────────────────────────┘
+                ┌──────────────────────────────────────────┐
+                │ CatalogCacheStore (singleton)            │
+                │ - IMemoryCache wrapper (only this class  │
+                │   touches IMemoryCache)                  │
+                │ - 19 typed Get/Set per source            │
+                │ - CatalogData fallback chain             │
+                │ - ReplaceCacheAtomicallyAsync (semaphore)│
+                │ - IsCacheValid, LoadDate helpers         │
+                └──────────────────────────────────────────┘
+
+         (startup)
+   ┌─────────────────────────────┐         ┌──────────────────────────┐
+   │ CatalogMergeCallbackWiring  │────────►│ ICatalogMergeScheduler   │
+   │ : IHostedService            │ wires   │ (singleton, unchanged)   │
+   │ (resolves both singletons)  │  once   │ - SetMergeCallback       │
+   └─────────────────────────────┘         └──────────────────────────┘
 ```
 
 ### Key Design Decisions
 
-#### Decision 1: Where the merge callback is wired
+#### Decision 1: Concrete types, no extra interfaces
 
 **Options considered:**
-1. `IHostedService` (`CatalogMergeCallbackInitializer`) that resolves both singletons in `StartAsync` and calls `SetMergeCallback`. Spec's chosen option.
-2. Eager wiring inside `CatalogModule.AddCatalogModule` using a factory delegate when registering one of the singletons (resolve the other via `IServiceProvider` parameter).
-3. Wire inside `CatalogMergeService`'s constructor, taking `ICatalogMergeScheduler` and calling `SetMergeCallback(this.ExecuteBackgroundMergeAsync)` (mirrors current `CatalogRepository` constructor behavior).
+- (A) Introduce `ICatalogCacheStore`, `ICatalogMergeService`, `ICatalogDataRefreshService` for test seams.
+- (B) Use concrete classes only; tests construct real `CatalogCacheStore` against a real `MemoryCache`.
 
-**Chosen approach:** Option 3 — wire inside `CatalogMergeService`'s constructor. Reverse the spec on this point.
+**Chosen approach:** B.
 
-**Rationale:** `CatalogMergeService` is registered as a singleton, so its constructor runs exactly once per process — same guarantee as `IHostedService.StartAsync`. The wiring is one line and is naturally co-located with the callback it registers; an extra `IHostedService` class adds a file and a startup-ordering question for no observable benefit. The current code already follows this pattern in `CatalogRepository:118`; moving it to the singleton fixes the bug (every transient `CatalogRepository` resolution currently re-registers the callback) without adding indirection. If a future test needs to suppress the wiring, the test can register a fake `ICatalogMergeScheduler` that no-ops `SetMergeCallback`. The IHostedService alternative is still acceptable if the implementer prefers it — both satisfy the "exactly once at startup" requirement.
+**Rationale:** These are not module boundaries — they are internal collaborators behind the existing `ICatalogRepository` seam. `CatalogResilienceService` and `CatalogMergeScheduler` *do* have interfaces because they cross test boundaries; the cache store does not. Real `MemoryCache` is a `new MemoryCache(new MemoryCacheOptions())` away — easier to fake than to mock. Reduces ceremony and matches the spec's stated preference ("mocking against the concrete sealed type is acceptable"). If a test seam is later needed, extracting an interface from a concrete class is mechanical.
 
-#### Decision 2: Cache store API shape — typed accessors vs. raw dictionary
-
-**Options considered:**
-1. Typed setter methods per source (`SetSalesData(IList<…>)`), each internally invoking `InvalidateSourceData` + `SetLoadDateInCache`.
-2. Public dictionary-style accessors that mirror today's getter/setter properties.
-3. Generic `Set<T>(string sourceName, T value)` with reflection.
-
-**Chosen approach:** Option 1 — typed methods per source. With one exception below.
-
-**Rationale:** Type safety, IDE discoverability, and a single, audit-able place that enforces invalidation + load-date side effects. Matches the spec's FR-1 acceptance criterion.
-
-**Exception:** `RefreshManufactureDifficultySettingsData(product, ct)` mutates the cached dictionary by single key (`CachedManufactureDifficultySettingsData[product] = …` at `CatalogRepository.cs:243`). The current code path skips `InvalidateSourceData` for the single-key write — only the all-products path goes through the setter. This subtle behavior must be preserved. Expose two methods: `SetManufactureDifficultySettings(IDictionary<…>)` (full replace, triggers invalidation) **and** `UpdateManufactureDifficultySettingsForProduct(string productCode, List<…>)` (single-key write, no invalidation — matches today). Document the difference inline.
-
-#### Decision 3: Whether `CatalogData` accessor stays on the cache store or moves to the merge service
+#### Decision 2: Callback wiring via `IHostedService`
 
 **Options considered:**
-1. Keep the "current → stale + schedule → empty + schedule + warn" fallback chain inside `CatalogCacheStore.CatalogData` getter. Used by both `CatalogRepository` (read queries) and `CatalogMergeService.Merge()` (seed-from-ERP check) and `CatalogDataRefreshService.RefreshManufactureDifficultySettingsData` (single-product mutation).
-2. Split into two accessors: `TryGetCurrent()` (pure read, no side effects) for `Merge()` and the single-product refresh, plus the side-effecting `CatalogData` for the repository's read queries.
+- (A) Wire callback inside `AddCatalogModule` by resolving both singletons through a factory delegate registered on `CatalogMergeScheduler`.
+- (B) Wire callback in a small `CatalogMergeCallbackWiring : IHostedService` that resolves both singletons in `StartAsync` and calls `SetMergeCallback`.
 
-**Chosen approach:** Option 1 — single accessor on the cache store, preserving current behavior bit-for-bit.
+**Chosen approach:** B.
 
-**Rationale:** The spec's NFR-1 demands behavior preservation. Today, `Merge()` calls `CatalogData` (`CatalogRepository.cs:340`), which on empty cache calls `_mergeScheduler.ScheduleMerge("CacheEmpty")` as a side effect. That side effect during merge-from-empty is harmless (the merge is already running) but observable. Option 2 would change observable behavior. If the future call sites turn out to need a non-side-effecting accessor, add it then.
+**Rationale:** Factory-time resolution forces an ordering between two singleton registrations and tangles the scheduler's constructor. `StartAsync` runs after the service provider is fully built, sidesteps ordering entirely, and is the existing pattern in `BackgroundRefreshExtensions`. The spec already recommends this — adopting it without amendment.
 
-#### Decision 4: `ICatalogCacheStore` interface or concrete-only
+#### Decision 3: `CatalogMergeService` singleton, `CatalogDataRefreshService` transient
 
 **Options considered:**
-1. Concrete `CatalogCacheStore` only — tests use real `IMemoryCache` instances.
-2. Extract `ICatalogCacheStore` for `CatalogMergeService` / `CatalogDataRefreshService` / `CatalogRepository` to mock against.
+- (A) Both singletons.
+- (B) Refresh service transient (matches current `CatalogRepository` lifetime), merge service singleton.
 
-**Chosen approach:** Option 1 — concrete only.
+**Chosen approach:** B (matches the spec).
 
-**Rationale:** Matches existing patterns in the module (`CatalogResilienceService` has an interface because of Polly testing concerns; `CatalogMergeScheduler` has an interface because it's the explicit collaboration point with the would-be circular dependency). The cache store has no such constraint. Real `IMemoryCache` is cheap to instantiate in tests (`new MemoryCache(new MemoryCacheOptions())`), and using it gives higher-fidelity tests than mocking. Spec FR-1 leaves this open; lock it down to concrete-only.
+**Rationale:** `BackgroundRefreshExtensions.CreateWrappedMethod` (line 132–138, 147–153) creates a scope per refresh invocation and resolves the owner from `scope.ServiceProvider`. With `ICatalogRepository → CatalogRepository` registered transient and delegating to `CatalogDataRefreshService`, the refresh service must be scope-resolvable. The 17 source-specific repositories/clients it depends on (e.g. `ITransportBoxRepository`, `IPurchaseOrderRepository`) include `IRepository` types whose persistence-layer implementations are scoped — registering the refresh service singleton would create captive dependencies on a `DbContext`. Transient is correct and matches today's contract.
+
+The merge service holds no per-request state and must outlive the scope so the callback registered at startup remains valid; singleton is correct.
+
+#### Decision 4: Strict layer rule — only `CatalogCacheStore` references `IMemoryCache`
+
+**Options considered:**
+- (A) Allow merge service to read `IMemoryCache` directly for "performance" of the merge mapping.
+- (B) All cache I/O confined to `CatalogCacheStore`; merge service receives typed collections through getters.
+
+**Chosen approach:** B.
+
+**Rationale:** This is the property that makes the refactor worth doing. The merge cost is dominated by dictionary projections, not by `IMemoryCache.Get` calls (one lookup per source — 19 lookups total per merge). The maintainability gain outweighs any micro-cost. A code review or grep on `IMemoryCache` in the new files becomes a one-line invariant check.
+
+#### Decision 5: Remove `CachedManufactureCostData` and `ManufactureCostLoadDate` outright (FR-5)
+
+**Options considered:**
+- (A) Remove the property from `ICatalogRepository`.
+- (B) Keep the property on the interface, return `null`.
+
+**Chosen approach:** A.
+
+**Rationale:** Confirmed via grep — `ManufactureCostLoadDate` is referenced only in:
+- `CatalogRepository.cs:813` (definition, to be removed)
+- `ICatalogRepository.cs:46` (interface declaration, to be removed)
+- `MockCatalogRepository.cs:407` (mock implementation, to be removed)
+- `backend/test/Anela.Heblo.Tests/Common/ManufactureOrderTestFactory.cs` (test factory — verify and update; if it only references the property to satisfy the interface, remove it)
+- Two docs files (`docs/superpowers/specs/...` and `docs/superpowers/plans/...`) — not callers; no action needed beyond optional cleanup.
+
+No production consumer exists. Cleaner to delete than to keep dead surface.
 
 ## Implementation Guidance
 
@@ -118,152 +133,194 @@ The only architectural risk is the merge-callback wiring cycle, addressed below.
 
 ```
 backend/src/Anela.Heblo.Application/Features/Catalog/
-├── CatalogRepository.cs                                (slimmed — ≤250 lines)
-├── CatalogModule.cs                                    (DI registration updated)
+├── CatalogRepository.cs                              (slimmed, ≤ 250 LOC)
 └── Infrastructure/
-    ├── CatalogCacheStore.cs                            (new — ≤500 lines)
-    ├── CatalogMergeService.cs                          (new — ≤300 lines)
-    └── CatalogDataRefreshService.cs                    (new — ≤500 lines)
-
-backend/src/Anela.Heblo.Domain/Features/Catalog/
-└── ICatalogRepository.cs                               (remove ManufactureCostLoadDate)
-
-backend/src/Anela.Heblo.Persistence/Repositories/
-└── MockCatalogRepository.cs                            (remove ManufactureCostLoadDate property)
-
-backend/test/Anela.Heblo.Tests/
-├── Domain/Catalog/CatalogRepositoryTests.cs            (trim to ≤5 deps)
-├── Features/Catalog/CatalogRepositoryCacheOptimizationTests.cs   (mostly moves to cache store tests)
-├── Features/Catalog/Infrastructure/CatalogCacheStoreTests.cs           (new)
-├── Features/Catalog/Infrastructure/CatalogMergeServiceTests.cs         (new)
-├── Features/Catalog/Infrastructure/CatalogDataRefreshServiceTests.cs   (new)
-└── Controllers/CatalogRepositoryDebugTest.cs           (constructor cleanup)
+    ├── CatalogCacheStore.cs                          (new)
+    ├── CatalogMergeService.cs                        (new)
+    ├── CatalogDataRefreshService.cs                  (new)
+    ├── CatalogMergeCallbackWiring.cs                 (new, IHostedService)
+    ├── CatalogMergeScheduler.cs                      (unchanged)
+    ├── CatalogResilienceService.cs                   (unchanged)
+    └── CatalogCacheOptions.cs                        (unchanged)
 ```
 
-No new namespace; existing `Anela.Heblo.Application.Features.Catalog.Infrastructure` is reused.
+No new files in `Domain/Features/Catalog/`. The interface stays put.
 
 ### Interfaces and Contracts
 
-`ICatalogRepository` (in `Domain/Features/Catalog/`) — public surface preserved verbatim, with the single removal `DateTime? ManufactureCostLoadDate { get; }` (verified: no references outside `CatalogRepository.cs`, `MockCatalogRepository.cs`, and the interface itself).
-
-`CatalogCacheStore` (concrete, sealed if practical):
+**`CatalogCacheStore` (sketch — concrete, no interface):**
 
 ```csharp
-internal sealed class CatalogCacheStore
+public sealed class CatalogCacheStore
 {
-    public CatalogCacheStore(IMemoryCache cache, TimeProvider time,
-        IOptions<CatalogCacheOptions> options, ICatalogMergeScheduler scheduler,
-        ILogger<CatalogCacheStore> logger);
+    public Task ReplaceCacheAtomicallyAsync(List<CatalogAggregate> newData);
+    public bool IsCacheValid();
+    public List<CatalogAggregate> GetCatalogData();          // current → stale (+schedule) → empty (+schedule)
+    public List<CatalogAggregate>? TryGetCurrent();
+    public List<CatalogAggregate>? TryGetStale();
 
-    // Aggregate cache (dual-key + atomic replace)
-    Task ReplaceCacheAtomicallyAsync(List<CatalogAggregate> newData);
-    bool IsCacheValid();
-    List<CatalogAggregate> CatalogData { get; }  // side-effecting fallback chain — DO NOT change
+    // typed per-source accessors — 19 pairs
+    public IList<CatalogSaleRecord>             GetSalesData();
+    public void                                  SetSalesData(IList<CatalogSaleRecord> value);
+    public IList<CatalogAttributes>             GetCatalogAttributesData();
+    public void                                  SetCatalogAttributesData(IList<CatalogAttributes> value);
+    // ... 17 more pairs
 
-    // Merge state
-    DateTime? LastMergeDateTime { get; }
-    void SetLastMergeDateTime();
-
-    // Typed per-source set/get pairs (19 sources). Setters call InvalidateSourceData + SetLoadDateInCache.
-    IList<CatalogSaleRecord> GetSalesData();
-    void SetSalesData(IList<CatalogSaleRecord> data);
-    // ... same shape for the other 18 sources ...
-
-    // Special-case: per-product difficulty mutation, NO invalidation
-    void UpdateManufactureDifficultySettingsForProduct(
-        string productCode, List<ManufactureDifficultySetting> settings);
-
-    // Load-date accessors used by repository LoadDate properties
-    DateTime? GetLoadDate(string sourceName);
+    public DateTime? GetLoadDate(string sourceKey);          // generic — backs the 19 LoadDate properties on the repo
+    public DateTime? LastMergeDateTime { get; }
+    public void SetLastMergeDateTime();
 }
 ```
 
-`CatalogMergeService` (concrete, sealed):
+Each `Set*` method internally calls `InvalidateSourceData(sourceKey)` and `SetLoadDateInCache(sourceKey)` so the merge scheduler still fires. The `sourceKey` literal **must remain `nameof(CachedSalesData)`-style** (i.e. the same string the existing code already writes to `IMemoryCache`) to preserve key stability noted in NFR-3.
+
+**`CatalogMergeService` (sketch):**
 
 ```csharp
-internal sealed class CatalogMergeService
+public sealed class CatalogMergeService
 {
-    public CatalogMergeService(CatalogCacheStore store,
-        ICatalogMergeScheduler scheduler, TimeProvider time,
-        ILogger<CatalogMergeService> logger)
+    public Task ExecuteBackgroundMergeAsync(CancellationToken ct);
+    public Task<List<CatalogAggregate>> ExecutePriorityMergeAsync();
+    internal List<CatalogAggregate> Merge();   // for tests; otherwise private
+}
+```
+
+**`CatalogDataRefreshService` (sketch):**
+
+```csharp
+public sealed class CatalogDataRefreshService
+{
+    public Task RefreshTransportData(CancellationToken ct);
+    // ... 18 more, signatures identical to ICatalogRepository
+}
+```
+
+**`CatalogMergeCallbackWiring`:**
+
+```csharp
+public sealed class CatalogMergeCallbackWiring : IHostedService
+{
+    public CatalogMergeCallbackWiring(
+        ICatalogMergeScheduler scheduler,
+        CatalogMergeService mergeService) { ... }
+
+    public Task StartAsync(CancellationToken ct)
     {
-        // Wires callback ONCE (singleton lifetime, see Decision 1):
-        scheduler.SetMergeCallback(ExecuteBackgroundMergeAsync);
+        _scheduler.SetMergeCallback(_mergeService.ExecuteBackgroundMergeAsync);
+        return Task.CompletedTask;
     }
 
-    public Task ExecuteBackgroundMergeAsync(CancellationToken ct = default);
-    public Task<List<CatalogAggregate>> ExecutePriorityMergeAsync();
+    public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
 }
 ```
 
-`CatalogDataRefreshService` (concrete) — exposes the 19 `Refresh*Data` methods plus the five `GetProductsIn*` helpers as private methods. Constructor parameter count is the worst case: at minimum 17 source clients + `CatalogCacheStore` + `ICatalogResilienceService` + `TimeProvider` + `IOptions<DataSourceOptions>` + `ILogger` ≈ 22 parameters. **This exceeds the NFR-3 ≤ 10 ceiling.** See "Specification Amendments" below.
+**Slimmed `CatalogRepository`:**
 
-`CatalogRepository` (slimmed, transient) — constructor: `(CatalogCacheStore, CatalogMergeService, CatalogDataRefreshService, ICatalogMergeScheduler)`. All 19 `Refresh*Data` methods are one-line delegations to the refresh service. All 18 `*LoadDate` properties and `LastMergeDateTime` delegate to the cache store. `ChangesPendingForMerge` stays in the repository (it composes load dates from the cache store — pure read).
+```csharp
+public sealed class CatalogRepository : ICatalogRepository
+{
+    public CatalogRepository(
+        CatalogCacheStore cacheStore,
+        CatalogMergeService mergeService,
+        CatalogDataRefreshService refreshService,
+        ICatalogMergeScheduler mergeScheduler) { ... }
+
+    // 8 read-side query methods → delegate to cacheStore.GetCatalogData()
+    // 19 LoadDate properties → delegate to cacheStore.GetLoadDate("CachedXxx")
+    // LastMergeDateTime / ChangesPendingForMerge / WaitForCurrentMergeAsync → delegate
+    // 19 Refresh*Data methods → delegate to refreshService
+}
+```
 
 ### Data Flow
 
-**Refresh-triggered merge** — unchanged from spec sequence diagram. Verified that `BackgroundRefreshSchedulerService` resolves `ICatalogRepository` via a fresh scope per task invocation (extension method creates a scope per `wrappedMethod` call at `BackgroundRefreshExtensions.cs:134`), so the transient `CatalogRepository`'s delegation to a (also transient) `CatalogDataRefreshService` resolves correctly per task.
-
-**Query with empty cache:**
-
+#### Query with warm cache
 ```
-Handler → GetAllAsync(ct)
-  → CatalogRepository.GetCatalogDataAsync()
-     → CatalogCacheStore.IsCacheValid() = false, current = null
-     → if (AllowStaleDataDuringMerge && scheduler.IsMergeInProgress)
-          → CatalogCacheStore.GetStale() — return if present (logs "Serving stale...")
-     → CatalogMergeService.ExecutePriorityMergeAsync()
-        → Merge() reads from CatalogCacheStore.GetXxxData() accessors
-        → CatalogCacheStore.SetLastMergeDateTime()
-        → CatalogCacheStore.ReplaceCacheAtomicallyAsync(newList)
-        → return newList
+Handler → ICatalogRepository.GetAllAsync(ct)
+        → CatalogRepository._cacheStore.GetCatalogData()
+           → returns current cache, no I/O
 ```
 
-**Per-product difficulty refresh:**
+#### Query with empty cache (priority merge)
+```
+Handler → ICatalogRepository.GetAllAsync(ct)
+        → CatalogRepository.GetCatalogDataAsync()
+           → _cacheStore.TryGetCurrent() = null
+           → _cacheStore.IsCacheValid() = false
+           → if AllowStaleDataDuringMerge && _mergeScheduler.IsMergeInProgress
+              → _cacheStore.TryGetStale() — return if non-null
+           → otherwise → _mergeService.ExecutePriorityMergeAsync()
+              → Merge() (reads from _cacheStore typed getters)
+              → _cacheStore.ReplaceCacheAtomicallyAsync(newList)
+              → returns newList
+```
 
+#### Background refresh → debounced merge
+```
+BackgroundRefreshSchedulerService
+  → scope.GetRequiredService<ICatalogRepository>().RefreshSalesData(ct)
+     → CatalogRepository delegates → CatalogDataRefreshService.RefreshSalesData(ct)
+        → _resilienceService.ExecuteWithResilienceAsync(_salesClient.GetAsync(...))
+        → _cacheStore.SetSalesData(result)
+           → _cache.Set("CachedSalesData", value)
+           → InvalidateSourceData("CachedSalesData")
+              → _mergeScheduler.ScheduleMerge("CachedSalesData")
+           → SetLoadDateInCache("CachedSalesData")
+... DebounceDelay elapses (default 5s) ...
+CatalogMergeScheduler.Timer fires → ExecuteMergeAsync
+  → _mergeCallback(ct)  // wired at startup to CatalogMergeService.ExecuteBackgroundMergeAsync
+     → CatalogMergeService.Merge() reads via _cacheStore typed getters
+     → _cacheStore.ReplaceCacheAtomicallyAsync(newList)
+     → _cacheStore.SetLastMergeDateTime()
+```
+
+#### Single-product manufacture difficulty refresh
 ```
 RefreshManufactureDifficultySettingsData("ABC123", ct)
-  → CatalogRepository delegates to CatalogDataRefreshService
-     → diffRepo.ListAsync("ABC123", ct)
-     → CatalogCacheStore.UpdateManufactureDifficultySettingsForProduct("ABC123", list)
-        [no InvalidateSourceData — preserves today's behavior]
-     → CatalogCacheStore.CatalogData
-          .SingleOrDefault(s => s.ProductCode == "ABC123")
-          ?.ManufactureDifficultySettings.Assign(list, timeProvider.GetUtcNow().UtcDateTime)
+  → _cacheStore.GetManufactureDifficultySettings()["ABC123"] = settings
+  → _cacheStore.GetCatalogData().SingleOrDefault(p => p.ProductCode == "ABC123")
+      ?.ManufactureDifficultySettings.Assign(settings, now)
 ```
+This requires `CatalogCacheStore` to expose a *read-only* `GetCatalogData()` accessor that does **not** trigger a merge schedule (or that the refresh service uses `TryGetCurrent()` + fallback explicitly to avoid scheduling churn from a refresh path that already invalidates). Prefer the latter to keep `GetCatalogData()` semantics single-purpose.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Merge callback wired more than once (today's bug — `CatalogRepository` is transient and rewires on every resolution) | Low | Move wiring to singleton `CatalogMergeService` constructor (Decision 1). Add a `CatalogModuleTests` assertion that resolving `CatalogRepository` twice does not re-register the callback. |
-| Refresh service constructor parameter count (~22) violates NFR-3 ≤ 10 | Medium | See Specification Amendments below. |
-| `Merge()` reads `CatalogData` (side-effecting) and on empty cache schedules another merge mid-merge | Low | Preserve today's behavior (Decision 3). Note: scheduler debounces, so re-scheduling during an active merge is benign. Document in a single comment at the call site. |
-| Per-product difficulty refresh bypasses invalidation by writing dictionary key directly — easy to miss in the new API | Medium | Expose two distinct cache-store methods (Decision 2), make the bypassing one clearly named (`Update...ForProduct` vs `Set...`). Add a `CatalogDataRefreshServiceTests` case asserting that the per-product call does *not* schedule a merge. |
-| Test mocks against `CatalogCacheStore` concrete type may be brittle if NSubstitute/Moq cannot mock sealed classes | Low | Use real `IMemoryCache` in tests (Decision 4). Avoid `sealed` on cache store if mocking is needed; rely on `internal sealed` with `InternalsVisibleTo` only if necessary. |
-| `MockCatalogRepository.ManufactureCostLoadDate` removal could break a test we missed | Low | Verified: grep shows only the 6 files listed; the property is declared but never read outside the repository class itself. Tests will fail to compile if a hidden reader exists. |
-| `IManufactureClient` removal breaks compile in an unseen call site within `CatalogRepository` | Low | Verified: in `CatalogRepository.cs`, `_manufactureClient` field is assigned in the constructor (line 103) and *never read anywhere else*. Safe to drop. |
-| Hosted-service ordering if Decision 1's IHostedService route is chosen instead | Low | Decision 1 avoids this by using the singleton-constructor route. If implementer chooses the IHostedService route, ensure the wiring service is registered before `AddBackgroundRefresh` runs (or rely on the fact that `BackgroundRefreshSchedulerService` doesn't fire until after `StartAsync` completes for all earlier hosted services). |
-| Behavior drift between `CatalogRepositoryTests` and the new split tests | Medium | Run the *full* existing test suite before and after the refactor. Diff coverage and assertion counts. Tests in `CatalogRepositoryCacheOptimizationTests` that depend on internal state must move to `CatalogCacheStoreTests` 1:1 — do not rewrite them. |
+| Callback wiring runs before `ICatalogMergeScheduler` is ready | Medium | `IHostedService.StartAsync` runs after DI build; scheduler ctor only requires logger/options/lifetime — safe. Add a unit test that resolves both from a real `ServiceProvider` and asserts callback is non-null after `StartAsync`. |
+| Singleton `CatalogMergeService` holding a callback into a singleton scheduler — circular references via DI graph | Low | Both are singletons, both registered before `AddHostedService`. No DI cycle (scheduler doesn't depend on merge service constructor-wise; wiring is push, not pull). |
+| `CatalogDataRefreshService` requires 17+ ctor params, may exceed NFR-3's "≤ 10" target | Medium | Acceptable temporarily; spec already flags this as the worst case. Do **not** introduce `IServiceProvider` injection or keyed services as a workaround — that hides dependencies. Tracking #2058 (cross-module adapter extraction) is the real fix. If hard cap is required, group `(ITransportBoxRepository, IPurchaseOrderRepository, IManufactureOrderRepository, IManufacturedProductInventoryRepository)` behind a single `ICatalogStockSources` collaborator in this Catalog module. |
+| Existing tests construct `CatalogRepository` with 25 mocks and may not compile | Low | All tests in scope listed in FR-7. Refactor test setup at the same time. `MockCatalogRepository` is independent of `CatalogRepository` and only needs the `ManufactureCostLoadDate` removal. |
+| Cache key strings drift between old and new code if `nameof()` is moved to a different containing type | High | Use literal string constants in `CatalogCacheStore` matching today's `nameof(CachedSalesData)` results (`"CachedSalesData"`, `"CachedCatalogAttributesData"`, etc.). Add a static dictionary `SourceKeys` to make the registry explicit and grep-able. |
+| Concurrent `CatalogRepository.GetCatalogDataAsync()` calls trigger duplicate priority merges before `ReplaceCacheAtomicallyAsync` writes | Pre-existing | Out of scope. Today's code has the same behavior. Do not "fix" as part of refactor. |
+| Background refresh hot-path now goes through one extra delegation hop per refresh method | Negligible | 19 `Task` delegations per minute is unmeasurable. No mitigation required. |
+| Single-product `RefreshManufactureDifficultySettingsData` reads `CatalogData` through the cache store — if the store's `GetCatalogData()` schedules a merge on empty, this path now causes extra merge churn | Medium | Have the refresh service use `_cacheStore.TryGetCurrent()` (returns null without scheduling), and skip the `.Assign(...)` call if no current cache exists. The next merge will pick up the new dictionary entry anyway. |
 
 ## Specification Amendments
 
-1. **NFR-3 constructor parameter ceiling for the refresh service.** Even after FR-3's reduction, the refresh service needs ~22 constructor parameters. The spec lists the fallback ("group source clients into a single typed collaborator or use `IServiceProvider`/keyed services"), but does not pick one. Lock it down: **do not group or use keyed services in this refactor**. Accept the parameter count; it's an honest reflection of the surface area until #2058 lands. Adjust NFR-3 to: *"`CatalogRepository`, `CatalogMergeService`, and `CatalogCacheStore` each ≤ 10 constructor parameters. `CatalogDataRefreshService` is expected to exceed this until #2058 reduces source-client count; do not pre-emptively group dependencies."* Premature grouping ("source bundle" wrapper) just hides the same coupling behind a new type and creates a second class to keep in sync. The number is the symptom; the disease is the cross-module coupling that #2058 addresses.
-
-2. **FR-1: Add `UpdateManufactureDifficultySettingsForProduct(string, List<…>)` to the cache-store API.** The spec implicitly requires it (FR-3 references the live-aggregate mutation) but does not explicitly call out the no-invalidation variant. Add it explicitly so the implementer doesn't accidentally route the per-product path through the full-replace setter, which would trigger an unwanted merge after every per-product call.
-
-3. **FR-6 wiring choice.** The spec picks Option 1 (IHostedService initializer) and presents it as "easy to unit test." Reverse it to Option 3 — wire in `CatalogMergeService`'s constructor (Decision 1 above). This eliminates one file, one DI registration, and any startup-ordering question, with no loss in testability (a stub `ICatalogMergeScheduler` covers the unit test concern). If the implementer disagrees, Option 1 is still acceptable.
-
-4. **FR-7: Coverage threshold.** "≥ 80% line coverage on the moved code" is fine, but specify *measured how*: existing test runs already cover most of this code through `CatalogRepositoryTests` and `CatalogRepositoryCacheOptimizationTests`. The intent should be: *no regression in line coverage for the moved code, measured by Coverlet against the new file paths*. Otherwise an implementer could ship a passing 80% number that actually drops coverage relative to today.
-
-5. **Document `Merge()`'s self-scheduling behavior.** Add one inline comment at the `if (!CatalogData.Any())` check in the new `CatalogMergeService` noting that reading the cache-store `CatalogData` property has a deliberate side effect (schedules a merge if empty) and that calling it during the very merge that runs because of an empty cache is intentional and harmless (debouncer absorbs it).
+1. **Drop `IManufactureClient` from `CatalogDataRefreshService` dependencies (FR-3).** The spec already calls this out as a verification step; verified — `_manufactureClient` is referenced only at the null-check in the constructor at `CatalogRepository.cs:103`, never used in any method body. Remove it.
+2. **`CachedManufactureCostDataKey` is removed entirely (FR-1, FR-5).** No remaining reader exists. The spec's conditional retention is unnecessary — final answer is: delete the constant, the property, and the interface member.
+3. **`MockCatalogRepository.ManufactureDifficultyLoadDate` (line 406, not currently on the interface) is dead.** It looks like a leftover. Not in scope for this refactor; mention to the user but do not delete.
+4. **`_sourceLastUpdated` `ConcurrentDictionary` in `CatalogRepository.cs:61` has no external reader** — confirmed by grep. The spec says "if no consumer reads it, remove it." Remove. Keep `_mergeScheduler.ScheduleMerge(dataSource)` inside `InvalidateSourceData`; that is the only effect of the existing code.
+5. **`InvalidateSourceData` behavior when `EnableBackgroundMerge=false` (lines 549–556)** must move to `CatalogCacheStore` and continue to evict both current and stale caches plus the update-time key. This is the "fallback to old behavior" branch — preserve verbatim.
+6. **Add an assertion test for callback wiring**: spin up a host with `AddCatalogModule`, call `host.StartAsync()`, then resolve `ICatalogMergeScheduler` and assert `HasPendingMerge()` works end-to-end after `RefreshErpStockData` (this validates the wiring without depending on internals).
+7. **Sealed types.** All three new classes should be `sealed` — no design intent for inheritance.
+8. **Keep the `Task.Run(() => Merge(), ct)` wrapper in `ExecuteBackgroundMergeAsync`** when moving the method. Removing the `Task.Run` would block the calling thread (the timer callback in `CatalogMergeScheduler`) on CPU-bound merge work. Preserve as-is.
 
 ## Prerequisites
 
-None. This is a pure internal restructure:
+None. The refactor is self-contained:
 
-- No migrations, no schema changes.
-- No new configuration keys. Existing `BackgroundRefresh:ICatalogRepository:*` entries in `appsettings.json` keep working unchanged because task IDs are derived from `typeof(ICatalogRepository).Name` (verified at `BackgroundRefreshExtensions.cs:91`) and the spec preserves `ICatalogRepository` as the `TOwner` parameter in `RegisterRefreshTask<ICatalogRepository>(...)`.
-- No new packages. Continues using `Microsoft.Extensions.Caching.Memory`, `Microsoft.Extensions.Logging`, `Microsoft.Extensions.Options`, `Polly`.
-- No coordination with #2058 required. This work can ship first; if #2058 lands first, the refresh service's constructor count drops naturally — no rework needed.
-- Validation gates per `CLAUDE.md`: `dotnet build`, `dotnet format`, full `Anela.Heblo.Tests` + `Anela.Heblo.Adapters.Shoptet.Tests` green. No E2E or frontend gates apply.
+- No migrations.
+- No config schema changes (`CatalogCacheOptions`, `DataSourceOptions`, `BackgroundRefresh:ICatalogRepository:*` all stay as-is).
+- No new infrastructure.
+- No frontend changes.
+- No new package dependencies.
+- No dependency on PR #2058 (cross-module adapter extraction) — can land before or after; if before, FR-3's constructor parameter count improves automatically.
+
+Implementation can start immediately. Suggested commit/PR ordering for review safety:
+
+1. Introduce `CatalogCacheStore`; have `CatalogRepository` delegate to it but keep all current responsibilities. Verify all tests pass.
+2. Extract `CatalogMergeService` + `CatalogMergeCallbackWiring`. Verify scheduler callback fires.
+3. Extract `CatalogDataRefreshService`. Verify each refresh path end-to-end.
+4. Slim `CatalogRepository`, remove `CachedManufactureCostData` and `ManufactureCostLoadDate`. Update `MockCatalogRepository`, `CatalogRepositoryTests`, `CatalogRepositoryCacheOptimizationTests`, `CatalogRepositoryDebugTest`.
