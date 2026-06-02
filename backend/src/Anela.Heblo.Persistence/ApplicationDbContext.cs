@@ -25,8 +25,8 @@ using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Dashboard;
 using Anela.Heblo.Domain.Features.Purchase;
-using Anela.Heblo.Xcc.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Persistence;

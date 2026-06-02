@@ -1,8 +1,7 @@
 using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.DisableTile;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
-using Anela.Heblo.Xcc.Domain;
-using Anela.Heblo.Xcc.Services.Dashboard;
+using Anela.Heblo.Domain.Features.Dashboard;
 using FluentAssertions;
 using MediatR;
 using Moq;
