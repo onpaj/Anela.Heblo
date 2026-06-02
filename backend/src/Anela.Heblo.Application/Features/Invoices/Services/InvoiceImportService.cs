@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Text.Json;
 using Anela.Heblo.Application.Features.Invoices.Contracts;
-using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
+using Anela.Heblo.Domain.Features.Invoices;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 
@@ -12,7 +12,7 @@ public class InvoiceImportService : IInvoiceImportService
 {
     private readonly IIssuedInvoiceSource _issuedInvoiceSource;
     private readonly IIssuedInvoiceClient _issuedInvoiceClient;
-    private readonly IIssuedInvoiceRepository _repository;
+    private readonly Contracts.IIssuedInvoiceRepository _repository;
     private readonly IEnumerable<IIssuedInvoiceImportTransformation> _importTransformations;
     private readonly IMapper _mapper;
     private readonly ILogger<InvoiceImportService> _logger;
@@ -20,7 +20,7 @@ public class InvoiceImportService : IInvoiceImportService
     public InvoiceImportService(
         IIssuedInvoiceSource issuedInvoiceSource,
         IIssuedInvoiceClient issuedInvoiceClient,
-        IIssuedInvoiceRepository repository,
+        Contracts.IIssuedInvoiceRepository repository,
         IEnumerable<IIssuedInvoiceImportTransformation> importTransformations,
         IMapper mapper,
         ILogger<InvoiceImportService> logger)

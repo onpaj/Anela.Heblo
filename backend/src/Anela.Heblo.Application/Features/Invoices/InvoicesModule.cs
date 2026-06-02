@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
-using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.Bank;
-using Anela.Heblo.Persistence.Features.Invoices;
+using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
 using Anela.Heblo.Application.Features.Invoices.Services;
@@ -17,7 +16,7 @@ public static class InvoicesModule
     public static IServiceCollection AddInvoicesModule(this IServiceCollection services)
     {
         // Register repositories
-        services.AddScoped<IIssuedInvoiceRepository, IssuedInvoiceRepository>();
+        services.AddScoped<IIssuedInvoiceRepository, Infrastructure.IssuedInvoiceRepository>();
 
         // Cross-module contract: Invoices implements PackingMaterials' IInvoiceConsumptionSource
         // via an adapter. DI registration owned by provider (Invoices), not consumer

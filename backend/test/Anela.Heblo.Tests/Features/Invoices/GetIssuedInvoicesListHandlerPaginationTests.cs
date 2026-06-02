@@ -4,11 +4,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Application.Features.Invoices.UseCases.GetIssuedInvoicesList;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Invoices;
 using AutoMapper;
 using FluentAssertions;
 using Moq;
 using Xunit;
+using IIssuedInvoiceRepository = Anela.Heblo.Application.Features.Invoices.Contracts.IIssuedInvoiceRepository;
+using IssuedInvoiceFilters = Anela.Heblo.Application.Features.Invoices.Contracts.IssuedInvoiceFilters;
 
 namespace Anela.Heblo.Tests.Features.Invoices;
 
@@ -41,7 +44,7 @@ public class GetIssuedInvoicesListHandlerPaginationTests
             PageSize = 0 // This means return all invoices
         };
 
-        var paginatedResult = new PaginatedResult<IssuedInvoice>
+        var paginatedResult = new Anela.Heblo.Application.Shared.PaginatedResult<IssuedInvoice>
         {
             Items = testInvoices,
             TotalCount = 25,
@@ -86,7 +89,7 @@ public class GetIssuedInvoicesListHandlerPaginationTests
             PageSize = 10
         };
 
-        var paginatedResult = new PaginatedResult<IssuedInvoice>
+        var paginatedResult = new Anela.Heblo.Application.Shared.PaginatedResult<IssuedInvoice>
         {
             Items = testInvoices,
             TotalCount = 25,
