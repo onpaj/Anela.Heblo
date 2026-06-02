@@ -108,27 +108,10 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
 
     private List<CatalogPurchaseRecordDto> GetPurchaseHistoryFromAggregate(CatalogAggregate catalogItem, int monthsBack)
     {
-        // Return individual purchase records instead of monthly summaries
-        var currentDate = _timeProvider.GetUtcNow().Date;
-
-        // For very high monthsBack values (like ALL_HISTORY_MONTHS_THRESHOLD), return all records without date filtering
-        // to avoid potential issues with very old dates
-        if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
-        {
-            return catalogItem.PurchaseHistory
-                .OrderByDescending(p => p.Date)
-                .Select(p => new CatalogPurchaseRecordDto
-                {
-                    Date = p.Date,
-                    SupplierName = p.SupplierName,
-                    Amount = p.Amount,
-                    PricePerPiece = p.PricePerPiece,
-                    PriceTotal = p.PriceTotal,
-                    DocumentNumber = p.DocumentNumber
-                }).ToList();
-        }
-
-        var fromDate = currentDate.AddMonths(-monthsBack);
+        // Return individual purchase records instead of monthly summaries.
+        // Date floor is governed by ComputeFromDate — for monthsBack >= ALL_HISTORY_MONTHS_THRESHOLD
+        // the floor is HISTORY_FLOOR_DATE; otherwise it is currentDate - monthsBack.
+        var fromDate = ComputeFromDate(monthsBack);
 
         return catalogItem.PurchaseHistory
             .Where(p => p.Date >= fromDate)
@@ -164,27 +147,9 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
 
     private List<CatalogManufactureRecordDto> GetManufactureHistoryFromAggregate(CatalogAggregate catalogItem, int monthsBack)
     {
-        // Return individual manufacture records instead of monthly summaries
-        var currentDate = _timeProvider.GetUtcNow().Date;
-
-        // For very high monthsBack values (like ALL_HISTORY_MONTHS_THRESHOLD), return all records without date filtering
-        // to avoid potential issues with very old dates
-        if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
-        {
-            return catalogItem.ManufactureHistory
-                .OrderByDescending(m => m.Date)
-                .Select(m => new CatalogManufactureRecordDto
-                {
-                    Date = m.Date,
-                    Amount = m.Amount,
-                    PricePerPiece = m.PricePerPiece,
-                    PriceTotal = m.PriceTotal,
-                    ProductCode = m.ProductCode,
-                    DocumentNumber = m.DocumentNumber
-                }).ToList();
-        }
-
-        var fromDate = currentDate.AddMonths(-monthsBack);
+        // Return individual manufacture records instead of monthly summaries.
+        // Date floor is governed by ComputeFromDate — see GetPurchaseHistoryFromAggregate for rationale.
+        var fromDate = ComputeFromDate(monthsBack);
 
         return catalogItem.ManufactureHistory
             .Where(m => m.Date >= fromDate)
@@ -204,20 +169,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
     {
         try
         {
-            var currentDate = _timeProvider.GetUtcNow().Date;
-
-            // Calculate date range
-            DateTime fromDate;
-
-            if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
-            {
-                // For "all history", start from a very early date
-                fromDate = new DateTime(2020, 1, 1);
-            }
-            else
-            {
-                fromDate = currentDate.AddMonths(-monthsBack);
-            }
+            var fromDate = ComputeFromDate(monthsBack);
 
             // Use pre-calculated margin data from CatalogAggregate.Margins
             var marginHistory = catalogItem.Margins;
@@ -243,20 +195,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
 
     private List<MarginHistoryDto> GetMarginHistoryFromMargins(CatalogAggregate catalogItem, int monthsBack)
     {
-        var currentDate = _timeProvider.GetUtcNow().Date;
-
-        // Calculate date range
-        DateTime fromDate;
-
-        if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
-        {
-            // For "all history", start from a very early date
-            fromDate = new DateTime(2020, 1, 1);
-        }
-        else
-        {
-            fromDate = currentDate.AddMonths(-monthsBack);
-        }
+        var fromDate = ComputeFromDate(monthsBack);
 
         // Use pre-calculated margin data from CatalogAggregate.Margins
         var marginHistory = catalogItem.Margins;
@@ -298,5 +237,21 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                     CostTotal = m.Value.M2.CostTotal
                 }
             }).ToList();
+    }
+
+    /// <summary>
+    /// Encodes the "all history vs. N months back" convention used by the four
+    /// history-projection helpers in this handler. NOT a general "now()" accessor —
+    /// it deliberately collapses the two branches governed by
+    /// <see cref="CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD"/>.
+    /// </summary>
+    private DateTime ComputeFromDate(int monthsBack)
+    {
+        if (monthsBack >= CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD)
+        {
+            return CatalogConstants.HISTORY_FLOOR_DATE;
+        }
+
+        return _timeProvider.GetUtcNow().Date.AddMonths(-monthsBack);
     }
 }
