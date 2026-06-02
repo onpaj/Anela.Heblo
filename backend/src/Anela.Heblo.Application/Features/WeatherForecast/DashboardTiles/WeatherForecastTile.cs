@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.WeatherForecast.DashboardTiles;
 
+[TileId("weatherforecast")]
 public class WeatherForecastTile : ITile
 {
     private readonly IWeatherForecastClient _weatherClient;

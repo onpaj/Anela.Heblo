@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 using Anela.Heblo.Application.Shared;
@@ -32,7 +31,8 @@ public class GetProductMarginAnalysisHandlerTests
 
         _handler = new GetProductMarginAnalysisHandler(
             _analyticsRepositoryMock.Object,
-            _reportBuilderServiceMock.Object);
+            _reportBuilderServiceMock.Object,
+            new MarginCalculator());
     }
 
     [Fact]
@@ -70,10 +70,10 @@ public class GetProductMarginAnalysisHandlerTests
             UnitsSold = 45
         };
 
-        var monthlyBreakdown = new List<GetProductMarginAnalysisResponse.MonthlyMarginBreakdown>();
+        var monthlyBreakdown = new List<MonthlyMarginBreakdownDto>();
         for (int month = 1; month <= 12; month++)
         {
-            monthlyBreakdown.Add(new GetProductMarginAnalysisResponse.MonthlyMarginBreakdown
+            monthlyBreakdown.Add(new MonthlyMarginBreakdownDto
             {
                 Month = new DateTime(2024, month, 1),
                 UnitsSold = month == 3 ? 15 : month == 6 ? 30 : 0,

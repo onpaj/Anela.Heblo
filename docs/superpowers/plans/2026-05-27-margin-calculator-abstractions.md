@@ -4,7 +4,7 @@
 
 **Goal:** Extract `IMarginCalculator` and `IMonthlyBreakdownGenerator` interfaces, relocate `MarginCalculator` from Domain to Application, and switch `GetProductMarginSummaryHandler` (and `MonthlyBreakdownGenerator`) to depend on those abstractions — aligning with the sibling pattern (`IProductFilterService`, `IReportBuilderService`).
 
-**Architecture:** Pure structural refactor. No behavior change, no DTO change, no API change, no DB change. Interfaces and implementations are co-located in a single file each (matching the existing `ProductFilterService.cs` / `ReportBuilderService.cs` convention in the same folder). DI lifetimes stay `Scoped`. `MarginCalculationResult` remains in Domain — Application returning Domain-defined types is allowed under Clean Architecture.
+**Architecture:** Pure structural refactor. No behavior change, no DTO change, no API change, no DB change. Interfaces and implementations are co-located in a single file each (matching the existing `ProductFilterService.cs` / `ReportBuilderService.cs` convention in the same folder). DI lifetimes stay `Scoped`. `MarginCalculationResult` has been moved to the Application layer (`Anela.Heblo.Application.Features.Analytics.Services`) — it is a use-case computation result, not a domain concept.
 
 **Tech Stack:** .NET 8, C#, MediatR, xUnit, Moq, FluentAssertions. No new NuGet packages.
 
@@ -1073,6 +1073,6 @@ Arch-review amendments incorporated:
 1. ✅ `MonthlyBreakdownGenerator` constructor switch made explicit (Task 3).
 2. ✅ Single-file interface co-location (Tasks 2, 3 — both interfaces declared in the same file as their implementations).
 3. ✅ Explicit `CalculateAsync` signature (Task 2).
-4. ✅ `MarginCalculationResult` stays in Domain (verified — no task moves it).
+4. ✅ `MarginCalculationResult` moved to `Anela.Heblo.Application.Features.Analytics.Services` (see feat-arch-review-analytics-margincalculationr).
 5. ✅ Post-state of Domain folder verified explicitly (Task 7.5).
 6. ✅ Mockability test uses `Mock<IMarginCalculator>` and `Mock<IMonthlyBreakdownGenerator>` with invocation verification (Task 6).

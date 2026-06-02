@@ -11,6 +11,7 @@ interface ScanInputProps {
   refocusOnBlur?: boolean;
   suppressKeyboard?: boolean;
   allowKeyboardToggle?: boolean;
+  defaultValue?: string;
 }
 
 const REFOCUS_DELAY_MS = 100;
@@ -25,8 +26,9 @@ const ScanInput: React.FC<ScanInputProps> = ({
   refocusOnBlur = true,
   suppressKeyboard = false,
   allowKeyboardToggle = false,
+  defaultValue,
 }) => {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(defaultValue ?? '');
   const [keyboardSuppressed, setKeyboardSuppressed] = useState(suppressKeyboard);
   const inputRef = useRef<HTMLInputElement>(null);
   const loadingRef = useRef(loading);
@@ -42,6 +44,12 @@ const ScanInput: React.FC<ScanInputProps> = ({
     // intentionally runs once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (defaultValue !== undefined) {
+      setValue(defaultValue);
+    }
+  }, [defaultValue]);
 
   useEffect(() => {
     if (prevLoadingRef.current && !loading) {
