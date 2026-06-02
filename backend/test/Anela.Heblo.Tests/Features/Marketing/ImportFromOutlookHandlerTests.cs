@@ -697,4 +697,45 @@ public class ImportFromOutlookHandlerTests
         result.Created.Should().Be(1);
         captured!.Title.Should().Be("Summer Launch");
     }
+
+    [Fact]
+    public async Task Handle_WhenOutlookEventChangedToWhitespaceTitle_PersistsTrimmedTitle()
+    {
+        // Arrange — existing record has an old title; Outlook event has a NEW
+        // title that is different but padded with whitespace. HasChanges must
+        // detect the change (different normalized text) and the persisted Title
+        // must be trimmed.
+        var startUtc = new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc);
+        var endUtc = new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc);
+
+        var existingAction = new MarketingActionTestBuilder()
+            .WithId(11)
+            .WithOutlookEventId("evt-trim-upd")
+            .WithTitle("Old Title")
+            .WithStartDate(startUtc)
+            .WithEndDate(endUtc)
+            .WithActionType(MarketingActionType.SocialMedia)
+            .WithCreatedAt(DateTime.UtcNow)
+            .WithModifiedAt(DateTime.UtcNow)
+            .WithCreatedBy("user-1")
+            .Build();
+
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OutlookEventDto>
+            {
+                BuildEvent(id: "evt-trim-upd", subject: "  New Title  "),
+            });
+
+        _repositoryMock
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction> { existingAction });
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        result.Updated.Should().Be(1);
+        existingAction.Title.Should().Be("New Title");
+    }
 }
