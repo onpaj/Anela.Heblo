@@ -1,10 +1,12 @@
+using Anela.Heblo.Application.Features.Invoices.Contracts;
+using Anela.Heblo.Application.Features.Invoices.Infrastructure;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Persistence;
-using Anela.Heblo.Persistence.Features.Invoices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using IssuedInvoiceFilters = Anela.Heblo.Application.Features.Invoices.Contracts.IssuedInvoiceFilters;
 
 namespace Anela.Heblo.Tests.Features.Invoices;
 

@@ -1,10 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
-using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
 using Anela.Heblo.Application.Features.Invoices.Services;
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Domain.Features.Bank;
 
 namespace Anela.Heblo.Application.Features.Invoices;
 

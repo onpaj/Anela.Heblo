@@ -1,9 +1,11 @@
+using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Domain.Features.Invoices;
 using FluentAssertions;
 using Moq;
 using Xunit;
+using IIssuedInvoiceRepository = Anela.Heblo.Application.Features.Invoices.Contracts.IIssuedInvoiceRepository;
 
 namespace Anela.Heblo.Tests.Features.Invoices.Infrastructure;
 
