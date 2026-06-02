@@ -30,6 +30,7 @@ public static class PurchaseModule
 
         // Register dashboard tiles
         services.RegisterTile<LowStockEfficiencyTile>();
+        services.RegisterTile<PurchaseOrdersInTransitTile>();
 
         return services;
     }
