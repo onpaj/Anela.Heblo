@@ -1,11 +1,11 @@
-jest.mock('../../../config/runtimeConfig', () => ({
-  getConfig: () => ({ apiUrl: 'http://localhost:5001' }),
-}));
-
 import {
   DASHBOARD_DRILLDOWN_ROUTES,
   resolveDrillDown,
 } from '../drillDownRoutes';
+
+jest.mock('../../../config/runtimeConfig', () => ({
+  getConfig: () => ({ apiUrl: 'http://localhost:5001' }),
+}));
 
 describe('drillDownRoutes', () => {
   const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
