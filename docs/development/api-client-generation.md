@@ -194,58 +194,49 @@ const response = await (apiClient as any).http.fetch(url, {method: 'GET'});
 
 // This calls: http://localhost:3000/api/catalog (WRONG!)
 // Should call: http://localhost:5001/api/catalog
+// Also wrong: uses private fields of the generated client — breaks silently on NSwag regeneration
 ```
 
 ### The Solution
 
-Always construct absolute URLs using the API client's `baseUrl`.
+Always use the configured API client through our helper functions.
 
-**✅ CORRECT - Absolute URL with baseUrl:**
+**✅ CORRECT — for standard hooks (the default pattern):**
 ```typescript
-const relativeUrl = `/api/catalog`;
-const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-const response = await (apiClient as any).http.fetch(fullUrl, {method: 'GET'});
+import { getAuthenticatedApiClient } from './client';
 
-// This calls: http://localhost:5001/api/catalog (CORRECT!)
+const client = getAuthenticatedApiClient();
+const result = await client.catalog_GetList({ searchTerm: '', pageNumber: 1, pageSize: 20 });
 ```
 
-**✅ CORRECT - Alternative pattern (custom API client):**
+> **❌ AVOID**: `(apiClient as any).baseUrl` and `(apiClient as any).http.fetch`
+> These reach into private fields of the NSwag-generated class. If NSwag renames those fields,
+> the code breaks at runtime with no compile-time warning.
+> Use `getApiBaseUrl()` and `getAuthenticatedFetch()` from `./client` instead.
+
+**✅ CORRECT — for hooks that need to branch on specific HTTP status codes (e.g. 409 Conflict):**
 ```typescript
-// Create custom API client class with makeRequest method
-class CustomApiClient {
-  private baseUrl: string;
+import { getApiBaseUrl, getAuthenticatedFetch } from './client';
+import { SubmitArticleFeedbackRequest } from './generated/api-client';
 
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
-  }
+const body: SubmitArticleFeedbackRequest = { articleId, precisionScore, styleScore, comment };
+const url = `${getApiBaseUrl()}/api/articles/${articleId}/feedback`;
+const response = await getAuthenticatedFetch()(url, {
+  method: 'POST',
+  body: JSON.stringify(body),
+  headers: { Accept: 'application/json' },
+});
 
-  async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${url}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-}
-
-// Usage
-const client = new CustomApiClient('http://localhost:5001');
-const data = await client.makeRequest('/api/catalog', {method: 'GET'});
+if (response.status === 409) return { alreadySubmitted: true };
+if (!response.ok) throw new Error(`HTTP ${response.status}`);
+return response.json();
 ```
 
 ### Enforcement Rules
 
 1. **NEVER use relative URLs** directly in `fetch` calls within API hooks
-2. **ALWAYS use `getAuthenticatedApiClient()`** to get the configured client
-3. **ALWAYS construct absolute URLs** with `baseUrl` when making custom requests
+2. **ALWAYS use `getAuthenticatedApiClient()`** for standard typed calls, or `getApiBaseUrl()` + `getAuthenticatedFetch()` when you need to branch on HTTP status codes
+3. **NEVER use `(apiClient as any)`** to access private fields — use public helper functions instead
 4. **Verify base URL configuration** in environment-specific settings
 
 ### Base URL Configuration
@@ -429,10 +420,10 @@ dotnet msbuild backend/src/Anela.Heblo.API -t:GenerateFrontendClientManual
 const response = await fetch('/api/catalog');
 
 // After (CORRECT)
-const client = await getAuthenticatedApiClient();
-const relativeUrl = '/api/catalog';
-const fullUrl = `${(client as any).baseUrl}${relativeUrl}`;
-const response = await fetch(fullUrl);
+import { getApiBaseUrl, getAuthenticatedFetch } from './client';
+
+const url = `${getApiBaseUrl()}/api/catalog`;
+const response = await getAuthenticatedFetch()(url, { method: 'GET' });
 ```
 
 ### Build Performance

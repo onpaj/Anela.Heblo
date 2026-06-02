@@ -1,5 +1,4 @@
-using Anela.Heblo.Xcc.Domain;
-using Anela.Heblo.Xcc.Services.Dashboard;
+using Anela.Heblo.Domain.Features.Dashboard;
 using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Persistence.Dashboard;

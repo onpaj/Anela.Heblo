@@ -7,6 +7,7 @@ namespace Anela.Heblo.Application.Features.Purchase.DashboardTiles;
 /// <summary>
 /// Dashboard tile showing count of products with stock efficiency below 20%.
 /// </summary>
+[TileId("lowstockefficiency")]
 public class LowStockEfficiencyTile : ITile
 {
     private readonly IMediator _mediator;

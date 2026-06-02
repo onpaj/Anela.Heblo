@@ -35,7 +35,8 @@ public class GetMarginReportHandlerTests
         _handler = new GetMarginReportHandler(
             _analyticsRepositoryMock.Object,
             _productFilterServiceMock.Object,
-            _reportBuilderServiceMock.Object);
+            _reportBuilderServiceMock.Object,
+            new MarginCalculator());
 
         // Set up default service behaviors for all tests
         SetupDefaultServiceMocks();

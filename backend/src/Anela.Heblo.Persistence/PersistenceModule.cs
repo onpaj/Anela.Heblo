@@ -30,7 +30,7 @@ using Anela.Heblo.Persistence.KnowledgeBase;
 using Anela.Heblo.Persistence.Purchase.PurchaseOrders;
 using Anela.Heblo.Persistence.Repositories.Packaging;
 using Anela.Heblo.Persistence.MeetingTasks;
-using Anela.Heblo.Xcc.Services.Dashboard;
+using Anela.Heblo.Domain.Features.Dashboard;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;

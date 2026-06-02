@@ -47,6 +47,9 @@ public class CatalogRepositoryTests
     private readonly Mock<IOptions<CatalogCacheOptions>> _cacheOptionsMock;
     private readonly Mock<ILogger<CatalogRepository>> _loggerMock;
 
+    private readonly CatalogCacheStore _cacheStore;
+    private readonly CatalogMergeService _mergeService;
+    private readonly CatalogDataRefreshService _refreshService;
     private readonly CatalogRepository _repository;
 
     public CatalogRepositoryTests()
@@ -61,6 +64,7 @@ public class CatalogRepositoryTests
         _productPriceEshopClientMock = new Mock<IProductPriceEshopClient>();
         _productPriceErpClientMock = new Mock<IProductPriceErpClient>();
         _productEshopUrlClientMock = new Mock<IProductEshopUrlClient>();
+
         _productEshopUrlClientMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ProductEshopUrl>());
         _transportSourceMock = new Mock<ICatalogTransportSource>();
@@ -82,37 +86,42 @@ public class CatalogRepositoryTests
         _cacheOptionsMock = new Mock<IOptions<CatalogCacheOptions>>();
         _loggerMock = new Mock<ILogger<CatalogRepository>>();
 
-        var options = new DataSourceOptions
+        var dataSourceOptions = new DataSourceOptions
         {
             SalesHistoryDays = 30,
             PurchaseHistoryDays = 30,
             ConsumedHistoryDays = 30,
             ManufactureHistoryDays = 30
         };
-        _optionsMock.Setup(x => x.Value).Returns(options);
+        _optionsMock.Setup(x => x.Value).Returns(dataSourceOptions);
 
         var cacheOptions = new CatalogCacheOptions
         {
-            EnableBackgroundMerge = false // Disable for tests to use old behavior
+            EnableBackgroundMerge = false
         };
         _cacheOptionsMock.Setup(x => x.Value).Returns(cacheOptions);
 
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(DateTimeOffset.UtcNow);
 
-        // Setup resilience service to pass through operations without resilience patterns for testing
-        _resilienceServiceMock.Setup(x => x.ExecuteWithResilienceAsync(It.IsAny<Func<CancellationToken, Task<IEnumerable<CatalogSaleRecord>>>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<CancellationToken, Task<IEnumerable<CatalogSaleRecord>>>, string, CancellationToken>((operation, name, ct) => operation(ct));
-
-        _resilienceServiceMock.Setup(x => x.ExecuteWithResilienceAsync(It.IsAny<Func<CancellationToken, Task<IEnumerable<CatalogAttributes>>>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<CancellationToken, Task<IEnumerable<CatalogAttributes>>>, string, CancellationToken>((operation, name, ct) => operation(ct));
-
         _resilienceServiceMock.Setup(x => x.ExecuteWithResilienceAsync(It.IsAny<Func<CancellationToken, Task<List<ErpStock>>>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<CancellationToken, Task<List<ErpStock>>>, string, CancellationToken>((operation, name, ct) => operation(ct));
+            .Returns<Func<CancellationToken, Task<List<ErpStock>>>, string, CancellationToken>((op, name, ct) => op(ct));
 
         _resilienceServiceMock.Setup(x => x.ExecuteWithResilienceAsync(It.IsAny<Func<CancellationToken, Task<List<EshopStock>>>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<CancellationToken, Task<List<EshopStock>>>, string, CancellationToken>((operation, name, ct) => operation(ct));
+            .Returns<Func<CancellationToken, Task<List<EshopStock>>>, string, CancellationToken>((op, name, ct) => op(ct));
 
-        _repository = new CatalogRepository(
+        _cacheStore = new CatalogCacheStore(
+            _cache,
+            _timeProviderMock.Object,
+            _cacheOptionsMock.Object,
+            _mergeSchedulerMock.Object,
+            new Mock<ILogger<CatalogCacheStore>>().Object);
+
+        _mergeService = new CatalogMergeService(
+            _cacheStore,
+            _timeProviderMock.Object,
+            new Mock<ILogger<CatalogMergeService>>().Object);
+
+        _refreshService = new CatalogDataRefreshService(
             _salesClientMock.Object,
             _attributesClientMock.Object,
             _eshopStockClientMock.Object,
@@ -129,10 +138,16 @@ public class CatalogRepositoryTests
             _manufactureSourceMock.Object,
             _manufactureDifficultyRepositoryMock.Object,
             _resilienceServiceMock.Object,
-            _mergeSchedulerMock.Object,
-            _cache,
             _timeProviderMock.Object,
             _optionsMock.Object,
+            _cacheStore,
+            new Mock<ILogger<CatalogDataRefreshService>>().Object);
+
+        _repository = new CatalogRepository(
+            _cacheStore,
+            _mergeService,
+            _refreshService,
+            _mergeSchedulerMock.Object,
             _cacheOptionsMock.Object,
             _loggerMock.Object);
     }

@@ -5,6 +5,7 @@ using Anela.Heblo.API.HealthChecks.DataQuality;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Telemetry;
+using Anela.Heblo.API.Infrastructure.ExceptionHandling;
 using Anela.Heblo.API.Infrastructure.Telemetry;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
@@ -123,6 +124,11 @@ public static class ServiceCollectionExtensions
     {
         // Register TimeProvider
         services.AddSingleton(TimeProvider.System);
+
+        // Global exception → HTTP mapping for infrastructure exceptions.
+        // Business errors continue to flow through BaseApiController.HandleResponse.
+        services.AddExceptionHandler<UnauthorizedAccessExceptionHandler>();
+        services.AddProblemDetails();
 
         // Register HttpClient for E2E testing middleware
         services.AddHttpClient();
