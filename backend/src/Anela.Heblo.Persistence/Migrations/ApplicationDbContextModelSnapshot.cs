@@ -3523,7 +3523,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("SmartsuppWebhookAuditEntries", "public");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Xcc.Domain.UserDashboardSettings", b =>
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Dashboard.UserDashboardSettings", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -3547,7 +3547,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("UserDashboardSettings", "public");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Xcc.Domain.UserDashboardTile", b =>
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Dashboard.UserDashboardTile", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -3932,9 +3932,9 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("Conversation");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Xcc.Domain.UserDashboardTile", b =>
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Dashboard.UserDashboardTile", b =>
                 {
-                    b.HasOne("Anela.Heblo.Xcc.Domain.UserDashboardSettings", "DashboardSettings")
+                    b.HasOne("Anela.Heblo.Domain.Features.Dashboard.UserDashboardSettings", "DashboardSettings")
                         .WithMany("Tiles")
                         .HasForeignKey("UserId")
                         .HasPrincipalKey("UserId")
@@ -4054,7 +4054,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("Messages");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Xcc.Domain.UserDashboardSettings", b =>
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Dashboard.UserDashboardSettings", b =>
                 {
                     b.Navigation("Tiles");
                 });

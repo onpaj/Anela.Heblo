@@ -3,6 +3,7 @@ using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Application.Features.Dashboard.Tiles;
 
+[TileId("purchaseordersintransit")]
 public class PurchaseOrdersInTransitTile : ITile
 {
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;

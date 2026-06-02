@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Manufacture.DashboardTiles;
 
+[TileId("manufactureconditions")]
 public class ManufactureConditionsTile : ITile
 {
     private readonly IConditionsReadingProvider _provider;

@@ -1,7 +1,9 @@
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Application.Features.Manufacture.DashboardTiles;
 
+[TileId("nextdayproduction")]
 public class NextDayProductionTile : UpcomingProductionTile
 {
     // Self-describing metadata

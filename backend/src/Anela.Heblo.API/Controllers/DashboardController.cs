@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetAvailableTiles;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.SaveUserSettings;
@@ -92,15 +91,5 @@ public class DashboardController : BaseApiController
         await _mediator.Send(request);
 
         return Ok();
-    }
-
-    private string GetCurrentUserId()
-    {
-        // Get user ID from authentication claims
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                     ?? User.FindFirst("sub")?.Value
-                     ?? User.FindFirst("oid")?.Value
-                     ?? throw new Exception("User not found");
-        return userId;
     }
 }

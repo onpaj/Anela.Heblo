@@ -1,4 +1,6 @@
-namespace Anela.Heblo.Xcc.Domain;
+using Anela.Heblo.Xcc.Domain;
+
+namespace Anela.Heblo.Domain.Features.Dashboard;
 
 public class UserDashboardSettings : Entity<int>
 {

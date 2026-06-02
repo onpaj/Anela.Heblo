@@ -3,6 +3,7 @@ using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Application.Features.Analytics.DashboardTiles;
 
+[TileId("invoiceimportstatistics")]
 public class InvoiceImportStatisticsTile : ITile
 {
     private readonly IAnalyticsRepository _analyticsRepository;
