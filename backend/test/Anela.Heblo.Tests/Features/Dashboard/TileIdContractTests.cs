@@ -12,7 +12,7 @@ public class TileIdContractTests
     private static readonly Assembly[] ProductionAssemblies =
     [
         typeof(BackgroundTaskStatusTile).Assembly,  // Anela.Heblo.Xcc
-        typeof(Anela.Heblo.Application.Features.Dashboard.Tiles.PurchaseOrdersInTransitTile).Assembly  // Anela.Heblo.Application
+        typeof(Anela.Heblo.Application.Features.Purchase.DashboardTiles.LowStockEfficiencyTile).Assembly  // Anela.Heblo.Application
     ];
 
     private static IReadOnlyList<Type> GetConcreteTileTypes() =>

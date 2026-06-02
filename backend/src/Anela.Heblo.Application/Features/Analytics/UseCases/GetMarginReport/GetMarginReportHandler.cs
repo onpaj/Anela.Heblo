@@ -32,27 +32,6 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
 
     public async Task<GetMarginReportResponse> Handle(GetMarginReportRequest request, CancellationToken cancellationToken)
     {
-        // Basic input validation (kept here for backward compatibility with tests)
-        if (request.StartDate > request.EndDate)
-        {
-            return CreateErrorResponse(ErrorCodes.InvalidDateRange,
-                ("startDate", request.StartDate.ToString("yyyy-MM-dd")),
-                ("endDate", request.EndDate.ToString("yyyy-MM-dd")));
-        }
-
-        var totalDays = (request.EndDate - request.StartDate).TotalDays;
-        if (totalDays > AnalyticsConstants.MAX_REPORT_PERIOD_DAYS)
-        {
-            return CreateErrorResponse(ErrorCodes.InvalidReportPeriod,
-                ("period", $"{totalDays} days (max {AnalyticsConstants.MAX_REPORT_PERIOD_DAYS})"));
-        }
-
-        if (totalDays < AnalyticsConstants.MIN_REPORT_PERIOD_DAYS)
-        {
-            return CreateErrorResponse(ErrorCodes.InvalidReportPeriod,
-                ("period", $"{totalDays} days (min {AnalyticsConstants.MIN_REPORT_PERIOD_DAYS})"));
-        }
-
         try
         {
             // Get products stream from repository
