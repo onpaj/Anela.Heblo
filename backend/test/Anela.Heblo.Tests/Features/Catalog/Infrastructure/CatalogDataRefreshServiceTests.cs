@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
@@ -9,10 +10,7 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
-using Anela.Heblo.Domain.Features.Manufacture.Inventory;
-using Anela.Heblo.Domain.Features.Purchase;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -179,13 +177,11 @@ public sealed class CatalogDataRefreshServiceTests
         IProductPriceEshopClient? productPriceEshopClient = null,
         IProductPriceErpClient? productPriceErpClient = null,
         IProductEshopUrlClient? productEshopUrlClient = null,
-        ITransportBoxRepository? transportBoxRepository = null,
+        ICatalogTransportSource? transportSource = null,
         IStockTakingRepository? stockTakingRepository = null,
-        IPurchaseOrderRepository? purchaseOrderRepository = null,
-        IManufactureOrderRepository? manufactureOrderRepository = null,
-        IManufactureHistoryClient? manufactureHistoryClient = null,
+        ICatalogPurchaseSource? purchaseSource = null,
+        ICatalogManufactureSource? manufactureSource = null,
         IManufactureDifficultyRepository? manufactureDifficultyRepo = null,
-        IManufacturedProductInventoryRepository? manufacturedInventoryRepository = null,
         ICatalogResilienceService? resilienceService = null,
         IOptions<DataSourceOptions>? options = null)
     {
@@ -200,13 +196,11 @@ public sealed class CatalogDataRefreshServiceTests
             productPriceEshopClient ?? new Mock<IProductPriceEshopClient>().Object,
             productPriceErpClient ?? new Mock<IProductPriceErpClient>().Object,
             productEshopUrlClient ?? new Mock<IProductEshopUrlClient>().Object,
-            transportBoxRepository ?? new Mock<ITransportBoxRepository>().Object,
+            transportSource ?? new Mock<ICatalogTransportSource>().Object,
             stockTakingRepository ?? new Mock<IStockTakingRepository>().Object,
-            purchaseOrderRepository ?? new Mock<IPurchaseOrderRepository>().Object,
-            manufactureOrderRepository ?? new Mock<IManufactureOrderRepository>().Object,
-            manufactureHistoryClient ?? new Mock<IManufactureHistoryClient>().Object,
+            purchaseSource ?? new Mock<ICatalogPurchaseSource>().Object,
+            manufactureSource ?? new Mock<ICatalogManufactureSource>().Object,
             manufactureDifficultyRepo ?? new Mock<IManufactureDifficultyRepository>().Object,
-            manufacturedInventoryRepository ?? new Mock<IManufacturedProductInventoryRepository>().Object,
             resilienceService ?? new Mock<ICatalogResilienceService>().Object,
             _timeProvider,
             options ?? Options.Create(new DataSourceOptions()),

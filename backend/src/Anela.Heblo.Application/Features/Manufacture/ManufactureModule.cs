@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.DashboardTiles;
@@ -52,6 +53,10 @@ public static class ManufactureModule
         // Cross-module contract: Manufacture implements Logistics' IInventoryReservationService.
         // DI registration is owned by the provider (Manufacture), not the consumer (Logistics).
         services.AddScoped<IInventoryReservationService, ManufactureInventoryReservationAdapter>();
+
+        // Cross-module contract: Manufacture implements Catalog's ICatalogManufactureSource via adapter.
+        // DI registration is owned by the provider (Manufacture), not the consumer (Catalog).
+        services.AddScoped<ICatalogManufactureSource, ManufactureCatalogSourceAdapter>();
 
         // Register application services
         services.AddScoped<IProductNameFormatter, ProductNameFormatter>();

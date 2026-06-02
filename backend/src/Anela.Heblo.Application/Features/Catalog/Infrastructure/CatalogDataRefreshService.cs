@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
@@ -8,10 +9,9 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using Anela.Heblo.Domain.Features.Logistics.Transport;
+// Retained for ManufactureHistoryRecord return type used by ICatalogManufactureSource.GetManufactureHistoryAsync
+// and CatalogAggregate.ManufactureHistory. Track follow-up: introduce Catalog-owned DTO.
 using Anela.Heblo.Domain.Features.Manufacture;
-using Anela.Heblo.Domain.Features.Manufacture.Inventory;
-using Anela.Heblo.Domain.Features.Purchase;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -33,13 +33,11 @@ public sealed class CatalogDataRefreshService
     private readonly IProductPriceEshopClient _productPriceEshopClient;
     private readonly IProductPriceErpClient _productPriceErpClient;
     private readonly IProductEshopUrlClient _productEshopUrlClient;
-    private readonly ITransportBoxRepository _transportBoxRepository;
+    private readonly ICatalogTransportSource _transportSource;
     private readonly IStockTakingRepository _stockTakingRepository;
-    private readonly IPurchaseOrderRepository _purchaseOrderRepository;
-    private readonly IManufactureOrderRepository _manufactureOrderRepository;
-    private readonly IManufactureHistoryClient _manufactureHistoryClient;
+    private readonly ICatalogPurchaseSource _purchaseSource;
+    private readonly ICatalogManufactureSource _manufactureSource;
     private readonly IManufactureDifficultyRepository _manufactureDifficultyRepository;
-    private readonly IManufacturedProductInventoryRepository _manufacturedInventoryRepository;
     private readonly ICatalogResilienceService _resilienceService;
     private readonly TimeProvider _timeProvider;
     private readonly IOptions<DataSourceOptions> _options;
@@ -57,13 +55,11 @@ public sealed class CatalogDataRefreshService
         IProductPriceEshopClient productPriceEshopClient,
         IProductPriceErpClient productPriceErpClient,
         IProductEshopUrlClient productEshopUrlClient,
-        ITransportBoxRepository transportBoxRepository,
+        ICatalogTransportSource transportSource,
         IStockTakingRepository stockTakingRepository,
-        IPurchaseOrderRepository purchaseOrderRepository,
-        IManufactureOrderRepository manufactureOrderRepository,
-        IManufactureHistoryClient manufactureHistoryClient,
+        ICatalogPurchaseSource purchaseSource,
+        ICatalogManufactureSource manufactureSource,
         IManufactureDifficultyRepository manufactureDifficultyRepository,
-        IManufacturedProductInventoryRepository manufacturedInventoryRepository,
         ICatalogResilienceService resilienceService,
         TimeProvider timeProvider,
         IOptions<DataSourceOptions> options,
@@ -80,13 +76,11 @@ public sealed class CatalogDataRefreshService
         _productPriceEshopClient = productPriceEshopClient ?? throw new ArgumentNullException(nameof(productPriceEshopClient));
         _productPriceErpClient = productPriceErpClient ?? throw new ArgumentNullException(nameof(productPriceErpClient));
         _productEshopUrlClient = productEshopUrlClient ?? throw new ArgumentNullException(nameof(productEshopUrlClient));
-        _transportBoxRepository = transportBoxRepository ?? throw new ArgumentNullException(nameof(transportBoxRepository));
+        _transportSource = transportSource ?? throw new ArgumentNullException(nameof(transportSource));
         _stockTakingRepository = stockTakingRepository ?? throw new ArgumentNullException(nameof(stockTakingRepository));
-        _purchaseOrderRepository = purchaseOrderRepository ?? throw new ArgumentNullException(nameof(purchaseOrderRepository));
-        _manufactureOrderRepository = manufactureOrderRepository ?? throw new ArgumentNullException(nameof(manufactureOrderRepository));
-        _manufactureHistoryClient = manufactureHistoryClient ?? throw new ArgumentNullException(nameof(manufactureHistoryClient));
+        _purchaseSource = purchaseSource ?? throw new ArgumentNullException(nameof(purchaseSource));
+        _manufactureSource = manufactureSource ?? throw new ArgumentNullException(nameof(manufactureSource));
         _manufactureDifficultyRepository = manufactureDifficultyRepository ?? throw new ArgumentNullException(nameof(manufactureDifficultyRepository));
-        _manufacturedInventoryRepository = manufacturedInventoryRepository ?? throw new ArgumentNullException(nameof(manufacturedInventoryRepository));
         _resilienceService = resilienceService ?? throw new ArgumentNullException(nameof(resilienceService));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -96,34 +90,34 @@ public sealed class CatalogDataRefreshService
 
     public async Task RefreshTransportData(CancellationToken ct)
     {
-        var transportData = await GetProductsInTransport(ct);
+        var transportData = await _transportSource.GetProductsInTransportAsync(ct);
         _cacheStore.SetInTransportData(transportData);
     }
 
     public async Task RefreshManufacturedData(CancellationToken ct)
     {
-        var manufacturedData = await _manufacturedInventoryRepository.GetTotalAmountByProductCodeAsync(ct);
+        var manufacturedData = await _manufactureSource.GetManufacturedInventoryAsync(ct);
         _cacheStore.SetManufacturedData(manufacturedData);
     }
 
     public async Task RefreshReserveData(CancellationToken ct)
     {
-        var reserveData = await GetProductsInReserve(ct);
+        var reserveData = await _transportSource.GetProductsInReserveAsync(ct);
         _cacheStore.SetInReserveData(reserveData);
 
-        var quarantineData = await GetProductsInQuarantine(ct);
+        var quarantineData = await _transportSource.GetProductsInQuarantineAsync(ct);
         _cacheStore.SetInQuarantineData(quarantineData);
     }
 
     public async Task RefreshOrderedData(CancellationToken ct)
     {
-        var orderedData = await GetProductsOrdered(ct);
+        var orderedData = await _purchaseSource.GetOrderedQuantitiesAsync(ct);
         _cacheStore.SetOrderedData(orderedData);
     }
 
     public async Task RefreshPlannedData(CancellationToken ct)
     {
-        var plannedData = await GetProductsPlanned(ct);
+        var plannedData = await _manufactureSource.GetPlannedQuantitiesAsync(ct);
         _cacheStore.SetPlannedData(plannedData);
     }
 
@@ -230,8 +224,10 @@ public sealed class CatalogDataRefreshService
 
     public async Task RefreshManufactureHistoryData(CancellationToken ct)
     {
-        _cacheStore.SetManufactureHistoryData((await _manufactureHistoryClient.GetHistoryAsync(_timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.ManufactureHistoryDays), _timeProvider.GetUtcNow().Date, cancellationToken: ct))
-            .ToList());
+        _cacheStore.SetManufactureHistoryData((await _manufactureSource.GetManufactureHistoryAsync(
+            _timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.ManufactureHistoryDays),
+            _timeProvider.GetUtcNow().Date,
+            ct)).ToList());
     }
 
     public async Task RefreshManufactureCostData(CancellationToken ct)
@@ -250,39 +246,5 @@ public sealed class CatalogDataRefreshService
                 product.ManufactureHistory = manufactures.ToList();
             }
         }
-    }
-
-    private async Task<Dictionary<string, int>> GetProductsInTransport(CancellationToken ct)
-    {
-        var boxes = await _transportBoxRepository.FindAsync(TransportBox.IsInTransportPredicate, includeDetails: true, cancellationToken: ct);
-        return boxes.SelectMany(s => s.Items)
-            .GroupBy(g => g.ProductCode)
-            .ToDictionary(k => k.Key, v => v.Sum(s => (int)s.Amount));
-    }
-
-    private async Task<Dictionary<string, int>> GetProductsInReserve(CancellationToken ct)
-    {
-        var boxes = await _transportBoxRepository.FindAsync(TransportBox.IsInReservePredicate, includeDetails: true, cancellationToken: ct);
-        return boxes.SelectMany(s => s.Items)
-            .GroupBy(g => g.ProductCode)
-            .ToDictionary(k => k.Key, v => v.Sum(s => (int)s.Amount));
-    }
-
-    private async Task<Dictionary<string, int>> GetProductsInQuarantine(CancellationToken ct)
-    {
-        var boxes = await _transportBoxRepository.FindAsync(TransportBox.IsInQuarantinePredicate, includeDetails: true, cancellationToken: ct);
-        return boxes.SelectMany(s => s.Items)
-            .GroupBy(g => g.ProductCode)
-            .ToDictionary(k => k.Key, v => v.Sum(s => (int)s.Amount));
-    }
-
-    private async Task<Dictionary<string, decimal>> GetProductsOrdered(CancellationToken ct)
-    {
-        return await _purchaseOrderRepository.GetOrderedQuantitiesAsync(ct);
-    }
-
-    private async Task<Dictionary<string, decimal>> GetProductsPlanned(CancellationToken ct)
-    {
-        return await _manufactureOrderRepository.GetPlannedQuantitiesAsync(ct);
     }
 }
