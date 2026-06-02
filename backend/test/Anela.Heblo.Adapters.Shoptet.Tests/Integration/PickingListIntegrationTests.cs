@@ -4,7 +4,7 @@ using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Domain.Features.Logistics;
-using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.Logistics.Picking;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

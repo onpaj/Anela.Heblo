@@ -1,4 +1,6 @@
-namespace Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Domain.Features.Logistics;
+
+namespace Anela.Heblo.Application.Features.Logistics.Picking;
 
 public class PrintPickingListRequest
 {
@@ -13,10 +15,10 @@ public class PrintPickingListRequest
 
     public static IList<Carriers> DefaultCarriers { get; set; } = new List<Carriers>()
     {
-        Logistics.Carriers.Zasilkovna,
-        Logistics.Carriers.GLS,
-        Logistics.Carriers.PPL,
-        Logistics.Carriers.Osobak
+        Anela.Heblo.Domain.Features.Logistics.Carriers.Zasilkovna,
+        Anela.Heblo.Domain.Features.Logistics.Carriers.GLS,
+        Anela.Heblo.Domain.Features.Logistics.Carriers.PPL,
+        Anela.Heblo.Domain.Features.Logistics.Carriers.Osobak
     };
 
     public bool SendToPrinter { get; set; }
