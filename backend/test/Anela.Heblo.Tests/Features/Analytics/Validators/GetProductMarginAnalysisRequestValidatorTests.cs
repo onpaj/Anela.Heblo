@@ -72,7 +72,7 @@ public class GetProductMarginAnalysisRequestValidatorTests
         var failure = result.Errors.Single(f => f.PropertyName == nameof(GetProductMarginAnalysisRequest.ProductId));
         var customState = failure.CustomState as Dictionary<string, string>;
         customState.Should().NotBeNull();
-        customState.Should().ContainKey("field").WithValue("ProductId");
+        customState.Should().ContainKey("field").WhoseValue.Should().Be("ProductId");
     }
 
     [Fact]

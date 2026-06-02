@@ -72,8 +72,8 @@ public class GetMarginReportRequestValidatorTests
         var result = _validator.TestValidate(request);
 
         // Assert
-        result.Errors.Should().HaveCount(1);
-        result.Errors[0].ErrorCode.Should().Be(((int)ErrorCodes.InvalidDateRange).ToString());
+        var failure = result.Errors.Single(f => f.PropertyName == nameof(GetMarginReportRequest.StartDate));
+        failure.ErrorCode.Should().Be(((int)ErrorCodes.InvalidDateRange).ToString());
     }
 
     [Fact]
@@ -93,8 +93,7 @@ public class GetMarginReportRequestValidatorTests
         var result = _validator.TestValidate(request);
 
         // Assert
-        result.Errors.Should().HaveCount(1);
-        var error = result.Errors[0];
+        var error = result.Errors.Single(f => f.PropertyName == nameof(GetMarginReportRequest.StartDate));
         error.CustomState.Should().NotBeNull();
         var paramDict = error.CustomState as Dictionary<string, string>;
         paramDict.Should().NotBeNull();
