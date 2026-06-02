@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
-using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
