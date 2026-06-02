@@ -7,7 +7,8 @@ namespace Anela.Heblo.Application.Features.BackgroundJobs.DashboardTiles;
 [TileId("failedjobs")]
 public sealed class FailedJobsTile : ITile
 {
-    private const string FailedJobsUrl = "/hangfire/jobs/failed";
+    private const string DrillDownRouteKey = "hangfireFailedJobs";
+    private const string DrillDownTooltip = "Open Hangfire failed jobs";
 
     private readonly IFailedJobCounter _failedJobCounter;
     private readonly ILogger<FailedJobsTile> _logger;
@@ -42,9 +43,9 @@ public sealed class FailedJobsTile : ITile
                 metadata = new { lastUpdated = DateTime.UtcNow, source = "Hangfire" },
                 drillDown = new
                 {
-                    url = FailedJobsUrl,
+                    routeKey = DrillDownRouteKey,
                     enabled = true,
-                    tooltip = "Open Hangfire failed jobs"
+                    tooltip = DrillDownTooltip
                 }
             };
         }
@@ -59,9 +60,9 @@ public sealed class FailedJobsTile : ITile
                 error = "Failed to retrieve job count. See server logs.",
                 drillDown = new
                 {
-                    url = FailedJobsUrl,
+                    routeKey = DrillDownRouteKey,
                     enabled = true,
-                    tooltip = "Open Hangfire failed jobs"
+                    tooltip = DrillDownTooltip
                 }
             };
         }

@@ -31,9 +31,12 @@ public sealed class FailedJobsTileTests
         var doc = ToJsonDoc(result);
         doc.RootElement.GetProperty("status").GetString().Should().Be("success");
         doc.RootElement.GetProperty("data").GetProperty("count").GetInt64().Should().Be(0L);
-        doc.RootElement.GetProperty("drillDown").GetProperty("url").GetString()
-            .Should().Be("/hangfire/jobs/failed");
-        doc.RootElement.GetProperty("drillDown").GetProperty("enabled").GetBoolean().Should().BeTrue();
+        var drillDown = doc.RootElement.GetProperty("drillDown");
+        drillDown.GetProperty("routeKey").GetString().Should().Be("hangfireFailedJobs");
+        drillDown.GetProperty("enabled").GetBoolean().Should().BeTrue();
+        drillDown.GetProperty("tooltip").GetString().Should().Be("Open Hangfire failed jobs");
+        drillDown.TryGetProperty("href", out _).Should().BeFalse();
+        drillDown.TryGetProperty("url", out _).Should().BeFalse();
     }
 
     [Fact]
@@ -63,9 +66,12 @@ public sealed class FailedJobsTileTests
         doc.RootElement.GetProperty("status").GetString().Should().Be("error");
         doc.RootElement.GetProperty("data").ValueKind.Should().Be(JsonValueKind.Null);
         doc.RootElement.GetProperty("error").GetString().Should().Be("Failed to retrieve job count. See server logs.");
-        doc.RootElement.GetProperty("drillDown").GetProperty("url").GetString()
-            .Should().Be("/hangfire/jobs/failed");
-        doc.RootElement.GetProperty("drillDown").GetProperty("enabled").GetBoolean().Should().BeTrue();
+        var drillDown = doc.RootElement.GetProperty("drillDown");
+        drillDown.GetProperty("routeKey").GetString().Should().Be("hangfireFailedJobs");
+        drillDown.GetProperty("enabled").GetBoolean().Should().BeTrue();
+        drillDown.GetProperty("tooltip").GetString().Should().Be("Open Hangfire failed jobs");
+        drillDown.TryGetProperty("href", out _).Should().BeFalse();
+        drillDown.TryGetProperty("url", out _).Should().BeFalse();
     }
 
     [Fact]
