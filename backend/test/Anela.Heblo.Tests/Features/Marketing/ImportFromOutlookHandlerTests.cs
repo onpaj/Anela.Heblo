@@ -627,4 +627,50 @@ public class ImportFromOutlookHandlerTests
         await act.Should().NotThrowAsync();
         capturedAction!.ActionType.Should().Be(MarketingActionType.SocialMedia);
     }
+
+    [Fact]
+    public async Task Handle_WhenExistingActionMatchesWhitespaceTitledEvent_SkipsIt()
+    {
+        // Regression for SA-1: after FR-1 trims persisted titles, HasChanges must
+        // compare normalized values, or it will report every whitespace-bearing
+        // re-import as Updated and trigger a no-op write loop.
+
+        // Arrange — existing record has the trimmed title; Outlook event has
+        // leading/trailing whitespace in the subject.
+        var startUtc = new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc);
+        var endUtc = new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc);
+
+        var existingAction = new MarketingActionTestBuilder()
+            .WithId(7)
+            .WithOutlookEventId("evt-ws")
+            .WithTitle("Trimmed Title")
+            .WithDescription(null)
+            .WithStartDate(startUtc)
+            .WithEndDate(endUtc)
+            .WithActionType(MarketingActionType.SocialMedia)
+            .WithCreatedAt(DateTime.UtcNow)
+            .WithModifiedAt(DateTime.UtcNow)
+            .WithCreatedBy("user-1")
+            .Build();
+
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OutlookEventDto>
+            {
+                BuildEvent(id: "evt-ws", subject: "  Trimmed Title  "),
+            });
+
+        _repositoryMock
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction> { existingAction });
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.Skipped.Should().Be(1);
+        result.Updated.Should().Be(0);
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }
