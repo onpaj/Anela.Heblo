@@ -16,7 +16,7 @@ public static class InvoicesModule
     public static IServiceCollection AddInvoicesModule(this IServiceCollection services)
     {
         // Register repositories
-        services.AddScoped<IIssuedInvoiceRepository, Infrastructure.IssuedInvoiceRepository>();
+        services.AddScoped<IIssuedInvoiceRepository, IssuedInvoiceRepository>();
 
         // Cross-module contract: Invoices implements PackingMaterials' IInvoiceConsumptionSource
         // via an adapter. DI registration owned by provider (Invoices), not consumer
