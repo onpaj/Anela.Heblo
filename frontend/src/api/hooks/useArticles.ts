@@ -1,8 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import {
+  getAuthenticatedApiClient,
+  getApiBaseUrl,
+  getAuthenticatedFetch,
+  QUERY_KEYS,
+} from '../client';
 import {
   ArticleStatus,
   GenerateArticleRequest,
+  SubmitArticleFeedbackRequest,
 } from '../generated/api-client';
 
 // ---- Types ----
@@ -214,19 +220,17 @@ export const useSubmitArticleFeedbackMutation = (articleId: string) => {
 
   return useMutation({
     mutationFn: async (payload: SubmitArticleFeedbackPayload): Promise<SubmitArticleFeedbackResult> => {
-      const apiClient = getAuthenticatedApiClient();
-      // TODO(arch-review 2026-05-25): Uses private apiClient internals (baseUrl/http) via `as any` — same fragility as the hooks refactored in this PR. Keep raw fetch only for 409 branch; revisit when generated client exposes typed-mutation 409 handling.
-      const fullUrl = `${(apiClient as any).baseUrl}/api/articles/${articleId}/feedback`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
+      const body: SubmitArticleFeedbackRequest = {
+        articleId,
+        precisionScore: payload.precisionScore,
+        styleScore: payload.styleScore,
+        comment: payload.comment,
+      };
+      const url = `${getApiBaseUrl()}/api/articles/${articleId}/feedback`;
+      const response = await getAuthenticatedFetch()(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          articleId,
-          precisionScore: payload.precisionScore,
-          styleScore: payload.styleScore,
-          comment: payload.comment,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (response.status === 409) {
