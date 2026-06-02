@@ -8,7 +8,7 @@ import {
 import {
   ArticleStatus,
   GenerateArticleRequest,
-  SubmitArticleFeedbackRequest,
+  ISubmitArticleFeedbackRequest,
 } from '../generated/api-client';
 
 // ---- Types ----
@@ -220,7 +220,7 @@ export const useSubmitArticleFeedbackMutation = (articleId: string) => {
 
   return useMutation({
     mutationFn: async (payload: SubmitArticleFeedbackPayload): Promise<SubmitArticleFeedbackResult> => {
-      const body: SubmitArticleFeedbackRequest = {
+      const body: ISubmitArticleFeedbackRequest = {
         articleId,
         precisionScore: payload.precisionScore,
         styleScore: payload.styleScore,
