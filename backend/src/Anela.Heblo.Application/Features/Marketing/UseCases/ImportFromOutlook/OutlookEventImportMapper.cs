@@ -50,8 +50,14 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
 
         internal static bool HasChanges(MarketingAction existing, OutlookEventDto evt, MarketingActionType actionType)
         {
-            return existing.Title != ParseTitle(evt.Subject)
-                || existing.Description != ParseDescription(evt.BodyText)
+            // Compare against the values UpdateDetails / the constructor would
+            // persist — both trim title and description. Without this, re-importing
+            // a whitespace-bearing event would always report Updated.
+            var normalizedTitle = ParseTitle(evt.Subject).Trim();
+            var normalizedDescription = ParseDescription(evt.BodyText)?.Trim();
+
+            return existing.Title != normalizedTitle
+                || existing.Description != normalizedDescription
                 || existing.StartDate != evt.StartUtc
                 || existing.EndDate != ParseEndDate(evt)
                 || existing.ActionType != actionType;
