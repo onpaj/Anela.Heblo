@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, AlertCircle, CheckCircle, Clock, FileText, User, Mail, Phone, MapPin, Download, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { X, AlertCircle, CheckCircle, Clock, FileText, User, Download, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { useIssuedInvoiceDetail } from "../../api/hooks/useIssuedInvoices";
 import { useEnqueueInvoiceImport } from "../../api/hooks/useAsyncInvoiceImport";
 import { formatDate, formatDateTime, formatCurrency } from "../../utils/formatters";
@@ -220,84 +220,10 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                         </div>
                       )}
                       
-                      {data.invoice.customerEmail && (
-                        <div className="flex items-center">
-                          <Mail className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
-                          <div>
-                            <label className="text-sm font-medium text-gray-500">E-mail</label>
-                            <p className="text-sm text-gray-900">{data.invoice.customerEmail}</p>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {data.invoice.customerPhone && (
-                        <div className="flex items-center">
-                          <Phone className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
-                          <div>
-                            <label className="text-sm font-medium text-gray-500">Telefon</label>
-                            <p className="text-sm text-gray-900">{data.invoice.customerPhone}</p>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {data.invoice.customerAddress && (
-                        <div className="flex items-start">
-                          <MapPin className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <label className="text-sm font-medium text-gray-500">Adresa</label>
-                            <p className="text-sm text-gray-900 whitespace-pre-line">{data.invoice.customerAddress}</p>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
 
-                  {/* Items */}
-                  {data.invoice.items && data.invoice.items.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2 mb-4">
-                        Položky faktury
-                      </h3>
-                      
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                Produkt
-                              </th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                                Množství
-                              </th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                                Jednotková cena
-                              </th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                                Celkem
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {data.invoice.items.map((item, index) => (
-                              <tr key={index}>
-                                <td className="px-4 py-2">
-                                  <div>
-                                    <p className="font-medium text-gray-900">{item.productName}</p>
-                                    <p className="text-gray-500 text-xs">{item.productId}</p>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-2 text-right text-gray-900">{item.quantity}</td>
-                                <td className="px-4 py-2 text-right text-gray-900">{formatCurrency(item.unitPrice)}</td>
-                                <td className="px-4 py-2 text-right text-gray-900 font-medium">{formatCurrency(item.totalPrice)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Error details */}
+{/* Error details */}
                   {data.invoice.errorType && data.invoice.errorMessage && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                       <h3 className="text-lg font-medium text-red-800 mb-2">
@@ -397,25 +323,13 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                                           <span className="font-medium text-red-700">Zpráva:</span>
                                           <p className="text-red-600 mt-1">{sync.error.message}</p>
                                         </div>
-                                        {sync.error.code && (
-                                          <div>
-                                            <span className="font-medium text-red-700">Kód chyby:</span>
-                                            <p className="text-red-600 font-mono text-xs">{sync.error.code}</p>
-                                          </div>
-                                        )}
-                                        {sync.error.field && (
-                                          <div>
-                                            <span className="font-medium text-red-700">Problematické pole:</span>
-                                            <p className="text-red-600 font-mono text-xs">{sync.error.field}</p>
-                                          </div>
-                                        )}
-                                        <div>
+<div>
                                           <span className="font-medium text-red-700">Typ chyby:</span>
                                           <p className="text-red-600 text-xs">
-                                            {sync.error.errorType === 0 ? 'Obecná chyba' : 
-                                             sync.error.errorType === 1 ? 'Faktura již spárována' : 
-                                             sync.error.errorType === 2 ? 'Produkt nenalezen' : 
-                                             `Neznámý typ (${sync.error.errorType})`}
+                                            {sync.error.errorType === 'General' ? 'Obecná chyba' :
+                                             sync.error.errorType === 'InvoicePaired' ? 'Faktura již spárována' :
+                                             sync.error.errorType === 'ProductNotFound' ? 'Produkt nenalezen' :
+                                             sync.error.errorType ? `Neznámý typ (${sync.error.errorType})` : 'Neznámý typ'}
                                           </p>
                                         </div>
                                       </div>
@@ -436,10 +350,10 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                                         <div>
                                           <span className="font-medium text-orange-700">Typ chyby:</span>
                                           <p className="text-orange-600 text-xs">
-                                            {data.invoice.errorType === '0' ? 'Obecná chyba' : 
-                                             data.invoice.errorType === '1' ? 'Faktura již spárována' : 
-                                             data.invoice.errorType === '2' ? 'Produkt nenalezen' : 
-                                             `Neznámý typ (${data.invoice.errorType})`}
+                                            {data.invoice.errorType === 'General' ? 'Obecná chyba' :
+                                             data.invoice.errorType === 'InvoicePaired' ? 'Faktura již spárována' :
+                                             data.invoice.errorType === 'ProductNotFound' ? 'Produkt nenalezen' :
+                                             data.invoice.errorType ? `Neznámý typ (${data.invoice.errorType})` : 'Neznámý typ'}
                                           </p>
                                         </div>
                                       </div>
