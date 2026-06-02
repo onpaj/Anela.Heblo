@@ -132,5 +132,29 @@ namespace Anela.Heblo.Domain.Features.Marketing
             OutlookSyncStatus = MarketingSyncStatus.NotSynced;
             OutlookSyncError = null;
         }
+
+        public void UpdateDetails(
+            string title,
+            string? description,
+            MarketingActionType actionType,
+            DateTime startDate,
+            DateTime? endDate,
+            string modifiedByUserId,
+            string? modifiedByUsername,
+            DateTime utcNow)
+        {
+            Title = NormalizeTitle(title);
+            Description = NormalizeDescription(description);
+            ActionType = actionType;
+            StartDate = startDate;
+            EndDate = endDate;
+            ModifiedAt = utcNow;
+            ModifiedByUserId = modifiedByUserId;
+            ModifiedByUsername = modifiedByUsername ?? "Unknown User";
+        }
+
+        private static string NormalizeTitle(string? raw) => (raw ?? string.Empty).Trim();
+
+        private static string? NormalizeDescription(string? raw) => raw?.Trim();
     }
 }
