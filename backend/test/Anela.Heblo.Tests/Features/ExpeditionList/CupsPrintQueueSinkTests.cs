@@ -17,7 +17,7 @@ public class CupsPrintQueueSinkTests
         // Arrange
         var files = new List<string> { "/tmp/a.pdf", "/tmp/b.pdf" };
         _printingService
-            .Setup(x => x.PrintAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.PrintAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var sink = CreateSink();
@@ -27,10 +27,10 @@ public class CupsPrintQueueSinkTests
 
         // Assert
         _printingService.Verify(
-            x => x.PrintAsync("/tmp/a.pdf", null, It.IsAny<CancellationToken>()),
+            x => x.PrintAsync("/tmp/a.pdf", null, It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Once);
         _printingService.Verify(
-            x => x.PrintAsync("/tmp/b.pdf", null, It.IsAny<CancellationToken>()),
+            x => x.PrintAsync("/tmp/b.pdf", null, It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -42,8 +42,8 @@ public class CupsPrintQueueSinkTests
         string? capturedPrinterName = "sentinel"; // non-null sentinel
 
         _printingService
-            .Setup(x => x.PrintAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string?, CancellationToken>((_, pn, _) => capturedPrinterName = pn)
+            .Setup(x => x.PrintAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string?, string, CancellationToken>((_, pn, _, _) => capturedPrinterName = pn)
             .Returns(Task.CompletedTask);
 
         var sink = CreateSink();
@@ -66,7 +66,7 @@ public class CupsPrintQueueSinkTests
 
         // Assert
         _printingService.Verify(
-            x => x.PrintAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            x => x.PrintAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 }

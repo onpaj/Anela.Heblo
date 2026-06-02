@@ -2,11 +2,9 @@ using Anela.Heblo.Application.Features.Article;
 using Anela.Heblo.Application.Features.Article.Contracts;
 using Anela.Heblo.Application.Features.Article.UseCases.Generate;
 using Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
-using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Shared.WebSearch;
 using Anela.Heblo.Domain.Features.Article;
 using FluentAssertions;
-using MediatR;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -19,7 +17,7 @@ public class SourceEnrichmentIntegrationTests
 {
     private readonly Mock<IArticleRepository> _repository = new();
     private readonly Mock<IChatClient> _chat = new();
-    private readonly Mock<IMediator> _mediator = new();
+    private readonly Mock<IArticleKnowledgeSource> _knowledgeSource = new();
     private readonly Mock<IWebSearchClient> _webSearch = new();
     private readonly Mock<IArticleStyleGuideSource> _styleGuideSource = new();
     private readonly ArticleOptions _options = new();
@@ -40,21 +38,17 @@ public class SourceEnrichmentIntegrationTests
             .ReturnsAsync(article);
 
         var chunkId = Guid.NewGuid();
-        _mediator.Setup(m => m.Send(It.IsAny<SearchDocumentsRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SearchDocumentsResponse
+        _knowledgeSource
+            .Setup(s => s.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ArticleKnowledgeChunk>
             {
-                Chunks =
-                [
-                    new ChunkResult
-                    {
-                        ChunkId = chunkId,
-                        DocumentId = Guid.NewGuid(),
-                        Content = "All about SPF.",
-                        Score = 0.91,
-                        SourceFilename = "kb-spf-doc.docx",
-                        SourcePath = "https://example.com/kb-spf-doc.docx",
-                    }
-                ]
+                new ArticleKnowledgeChunk
+                {
+                    ChunkId = chunkId,
+                    Content = "All about SPF.",
+                    Score = 0.91,
+                    SourceFilename = "kb-spf-doc.docx"
+                }
             });
 
         var queue = new Queue<string>(
@@ -84,7 +78,7 @@ public class SourceEnrichmentIntegrationTests
         var job = new GenerateArticleJob(
             _repository.Object,
             new PlanQueriesStep(_chat.Object, optionsWrapper, NullLogger<PlanQueriesStep>.Instance, recorder),
-            new GatherContextStep(_mediator.Object, _webSearch.Object, _styleGuideSource.Object, optionsWrapper, NullLogger<GatherContextStep>.Instance, recorder),
+            new GatherContextStep(_knowledgeSource.Object, _webSearch.Object, _styleGuideSource.Object, optionsWrapper, NullLogger<GatherContextStep>.Instance, recorder),
             new AggregateFactsStep(_chat.Object, optionsWrapper, NullLogger<AggregateFactsStep>.Instance, recorder),
             new ValidateFactsStep(_chat.Object, optionsWrapper, NullLogger<ValidateFactsStep>.Instance, recorder),
             new WriteArticleStep(_chat.Object, optionsWrapper, NullLogger<WriteArticleStep>.Instance, recorder),

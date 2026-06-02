@@ -27,6 +27,12 @@ namespace Anela.Heblo.Domain.Features.Photobank
 
         Task<List<Photo>> GetAllPhotosAsync(CancellationToken cancellationToken);
 
+        Task<Photo?> GetPhotoBySharePointFileIdAsync(string sharePointFileId, CancellationToken cancellationToken);
+
+        Task AddPhotoAsync(Photo photo, CancellationToken cancellationToken);
+
+        Task RemovePhotoAsync(Photo photo, CancellationToken cancellationToken);
+
         // Tags
         Task<IReadOnlyList<TagCount>> GetTagsWithCountsAsync(CancellationToken cancellationToken);
         Task<Tag?> GetOrCreateTagAsync(string normalizedName, CancellationToken cancellationToken);
@@ -42,11 +48,14 @@ namespace Anela.Heblo.Domain.Features.Photobank
         Task<bool> PhotoTagExistsAsync(int photoId, int tagId, CancellationToken cancellationToken);
         Task RemoveRuleTagsAsync(string? scopeToTagName, CancellationToken cancellationToken);
         Task<HashSet<(int PhotoId, int TagId)>> GetOccupiedTagPairsAsync(string? scopeToTagName, CancellationToken cancellationToken);
+        Task<List<PhotoTag>> GetPhotoTagsByPhotoAndSourceAsync(int photoId, PhotoTagSource source, CancellationToken cancellationToken);
+        Task RemovePhotoTagsAsync(IEnumerable<PhotoTag> photoTags, CancellationToken cancellationToken);
 
         // Roots
         Task<List<PhotobankIndexRoot>> GetRootsAsync(CancellationToken cancellationToken);
         Task<PhotobankIndexRoot> AddRootAsync(PhotobankIndexRoot root, CancellationToken cancellationToken);
         Task<bool> DeleteRootAsync(int id, CancellationToken cancellationToken);
+        Task<List<PhotobankIndexRoot>> GetActiveRootsWithDriveAsync(CancellationToken cancellationToken);
 
         // Rules
         Task<List<TagRule>> GetRulesAsync(CancellationToken cancellationToken);
@@ -54,6 +63,7 @@ namespace Anela.Heblo.Domain.Features.Photobank
         Task<TagRule?> GetRuleByIdAsync(int id, CancellationToken cancellationToken);
         Task UpdateRuleAsync(TagRule rule, CancellationToken cancellationToken);
         Task<bool> DeleteRuleAsync(int id, CancellationToken cancellationToken);
+        Task<List<TagRule>> GetActiveTagRulesAsync(CancellationToken cancellationToken);
 
         // Auto-tagging
         Task<List<PhotoAutoTagCandidate>> GetPhotosPendingAutoTagAsync(int pageSize, int offset, CancellationToken cancellationToken);

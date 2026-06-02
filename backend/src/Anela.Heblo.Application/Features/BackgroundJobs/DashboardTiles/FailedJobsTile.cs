@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Xcc.Services.Dashboard;
-using Hangfire;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.BackgroundJobs.DashboardTiles;
@@ -8,7 +8,7 @@ public sealed class FailedJobsTile : ITile
 {
     private const string FailedJobsUrl = "/hangfire/jobs/failed";
 
-    private readonly JobStorage _jobStorage;
+    private readonly IFailedJobCounter _failedJobCounter;
     private readonly ILogger<FailedJobsTile> _logger;
 
     public string Title => "Failed background jobs";
@@ -20,21 +20,21 @@ public sealed class FailedJobsTile : ITile
     public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
-    public FailedJobsTile(JobStorage jobStorage, ILogger<FailedJobsTile> logger)
+    public FailedJobsTile(IFailedJobCounter failedJobCounter, ILogger<FailedJobsTile> logger)
     {
-        _jobStorage = jobStorage;
+        _failedJobCounter = failedJobCounter;
         _logger = logger;
     }
 
-    public Task<object> LoadDataAsync(
+    public async Task<object> LoadDataAsync(
         Dictionary<string, string>? parameters = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var failedCount = _jobStorage.GetMonitoringApi().FailedCount();
+            var failedCount = await _failedJobCounter.GetFailedCountAsync(cancellationToken);
 
-            return Task.FromResult<object>(new
+            return new
             {
                 status = "success",
                 data = new { count = failedCount },
@@ -45,13 +45,13 @@ public sealed class FailedJobsTile : ITile
                     enabled = true,
                     tooltip = "Open Hangfire failed jobs"
                 }
-            });
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load Hangfire failed job count");
 
-            return Task.FromResult<object>(new
+            return new
             {
                 status = "error",
                 data = (object?)null,
@@ -62,7 +62,7 @@ public sealed class FailedJobsTile : ITile
                     enabled = true,
                     tooltip = "Open Hangfire failed jobs"
                 }
-            });
+            };
         }
     }
 }
