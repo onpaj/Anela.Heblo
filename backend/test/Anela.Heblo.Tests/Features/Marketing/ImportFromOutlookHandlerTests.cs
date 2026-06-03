@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Tests.Domain.Marketing;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -160,19 +161,18 @@ public class ImportFromOutlookHandlerTests
         var startUtc = new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc);
         var endUtc = new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc);
 
-        var existingAction = new MarketingAction
-        {
-            Id = 1,
-            OutlookEventId = "evt-existing",
-            Title = "Test Event",
-            Description = null,
-            StartDate = startUtc,
-            EndDate = endUtc,
-            ActionType = MarketingActionType.SocialMedia,
-            CreatedAt = DateTime.UtcNow,
-            ModifiedAt = DateTime.UtcNow,
-            CreatedByUserId = "user-1",
-        };
+        var existingAction = new MarketingActionTestBuilder()
+            .WithId(1)
+            .WithOutlookEventId("evt-existing")
+            .WithTitle("Test Event")
+            .WithDescription(null)
+            .WithStartDate(startUtc)
+            .WithEndDate(endUtc)
+            .WithActionType(MarketingActionType.SocialMedia)
+            .WithCreatedAt(DateTime.UtcNow)
+            .WithModifiedAt(DateTime.UtcNow)
+            .WithCreatedBy("user-1")
+            .Build();
 
         _outlookSyncMock
             .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
@@ -203,18 +203,17 @@ public class ImportFromOutlookHandlerTests
         var startUtc = new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc);
         var endUtc = new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc);
 
-        var existingAction = new MarketingAction
-        {
-            Id = 5,
-            OutlookEventId = "evt-changed",
-            Title = "Old Title",
-            StartDate = startUtc,
-            EndDate = endUtc,
-            ActionType = MarketingActionType.SocialMedia,
-            CreatedAt = DateTime.UtcNow,
-            ModifiedAt = DateTime.UtcNow,
-            CreatedByUserId = "user-1",
-        };
+        var existingAction = new MarketingActionTestBuilder()
+            .WithId(5)
+            .WithOutlookEventId("evt-changed")
+            .WithTitle("Old Title")
+            .WithStartDate(startUtc)
+            .WithEndDate(endUtc)
+            .WithActionType(MarketingActionType.SocialMedia)
+            .WithCreatedAt(DateTime.UtcNow)
+            .WithModifiedAt(DateTime.UtcNow)
+            .WithCreatedBy("user-1")
+            .Build();
 
         _outlookSyncMock
             .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
@@ -245,18 +244,17 @@ public class ImportFromOutlookHandlerTests
     public async Task Handle_WhenDryRunAndEventChanged_ReportsWouldUpdateWithoutPersisting()
     {
         // Arrange
-        var existingAction = new MarketingAction
-        {
-            Id = 5,
-            OutlookEventId = "evt-changed",
-            Title = "Old Title",
-            StartDate = new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc),
-            EndDate = new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc),
-            ActionType = MarketingActionType.SocialMedia,
-            CreatedAt = DateTime.UtcNow,
-            ModifiedAt = DateTime.UtcNow,
-            CreatedByUserId = "user-1",
-        };
+        var existingAction = new MarketingActionTestBuilder()
+            .WithId(5)
+            .WithOutlookEventId("evt-changed")
+            .WithTitle("Old Title")
+            .WithStartDate(new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc))
+            .WithEndDate(new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc))
+            .WithActionType(MarketingActionType.SocialMedia)
+            .WithCreatedAt(DateTime.UtcNow)
+            .WithModifiedAt(DateTime.UtcNow)
+            .WithCreatedBy("user-1")
+            .Build();
 
         _outlookSyncMock
             .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
@@ -400,19 +398,18 @@ public class ImportFromOutlookHandlerTests
         var firstResult = await _handler.Handle(BuildRequest(), CancellationToken.None);
 
         // Second call: repo returns the imported action — fields match the Outlook event exactly
-        var importedAction = new MarketingAction
-        {
-            Id = 100,
-            OutlookEventId = "evt-idem",
-            Title = "Test Event",
-            Description = null,
-            StartDate = new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc),
-            EndDate = new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc),
-            ActionType = MarketingActionType.SocialMedia,
-            CreatedAt = DateTime.UtcNow,
-            ModifiedAt = DateTime.UtcNow,
-            CreatedByUserId = "user-1",
-        };
+        var importedAction = new MarketingActionTestBuilder()
+            .WithId(100)
+            .WithOutlookEventId("evt-idem")
+            .WithTitle("Test Event")
+            .WithDescription(null)
+            .WithStartDate(new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc))
+            .WithEndDate(new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc))
+            .WithActionType(MarketingActionType.SocialMedia)
+            .WithCreatedAt(DateTime.UtcNow)
+            .WithModifiedAt(DateTime.UtcNow)
+            .WithCreatedBy("user-1")
+            .Build();
 
         _repositoryMock
             .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
@@ -629,5 +626,116 @@ public class ImportFromOutlookHandlerTests
         // Assert
         await act.Should().NotThrowAsync();
         capturedAction!.ActionType.Should().Be(MarketingActionType.SocialMedia);
+    }
+
+    [Fact]
+    public async Task Handle_WhenExistingActionMatchesWhitespaceTitledEvent_SkipsIt()
+    {
+        // Regression for SA-1: after FR-1 trims persisted titles, HasChanges must
+        // compare normalized values, or it will report every whitespace-bearing
+        // re-import as Updated and trigger a no-op write loop.
+
+        // Arrange — existing record has the trimmed title; Outlook event has
+        // leading/trailing whitespace in the subject.
+        var startUtc = new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc);
+        var endUtc = new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc);
+
+        var existingAction = new MarketingActionTestBuilder()
+            .WithId(7)
+            .WithOutlookEventId("evt-ws")
+            .WithTitle("Trimmed Title")
+            .WithDescription(null)
+            .WithStartDate(startUtc)
+            .WithEndDate(endUtc)
+            .WithActionType(MarketingActionType.SocialMedia)
+            .WithCreatedAt(DateTime.UtcNow)
+            .WithModifiedAt(DateTime.UtcNow)
+            .WithCreatedBy("user-1")
+            .Build();
+
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OutlookEventDto>
+            {
+                BuildEvent(id: "evt-ws", subject: "  Trimmed Title  "),
+            });
+
+        _repositoryMock
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction> { existingAction });
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.Skipped.Should().Be(1);
+        result.Updated.Should().Be(0);
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenNewOutlookEventHasWhitespaceTitle_PersistsTrimmedTitle()
+    {
+        // Arrange
+        var evt = BuildEvent(id: "evt-trim-new", subject: "  Summer Launch  ");
+
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OutlookEventDto> { evt });
+
+        MarketingAction? captured = null;
+        _repositoryMock
+            .Setup(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
+            .Callback<MarketingAction, CancellationToken>((a, _) => captured = a)
+            .ReturnsAsync((MarketingAction a, CancellationToken _) => { a.Id = 1; return a; });
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        result.Created.Should().Be(1);
+        captured!.Title.Should().Be("Summer Launch");
+    }
+
+    [Fact]
+    public async Task Handle_WhenOutlookEventChangedToWhitespaceTitle_PersistsTrimmedTitle()
+    {
+        // Arrange — existing record has an old title; Outlook event has a NEW
+        // title that is different but padded with whitespace. HasChanges must
+        // detect the change (different normalized text) and the persisted Title
+        // must be trimmed.
+        var startUtc = new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc);
+        var endUtc = new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc);
+
+        var existingAction = new MarketingActionTestBuilder()
+            .WithId(11)
+            .WithOutlookEventId("evt-trim-upd")
+            .WithTitle("Old Title")
+            .WithStartDate(startUtc)
+            .WithEndDate(endUtc)
+            .WithActionType(MarketingActionType.SocialMedia)
+            .WithCreatedAt(DateTime.UtcNow)
+            .WithModifiedAt(DateTime.UtcNow)
+            .WithCreatedBy("user-1")
+            .Build();
+
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OutlookEventDto>
+            {
+                BuildEvent(id: "evt-trim-upd", subject: "  New Title  "),
+            });
+
+        _repositoryMock
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction> { existingAction });
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        result.Updated.Should().Be(1);
+        existingAction.Title.Should().Be("New Title");
     }
 }

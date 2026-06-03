@@ -63,7 +63,7 @@ export const useIssuedInvoicesList = (filters: IssuedInvoicesFilters) => {
         params.append('showOnlyWithErrors', filters.showOnlyWithErrors.toString());
       }
 
-      const url = `/api/IssuedInvoices?${params.toString()}`;
+      const url = `/api/invoices?${params.toString()}`;
       const fullUrl = `${(apiClient as any).baseUrl}${url}`;
       
       const response = await (apiClient as any).http.fetch(fullUrl, {
@@ -94,7 +94,7 @@ export const useIssuedInvoiceDetail = (invoiceId: string) => {
     queryFn: async (): Promise<IGetIssuedInvoiceDetailResponse> => {
       const apiClient = await getAuthenticatedApiClient();
       
-      const url = `/api/IssuedInvoices/${encodeURIComponent(invoiceId)}`;
+      const url = `/api/invoices/${encodeURIComponent(invoiceId)}?withDetails=true`;
       const fullUrl = `${(apiClient as any).baseUrl}${url}`;
       
       const response = await (apiClient as any).http.fetch(fullUrl, {

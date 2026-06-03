@@ -10,7 +10,7 @@ public class StockWriteBackDqtComparerTests
 {
     private readonly Mock<IStockUpOperationRepository> _operationRepoMock = new();
     private readonly Mock<IStockTakingRepository> _stockTakingRepoMock = new();
-    private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.Today);
+    private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.UtcNow);
 
     private StockWriteBackDqtComparer CreateSut(TimeSpan? stuckThreshold = null) =>
         new(_operationRepoMock.Object, _stockTakingRepoMock.Object, stuckThreshold);

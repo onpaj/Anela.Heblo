@@ -4094,147 +4094,6 @@ export class ApiClient {
         return Promise.resolve<BackgroundJobInfo[]>(null as any);
     }
 
-    issuedInvoices_GetList(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, invoiceId: string | null | undefined, customerName: string | null | undefined, invoiceDateFrom: Date | null | undefined, invoiceDateTo: Date | null | undefined, isSynced: boolean | null | undefined, showOnlyUnsynced: boolean | undefined, showOnlyWithErrors: boolean | undefined): Promise<GetIssuedInvoicesListResponse> {
-        let url_ = this.baseUrl + "/api/IssuedInvoices?";
-        if (pageNumber === null)
-            throw new Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (pageSize === null)
-            throw new Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (sortBy !== undefined && sortBy !== null)
-            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
-        if (sortDescending === null)
-            throw new Error("The parameter 'sortDescending' cannot be null.");
-        else if (sortDescending !== undefined)
-            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
-        if (invoiceId !== undefined && invoiceId !== null)
-            url_ += "invoiceId=" + encodeURIComponent("" + invoiceId) + "&";
-        if (customerName !== undefined && customerName !== null)
-            url_ += "customerName=" + encodeURIComponent("" + customerName) + "&";
-        if (invoiceDateFrom !== undefined && invoiceDateFrom !== null)
-            url_ += "invoiceDateFrom=" + encodeURIComponent(invoiceDateFrom ? "" + invoiceDateFrom.toISOString() : "") + "&";
-        if (invoiceDateTo !== undefined && invoiceDateTo !== null)
-            url_ += "invoiceDateTo=" + encodeURIComponent(invoiceDateTo ? "" + invoiceDateTo.toISOString() : "") + "&";
-        if (isSynced !== undefined && isSynced !== null)
-            url_ += "isSynced=" + encodeURIComponent("" + isSynced) + "&";
-        if (showOnlyUnsynced === null)
-            throw new Error("The parameter 'showOnlyUnsynced' cannot be null.");
-        else if (showOnlyUnsynced !== undefined)
-            url_ += "showOnlyUnsynced=" + encodeURIComponent("" + showOnlyUnsynced) + "&";
-        if (showOnlyWithErrors === null)
-            throw new Error("The parameter 'showOnlyWithErrors' cannot be null.");
-        else if (showOnlyWithErrors !== undefined)
-            url_ += "showOnlyWithErrors=" + encodeURIComponent("" + showOnlyWithErrors) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processIssuedInvoices_GetList(_response);
-        });
-    }
-
-    protected processIssuedInvoices_GetList(response: Response): Promise<GetIssuedInvoicesListResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetIssuedInvoicesListResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetIssuedInvoicesListResponse>(null as any);
-    }
-
-    issuedInvoices_GetDetail(id: string): Promise<GetIssuedInvoiceDetailResponse> {
-        let url_ = this.baseUrl + "/api/IssuedInvoices/{id}";
-        if (id === undefined || id === null)
-            throw new Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processIssuedInvoices_GetDetail(_response);
-        });
-    }
-
-    protected processIssuedInvoices_GetDetail(response: Response): Promise<GetIssuedInvoiceDetailResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetIssuedInvoiceDetailResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetIssuedInvoiceDetailResponse>(null as any);
-    }
-
-    issuedInvoices_GetSyncStats(fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetIssuedInvoiceSyncStatsResponse> {
-        let url_ = this.baseUrl + "/api/IssuedInvoices/sync-stats?";
-        if (fromDate !== undefined && fromDate !== null)
-            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
-        if (toDate !== undefined && toDate !== null)
-            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processIssuedInvoices_GetSyncStats(_response);
-        });
-    }
-
-    protected processIssuedInvoices_GetSyncStats(response: Response): Promise<GetIssuedInvoiceSyncStatsResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetIssuedInvoiceSyncStatsResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetIssuedInvoiceSyncStatsResponse>(null as any);
-    }
-
     journal_GetJournalEntries(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined): Promise<GetJournalEntriesResponse> {
         let url_ = this.baseUrl + "/api/Journal?";
         if (pageNumber === null)
@@ -6745,6 +6604,40 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetManufactureOutputResponse>(null as any);
+    }
+
+    manufactureSettings_GetSettings(): Promise<GetManufactureSettingsResponse> {
+        let url_ = this.baseUrl + "/api/manufacture/settings";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureSettings_GetSettings(_response);
+        });
+    }
+
+    protected processManufactureSettings_GetSettings(response: Response): Promise<GetManufactureSettingsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetManufactureSettingsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetManufactureSettingsResponse>(null as any);
     }
 
     manufactureStockTaking_SubmitManufactureStockTaking(request: SubmitManufactureStockTakingRequest): Promise<SubmitManufactureStockTakingResponse> {
@@ -16826,7 +16719,6 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
     environment?: string;
     useMockAuth?: boolean;
     timestamp?: Date;
-    manufactureGroupId?: string | undefined;
 
     constructor(data?: IGetConfigurationResponse) {
         super(data);
@@ -16839,7 +16731,6 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
             this.environment = _data["environment"];
             this.useMockAuth = _data["useMockAuth"];
             this.timestamp = _data["timestamp"] ? new Date(_data["timestamp"].toString()) : <any>undefined;
-            this.manufactureGroupId = _data["manufactureGroupId"];
         }
     }
 
@@ -16856,7 +16747,6 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
         data["environment"] = this.environment;
         data["useMockAuth"] = this.useMockAuth;
         data["timestamp"] = this.timestamp ? this.timestamp.toISOString() : <any>undefined;
-        data["manufactureGroupId"] = this.manufactureGroupId;
         super.toJSON(data);
         return data;
     }
@@ -16867,7 +16757,6 @@ export interface IGetConfigurationResponse extends IBaseResponse {
     environment?: string;
     useMockAuth?: boolean;
     timestamp?: Date;
-    manufactureGroupId?: string | undefined;
 }
 
 export class DashboardTileDto implements IDashboardTileDto {
@@ -27077,6 +26966,39 @@ export interface IProductionDetail {
     pricePerPiece?: number;
     priceTotal?: number;
     documentNumber?: string;
+}
+
+export class GetManufactureSettingsResponse extends BaseResponse implements IGetManufactureSettingsResponse {
+    manufactureGroupId?: string | undefined;
+
+    constructor(data?: IGetManufactureSettingsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.manufactureGroupId = _data["manufactureGroupId"];
+        }
+    }
+
+    static override fromJS(data: any): GetManufactureSettingsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetManufactureSettingsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["manufactureGroupId"] = this.manufactureGroupId;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetManufactureSettingsResponse extends IBaseResponse {
+    manufactureGroupId?: string | undefined;
 }
 
 export class SubmitManufactureStockTakingResponse extends BaseResponse implements ISubmitManufactureStockTakingResponse {

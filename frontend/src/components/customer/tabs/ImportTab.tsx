@@ -21,14 +21,29 @@ import {
 import { formatDate, formatDateTime } from "../../../utils/formatters";
 
 const ImportTab: React.FC = () => {
-  // Filter states
+  // Local input state (uncommitted)
   const [transferIdInput, setTransferIdInput] = useState("");
   const [accountInput, setAccountInput] = useState("");
-  const [transferIdFilter, setTransferIdFilter] = useState("");
-  const [accountFilter, setAccountFilter] = useState("");
   const [statementDateFrom, setStatementDateFrom] = useState("");
   const [statementDateTo, setStatementDateTo] = useState("");
   const [showOnlyErrors, setShowOnlyErrors] = useState(false);
+  const [dateRangeError, setDateRangeError] = useState<string | null>(null);
+
+  // Committed filters (drive the hook; updated only on Apply / Clear)
+  const [committedFilters, setCommittedFilters] = useState<{
+    transferId?: string;
+    account?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    errorsOnly?: boolean;
+  }>({});
+
+  const hasActiveFilter =
+    !!committedFilters.transferId ||
+    !!committedFilters.account ||
+    !!committedFilters.dateFrom ||
+    !!committedFilters.dateTo ||
+    !!committedFilters.errorsOnly;
 
   // Pagination states
   const [pageNumber, setPageNumber] = useState(1);
@@ -51,6 +66,11 @@ const ImportTab: React.FC = () => {
     error,
     refetch,
   } = useBankStatementsList({
+    transferId: committedFilters.transferId,
+    account: committedFilters.account,
+    dateFrom: committedFilters.dateFrom,
+    dateTo: committedFilters.dateTo,
+    errorsOnly: committedFilters.errorsOnly,
     skip: (pageNumber - 1) * pageSize,
     take: pageSize,
     orderBy: sortBy,
@@ -66,11 +86,24 @@ const ImportTab: React.FC = () => {
   const totalPages = Math.ceil(totalCount / pageSize);
 
   // Handler for applying filters
-  const handleApplyFilters = async () => {
-    setTransferIdFilter(transferIdInput);
-    setAccountFilter(accountInput);
-    setPageNumber(1); // Reset to first page when applying filters
-    await refetch();
+  const handleApplyFilters = () => {
+    if (statementDateFrom && statementDateTo && statementDateFrom > statementDateTo) {
+      setDateRangeError('"Od" musí být dříve nebo stejně jako "Do".');
+      return;
+    }
+    setDateRangeError(null);
+
+    const trimmedTransferId = transferIdInput.trim();
+    const trimmedAccount = accountInput.trim();
+
+    setCommittedFilters({
+      transferId: trimmedTransferId || undefined,
+      account: trimmedAccount || undefined,
+      dateFrom: statementDateFrom || undefined,
+      dateTo: statementDateTo || undefined,
+      errorsOnly: showOnlyErrors || undefined,
+    });
+    setPageNumber(1);
   };
 
   // Handler for Enter key press
@@ -81,16 +114,15 @@ const ImportTab: React.FC = () => {
   };
 
   // Handler for clearing all filters
-  const handleClearFilters = async () => {
+  const handleClearFilters = () => {
     setTransferIdInput("");
     setAccountInput("");
-    setTransferIdFilter("");
-    setAccountFilter("");
     setStatementDateFrom("");
     setStatementDateTo("");
     setShowOnlyErrors(false);
+    setDateRangeError(null);
+    setCommittedFilters({});
     setPageNumber(1);
-    await refetch();
   };
 
   // Sorting handler
@@ -344,6 +376,9 @@ const ImportTab: React.FC = () => {
                 placeholder="Do"
               />
             </div>
+            {dateRangeError && (
+              <p className="text-xs text-red-600">{dateRangeError}</p>
+            )}
 
             <div className="flex gap-2">
               <label className="flex items-center text-sm">
@@ -481,7 +516,7 @@ const ImportTab: React.FC = () => {
                 <p className="text-xs text-gray-600">
                   {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-
                   {Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
-                  {transferIdFilter || accountFilter ? (
+                  {hasActiveFilter ? (
                     <span className="text-gray-500"> (filtrováno)</span>
                   ) : (
                     ""

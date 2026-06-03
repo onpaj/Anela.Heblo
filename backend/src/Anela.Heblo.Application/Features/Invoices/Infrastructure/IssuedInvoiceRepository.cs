@@ -1,9 +1,12 @@
+using Anela.Heblo.Application.Features.Invoices.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Invoices;
+using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Persistence.Features.Invoices;
+namespace Anela.Heblo.Application.Features.Invoices.Infrastructure;
 
 /// <summary>
 /// Repository implementation for IssuedInvoice entity
@@ -111,7 +114,6 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
 
     public override async Task<IssuedInvoice> AddAsync(IssuedInvoice entity, CancellationToken cancellationToken = default)
     {
-        // Set audit fields for new entities
         entity.CreationTime = DateTime.UtcNow;
         entity.ConcurrencyStamp = Guid.NewGuid().ToString();
 
@@ -120,7 +122,6 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
 
     public override async Task UpdateAsync(IssuedInvoice entity, CancellationToken cancellationToken = default)
     {
-        // Set audit fields for updates
         entity.LastModificationTime = DateTime.UtcNow;
         entity.ConcurrencyStamp = Guid.NewGuid().ToString();
 
@@ -131,7 +132,6 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
     {
         var query = DbSet.AsQueryable();
 
-        // Apply filters
         if (!string.IsNullOrWhiteSpace(filters.InvoiceId))
         {
             var invoiceId = filters.InvoiceId.Trim();
@@ -168,15 +168,12 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
             query = query.Where(x => x.ErrorType.HasValue);
         }
 
-        // Apply sorting
         query = ApplySorting(query, filters.SortBy, filters.SortDescending);
 
-        // Apply pagination
         List<IssuedInvoice> items;
         int totalCount;
         if (filters.PageSize == 0)
         {
-            // PageSize = 0 means return all items without pagination; derive count from loaded list to avoid a second DB round-trip
             items = await query.ToListAsync(cancellationToken);
             totalCount = items.Count;
         }
