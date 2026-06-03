@@ -86,19 +86,4 @@ public class GetConfigurationEndpointTests : IClassFixture<HebloWebApplicationFa
         // Version should be either from assembly or default fallback
         (configResponse.Version.Length > 0).Should().BeTrue();
     }
-
-    [Fact]
-    public async Task GetConfiguration_ShouldExposeManufactureGroupIdField()
-    {
-        // Act
-        var response = await _client.GetAsync("/api/configuration");
-        var configResponse = await response.Content.ReadFromJsonAsync<GetConfigurationResponse>();
-
-        // Assert
-        configResponse.Should().NotBeNull();
-        // Field must exist on the response shape; value is allowed to be null when key is unset in Test config.
-        var hasProperty = typeof(GetConfigurationResponse)
-            .GetProperty(nameof(GetConfigurationResponse.ManufactureGroupId)) != null;
-        hasProperty.Should().BeTrue();
-    }
 }

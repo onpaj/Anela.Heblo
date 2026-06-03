@@ -3,6 +3,7 @@ using System.Text;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Domain.Features.Marketing;
+using Anela.Heblo.Tests.Domain.Marketing;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -54,17 +55,20 @@ public class OutlookCalendarSyncServiceTokenTests
         return new HttpClient(handler.Object);
     }
 
-    private static MarketingAction BuildAction() => new()
+    private static MarketingAction BuildAction()
     {
-        Id = 1,
-        Title = "Test",
-        ActionType = MarketingActionType.Blog,
-        StartDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc),
-        CreatedAt = DateTime.UtcNow,
-        ModifiedAt = DateTime.UtcNow,
-        CreatedByUserId = "user-1",
-        OutlookEventId = "existing-event-id",
-    };
+        var action = new MarketingActionTestBuilder()
+            .WithId(1)
+            .WithTitle("Test")
+            .WithActionType(MarketingActionType.Blog)
+            .WithStartDate(new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc))
+            .WithCreatedAt(DateTime.UtcNow)
+            .WithModifiedAt(DateTime.UtcNow)
+            .WithCreatedBy("user-1")
+            .WithOutlookEventId("existing-event-id")
+            .Build();
+        return action;
+    }
 
     [Fact]
     public async Task CreateEventAsync_UsesDelegatedToken_NotAppToken()

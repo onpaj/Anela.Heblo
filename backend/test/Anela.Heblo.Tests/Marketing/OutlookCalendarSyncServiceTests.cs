@@ -3,6 +3,7 @@ using System.Text.Json;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Domain.Features.Marketing;
+using Anela.Heblo.Tests.Domain.Marketing;
 using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -67,19 +68,18 @@ namespace Anela.Heblo.Tests.Marketing
         {
             var resolvedEndDate = endDate == DateTime.MinValue ? (DateTime?)null : (endDate ?? DefaultEndDate);
 
-            return new MarketingAction
-            {
-                Id = 42,
-                Title = "Spring Launch",
-                Description = "Big spring launch event",
-                ActionType = MarketingActionType.Newsletter,
-                StartDate = startDate ?? DefaultStartDate,
-                EndDate = resolvedEndDate,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedAt = DateTime.UtcNow,
-                CreatedByUserId = "user-1",
-                OutlookEventId = outlookEventId
-            };
+            return new MarketingActionTestBuilder()
+                .WithId(42)
+                .WithTitle("Spring Launch")
+                .WithDescription("Big spring launch event")
+                .WithActionType(MarketingActionType.Newsletter)
+                .WithStartDate(startDate ?? DefaultStartDate)
+                .WithEndDate(resolvedEndDate)
+                .WithCreatedAt(DateTime.UtcNow)
+                .WithModifiedAt(DateTime.UtcNow)
+                .WithCreatedBy("user-1")
+                .WithOutlookEventId(outlookEventId)
+                .Build();
         }
 
         // ─── CreateEventAsync ─────────────────────────────────────────────────────
@@ -306,18 +306,17 @@ namespace Anela.Heblo.Tests.Marketing
             var responseJson = JsonSerializer.Serialize(new { id = "evt-x" });
             var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
             var service = CreateService(handler);
-            var action = new MarketingAction
-            {
-                Id = 1,
-                Title = "Test",
-                Description = string.Empty,
-                ActionType = MarketingActionType.PR,
-                StartDate = DefaultStartDate,
-                EndDate = DefaultEndDate,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedAt = DateTime.UtcNow,
-                CreatedByUserId = "user-1"
-            };
+            var action = new MarketingActionTestBuilder()
+                .WithId(1)
+                .WithTitle("Test")
+                .WithDescription(string.Empty)
+                .WithActionType(MarketingActionType.PR)
+                .WithStartDate(DefaultStartDate)
+                .WithEndDate(DefaultEndDate)
+                .WithCreatedAt(DateTime.UtcNow)
+                .WithModifiedAt(DateTime.UtcNow)
+                .WithCreatedBy("user-1")
+                .Build();
 
             // Act
             await service.CreateEventAsync(action, CancellationToken.None);
@@ -337,18 +336,17 @@ namespace Anela.Heblo.Tests.Marketing
             var responseJson = JsonSerializer.Serialize(new { id = "evt-x" });
             var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
             var service = CreateService(handler);
-            var action = new MarketingAction
-            {
-                Id = 1,
-                Title = "Test",
-                Description = string.Empty,
-                ActionType = MarketingActionType.PR,
-                StartDate = DefaultStartDate,
-                EndDate = DefaultEndDate,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedAt = DateTime.UtcNow,
-                CreatedByUserId = "user-1"
-            };
+            var action = new MarketingActionTestBuilder()
+                .WithId(1)
+                .WithTitle("Test")
+                .WithDescription(string.Empty)
+                .WithActionType(MarketingActionType.PR)
+                .WithStartDate(DefaultStartDate)
+                .WithEndDate(DefaultEndDate)
+                .WithCreatedAt(DateTime.UtcNow)
+                .WithModifiedAt(DateTime.UtcNow)
+                .WithCreatedBy("user-1")
+                .Build();
 
             // Act
             await service.CreateEventAsync(action, CancellationToken.None);
@@ -368,18 +366,17 @@ namespace Anela.Heblo.Tests.Marketing
             var responseJson = JsonSerializer.Serialize(new { id = "evt-x" });
             var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
             var service = CreateService(handler);
-            var action = new MarketingAction
-            {
-                Id = 1,
-                Title = "Test",
-                Description = string.Empty,
-                ActionType = MarketingActionType.PR,
-                StartDate = DefaultStartDate,
-                EndDate = DefaultEndDate,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedAt = DateTime.UtcNow,
-                CreatedByUserId = "user-1"
-            };
+            var action = new MarketingActionTestBuilder()
+                .WithId(1)
+                .WithTitle("Test")
+                .WithDescription(string.Empty)
+                .WithActionType(MarketingActionType.PR)
+                .WithStartDate(DefaultStartDate)
+                .WithEndDate(DefaultEndDate)
+                .WithCreatedAt(DateTime.UtcNow)
+                .WithModifiedAt(DateTime.UtcNow)
+                .WithCreatedBy("user-1")
+                .Build();
 
             // Act
             await service.CreateEventAsync(action, CancellationToken.None);

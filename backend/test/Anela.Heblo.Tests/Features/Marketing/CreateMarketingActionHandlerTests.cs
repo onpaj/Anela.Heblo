@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAction;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Tests.Domain.Marketing;
 using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -86,16 +87,15 @@ public class CreateMarketingActionHandlerTests
             Email: "test@example.com",
             IsAuthenticated: true);
 
-        var createdAction = new MarketingAction
-        {
-            Id = 42,
-            Title = request.Title,
-            ActionType = request.ActionType,
-            StartDate = request.StartDate,
-            EndDate = request.EndDate,
-            CreatedAt = DateTime.UtcNow,
-            CreatedByUserId = currentUser.Id!,
-        };
+        var createdAction = new MarketingActionTestBuilder()
+            .WithId(42)
+            .WithTitle(request.Title)
+            .WithActionType(request.ActionType)
+            .WithStartDate(request.StartDate)
+            .WithEndDate(request.EndDate)
+            .WithCreatedAt(DateTime.UtcNow)
+            .WithCreatedBy(currentUser.Id!)
+            .Build();
 
         _currentUserServiceMock.Setup(x => x.GetCurrentUser()).Returns(currentUser);
         _repositoryMock

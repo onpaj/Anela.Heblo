@@ -11,6 +11,7 @@ using Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAction;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Tests.Domain.Marketing;
 using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -87,21 +88,18 @@ namespace Anela.Heblo.Tests.Features.Marketing
                 monitor);
         }
 
-        private static MarketingAction BuildAction(string? outlookEventId = null)
-        {
-            return new MarketingAction
-            {
-                Id = 42,
-                Title = "Test Action",
-                ActionType = MarketingActionType.PR,
-                StartDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc),
-                EndDate = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc),
-                CreatedAt = DateTime.UtcNow,
-                ModifiedAt = DateTime.UtcNow,
-                CreatedByUserId = "user-1",
-                OutlookEventId = outlookEventId,
-            };
-        }
+        private static MarketingAction BuildAction(string? outlookEventId = null) =>
+            new MarketingActionTestBuilder()
+                .WithId(42)
+                .WithTitle("Test Action")
+                .WithActionType(MarketingActionType.PR)
+                .WithStartDate(new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc))
+                .WithEndDate(new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc))
+                .WithCreatedAt(DateTime.UtcNow)
+                .WithModifiedAt(DateTime.UtcNow)
+                .WithCreatedBy("user-1")
+                .WithOutlookEventId(outlookEventId)
+                .Build();
 
         private static CreateMarketingActionRequest BuildCreateRequest()
         {
