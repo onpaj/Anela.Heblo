@@ -1,168 +1,113 @@
-I have enough context. Writing the architecture review now.
-
-# Architecture Review: Move Infrastructure Constants out of Domain Layer (Configuration Module)
+```markdown
+# Architecture Review: Remove Unused ASPNETCORE_ENVIRONMENT Constant
 
 ## Skip Design: true
 
+This is a pure code-deletion change in the backend Domain project. No UI, no new components, no visual surface — strictly a dead-code removal.
+
 ## Architectural Fit Assessment
 
-The refactor is straightforward and **strongly aligned** with the project's stated Clean Architecture + Vertical Slice conventions (`docs/architecture/filesystem.md`, `docs/architecture/development_guidelines.md`). Every moved constant is consumed exclusively in `Anela.Heblo.API` composition-root code (`Extensions/` + `Infrastructure/`); none are referenced from `Domain` or `Application`. The Domain project today owns infrastructure host concerns it shouldn't know about — moving them restores the dependency direction without touching public types referenced cross-layer.
+The change aligns cleanly with existing conventions and **strengthens** the codebase by removing a misleading symbol:
 
-Integration points (all internal):
-- 5 files listed in the spec plus one consumer the spec **missed**: `backend/src/Anela.Heblo.API/Infrastructure/Hangfire/HangfireDashboardTokenAuthorizationFilter.cs` uses `ConfigurationConstants.MOCK_AUTH_SCHEME` at line 113 (and also `USE_MOCK_AUTH` / `BYPASS_JWT_VALIDATION`, which stay in Domain). It must be updated to import `InfrastructureConstants` for the moved auth-scheme constant.
-- `Application/Features/Configuration/GetConfigurationHandler.cs`, `Application/Features/UserManagement/UserManagementModule.cs`, and `Tests/Features/Configuration/GetConfigurationHandlerTests.cs` only touch the constants that **stay** in Domain (`USE_MOCK_AUTH`, `BYPASS_JWT_VALIDATION`, `APP_VERSION`) — they are unaffected.
+- **`ConfigurationConstants` is the correct home** for cross-cutting configuration keys consumed via `IConfiguration.GetValue<T>(...)`. Verified usages of `USE_MOCK_AUTH` and `BYPASS_JWT_VALIDATION` confirm the pattern (4+ call sites each across `Authentication`, `Hangfire`, `UserManagement`, `Configuration` modules).
+- **`APP_VERSION` is the correct precedent** for an environment-variable key resolved via `Environment.GetEnvironmentVariable(ConfigurationConstants.APP_VERSION)` — used in `GetConfigurationHandler.cs:76`.
+- **`ASPNETCORE_ENVIRONMENT` breaks this pattern**: the constant exists but no caller dereferences it. A grep across the entire solution for `ConfigurationConstants.ASPNETCORE_ENVIRONMENT` returns zero matches. The five raw-string call sites listed in the brief bypass the constant entirely.
+- The constant therefore offers no centralization value, no type/refactor safety (since callers use the literal), and pollutes the file's "constants we actually rely on" signal.
 
-The Domain file also currently declares three constants the spec is **silent on**: `ASPNETCORE_ENVIRONMENT`, `DEFAULT_VERSION`, `DEFAULT_ENVIRONMENT`. A repo-wide search shows none of them are referenced via the constant symbol — only as raw strings elsewhere (e.g. `DiagnosticsController.cs:31` uses the literal `"ASPNETCORE_ENVIRONMENT"`). They are effectively dead code. The spec's "Open Questions: None" contradicts FR-1's "see Open Questions" note. This must be resolved before implementation.
+Integration points: **one file edited, one line removed.** No module boundaries crossed, no DI registration changes, no contract changes.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-Anela.Heblo.Domain (Features/Configuration/)
-└── ConfigurationConstants.cs           ← retains app-level keys only
-    • APP_VERSION
-    • USE_MOCK_AUTH
-    • BYPASS_JWT_VALIDATION
-
-Anela.Heblo.API (Infrastructure/)
-└── InfrastructureConstants.cs          ← NEW: host/composition-root keys
-    • APPLICATION_INSIGHTS_CONNECTION_STRING
-    • APPINSIGHTS_INSTRUMENTATION_KEY
-    • APPLICATIONINSIGHTS_CONNECTION_STRING
-    • DEFAULT_CONNECTION
-    • CORS_ALLOWED_ORIGINS
-    • CORS_POLICY_NAME
-    • DB_TAG, POSTGRESQL_TAG, DATABASE_HEALTH_CHECK
-    • MOCK_AUTH_SCHEME
-
-Consumers (Anela.Heblo.API):
-    Extensions/ServiceCollectionExtensions.cs        → InfrastructureConstants
-    Extensions/AuthenticationExtensions.cs           → both (MOCK_AUTH_SCHEME from Infra; USE_MOCK_AUTH/BYPASS from Domain)
-    Extensions/ApplicationBuilderExtensions.cs       → InfrastructureConstants
-    Extensions/LoggingExtensions.cs                  → InfrastructureConstants
-    Infrastructure/Authentication/HangfireAuthenticationMiddleware.cs   → Domain only (no change to constants used)
-    Infrastructure/Hangfire/HangfireDashboardTokenAuthorizationFilter.cs → both (MOCK_AUTH_SCHEME from Infra)
+backend/src/Anela.Heblo.Domain/Features/Configuration/
+└── ConfigurationConstants.cs   ← single edit: delete line 10
+                                  (current line numbering in file:
+                                   8  // Environment variable keys
+                                   9  public const string APP_VERSION = ...;
+                                  10  public const string ASPNETCORE_ENVIRONMENT = ...;  ← REMOVE
+                                  11
+                                  12  // Configuration keys
+                                  ...)
 ```
 
-Dependency direction post-refactor: `API → Domain` (one-way; Domain no longer needs rebuild when CORS/health/auth names change).
+No other files are touched. The five raw-string call sites enumerated in spec FR-4 are explicitly preserved.
 
 ### Key Design Decisions
 
-#### Decision 1: Location of `InfrastructureConstants.cs`
+#### Decision 1: Delete, do not deprecate
 **Options considered:**
-- (a) `backend/src/Anela.Heblo.API/Infrastructure/InfrastructureConstants.cs` (root of `Infrastructure/`).
-- (b) Split across topical files (e.g. `Infrastructure/Cors/CorsConstants.cs`, `Infrastructure/Telemetry/TelemetryConstants.cs`, etc.).
-- (c) `Extensions/` folder alongside the consumers.
+- (A) Delete the constant outright.
+- (B) Mark `[Obsolete("Use IHostEnvironment.EnvironmentName")]` and remove in a later release.
+- (C) Keep the constant and migrate raw-string callers to use it.
 
-**Chosen approach:** (a) — single file at `Infrastructure/InfrastructureConstants.cs`, exactly as the spec requires.
+**Chosen approach:** (A) — straight delete.
 
-**Rationale:** The brief and spec are explicit and the file is small (10 constants). The existing `Infrastructure/` folder already hosts cross-cutting hosting concerns (`ErrorResponseHelper.cs` sits at its root as precedent). Splitting per topic is YAGNI for a structural refactor. Keep churn minimal.
+**Rationale:** `ConfigurationConstants` lives in the internal `Anela.Heblo.Domain` assembly with no external consumers (solo-developer monorepo, single Docker image). `[Obsolete]` adds noise without benefit when the symbol has zero callers — there is nothing to warn. Option (C) is a separate concern: the preferred fix at the raw-string sites is `IHostEnvironment.EnvironmentName`, not `Environment.GetEnvironmentVariable(constant)`, so promoting the constant would entrench the wrong pattern.
 
-#### Decision 2: Static class vs. typed `IOptions<T>` migration
+#### Decision 2: Do not touch raw-string callers in this PR
 **Options considered:**
-- (a) Move as-is — keep `public static class` with `public const string` members.
-- (b) Take this opportunity to migrate selected keys (e.g. CORS, AppInsights) to strongly typed options classes.
+- (A) Bundle the raw-string-to-`IHostEnvironment` migration into the same PR.
+- (B) Scope this PR to deletion only; track the migration separately.
 
-**Chosen approach:** (a). The spec's Out-of-Scope section forbids (b).
+**Chosen approach:** (B) — aligns with spec FR-4.
 
-**Rationale:** Behavior preservation is the explicit goal. Introducing `IOptions<T>` would change registration order, default-value semantics, and configuration-binding behavior. Out of scope; do not expand.
+**Rationale:** Migrating the five call sites (`DiagnosticsController`, `E2ETestController`, `CostOptimizedTelemetryProcessor`, `DesignTimeDbContextFactory`, `GetConfigurationHandler`) is non-trivial. `DesignTimeDbContextFactory` is a static EF design-time entry point with no DI scope and must continue to read the environment variable directly. `CostOptimizedTelemetryProcessor` is constructed by Application Insights infrastructure where `IHostEnvironment` availability needs verification. These per-site assessments belong in a focused follow-up, not this dead-code removal. Keeping the PR surgical preserves reviewability and makes the changeset trivially safe to revert.
 
-#### Decision 3: How to handle the three undocumented Domain constants (`ASPNETCORE_ENVIRONMENT`, `DEFAULT_VERSION`, `DEFAULT_ENVIRONMENT`)
+#### Decision 3: Do not audit sibling constants
 **Options considered:**
-- (a) Leave them in `Domain/ConfigurationConstants.cs`.
-- (b) Delete them as dead code (zero symbol references repo-wide).
-- (c) Move them to `InfrastructureConstants` since `ASPNETCORE_ENVIRONMENT` is an infrastructure-level concept.
+- (A) Sweep `ConfigurationConstants.cs` for other dead symbols while here.
+- (B) Address only the named finding.
 
-**Chosen approach:** (a) leave them in place — out of scope for this task.
+**Chosen approach:** (B) — aligns with spec Out of Scope.
 
-**Rationale:** The spec's FR-5 forbids changing Domain's public surface beyond removing the listed members; FR-4 mandates behavior preservation. Deleting unused publics is a separate refactor that warrants its own review. **Flag the dead code in PR description**; do not act on it here. (See "Specification Amendments" below — the contradiction between FR-1 and "Open Questions: None" must be resolved by the planner so future readers don't reopen this.)
-
-#### Decision 4: `const string` vs. `static readonly string`
-**Chosen approach:** Preserve original `public const string` declarations.
-
-**Rationale:** Cross-assembly `const` baking is harmless here because the values are configuration-key *names* (not values), and they are now consumed only within `Anela.Heblo.API` (their declaring assembly) — `const` baking concerns don't apply. Matching the original keeps the diff structural.
+**Rationale:** A focused PR matches the daily arch-review routine's single-finding cadence. Bundling a broader audit dilutes the changeset and risks reviewer fatigue. (For reference, `DEFAULT_VERSION` and `DEFAULT_ENVIRONMENT` did not appear in qualified-access grep results and are candidates for a separate audit — but explicitly out of scope here.)
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-**Create:**
-```
-backend/src/Anela.Heblo.API/Infrastructure/InfrastructureConstants.cs
-```
+No new files. No moves. Single edit:
 
-**Modify (constant references only):**
-```
-backend/src/Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs
-backend/src/Anela.Heblo.API/Extensions/AuthenticationExtensions.cs
-backend/src/Anela.Heblo.API/Extensions/ApplicationBuilderExtensions.cs
-backend/src/Anela.Heblo.API/Extensions/LoggingExtensions.cs
-backend/src/Anela.Heblo.API/Infrastructure/Authentication/HangfireAuthenticationMiddleware.cs   ← only `using` cleanup if needed (uses only Domain constants)
-backend/src/Anela.Heblo.API/Infrastructure/Hangfire/HangfireDashboardTokenAuthorizationFilter.cs ← MOCK_AUTH_SCHEME usage at :113
-backend/src/Anela.Heblo.Domain/Features/Configuration/ConfigurationConstants.cs                  ← strip moved members
-```
+- **Edit:** `backend/src/Anela.Heblo.Domain/Features/Configuration/ConfigurationConstants.cs` — remove the `ASPNETCORE_ENVIRONMENT` constant declaration.
 
-The `using Anela.Heblo.Domain.Features.Configuration;` directive should be retained in files that still reference the remaining Domain constants (`AuthenticationExtensions.cs`, `HangfireAuthenticationMiddleware.cs`, `HangfireDashboardTokenAuthorizationFilter.cs`) and removed from files that no longer need it (`ServiceCollectionExtensions.cs`'s `AddCorsServices`/`AddHealthCheckServices`/`AddApplicationInsightsServices` use only moved constants — but the file still imports it; confirm whether any remaining usage exists before removing). `LoggingExtensions.cs` should drop the Domain `using`. `ApplicationBuilderExtensions.cs` should drop the Domain `using`.
+After removal, the `// Environment variable keys` comment block should still make sense with `APP_VERSION` remaining underneath it. Leave the comment intact.
 
 ### Interfaces and Contracts
 
-```csharp
-// backend/src/Anela.Heblo.API/Infrastructure/InfrastructureConstants.cs
-namespace Anela.Heblo.API.Infrastructure;
-
-public static class InfrastructureConstants
-{
-    // Application Insights configuration keys
-    public const string APPLICATION_INSIGHTS_CONNECTION_STRING = "ApplicationInsights:ConnectionString";
-    public const string APPINSIGHTS_INSTRUMENTATION_KEY = "APPINSIGHTS_INSTRUMENTATIONKEY";
-    public const string APPLICATIONINSIGHTS_CONNECTION_STRING = "APPLICATIONINSIGHTS_CONNECTION_STRING";
-
-    // Database configuration keys
-    public const string DEFAULT_CONNECTION = "DefaultConnection";
-
-    // CORS configuration keys
-    public const string CORS_ALLOWED_ORIGINS = "Cors:AllowedOrigins";
-
-    // Policy / scheme names
-    public const string CORS_POLICY_NAME = "AllowFrontend";
-    public const string MOCK_AUTH_SCHEME = "Mock";
-
-    // Health check tags
-    public const string DB_TAG = "db";
-    public const string POSTGRESQL_TAG = "postgresql";
-
-    // Health check names
-    public const string DATABASE_HEALTH_CHECK = "database";
-}
-```
-
-String literal values must be **byte-identical** to the originals.
+No interface, no contract, no DTO, no API surface change. `ConfigurationConstants` is a `public static class` of `const string` values in an internal-only assembly. Deletion of a `const` field with zero callers cannot break source or binary compatibility within the solution.
 
 ### Data Flow
 
-No runtime data flow changes. Only the source-level type/namespace path of 10 string constants changes. Configuration resolution at runtime (`IConfiguration` lookups, CORS policy lookup by name, health-check tag filtering at `/health/ready`, `AddAuthentication(scheme)` registration) all operate on the same string values.
+Unchanged. The two existing patterns for reading the environment name continue to work as-is:
+
+1. **Preferred (DI-aware code):** `IHostEnvironment.EnvironmentName` — used in `GetConfigurationHandler.cs:63`.
+2. **Direct env-var read (static/infra contexts):** `Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")` — used in the five sites listed in spec FR-4.
+
+Neither path touches the deleted symbol.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Missed consumer (`HangfireDashboardTokenAuthorizationFilter.cs:113`) leaves a dangling `ConfigurationConstants.MOCK_AUTH_SCHEME` reference, causing build failure. | High | Update the file together with the five listed in FR-3; treat the spec's consumer list as incomplete. Verify with a final repo-wide grep for each moved constant name returning hits only in `InfrastructureConstants.cs` (definition) + API consumers. |
-| Stale `using Anela.Heblo.Domain.Features.Configuration;` directives left behind, or new `using Anela.Heblo.API.Infrastructure;` directives missed. | Low | Rely on `dotnet build` to surface unresolved symbols; run `dotnet format` to remove unused usings. |
-| Editor/IDE inadvertently moves an APP-level constant (e.g. `USE_MOCK_AUTH`) during a "move to file" refactor, breaking Application/Tests consumers. | Medium | Do not use IDE "move members" tooling; create the new file by hand and remove specific members from the original. Verify with grep that `USE_MOCK_AUTH`, `BYPASS_JWT_VALIDATION`, and `APP_VERSION` remain in Domain. |
-| Authentication scheme name change breaks runtime — `AddAuthentication("Mock")` and `AddScheme<>("Mock", ...)` must match `ClaimsIdentity(..., "Mock")` in `HangfireDashboardTokenAuthorizationFilter.cs:113`. | High | All four `MOCK_AUTH_SCHEME` references must point to the **same** `InfrastructureConstants.MOCK_AUTH_SCHEME` constant after the move; value `"Mock"` preserved exactly. |
-| Reviewer assumes Domain still owns all constants because the file remains. | Low | PR description should explicitly call out the dependency-direction motivation and link the brief. |
+| Hidden reflection-based or string-name reference to `ASPNETCORE_ENVIRONMENT` (e.g., `nameof(ConfigurationConstants.ASPNETCORE_ENVIRONMENT)`) | Very Low | Run both literal and regex greps as required by spec FR-2; also grep for `nameof(ConfigurationConstants` to be thorough. Compile + tests catch any direct reference. |
+| Constant referenced from generated code (OpenAPI client, EF migrations) | Negligible | The OpenAPI generator does not emit references to internal Domain constants. EF migrations are SQL/C# files that don't import `ConfigurationConstants`. Build will catch any miss. |
+| Developer assumes the constant should exist and reintroduces it later | Low | Spec NFR-3 documents the rationale. Optional follow-up: PR description should link to the brief so future contributors can locate context via git blame. |
+| Reviewer conflates this PR with the raw-string callsite cleanup | Low | PR description must explicitly call out FR-4 (raw-string sites preserved by design) and link a follow-up issue. |
 
 ## Specification Amendments
 
-1. **FR-3 consumer list is incomplete.** Add `backend/src/Anela.Heblo.API/Infrastructure/Hangfire/HangfireDashboardTokenAuthorizationFilter.cs` to the list. It references `ConfigurationConstants.MOCK_AUTH_SCHEME` at line 113 and must be updated to `InfrastructureConstants.MOCK_AUTH_SCHEME`. (It also reads `USE_MOCK_AUTH` and `BYPASS_JWT_VALIDATION`, which stay in Domain — no change needed for those.)
+None required. The spec is correctly scoped, has accurate acceptance criteria, and properly defers the raw-string-callsite refactor to a follow-up. One minor enrichment for the implementer (not a spec defect):
 
-2. **FR-1 / Open Questions contradiction.** FR-1 says Domain retains "APP_VERSION, USE_MOCK_AUTH, BYPASS_JWT_VALIDATION (and any other constants in the original file that are not infrastructure-specific — see Open Questions)" but Open Questions reads "None". The three orphan constants (`ASPNETCORE_ENVIRONMENT`, `DEFAULT_VERSION`, `DEFAULT_ENVIRONMENT`) currently in Domain are unreferenced by symbol anywhere in the codebase. **Resolution to adopt:** leave them in Domain untouched for this task (out of scope; behavior-preserving), and either remove the "see Open Questions" parenthetical from FR-1 or add an explicit "These three constants remain unchanged" line. Flag the dead code in the PR description for a follow-up cleanup.
-
-3. **FR-3 acceptance check refinement.** The repo-wide search should include the `docs/superpowers/plans/` historical planning files — these contain example code referencing `ConfigurationConstants.USE_MOCK_AUTH`. These are *documentation* (not compiled) and use the **kept** constant; they are valid and require no edit. Acceptance should specify "no occurrences remain in `backend/src/` Domain or in non-API consumers."
+- **Verification command (suggested for PR description, satisfies FR-2):**
+  ```
+  rg -n 'ConfigurationConstants\.ASPNETCORE_ENVIRONMENT' --type cs
+  rg -n 'nameof\(ConfigurationConstants\.ASPNETCORE_ENVIRONMENT\)' --type cs
+  ```
+  Both should return zero matches before deletion. Paste the empty output into the PR.
 
 ## Prerequisites
 
-- `backend/src/Anela.Heblo.API/Infrastructure/` already exists (verified).
-- No configuration, environment variable, secret, database migration, or infrastructure-as-code change is required — only `const string` *names* move; the string *values* (actual configuration keys read at runtime) are preserved exactly.
-- Validation per `CLAUDE.md`: `dotnet build` + `dotnet format` for the solution, all touched tests pass, manual smoke check that the app starts and (CORS policy registered, DB health check tagged, mock auth scheme resolvable, AppInsights connection string read) all behave identically.
+None. No migrations, no configuration changes, no infrastructure work, no feature flag, no Key Vault entries. The change is a pure source-code deletion that can land independently and reverts cleanly with `git revert`.
+```
