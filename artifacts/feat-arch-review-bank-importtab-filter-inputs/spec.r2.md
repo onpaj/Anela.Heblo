@@ -11,8 +11,6 @@ Two remediation paths were proposed in the arch-review finding: (a) delete the d
 - The UI was already designed and built for these filters; users expect them to work.
 - Removing them would degrade the operational utility of the Import tab.
 
-The persistence aggregate involved is `BankStatementImport` (table `BankStatements`), which already carries every column needed by the four filters; no schema changes are introduced.
-
 ## Functional Requirements
 
 ### FR-1: Transfer ID filter
@@ -25,34 +23,32 @@ Users can filter the bank-statement list by a partial, case-insensitive match on
 - Pagination respects the filtered result set (`TotalCount` reflects the filtered total).
 
 ### FR-2: Account filter
-Users can filter the list by a partial, case-insensitive match on the bank account string (the configured account name as stored on `BankStatementImport.Account`, e.g. `"ShoptetPay-CZK"` — this is the same value the user sees in the "Účet" column).
+Users can filter the list by a partial, case-insensitive match on the `BankStatementImport.Account` column (the configured account *name*, e.g. `"ShoptetPay-CZK"` — not an IBAN). This matches the "Účet" column shown in the Import-tab grid.
 
 **Acceptance criteria:**
-- Typing a value into the Account input and clicking "Filtrovat" restricts results to statements whose `BankStatementImport.Account` contains the entered substring (case-insensitive).
+- Typing a value into the Account input and clicking "Filtrovat" restricts results to statements whose `Account` column contains the entered substring (case-insensitive).
 - Whitespace at the start/end of the input is trimmed before being sent to the API.
-- The match is implemented as a single `ILike` clause against the `Account` column on PostgreSQL (`EF.Functions.ILike(bs.Account, $"%{trimmedAccount}%")`), with no join.
 - Empty input does not constrain results on that field.
+- The implementation is a single `Where` clause against the existing `Account` column — no join. On PostgreSQL use `EF.Functions.ILike(bs.Account, $"%{trimmedAccount}%")`. The existing `IX_BankStatements_Account` index is reused as-is.
 
 ### FR-3: Statement date range filter
-Users can constrain results to statements whose statement date falls within an inclusive `[from, to]` range. Either bound may be supplied independently (open-ended ranges are allowed).
+Users can constrain results to statements whose `StatementDate` falls within an inclusive `[from, to]` range. Either bound may be supplied independently (open-ended ranges are allowed).
 
 **Acceptance criteria:**
-- Selecting only "From" returns statements with `StatementDate.Date >= dateFrom.Date`.
-- Selecting only "To" returns statements with `StatementDate.Date <= dateTo.Date`.
-- Selecting both returns statements with `dateFrom.Date <= StatementDate.Date <= dateTo.Date` (inclusive on both ends, day granularity).
-- Bounds are compared against the date portion of `StatementDate` (which is stored as `timestamp without time zone`) so that time-of-day on the persisted value never excludes a statement from a matching day.
+- Selecting only "From" returns statements with `StatementDate.Date >= dateFrom.Value.Date`.
+- Selecting only "To" returns statements with `StatementDate.Date <= dateTo.Value.Date`.
+- Selecting both returns statements with `dateFrom.Date <= StatementDate.Date <= dateTo.Date` (inclusive on both ends, day-granularity).
+- `dateFrom` and `dateTo` travel on the wire as ISO date strings (`string?` query parameters), parsed in the handler via `DateTime.TryParse` into `DateTime?` — mirroring the existing `statementDate` / `importDate` convention in `GetBankStatementListHandler`. `DateOnly` is **not** introduced into the Bank module.
 - Clearing both date pickers removes the date constraint.
-- If "From" is later than "To", the UI must surface an inline validation error and block the request (do not send an invalid range to the backend). The backend additionally rejects `dateFrom > dateTo` as defence-in-depth (HTTP 400).
+- If "From" is later than "To", the UI surfaces an inline validation error and blocks the request; the backend also rejects such requests with 400 (defence-in-depth).
 
 ### FR-4: "Errors only" filter
-A checkbox restricts the list to bank statements whose `ImportResult` indicates a failed import.
+A checkbox restricts the list to bank statements that did not import successfully. The predicate is `ImportResult != "OK"` (where `"OK"` is `ImportStatus.Success`).
 
 **Acceptance criteria:**
-- The "has errors" predicate is exactly `BankStatementImport.ImportResult != "OK"`, applied as an EF `Where` clause against the `ImportResult` column. This matches the predicate already used by the success-badge logic in `ImportTab.tsx` and by the existing `ErrorType` projection in `BankMappingProfile`.
-- When the checkbox is checked and "Filtrovat" is clicked, only statements where `ImportResult != "OK"` are returned.
-- When the checkbox is unchecked, the result set is not constrained by `ImportResult`.
-- The predicate is applied server-side.
-- No new column, related entity, or status enum is introduced; the implementation reads the existing `ImportResult` string column.
+- When checked and "Filtrovat" is clicked, only statements with `ImportResult != "OK"` are returned. This reuses the exact predicate that already drives `BankStatementImportDto.ErrorType` projection in `BankMappingProfile.cs` and the success-badge rendering in `ImportTab.tsx:205`.
+- When unchecked, the result set is not constrained by error state.
+- Implementation is a direct EF `Where(bs => bs.ImportResult != "OK")` clause against the existing `ImportResult` column on `BankStatementImport`. No new entity, column, or related-table predicate is introduced.
 
 ### FR-5: Combined filter behaviour
 All four filters combine with AND semantics. Any subset of filters may be active simultaneously.
@@ -75,7 +71,7 @@ The list area continues to use the existing loading, empty, and error UI pattern
 
 **Acceptance criteria:**
 - While a filtered request is in flight, the existing loading indicator is shown.
-- A filtered query returning zero results shows the existing empty-state message. If the current copy does not distinguish "no statements imported" from "no statements match the filter", leave the copy as-is and log this as a separate UX item — copy changes are out of scope for this feature.
+- A filtered query returning zero results shows the existing empty-state message. If the current copy reads as "no statements imported" and would be misleading when filters are the cause of emptiness, leave the copy as-is for this change and log a separate UX item.
 - API errors surface through the existing error-handling path.
 
 ## Non-Functional Requirements
@@ -83,90 +79,92 @@ The list area continues to use the existing loading, empty, and error UI pattern
 ### NFR-1: Performance
 - Filtered list queries must return within the same response-time envelope as the current unfiltered list query for typical result sizes (target p95 ≤ 500 ms for result sets up to one page).
 - The backend must apply filters at the database level (LINQ-to-EF translated to SQL `WHERE` clauses). No in-memory post-filtering of large result sets.
-- The existing index `IX_BankStatements_Account` already covers the `Account` filter. `TransferId` and `StatementDate` should be assessed against the production dataset; if filter performance regresses meaningfully, add indexes as a separate migration referenced from the implementation PR. No proactive index work is required by this spec.
+- Existing indexes are reused: `IX_BankStatements_Account` already covers the Account filter. If the `TransferId` / `StatementDate` filters regress meaningfully on the production dataset, index additions ship as a separate migration referenced from the implementation PR.
 
 ### NFR-2: Security
 - This endpoint already requires the application's standard authenticated session; no change to the authz posture.
-- All filter parameters are bound through the request DTO and used in parameterized EF queries (including `EF.Functions.ILike` for `Account` and `Contains` for `TransferId`). No raw SQL concatenation.
-- Input length is bounded on the backend (Transfer ID and Account: max 100 chars each) to reject pathological inputs at the contract boundary (HTTP 400).
+- All filter parameters are bound through the request DTO and used in parameterized EF queries. No raw SQL concatenation.
+- Input length is bounded on the backend (Transfer ID and Account: max 100 chars each) to reject pathological inputs at the contract boundary.
 
 ### NFR-3: API compatibility
 - New query parameters are optional. Existing callers that omit them continue to receive unfiltered results, so the change is backward compatible.
 - The generated TypeScript client must be regenerated as part of the build (per `docs/development/api-client-generation.md`).
-- New DTO fields are declared as classes (not C# records), per project rule for OpenAPI-generated contracts.
 
 ### NFR-4: Testability
-- Backend: unit/integration tests cover each filter individually and at least one combined-filter case, plus the "no filters" baseline. Use the existing repository test patterns for `BankStatementImportRepository`. Include explicit coverage of the `ImportResult != "OK"` predicate (both `"OK"` and non-OK values such as `PROCESSING_ERROR: …` and `UNKNOWN_ERROR`).
-- Backend: a handler-level test asserts that the `dateFrom > dateTo` validation returns HTTP 400 and never reaches the repository.
-- Frontend: at minimum, a component-level test that asserts changing inputs + clicking "Filtrovat" calls the hook with the expected request payload (transferId, account, dateFrom, dateTo, errorsOnly), and that "Vyčistit" sends an empty payload and resets pagination to page 1.
+- Backend: unit/integration tests cover each filter individually and at least one combined-filter case, plus the "no filters" baseline. Use the existing repository test patterns for the bank-statement list query.
+- Frontend: at minimum, a component-level test that asserts changing inputs + clicking "Filtrovat" calls the hook with the expected request payload (and that "Vyčistit" sends an empty payload).
 - E2E: not required for this change (per project policy E2E suite is nightly and module-scoped); rely on BE + FE unit/integration coverage.
 
 ## Data Model
 
-No schema changes are required. The filters read existing fields on the `BankStatementImport` aggregate (table `BankStatements`):
+No schema changes. All four filters read existing columns on `BankStatementImport` (table `BankStatements`):
 
-- `TransferId` (`string`) — already present on `BankStatementImport`.
-- `Account` (`string`, required) — direct column on `BankStatementImport`, mapped to `text`, already covered by the existing non-unique index `IX_BankStatements_Account`. Stores the configured account name (e.g. `"ShoptetPay-CZK"`), not an IBAN.
-- `StatementDate` (`DateTime`) — direct column on `BankStatementImport`, mapped to `timestamp without time zone`.
-- `ImportResult` (`string`) — direct column on `BankStatementImport`. Value is `"OK"` on success; otherwise a backend-supplied error message (e.g. `PROCESSING_ERROR: …`, `UNKNOWN_ERROR`). The "errors only" predicate is `ImportResult != "OK"`.
+| Filter | Column | Type | Notes |
+| --- | --- | --- | --- |
+| Transfer ID | `TransferId` | `string` | Existing column. |
+| Account | `Account` | `string` (`text`) | Existing column, indexed by `IX_BankStatements_Account`. Stores the configured account *name* (e.g. `"ShoptetPay-CZK"`), not an IBAN. |
+| Date range | `StatementDate` | `DateTime` (`timestamp without time zone`) | Existing column. Compared at day granularity. |
+| Errors only | `ImportResult` | `string` | Existing column. `"OK"` on success, otherwise an error code/message. |
 
-No new columns, related entities, or status enums are introduced.
+No new entities, columns, joins, or migrations are introduced.
 
 ## API / Interface Design
 
 ### Backend
 Extend the existing `GET /api/bank-statements` endpoint and the underlying `GetBankStatementListRequest` (MediatR query) with five optional query-string parameters:
 
-| Parameter | Wire type (controller / OpenAPI) | In-handler type | Semantics |
+| Parameter | Wire type | Handler type | Semantics |
 | --- | --- | --- | --- |
-| `transferId` | `string?` | `string?` | Case-insensitive `Contains` match on `BankStatementImport.TransferId`. Max 100 chars. |
-| `account` | `string?` | `string?` (trimmed) | Case-insensitive `Contains` match implemented as `EF.Functions.ILike` on `BankStatementImport.Account`. Trimmed server-side. Max 100 chars. |
-| `dateFrom` | `string?` (ISO date) | `DateTime?` (parsed via `DateTime.TryParse`) | Inclusive lower bound on `StatementDate` (day granularity, compared via `.Date`). |
-| `dateTo` | `string?` (ISO date) | `DateTime?` (parsed via `DateTime.TryParse`) | Inclusive upper bound on `StatementDate` (day granularity, compared via `.Date`). |
-| `errorsOnly` | `bool?` | `bool?` | When `true`, restrict to statements with `ImportResult != "OK"`. When `null`/`false`, no constraint. |
+| `transferId` | `string?` | `string?` | Case-insensitive `Contains` match on `BankStatementImport.TransferId`. |
+| `account` | `string?` | `string?` | Case-insensitive `Contains` match on `BankStatementImport.Account`, trimmed server-side. PostgreSQL implementation uses `EF.Functions.ILike`. |
+| `dateFrom` | `string?` (ISO date) | `DateTime?` (parsed via `DateTime.TryParse`) | Inclusive lower bound on `StatementDate.Date`. |
+| `dateTo` | `string?` (ISO date) | `DateTime?` (parsed via `DateTime.TryParse`) | Inclusive upper bound on `StatementDate.Date`. |
+| `errorsOnly` | `bool?` | `bool?` | When `true`, applies `Where(bs => bs.ImportResult != "OK")`. When `null` / `false`, no constraint. |
 
-The string-on-the-wire / `DateTime?`-in-handler convention mirrors the existing `statementDate` / `importDate` parameters already accepted by `GetBankStatementListHandler` and parsed via `DateTime.TryParse`. No `DateOnly` type is introduced in the Bank module.
+Wire-shape choice follows the existing handler convention (`statementDate`, `importDate` are already `string?` parsed via `DateTime.TryParse`). DTOs remain classes, not records, per project rules.
 
 Validation:
-- Reject requests with `dateFrom > dateTo` via HTTP 400 (defence-in-depth; the frontend also blocks this).
-- Reject `transferId` / `account` longer than 100 characters via HTTP 400.
-- Reject unparseable `dateFrom` / `dateTo` strings via HTTP 400, matching how the existing date parameters behave.
+- Reject requests with `dateFrom > dateTo` via 400.
+- Reject `transferId` / `account` longer than 100 characters via 400.
+- Reject unparseable date strings via 400 (consistent with existing behaviour, or by extending it if currently lenient).
 
 Repository:
-- Extend the existing list query in `BankStatementImportRepository` to accept the new criteria and translate each into an EF `Where` clause directly on the `BankStatementImport` queryable.
+- Extend the repository method used by the list query (`GetBankStatementListHandler` → `IBankStatementRepository`) to accept the new criteria and translate them into EF `Where` clauses.
 - Continue to return the same `(items, totalCount)` shape; `TotalCount` reflects the filtered total.
+- Use `EF.Functions.ILike` for `transferId` and `account` substring matches on PostgreSQL.
+- Use `bs.StatementDate.Date >= dateFrom.Value.Date` / `<= dateTo.Value.Date` for the date range.
 
 ### Frontend
-- Add the five optional fields (`transferId`, `account`, `dateFrom`, `dateTo`, `errorsOnly`) to `GetBankStatementListRequest` in `frontend/src/api/hooks/useBankStatements.ts`, mirroring the regenerated OpenAPI client types. DTOs are classes, not records, per project rules.
-- ISO date strings are sent as-is for `dateFrom` / `dateTo`, matching the existing convention; the `<input type="date">` controls in `ImportTab.tsx` already produce this format.
+- Add the five optional fields to `GetBankStatementListRequest` in `frontend/src/api/hooks/useBankStatements.ts`, mirroring the regenerated OpenAPI client types. The DTO stays a class per project rules. Date fields are sent as ISO date strings.
 - Pass the active filter state into the `useBankStatementsList` call in `ImportTab.tsx`.
 - Move the "apply filters" trigger from a plain `refetch()` to setting a "committed filters" state object that the hook depends on; `refetch()` continues to work for manual refresh of the currently committed filter set.
 - Reset `pageNumber` to 1 inside `handleApplyFilters` and `handleClearFilters`.
+- Trim string filters (`transferId`, `account`) before sending; omit empty strings (send `undefined`).
 - Add a client-side validation guard for `dateFrom > dateTo` that surfaces an inline error and prevents submission.
-- Use the absolute-URL pattern (`${apiClient.baseUrl}${relativeUrl}`) for any direct fetch — the request still goes through the existing generated hook, so no manual fetch should be needed.
 
 ### UI
 No new controls. Existing controls keep their current placement, labels, and Czech copy. The "Filtrovat" / "Vyčistit" buttons retain their current behaviour from the user's perspective — they finally do what they appear to do.
 
 ## Dependencies
-- Existing `BankStatementImport` aggregate and `BankStatementImportRepository`.
-- Existing MediatR query/handler for the list endpoint (`GetBankStatementListHandler`).
-- Existing AutoMapper `BankMappingProfile` (no changes required — the `ImportResult` / `ErrorType` mapping is already consistent with the FR-4 predicate).
+- Existing `BankStatementImport` aggregate, `IBankStatementRepository`, and its EF configuration (`BankStatementImportConfiguration`).
+- Existing `GetBankStatementListHandler` (MediatR) and the `GET /api/bank-statements` controller action.
+- `BankMappingProfile` (no changes required; consumed for context on the `ErrorType` projection).
 - OpenAPI client generation pipeline (per `docs/development/api-client-generation.md`).
 - React Query (or the project's existing data-fetching layer) as already used by `useBankStatementsList`.
+- PostgreSQL `ILIKE` operator via `EF.Functions.ILike` (already available; no new package).
 
 No new external libraries.
 
 ## Out of Scope
-- Adding new filter dimensions beyond the four already present in the UI (e.g., filtering by user, by amount, by specific error subtype).
+- Adding new filter dimensions beyond the four already present in the UI (e.g., filtering by user, by amount, by specific error code).
 - Persisting filter selections across sessions or via URL query string.
 - Saved filter presets.
 - Server-side full-text search; matching stays as simple `Contains` / `ILike`.
 - Bulk actions on filtered results.
-- Performance work beyond confirming the filtered query stays within the current response-time envelope (index tuning on `TransferId` / `StatementDate` is included only if a regression is observed).
-- Refining the empty-state copy to distinguish "no imports yet" from "no matches for current filter".
+- Schema changes, new indexes (unless a measured regression demands one), or refactoring the `ImportResult` string column into a typed enum.
+- Performance work beyond confirming the filtered query stays within the current response-time envelope.
 - E2E test coverage for this change (relies on BE + FE unit/integration tests).
-- Introducing `DateOnly` anywhere in the Bank module.
+- Improvements to the empty-state copy when emptiness is filter-induced (tracked separately if surfaced).
 
 ## Open Questions
 None.
