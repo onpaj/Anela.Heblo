@@ -1,122 +1,142 @@
-All inputs verified — the conventions (file-scoped namespace, `public static class`, sibling sample `CatalogConstants.cs`), the handler line references, and the test file paths all match the spec exactly.
-
-# Architecture Review: Extract `BulkTagLimit` to Shared `PhotobankConstants`
+# Architecture Review: Extract `BulkTagLimit` Constant to Shared `PhotobankConstants`
 
 ## Skip Design: true
 
 ## Architectural Fit Assessment
-This refactor aligns perfectly with an established project convention. Six sibling features in `backend/src/Anela.Heblo.Application/Features/` already expose a `<Feature>Constants.cs` file at the feature root (`CatalogConstants.cs`, `ManufactureConstants.cs`, `MeetingTasksConstants.cs`, `AnalyticsConstants.cs`, `InventoryConstants.cs`, and `ManufactureAnalysisConstants.cs`). The Photobank feature is the only one with cross-handler duplication that lacks such a file. Introducing `PhotobankConstants` fills the gap with zero architectural novelty.
 
-The handlers being modified are MediatR `IRequestHandler` implementations in the `UseCases/<UseCase>/<Handler>.cs` vertical-slice layout. They already share `ErrorCodes.BulkTagLimitExceeded` and an identical `Params` payload shape — extracting the numeric limit is the obvious DRY completion of that existing sharing.
+The proposal fits the codebase exactly. Three load-bearing facts confirm alignment:
 
-The integration points are narrow and well-bounded:
-1. **New compile-time constant** in the `Anela.Heblo.Application.Features.Photobank` namespace.
-2. **Two callers** in the same namespace tree — no new `using` directive required (the file shares the feature root namespace; the handlers reside under `Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag(ByIds)`, which transitively sees the parent namespace).
+1. **Filesystem convention already names this file.** `docs/architecture/filesystem.md` explicitly lists `{Feature}Constants.cs` as a permitted top-level file under `Anela.Heblo.Application/Features/{Feature}/`. The proposed path `backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankConstants.cs` matches verbatim.
+2. **Sibling features already follow this pattern.** `CatalogConstants.cs`, `ManufactureConstants.cs`, `AnalyticsConstants.cs`, `MeetingTasksConstants.cs`, `InventoryConstants.cs` all exist as `public static`/`internal static` classes under their feature folders. The Photobank module is currently the outlier.
+3. **The duplication is real, not coincidental.** Both `BulkAddPhotoTagHandler.cs:15` and `BulkAddPhotoTagByIdsHandler.cs:15` declare `private const int BulkTagLimit = 5_000;` and emit the same `ErrorCodes.BulkTagLimitExceeded` with the same `Params["Count"]` / `Params["Limit"]` payload shape. A single canonical source eliminates the drift risk with no behavioral impact.
+
+Integration points: the two MediatR handlers in `UseCases/BulkAddPhotoTag/` and `UseCases/BulkAddPhotoTagByIds/`, and the two existing test classes (`BulkAddPhotoTagHandlerTests.cs`, `BulkAddPhotoTagByIdsHandlerTests.cs`) that already assert on `Params["Limit"] == "5000"`.
 
 ## Proposed Architecture
 
 ### Component Overview
+
 ```
-Features/Photobank/
-├── PhotobankConstants.cs        ← NEW (public static class, public const int BulkTagLimit = 5_000;)
+Anela.Heblo.Application/Features/Photobank/
+├── PhotobankConstants.cs                    ← NEW (single source of truth)
+│   └── public const int BulkTagLimit = 5_000
+│
 ├── UseCases/
 │   ├── BulkAddPhotoTag/
 │   │   └── BulkAddPhotoTagHandler.cs        ← references PhotobankConstants.BulkTagLimit
 │   └── BulkAddPhotoTagByIds/
 │       └── BulkAddPhotoTagByIdsHandler.cs   ← references PhotobankConstants.BulkTagLimit
+│
+└── (other existing files unchanged)
+
+backend/test/Anela.Heblo.Tests/Features/Photobank/
+├── BulkAddPhotoTagHandlerTests.cs           ← asserts via PhotobankConstants.BulkTagLimit
+└── BulkAddPhotoTagByIdsHandlerTests.cs      ← asserts via PhotobankConstants.BulkTagLimit
 ```
 
-No DI registration, no wiring change — `const int` is inlined at compile time.
+No module registration, DI wiring, or migration is required. `public const int` is inlined at compile time.
 
 ### Key Design Decisions
 
-#### Decision 1: Visibility — `public static class` with `public const int`
-**Options considered:**
-- (a) `public static class` + `public const int` — matches `CatalogConstants.cs`, `ManufactureConstants.cs`, `AnalyticsConstants.cs`.
-- (b) `internal static class` + `internal const` — matches `MeetingTasksConstants.cs`.
+#### Decision 1: Visibility (`public` vs `internal`)
+**Options considered:** `internal static`, `public static`.
+**Chosen approach:** `public static class PhotobankConstants` with `public const int BulkTagLimit`.
+**Rationale:** Matches the dominant convention in this layer (`CatalogConstants`, `ManufactureConstants`, `AnalyticsConstants`, `InventoryConstants` are all `public static`). `MeetingTasksConstants` is `internal`, but it holds a single feature-internal DI key — not a comparable case. Tests in `Anela.Heblo.Tests` will reference `PhotobankConstants.BulkTagLimit` in assertions (per spec FR-5) and live in a separate assembly, so `public` is required for the assertion-via-constant pattern to compile without `InternalsVisibleTo`.
 
-**Chosen approach:** Option (a) — `public static class PhotobankConstants` with `public const int BulkTagLimit = 5_000;`.
+#### Decision 2: Namespace style and location
+**Options considered:** (a) place in `Anela.Heblo.Application.Features.Photobank` root with file-scoped namespace; (b) match Photobank's existing block-scoped namespace style.
+**Chosen approach:** File at `backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankConstants.cs`, namespace `Anela.Heblo.Application.Features.Photobank`. Use **file-scoped** namespace declaration to match every other `*Constants.cs` file in this project (Catalog, Manufacture, Analytics, MeetingTasks, Inventory all use file-scoped). The fact that some Photobank handlers use block-scoped namespaces is incidental; the convention across `*Constants.cs` files is uniform and worth following.
+**Rationale:** Reader picks up the convention from neighboring files of the same role, not from neighboring files in the same folder.
 
-**Rationale:** The brief and spec explicitly specify `public`. The majority convention in the codebase is also `public`. `MeetingTasksConstants` is the outlier because it holds a single internal-use chat-client key. A `BulkTagLimit` is the kind of operational threshold that may legitimately be read by tests, validators, or controllers in the future, so the looser visibility is forward-compatible. Bumping visibility later is a breaking-change rename of the symbol's accessibility; widening from internal forces a refactor. Start public.
+#### Decision 3: Identifier casing (`BulkTagLimit` vs `BULK_TAG_LIMIT`)
+**Options considered:** Preserve `BulkTagLimit` (PascalCase) or rename to `BULK_TAG_LIMIT` (UPPER_SNAKE_CASE).
+**Chosen approach:** Keep `BulkTagLimit` exactly as written in the spec.
+**Rationale:** The codebase is inconsistent — `CatalogConstants` / `ManufactureConstants` / `AnalyticsConstants` use UPPER_SNAKE_CASE; `MeetingTasksConstants` uses PascalCase; the existing private constant in both handlers is `BulkTagLimit`. The brief is explicitly scoped to deduplication, not to a broader naming sweep. Keeping the name minimizes the surface area of the change and avoids touching unrelated norms. The inconsistency itself is out of scope.
 
-#### Decision 2: Location — Application layer, feature root
-**Options considered:**
-- (a) `backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankConstants.cs` (Application layer, beside `PhotobankRepository.cs`).
-- (b) `backend/src/Anela.Heblo.Domain/Features/Photobank/...` (Domain layer).
-
-**Chosen approach:** Option (a). The spec mandates this path; it also matches every sibling `*Constants.cs` placement.
-
-**Rationale:** The constant gates an *Application*-level use-case rule (request size cap), not a domain invariant. It does not protect domain aggregates; it bounds an inbound request. Application is the correct layer. Per-feature roots, not a project-wide `Constants` namespace, are this codebase's convention.
-
-#### Decision 3: Naming and formatting — preserve `5_000` digit separator and PascalCase
-**Chosen approach:** `public const int BulkTagLimit = 5_000;`.
-
-**Rationale:** Keeps the symbol name unchanged so handler call sites are minimally disturbed (only the qualifier changes). Preserves the digit-group separator already present in both handlers — readability and zero behavioral diff. PascalCase matches `CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD` is the lone SCREAMING_SNAKE_CASE outlier, while `ManufactureConstants` / `MeetingTasksConstants` use PascalCase; PascalCase is the dominant pattern and matches the original `BulkTagLimit` identifier.
+#### Decision 4: Scope discipline — single constant only
+**Options considered:** Pre-populate `PhotobankConstants` with other Photobank magic numbers (e.g. cache TTLs, indexing batch sizes).
+**Chosen approach:** Define **only** `BulkTagLimit`. Out of scope per spec.
+**Rationale:** YAGNI. Other constants live in `PhotobankTagsCacheOptions`, `AutoTagOptions`, etc., and may belong to dedicated options classes rather than a flat constants bag. Conflating them with a DRY refactor would expand the blast radius and make the diff harder to review.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
-**Create:**
-- `backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankConstants.cs`
+```
+backend/src/Anela.Heblo.Application/Features/Photobank/
+    PhotobankConstants.cs              ← CREATE
+    UseCases/BulkAddPhotoTag/
+        BulkAddPhotoTagHandler.cs      ← EDIT (remove private const, add reference)
+    UseCases/BulkAddPhotoTagByIds/
+        BulkAddPhotoTagByIdsHandler.cs ← EDIT (remove private const, add reference)
 
-**Modify:**
-- `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/BulkAddPhotoTag/BulkAddPhotoTagHandler.cs`
-- `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/BulkAddPhotoTagByIds/BulkAddPhotoTagByIdsHandler.cs`
+backend/test/Anela.Heblo.Tests/Features/Photobank/
+    BulkAddPhotoTagHandlerTests.cs        ← EDIT (replace "5000" literal with PhotobankConstants.BulkTagLimit.ToString())
+    BulkAddPhotoTagByIdsHandlerTests.cs   ← EDIT (same)
+```
 
-**Do not modify:**
-- Test files (`BulkAddPhotoTagHandlerTests.cs`, `BulkAddPhotoTagByIdsHandlerTests.cs`) — value is unchanged; their `"5000"` assertions remain valid. Per spec FR-4 and Out of Scope.
+Each handler's `using` block already imports `Anela.Heblo.Application.Features.Photobank.Services` and `Anela.Heblo.Application.Shared`. Since both handlers live under the `Anela.Heblo.Application.Features.Photobank.UseCases.{X}` namespace, the parent namespace `Anela.Heblo.Application.Features.Photobank` is resolved without any new `using` directive (.NET implicit parent-namespace resolution).
 
 ### Interfaces and Contracts
 
-New symbol:
 ```csharp
 namespace Anela.Heblo.Application.Features.Photobank;
 
 public static class PhotobankConstants
 {
+    /// <summary>
+    /// Maximum number of photos that can be tagged in a single bulk-tag operation.
+    /// Enforced by BulkAddPhotoTagHandler and BulkAddPhotoTagByIdsHandler; exceeding it
+    /// returns <see cref="Anela.Heblo.Application.Shared.ErrorCodes.BulkTagLimitExceeded"/>.
+    /// </summary>
     public const int BulkTagLimit = 5_000;
 }
 ```
 
-Style requirements:
-- File-scoped namespace (matches all sibling constants files).
-- No `using` directives (none needed).
-- No XML doc comment required — the symbol is self-documenting and matches `MeetingTasksConstants` and `ManufactureConstants` minimalism. (Optional one-line `<summary>` is acceptable but not required.)
-
-Handler call-site contract: replace every `BulkTagLimit` token with `PhotobankConstants.BulkTagLimit`. **No `using` directive needs to be added** — both handler namespaces (`Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag` and `Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByIds`) are nested under `Anela.Heblo.Application.Features.Photobank`, so the constants class is in scope by C#'s nested-namespace resolution rules. Verify by compile; do not preemptively add an import.
-
-Both call sites in each handler:
-1. The `if (... > BulkTagLimit)` guard.
-2. The `BulkTagLimit.ToString()` invocation inside the `Params` dictionary.
+Removed: `BulkAddPhotoTagHandler.BulkTagLimit` (private), `BulkAddPhotoTagByIdsHandler.BulkTagLimit` (private). Neither was visible outside its containing class.
 
 ### Data Flow
-Unchanged. The constant is consumed at exactly the same two points in each handler's `Handle(...)` method; the request → guard → response pipeline is byte-identical.
 
-```
-Request → CountFilteredPhotosAsync / PhotoIds.Count
-        → compare against PhotobankConstants.BulkTagLimit  (was: local BulkTagLimit)
-        → if exceeded → ErrorCodes.BulkTagLimitExceeded + Params{Count, Limit="5000"}
-        → else → proceed with tag-add path (unchanged)
-```
+Unchanged. The constant is a compile-time literal, inlined at the use sites. The two existing guard paths remain:
+
+1. `BulkAddPhotoTagHandler`: `total = await _repository.CountFilteredPhotosAsync(...)` → if `total > PhotobankConstants.BulkTagLimit`, return `BulkTagLimitExceeded` with `Params["Count"]=total`, `Params["Limit"]=PhotobankConstants.BulkTagLimit.ToString()`.
+2. `BulkAddPhotoTagByIdsHandler`: `request.PhotoIds.Count` → if `> PhotobankConstants.BulkTagLimit`, return `BulkTagLimitExceeded` with same payload shape.
+
+Wire-level error contract is byte-identical to current behavior.
 
 ## Risks and Mitigations
+
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Adding `using` directive that creates a namespace ambiguity or unused-import warning | Low | Don't add a `using` — handler namespaces nest under the constants' namespace. Let `dotnet build` confirm; if it fails, only then add `using Anela.Heblo.Application.Features.Photobank;`. |
-| Test assertions on the literal string `"5000"` break | Very Low | The constant value remains `5_000`; `(5_000).ToString()` → `"5000"`. Spec FR-4 confirms; no test edits needed. |
-| Style drift triggers `dotnet format` diff | Low | Mirror `CatalogConstants.cs` exactly (file-scoped namespace, blank line after, no trailing newline beyond convention). Run `dotnet format` on the touched files. |
-| Future contributor adds another duplicated Photobank literal and skips the constants class | Low | Out of scope for this PR. Mention as a follow-up in the PR description; do not expand the change set. |
-| `public` visibility leaks an implementation detail | Very Low | The limit is a stable, named threshold tied to an existing public `ErrorCodes.BulkTagLimitExceeded` contract. Public visibility is consistent with sibling features and the spec's explicit instruction. |
+| Inlining semantics: existing assemblies that referenced `BulkTagLimit` would be stale after a value change. | LOW | The constants in scope are `private`, so no external assembly references them. After this refactor, `public const` is consumed only by handlers + tests in the same solution and rebuilt together. Not a risk in this monorepo. |
+| Test assertion drift: current tests assert `Params["Limit"]` equals the string `"5000"`. Spec FR-5 says to assert against `PhotobankConstants.BulkTagLimit`. The dictionary value is a string, the constant is an `int`. | LOW | Update assertions to `.Should().Be(PhotobankConstants.BulkTagLimit.ToString())`. A direct `.Be(PhotobankConstants.BulkTagLimit)` will not compile (string vs int). See **Specification Amendments**. |
+| Future temptation to add unrelated constants into `PhotobankConstants` opportunistically. | LOW | Spec is explicit: scope is `BulkTagLimit` only. Reviewer should reject additions in this PR. |
+| Namespace collision with another `PhotobankConstants` type. | NONE | Verified by repo grep: no `PhotobankConstants` exists today. |
+| `dotnet format` reformatting unrelated lines in edited handlers. | LOW | Keep edits surgical: only the `const` line removal and the `BulkTagLimit` → `PhotobankConstants.BulkTagLimit` rewrites. Run `dotnet format` only against the four files touched, then confirm `git diff` shows only intended changes. |
 
 ## Specification Amendments
-None required. The spec is precise, complete, and consistent with project conventions. Two minor clarifications worth stating in implementation (not amendments):
-- **Namespace resolution:** the spec correctly notes "no new `using` directive is required." Confirmed: both handler namespaces nest under `Anela.Heblo.Application.Features.Photobank`, so the constants class is implicitly visible. Implementation must rely on this rather than add an explicit `using`.
-- **PascalCase vs SCREAMING_SNAKE_CASE:** the spec preserves the original PascalCase identifier `BulkTagLimit`. This is correct; do not "normalize" to `BULK_TAG_LIMIT` even though `CatalogConstants` uses that style. Consistency with the original handler identifier wins, and PascalCase is the majority convention.
+
+1. **FR-5 assertion type clarification.** The spec says: *"Asserts `Params["Limit"]` equals `PhotobankConstants.BulkTagLimit`"*. `Params` is `Dictionary<string, string>` (verified in both handlers, lines 34–38 and 36–40). The assertion must call `.ToString()` on the constant:
+
+   ```csharp
+   result.Params.Should().ContainKey("Limit")
+         .WhoseValue.Should().Be(PhotobankConstants.BulkTagLimit.ToString());
+   ```
+
+   Existing tests at `BulkAddPhotoTagHandlerTests.cs:99` and `BulkAddPhotoTagByIdsHandlerTests.cs:87` use the literal `"5000"`. Update both to the constant-based form so the tests survive a future limit change. This is the only test edit required; the test method names, arrange/act sections, and other assertions stay as-is.
+
+2. **Namespace style clarification.** Spec says namespace must match "existing Photobank feature folder conventions." The Photobank module uses block-scoped namespaces in handlers, but every `*Constants.cs` file in `Anela.Heblo.Application/Features/*/` uses file-scoped namespaces. Use **file-scoped** for the new file — this matches the role-specific convention and is shorter. If a future stylistic alignment in the module is desired, that's a separate task.
+
+3. **No other amendments.** The spec's functional requirements (FR-1 through FR-5), non-functional requirements, and out-of-scope list are correct and complete.
 
 ## Prerequisites
-None.
 
-- No migrations, no config, no infrastructure changes.
-- No new NuGet packages.
-- No DI registration changes.
-- Verification commands (per `CLAUDE.md`): `dotnet build`, `dotnet format`, `dotnet test` for `Anela.Heblo.Tests` (Photobank suite must pass with no test edits).
+None. This is a pure code-only refactor:
+
+- No database migration.
+- No `appsettings*.json` change.
+- No Key Vault secret.
+- No DI registration (no service is added; `const` does not need DI).
+- No frontend regeneration of the OpenAPI client (no endpoint or DTO shape changes).
+- No feature flag.
+
+Implementation can start immediately. Validation: `dotnet build` (no new warnings), `dotnet format` (clean diff), `dotnet test` against `Anela.Heblo.Tests` (all Photobank tests green, including the two updated boundary assertions).
