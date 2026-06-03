@@ -1,14 +1,16 @@
+using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Xcc.Services.Dashboard;
-using Hangfire;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.BackgroundJobs.DashboardTiles;
 
+[TileId("failedjobs")]
 public sealed class FailedJobsTile : ITile
 {
-    private const string FailedJobsUrl = "/hangfire/jobs/failed";
+    private const string DrillDownRouteKey = "hangfireFailedJobs";
+    private const string DrillDownTooltip = "Open Hangfire failed jobs";
 
-    private readonly JobStorage _jobStorage;
+    private readonly IFailedJobCounter _failedJobCounter;
     private readonly ILogger<FailedJobsTile> _logger;
 
     public string Title => "Failed background jobs";
@@ -17,52 +19,51 @@ public sealed class FailedJobsTile : ITile
     public TileCategory Category => TileCategory.System;
     public bool DefaultEnabled => true;
     public bool AutoShow => false;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
-    public FailedJobsTile(JobStorage jobStorage, ILogger<FailedJobsTile> logger)
+    public FailedJobsTile(IFailedJobCounter failedJobCounter, ILogger<FailedJobsTile> logger)
     {
-        _jobStorage = jobStorage;
+        _failedJobCounter = failedJobCounter;
         _logger = logger;
     }
 
-    public Task<object> LoadDataAsync(
+    public async Task<object> LoadDataAsync(
         Dictionary<string, string>? parameters = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var failedCount = _jobStorage.GetMonitoringApi().FailedCount();
+            var failedCount = await _failedJobCounter.GetFailedCountAsync(cancellationToken);
 
-            return Task.FromResult<object>(new
+            return new
             {
                 status = "success",
                 data = new { count = failedCount },
                 metadata = new { lastUpdated = DateTime.UtcNow, source = "Hangfire" },
                 drillDown = new
                 {
-                    url = FailedJobsUrl,
+                    routeKey = DrillDownRouteKey,
                     enabled = true,
-                    tooltip = "Open Hangfire failed jobs"
+                    tooltip = DrillDownTooltip
                 }
-            });
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load Hangfire failed job count");
 
-            return Task.FromResult<object>(new
+            return new
             {
                 status = "error",
                 data = (object?)null,
                 error = "Failed to retrieve job count. See server logs.",
                 drillDown = new
                 {
-                    url = FailedJobsUrl,
+                    routeKey = DrillDownRouteKey,
                     enabled = true,
-                    tooltip = "Open Hangfire failed jobs"
+                    tooltip = DrillDownTooltip
                 }
-            });
+            };
         }
     }
 }

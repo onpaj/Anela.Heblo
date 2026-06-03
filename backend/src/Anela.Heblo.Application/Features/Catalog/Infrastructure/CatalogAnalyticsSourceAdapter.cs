@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
@@ -57,9 +56,8 @@ internal sealed class CatalogAnalyticsSourceAdapter : IAnalyticsProductSource
         if (product == null)
             return null;
 
-        // Preserve verbatim from original AnalyticsRepository: single-product path does NOT
-        // filter SalesHistory by period, unlike the streaming path.
-        var unfilteredSales = product.SalesHistory
+        var filteredSales = product.SalesHistory
+            .Where(s => s.Date >= fromDate && s.Date <= toDate)
             .Select(s => new SalesDataPoint
             {
                 Date = s.Date,
@@ -68,7 +66,7 @@ internal sealed class CatalogAnalyticsSourceAdapter : IAnalyticsProductSource
             })
             .ToList();
 
-        return MapToAnalyticsProduct(product, fromDate, toDate, unfilteredSales);
+        return MapToAnalyticsProduct(product, fromDate, toDate, filteredSales);
     }
 
     private static AnalyticsProduct MapToAnalyticsProduct(

@@ -1,5 +1,6 @@
 using Hangfire.Dashboard;
 using System.Security.Claims;
+using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.Authorization;
 
@@ -110,7 +111,7 @@ public class HangfireDashboardTokenAuthorizationFilter : IDashboardAuthorization
             new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.HebloUser) // Add HebloUser role for Hangfire access
         };
 
-        var identity = new ClaimsIdentity(claims, ConfigurationConstants.MOCK_AUTH_SCHEME);
+        var identity = new ClaimsIdentity(claims, InfrastructureConstants.MOCK_AUTH_SCHEME);
         return new ClaimsPrincipal(identity);
     }
 }

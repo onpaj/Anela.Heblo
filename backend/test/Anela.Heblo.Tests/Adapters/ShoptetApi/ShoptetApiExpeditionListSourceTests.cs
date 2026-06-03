@@ -8,7 +8,7 @@ using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
-using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.Logistics.Picking;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Moq;
@@ -854,6 +854,44 @@ public class ShoptetApiExpeditionListSourceTests
         var result = ShoptetApiExpeditionListSource.ResolveCarrierCooling(PplExportGuid, matrix);
 
         result.Should().Be(Cooling.None);
+    }
+
+    // ─── ResolveCarrierCoolingText ────────────────────────────────────────────────
+
+    [Fact]
+    public void ResolveCarrierCoolingText_ReturnsNull_WhenGuidNotInRegistry()
+    {
+        var matrix = new Dictionary<(Carriers, DeliveryHandling), string?>
+        {
+            [(Carriers.PPL, DeliveryHandling.NaRuky)] = "MRAZ",
+        };
+
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCoolingText("unknown-guid", matrix);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ResolveCarrierCoolingText_ReturnsNull_WhenMatrixHasNoEntryForCarrierHandling()
+    {
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCoolingText(
+            PplDoRukyGuid,
+            new Dictionary<(Carriers, DeliveryHandling), string?>());
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ResolveCarrierCoolingText_ReturnsText_WhenMatrixHasEntry()
+    {
+        var matrix = new Dictionary<(Carriers, DeliveryHandling), string?>
+        {
+            [(Carriers.PPL, DeliveryHandling.NaRuky)] = "MRAZ",
+        };
+
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCoolingText(PplDoRukyGuid, matrix);
+
+        result.Should().Be("MRAZ");
     }
 
     // ─── CreatePickingList — carrier cooling integration ──────────────────────────

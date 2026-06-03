@@ -1,6 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, AlertTriangle, XCircle, Clock } from 'lucide-react';
+import {
+  DashboardTileDrillDown,
+  resolveDrillDown,
+} from '../drillDownRoutes';
 
 interface DataQualityTileProps {
   data: {
@@ -12,14 +16,23 @@ interface DataQualityTileProps {
       dateTo?: string;
     };
     error?: string;
+    drillDown?: DashboardTileDrillDown;
   };
 }
 
 export const DataQualityTile: React.FC<DataQualityTileProps> = ({ data }) => {
   const navigate = useNavigate();
+  const resolution = resolveDrillDown(data.drillDown);
 
   const handleClick = () => {
-    navigate('/automation/data-quality');
+    if (!resolution) {
+      return;
+    }
+    if (resolution.strategy === 'react-router') {
+      navigate(resolution.url);
+    } else {
+      window.open(resolution.url, '_blank');
+    }
   };
 
   if (data.status === 'error') {

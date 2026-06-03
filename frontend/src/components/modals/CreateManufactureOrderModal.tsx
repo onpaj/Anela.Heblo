@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { X, Calendar, User, Package, AlertCircle } from "lucide-react";
 import { CalculatedBatchSizeResponse, CreateManufactureOrderRequest, CreateManufactureOrderProductRequest } from "../../api/generated/api-client";
 import ResponsiblePersonCombobox from "../common/ResponsiblePersonCombobox";
-import { useConfigurationQuery } from "../../api/hooks/useConfiguration";
+import { useManufactureSettingsQuery } from "../../api/hooks/useManufactureSettings";
 
 interface CreateManufactureOrderModalProps {
   isOpen: boolean;
@@ -23,8 +23,8 @@ const CreateManufactureOrderModal: React.FC<CreateManufactureOrderModalProps> = 
   const [responsiblePerson, setResponsiblePerson] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  const { data: appConfig } = useConfigurationQuery();
-  const manufactureGroupId = appConfig?.manufactureGroupId ?? "";
+  const { data: manufactureSettings } = useManufactureSettingsQuery();
+  const manufactureGroupId = manufactureSettings?.manufactureGroupId ?? "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

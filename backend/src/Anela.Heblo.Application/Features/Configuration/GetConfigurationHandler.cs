@@ -29,13 +29,7 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         {
             _logger.LogDebug("Handling GetConfiguration request");
 
-            var appConfig = await BuildApplicationConfigurationAsync();
-
-            var manufactureGroupId = _configuration["ManufactureGroupId"];
-            if (string.IsNullOrEmpty(manufactureGroupId))
-            {
-                manufactureGroupId = null;
-            }
+            var appConfig = BuildApplicationConfiguration();
 
             var response = new GetConfigurationResponse
             {
@@ -43,7 +37,6 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
                 Environment = appConfig.Environment,
                 UseMockAuth = appConfig.UseMockAuth,
                 Timestamp = appConfig.Timestamp,
-                ManufactureGroupId = manufactureGroupId
             };
 
             _logger.LogDebug("Configuration retrieved successfully: {@Config}", response);
@@ -57,7 +50,7 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         }
     }
 
-    private async Task<ApplicationConfiguration> BuildApplicationConfigurationAsync()
+    private ApplicationConfiguration BuildApplicationConfiguration()
     {
         // Get version with priority order:
         // 1. APP_VERSION (set by CI/CD pipeline with GitVersion)
@@ -73,8 +66,6 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         var useMockAuth = _configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, false);
 
         var config = ApplicationConfiguration.CreateWithDefaults(version, environment, useMockAuth);
-
-        await Task.CompletedTask; // Placeholder for potential async operations
 
         return config;
     }

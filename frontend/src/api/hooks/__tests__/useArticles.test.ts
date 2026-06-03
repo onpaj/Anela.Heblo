@@ -1,11 +1,17 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useArticleFeedbackListQuery } from '../useArticles';
+import {
+  useArticleFeedbackListQuery,
+  useSubmitArticleFeedbackMutation,
+  SubmitArticleFeedbackPayload,
+} from '../useArticles';
 import * as clientModule from '../../client';
 
 jest.mock('../../client', () => ({
   getAuthenticatedApiClient: jest.fn(),
+  getApiBaseUrl: jest.fn(() => 'https://api.example.test'),
+  getAuthenticatedFetch: jest.fn(),
   QUERY_KEYS: {
     articles: ['articles'],
   },
@@ -257,5 +263,109 @@ describe('useArticleFeedbackListQuery parameter passing', () => {
       2,
       10,
     );
+  });
+});
+
+describe('useSubmitArticleFeedbackMutation', () => {
+  let mockArticlesSubmitFeedback: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockArticlesSubmitFeedback = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      articles_SubmitFeedback: mockArticlesSubmitFeedback,
+    } as any);
+  });
+
+  const createMutationWrapper = ({ children }: { children: React.ReactNode }) => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    return React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    );
+  };
+
+  const payload: SubmitArticleFeedbackPayload = {
+    precisionScore: 4,
+    styleScore: 5,
+    comment: 'great',
+  };
+
+  it('resolves with parsed body on 2xx (typed generated response with success: true)', async () => {
+    mockArticlesSubmitFeedback.mockResolvedValue({
+      success: true,
+      precisionScore: 4,
+      styleScore: 5,
+      feedbackComment: 'great',
+    });
+
+    const { result } = renderHook(
+      () => useSubmitArticleFeedbackMutation('article-1'),
+      { wrapper: createMutationWrapper },
+    );
+
+    result.current.mutate(payload);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockGetAuthenticatedApiClient).toHaveBeenCalled();
+    expect(mockArticlesSubmitFeedback).toHaveBeenCalledTimes(1);
+    expect(mockArticlesSubmitFeedback).toHaveBeenCalledWith(
+      'article-1',
+      expect.objectContaining({
+        articleId: 'article-1',
+        precisionScore: 4,
+        styleScore: 5,
+        comment: 'great',
+      }),
+    );
+    expect(result.current.data).toEqual({
+      precisionScore: 4,
+      styleScore: 5,
+      feedbackComment: 'great',
+    });
+  });
+
+  it('resolves with alreadySubmitted when 409 SwaggerException is caught', async () => {
+    // With the escape hatch, the generated client throws SwaggerException on 409
+    // The hook catches it and returns { alreadySubmitted: true }
+    const error409 = Object.assign(new Error('Conflict'), { status: 409 });
+    mockArticlesSubmitFeedback.mockRejectedValue(error409);
+
+    const { result } = renderHook(
+      () => useSubmitArticleFeedbackMutation('article-1'),
+      { wrapper: createMutationWrapper },
+    );
+
+    result.current.mutate(payload);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data).toEqual({ alreadySubmitted: true });
+    expect(result.current.isError).toBe(false);
+  });
+
+  it('rejects when generated client throws non-409 (e.g. 500)', async () => {
+    const error500 = Object.assign(new Error('An unexpected server error occurred. 500'), { status: 500 });
+    mockArticlesSubmitFeedback.mockRejectedValue(error500);
+
+    const { result } = renderHook(
+      () => useSubmitArticleFeedbackMutation('article-1'),
+      { wrapper: createMutationWrapper },
+    );
+
+    result.current.mutate(payload);
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.isSuccess).toBe(false);
+    expect(result.current.error).toBeInstanceOf(Error);
+    expect((result.current.error as Error).message).toContain('500');
   });
 });

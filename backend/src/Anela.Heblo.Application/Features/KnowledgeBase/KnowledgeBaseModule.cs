@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
 using Microsoft.Identity.Web;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
+using Anela.Heblo.Domain.Features.Configuration;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +43,10 @@ public static class KnowledgeBaseModule
         // Same provider-owned-DI pattern as the Leaflet binding above.
         services.AddScoped<IArticleStyleGuideSource, KnowledgeBaseArticleStyleGuideSource>();
 
+        // Cross-module contract: KnowledgeBase implements Article's IArticleKnowledgeSource via adapter.
+        // Scoped to match existing Article contract bindings above.
+        services.AddScoped<IArticleKnowledgeSource, KnowledgeBaseArticleKnowledgeSource>();
+
         // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)
 
         // OneDrive service — use real Graph service only when SharePoint drives are configured
@@ -51,7 +56,7 @@ public static class KnowledgeBaseModule
         configuration.GetSection("KnowledgeBase").Bind(kbOptions);
         var sharePointConfigured = kbOptions.OneDriveFolderMappings.Any(m => !string.IsNullOrWhiteSpace(m.DriveId));
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
-        var bypassJwtValidation = configuration.GetValue<bool>("BypassJwtValidation", false);
+        var bypassJwtValidation = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, false);
 
         if (sharePointConfigured && !useMockAuth && !bypassJwtValidation)
         {

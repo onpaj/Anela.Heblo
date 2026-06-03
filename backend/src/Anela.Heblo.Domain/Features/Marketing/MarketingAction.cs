@@ -12,36 +12,36 @@ namespace Anela.Heblo.Domain.Features.Marketing
 
         [Required]
         [MaxLength(200)]
-        public string Title { get; set; } = null!;
+        public string Title { get; private set; } = null!;
 
         [MaxLength(5000)]
-        public string? Description { get; set; }
+        public string? Description { get; private set; }
 
-        public MarketingActionType ActionType { get; set; }
-
-        [Required]
-        public DateTime StartDate { get; set; }
-
-        public DateTime? EndDate { get; set; }
+        public MarketingActionType ActionType { get; private set; }
 
         [Required]
-        public DateTime CreatedAt { get; set; }
+        public DateTime StartDate { get; private set; }
+
+        public DateTime? EndDate { get; private set; }
 
         [Required]
-        public DateTime ModifiedAt { get; set; }
+        public DateTime CreatedAt { get; private set; }
+
+        [Required]
+        public DateTime ModifiedAt { get; private set; }
 
         [Required]
         [MaxLength(100)]
-        public string CreatedByUserId { get; set; } = null!;
+        public string CreatedByUserId { get; private set; } = null!;
 
         [MaxLength(100)]
-        public string? CreatedByUsername { get; set; }
+        public string? CreatedByUsername { get; private set; }
 
         [MaxLength(100)]
-        public string? ModifiedByUserId { get; set; }
+        public string? ModifiedByUserId { get; private set; }
 
         [MaxLength(100)]
-        public string? ModifiedByUsername { get; set; }
+        public string? ModifiedByUsername { get; private set; }
 
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
@@ -66,6 +66,29 @@ namespace Anela.Heblo.Domain.Features.Marketing
         // Navigation properties
         public virtual ICollection<MarketingActionProduct> ProductAssociations { get; set; } = new List<MarketingActionProduct>();
         public virtual ICollection<MarketingActionFolderLink> FolderLinks { get; set; } = new List<MarketingActionFolderLink>();
+
+        public MarketingAction(
+            string title,
+            string? description,
+            MarketingActionType actionType,
+            DateTime startDate,
+            DateTime? endDate,
+            string createdByUserId,
+            string? createdByUsername,
+            DateTime utcNow)
+        {
+            Title = NormalizeTitle(title);
+            Description = NormalizeDescription(description);
+            ActionType = actionType;
+            StartDate = startDate;
+            EndDate = endDate;
+            CreatedAt = utcNow;
+            ModifiedAt = utcNow;
+            CreatedByUserId = createdByUserId;
+            CreatedByUsername = createdByUsername ?? "Unknown User";
+        }
+
+        private MarketingAction() { }
 
         // Domain methods
         public void AssociateWithProduct(string productCode)
@@ -132,5 +155,29 @@ namespace Anela.Heblo.Domain.Features.Marketing
             OutlookSyncStatus = MarketingSyncStatus.NotSynced;
             OutlookSyncError = null;
         }
+
+        public void UpdateDetails(
+            string title,
+            string? description,
+            MarketingActionType actionType,
+            DateTime startDate,
+            DateTime? endDate,
+            string modifiedByUserId,
+            string? modifiedByUsername,
+            DateTime utcNow)
+        {
+            Title = NormalizeTitle(title);
+            Description = NormalizeDescription(description);
+            ActionType = actionType;
+            StartDate = startDate;
+            EndDate = endDate;
+            ModifiedAt = utcNow;
+            ModifiedByUserId = modifiedByUserId;
+            ModifiedByUsername = modifiedByUsername ?? "Unknown User";
+        }
+
+        private static string NormalizeTitle(string? raw) => (raw ?? string.Empty).Trim();
+
+        private static string? NormalizeDescription(string? raw) => raw?.Trim();
     }
 }

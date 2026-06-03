@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAction;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Tests.Domain.Marketing;
 using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -23,19 +24,21 @@ public class UpdateMarketingActionHandlerTests
     private static readonly CurrentUser AuthenticatedUser =
         new("user-1", "Test User", "test@example.com", IsAuthenticated: true);
 
-    private static MarketingAction BuildExistingAction(string? outlookEventId = "existing-event-id") =>
-        new()
-        {
-            Id = 42,
-            Title = "Old Title",
-            ActionType = MarketingActionType.Blog,
-            StartDate = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc),
-            CreatedAt = DateTime.UtcNow.AddDays(-1),
-            ModifiedAt = DateTime.UtcNow.AddDays(-1),
-            CreatedByUserId = "user-1",
-            OutlookEventId = outlookEventId,
-            OutlookSyncStatus = outlookEventId != null ? MarketingSyncStatus.Synced : MarketingSyncStatus.NotSynced,
-        };
+    private static MarketingAction BuildExistingAction(string? outlookEventId = "existing-event-id")
+    {
+        var action = new MarketingActionTestBuilder()
+            .WithId(42)
+            .WithTitle("Old Title")
+            .WithActionType(MarketingActionType.Blog)
+            .WithStartDate(new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc))
+            .WithCreatedAt(DateTime.UtcNow.AddDays(-1))
+            .WithModifiedAt(DateTime.UtcNow.AddDays(-1))
+            .WithCreatedBy("user-1")
+            .WithOutlookEventId(outlookEventId)
+            .WithOutlookSyncStatus(outlookEventId != null ? MarketingSyncStatus.Synced : MarketingSyncStatus.NotSynced)
+            .Build();
+        return action;
+    }
 
     private static UpdateMarketingActionRequest BuildRequest(int id = 42) => new()
     {
@@ -199,6 +202,33 @@ public class UpdateMarketingActionHandlerTests
                 a.ProductAssociations.Count == 2 &&
                 a.FolderLinks.Count == 1),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsDatabaseError_WhenDbSaveFails()
+    {
+        _repository
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("DB unavailable"));
+
+        var result = await BuildHandler().Handle(BuildRequest(), CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.DatabaseError);
+        _outlookSync.Verify(
+            x => x.UpdateEventAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _outlookSync.Verify(
+            x => x.DeleteEventAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _logger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("may now be out of sync")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

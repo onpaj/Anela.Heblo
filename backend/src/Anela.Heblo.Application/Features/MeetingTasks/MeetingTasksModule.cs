@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.MeetingTasks.Services;
+using Anela.Heblo.Domain.Features.Configuration;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,7 +19,7 @@ public static class MeetingTasksModule
             .ValidateOnStart();
 
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
-        var bypassJwt = configuration.GetValue<bool>("BypassJwtValidation", false);
+        var bypassJwt = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, false);
 
         if (!useMockAuth && !bypassJwt)
         {

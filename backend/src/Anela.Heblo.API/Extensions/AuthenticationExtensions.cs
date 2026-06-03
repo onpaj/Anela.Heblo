@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authorization;
 using Anela.Heblo.API.Infrastructure.Authentication;
+using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.Authorization;
 
@@ -40,8 +41,8 @@ public static class AuthenticationExtensions
     private static void ConfigureMockAuthentication(IServiceCollection services)
     {
         // Mock authentication - can be used in any environment when UseMockAuth=true
-        services.AddAuthentication(ConfigurationConstants.MOCK_AUTH_SCHEME)
-            .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>(ConfigurationConstants.MOCK_AUTH_SCHEME, _ => { });
+        services.AddAuthentication(InfrastructureConstants.MOCK_AUTH_SCHEME)
+            .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>(InfrastructureConstants.MOCK_AUTH_SCHEME, _ => { });
         ConfigureAuthorizationPolicies(services);
 
         // Note: GraphService is now handled via MockGraphService in UserManagementModule

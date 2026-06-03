@@ -5,7 +5,7 @@ using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
-using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.Logistics.Picking;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -168,7 +168,9 @@ public class ShoptetApiExpeditionListSource_CoolingMarkerTests
 
     private ShoptetApiExpeditionListSource BuildSource(
         Mock<HttpMessageHandler> handler,
-        ILogger<ShoptetApiExpeditionListSource>? logger = null)
+        ILogger<ShoptetApiExpeditionListSource>? logger = null,
+        string? coolingText = null,
+        Action<ExpeditionProtocolData>? captureData = null)
     {
         var http = new HttpClient(handler.Object) { BaseAddress = new Uri("https://test.myshoptet.com") };
         var client = new ShoptetOrderClient(http);
@@ -193,7 +195,7 @@ public class ShoptetApiExpeditionListSource_CoolingMarkerTests
         carrierCooling.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CarrierCoolingSetting>
             {
-                new(Carriers.Zasilkovna, DeliveryHandling.NaRuky, Cooling.L1, "test"),
+                new(Carriers.Zasilkovna, DeliveryHandling.NaRuky, Cooling.L1, "test", coolingText),
             });
 
         var giftSettings = new Mock<IGiftSettingRepository>();
@@ -207,7 +209,11 @@ public class ShoptetApiExpeditionListSource_CoolingMarkerTests
             carrierCooling.Object,
             giftSettings.Object,
             logger ?? Mock.Of<ILogger<ShoptetApiExpeditionListSource>>(),
-            _ => new byte[] { 0x25, 0x50, 0x44, 0x46 });
+            data =>
+            {
+                captureData?.Invoke(data);
+                return new byte[] { 0x25, 0x50, 0x44, 0x46 };
+            });
     }
 
     private static PrintPickingListRequest BuildRequest() => new()
@@ -271,5 +277,19 @@ public class ShoptetApiExpeditionListSource_CoolingMarkerTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task CreatePickingList_CooledOrder_UsesCustomCoolingTextFromSetting()
+    {
+        ExpeditionProtocolData? captured = null;
+        var handler = BuildHandler();
+        var source = BuildSource(handler, coolingText: "MRAZ", captureData: d => captured = d);
+
+        await source.CreatePickingList(BuildRequest(), null, CancellationToken.None);
+
+        captured.Should().NotBeNull();
+        var cooledOrder = captured!.Orders.Single(o => o.Code == CooledOrderCode);
+        cooledOrder.CoolingText.Should().Be("MRAZ");
     }
 }

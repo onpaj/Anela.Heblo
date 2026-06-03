@@ -1,3 +1,5 @@
+using Anela.Heblo.Application.Common.TimePeriods;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -8,47 +10,44 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
 public class BatchPlanningService : IBatchPlanningService
 {
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
     private readonly IManufactureClient _manufactureClient;
     private readonly IBatchDistributionCalculator _batchDistributionCalculator;
+    private readonly IConsumptionRateCalculator _consumptionRateCalculator;
     private readonly ILogger<BatchPlanningService> _logger;
 
     public BatchPlanningService(
-        ICatalogRepository catalogRepository,
+        IManufactureCatalogSource catalogSource,
         IManufactureClient manufactureClient,
         IBatchDistributionCalculator batchDistributionCalculator,
+        IConsumptionRateCalculator consumptionRateCalculator,
         ILogger<BatchPlanningService> logger)
     {
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
         _manufactureClient = manufactureClient;
         _batchDistributionCalculator = batchDistributionCalculator;
+        _consumptionRateCalculator = consumptionRateCalculator;
         _logger = logger;
     }
 
-    public async Task<CalculateBatchPlanResponse> CalculateBatchPlan(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
+    public async Task<CalculateBatchPlanResponse> CalculateBatchPlan(
+        CalculateBatchPlanRequest request,
+        IReadOnlyList<DateRange> salesRanges,
+        CancellationToken cancellationToken = default)
     {
         if (request.ManufactureType == ManufactureType.SinglePhase)
         {
-            return await CalculateSinglePhaseBatchPlanInternal(request, cancellationToken);
+            return await CalculateSinglePhaseBatchPlanInternal(request, salesRanges, cancellationToken);
         }
         else
         {
-            return await CalculateMultiPhaseBatchPlanInternal(request, cancellationToken);
+            return await CalculateMultiPhaseBatchPlanInternal(request, salesRanges, cancellationToken);
         }
     }
 
-    private double CalculateDailySalesRate(CatalogAggregate product, DateTime? fromDate, DateTime? toDate, double salesMultiplier = 1.0)
+    private double CalculateDailySalesRate(CatalogAggregate product, IReadOnlyList<DateRange> salesRanges, double salesMultiplier = 1.0)
     {
-        // Set default time period if not provided
-        var endDate = toDate ?? DateTime.Now;
-        var startDate = fromDate ?? endDate.AddDays(-30); // Default 30 days
-
-        var totalSales = product.GetTotalSold(startDate, endDate);
-        var days = (endDate - startDate).TotalDays;
-
-        var baseDailySalesRate = days > 0 ? totalSales / days : 0;
-
-        // Apply sales multiplier to affect future production planning
+        var baseDailySalesRate = _consumptionRateCalculator.CalculateDailySalesRate(product.SalesHistory, salesRanges);
         return Math.Round(baseDailySalesRate * salesMultiplier, 2);
     }
 
@@ -225,9 +224,10 @@ public class BatchPlanningService : IBatchPlanningService
     private BatchPlanItemDto CreateBatchPlanItem(
         CatalogAggregate product,
         CalculateBatchPlanRequest request,
+        IReadOnlyList<DateRange> salesRanges,
         string? productName = null)
     {
-        var dailySalesRate = CalculateDailySalesRate(product, request.FromDate, request.ToDate, request.SalesMultiplier ?? 1.0);
+        var dailySalesRate = CalculateDailySalesRate(product, salesRanges, request.SalesMultiplier ?? 1.0);
         var currentDaysCoverage = dailySalesRate > 0 ? (double)product.Stock.Total / dailySalesRate : 0;
         var constraint = request.ProductConstraints.FirstOrDefault(c => c.ProductCode == product.ProductCode);
 
@@ -306,17 +306,20 @@ public class BatchPlanningService : IBatchPlanningService
 
 
 
-    private async Task<CalculateBatchPlanResponse> CalculateSinglePhaseBatchPlanInternal(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
+    private async Task<CalculateBatchPlanResponse> CalculateSinglePhaseBatchPlanInternal(
+        CalculateBatchPlanRequest request,
+        IReadOnlyList<DateRange> salesRanges,
+        CancellationToken cancellationToken)
     {
         // For single-phase manufacturing, the request.ProductCode is actually the product code
-        var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+        var product = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
         if (product == null)
         {
             throw new ArgumentException($"Product with code '{request.ProductCode}' not found.");
         }
 
         // Create batch plan item using common helper
-        var batchPlanItem = CreateBatchPlanItem(product, request);
+        var batchPlanItem = CreateBatchPlanItem(product, request, salesRanges);
 
         // Calculate target production in units (not weight) for single-phase
         var (targetProductionUnits, totalWeight) = CalculateSinglePhaseTargetProduction(product, request, batchPlanItem.DailySalesRate);
@@ -350,10 +353,13 @@ public class BatchPlanningService : IBatchPlanningService
         };
     }
 
-    private async Task<CalculateBatchPlanResponse> CalculateMultiPhaseBatchPlanInternal(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
+    private async Task<CalculateBatchPlanResponse> CalculateMultiPhaseBatchPlanInternal(
+        CalculateBatchPlanRequest request,
+        IReadOnlyList<DateRange> salesRanges,
+        CancellationToken cancellationToken)
     {
         // 1. Get semiproduct info
-        var semiproduct = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+        var semiproduct = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
         if (semiproduct == null)
         {
             throw new ArgumentException($"Semiproduct with code '{request.ProductCode}' not found.");
@@ -376,14 +382,14 @@ public class BatchPlanningService : IBatchPlanningService
         var batchPlanItems = new List<BatchPlanItemDto>();
         foreach (var template in productTemplates)
         {
-            var product = await _catalogRepository.GetByIdAsync(template.ProductCode, cancellationToken);
+            var product = await _catalogSource.GetByIdAsync(template.ProductCode, cancellationToken);
             if (product == null)
             {
                 _logger.LogWarning("Product {ProductCode} found in template but not in catalog", template.ProductCode);
                 continue;
             }
 
-            var item = CreateBatchPlanItem(product, request, template.ProductName);
+            var item = CreateBatchPlanItem(product, request, salesRanges, template.ProductName);
             batchPlanItems.Add(item);
         }
 

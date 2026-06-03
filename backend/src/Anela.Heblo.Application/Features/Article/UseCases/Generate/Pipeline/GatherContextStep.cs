@@ -1,8 +1,6 @@
 using Anela.Heblo.Application.Features.Article.Contracts;
-using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Shared.WebSearch;
 using Anela.Heblo.Domain.Features.Article;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
@@ -11,7 +9,7 @@ namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
 public class GatherContextStep
 {
-    private readonly IMediator _mediator;
+    private readonly IArticleKnowledgeSource _knowledgeSource;
     private readonly IWebSearchClient _webSearch;
     private readonly IArticleStyleGuideSource _styleGuideSource;
     private readonly ArticleOptions _options;
@@ -19,14 +17,14 @@ public class GatherContextStep
     private readonly PipelineStepRecorder _recorder;
 
     public GatherContextStep(
-        IMediator mediator,
+        IArticleKnowledgeSource knowledgeSource,
         IWebSearchClient webSearch,
         IArticleStyleGuideSource styleGuideSource,
         IOptions<ArticleOptions> options,
         ILogger<GatherContextStep> logger,
         PipelineStepRecorder recorder)
     {
-        _mediator = mediator;
+        _knowledgeSource = knowledgeSource;
         _webSearch = webSearch;
         _styleGuideSource = styleGuideSource;
         _options = options.Value;
@@ -85,11 +83,9 @@ public class GatherContextStep
         {
             try
             {
-                var response = await _mediator.Send(
-                    new SearchDocumentsRequest { Query = query, TopK = _options.KnowledgeBaseTopK },
-                    ct);
+                var chunks = await _knowledgeSource.SearchAsync(query, _options.KnowledgeBaseTopK, ct);
 
-                snippets.AddRange(response.Chunks.Select(chunk => new ContextSnippet
+                snippets.AddRange(chunks.Select(chunk => new ContextSnippet
                 {
                     Source = SourceType.KnowledgeBase,
                     Title = chunk.SourceFilename,

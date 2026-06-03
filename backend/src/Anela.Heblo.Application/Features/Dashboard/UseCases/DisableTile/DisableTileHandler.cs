@@ -1,40 +1,31 @@
-using Anela.Heblo.Xcc.Services.Dashboard;
+using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
+using Anela.Heblo.Application.Shared;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Dashboard.UseCases.DisableTile;
 
-public class DisableTileHandler : IRequestHandler<DisableTileRequest, DisableTileResponse>
+internal sealed class DisableTileHandler : IRequestHandler<DisableTileRequest, DisableTileResponse>
 {
-    private readonly IDashboardService _dashboardService;
-    private readonly TimeProvider _timeProvider;
+    private readonly IUserDashboardSettingsMutator _mutator;
 
-    public DisableTileHandler(
-        IDashboardService dashboardService,
-        TimeProvider timeProvider)
+    public DisableTileHandler(IUserDashboardSettingsMutator mutator)
     {
-        _dashboardService = dashboardService;
-        _timeProvider = timeProvider;
+        _mutator = mutator;
     }
 
     public async Task<DisableTileResponse> Handle(DisableTileRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(request.TileId))
         {
-            return new DisableTileResponse(Anela.Heblo.Application.Shared.ErrorCodes.RequiredFieldMissing);
+            return new DisableTileResponse(ErrorCodes.RequiredFieldMissing);
         }
 
-        var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
-        var settings = await _dashboardService.GetUserSettingsAsync(userId);
-
-        var existingTile = settings.Tiles.FirstOrDefault(t => t.TileId == request.TileId);
-        if (existingTile != null)
-        {
-            existingTile.IsVisible = false;
-            existingTile.LastModified = _timeProvider.GetUtcNow().DateTime;
-            settings.LastModified = _timeProvider.GetUtcNow().DateTime;
-
-            await _dashboardService.SaveUserSettingsAsync(userId, settings);
-        }
+        await _mutator.MutateAsync(
+            request.UserId,
+            request.TileId,
+            onTileFound: static (_, tile) => tile.IsVisible = false,
+            onTileMissing: null,
+            cancellationToken);
 
         return new DisableTileResponse();
     }

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Application.Features.DataQuality.Services;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Invoices;
@@ -7,8 +8,8 @@ namespace Anela.Heblo.Tests.Features.DataQuality;
 
 public class InvoiceDqtComparerTests
 {
-    private readonly Mock<IIssuedInvoiceSource> _sourceMock = new();
-    private readonly Mock<IIssuedInvoiceClient> _clientMock = new();
+    private readonly Mock<IInvoiceShoptetSource> _sourceMock = new();
+    private readonly Mock<IInvoiceErpClient> _clientMock = new();
     private readonly InvoiceDqtComparer _sut;
 
     private static readonly DateOnly From = new(2026, 1, 1);

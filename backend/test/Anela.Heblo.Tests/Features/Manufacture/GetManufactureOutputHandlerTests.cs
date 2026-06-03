@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -11,14 +12,14 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class GetManufactureOutputHandlerTests
 {
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<ILogger<GetManufactureOutputHandler>> _loggerMock;
     private readonly GetManufactureOutputHandler _handler;
 
     public GetManufactureOutputHandlerTests()
     {
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _loggerMock = new Mock<ILogger<GetManufactureOutputHandler>>();
 
         _handler = new GetManufactureOutputHandler(

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -17,13 +18,13 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class CalculatedBatchSizeHandlerLastStockTakingTests
 {
     private readonly Mock<IManufactureClient> _mockManufactureClient;
-    private readonly Mock<ICatalogRepository> _mockCatalogRepository;
+    private readonly Mock<IManufactureCatalogSource> _mockCatalogRepository;
     private readonly CalculatedBatchSizeHandler _handler;
 
     public CalculatedBatchSizeHandlerLastStockTakingTests()
     {
         _mockManufactureClient = new Mock<IManufactureClient>();
-        _mockCatalogRepository = new Mock<ICatalogRepository>();
+        _mockCatalogRepository = new Mock<IManufactureCatalogSource>();
         _handler = new CalculatedBatchSizeHandler(_mockManufactureClient.Object, _mockCatalogRepository.Object);
     }
 

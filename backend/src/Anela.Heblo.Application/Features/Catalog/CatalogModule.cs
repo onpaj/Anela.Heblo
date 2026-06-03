@@ -7,6 +7,7 @@ using Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
@@ -16,7 +17,9 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.SubmitStockTaking;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder;
 using Anela.Heblo.Application.Features.Catalog.Validators;
-using Anela.Heblo.Application.Features.Analytics.Contracts;
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
+using Anela.Heblo.Application.Features.Logistics.Contracts;
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.CostProviders;
@@ -46,6 +49,17 @@ public static class CatalogModule
         services.AddScoped<IMaterialCatalogService, PurchaseMaterialCatalogAdapter>();
         services.AddScoped<IPurchasePriceRecalculationService, CatalogPurchasePriceRecalculationAdapter>();
         services.AddTransient<IAnalyticsProductSource, CatalogAnalyticsSourceAdapter>();
+        services.AddTransient<ILogisticsCatalogSource, LogisticsCatalogSourceAdapter>();
+        services.AddTransient<ILogisticsStockOperationService, LogisticsStockOperationAdapter>();
+        // Logistics owns the query contract; Catalog (this module) provides the adapter implementation.
+        services.AddTransient<ILogisticsStockOperationQueryService, LogisticsStockOperationQueryAdapter>();
+        // DataQuality owns the query contracts; Catalog (this module) provides the adapter implementations.
+        services.AddScoped<IStockOperationQuery, DataQualityStockOperationQueryAdapter>();
+        services.AddScoped<IStockTakingQuery, DataQualityStockTakingQueryAdapter>();
+
+        // Cross-module contract: Catalog implements Manufacture's IManufactureCatalogSource via adapter.
+        // DI registration is owned by the provider (Catalog), not the consumer (Manufacture).
+        services.AddScoped<IManufactureCatalogSource, CatalogManufactureCatalogSourceAdapter>();
 
         // Register cost repositories
         services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others
@@ -55,6 +69,11 @@ public static class CatalogModule
 
         // Register cache services (scoped - data persists in IMemoryCache singleton)
         services.AddMemoryCache(); // Required for IMemoryCache injection
+        // CatalogRepository decomposed collaborators
+        services.AddSingleton<CatalogCacheStore>();
+        services.AddSingleton<CatalogMergeService>();
+        services.AddTransient<CatalogDataRefreshService>();
+        services.AddHostedService<CatalogMergeCallbackWiring>();
         services.AddScoped<IMaterialCostCache, MaterialCostCache>();
         services.AddScoped<IFlatManufactureCostCache, FlatManufactureCostCache>();
         services.AddScoped<IDirectManufactureCostCache, DirectManufactureCostCache>();
@@ -64,6 +83,10 @@ public static class CatalogModule
         services.AddTransient<IMarginCalculationService, MarginCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
         services.AddSingleton<ICatalogMergeScheduler, CatalogMergeScheduler>();
+        services.AddSingleton<CatalogCacheStore>();
+        services.AddSingleton<CatalogMergeService>();
+        services.AddTransient<CatalogDataRefreshService>();
+        services.AddHostedService<CatalogMergeCallbackWiring>();
         services.AddTransient<SafeMarginCalculator>();
         services.AddTransient<IProductWeightRecalculationService, ProductWeightRecalculationService>();
         services.AddTransient<IStockUpProcessingService, StockUpProcessingService>();

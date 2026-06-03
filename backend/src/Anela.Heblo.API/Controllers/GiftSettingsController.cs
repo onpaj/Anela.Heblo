@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Anela.Heblo.Application.Features.GiftSettings.UseCases.GetGiftSetting;
 using Anela.Heblo.Application.Features.GiftSettings.UseCases.SetGiftSetting;
 using MediatR;
@@ -35,13 +34,5 @@ public class GiftSettingsController : BaseApiController
         var response = await _mediator.Send(command, cancellationToken);
         if (response.Success) return NoContent();
         return BadRequest(response);
-    }
-
-    private string GetCurrentUserId()
-    {
-        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? User.FindFirst("sub")?.Value
-            ?? User.FindFirst("oid")?.Value
-            ?? throw new InvalidOperationException("Authenticated user has no identity claim.");
     }
 }

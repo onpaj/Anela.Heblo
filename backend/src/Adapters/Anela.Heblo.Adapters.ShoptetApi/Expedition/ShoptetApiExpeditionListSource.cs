@@ -5,7 +5,7 @@ using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
-using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.Logistics.Picking;
 using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Xcc;
 using Microsoft.Extensions.Logging;
@@ -88,6 +88,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         var coolingMatrix = allSettings.ToDictionary(
             s => (s.Carrier, s.DeliveryHandling),
             s => s.Cooling);
+        var coolingTextMatrix = allSettings.ToDictionary(
+            s => (s.Carrier, s.DeliveryHandling),
+            s => s.CoolingText);
 
         // Load gift setting once for the entire run
         var giftSetting = await _giftSettings.GetAsync(cancellationToken);
@@ -108,6 +111,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                 var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
                 var expeditionOrder = MapToExpeditionOrder(detail);
                 expeditionOrder.CarrierCooling = ResolveCarrierCooling(shippingGuid, coolingMatrix);
+                expeditionOrder.CoolingText = ResolveCarrierCoolingText(shippingGuid, coolingTextMatrix);
                 expeditionOrder.GiftBadgeText = ResolveGiftBadge(totalWithVat, currencyCode, giftSetting);
                 allExpeditionOrders.Add(expeditionOrder);
                 processedCodes.Add(code);
@@ -307,6 +311,22 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         return matrix.TryGetValue((method.Carrier, handling.Value), out var cooling)
             ? cooling
             : Cooling.None;
+    }
+
+    internal static string? ResolveCarrierCoolingText(
+        string shippingGuid,
+        IReadOnlyDictionary<(Carriers, DeliveryHandling), string?> matrix)
+    {
+        if (!ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method))
+            return null;
+
+        var handling = ShippingMethodRegistry.ResolveDeliveryHandling(method);
+        if (!handling.HasValue)
+            return null;
+
+        return matrix.TryGetValue((method.Carrier, handling.Value), out var text)
+            ? text
+            : null;
     }
 
     internal static string? ResolveGiftBadge(

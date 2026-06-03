@@ -69,6 +69,8 @@ public sealed class ArticlesController : BaseApiController
         return HandleResponse(result);
     }
 
+    [ProducesResponseType(typeof(SubmitArticleFeedbackResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SubmitArticleFeedbackResponse), StatusCodes.Status409Conflict)]
     [HttpPost("{id:guid}/feedback")]
     public async Task<ActionResult<SubmitArticleFeedbackResponse>> SubmitFeedback(
         Guid id,

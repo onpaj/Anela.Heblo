@@ -14,7 +14,6 @@ public abstract class UpcomingProductionTile : ITile
     public TileCategory Category => TileCategory.Manufacture;
     public bool DefaultEnabled => true;
     public bool AutoShow => true; // Feature tile - user choice
-    public Type ComponentType => typeof(object); // Frontend component type not needed for backend
     public string[] RequiredPermissions => Array.Empty<string>();
 
     protected abstract DateOnly ReferenceDate { get; set; }

@@ -2,47 +2,34 @@ using Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Photobank;
-using Anela.Heblo.Persistence;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace Anela.Heblo.Tests.Features.Photobank;
 
-public class PhotobankIndexJobTests : IDisposable
+public class PhotobankIndexJobTests
 {
-    private readonly ApplicationDbContext _db;
+    private readonly Mock<IPhotobankRepository> _repoMock;
     private readonly Mock<IPhotobankGraphService> _graphServiceMock;
     private readonly Mock<IRecurringJobStatusChecker> _statusCheckerMock;
     private readonly PhotobankIndexJob _job;
 
     public PhotobankIndexJobTests()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _db = new ApplicationDbContext(options);
-
+        _repoMock = new Mock<IPhotobankRepository>();
         _graphServiceMock = new Mock<IPhotobankGraphService>();
         _statusCheckerMock = new Mock<IRecurringJobStatusChecker>();
 
-        // Default: job is enabled
         _statusCheckerMock
             .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         _job = new PhotobankIndexJob(
             _graphServiceMock.Object,
-            _db,
+            _repoMock.Object,
             _statusCheckerMock.Object,
             NullLogger<PhotobankIndexJob>.Instance);
-    }
-
-    public void Dispose()
-    {
-        _db.Dispose();
     }
 
     [Fact]
@@ -51,13 +38,13 @@ public class PhotobankIndexJobTests : IDisposable
         // Arrange
         var root = new PhotobankIndexRoot
         {
+            Id = 1,
             SharePointPath = "/sites/test/photos",
             DriveId = "drive-1",
             RootItemId = "root-item-1",
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        _db.PhotobankIndexRoots.Add(root);
 
         var tagRule = new TagRule
         {
@@ -66,8 +53,6 @@ public class PhotobankIndexJobTests : IDisposable
             IsActive = true,
             SortOrder = 0,
         };
-        _db.PhotobankTagRules.Add(tagRule);
-        await _db.SaveChangesAsync();
 
         var photoItem = new GraphPhotoItem
         {
@@ -81,6 +66,47 @@ public class PhotobankIndexJobTests : IDisposable
             IsDeleted = false,
         };
 
+        _repoMock
+            .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([root]);
+
+        _repoMock
+            .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([tagRule]);
+
+        _repoMock
+            .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-abc-123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Photo?)null);
+
+        Photo? capturedPhoto = null;
+        _repoMock
+            .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
+            .Callback<Photo, CancellationToken>((p, _) => capturedPhoto = p)
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        _repoMock
+            .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var tag = new Tag { Id = 42, Name = "produkty" };
+        _repoMock
+            .Setup(r => r.GetOrCreateTagAsync("produkty", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tag);
+
+        PhotoTag? capturedPhotoTag = null;
+        _repoMock
+            .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
+            .Callback<PhotoTag, CancellationToken>((pt, _) => capturedPhotoTag = pt)
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         _graphServiceMock
             .Setup(g => g.GetDeltaAsync("drive-1", "root-item-1", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GraphDeltaResult
@@ -93,20 +119,19 @@ public class PhotobankIndexJobTests : IDisposable
         await _job.ExecuteAsync();
 
         // Assert
-        var photo = await _db.Photos.FirstOrDefaultAsync(p => p.SharePointFileId == "file-abc-123");
-        photo.Should().NotBeNull();
-        photo!.FileName.Should().Be("photo.jpg");
-        photo.FolderPath.Should().Be("Fotky/Produkty");
-        photo.SharePointWebUrl.Should().Be("https://sharepoint.example.com/photo.jpg");
-        photo.FileSizeBytes.Should().Be(1024);
+        capturedPhoto.Should().NotBeNull();
+        capturedPhoto!.SharePointFileId.Should().Be("file-abc-123");
+        capturedPhoto.FileName.Should().Be("photo.jpg");
+        capturedPhoto.FolderPath.Should().Be("Fotky/Produkty");
+        capturedPhoto.SharePointWebUrl.Should().Be("https://sharepoint.example.com/photo.jpg");
+        capturedPhoto.FileSizeBytes.Should().Be(1024);
 
-        var photoTags = await _db.PhotoTags.Where(pt => pt.PhotoId == photo.Id).ToListAsync();
-        photoTags.Should().ContainSingle();
-        photoTags[0].Source.Should().Be(PhotoTagSource.Rule);
+        capturedPhotoTag.Should().NotBeNull();
+        capturedPhotoTag!.TagId.Should().Be(42);
+        capturedPhotoTag.Source.Should().Be(PhotoTagSource.Rule);
 
-        var tag = await _db.PhotobankTags.FirstOrDefaultAsync(t => t.Id == photoTags[0].TagId);
-        tag.Should().NotBeNull();
-        tag!.Name.Should().Be("produkty");
+        _repoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -115,24 +140,23 @@ public class PhotobankIndexJobTests : IDisposable
         // Arrange
         var root = new PhotobankIndexRoot
         {
+            Id = 1,
             SharePointPath = "/sites/test/photos",
             DriveId = "drive-1",
             RootItemId = "root-item-1",
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        _db.PhotobankIndexRoots.Add(root);
 
         var existingPhoto = new Photo
         {
+            Id = 10,
             SharePointFileId = "file-to-delete",
             FileName = "old.jpg",
             FolderPath = "Fotky",
             IndexedAt = DateTime.UtcNow,
             ModifiedAt = DateTime.UtcNow,
         };
-        _db.Photos.Add(existingPhoto);
-        await _db.SaveChangesAsync();
 
         var deletedItem = new GraphPhotoItem
         {
@@ -142,6 +166,22 @@ public class PhotobankIndexJobTests : IDisposable
             DriveId = "drive-1",
             IsDeleted = true,
         };
+
+        _repoMock
+            .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([root]);
+
+        _repoMock
+            .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-to-delete", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingPhoto);
+
+        _repoMock
+            .Setup(r => r.RemovePhotoAsync(existingPhoto, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _graphServiceMock
             .Setup(g => g.GetDeltaAsync("drive-1", "root-item-1", null, It.IsAny<CancellationToken>()))
@@ -155,8 +195,8 @@ public class PhotobankIndexJobTests : IDisposable
         await _job.ExecuteAsync();
 
         // Assert
-        var photo = await _db.Photos.FirstOrDefaultAsync(p => p.SharePointFileId == "file-to-delete");
-        photo.Should().BeNull();
+        _repoMock.Verify(r => r.RemovePhotoAsync(existingPhoto, It.IsAny<CancellationToken>()), Times.Once);
+        _repoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -167,14 +207,21 @@ public class PhotobankIndexJobTests : IDisposable
 
         var root = new PhotobankIndexRoot
         {
+            Id = 1,
             SharePointPath = "/sites/test/photos",
             DriveId = "drive-1",
             RootItemId = "root-1",
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        _db.PhotobankIndexRoots.Add(root);
-        await _db.SaveChangesAsync();
+
+        _repoMock
+            .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([root]);
+
+        _repoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _graphServiceMock
             .Setup(g => g.GetDeltaAsync("drive-1", "root-1", null, It.IsAny<CancellationToken>()))
@@ -187,32 +234,27 @@ public class PhotobankIndexJobTests : IDisposable
         // Act
         await _job.ExecuteAsync();
 
-        // Assert
-        var updatedRoot = await _db.PhotobankIndexRoots.FirstAsync(r => r.Id == root.Id);
-        updatedRoot.DeltaLink.Should().Be(expectedDeltaLink);
-        updatedRoot.LastIndexedAt.Should().NotBeNull();
-        updatedRoot.LastIndexedAt!.Value.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+        // Assert — root object is mutated in-place (tracked entity pattern)
+        root.DeltaLink.Should().Be(expectedDeltaLink);
+        root.LastIndexedAt.Should().NotBeNull();
+        root.LastIndexedAt!.Value.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+        _repoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task ExecuteAsync_SkipsInactiveRoots()
     {
         // Arrange
-        var inactiveRoot = new PhotobankIndexRoot
-        {
-            SharePointPath = "/sites/test/photos",
-            DriveId = "drive-1",
-            RootItemId = "root-item-1",
-            IsActive = false,
-            CreatedAt = DateTime.UtcNow,
-        };
-        _db.PhotobankIndexRoots.Add(inactiveRoot);
-        await _db.SaveChangesAsync();
+        var activeRoots = new List<PhotobankIndexRoot>(); // GetActiveRootsWithDriveAsync already filters
+
+        _repoMock
+            .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(activeRoots);
 
         // Act
         await _job.ExecuteAsync();
 
-        // Assert — graph service should never be called for inactive roots
+        // Assert — graph service should never be called when no active roots
         _graphServiceMock.Verify(
             g => g.GetDeltaAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);

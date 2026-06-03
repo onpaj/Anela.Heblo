@@ -1,4 +1,3 @@
-using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

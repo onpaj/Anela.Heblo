@@ -5,9 +5,11 @@ using Anela.Heblo.API.HealthChecks.DataQuality;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Telemetry;
+using Anela.Heblo.API.Infrastructure.ExceptionHandling;
 using Anela.Heblo.API.Infrastructure.Telemetry;
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.Configuration;
 using Microsoft.OpenApi.Models;
 using Hangfire;
 using Hangfire.MemoryStorage;
@@ -21,7 +23,9 @@ using Anela.Heblo.Adapters.Cups;
 using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.API.Features.ExpeditionList;
 using Anela.Heblo.API.PDFPrints;
+using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf;
@@ -32,9 +36,9 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationInsightsServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
-        var appInsightsConnectionString = configuration[ConfigurationConstants.APPLICATION_INSIGHTS_CONNECTION_STRING]
-                                        ?? configuration[ConfigurationConstants.APPINSIGHTS_INSTRUMENTATION_KEY]
-                                        ?? configuration[ConfigurationConstants.APPLICATIONINSIGHTS_CONNECTION_STRING];
+        var appInsightsConnectionString = configuration[InfrastructureConstants.APPLICATION_INSIGHTS_CONNECTION_STRING]
+                                        ?? configuration[InfrastructureConstants.APPINSIGHTS_INSTRUMENTATION_KEY]
+                                        ?? configuration[InfrastructureConstants.APPLICATIONINSIGHTS_CONNECTION_STRING];
 
         if (!string.IsNullOrEmpty(appInsightsConnectionString))
         {
@@ -62,7 +66,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddCorsServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var allowedOrigins = configuration.GetSection(ConfigurationConstants.CORS_ALLOWED_ORIGINS).Get<string[]>() ?? Array.Empty<string>();
+        var allowedOrigins = configuration.GetSection(InfrastructureConstants.CORS_ALLOWED_ORIGINS).Get<string[]>() ?? Array.Empty<string>();
 
         // Conductor parallel instances serve the frontend on a dynamically chosen port,
         // so the exact origin is unknown ahead of time. Under Conductor overrides, allow
@@ -71,7 +75,7 @@ public static class ServiceCollectionExtensions
 
         services.AddCors(options =>
         {
-            options.AddPolicy(ConfigurationConstants.CORS_POLICY_NAME, policy =>
+            options.AddPolicy(InfrastructureConstants.CORS_POLICY_NAME, policy =>
             {
                 if (allowAnyLoopbackOrigin)
                 {
@@ -106,13 +110,13 @@ public static class ServiceCollectionExtensions
         // Add database health check via the shared NpgsqlDataSource so the probe
         // reuses the application connection pool instead of opening a fresh connection
         // on every health-check probe (which caused TaskCanceledException spikes).
-        var dbConnectionString = configuration.GetConnectionString(ConfigurationConstants.DEFAULT_CONNECTION);
+        var dbConnectionString = configuration.GetConnectionString(InfrastructureConstants.DEFAULT_CONNECTION);
         if (!string.IsNullOrEmpty(dbConnectionString))
         {
             healthChecksBuilder.AddNpgSql(
                 sp => sp.GetRequiredService<NpgsqlDataSource>(),
-                name: ConfigurationConstants.DATABASE_HEALTH_CHECK,
-                tags: new[] { ConfigurationConstants.DB_TAG, ConfigurationConstants.POSTGRESQL_TAG });
+                name: InfrastructureConstants.DATABASE_HEALTH_CHECK,
+                tags: new[] { InfrastructureConstants.DB_TAG, InfrastructureConstants.POSTGRESQL_TAG });
         }
 
         return services;
@@ -122,6 +126,11 @@ public static class ServiceCollectionExtensions
     {
         // Register TimeProvider
         services.AddSingleton(TimeProvider.System);
+
+        // Global exception → HTTP mapping for infrastructure exceptions.
+        // Business errors continue to flow through BaseApiController.HandleResponse.
+        services.AddExceptionHandler<UnauthorizedAccessExceptionHandler>();
+        services.AddProblemDetails();
 
         // Register HttpClient for E2E testing middleware
         services.AddHttpClient();
@@ -338,6 +347,13 @@ public static class ServiceCollectionExtensions
         // Register IBackgroundWorker implementation
         services.AddTransient<IBackgroundWorker, HangfireBackgroundWorker>();
 
+        // Register Hangfire adapter implementations (interfaces live in Application,
+        // concrete types live in API/Infrastructure/Hangfire — relocated to keep the
+        // Application project free of Hangfire imports for these specific adapters).
+        services.AddScoped<IHangfireJobEnqueuer, HangfireJobEnqueuer>();
+        services.AddScoped<IFailedJobCounter, HangfireFailedJobCounter>();
+        services.AddSingleton<IHangfireRecurringJobScheduler, HangfireRecurringJobScheduler>();
+
         // Note: IRecurringJobStatusChecker is now registered in Application layer (BackgroundJobsModule)
 
         // Defensive: ensure IMemoryCache is available for handlers that cache Hangfire responses.
@@ -381,6 +397,10 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddPrintQueueSink(this IServiceCollection services, IConfiguration configuration)
     {
+        // The CUPS label-printing infrastructure (ILabelPrintingService) is always available —
+        // it is used by MaterialContainer label printing regardless of the expedition print sink.
+        services.AddCupsPrinting(configuration);
+
         var printSink = configuration["ExpeditionList:PrintSink"];
         switch (printSink)
         {
@@ -388,15 +408,13 @@ public static class ServiceCollectionExtensions
                 services.AddAzurePrintQueueSink(configuration);
                 break;
             case "Cups":
-                services.AddCupsAdapter(configuration);
+                services.AddScoped<IPrintQueueSink, CupsPrintQueueSink>();
                 services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
                 break;
             case "Combined":
-                // AddAzurePrintQueueSink and AddCupsAdapter each also register a non-keyed
-                // IPrintQueueSink as a side effect; those bindings are unused here — the
-                // last non-keyed registration (CombinedPrintQueueSink below) wins.
+                // AddAzurePrintQueueSink registers a non-keyed IPrintQueueSink as a side effect;
+                // it is unused here — the last non-keyed registration (CombinedPrintQueueSink) wins.
                 services.AddAzurePrintQueueSink(configuration);
-                services.AddCupsAdapter(configuration);
                 services.AddKeyedScoped<IPrintQueueSink, AzureBlobPrintQueueSink>("azure");
                 services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
                 services.AddScoped<IPrintQueueSink, CombinedPrintQueueSink>();

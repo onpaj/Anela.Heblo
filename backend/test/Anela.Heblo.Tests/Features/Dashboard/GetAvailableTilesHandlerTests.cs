@@ -25,7 +25,7 @@ public class GetAvailableTilesHandlerTests
         var request = new GetAvailableTilesRequest();
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
-            .Returns(new List<ITile>());
+            .Returns(new List<TileMetadata>());
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -41,10 +41,13 @@ public class GetAvailableTilesHandlerTests
     {
         // Arrange
         var request = new GetAvailableTilesRequest();
-        var tile1 = new TestTile1();
-        var tile2 = new TestTile2();
 
-        var tiles = new List<ITile> { tile1, tile2 };
+        var tiles = new List<TileMetadata>
+        {
+            new TileMetadata("test1", "Test Tile 1", "Description 1", TileSize.Small, TileCategory.Finance, true, false, new[] { "read" }),
+            new TileMetadata("test2", "Test Tile 2", "Description 2", TileSize.Large, TileCategory.Finance, false, true, new[] { "admin", "write" })
+        };
+
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
             .Returns(tiles);
@@ -59,7 +62,7 @@ public class GetAvailableTilesHandlerTests
 
         var resultTiles = result.Tiles.ToArray();
 
-        resultTiles[0].TileId.Should().Be("test1"); // TestTile1 -> test1
+        resultTiles[0].TileId.Should().Be("test1");
         resultTiles[0].Title.Should().Be("Test Tile 1");
         resultTiles[0].Description.Should().Be("Description 1");
         resultTiles[0].Size.Should().Be("Small");
@@ -68,7 +71,7 @@ public class GetAvailableTilesHandlerTests
         resultTiles[0].AutoShow.Should().BeFalse();
         resultTiles[0].RequiredPermissions.Should().Equal(new[] { "read" });
 
-        resultTiles[1].TileId.Should().Be("test2"); // TestTile2 -> test2
+        resultTiles[1].TileId.Should().Be("test2");
         resultTiles[1].Title.Should().Be("Test Tile 2");
         resultTiles[1].Description.Should().Be("Description 2");
         resultTiles[1].Size.Should().Be("Large");
@@ -83,9 +86,12 @@ public class GetAvailableTilesHandlerTests
     {
         // Arrange
         var request = new GetAvailableTilesRequest();
-        var tile = new TestTileNoPermissions();
 
-        var tiles = new List<ITile> { tile };
+        var tiles = new List<TileMetadata>
+        {
+            new TileMetadata("testtilenoermissions", "Test Tile", "Description", TileSize.Medium, TileCategory.System, true, false, Array.Empty<string>())
+        };
+
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
             .Returns(tiles);
@@ -108,64 +114,12 @@ public class GetAvailableTilesHandlerTests
         var request = new GetAvailableTilesRequest();
         _tileRegistryMock
             .Setup(x => x.GetAvailableTiles())
-            .Returns(new List<ITile>());
+            .Returns(new List<TileMetadata>());
 
         // Act
         await _handler.Handle(request, CancellationToken.None);
 
         // Assert
         _tileRegistryMock.Verify(x => x.GetAvailableTiles(), Times.Once);
-    }
-}
-
-// Test tile classes for testing
-public class TestTile1 : ITile
-{
-    public string Title { get; init; } = "Test Tile 1";
-    public string Description { get; init; } = "Description 1";
-    public TileSize Size { get; init; } = TileSize.Small;
-    public TileCategory Category { get; init; } = TileCategory.Finance;
-    public bool DefaultEnabled { get; init; } = true;
-    public bool AutoShow { get; init; } = false;
-    public Type ComponentType { get; init; } = typeof(object);
-    public string[] RequiredPermissions { get; init; } = new[] { "read" };
-
-    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult((object)"Test Data");
-    }
-}
-
-public class TestTile2 : ITile
-{
-    public string Title { get; init; } = "Test Tile 2";
-    public string Description { get; init; } = "Description 2";
-    public TileSize Size { get; init; } = TileSize.Large;
-    public TileCategory Category { get; init; } = TileCategory.Finance;
-    public bool DefaultEnabled { get; init; } = false;
-    public bool AutoShow { get; init; } = true;
-    public Type ComponentType { get; init; } = typeof(object);
-    public string[] RequiredPermissions { get; init; } = new[] { "admin", "write" };
-
-    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult((object)"Test Data 2");
-    }
-}
-
-public class TestTileNoPermissions : ITile
-{
-    public string Title { get; init; } = "Test Tile";
-    public string Description { get; init; } = "Description";
-    public TileSize Size { get; init; } = TileSize.Medium;
-    public TileCategory Category { get; init; } = TileCategory.System;
-    public bool DefaultEnabled { get; init; } = true;
-    public bool AutoShow { get; init; } = false;
-    public Type ComponentType { get; init; } = typeof(object);
-    public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
-
-    public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult((object)"Test Data");
     }
 }

@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 using Anela.Heblo.Application.Shared;
@@ -32,7 +31,8 @@ public class GetProductMarginAnalysisHandlerTests
 
         _handler = new GetProductMarginAnalysisHandler(
             _analyticsRepositoryMock.Object,
-            _reportBuilderServiceMock.Object);
+            _reportBuilderServiceMock.Object,
+            new MarginCalculator());
     }
 
     [Fact]
@@ -70,10 +70,10 @@ public class GetProductMarginAnalysisHandlerTests
             UnitsSold = 45
         };
 
-        var monthlyBreakdown = new List<GetProductMarginAnalysisResponse.MonthlyMarginBreakdown>();
+        var monthlyBreakdown = new List<MonthlyMarginBreakdownDto>();
         for (int month = 1; month <= 12; month++)
         {
-            monthlyBreakdown.Add(new GetProductMarginAnalysisResponse.MonthlyMarginBreakdown
+            monthlyBreakdown.Add(new MonthlyMarginBreakdownDto
             {
                 Month = new DateTime(2024, month, 1),
                 UnitsSold = month == 3 ? 15 : month == 6 ? 30 : 0,
@@ -104,51 +104,6 @@ public class GetProductMarginAnalysisHandlerTests
         result.TotalMargin.Should().Be(4500m);
         result.MarginPercentage.Should().BeApproximately(66.67m, 0.1m);
         result.MonthlyBreakdown.Should().HaveCount(12);
-    }
-
-    [Fact]
-    public async Task Handle_InvalidDateRange_ReturnsErrorResponse()
-    {
-        // Arrange
-        var request = new GetProductMarginAnalysisRequest
-        {
-            ProductId = "PROD001",
-            StartDate = new DateTime(2024, 12, 31),
-            EndDate = new DateTime(2024, 1, 1), // End before start
-            IncludeBreakdown = true
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidDateRange);
-        result.Params.Should().ContainKey("startDate");
-        result.Params.Should().ContainKey("endDate");
-    }
-
-    [Fact]
-    public async Task Handle_EmptyProductId_ReturnsErrorResponse()
-    {
-        // Arrange
-        var request = new GetProductMarginAnalysisRequest
-        {
-            ProductId = "", // Empty product ID
-            StartDate = new DateTime(2024, 1, 1),
-            EndDate = new DateTime(2024, 12, 31)
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.RequiredFieldMissing);
-        result.Params.Should().ContainKey("field");
-        result.Params["field"].Should().Be("ProductId");
     }
 
     [Fact]

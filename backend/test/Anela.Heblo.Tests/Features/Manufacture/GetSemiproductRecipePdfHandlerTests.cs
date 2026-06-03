@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -10,14 +11,14 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class GetSemiproductRecipePdfHandlerTests
 {
     private readonly Mock<IManufactureClient> _manufactureClientMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<ISemiproductRecipeRenderer> _rendererMock;
     private readonly GetSemiproductRecipePdfHandler _handler;
 
     public GetSemiproductRecipePdfHandlerTests()
     {
         _manufactureClientMock = new Mock<IManufactureClient>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _catalogRepositoryMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((CatalogAggregate?)null);
         _rendererMock = new Mock<ISemiproductRecipeRenderer>();

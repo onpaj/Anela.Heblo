@@ -1,4 +1,5 @@
 import React from "react";
+import { ManufactureType } from "../../../api/generated/api-client";
 
 interface ProductsDataGridProps {
   order: any;
@@ -33,7 +34,11 @@ export const ProductsDataGrid: React.FC<ProductsDataGridProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {order.products.map((product: any, index: number) => {
-                const isDirectRow = product.productCode && order.semiProduct?.productCode &&
+                // Direct semiproduct output ("Přímý výstup") only exists for MultiPhase orders.
+                // For SinglePhase the semiproduct is a placeholder pointing at the first product,
+                // so this sentinel would wrongly tag the real product as a bulk/grams row.
+                const isDirectRow = order.manufactureType !== ManufactureType.SinglePhase &&
+                  product.productCode && order.semiProduct?.productCode &&
                   product.productCode === order.semiProduct.productCode;
                 return (
                   <tr key={index} className={isDirectRow ? "bg-amber-50 hover:bg-amber-100" : "hover:bg-gray-50"}>

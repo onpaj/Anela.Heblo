@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common.TimePeriods;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -9,7 +10,7 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis
 
 public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufacturingStockAnalysisRequest, GetManufacturingStockAnalysisResponse>
 {
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
     private readonly ITimePeriodResolver _timePeriodResolver;
     private readonly IConsumptionRateCalculator _consumptionCalculator;
     private readonly IProductionActivityAnalyzer _productionAnalyzer;
@@ -19,7 +20,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
     private readonly ILogger<GetManufacturingStockAnalysisHandler> _logger;
 
     public GetManufacturingStockAnalysisHandler(
-        ICatalogRepository catalogRepository,
+        IManufactureCatalogSource catalogSource,
         ITimePeriodResolver timePeriodResolver,
         IConsumptionRateCalculator consumptionCalculator,
         IProductionActivityAnalyzer productionAnalyzer,
@@ -28,7 +29,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         IItemFilterService filterService,
         ILogger<GetManufacturingStockAnalysisHandler> logger)
     {
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
         _timePeriodResolver = timePeriodResolver;
         _consumptionCalculator = consumptionCalculator;
         _productionAnalyzer = productionAnalyzer;
@@ -50,7 +51,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         var outerTo = ranges.Max(r => r.To);
 
         // 2. Get finished products data
-        var allCatalogItems = await _catalogRepository.GetAllAsync(cancellationToken);
+        var allCatalogItems = await _catalogSource.GetAllAsync(cancellationToken);
         var finishedProducts = allCatalogItems
             .Where(item => item.Type == ProductType.Product)
             .ToList();
