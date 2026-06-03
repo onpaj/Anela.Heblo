@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -8,16 +9,16 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRe
 public class GetSemiproductRecipePdfHandler : IRequestHandler<GetSemiproductRecipePdfRequest, GetSemiproductRecipePdfResponse>
 {
     private readonly IManufactureClient _manufactureClient;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
     private readonly ISemiproductRecipeRenderer _renderer;
 
     public GetSemiproductRecipePdfHandler(
         IManufactureClient manufactureClient,
-        ICatalogRepository catalogRepository,
+        IManufactureCatalogSource catalogSource,
         ISemiproductRecipeRenderer renderer)
     {
         _manufactureClient = manufactureClient;
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
         _renderer = renderer;
     }
 
@@ -35,7 +36,7 @@ public class GetSemiproductRecipePdfHandler : IRequestHandler<GetSemiproductReci
                     new Dictionary<string, string> { { "ProductCode", request.ProductCode } });
             }
 
-            var catalog = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+            var catalog = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
 
             var totalAmount = template.Ingredients.Sum(i => i.Amount);
             double scaleFactor = (request.BatchSize.HasValue && template.OriginalAmount > 0)

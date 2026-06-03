@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common.TimePeriods;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -9,20 +10,20 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
 public class BatchPlanningService : IBatchPlanningService
 {
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
     private readonly IManufactureClient _manufactureClient;
     private readonly IBatchDistributionCalculator _batchDistributionCalculator;
     private readonly IConsumptionRateCalculator _consumptionRateCalculator;
     private readonly ILogger<BatchPlanningService> _logger;
 
     public BatchPlanningService(
-        ICatalogRepository catalogRepository,
+        IManufactureCatalogSource catalogSource,
         IManufactureClient manufactureClient,
         IBatchDistributionCalculator batchDistributionCalculator,
         IConsumptionRateCalculator consumptionRateCalculator,
         ILogger<BatchPlanningService> logger)
     {
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
         _manufactureClient = manufactureClient;
         _batchDistributionCalculator = batchDistributionCalculator;
         _consumptionRateCalculator = consumptionRateCalculator;
@@ -311,7 +312,7 @@ public class BatchPlanningService : IBatchPlanningService
         CancellationToken cancellationToken)
     {
         // For single-phase manufacturing, the request.ProductCode is actually the product code
-        var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+        var product = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
         if (product == null)
         {
             throw new ArgumentException($"Product with code '{request.ProductCode}' not found.");
@@ -358,7 +359,7 @@ public class BatchPlanningService : IBatchPlanningService
         CancellationToken cancellationToken)
     {
         // 1. Get semiproduct info
-        var semiproduct = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+        var semiproduct = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
         if (semiproduct == null)
         {
             throw new ArgumentException($"Semiproduct with code '{request.ProductCode}' not found.");
@@ -381,7 +382,7 @@ public class BatchPlanningService : IBatchPlanningService
         var batchPlanItems = new List<BatchPlanItemDto>();
         foreach (var template in productTemplates)
         {
-            var product = await _catalogRepository.GetByIdAsync(template.ProductCode, cancellationToken);
+            var product = await _catalogSource.GetByIdAsync(template.ProductCode, cancellationToken);
             if (product == null)
             {
                 _logger.LogWarning("Product {ProductCode} found in template but not in catalog", template.ProductCode);

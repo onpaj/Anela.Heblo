@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -7,12 +8,12 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 public class ResidueDistributionCalculator : IResidueDistributionCalculator
 {
     private readonly IManufactureClient _manufactureClient;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
 
-    public ResidueDistributionCalculator(IManufactureClient manufactureClient, ICatalogRepository catalogRepository)
+    public ResidueDistributionCalculator(IManufactureClient manufactureClient, IManufactureCatalogSource catalogSource)
     {
         _manufactureClient = manufactureClient;
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
     }
 
     public async Task<ResidueDistribution> CalculateAsync(UpdateManufactureOrderDto order, CancellationToken cancellationToken = default)
@@ -43,7 +44,7 @@ public class ResidueDistributionCalculator : IResidueDistributionCalculator
 
         var totalTheoretical = productData.Sum(p => p.TheoreticalConsumption);
 
-        var semiProductCatalog = await _catalogRepository.GetByIdAsync(order.SemiProduct.ProductCode, cancellationToken);
+        var semiProductCatalog = await _catalogSource.GetByIdAsync(order.SemiProduct.ProductCode, cancellationToken);
         var allowedResiduePercentage = semiProductCatalog?.Properties.AllowedResiduePercentage ?? 0;
 
         var difference = actualSemiProduct - totalTheoretical;
