@@ -109,8 +109,11 @@ public class CatalogConstantsTests
         var methods = type.GetMethods().Where(m => m.DeclaringType == type); // Exclude inherited methods
 
         // Assert
-        fields.Should().HaveCount(1, "Should have exactly one constant field");
-        fields.Single().Name.Should().Be(nameof(CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD));
+        fields.Select(f => f.Name).Should().BeEquivalentTo(new[]
+        {
+            nameof(CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD),
+            nameof(CatalogConstants.HISTORY_FLOOR_DATE)
+        });
         properties.Should().BeEmpty("Constants class should not have properties");
         methods.Should().BeEmpty("Constants class should not have methods");
     }
@@ -131,5 +134,29 @@ public class CatalogConstantsTests
         field!.IsPublic.Should().BeTrue("Constant should be public for external use");
         field.FieldType.Should().Be<int>("Constant should be integer type");
         field.GetValue(null).Should().Be(999, "Constant should have expected value");
+    }
+
+    [Fact]
+    public void HISTORY_FLOOR_DATE_HasExpectedValue()
+    {
+        // Arrange & Act
+        var floor = CatalogConstants.HISTORY_FLOOR_DATE;
+
+        // Assert
+        floor.Should().Be(new DateTime(2020, 1, 1));
+    }
+
+    [Fact]
+    public void HISTORY_FLOOR_DATE_IsStaticReadonlyDateTime()
+    {
+        // Arrange & Act
+        var type = typeof(CatalogConstants);
+        var field = type.GetField(nameof(CatalogConstants.HISTORY_FLOOR_DATE));
+
+        // Assert
+        field.Should().NotBeNull();
+        field!.IsStatic.Should().BeTrue();
+        field.IsInitOnly.Should().BeTrue("HISTORY_FLOOR_DATE is static readonly, not a literal");
+        field.FieldType.Should().Be<DateTime>();
     }
 }
