@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Features.Manufacture;
+
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 
 public class UpdateManufactureOrderDto
@@ -8,6 +10,7 @@ public class UpdateManufactureOrderDto
     public string CreatedByUser { get; set; } = null!;
     public string? ResponsiblePerson { get; set; }
     public DateOnly PlannedDate { get; set; }
+    public ManufactureType ManufactureType { get; set; } = ManufactureType.MultiPhase;
     public string State { get; set; } = null!;
     public DateTime StateChangedAt { get; set; }
     public string StateChangedByUser { get; set; } = null!;

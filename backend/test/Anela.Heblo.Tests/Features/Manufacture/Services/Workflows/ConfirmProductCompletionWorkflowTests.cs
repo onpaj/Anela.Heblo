@@ -646,6 +646,85 @@ public class ConfirmProductCompletionWorkflowTests
         capturedSubmitRequest.DirectSemiProductOutputCode.Should().BeNull();
     }
 
+    [Fact]
+    public async Task ExecuteAsync_SinglePhaseOrder_IncludesProductMatchingSemiproductAndEmitsNoDirectOutput()
+    {
+        // Arrange — SinglePhase order. The SemiProduct is a placeholder pointing at the first product
+        // (P001), and P001 is a real finished product. It must NOT be treated as direct semiproduct
+        // output: all products go to ERP as finished products, and no direct output is emitted.
+        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m }, { 2, 3.0m } };
+        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+
+        var updateOrderResponse = new UpdateManufactureOrderResponse
+        {
+            Success = true,
+            Order = new UpdateManufactureOrderDto
+            {
+                OrderNumber = "MO-2024-SINGLE",
+                ManufactureType = ManufactureType.SinglePhase,
+                SemiProduct = new UpdateManufactureOrderSemiProductDto
+                {
+                    ProductCode = "P001", // placeholder == first product
+                    ProductName = "Product 1",
+                    ActualQuantity = 5.0m,
+                    PlannedQuantity = 5.0m,
+                    LotNumber = "LOT-SINGLE",
+                    ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
+                },
+                Products = new List<UpdateManufactureOrderProductDto>
+                {
+                    new UpdateManufactureOrderProductDto
+                    {
+                        ProductCode = "P001",
+                        ProductName = "Product 1",
+                        ActualQuantity = 5.0m,
+                        PlannedQuantity = 5.0m,
+                    },
+                    new UpdateManufactureOrderProductDto
+                    {
+                        ProductCode = "P002",
+                        ProductName = "Product 2",
+                        ActualQuantity = 3.0m,
+                        PlannedQuantity = 3.0m,
+                    },
+                },
+            },
+        };
+
+        SubmitManufactureRequest? capturedSubmitRequest = null;
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updateOrderResponse);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<SubmitManufactureRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<SubmitManufactureResponse>, CancellationToken>(
+                (r, _) => capturedSubmitRequest = (SubmitManufactureRequest)r)
+            .ReturnsAsync(CreateSuccessfulSubmitManufactureResponse("ERP-SINGLE-001"));
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updateStatusResponse);
+
+        _residueCalculatorMock
+            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ResidueDistribution { IsWithinAllowedThreshold = true });
+
+        // Act
+        var result = await _workflow.ExecuteAsync(ValidOrderId, productQuantities, false, ValidChangeReason, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        capturedSubmitRequest.Should().NotBeNull();
+        capturedSubmitRequest!.ManufactureType.Should().Be(ErpManufactureType.Product);
+        capturedSubmitRequest.Items.Select(i => i.ProductCode)
+            .Should().BeEquivalentTo(new[] { "P001", "P002" });
+        capturedSubmitRequest.DirectSemiProductOutputAmount.Should().Be(0m);
+        capturedSubmitRequest.DirectSemiProductOutputCode.Should().BeNull();
+        capturedSubmitRequest.DirectSemiProductOutputName.Should().BeNull();
+    }
+
     #region Helper Methods
 
     private void SetupMediatorResponses(
