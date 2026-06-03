@@ -316,6 +316,52 @@ public class BankStatementImportRepositoryTests : IDisposable
         Assert.Equal(saved1.Id, items.First().Id);
     }
 
+    [Fact]
+    public async Task GetFilteredAsync_WithErrorsOnly_ReturnsOnlyNonOkImports()
+    {
+        // Arrange
+        var ok = CreateTestImport("T-OK", DateTime.UtcNow.Date, "ACC", CurrencyCode.CZK);
+        ok.ImportResult = ImportStatus.Success;
+        var failed = CreateTestImport("T-FAIL", DateTime.UtcNow.Date, "ACC", CurrencyCode.CZK);
+        failed.ImportResult = ImportStatus.ProcessingError;
+
+        await _repository.AddAsync(ok);
+        await _repository.AddAsync(failed);
+
+        // Act
+        var (items, totalCount) = await _repository.GetFilteredAsync(
+            new BankStatementListFilter(ErrorsOnly: true));
+
+        // Assert
+        Assert.Equal(1, totalCount);
+        Assert.Single(items);
+        Assert.Equal("T-FAIL", items.First().TransferId);
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_WithErrorsOnlyFalseOrNull_ReturnsAll()
+    {
+        // Arrange
+        var ok = CreateTestImport("T-OK", DateTime.UtcNow.Date, "ACC", CurrencyCode.CZK);
+        ok.ImportResult = ImportStatus.Success;
+        var failed = CreateTestImport("T-FAIL", DateTime.UtcNow.Date, "ACC", CurrencyCode.CZK);
+        failed.ImportResult = ImportStatus.ProcessingError;
+
+        await _repository.AddAsync(ok);
+        await _repository.AddAsync(failed);
+
+        // Act — null
+        var (itemsNull, totalNull) = await _repository.GetFilteredAsync(
+            new BankStatementListFilter(ErrorsOnly: null));
+        // Act — false
+        var (itemsFalse, totalFalse) = await _repository.GetFilteredAsync(
+            new BankStatementListFilter(ErrorsOnly: false));
+
+        // Assert
+        Assert.Equal(2, totalNull);
+        Assert.Equal(2, totalFalse);
+    }
+
     private static BankStatementImport CreateTestImport(string transferId, DateTime statementDate, string account, CurrencyCode currency)
     {
         var import = new BankStatementImport(transferId, statementDate);
