@@ -1,0 +1,3 @@
+Plan saved to `docs/superpowers/plans/2026-06-03-remove-bank-statement-import-query-dto.md`.
+
+It covers the spec's FR-1/FR-2/FR-3 plus the arch-review's FR-4 doc fix as five tasks: verify-no-references → `git rm` the DTO → rewrite the stale `docs/features/comgate.md` block to name `GetBankStatementListRequest` with its real 11 properties → build/format/test/OpenAPI-byte-identity validation → single atomic commit and push. Each step has exact commands, expected output, and the full final text where applicable (no placeholders).
