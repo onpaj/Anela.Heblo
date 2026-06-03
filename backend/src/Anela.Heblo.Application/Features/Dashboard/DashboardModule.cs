@@ -17,6 +17,9 @@ public static class DashboardModule
         // Per-user async lock for serializing concurrent UserDashboardSettings mutations
         services.AddSingleton<IUserDashboardSettingsLock, UserDashboardSettingsLock>();
 
+        // Shared scaffold for Enable/Disable tile (and future) mutations
+        services.AddScoped<IUserDashboardSettingsMutator, UserDashboardSettingsMutator>();
+
         return services;
     }
 }
