@@ -29,7 +29,7 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         {
             _logger.LogDebug("Handling GetConfiguration request");
 
-            var appConfig = await BuildApplicationConfigurationAsync();
+            var appConfig = BuildApplicationConfiguration();
 
             var response = new GetConfigurationResponse
             {
@@ -50,7 +50,7 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         }
     }
 
-    private async Task<ApplicationConfiguration> BuildApplicationConfigurationAsync()
+    private ApplicationConfiguration BuildApplicationConfiguration()
     {
         // Get version with priority order:
         // 1. APP_VERSION (set by CI/CD pipeline with GitVersion)
@@ -66,8 +66,6 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         var useMockAuth = _configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, false);
 
         var config = ApplicationConfiguration.CreateWithDefaults(version, environment, useMockAuth);
-
-        await Task.CompletedTask; // Placeholder for potential async operations
 
         return config;
     }
