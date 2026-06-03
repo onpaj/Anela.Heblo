@@ -5,7 +5,6 @@ using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace Anela.Heblo.Application.Features.GridLayouts.UseCases.SaveGridLayout;
 
@@ -41,12 +40,11 @@ public class SaveGridLayoutHandler : IRequestHandler<SaveGridLayoutRequest, Save
             await _repository.UpsertAsync(userId, request.GridKey, json, cancellationToken);
             return new SaveGridLayoutResponse();
         }
-        catch (Exception ex) when (ex is PostgresException or NpgsqlException)
+        catch (GridLayoutPersistenceException ex)
         {
-            var pgEx = ex as PostgresException ?? ex.InnerException as PostgresException;
             _logger.LogError(ex,
                 "Database error saving GridLayout for user={UserId} gridKey={GridKey} SqlState={SqlState}",
-                userId, request.GridKey, pgEx?.SqlState);
+                userId, request.GridKey, ex.SqlState);
             return new SaveGridLayoutResponse(ErrorCodes.DatabaseError);
         }
     }

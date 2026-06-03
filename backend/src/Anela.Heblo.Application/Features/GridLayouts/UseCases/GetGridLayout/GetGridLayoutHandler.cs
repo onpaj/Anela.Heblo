@@ -4,7 +4,6 @@ using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace Anela.Heblo.Application.Features.GridLayouts.UseCases.GetGridLayout;
 
@@ -36,18 +35,34 @@ public class GetGridLayoutHandler : IRequestHandler<GetGridLayoutRequest, GetGri
                 return new GetGridLayoutResponse { Layout = null };
             }
 
-            var dto = JsonSerializer.Deserialize<GridLayoutDto>(entity.LayoutJson) ?? new GridLayoutDto();
+            GridLayoutDto? dto;
+            try
+            {
+                dto = JsonSerializer.Deserialize<GridLayoutDto>(entity.LayoutJson);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex,
+                    "Malformed LayoutJson for user={UserId} gridKey={GridKey}; returning null layout",
+                    userId, request.GridKey);
+                return new GetGridLayoutResponse { Layout = null };
+            }
+
+            if (dto is null)
+            {
+                return new GetGridLayoutResponse { Layout = null };
+            }
+
             dto.GridKey = entity.GridKey;
             dto.LastModified = entity.LastModified;
 
             return new GetGridLayoutResponse { Layout = dto };
         }
-        catch (Exception ex) when (ex is PostgresException or NpgsqlException)
+        catch (GridLayoutPersistenceException ex)
         {
-            var pgEx = ex as PostgresException ?? ex.InnerException as PostgresException;
             _logger.LogError(ex,
                 "Database error reading GridLayout for user={UserId} gridKey={GridKey} SqlState={SqlState}",
-                userId, request.GridKey, pgEx?.SqlState);
+                userId, request.GridKey, ex.SqlState);
             return new GetGridLayoutResponse { Layout = null };
         }
     }

@@ -1,10 +1,14 @@
+using Anela.Heblo.Application.Features.Dashboard.Contracts;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Application.Features.DataQuality.DashboardTiles;
 
+[TileId("dataqualitystatus")]
 public class DataQualityStatusTile : ITile
 {
+    private const string DrillDownRouteKey = "dataQuality";
+
     private readonly IDqtRunRepository _repository;
 
     public string Title => "Kvalita dat";
@@ -33,7 +37,7 @@ public class DataQualityStatusTile : ITile
                 {
                     status = "no_data",
                     data = (object?)null,
-                    drillDown = new { href = "/data-quality", enabled = true }
+                    drillDown = new DashboardTileDrillDown { RouteKey = DrillDownRouteKey, Enabled = true }
                 };
             }
 
@@ -55,7 +59,7 @@ public class DataQualityStatusTile : ITile
                     totalChecked = run.TotalChecked,
                     totalMismatches = run.TotalMismatches
                 },
-                drillDown = new { href = "/data-quality", enabled = true }
+                drillDown = new DashboardTileDrillDown { RouteKey = DrillDownRouteKey, Enabled = true }
             };
         }
         catch
@@ -64,7 +68,7 @@ public class DataQualityStatusTile : ITile
             {
                 status = "error",
                 data = (object?)null,
-                drillDown = new { href = "/data-quality", enabled = true }
+                drillDown = new DashboardTileDrillDown { RouteKey = DrillDownRouteKey, Enabled = true }
             };
         }
     }

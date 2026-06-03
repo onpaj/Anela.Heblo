@@ -1,13 +1,10 @@
-using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Logistics.Contracts;
+using Anela.Heblo.Application.Features.Logistics.Contracts.Models;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
-using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.Sales;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
-using Anela.Heblo.Xcc.Services;
 using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -19,9 +16,9 @@ public class GiftPackageManufactureServiceTests
 {
     private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<IGiftPackageManufactureRepository> _giftPackageRepositoryMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<ILogisticsCatalogSource> _catalogSourceMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
-    private readonly Mock<IStockUpProcessingService> _stockUpProcessingServiceMock;
+    private readonly Mock<ILogisticsStockOperationService> _stockOperationServiceMock;
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly Mock<ILogger<GiftPackageManufactureService>> _loggerMock;
@@ -32,9 +29,9 @@ public class GiftPackageManufactureServiceTests
     {
         _manufactureClientMock = new Mock<IManufactureClient>();
         _giftPackageRepositoryMock = new Mock<IGiftPackageManufactureRepository>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogSourceMock = new Mock<ILogisticsCatalogSource>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
-        _stockUpProcessingServiceMock = new Mock<IStockUpProcessingService>();
+        _stockOperationServiceMock = new Mock<ILogisticsStockOperationService>();
         _mapperMock = new Mock<IMapper>();
         _timeProviderMock = new Mock<TimeProvider>();
         _loggerMock = new Mock<ILogger<GiftPackageManufactureService>>();
@@ -45,9 +42,9 @@ public class GiftPackageManufactureServiceTests
         _service = new GiftPackageManufactureService(
             _manufactureClientMock.Object,
             _giftPackageRepositoryMock.Object,
-            _catalogRepositoryMock.Object,
+            _catalogSourceMock.Object,
             _currentUserServiceMock.Object,
-            _stockUpProcessingServiceMock.Object,
+            _stockOperationServiceMock.Object,
             _mapperMock.Object,
             _timeProviderMock.Object,
             _loggerMock.Object);
@@ -57,16 +54,17 @@ public class GiftPackageManufactureServiceTests
     public async Task GetAvailableGiftPackagesAsync_ShouldReturnGiftPackagesWithCorrectDailySales()
     {
         // Arrange
-        var catalogData = CreateTestCatalogData();
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogData);
+        var setProducts = CreateTestGiftPackageItems();
+        _catalogSourceMock
+            .Setup(x => x.GetGiftPackageSetsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(setProducts);
 
         // Act
         var result = await _service.GetAvailableGiftPackagesAsync();
 
         // Assert
         result.Should().NotBeEmpty();
-        result.Should().HaveCount(2); // Only Set type products
+        result.Should().HaveCount(2);
 
         var giftPackage1 = result.First(x => x.Code == "SET001");
         giftPackage1.Name.Should().Be("Test Gift Set 1");
@@ -80,39 +78,18 @@ public class GiftPackageManufactureServiceTests
         giftPackage2.Name.Should().Be("Test Gift Set 2");
         giftPackage2.AvailableStock.Should().Be(30);
         giftPackage2.DailySales.Should().BeApproximately(0.410m, 0.002m); // 150 sales / 365 days
-        giftPackage2.OverstockMinimal.Should().Be(20); // All test products have StockMinSetup = 20
+        giftPackage2.OverstockMinimal.Should().Be(20);
         giftPackage2.SuggestedQuantity.Should().BeGreaterOrEqualTo(0);
         giftPackage2.Severity.Should().BeDefined();
-    }
-
-    [Fact]
-    public async Task GetAvailableGiftPackagesAsync_ShouldFilterOnlySetProducts()
-    {
-        // Arrange
-        var catalogData = CreateTestCatalogData();
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogData);
-
-        // Act
-        var result = await _service.GetAvailableGiftPackagesAsync();
-
-        // Assert
-        result.Should().HaveCount(2); // Should exclude Material and Goods products
-        result.Should().OnlyContain(x => x.Code.StartsWith("SET"));
     }
 
     [Fact]
     public async Task GetAvailableGiftPackagesAsync_WithNoSetProducts_ShouldReturnEmptyList()
     {
         // Arrange
-        var catalogData = new List<CatalogAggregate>
-        {
-            CreateCatalogItem("MAT001", "Material 1", ProductType.Material, 100, 30),
-            CreateCatalogItem("GOODS001", "Goods 1", ProductType.Goods, 80, 25)
-        };
-
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogData);
+        _catalogSourceMock
+            .Setup(x => x.GetGiftPackageSetsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<LogisticsGiftPackageItem>());
 
         // Act
         var result = await _service.GetAvailableGiftPackagesAsync();
@@ -126,21 +103,21 @@ public class GiftPackageManufactureServiceTests
     {
         // Arrange
         var giftPackageCode = "SET001";
-        var product = CreateCatalogItem(giftPackageCode, "Test Gift Set 1", ProductType.Set, 100, 50);
-        var ingredients = CreateTestIngredients();
+        var product = CreateGiftPackageItem(giftPackageCode, "Test Gift Set 1", 100, 50);
 
-        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+        _catalogSourceMock
+            .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureClientMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock
+            .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
 
-        // Setup catalog repository to return ingredient products
-        foreach (var ingredient in ingredients)
-        {
-            var ingredientProduct = CreateCatalogItem(ingredient.ProductCode, ingredient.ProductName, ProductType.Material, 0, ingredient.AvailableStock);
-            _catalogRepositoryMock.Setup(x => x.GetByIdAsync(ingredient.ProductCode, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(ingredientProduct);
-        }
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemAsync("ING001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LogisticsCatalogItem { ProductCode = "ING001", AvailableStock = 100m });
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemAsync("ING002", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LogisticsCatalogItem { ProductCode = "ING002", AvailableStock = 75m });
 
         // Act
         var result = await _service.GetGiftPackageDetailAsync(giftPackageCode);
@@ -166,29 +143,14 @@ public class GiftPackageManufactureServiceTests
     {
         // Arrange
         var giftPackageCode = "NONEXISTENT";
-        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogAggregate)null);
+        _catalogSourceMock
+            .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LogisticsGiftPackageItem?)null);
 
         // Act & Assert
         await _service.Invoking(x => x.GetGiftPackageDetailAsync(giftPackageCode))
             .Should().ThrowAsync<ArgumentException>()
             .WithMessage($"Gift package '{giftPackageCode}' not found or is not a set product");
-    }
-
-    [Fact]
-    public async Task GetGiftPackageDetailAsync_WithNonSetProduct_ShouldThrowArgumentException()
-    {
-        // Arrange
-        var productCode = "MAT001";
-        var product = CreateCatalogItem(productCode, "Material 1", ProductType.Material, 100, 50);
-
-        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(product);
-
-        // Act & Assert
-        await _service.Invoking(x => x.GetGiftPackageDetailAsync(productCode))
-            .Should().ThrowAsync<ArgumentException>()
-            .WithMessage($"Gift package '{productCode}' not found or is not a set product");
     }
 
     [Fact]
@@ -198,21 +160,21 @@ public class GiftPackageManufactureServiceTests
         var giftPackageCode = "SET001";
         var quantity = 5;
         var userId = "testUser";
-        var product = CreateCatalogItem(giftPackageCode, "Test Gift Set 1", ProductType.Set, 100, 50);
+        var product = CreateGiftPackageItem(giftPackageCode, "Test Gift Set 1", 100, 50);
 
-        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+        _catalogSourceMock
+            .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureClientMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock
+            .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
 
-        // Setup catalog repository to return ingredient products
-        var ingredients = CreateTestIngredients();
-        foreach (var ingredient in ingredients)
-        {
-            var ingredientProduct = CreateCatalogItem(ingredient.ProductCode, ingredient.ProductName, ProductType.Material, 0, ingredient.AvailableStock);
-            _catalogRepositoryMock.Setup(x => x.GetByIdAsync(ingredient.ProductCode, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(ingredientProduct);
-        }
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemAsync("ING001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LogisticsCatalogItem { ProductCode = "ING001", AvailableStock = 100m });
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemAsync("ING002", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LogisticsCatalogItem { ProductCode = "ING002", AvailableStock = 75m });
 
         var expectedManufactureDto = new GiftPackageManufactureDto
         {
@@ -225,17 +187,15 @@ public class GiftPackageManufactureServiceTests
         _mapperMock.Setup(x => x.Map<GiftPackageManufactureDto>(It.IsAny<GiftPackageManufactureLog>()))
             .Returns(expectedManufactureDto);
 
-        // Setup current user service to return test user
         _currentUserServiceMock.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(Id: "test-user-id", Name: userId, Email: "test@example.com", IsAuthenticated: true));
 
-        // Setup stock up processing service to create operations (no return value)
-        _stockUpProcessingServiceMock
+        _stockOperationServiceMock
             .Setup(x => x.CreateOperationAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<int>(),
-                It.IsAny<StockUpSourceType>(),
+                It.IsAny<LogisticsStockOperationSource>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -261,17 +221,18 @@ public class GiftPackageManufactureServiceTests
     [Fact]
     public async Task GetAvailableGiftPackagesAsync_WithZeroDaysDiff_ShouldUseDaysDiffAsOne()
     {
-        // Arrange - Set up time provider to return same date for from and to
+        // Arrange
         _timeProviderMock.Setup(x => x.GetUtcNow())
             .Returns(new DateTimeOffset(_testDateTime, TimeSpan.Zero));
 
-        var catalogData = new List<CatalogAggregate>
+        var setProducts = new List<LogisticsGiftPackageItem>
         {
-            CreateCatalogItem("SET001", "Test Gift Set 1", ProductType.Set, 100, 50)
+            CreateGiftPackageItem("SET001", "Test Gift Set 1", 100, 50)
         };
 
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogData);
+        _catalogSourceMock
+            .Setup(x => x.GetGiftPackageSetsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(setProducts);
 
         // Act
         var result = await _service.GetAvailableGiftPackagesAsync();
@@ -279,7 +240,6 @@ public class GiftPackageManufactureServiceTests
         // Assert
         result.Should().HaveCount(1);
         var giftPackage = result.First();
-        // With daysDiff = Math.Max(365, 1) = 365, daily sales should be 100/365
         giftPackage.DailySales.Should().BeApproximately(0.274m, 0.001m);
     }
 
@@ -288,16 +248,17 @@ public class GiftPackageManufactureServiceTests
     {
         // Arrange
         var customFromDate = new DateTime(2024, 1, 1);
-        var customToDate = new DateTime(2024, 3, 31); // 3 month period = ~90 days
-        var expectedDaysDiff = (customToDate - customFromDate).Days; // Should be around 90 days
+        var customToDate = new DateTime(2024, 3, 31);
+        var expectedDaysDiff = (customToDate - customFromDate).Days; // ~90 days
 
-        var catalogData = new List<CatalogAggregate>
+        var setProducts = new List<LogisticsGiftPackageItem>
         {
-            CreateCatalogItemWithSpecificSalesData("SET001", "Test Gift Set 1", ProductType.Set, customFromDate, customToDate, 180) // 180 sales in 90 days = 2 sales/day
+            CreateGiftPackageItemWithSales("SET001", "Test Gift Set 1", 180, 50) // 180 sales / 90 days = 2/day
         };
 
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogData);
+        _catalogSourceMock
+            .Setup(x => x.GetGiftPackageSetsAsync(customFromDate, customToDate, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(setProducts);
 
         // Act
         var result = await _service.GetAvailableGiftPackagesAsync(1.0m, customFromDate, customToDate);
@@ -305,9 +266,7 @@ public class GiftPackageManufactureServiceTests
         // Assert
         result.Should().HaveCount(1);
         var giftPackage = result.First();
-
-        // Daily sales should be around 180 sales / 90 days = 2.0 sales/day (approximately due to weekly distribution)
-        giftPackage.DailySales.Should().BeApproximately(2.0m, 0.3m);
+        giftPackage.DailySales.Should().BeApproximately(2.0m, 0.1m);
     }
 
     [Fact]
@@ -316,23 +275,20 @@ public class GiftPackageManufactureServiceTests
         // Arrange
         var giftPackageCode = "SET001";
         var customFromDate = new DateTime(2024, 1, 1);
-        var customToDate = new DateTime(2024, 2, 29); // 2 month period = ~60 days
+        var customToDate = new DateTime(2024, 2, 29); // ~60 days
 
-        var product = CreateCatalogItemWithSpecificSalesData(giftPackageCode, "Test Gift Set 1", ProductType.Set, customFromDate, customToDate, 120); // 120 sales in 60 days = 2 sales/day
-        var ingredients = CreateTestIngredients();
+        var product = CreateGiftPackageItemWithSales(giftPackageCode, "Test Gift Set 1", 120, 50); // 120 / 60 = 2/day
 
-        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+        _catalogSourceMock
+            .Setup(x => x.GetGiftPackageAsync(giftPackageCode, customFromDate, customToDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureClientMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock
+            .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
-
-        // Setup catalog repository to return ingredient products
-        foreach (var ingredient in ingredients)
-        {
-            var ingredientProduct = CreateCatalogItem(ingredient.ProductCode, ingredient.ProductName, ProductType.Material, 0, ingredient.AvailableStock);
-            _catalogRepositoryMock.Setup(x => x.GetByIdAsync(ingredient.ProductCode, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(ingredientProduct);
-        }
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string code, CancellationToken _) =>
+                new LogisticsCatalogItem { ProductCode = code, AvailableStock = 50m });
 
         // Act
         var result = await _service.GetGiftPackageDetailAsync(giftPackageCode, 1.0m, customFromDate, customToDate);
@@ -340,105 +296,94 @@ public class GiftPackageManufactureServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Code.Should().Be(giftPackageCode);
-
-        // Daily sales should be around 120 sales / 60 days = 2.0 sales/day (approximately due to weekly distribution)
-        result.DailySales.Should().BeApproximately(2.0m, 0.3m);
+        result.DailySales.Should().BeApproximately(2.0m, 0.1m);
     }
 
-    private List<CatalogAggregate> CreateTestCatalogData()
+    [Fact]
+    public async Task GetGiftPackageDetailAsync_CallsGetCatalogItemAsyncPerIngredient()
     {
-        return new List<CatalogAggregate>
+        // Arrange
+        var giftPackageCode = "SET001";
+        var product = CreateGiftPackageItem(giftPackageCode, "Test Gift Set 1", 100, 50);
+
+        _catalogSourceMock
+            .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        _manufactureClientMock
+            .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestProductParts());
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string code, CancellationToken _) =>
+                new LogisticsCatalogItem { ProductCode = code, AvailableStock = 50m });
+
+        // Act
+        var result = await _service.GetGiftPackageDetailAsync(giftPackageCode);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Ingredients.Should().HaveCount(2);
+        _catalogSourceMock.Verify(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task GetGiftPackageDetailAsync_MissingIngredientInCatalog_ReturnsZeroStockAndNullImage()
+    {
+        // Arrange
+        var giftPackageCode = "SET001";
+        var product = CreateGiftPackageItem(giftPackageCode, "Test Gift Set 1", 100, 50);
+
+        _catalogSourceMock
+            .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        _manufactureClientMock
+            .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestProductParts());
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LogisticsCatalogItem?)null);
+
+        // Act
+        var result = await _service.GetGiftPackageDetailAsync(giftPackageCode);
+
+        // Assert — missing ingredients get zero stock and null image
+        result.Should().NotBeNull();
+        result.Ingredients.Should().HaveCount(2);
+        result.Ingredients.Should().OnlyContain(i => i.AvailableStock == 0.0 && i.Image == null);
+    }
+
+    private List<LogisticsGiftPackageItem> CreateTestGiftPackageItems()
+    {
+        return new List<LogisticsGiftPackageItem>
         {
-            CreateCatalogItem("SET001", "Test Gift Set 1", ProductType.Set, 100, 50),
-            CreateCatalogItem("SET002", "Test Gift Set 2", ProductType.Set, 150, 30),
-            CreateCatalogItem("MAT001", "Material 1", ProductType.Material, 80, 100),
-            CreateCatalogItem("GOODS001", "Goods 1", ProductType.Goods, 120, 75)
+            CreateGiftPackageItem("SET001", "Test Gift Set 1", 100, 50),
+            CreateGiftPackageItem("SET002", "Test Gift Set 2", 150, 30),
         };
     }
 
-    private CatalogAggregate CreateCatalogItem(string code, string name, ProductType type, double totalSales, double availableStock)
+    private LogisticsGiftPackageItem CreateGiftPackageItem(string code, string name, int totalSoldInPeriod, decimal availableStock)
     {
-        var item = new CatalogAggregate
+        return new LogisticsGiftPackageItem
         {
             ProductCode = code,
             ProductName = name,
-            Type = type,
-            Stock = new Anela.Heblo.Domain.Features.Catalog.Stock.StockData { Erp = (decimal)availableStock },
-            Properties = new CatalogProperties { StockMinSetup = 20 }
+            AvailableStock = availableStock,
+            TotalSoldInPeriod = totalSoldInPeriod,
+            StockMinSetup = 20,
+            OptimalStockDaysSetup = 30,
         };
-
-        // Create sales history for the last year to simulate GetTotalSold result
-        var salesHistory = new List<CatalogSaleRecord>();
-        var fromDate = _testDateTime.AddYears(-1);
-
-        // Distribute sales across the year to simulate realistic data
-        for (int i = 0; i < 12; i++)
-        {
-            var monthDate = fromDate.AddMonths(i);
-            salesHistory.Add(new CatalogSaleRecord
-            {
-                Date = monthDate,
-                AmountB2B = totalSales / 24, // Half B2B
-                AmountB2C = totalSales / 24, // Half B2C
-                SumB2B = (decimal)(totalSales / 24 * 10), // Dummy price calculation
-                SumB2C = (decimal)(totalSales / 24 * 12)
-            });
-        }
-
-        item.SalesHistory = salesHistory;
-        return item;
     }
 
-    private CatalogAggregate CreateCatalogItemWithSpecificSalesData(string code, string name, ProductType type, DateTime fromDate, DateTime toDate, double totalSales)
+    private LogisticsGiftPackageItem CreateGiftPackageItemWithSales(string code, string name, int totalSoldInPeriod, decimal availableStock)
     {
-        var item = new CatalogAggregate
+        return new LogisticsGiftPackageItem
         {
             ProductCode = code,
             ProductName = name,
-            Type = type,
-            Stock = new Anela.Heblo.Domain.Features.Catalog.Stock.StockData { Erp = 50 }, // Default stock
-            Properties = new CatalogProperties { StockMinSetup = 20 }
-        };
-
-        // Create sales history within the specified date range
-        var salesHistory = new List<CatalogSaleRecord>();
-        var daysDiff = (toDate - fromDate).Days;
-        var salesPerRecord = totalSales / Math.Max(daysDiff / 7, 1); // Weekly records
-
-        for (var date = fromDate; date <= toDate; date = date.AddDays(7))
-        {
-            salesHistory.Add(new CatalogSaleRecord
-            {
-                Date = date,
-                AmountB2B = salesPerRecord / 2, // Half B2B
-                AmountB2C = salesPerRecord / 2, // Half B2C
-                SumB2B = (decimal)(salesPerRecord / 2 * 10), // Dummy price calculation
-                SumB2C = (decimal)(salesPerRecord / 2 * 12)
-            });
-        }
-
-        item.SalesHistory = salesHistory;
-        return item;
-    }
-
-    private List<GiftPackageIngredientDto> CreateTestIngredients()
-    {
-        return new List<GiftPackageIngredientDto>
-        {
-            new GiftPackageIngredientDto
-            {
-                ProductCode = "ING001",
-                ProductName = "Ingredient 1",
-                RequiredQuantity = 2.0,
-                AvailableStock = 100.0
-            },
-            new GiftPackageIngredientDto
-            {
-                ProductCode = "ING002",
-                ProductName = "Ingredient 2",
-                RequiredQuantity = 1.5,
-                AvailableStock = 75.0
-            }
+            AvailableStock = availableStock,
+            TotalSoldInPeriod = totalSoldInPeriod,
+            StockMinSetup = 20,
+            OptimalStockDaysSetup = 30,
         };
     }
 

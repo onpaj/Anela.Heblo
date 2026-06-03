@@ -5,6 +5,7 @@ using Anela.Heblo.API.HealthChecks.DataQuality;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Telemetry;
+using Anela.Heblo.API.Infrastructure.ExceptionHandling;
 using Anela.Heblo.API.Infrastructure.Telemetry;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
@@ -23,6 +24,7 @@ using Anela.Heblo.API.Features.ExpeditionList;
 using Anela.Heblo.API.PDFPrints;
 using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf;
@@ -123,6 +125,11 @@ public static class ServiceCollectionExtensions
     {
         // Register TimeProvider
         services.AddSingleton(TimeProvider.System);
+
+        // Global exception → HTTP mapping for infrastructure exceptions.
+        // Business errors continue to flow through BaseApiController.HandleResponse.
+        services.AddExceptionHandler<UnauthorizedAccessExceptionHandler>();
+        services.AddProblemDetails();
 
         // Register HttpClient for E2E testing middleware
         services.AddHttpClient();
@@ -343,6 +350,7 @@ public static class ServiceCollectionExtensions
         // concrete types live in API/Infrastructure/Hangfire — relocated to keep the
         // Application project free of Hangfire imports for these specific adapters).
         services.AddScoped<IHangfireJobEnqueuer, HangfireJobEnqueuer>();
+        services.AddScoped<IFailedJobCounter, HangfireFailedJobCounter>();
         services.AddSingleton<IHangfireRecurringJobScheduler, HangfireRecurringJobScheduler>();
 
         // Note: IRecurringJobStatusChecker is now registered in Application layer (BackgroundJobsModule)
@@ -388,6 +396,10 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddPrintQueueSink(this IServiceCollection services, IConfiguration configuration)
     {
+        // The CUPS label-printing infrastructure (ILabelPrintingService) is always available —
+        // it is used by MaterialContainer label printing regardless of the expedition print sink.
+        services.AddCupsPrinting(configuration);
+
         var printSink = configuration["ExpeditionList:PrintSink"];
         switch (printSink)
         {
@@ -395,15 +407,13 @@ public static class ServiceCollectionExtensions
                 services.AddAzurePrintQueueSink(configuration);
                 break;
             case "Cups":
-                services.AddCupsAdapter(configuration);
+                services.AddScoped<IPrintQueueSink, CupsPrintQueueSink>();
                 services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
                 break;
             case "Combined":
-                // AddAzurePrintQueueSink and AddCupsAdapter each also register a non-keyed
-                // IPrintQueueSink as a side effect; those bindings are unused here — the
-                // last non-keyed registration (CombinedPrintQueueSink below) wins.
+                // AddAzurePrintQueueSink registers a non-keyed IPrintQueueSink as a side effect;
+                // it is unused here — the last non-keyed registration (CombinedPrintQueueSink) wins.
                 services.AddAzurePrintQueueSink(configuration);
-                services.AddCupsAdapter(configuration);
                 services.AddKeyedScoped<IPrintQueueSink, AzureBlobPrintQueueSink>("azure");
                 services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
                 services.AddScoped<IPrintQueueSink, CombinedPrintQueueSink>();

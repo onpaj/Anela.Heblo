@@ -53,6 +53,8 @@ public interface ISmartsuppRepository
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
 
+    void DiscardChanges();
+
     Task UpdateVisitorCacheAsync(
         string conversationId,
         string? userAgent,

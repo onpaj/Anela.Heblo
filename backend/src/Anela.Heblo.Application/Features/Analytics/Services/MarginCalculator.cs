@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Domain.Features.Analytics;
 
 namespace Anela.Heblo.Application.Features.Analytics.Services;
@@ -19,6 +20,15 @@ public interface IMarginCalculator
         List<AnalyticsProduct> products);
 
     decimal GetMarginAmountForLevel(AnalyticsProduct product, string marginLevel);
+
+    /// <remarks>
+    /// Caller must pre-filter salesInPeriod to the desired period; the calculator sums verbatim.
+    /// salesInPeriod is enumerated exactly once. Unlike CalculateAsync, does not skip products
+    /// with MarginAmount ≤ 0; per-product callers report them with zero margin.
+    /// </remarks>
+    AnalysisMarginData CalculateForProduct(
+        AnalyticsProduct product,
+        IEnumerable<SalesDataPoint> salesInPeriod);
 }
 
 /// <summary>
@@ -111,6 +121,29 @@ public class MarginCalculator : IMarginCalculator
             "M1" => product.M1Amount,
             "M2" => product.M2Amount,
             _ => product.M2Amount // Default to M2
+        };
+    }
+
+    /// <summary>
+    /// Calculates margin data for a specific product based on sales in period
+    /// </summary>
+    public AnalysisMarginData CalculateForProduct(
+        AnalyticsProduct product,
+        IEnumerable<SalesDataPoint> salesInPeriod)
+    {
+        var units = (int)salesInPeriod.Sum(s => s.AmountB2B + s.AmountB2C);
+        var revenue = (decimal)units * product.SellingPrice;
+        var cost = (decimal)units * (product.SellingPrice - product.MarginAmount);
+        var margin = revenue - cost;
+        var marginPercentage = revenue > 0 ? (margin / revenue) * 100m : 0m;
+
+        return new AnalysisMarginData
+        {
+            Revenue = revenue,
+            Cost = cost,
+            Margin = margin,
+            MarginPercentage = marginPercentage,
+            UnitsSold = units,
         };
     }
 }
