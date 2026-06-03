@@ -6,7 +6,6 @@ using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
 using Anela.Heblo.Application.Features.Manufacture.Infrastructure;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.Services.Workflows;
-using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Persistence.Manufacture;
@@ -69,9 +68,6 @@ public static class ManufactureModule
         services.RegisterTile<NextDayProductionTile>();
         services.RegisterTile<ManualActionRequiredTile>();
         services.RegisterTile<ManufactureConditionsTile>();
-
-        // Register protocol renderer placeholder (replaced by QuestPdfManufactureProtocolRenderer in Phase 6)
-        services.AddScoped<IManufactureProtocolRenderer, NotImplementedManufactureProtocolRenderer>();
 
         // Register manufacture error transformation
         services.Scan(scan => scan
