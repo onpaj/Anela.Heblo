@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Services;
+using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Persistence.Marketing;
 using Microsoft.Extensions.Configuration;
@@ -35,7 +36,7 @@ namespace Anela.Heblo.Application.Features.Marketing
             // authentication is active. Mock auth has no ITokenAcquisition registered, so DI
             // validation would fail; NoOpOutlookCalendarSync is used in those environments instead.
             var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
-            var bypassJwt = configuration.GetValue<bool>("BypassJwtValidation", false);
+            var bypassJwt = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, false);
 
             if (!useMockAuth && !bypassJwt)
             {
