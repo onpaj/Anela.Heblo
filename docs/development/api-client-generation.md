@@ -214,20 +214,55 @@ const result = await client.catalog_GetList({ searchTerm: '', pageNumber: 1, pag
 > the code breaks at runtime with no compile-time warning.
 > Use `getApiBaseUrl()` and `getAuthenticatedFetch()` from `./client` instead.
 
-**✅ CORRECT — for hooks that need to branch on specific HTTP status codes (e.g. 409 Conflict):**
+**✅ CORRECT — for endpoints whose business outcomes are surfaced as HTTP status codes (e.g. 409 Conflict):**
+
+The preferred pattern is to model the business outcome in the OpenAPI contract and let the generated client surface it as a typed, non-throwing branch. Annotate the controller action with both the success and the business-outcome status — both pointing at the same response DTO — so that the NSwag template override (when active) emits a typed `else if (status === 4xx)` branch. Until the template is activated, use a hook-level `try/catch` to handle the typed exception:
+
+```csharp
+[ProducesResponseType(typeof(SubmitArticleFeedbackResponse), StatusCodes.Status200OK)]
+[ProducesResponseType(typeof(SubmitArticleFeedbackResponse), StatusCodes.Status409Conflict)]
+[HttpPost("{id:guid}/feedback")]
+public async Task<ActionResult<SubmitArticleFeedbackResponse>> SubmitFeedback(...) { ... }
+```
+
+Then call the typed method and discriminate on the exception status or the existing `BaseResponse.success` + `errorCode` envelope:
+
 ```typescript
-import { getApiBaseUrl, getAuthenticatedFetch } from './client';
+import { getAuthenticatedApiClient } from './client';
 import { SubmitArticleFeedbackRequest } from './generated/api-client';
 
-const body: SubmitArticleFeedbackRequest = { articleId, precisionScore, styleScore, comment };
-const url = `${getApiBaseUrl()}/api/articles/${articleId}/feedback`;
-const response = await getAuthenticatedFetch()(url, {
-  method: 'POST',
-  body: JSON.stringify(body),
-  headers: { Accept: 'application/json' },
-});
+const client = getAuthenticatedApiClient();
+const request = new SubmitArticleFeedbackRequest({ articleId, precisionScore, styleScore, comment });
 
-if (response.status === 409) return { alreadySubmitted: true };
+try {
+  const response = await client.articles_SubmitFeedback(articleId, request);
+  return { precisionScore: response.precisionScore, styleScore: response.styleScore };
+} catch (e: unknown) {
+  const err = e as { status?: number };
+  if (err.status === 409) {
+    // 409 path — already submitted
+    return { alreadySubmitted: true };
+  }
+  throw e;
+}
+```
+
+See `useSubmitArticleFeedbackMutation` in `frontend/src/api/hooks/useArticles.ts` for the canonical example, and `backend/src/Anela.Heblo.API/nswag-templates/README.md` for the template-override status.
+
+**Escape hatch — `getApiBaseUrl()` + `getAuthenticatedFetch()`.**
+
+Reach for these helpers only when an endpoint's business outcome cannot yet be expressed through the generated client — for example, an `If-Match`-based update returning HTTP 412 Precondition Failed before the controller has been annotated with `[ProducesResponseType(StatusCodes.Status412PreconditionFailed)]`. The helpers attach auth headers, do not throw on non-2xx, and do not trigger the global error toast — leaving status-code branching entirely to the caller:
+
+```typescript
+import { getApiBaseUrl, getAuthenticatedFetch } from './client';
+
+const url = `${getApiBaseUrl()}/api/resources/${id}`;
+const response = await getAuthenticatedFetch()(url, {
+  method: 'PUT',
+  headers: { 'If-Match': etag, 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+});
+if (response.status === 412) return { precondition: 'stale' };
 if (!response.ok) throw new Error(`HTTP ${response.status}`);
 return response.json();
 ```
