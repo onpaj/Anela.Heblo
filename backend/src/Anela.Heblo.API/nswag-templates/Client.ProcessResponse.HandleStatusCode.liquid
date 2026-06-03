@@ -56,7 +56,7 @@ let resultData{{ response.StatusCode }} = _responseText === "" ? null : {% if re
 result{{ response.StatusCode }} = _responseText === "" ? null : {% if response.IsPlainText %}_responseText{% else %}{% if operation.HandleReferences %}jsonParse{% else %}JSON.parse{% endif %}(_responseText, this.jsonParseReviver){% endif %} as {{ response.Type }};
 {%              endif -%}
 {%         endif -%}
-{%         if response.IsSuccess or response.Type == operation.ResultType -%}
+{%         if response.IsSuccess or (response.StatusCode == "409" and response.Type == operation.ResultType) -%}
 {%             if operation.WrapResponse -%}
 {%                 if Framework.IsAngular -%}
 return {{ Framework.RxJs.ObservableOfMethod }}(new {{ operation.ResponseClass }}(status, _headers, result{{ response.StatusCode }}));

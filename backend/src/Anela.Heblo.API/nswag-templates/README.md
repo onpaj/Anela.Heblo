@@ -12,14 +12,26 @@ Exactly one Liquid template: the one that emits the body of `processX(response)`
 
 ## The predicate
 
-For each operation, the override emits a typed non-throwing branch for a 4xx status if and only if BOTH:
+For each operation, the override emits a typed non-throwing branch for a 4xx status if and only if ALL THREE:
 
-1. The operation declares a `[ProducesResponseType]` for that 4xx status, AND
-2. The body schema for that 4xx response is the same schema as the 2xx response (i.e. the same DTO type).
+1. The status code is `409` (Conflict), AND
+2. The operation declares a `[ProducesResponseType]` for that 409 status, AND
+3. The body schema for the 409 response is the same schema as the 2xx response (i.e. the same DTO type).
 
 If the predicate does not match, the default `throwException(...)` branch is emitted unchanged.
 
-The "schema equality" predicate is intentional. It means typed-non-throwing 4xx branches are **opt-in via backend choice**: the backend signals "this 4xx is a business outcome, not an error" by returning the same DTO on both paths. Future 404 / 422 / 403 responses that return a different error envelope (e.g. `ProblemDetails`) will not be affected — they continue to throw, as today.
+The status-code restriction to 409 is intentional and deliberate. A broader "schema equality" predicate (checking that the 4xx body type equals the 2xx body type for ANY 4xx status) was evaluated during implementation and rejected: the codebase already contains controllers (e.g. `FeatureFlagsController`) that declare 404 responses with the same DTO shape as their 200 response for unrelated reasons. Those 404s must continue to throw. Restricting the predicate to HTTP 409 Conflict avoids false matches and aligns with the HTTP semantic of 409 as "conflict with the current state of the resource" — a business outcome, not an error.
+
+To add support for additional status codes in the future (e.g. 412 Precondition Failed for optimistic-concurrency endpoints), extend the condition:
+```liquid
+{%         if response.IsSuccess or ((response.StatusCode == "409" or response.StatusCode == "412") and response.Type == operation.ResultType) -%}
+```
+
+## Current wiring status
+
+**⚠️ This template is NOT currently wired** in `nswag.frontend.json` (`"templateDirectory": null`). The template file exists as verified-correct documentation for future activation. The `useSubmitArticleFeedbackMutation` hook currently handles the 409 case via a hook-level `try/catch` on `SwaggerException`.
+
+To activate: set `"templateDirectory": "nswag-templates"` in `nswag.frontend.json`, run `dotnet msbuild ... -t:GenerateFrontendClientManual`, verify the diff (see Verification below), then update the hook to remove the `try/catch` and discriminate on the typed `response` directly.
 
 ## How callers discriminate
 
