@@ -177,7 +177,7 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                       <div>
                         <label className="text-sm font-medium text-gray-500">Celková částka</label>
                         <p className="text-sm text-gray-900 font-semibold">
-                          {formatCurrency(data.invoice.price)}
+                          {formatCurrency(data.invoice.price ?? null)}
                           <span className={`ml-2 inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                             (data.invoice as any).currency === 'EUR' 
                               ? 'bg-yellow-100 text-yellow-800' 
@@ -191,7 +191,7 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                       <div>
                         <label className="text-sm font-medium text-gray-500">Stav synchronizace</label>
                         <div className="mt-1">
-                          {getSyncStatusBadge(data.invoice.isSynced, data.invoice.errorType)}
+                          {getSyncStatusBadge(data.invoice.isSynced ?? false, data.invoice.errorType)}
                         </div>
                       </div>
                       
@@ -249,9 +249,9 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                   {data.invoice.syncHistory && data.invoice.syncHistory.length > 0 ? (
                     <div className="space-y-3 max-h-[calc(90vh-300px)] overflow-y-auto">
                       {data.invoice.syncHistory
-                        .sort((a, b) => new Date(b.syncTime).getTime() - new Date(a.syncTime).getTime())
+                        .sort((a, b) => (b.syncTime?.getTime() ?? 0) - (a.syncTime?.getTime() ?? 0))
                         .map((sync, index) => {
-                          const isExpanded = expandedSyncItems.has(sync.id.toString());
+                          const isExpanded = expandedSyncItems.has((sync.id ?? '').toString());
                           const isLatest = index === 0;
                           
                           return (
@@ -265,11 +265,11 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                             >
                               <div 
                                 className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => toggleSyncItemExpansion(sync.id.toString())}
+                                onClick={() => toggleSyncItemExpansion((sync.id ?? '').toString())}
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
-                                    {getSyncStatusIcon(sync.isSuccess)}
+                                    {getSyncStatusIcon(sync.isSuccess ?? false)}
                                     <div>
                                       <div className="flex items-center gap-2">
                                         <span className={`font-medium ${
@@ -338,7 +338,7 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                                   )}
 
                                   {/* Current error state (if this is the latest attempt and there's a current error) */}
-                                  {isLatest && data.invoice.errorType && data.invoice.errorMessage && (
+                                  {isLatest && data?.invoice?.errorType && data?.invoice?.errorMessage && (
                                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
                                       <h4 className="font-medium text-orange-800 mb-2">
                                         Aktuální stav synchronizace
@@ -346,15 +346,15 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                                       <div className="space-y-2 text-sm">
                                         <div>
                                           <span className="font-medium text-orange-700">Zpráva:</span>
-                                          <p className="text-orange-600 mt-1">{data.invoice.errorMessage}</p>
+                                          <p className="text-orange-600 mt-1">{data?.invoice?.errorMessage}</p>
                                         </div>
                                         <div>
                                           <span className="font-medium text-orange-700">Typ chyby:</span>
                                           <p className="text-orange-600 text-xs">
-                                            {data.invoice.errorType === 'General' ? 'Obecná chyba' :
-                                             data.invoice.errorType === 'InvoicePaired' ? 'Faktura již spárována' :
-                                             data.invoice.errorType === 'ProductNotFound' ? 'Produkt nenalezen' :
-                                             data.invoice.errorType ? `Neznámý typ (${data.invoice.errorType})` : 'Neznámý typ'}
+                                            {data?.invoice?.errorType === 'General' ? 'Obecná chyba' :
+                                             data?.invoice?.errorType === 'InvoicePaired' ? 'Faktura již spárována' :
+                                             data?.invoice?.errorType === 'ProductNotFound' ? 'Produkt nenalezen' :
+                                             data?.invoice?.errorType ? `Neznámý typ (${data?.invoice?.errorType})` : 'Neznámý typ'}
                                           </p>
                                         </div>
                                       </div>

@@ -17,6 +17,7 @@ import {
 import { useIssuedInvoicesList } from "../../api/hooks/useIssuedInvoices";
 import { useIssuedInvoiceSyncStats } from "../../api/hooks/useIssuedInvoiceSyncStats";
 import { useEnqueueInvoiceImport, useRunningInvoiceImportJobs } from "../../api/hooks/useAsyncInvoiceImport";
+import { IssuedInvoiceSourceQuery } from "../../api/generated/api-client";
 import { formatDate, formatDateTime, formatCurrency } from "../../utils/formatters";
 import IssuedInvoiceDetailModal from "../../components/customer/IssuedInvoiceDetailModal";
 import InvoiceImportStatistics from "../../components/pages/automation/InvoiceImportStatistics";
@@ -220,16 +221,15 @@ const IssuedInvoicesPage: React.FC = () => {
 
       // Build request body
       const requestBody = {
-        query: {
+        query: new IssuedInvoiceSourceQuery({
           requestId: `import-${Date.now()}`,
-          ...(importType === 'invoice' 
+          ...(importType === 'invoice'
             ? { invoiceId: importInvoiceId.trim() }
-            : { 
-                dateFrom: importDateFrom,
-                dateTo: importDateTo,
-                limit: 100
-              })
-        }
+            : {
+                dateFromString: importDateFrom,
+                dateToString: importDateTo,
+              }),
+        }),
       };
 
       // Async import
