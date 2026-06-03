@@ -2,6 +2,8 @@ using System.Text.Json;
 using Anela.Heblo.Application.Features.DataQuality.DashboardTiles;
 using Anela.Heblo.Domain.Features.DataQuality;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -10,11 +12,12 @@ namespace Anela.Heblo.Tests.Features.DataQuality.DashboardTiles;
 public class DataQualityStatusTileTests
 {
     private readonly Mock<IDqtRunRepository> _repositoryMock = new();
+    private readonly Mock<ILogger<DataQualityStatusTile>> _loggerMock = new();
     private readonly DataQualityStatusTile _tile;
 
     public DataQualityStatusTileTests()
     {
-        _tile = new DataQualityStatusTile(_repositoryMock.Object);
+        _tile = new DataQualityStatusTile(_repositoryMock.Object, _loggerMock.Object);
     }
 
     [Fact]
@@ -70,6 +73,28 @@ public class DataQualityStatusTileTests
         var drillDown = doc.RootElement.GetProperty("drillDown");
         drillDown.GetProperty("routeKey").GetString().Should().Be("dataQuality");
         drillDown.GetProperty("enabled").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoadDataAsync_RepositoryThrows_LogsErrorOnce()
+    {
+        var thrown = new InvalidOperationException("db down");
+
+        _repositoryMock
+            .Setup(r => r.GetLatestByTestTypeAsync(
+                DqtTestType.IssuedInvoiceComparison, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(thrown);
+
+        await _tile.LoadDataAsync();
+
+        _loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                thrown,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     private static DqtRun CreateCompletedRun(int totalChecked, int totalMismatches)

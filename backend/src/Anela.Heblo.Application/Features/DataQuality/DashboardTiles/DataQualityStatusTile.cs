@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Dashboard.Contracts;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Xcc.Services.Dashboard;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.DataQuality.DashboardTiles;
 
@@ -10,6 +11,7 @@ public class DataQualityStatusTile : ITile
     private const string DrillDownRouteKey = "dataQuality";
 
     private readonly IDqtRunRepository _repository;
+    private readonly ILogger<DataQualityStatusTile> _logger;
 
     public string Title => "Kvalita dat";
     public string Description => "Stav posledního DQT testu faktur";
@@ -19,9 +21,12 @@ public class DataQualityStatusTile : ITile
     public bool AutoShow => false;
     public string[] RequiredPermissions => Array.Empty<string>();
 
-    public DataQualityStatusTile(IDqtRunRepository repository)
+    public DataQualityStatusTile(
+        IDqtRunRepository repository,
+        ILogger<DataQualityStatusTile> logger)
     {
         _repository = repository;
+        _logger = logger;
     }
 
     public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
@@ -61,8 +66,13 @@ public class DataQualityStatusTile : ITile
                 drillDown = new DashboardTileDrillDown { RouteKey = DrillDownRouteKey, Enabled = true }
             };
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(
+                ex,
+                "Failed to load DataQuality status tile for {TestType}",
+                DqtTestType.IssuedInvoiceComparison);
+
             return new
             {
                 status = "error",

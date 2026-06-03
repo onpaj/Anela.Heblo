@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common.TimePeriods;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 using Anela.Heblo.Application.Shared;
@@ -15,7 +16,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 
 public class GetManufacturingStockAnalysisHandlerTests
 {
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<ITimePeriodResolver> _timePeriodResolverMock;
     private readonly Mock<IConsumptionRateCalculator> _consumptionCalculatorMock;
     private readonly Mock<IProductionActivityAnalyzer> _productionAnalyzerMock;
@@ -27,7 +28,7 @@ public class GetManufacturingStockAnalysisHandlerTests
 
     public GetManufacturingStockAnalysisHandlerTests()
     {
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _timePeriodResolverMock = new Mock<ITimePeriodResolver>();
         _consumptionCalculatorMock = new Mock<IConsumptionRateCalculator>();
         _productionAnalyzerMock = new Mock<IProductionActivityAnalyzer>();

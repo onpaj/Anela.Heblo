@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common.TimePeriods;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
 using Anela.Heblo.Application.Shared;
@@ -14,7 +15,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 
 public class BatchPlanningServiceTests
 {
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<IBatchDistributionCalculator> _batchDistributionCalculatorMock;
     private readonly Mock<ILogger<BatchPlanningService>> _loggerMock;
@@ -26,7 +27,7 @@ public class BatchPlanningServiceTests
 
     public BatchPlanningServiceTests()
     {
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _manufactureClientMock = new Mock<IManufactureClient>();
         _batchDistributionCalculatorMock = new Mock<IBatchDistributionCalculator>();
         _loggerMock = new Mock<ILogger<BatchPlanningService>>();

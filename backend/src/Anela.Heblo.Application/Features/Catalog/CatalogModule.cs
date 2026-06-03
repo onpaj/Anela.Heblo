@@ -7,6 +7,7 @@ using Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
@@ -55,6 +56,10 @@ public static class CatalogModule
         // DataQuality owns the query contracts; Catalog (this module) provides the adapter implementations.
         services.AddScoped<IStockOperationQuery, DataQualityStockOperationQueryAdapter>();
         services.AddScoped<IStockTakingQuery, DataQualityStockTakingQueryAdapter>();
+
+        // Cross-module contract: Catalog implements Manufacture's IManufactureCatalogSource via adapter.
+        // DI registration is owned by the provider (Catalog), not the consumer (Manufacture).
+        services.AddScoped<IManufactureCatalogSource, CatalogManufactureCatalogSourceAdapter>();
 
         // Register cost repositories
         services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others
