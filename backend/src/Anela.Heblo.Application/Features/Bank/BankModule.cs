@@ -1,5 +1,10 @@
+using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Bank.Infrastructure;
+using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementList;
+using Anela.Heblo.Application.Features.Bank.Validators;
 using Anela.Heblo.Domain.Features.Bank;
+using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,6 +16,11 @@ public static class BankModule
     {
         services.AddTransient<IBankClientFactory, BankClientFactory>();
         services.Configure<BankAccountSettings>(configuration.GetSection(BankAccountSettings.ConfigurationKey));
+
+        services.AddScoped<IValidator<GetBankStatementListRequest>, GetBankStatementListRequestValidator>();
+        services.AddScoped<
+            IPipelineBehavior<GetBankStatementListRequest, GetBankStatementListResponse>,
+            ValidationBehavior<GetBankStatementListRequest, GetBankStatementListResponse>>();
 
         return services;
     }

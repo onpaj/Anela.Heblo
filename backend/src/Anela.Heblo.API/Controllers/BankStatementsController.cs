@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementList;
 using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Shared;
+using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -117,6 +118,11 @@ public class BankStatementsController : BaseApiController
 
             var response = await _mediator.Send(request);
             return Ok(response);
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid request for bank statement list");
+            return BadRequest(new { message = "Invalid request", errors = ex.Errors.Select(e => new { e.PropertyName, e.ErrorMessage }) });
         }
         catch (Exception ex)
         {
