@@ -180,7 +180,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 flex-1 overflow-hidden">
+        <div className="p-6 flex-1 overflow-y-auto">
           {detailLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="flex items-center space-x-2">

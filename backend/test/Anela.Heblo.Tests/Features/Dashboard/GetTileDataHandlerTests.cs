@@ -226,8 +226,18 @@ public class GetTileDataHandlerTests
     [Fact]
     public async Task Handle_WhenTwoSlowTilesAndMaxDoP2_ShouldLoadInParallel()
     {
-        // Arrange — two tiles each take ~100 ms; sequential would take ~200 ms, parallel ~100 ms
-        const int delayMs = 100;
+        // Arrange — verify structural parallelism: both tiles must be in-flight simultaneously.
+        // Each tile waits until both have started before completing. With MaxDegreeOfParallelism=2,
+        // Parallel.ForEachAsync dispatches both lambdas before either finishes, so both tiles start
+        // before either awaits its result — the TCS resolves immediately and both tiles complete.
+        // With sequential execution (MaxDegreeOfParallelism=1), tile 1 would wait indefinitely for
+        // tile 2 to start, which never happens, and the 10-second timeout fires instead.
+        // This avoids wall-clock timing assertions that are flaky on loaded CI runners.
+        const int tileCount = 2;
+        var startedCount = 0;
+        var allStartedTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var anyTimedOut = false;
+
         var request = new GetTileDataRequest { UserId = "user1" };
         SetupUserSettings("user1", new[]
         {
@@ -248,19 +258,28 @@ public class GetTileDataHandlerTests
                 .Setup(x => x.GetTileDataAsync(capturedId, It.IsAny<Dictionary<string, string>?>()))
                 .Returns(async () =>
                 {
-                    await Task.Delay(delayMs);
+                    if (Interlocked.Increment(ref startedCount) >= tileCount)
+                        allStartedTcs.TrySetResult(true);
+
+                    try
+                    {
+                        await allStartedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                    }
+                    catch (TimeoutException)
+                    {
+                        anyTimedOut = true;
+                        throw;
+                    }
+
                     return (object)new { Id = capturedId };
                 });
         }
 
         // Act
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var result = await handler.Handle(request, CancellationToken.None);
-        stopwatch.Stop();
 
         // Assert
-        result.Tiles.Should().HaveCount(2);
-        stopwatch.ElapsedMilliseconds.Should().BeGreaterThan(80, "tiles must not be loaded sequentially with zero delay");
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(600, "tiles should be loaded in parallel, not sequentially");
+        anyTimedOut.Should().BeFalse("tiles should be loaded in parallel, not sequentially");
+        result.Tiles.Should().HaveCount(tileCount);
     }
 }

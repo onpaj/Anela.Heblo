@@ -1,5 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import type {
+  IGetIssuedInvoicesListResponse,
+  IGetIssuedInvoiceDetailResponse,
+} from '../generated/api-client';
 
 export interface IssuedInvoicesFilters {
   pageNumber?: number;
@@ -15,69 +19,11 @@ export interface IssuedInvoicesFilters {
   showOnlyWithErrors?: boolean;
 }
 
-export interface IssuedInvoiceDto {
-  id: string;
-  invoiceDate: string;
-  customerName: string | null;
-  price: number;
-  isSynced: boolean;
-  lastSyncTime: string | null;
-  errorType: string | null;
-  errorMessage: string | null;
-}
-
-export interface IssuedInvoicesListResponse {
-  items: IssuedInvoiceDto[];
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
-  success: boolean;
-  errorCode?: number;
-  params?: Record<string, string>;
-}
-
-export interface IssuedInvoiceDetailDto extends IssuedInvoiceDto {
-  customerEmail: string | null;
-  customerPhone: string | null;
-  customerAddress: string | null;
-  items: IssuedInvoiceItemDto[];
-  syncHistory: IssuedInvoiceSyncHistoryDto[];
-}
-
-export interface IssuedInvoiceItemDto {
-  productId: string;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-}
-
-export interface IssuedInvoiceSyncHistoryDto {
-  id: number;
-  syncTime: string;
-  isSuccess: boolean;
-  data: string | null;
-  adapterResponse: string | null;
-  error: {
-    message: string;
-    code?: string;
-    field?: string;
-    errorType: number;
-  } | null;
-}
-
-export interface IssuedInvoiceDetailResponse {
-  invoice: IssuedInvoiceDetailDto;
-  success: boolean;
-  errorCode?: number;
-  params?: Record<string, string>;
-}
-
 // Hook for fetching paginated list of issued invoices
 export const useIssuedInvoicesList = (filters: IssuedInvoicesFilters) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.issuedInvoices, filters],
-    queryFn: async (): Promise<IssuedInvoicesListResponse> => {
+    queryFn: async (): Promise<IGetIssuedInvoicesListResponse> => {
       const apiClient = await getAuthenticatedApiClient();
       
       // Build query parameters
@@ -131,6 +77,9 @@ export const useIssuedInvoicesList = (filters: IssuedInvoicesFilters) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      // Wire format: response is the I* interface variant (plain JSON). Date-typed fields
+      // (invoiceDate, lastSyncTime, syncTime, …) arrive as ISO strings; parse with
+      // `new Date(...)` if needed.
       return response.json();
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -142,7 +91,7 @@ export const useIssuedInvoicesList = (filters: IssuedInvoicesFilters) => {
 export const useIssuedInvoiceDetail = (invoiceId: string) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.issuedInvoices, 'detail', invoiceId],
-    queryFn: async (): Promise<IssuedInvoiceDetailResponse> => {
+    queryFn: async (): Promise<IGetIssuedInvoiceDetailResponse> => {
       const apiClient = await getAuthenticatedApiClient();
       
       const url = `/api/invoices/${encodeURIComponent(invoiceId)}?withDetails=true`;
@@ -159,6 +108,9 @@ export const useIssuedInvoiceDetail = (invoiceId: string) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      // Wire format: response is the I* interface variant (plain JSON). Date-typed fields
+      // (invoiceDate, lastSyncTime, syncTime, …) arrive as ISO strings; parse with
+      // `new Date(...)` if needed.
       return response.json();
     },
     enabled: !!invoiceId,
