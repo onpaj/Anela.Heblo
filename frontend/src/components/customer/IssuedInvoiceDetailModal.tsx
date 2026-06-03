@@ -3,6 +3,7 @@ import { X, AlertCircle, CheckCircle, Clock, FileText, User, Download, Loader2, 
 import { useIssuedInvoiceDetail } from "../../api/hooks/useIssuedInvoices";
 import { useEnqueueInvoiceImport } from "../../api/hooks/useAsyncInvoiceImport";
 import { formatDate, formatDateTime, formatCurrency } from "../../utils/formatters";
+import { IssuedInvoiceSourceQuery } from "../../api/generated/api-client";
 
 interface IssuedInvoiceDetailModalProps {
   invoiceId: string;
@@ -35,11 +36,11 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
       setReimporting(true);
 
       const requestBody = {
-        query: {
+        query: new IssuedInvoiceSourceQuery({
           requestId: `reimport-${invoiceId}-${Date.now()}`,
           invoiceId: invoiceId,
-          currency: targetCurrency
-        }
+          currency: targetCurrency,
+        }),
       };
 
       // Use async import
