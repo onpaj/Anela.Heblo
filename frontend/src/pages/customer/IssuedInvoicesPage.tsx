@@ -17,6 +17,7 @@ import {
 import { useIssuedInvoicesList } from "../../api/hooks/useIssuedInvoices";
 import { useIssuedInvoiceSyncStats } from "../../api/hooks/useIssuedInvoiceSyncStats";
 import { useEnqueueInvoiceImport, useRunningInvoiceImportJobs } from "../../api/hooks/useAsyncInvoiceImport";
+import { IssuedInvoiceSourceQuery } from "../../api/generated/api-client";
 import { formatDate, formatDateTime, formatCurrency } from "../../utils/formatters";
 import IssuedInvoiceDetailModal from "../../components/customer/IssuedInvoiceDetailModal";
 import InvoiceImportStatistics from "../../components/pages/automation/InvoiceImportStatistics";
@@ -196,7 +197,9 @@ const IssuedInvoicesPage: React.FC = () => {
   // Load running jobs on page load and keep in sync
   React.useEffect(() => {
     if (runningJobs) {
-      const jobIds = runningJobs.map(job => job.id).filter(Boolean);
+      const jobIds = runningJobs
+        .map(job => job.id)
+        .filter((id): id is string => Boolean(id));
       setActiveJobIds(jobIds);
     }
   }, [runningJobs]);
@@ -218,16 +221,15 @@ const IssuedInvoicesPage: React.FC = () => {
 
       // Build request body
       const requestBody = {
-        query: {
+        query: new IssuedInvoiceSourceQuery({
           requestId: `import-${Date.now()}`,
-          ...(importType === 'invoice' 
+          ...(importType === 'invoice'
             ? { invoiceId: importInvoiceId.trim() }
-            : { 
-                dateFrom: importDateFrom,
-                dateTo: importDateTo,
-                limit: 100
-              })
-        }
+            : {
+                dateFromString: importDateFrom,
+                dateToString: importDateTo,
+              }),
+        }),
       };
 
       // Async import

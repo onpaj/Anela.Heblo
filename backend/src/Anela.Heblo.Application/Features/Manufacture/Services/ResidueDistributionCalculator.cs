@@ -17,6 +17,12 @@ public class ResidueDistributionCalculator : IResidueDistributionCalculator
 
     public async Task<ResidueDistribution> CalculateAsync(UpdateManufactureOrderDto order, CancellationToken cancellationToken = default)
     {
+        // Residue distribution only applies to MultiPhase orders, where leftover semiproduct is spread
+        // across the finished products. SinglePhase orders have no real semiproduct (the SemiProduct
+        // entry is a placeholder for the first product), so there is nothing to distribute.
+        if (order.ManufactureType != ManufactureType.MultiPhase)
+            return new ResidueDistribution { IsWithinAllowedThreshold = true };
+
         if (order.SemiProduct is null)
             return new ResidueDistribution { IsWithinAllowedThreshold = true };
 

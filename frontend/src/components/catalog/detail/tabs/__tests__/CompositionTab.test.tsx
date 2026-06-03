@@ -165,6 +165,63 @@ describe('CompositionTab', () => {
     expect(screen.queryByTitle(/Odebrat fázi/i)).not.toBeInTheDocument();
   });
 
+  it('creating a phase sweeps all unphased ingredients into it', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue({ success: true });
+    mockUseUpdateOrder.mockReturnValue({ mutateAsync, isPending: false } as any);
+    mockUseProductComposition.mockReturnValue({
+      data: { ingredients: sampleIngredients },
+      isLoading: false,
+      error: null,
+    } as any);
+    render(<CompositionTab productCode="TEST001" />, { wrapper: createWrapper() });
+
+    fireEvent.click(screen.getByRole('button', { name: /Upravit pořadí/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Přidat fázi/i }));
+
+    // New phase header appears and unphased rows are grouped under it.
+    expect(screen.getByText('Fáze A')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Uložit/i }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    expect(mutateAsync).toHaveBeenCalledWith({
+      productCode: 'TEST001',
+      order: [
+        { ingredientProductCode: 'ING001', sortOrder: 1, phaseLabel: 'A' },
+        { ingredientProductCode: 'ING002', sortOrder: 2, phaseLabel: 'A' },
+      ],
+    });
+  });
+
+  it('creating a phase leaves already-phased ingredients untouched', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue({ success: true });
+    mockUseUpdateOrder.mockReturnValue({ mutateAsync, isPending: false } as any);
+    mockUseProductComposition.mockReturnValue({
+      data: {
+        ingredients: [
+          { productCode: 'ING001', productName: 'Bisabolol', amount: 50.5, unit: 'g', order: 1, phaseLabel: 'A' },
+          { productCode: 'ING002', productName: 'Vitamin E', amount: 100.25, unit: 'g', order: 2, phaseLabel: null },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    } as any);
+    render(<CompositionTab productCode="TEST001" />, { wrapper: createWrapper() });
+
+    fireEvent.click(screen.getByRole('button', { name: /Upravit pořadí/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Přidat fázi/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Uložit/i }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    expect(mutateAsync).toHaveBeenCalledWith({
+      productCode: 'TEST001',
+      order: [
+        { ingredientProductCode: 'ING001', sortOrder: 1, phaseLabel: 'A' },
+        { ingredientProductCode: 'ING002', sortOrder: 2, phaseLabel: 'B' },
+      ],
+    });
+  });
+
   it('Uložit forwards phaseLabel when ingredient has a phase', async () => {
     const mutateAsync = jest.fn().mockResolvedValue({ success: true });
     mockUseUpdateOrder.mockReturnValue({ mutateAsync, isPending: false } as any);

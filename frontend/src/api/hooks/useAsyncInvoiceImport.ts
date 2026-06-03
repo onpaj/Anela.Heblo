@@ -1,34 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
-
-// Types for async invoice import
-export interface EnqueueImportInvoicesRequest {
-  query: {
-    requestId: string;
-    dateFrom?: string;
-    dateTo?: string;
-    limit?: number;
-  };
-}
-
-export interface EnqueueImportInvoicesResponse {
-  jobId?: string;
-}
-
-export interface BackgroundJobInfo {
-  id: string;
-  jobName?: string;
-  state: string;
-  createdAt?: string;
-  startedAt?: string;
-  queue?: string;
-}
-
-export interface ImportResultDto {
-  requestId: string;
-  succeeded: string[];
-  failed: string[];
-}
+import type {
+  IBackgroundJobInfo,
+  IEnqueueImportInvoicesRequest,
+  IEnqueueImportInvoicesResponse,
+} from "../generated/api-client";
 
 /**
  * Hook to enqueue async invoice import
@@ -37,12 +13,12 @@ export const useEnqueueInvoiceImport = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (request: EnqueueImportInvoicesRequest): Promise<EnqueueImportInvoicesResponse> => {
+    mutationFn: async (request: IEnqueueImportInvoicesRequest): Promise<IEnqueueImportInvoicesResponse> => {
       const apiClient = await getAuthenticatedApiClient();
-      
+
       const url = `/api/invoices/import/enqueue-async`;
       const fullUrl = `${(apiClient as any).baseUrl}${url}`;
-      
+
       const response = await (apiClient as any).http.fetch(fullUrl, {
         method: 'POST',
         headers: {
@@ -55,6 +31,8 @@ export const useEnqueueInvoiceImport = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      // Wire format: response is the I* interface variant (plain JSON). Date-typed fields
+      // (createdAt, startedAt) arrive as ISO strings; parse with `new Date(...)` if needed.
       return response.json();
     },
     onSuccess: () => {
@@ -70,16 +48,16 @@ export const useEnqueueInvoiceImport = () => {
 export const useInvoiceImportJobStatus = (jobId?: string) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.invoices, "import", "jobs", "status", jobId || ""],
-    queryFn: async (): Promise<BackgroundJobInfo | null> => {
+    queryFn: async (): Promise<IBackgroundJobInfo | null> => {
       if (!jobId) {
         throw new Error("Job ID is required");
       }
-      
+
       const apiClient = await getAuthenticatedApiClient();
-      
+
       const url = `/api/invoices/import/job-status/${encodeURIComponent(jobId)}`;
       const fullUrl = `${(apiClient as any).baseUrl}${url}`;
-      
+
       const response = await (apiClient as any).http.fetch(fullUrl, {
         method: 'GET',
         headers: {
@@ -95,6 +73,8 @@ export const useInvoiceImportJobStatus = (jobId?: string) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      // Wire format: response is the I* interface variant (plain JSON). Date-typed fields
+      // (createdAt, startedAt) arrive as ISO strings; parse with `new Date(...)` if needed.
       return response.json();
     },
     enabled: !!jobId,
@@ -110,12 +90,12 @@ export const useInvoiceImportJobStatus = (jobId?: string) => {
 export const useRunningInvoiceImportJobs = () => {
   return useQuery({
     queryKey: [...QUERY_KEYS.invoices, "import", "jobs", "running"],
-    queryFn: async (): Promise<BackgroundJobInfo[]> => {
+    queryFn: async (): Promise<IBackgroundJobInfo[]> => {
       const apiClient = await getAuthenticatedApiClient();
-      
+
       const url = `/api/invoices/import/running-jobs`;
       const fullUrl = `${(apiClient as any).baseUrl}${url}`;
-      
+
       const response = await (apiClient as any).http.fetch(fullUrl, {
         method: 'GET',
         headers: {
@@ -127,6 +107,8 @@ export const useRunningInvoiceImportJobs = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      // Wire format: response is the I* interface variant (plain JSON). Date-typed fields
+      // (createdAt, startedAt) arrive as ISO strings; parse with `new Date(...)` if needed.
       return response.json();
     },
     refetchInterval: 5000, // Poll every 5 seconds to check for running jobs
