@@ -1,14 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getAuthenticatedApiClient,
-  getApiBaseUrl,
-  getAuthenticatedFetch,
   QUERY_KEYS,
 } from '../client';
 import {
   ArticleStatus,
   GenerateArticleRequest,
-  ISubmitArticleFeedbackRequest,
+  SubmitArticleFeedbackRequest,
 } from '../generated/api-client';
 
 // ---- Types ----
@@ -220,33 +218,28 @@ export const useSubmitArticleFeedbackMutation = (articleId: string) => {
 
   return useMutation({
     mutationFn: async (payload: SubmitArticleFeedbackPayload): Promise<SubmitArticleFeedbackResult> => {
-      const body: ISubmitArticleFeedbackRequest = {
+      const client = getAuthenticatedApiClient();
+      const request = new SubmitArticleFeedbackRequest({
         articleId,
         precisionScore: payload.precisionScore,
         styleScore: payload.styleScore,
         comment: payload.comment,
-      };
-      const url = `${getApiBaseUrl()}/api/articles/${articleId}/feedback`;
-      const response = await getAuthenticatedFetch()(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(body),
       });
 
-      if (response.status === 409) {
-        return { alreadySubmitted: true };
+      try {
+        const response = await client.articles_SubmitFeedback(articleId, request);
+        return {
+          precisionScore: response.precisionScore ?? null,
+          styleScore: response.styleScore ?? null,
+          feedbackComment: response.feedbackComment ?? null,
+        };
+      } catch (e: unknown) {
+        const err = e as { status?: number };
+        if (err.status === 409) {
+          return { alreadySubmitted: true };
+        }
+        throw e;
       }
-
-      if (!response.ok) {
-        throw new Error(`Submit article feedback failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return {
-        precisionScore: data.precisionScore ?? null,
-        styleScore: data.styleScore ?? null,
-        feedbackComment: data.feedbackComment ?? null,
-      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: articleKeys.detail(articleId) });

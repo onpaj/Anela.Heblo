@@ -319,12 +319,20 @@ export const getAuthenticatedApiClient = (
         try {
           const errorInfo = await extractErrorMessage(responseClone);
 
+          // Suppress toast on 409 when the backend returned a structured BaseResponse
+          // (success: false + errorCode). These 409s are typed business outcomes (e.g.
+          // "feedback already submitted") and the caller's hook handles them.
+          // Unstructured 409s (non-JSON or missing errorCode) still surface as toasts.
+          const suppressOn409 = response.status === 409 && errorInfo.isStructuredError;
+
           // Show toast for all errors - centralized handling
           console.log(
             `🔍 Error debug - isStructuredError: ${errorInfo.isStructuredError}, message: "${errorInfo.message}"`,
           );
 
-          if (errorInfo.isStructuredError && globalToastHandler) {
+          if (suppressOn409) {
+            console.log(`🔇 Toast suppressed for typed 409 business outcome: ${errorInfo.message}`);
+          } else if (errorInfo.isStructuredError && globalToastHandler) {
             // Structured API error - show ErrorMessage
             console.error(
               `🚨 Structured API Error [${response.status}] ${url}:`,
@@ -396,13 +404,17 @@ export const getAuthenticatedApiClientWithProvider = (
  *
  * Key behaviors:
  * - Auth header ALWAYS wins: caller-supplied `Authorization` headers are overwritten by the helper's auth header.
- * - Does NOT throw on non-2xx response — the caller owns status-code branching (e.g. 409 → typed result).
+ * - Does NOT throw on non-2xx response — the caller owns status-code branching.
  * - Does NOT trigger global error toasts or the 401 login redirect — those belong to `getAuthenticatedApiClient()`.
  *   Callers must handle error UX themselves.
- * - Canonical use case: endpoints where status-code branching is required (e.g. 409 = already submitted).
- *   See `useSubmitArticleFeedbackMutation` in `hooks/useArticles.ts` for the reference implementation.
  *
- * Use `getAuthenticatedApiClient()` instead when you don't need status-code branching.
+ * When to use this:
+ * Prefer the typed generated client (`getAuthenticatedApiClient()`) for normal calls. Reach for this
+ * helper only when an endpoint's success/business-outcome contract cannot yet be expressed through the
+ * generated client — for example, an `If-Match`-based update returning HTTP 412 Precondition Failed
+ * before the controller has been annotated with `[ProducesResponseType(StatusCodes.Status412PreconditionFailed)]`
+ * and before the NSwag template knows to surface 412 as a typed branch. Once the contract is annotated
+ * and the typed branch is generated, migrate the call site back to the generated client.
  */
 export function getAuthenticatedFetch(): (
   input: RequestInfo | URL,
