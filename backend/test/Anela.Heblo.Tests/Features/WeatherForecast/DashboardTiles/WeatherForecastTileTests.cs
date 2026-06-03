@@ -30,7 +30,6 @@ public sealed class WeatherForecastTileTests
         _tile.Category.Should().Be(TileCategory.Manufacture);
         _tile.DefaultEnabled.Should().BeFalse();
         _tile.AutoShow.Should().BeFalse();
-        _tile.ComponentType.Should().Be(typeof(object));
         _tile.RequiredPermissions.Should().BeEmpty();
     }
 

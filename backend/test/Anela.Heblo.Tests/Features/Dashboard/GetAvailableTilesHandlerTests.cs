@@ -44,8 +44,8 @@ public class GetAvailableTilesHandlerTests
 
         var tiles = new List<TileMetadata>
         {
-            new TileMetadata("test1", "Test Tile 1", "Description 1", TileSize.Small, TileCategory.Finance, true, false, typeof(object), new[] { "read" }),
-            new TileMetadata("test2", "Test Tile 2", "Description 2", TileSize.Large, TileCategory.Finance, false, true, typeof(object), new[] { "admin", "write" })
+            new TileMetadata("test1", "Test Tile 1", "Description 1", TileSize.Small, TileCategory.Finance, true, false, new[] { "read" }),
+            new TileMetadata("test2", "Test Tile 2", "Description 2", TileSize.Large, TileCategory.Finance, false, true, new[] { "admin", "write" })
         };
 
         _tileRegistryMock
@@ -89,7 +89,7 @@ public class GetAvailableTilesHandlerTests
 
         var tiles = new List<TileMetadata>
         {
-            new TileMetadata("testtilenoermissions", "Test Tile", "Description", TileSize.Medium, TileCategory.System, true, false, typeof(object), Array.Empty<string>())
+            new TileMetadata("testtilenoermissions", "Test Tile", "Description", TileSize.Medium, TileCategory.System, true, false, Array.Empty<string>())
         };
 
         _tileRegistryMock

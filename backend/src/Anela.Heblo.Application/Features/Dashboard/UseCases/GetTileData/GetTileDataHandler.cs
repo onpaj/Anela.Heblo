@@ -81,7 +81,6 @@ public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDat
                         Category = tile.Category,
                         DefaultEnabled = tile.DefaultEnabled,
                         AutoShow = tile.AutoShow,
-                        ComponentType = tile.ComponentType,
                         RequiredPermissions = tile.RequiredPermissions,
                         Data = data
                     }));

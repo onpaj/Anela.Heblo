@@ -8,5 +8,4 @@ public sealed record TileMetadata(
     TileCategory Category,
     bool DefaultEnabled,
     bool AutoShow,
-    Type ComponentType,
     string[] RequiredPermissions);

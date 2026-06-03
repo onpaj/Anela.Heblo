@@ -16,7 +16,6 @@ public class WeatherForecastTile : ITile
     public TileCategory Category => TileCategory.Manufacture;
     public bool DefaultEnabled => false;
     public bool AutoShow => false;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public WeatherForecastTile(IWeatherForecastClient weatherClient, ILogger<WeatherForecastTile> logger)

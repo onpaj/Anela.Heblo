@@ -14,7 +14,6 @@ public abstract class TransportBoxBaseTile : ITile
     public TileCategory Category => TileCategory.Warehouse;
     public bool DefaultEnabled => true;
     public bool AutoShow => true;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     protected abstract TransportBoxState[] FilterStates { get; }

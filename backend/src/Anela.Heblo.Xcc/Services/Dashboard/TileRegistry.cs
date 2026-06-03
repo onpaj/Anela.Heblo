@@ -64,7 +64,6 @@ public class TileRegistry : ITileRegistry
         tile.Category,
         tile.DefaultEnabled,
         tile.AutoShow,
-        tile.ComponentType,
         tile.RequiredPermissions);
 
     public IEnumerable<string> GetRegisteredTileIds()

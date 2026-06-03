@@ -9,7 +9,6 @@ public interface ITile
     TileCategory Category { get; }
     bool DefaultEnabled { get; }
     bool AutoShow { get; }
-    Type ComponentType { get; }
     string[] RequiredPermissions { get; }
 
     // Data loading

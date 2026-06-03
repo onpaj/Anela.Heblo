@@ -11,7 +11,6 @@ public class NewAutoShowTile : ITile
     public TileCategory Category { get; init; } = TileCategory.Finance;
     public bool DefaultEnabled { get; init; } = true;
     public bool AutoShow { get; init; } = true;
-    public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
 
     public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
@@ -29,7 +28,6 @@ public class ManualTile : ITile
     public TileCategory Category { get; init; } = TileCategory.Finance;
     public bool DefaultEnabled { get; init; } = true;
     public bool AutoShow { get; init; } = false;
-    public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
 
     public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
@@ -47,7 +45,6 @@ public class AutoTile1 : ITile
     public TileCategory Category { get; init; } = TileCategory.Finance;
     public bool DefaultEnabled { get; init; } = true;
     public bool AutoShow { get; init; } = true;
-    public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
 
     public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
@@ -65,7 +62,6 @@ public class AutoTile2 : ITile
     public TileCategory Category { get; init; } = TileCategory.Finance;
     public bool DefaultEnabled { get; init; } = true;
     public bool AutoShow { get; init; } = true;
-    public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
 
     public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
@@ -85,7 +81,6 @@ public class TestTileWithData : ITile
     public TileCategory Category { get; init; } = TileCategory.Finance;
     public bool DefaultEnabled { get; init; } = true;
     public bool AutoShow { get; init; } = false;
-    public Type ComponentType { get; init; } = typeof(object);
     public string[] RequiredPermissions { get; init; } = Array.Empty<string>();
 
     public TestTileWithData(string tileId)

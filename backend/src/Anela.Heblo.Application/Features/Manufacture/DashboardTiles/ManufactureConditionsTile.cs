@@ -17,7 +17,6 @@ public class ManufactureConditionsTile : ITile
     public TileCategory Category => TileCategory.Manufacture;
     public bool DefaultEnabled => true;
     public bool AutoShow => true;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public ManufactureConditionsTile(
