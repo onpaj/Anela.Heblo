@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Domain.Features.DataQuality;
 
 namespace Anela.Heblo.Application.Features.DataQuality.Services;
@@ -7,19 +7,19 @@ public class StockWriteBackDqtComparer : IDriftDqtComparer
 {
     private static readonly TimeSpan DefaultStuckThreshold = TimeSpan.FromHours(1);
 
-    private readonly IStockUpOperationRepository _operationRepository;
-    private readonly IStockTakingRepository _stockTakingRepository;
+    private readonly IStockOperationQuery _stockOperations;
+    private readonly IStockTakingQuery _stockTakings;
     private readonly TimeSpan _stuckThreshold;
 
     public DqtTestType TestType => DqtTestType.StockWriteBackReconciliation;
 
     public StockWriteBackDqtComparer(
-        IStockUpOperationRepository operationRepository,
-        IStockTakingRepository stockTakingRepository,
+        IStockOperationQuery stockOperations,
+        IStockTakingQuery stockTakings,
         TimeSpan? stuckThreshold = null)
     {
-        _operationRepository = operationRepository;
-        _stockTakingRepository = stockTakingRepository;
+        _stockOperations = stockOperations;
+        _stockTakings = stockTakings;
         _stuckThreshold = stuckThreshold ?? DefaultStuckThreshold;
     }
 
@@ -29,11 +29,8 @@ public class StockWriteBackDqtComparer : IDriftDqtComparer
         var toUtc = to.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
         var stuckCutoff = DateTime.UtcNow - _stuckThreshold;
 
-        var operations = _operationRepository.GetAll()
-            .Where(o => o.CreatedAt >= fromUtc && o.CreatedAt <= toUtc)
-            .ToList();
-
-        var stockTakingRecords = await _stockTakingRepository.GetByDateRangeAsync(fromUtc, toUtc, ct);
+        var operations = await _stockOperations.GetByCreatedDateRangeAsync(fromUtc, toUtc, ct);
+        var stockTakingRecords = await _stockTakings.GetByDateRangeAsync(fromUtc, toUtc, ct);
 
         var mismatches = new List<DriftMismatch>();
 
@@ -41,11 +38,11 @@ public class StockWriteBackDqtComparer : IDriftDqtComparer
         {
             var mismatch = StockWriteBackMismatch.None;
 
-            if (op.State == StockUpOperationState.Failed)
+            if (op.State == StockOperationStateSnapshot.Failed)
                 mismatch |= StockWriteBackMismatch.OperationFailed;
 
-            if ((op.State == StockUpOperationState.Pending || op.State == StockUpOperationState.Submitted)
-                && op.CreatedAt <= stuckCutoff)
+            if ((op.State == StockOperationStateSnapshot.Pending || op.State == StockOperationStateSnapshot.Submitted)
+                && op.CreatedAtUtc <= stuckCutoff)
                 mismatch |= StockWriteBackMismatch.OperationStuck;
 
             if (mismatch == StockWriteBackMismatch.None)
@@ -80,7 +77,7 @@ public class StockWriteBackDqtComparer : IDriftDqtComparer
         };
     }
 
-    private static string BuildOperationDetails(StockUpOperation op)
+    private static string BuildOperationDetails(StockOperationSnapshot op)
     {
         var parts = new List<string> { $"Doc: {op.DocumentNumber}", $"State: {op.State}" };
         if (!string.IsNullOrWhiteSpace(op.ErrorMessage))
