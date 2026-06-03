@@ -58,14 +58,15 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAct
 
             var now = DateTime.UtcNow;
 
-            action.Title = request.Title.Trim();
-            action.Description = request.Description?.Trim();
-            action.ActionType = request.ActionType;
-            action.StartDate = request.StartDate;
-            action.EndDate = request.EndDate;
-            action.ModifiedAt = now;
-            action.ModifiedByUserId = currentUser.Id;
-            action.ModifiedByUsername = currentUser.Name ?? "Unknown User";
+            action.UpdateDetails(
+                title: request.Title,
+                description: request.Description,
+                actionType: request.ActionType,
+                startDate: request.StartDate,
+                endDate: request.EndDate,
+                modifiedByUserId: currentUser.Id,
+                modifiedByUsername: currentUser.Name,
+                utcNow: now);
 
             if (_options.CurrentValue.PushEnabled)
             {

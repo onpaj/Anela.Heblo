@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
 using Anela.Heblo.Domain.Features.Marketing;
+using Anela.Heblo.Tests.Domain.Marketing;
 using FluentAssertions;
 using Xunit;
 
@@ -18,34 +19,25 @@ public class MarketingActionDtoTests
         var startDate = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc);
         var endDate = new DateTime(2026, 3, 31, 0, 0, 0, DateTimeKind.Utc);
 
-        var action = new MarketingAction
-        {
-            Id = 42,
-            Title = "Spring Campaign",
-            Description = "Spring product launch",
-            ActionType = MarketingActionType.Blog,
-            StartDate = startDate,
-            EndDate = endDate,
-            CreatedAt = createdAt,
-            ModifiedAt = modifiedAt,
-            CreatedByUserId = "user-1",
-            CreatedByUsername = "alice",
-            ModifiedByUserId = "user-2",
-            ModifiedByUsername = "bob",
-            OutlookSyncStatus = MarketingSyncStatus.Synced,
-            OutlookEventId = "outlook-event-99",
-            ProductAssociations = new List<MarketingActionProduct>
-            {
-                new() { ProductCodePrefix = "PROD-A" },
-                new() { ProductCodePrefix = "PROD-B" },
-                new() { ProductCodePrefix = "PROD-A" }, // duplicate — must be de-duplicated
-            },
-            FolderLinks = new List<MarketingActionFolderLink>
-            {
-                new() { FolderKey = "folder-1", FolderType = MarketingFolderType.Seasonal },
-                new() { FolderKey = "folder-2", FolderType = MarketingFolderType.Campaign },
-            },
-        };
+        var action = new MarketingActionTestBuilder()
+            .WithId(42)
+            .WithTitle("Spring Campaign")
+            .WithDescription("Spring product launch")
+            .WithActionType(MarketingActionType.Blog)
+            .WithStartDate(startDate)
+            .WithEndDate(endDate)
+            .WithCreatedAt(createdAt)
+            .WithModifiedAt(modifiedAt)
+            .WithCreatedBy("user-1", "alice")
+            .WithModifiedBy("user-2", "bob")
+            .WithOutlookSyncStatus(MarketingSyncStatus.Synced)
+            .WithOutlookEventId("outlook-event-99")
+            .Build();
+        action.ProductAssociations.Add(new MarketingActionProduct { ProductCodePrefix = "PROD-A" });
+        action.ProductAssociations.Add(new MarketingActionProduct { ProductCodePrefix = "PROD-B" });
+        action.ProductAssociations.Add(new MarketingActionProduct { ProductCodePrefix = "PROD-A" }); // duplicate — must be de-duplicated
+        action.FolderLinks.Add(new MarketingActionFolderLink { FolderKey = "folder-1", FolderType = MarketingFolderType.Seasonal });
+        action.FolderLinks.Add(new MarketingActionFolderLink { FolderKey = "folder-2", FolderType = MarketingFolderType.Campaign });
 
         // Act
         var dto = MarketingActionDto.FromEntity(action);

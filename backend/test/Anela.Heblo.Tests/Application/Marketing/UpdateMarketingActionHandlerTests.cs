@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAction;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Tests.Domain.Marketing;
 using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -23,19 +24,21 @@ public class UpdateMarketingActionHandlerTests
     private static readonly CurrentUser AuthenticatedUser =
         new("user-1", "Test User", "test@example.com", IsAuthenticated: true);
 
-    private static MarketingAction BuildExistingAction(string? outlookEventId = "existing-event-id") =>
-        new()
-        {
-            Id = 42,
-            Title = "Old Title",
-            ActionType = MarketingActionType.Blog,
-            StartDate = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc),
-            CreatedAt = DateTime.UtcNow.AddDays(-1),
-            ModifiedAt = DateTime.UtcNow.AddDays(-1),
-            CreatedByUserId = "user-1",
-            OutlookEventId = outlookEventId,
-            OutlookSyncStatus = outlookEventId != null ? MarketingSyncStatus.Synced : MarketingSyncStatus.NotSynced,
-        };
+    private static MarketingAction BuildExistingAction(string? outlookEventId = "existing-event-id")
+    {
+        var action = new MarketingActionTestBuilder()
+            .WithId(42)
+            .WithTitle("Old Title")
+            .WithActionType(MarketingActionType.Blog)
+            .WithStartDate(new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc))
+            .WithCreatedAt(DateTime.UtcNow.AddDays(-1))
+            .WithModifiedAt(DateTime.UtcNow.AddDays(-1))
+            .WithCreatedBy("user-1")
+            .WithOutlookEventId(outlookEventId)
+            .WithOutlookSyncStatus(outlookEventId != null ? MarketingSyncStatus.Synced : MarketingSyncStatus.NotSynced)
+            .Build();
+        return action;
+    }
 
     private static UpdateMarketingActionRequest BuildRequest(int id = 42) => new()
     {
