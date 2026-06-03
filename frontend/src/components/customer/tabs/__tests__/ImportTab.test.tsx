@@ -2,11 +2,9 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { createQueryClientWrapper, createMockApiClient, mockAuthenticatedApiClient } from '../../../../api/testUtils';
-import { getAuthenticatedApiClient } from '../../../../api/client';
+import ImportTab from '../ImportTab';
 
 jest.mock('../../../../api/client');
-
-import ImportTab from '../ImportTab';
 
 describe('ImportTab filters', () => {
   let mockFetch: jest.Mock;
@@ -117,10 +115,13 @@ describe('ImportTab filters', () => {
 
     await waitFor(() => {
       const listCalls = getListEndpointCalls();
-      const latestUrl = listCalls[listCalls.length - 1][0] as string;
-      expect(latestUrl).toContain('dateFrom=2026-01-01');
-      expect(latestUrl).toContain('dateTo=2026-01-31');
+      expect(listCalls.length).toBeGreaterThan(0);
     });
+
+    const listCalls = getListEndpointCalls();
+    const latestUrl = listCalls[listCalls.length - 1][0] as string;
+    expect(latestUrl).toContain('dateFrom=2026-01-01');
+    expect(latestUrl).toContain('dateTo=2026-01-31');
   });
 
   it('blocks Filtrovat and shows inline error when dateFrom > dateTo', async () => {
