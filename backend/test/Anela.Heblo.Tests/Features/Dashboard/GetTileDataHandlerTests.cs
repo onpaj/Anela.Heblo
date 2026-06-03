@@ -133,7 +133,7 @@ public class GetTileDataHandlerTests
         _tileRegistryMock
             .Setup(x => x.GetTileMetadata(tileId))
             .Returns(new TileMetadata(tileId, "Throwing Tile", "Desc", TileSize.Medium,
-                TileCategory.Finance, true, false, typeof(object), Array.Empty<string>()));
+                TileCategory.Finance, true, false, Array.Empty<string>()));
 
         _tileRegistryMock
             .Setup(x => x.GetTileDataAsync(tileId, It.IsAny<Dictionary<string, string>?>()))
@@ -167,7 +167,7 @@ public class GetTileDataHandlerTests
             var capturedId = id;
             _tileRegistryMock.Setup(x => x.GetTileMetadata(capturedId))
                 .Returns(new TileMetadata(capturedId, $"Title {capturedId}", "Desc", TileSize.Small,
-                    TileCategory.System, true, false, typeof(object), Array.Empty<string>()));
+                    TileCategory.System, true, false, Array.Empty<string>()));
             _tileRegistryMock
                 .Setup(x => x.GetTileDataAsync(capturedId, It.IsAny<Dictionary<string, string>?>()))
                 .ReturnsAsync(new { Id = capturedId });
@@ -202,7 +202,7 @@ public class GetTileDataHandlerTests
         _tileRegistryMock
             .Setup(x => x.GetTileMetadata(tileId))
             .Returns(new TileMetadata(tileId, "Analytics", "Analytics description", TileSize.Large,
-                TileCategory.Finance, true, true, typeof(object), new[] { "read", "analytics" }));
+                TileCategory.Finance, true, true, new[] { "read", "analytics" }));
 
         _tileRegistryMock
             .Setup(x => x.GetTileDataAsync(tileId, null))
@@ -253,7 +253,7 @@ public class GetTileDataHandlerTests
             var capturedId = id;
             _tileRegistryMock.Setup(x => x.GetTileMetadata(capturedId))
                 .Returns(new TileMetadata(capturedId, "Slow", "Slow tile", TileSize.Small,
-                    TileCategory.System, true, false, typeof(object), Array.Empty<string>()));
+                    TileCategory.System, true, false, Array.Empty<string>()));
             _tileRegistryMock
                 .Setup(x => x.GetTileDataAsync(capturedId, It.IsAny<Dictionary<string, string>?>()))
                 .Returns(async () =>

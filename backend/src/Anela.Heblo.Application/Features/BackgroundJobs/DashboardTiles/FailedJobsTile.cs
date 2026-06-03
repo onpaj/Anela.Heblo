@@ -19,7 +19,6 @@ public sealed class FailedJobsTile : ITile
     public TileCategory Category => TileCategory.System;
     public bool DefaultEnabled => true;
     public bool AutoShow => false;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public FailedJobsTile(IFailedJobCounter failedJobCounter, ILogger<FailedJobsTile> logger)

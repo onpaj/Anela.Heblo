@@ -15,7 +15,6 @@ public class TileExtensionsTests
         public TileCategory Category => TileCategory.System;
         public bool DefaultEnabled => false;
         public bool AutoShow => false;
-        public Type ComponentType => typeof(object);
         public string[] RequiredPermissions => Array.Empty<string>();
         public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
             => Task.FromResult<object>("data");
@@ -29,7 +28,6 @@ public class TileExtensionsTests
         public TileCategory Category => TileCategory.System;
         public bool DefaultEnabled => false;
         public bool AutoShow => false;
-        public Type ComponentType => typeof(object);
         public string[] RequiredPermissions => Array.Empty<string>();
         public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
             => Task.FromResult<object>("data");

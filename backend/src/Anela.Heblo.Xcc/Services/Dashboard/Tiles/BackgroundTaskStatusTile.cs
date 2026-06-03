@@ -14,7 +14,6 @@ public class BackgroundTaskStatusTile : ITile
     public TileCategory Category => TileCategory.System;
     public bool DefaultEnabled => true;
     public bool AutoShow => true; // System tile - auto-show
-    public Type ComponentType => typeof(object); // Frontend component type not needed for backend
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public BackgroundTaskStatusTile(IBackgroundRefreshTaskRegistry taskRegistry)

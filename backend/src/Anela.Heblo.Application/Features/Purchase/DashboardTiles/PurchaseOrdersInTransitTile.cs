@@ -15,7 +15,6 @@ public class PurchaseOrdersInTransitTile : ITile
     public TileCategory Category => TileCategory.Purchase;
     public bool DefaultEnabled => true;
     public bool AutoShow => false; // Manual show
-    public Type ComponentType => typeof(object); // Frontend component type not needed for backend
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public PurchaseOrdersInTransitTile(IPurchaseOrderRepository purchaseOrderRepository)

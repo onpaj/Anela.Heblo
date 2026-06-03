@@ -265,7 +265,7 @@ public class GetUserSettingsHandlerTests
 
     private static TileMetadata MakeTile(string tileId, bool defaultEnabled = true, bool autoShow = true) =>
         new(tileId, tileId, $"{tileId} description", TileSize.Medium, TileCategory.Finance,
-            defaultEnabled, autoShow, typeof(object), Array.Empty<string>());
+            defaultEnabled, autoShow, Array.Empty<string>());
 
     private static UserDashboardSettings CreateExistingUserSettings(string userId)
     {

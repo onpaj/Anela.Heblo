@@ -15,7 +15,6 @@ public class InvoiceImportStatisticsTile : ITile
     public TileCategory Category => TileCategory.Finance;
     public bool DefaultEnabled => true;
     public bool AutoShow => true;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public InvoiceImportStatisticsTile(
