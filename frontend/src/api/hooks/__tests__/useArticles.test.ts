@@ -277,13 +277,14 @@ describe('useArticleFeedbackListQuery parameter passing', () => {
 });
 
 describe('useSubmitArticleFeedbackMutation', () => {
-  let mockFetch: jest.Mock;
+  let mockArticlesSubmitFeedback: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFetch = jest.fn();
-    mockGetAuthenticatedFetch.mockReturnValue(mockFetch);
-    mockGetApiBaseUrl.mockReturnValue('https://api.example.test');
+    mockArticlesSubmitFeedback = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      articles_SubmitFeedback: mockArticlesSubmitFeedback,
+    } as any);
   });
 
   const createMutationWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -306,17 +307,13 @@ describe('useSubmitArticleFeedbackMutation', () => {
     comment: 'great',
   };
 
-  it('resolves with parsed body on 2xx and fires mutation success', async () => {
-    mockFetch.mockResolvedValue(
-      new Response(JSON.stringify({
-        precisionScore: 4,
-        styleScore: 5,
-        feedbackComment: 'great',
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    );
+  it('resolves with parsed body on 2xx (typed generated response with success: true)', async () => {
+    mockArticlesSubmitFeedback.mockResolvedValue({
+      success: true,
+      precisionScore: 4,
+      styleScore: 5,
+      feedbackComment: 'great',
+    });
 
     const { result } = renderHook(
       () => useSubmitArticleFeedbackMutation('article-1'),
@@ -327,10 +324,16 @@ describe('useSubmitArticleFeedbackMutation', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockGetAuthenticatedFetch).toHaveBeenCalled();
-    expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.example.test/api/articles/article-1/feedback',
-      expect.objectContaining({ method: 'POST' }),
+    expect(mockGetAuthenticatedApiClient).toHaveBeenCalled();
+    expect(mockArticlesSubmitFeedback).toHaveBeenCalledTimes(1);
+    expect(mockArticlesSubmitFeedback).toHaveBeenCalledWith(
+      'article-1',
+      expect.objectContaining({
+        articleId: 'article-1',
+        precisionScore: 4,
+        styleScore: 5,
+        comment: 'great',
+      }),
     );
     expect(result.current.data).toEqual({
       precisionScore: 4,
@@ -339,8 +342,11 @@ describe('useSubmitArticleFeedbackMutation', () => {
     });
   });
 
-  it('resolves with alreadySubmitted on 409 (fires mutation success, not error)', async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 409 }));
+  it('resolves with alreadySubmitted when 409 SwaggerException is caught', async () => {
+    // With the escape hatch, the generated client throws SwaggerException on 409
+    // The hook catches it and returns { alreadySubmitted: true }
+    const error409 = Object.assign(new Error('Conflict'), { status: 409 });
+    mockArticlesSubmitFeedback.mockRejectedValue(error409);
 
     const { result } = renderHook(
       () => useSubmitArticleFeedbackMutation('article-1'),
@@ -355,8 +361,9 @@ describe('useSubmitArticleFeedbackMutation', () => {
     expect(result.current.isError).toBe(false);
   });
 
-  it('rejects with an Error on non-2xx non-409 and fires mutation error', async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 500 }));
+  it('rejects when generated client throws non-409 (e.g. 500)', async () => {
+    const error500 = Object.assign(new Error('An unexpected server error occurred. 500'), { status: 500 });
+    mockArticlesSubmitFeedback.mockRejectedValue(error500);
 
     const { result } = renderHook(
       () => useSubmitArticleFeedbackMutation('article-1'),
