@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrder;
 using Anela.Heblo.Application.Shared;
@@ -13,7 +14,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class CreateManufactureOrderHandlerTests
 {
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<IProductNameFormatter> _productNameFormatterMock;
     private readonly CreateManufactureOrderHandler _handler;
@@ -29,7 +30,7 @@ public class CreateManufactureOrderHandlerTests
     public CreateManufactureOrderHandlerTests()
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _productNameFormatterMock = new Mock<IProductNameFormatter>();
 

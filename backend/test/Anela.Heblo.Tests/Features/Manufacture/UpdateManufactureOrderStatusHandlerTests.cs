@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -16,7 +17,7 @@ public class UpdateManufactureOrderStatusHandlerTests
 {
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
     private readonly Mock<IManufacturedProductInventoryRepository> _inventoryRepositoryMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<ILogger<UpdateManufactureOrderStatusHandler>> _loggerMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<IConditionsReadingProvider> _conditionsProviderMock;
@@ -31,7 +32,7 @@ public class UpdateManufactureOrderStatusHandlerTests
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
         _inventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderStatusHandler>>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _conditionsProviderMock = new Mock<IConditionsReadingProvider>();
