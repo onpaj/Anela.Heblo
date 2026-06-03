@@ -5,6 +5,7 @@ using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Shared;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -20,7 +21,7 @@ public class GetBankStatementByIdHandlerTests
     public GetBankStatementByIdHandlerTests()
     {
         _repository = new Mock<IBankStatementImportRepository>();
-        var mapperConfig = new MapperConfiguration(cfg => cfg.AddProfile<BankMappingProfile>());
+        var mapperConfig = new MapperConfiguration(cfg => cfg.AddProfile<BankMappingProfile>(), NullLoggerFactory.Instance);
         _mapper = mapperConfig.CreateMapper();
         _logger = new Mock<ILogger<GetBankStatementByIdHandler>>();
         _handler = new GetBankStatementByIdHandler(_repository.Object, _mapper, _logger.Object);
