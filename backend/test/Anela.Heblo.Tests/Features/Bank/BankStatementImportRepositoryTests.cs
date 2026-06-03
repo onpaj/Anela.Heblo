@@ -95,7 +95,7 @@ public class BankStatementImportRepositoryTests : IDisposable
         await _repository.AddAsync(import3);
 
         // Act
-        var (items, totalCount) = await _repository.GetFilteredAsync();
+        var (items, totalCount) = await _repository.GetFilteredAsync(new BankStatementListFilter());
 
         // Assert
         Assert.Equal(3, totalCount);
@@ -122,7 +122,7 @@ public class BankStatementImportRepositoryTests : IDisposable
         await _repository.AddAsync(import3);
 
         // Act
-        var (items, totalCount) = await _repository.GetFilteredAsync(statementDate: targetDate);
+        var (items, totalCount) = await _repository.GetFilteredAsync(new BankStatementListFilter(StatementDate: targetDate));
 
         // Assert
         Assert.Equal(1, totalCount);
@@ -142,7 +142,7 @@ public class BankStatementImportRepositoryTests : IDisposable
         }
 
         // Act - Get page 2 with 2 items per page (skip 2, take 2)
-        var (items, totalCount) = await _repository.GetFilteredAsync(skip: 2, take: 2);
+        var (items, totalCount) = await _repository.GetFilteredAsync(new BankStatementListFilter(), skip: 2, take: 2);
 
         // Assert
         Assert.Equal(5, totalCount);
@@ -169,7 +169,7 @@ public class BankStatementImportRepositoryTests : IDisposable
         await _repository.AddAsync(import3);
 
         // Act
-        var (items, totalCount) = await _repository.GetFilteredAsync(orderBy: "ImportDate", ascending: true);
+        var (items, totalCount) = await _repository.GetFilteredAsync(new BankStatementListFilter(), orderBy: "ImportDate", ascending: true);
 
         // Assert
         Assert.Equal(3, totalCount);
@@ -191,7 +191,7 @@ public class BankStatementImportRepositoryTests : IDisposable
         var saved2 = await _repository.AddAsync(import2);
 
         // Act
-        var (items, totalCount) = await _repository.GetFilteredAsync(id: saved1.Id);
+        var (items, totalCount) = await _repository.GetFilteredAsync(new BankStatementListFilter(Id: saved1.Id));
 
         // Assert
         Assert.Equal(1, totalCount);
@@ -216,7 +216,7 @@ public class BankStatementImportRepositoryTests : IDisposable
         var targetImportDate = DateTime.UtcNow.Date;
 
         // Act
-        var (items, totalCount) = await _repository.GetFilteredAsync(importDate: targetImportDate);
+        var (items, totalCount) = await _repository.GetFilteredAsync(new BankStatementListFilter(ImportDate: targetImportDate));
 
         // Assert
         Assert.Equal(2, totalCount); // Both should match today's import date
@@ -236,7 +236,7 @@ public class BankStatementImportRepositoryTests : IDisposable
         await _repository.AddAsync(import3);
 
         // Act
-        var (items, totalCount) = await _repository.GetFilteredAsync(orderBy: "StatementDate", ascending: true);
+        var (items, totalCount) = await _repository.GetFilteredAsync(new BankStatementListFilter(), orderBy: "StatementDate", ascending: true);
 
         // Assert
         Assert.Equal(3, totalCount);
@@ -260,7 +260,7 @@ public class BankStatementImportRepositoryTests : IDisposable
         var saved3 = await _repository.AddAsync(import3);
 
         // Act
-        var (items, totalCount) = await _repository.GetFilteredAsync(orderBy: "Id", ascending: true);
+        var (items, totalCount) = await _repository.GetFilteredAsync(new BankStatementListFilter(), orderBy: "Id", ascending: true);
 
         // Assert
         Assert.Equal(3, totalCount);
@@ -282,7 +282,7 @@ public class BankStatementImportRepositoryTests : IDisposable
         await _repository.AddAsync(import2);
 
         // Act
-        var (items, totalCount) = await _repository.GetFilteredAsync(orderBy: "InvalidColumn", ascending: true);
+        var (items, totalCount) = await _repository.GetFilteredAsync(new BankStatementListFilter(), orderBy: "InvalidColumn", ascending: true);
 
         // Assert
         Assert.Equal(2, totalCount);
@@ -307,8 +307,7 @@ public class BankStatementImportRepositoryTests : IDisposable
 
         // Act - Filter by both statementDate and id
         var (items, totalCount) = await _repository.GetFilteredAsync(
-            id: saved1.Id,
-            statementDate: targetDate);
+            new BankStatementListFilter(Id: saved1.Id, StatementDate: targetDate));
 
         // Assert
         Assert.Equal(1, totalCount);

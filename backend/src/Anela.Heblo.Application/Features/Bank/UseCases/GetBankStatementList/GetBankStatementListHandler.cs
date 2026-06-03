@@ -26,7 +26,6 @@ public class GetBankStatementListHandler : IRequestHandler<GetBankStatementListR
     {
         _logger.LogInformation("Getting bank statement list with Skip={Skip}, Take={Take}", request.Skip, request.Take);
 
-        // Parse date filters
         DateTime? statementDate = null;
         if (!string.IsNullOrEmpty(request.StatementDate) && DateTime.TryParse(request.StatementDate, out var parsedStatementDate))
         {
@@ -39,16 +38,18 @@ public class GetBankStatementListHandler : IRequestHandler<GetBankStatementListR
             importDate = parsedImportDate;
         }
 
-        // Use repository with database-level filtering
+        var filter = new BankStatementListFilter(
+            Id: request.Id,
+            StatementDate: statementDate,
+            ImportDate: importDate);
+
         var (items, totalCount) = await _repository.GetFilteredAsync(
-            id: request.Id,
-            statementDate: statementDate,
-            importDate: importDate,
+            filter,
             skip: request.Skip,
             take: request.Take,
             orderBy: request.OrderBy ?? "ImportDate",
-            ascending: request.Ascending
-        );
+            ascending: request.Ascending,
+            cancellationToken: cancellationToken);
 
         var dtoList = _mapper.Map<List<BankStatementImportDto>>(items);
 

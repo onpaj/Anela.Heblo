@@ -13,31 +13,28 @@ public class BankStatementImportRepository : IBankStatementImportRepository
     }
 
     public async Task<(IEnumerable<BankStatementImport> Items, int TotalCount)> GetFilteredAsync(
-        int? id = null,
-        DateTime? statementDate = null,
-        DateTime? importDate = null,
+        BankStatementListFilter filter,
         int skip = 0,
         int take = 50,
         string orderBy = "ImportDate",
-        bool ascending = false)
+        bool ascending = false,
+        CancellationToken cancellationToken = default)
     {
-        // Use AsNoTracking to improve performance and potentially avoid mapping issues
+        ArgumentNullException.ThrowIfNull(filter);
+
         var query = _context.BankStatements.AsNoTracking().AsQueryable();
 
-        // Apply filters
-        if (id.HasValue)
-            query = query.Where(bs => bs.Id == id.Value);
+        if (filter.Id.HasValue)
+            query = query.Where(bs => bs.Id == filter.Id.Value);
 
-        if (statementDate.HasValue)
-            query = query.Where(bs => bs.StatementDate.Date == statementDate.Value.Date);
+        if (filter.StatementDate.HasValue)
+            query = query.Where(bs => bs.StatementDate.Date == filter.StatementDate.Value.Date);
 
-        if (importDate.HasValue)
-            query = query.Where(bs => bs.ImportDate.Date == importDate.Value.Date);
+        if (filter.ImportDate.HasValue)
+            query = query.Where(bs => bs.ImportDate.Date == filter.ImportDate.Value.Date);
 
-        // Get total count before pagination
-        var totalCount = await query.CountAsync();
+        var totalCount = await query.CountAsync(cancellationToken);
 
-        // Apply sorting with secondary sort by Id (always ascending) for deterministic ordering
         query = orderBy.ToLowerInvariant() switch
         {
             "id" => ascending ? query.OrderBy(x => x.Id) : query.OrderByDescending(x => x.Id),
@@ -50,11 +47,10 @@ public class BankStatementImportRepository : IBankStatementImportRepository
             _ => query.OrderByDescending(x => x.ImportDate).ThenBy(x => x.Id)
         };
 
-        // Apply pagination
         var items = await query
             .Skip(skip)
             .Take(take)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return (items, totalCount);
     }
