@@ -5,7 +5,6 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
-using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Manufacture;
 using AutoMapper;
@@ -18,7 +17,6 @@ namespace Anela.Heblo.Tests.Features.Catalog;
 public class GetCatalogDetailHandlerFullHistoryTests
 {
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
-    private readonly Mock<ILotsClient> _lotsClientMock;
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly GetCatalogDetailHandler _handler;
@@ -26,11 +24,10 @@ public class GetCatalogDetailHandlerFullHistoryTests
     public GetCatalogDetailHandlerFullHistoryTests()
     {
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
-        _lotsClientMock = new Mock<ILotsClient>();
         _mapperMock = new Mock<IMapper>();
         _timeProviderMock = new Mock<TimeProvider>();
         var loggerMock = new Mock<ILogger<GetCatalogDetailHandler>>();
-        _handler = new GetCatalogDetailHandler(_catalogRepositoryMock.Object, _lotsClientMock.Object, _mapperMock.Object, _timeProviderMock.Object, loggerMock.Object);
+        _handler = new GetCatalogDetailHandler(_catalogRepositoryMock.Object, _mapperMock.Object, _timeProviderMock.Object, loggerMock.Object);
 
         // No longer needed - using pre-calculated margins from CatalogAggregate
     }
