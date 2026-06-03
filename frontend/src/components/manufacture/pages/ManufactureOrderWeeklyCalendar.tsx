@@ -60,6 +60,21 @@ const getErpDocumentStatus = (
   return documentNumber ? 'success' : 'failed';
 };
 
+// Quantity shown for a product row on a calendar card. The produced (actual)
+// quantity is only meaningful once the order is completed; before that the
+// planned quantity is shown. Using actualQuantity earlier surfaces a stale or
+// zero value (e.g. after editing the planned quantity without touching actual,
+// since the update only syncs actualQuantity when it is explicitly provided).
+export const getProductDisplayQuantity = (
+  product: { plannedQuantity?: number; actualQuantity?: number | null },
+  orderState: ManufactureOrderState | undefined
+): number | undefined => {
+  if (orderState === ManufactureOrderState.Completed) {
+    return product.actualQuantity ?? product.plannedQuantity;
+  }
+  return product.plannedQuantity;
+};
+
 export const getWeightToleranceStatus = (
   weightWithinTolerance: boolean | undefined | null,
   orderState: ManufactureOrderState | undefined
@@ -624,7 +639,13 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                 </div>
                                 <div className="space-y-1 flex-1">
                                   {event.products.map((product, idx) => {
-                                    const isDirect = product.productCode === event.semiProduct?.productCode;
+                                    // Direct semiproduct output only exists for MultiPhase orders.
+                                    // For SinglePhase the semiproduct is a placeholder pointing at the
+                                    // first product, so this sentinel would wrongly tag the real product
+                                    // as a bulk/grams row.
+                                    const isDirect = event.manufactureType !== ManufactureType.SinglePhase &&
+                                      product.productCode === event.semiProduct?.productCode;
+                                    const displayQuantity = getProductDisplayQuantity(product, event.state);
                                     return (
                                     <div key={idx} className={`text-xs p-2 rounded ${isDirect ? 'bg-amber-100 bg-opacity-70 border border-amber-300' : 'bg-white bg-opacity-30'}`}>
                                       <div className={`font-medium truncate ${isDirect ? 'text-amber-800' : ''}`} title={product.productName}>
@@ -632,7 +653,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                       </div>
                                       <div className={`flex items-center justify-between ${isDirect ? 'text-amber-700' : 'text-gray-600'}`}>
                                         <span className="truncate">{product.productCode}</span>
-                                        <span>{(product.actualQuantity ?? product.plannedQuantity)?.toFixed(2)} {isDirect ? 'g' : 'ks'}</span>
+                                        <span>{displayQuantity?.toFixed(2)} {isDirect ? 'g' : 'ks'}</span>
                                       </div>
                                     </div>
                                     );

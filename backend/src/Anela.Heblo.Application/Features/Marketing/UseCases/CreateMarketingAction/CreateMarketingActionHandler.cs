@@ -46,18 +46,15 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAct
 
             var now = DateTime.UtcNow;
 
-            var action = new MarketingAction
-            {
-                Title = request.Title.Trim(),
-                Description = request.Description?.Trim(),
-                ActionType = request.ActionType,
-                StartDate = request.StartDate,
-                EndDate = request.EndDate,
-                CreatedAt = now,
-                ModifiedAt = now,
-                CreatedByUserId = currentUser.Id,
-                CreatedByUsername = currentUser.Name ?? "Unknown User",
-            };
+            var action = new MarketingAction(
+                title: request.Title,
+                description: request.Description,
+                actionType: request.ActionType,
+                startDate: request.StartDate,
+                endDate: request.EndDate,
+                createdByUserId: currentUser.Id,
+                createdByUsername: currentUser.Name,
+                utcNow: now);
 
             if (request.AssociatedProducts?.Any() == true)
                 foreach (var product in request.AssociatedProducts.Distinct())

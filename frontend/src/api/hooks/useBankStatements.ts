@@ -39,8 +39,13 @@ export interface GetBankStatementListResponse {
 
 export interface GetBankStatementListRequest {
   id?: number;
+  transferId?: string;
+  account?: string;
   statementDate?: string;
   importDate?: string;
+  dateFrom?: string;   // ISO date 'YYYY-MM-DD'
+  dateTo?: string;     // ISO date 'YYYY-MM-DD'
+  errorsOnly?: boolean;
   skip?: number;
   take?: number;
   orderBy?: string;
@@ -98,11 +103,28 @@ export const useBankStatementsList = (
       if (request.id !== undefined) {
         params.append('id', request.id.toString());
       }
+      const transferId = request.transferId?.trim();
+      if (transferId) {
+        params.append('transferId', transferId);
+      }
+      const account = request.account?.trim();
+      if (account) {
+        params.append('account', account);
+      }
       if (request.statementDate) {
         params.append('statementDate', request.statementDate);
       }
       if (request.importDate) {
         params.append('importDate', request.importDate);
+      }
+      if (request.dateFrom) {
+        params.append('dateFrom', request.dateFrom);
+      }
+      if (request.dateTo) {
+        params.append('dateTo', request.dateTo);
+      }
+      if (request.errorsOnly) {
+        params.append('errorsOnly', 'true');
       }
       if (request.skip !== undefined) {
         params.append('skip', request.skip.toString());

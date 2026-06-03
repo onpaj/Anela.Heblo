@@ -159,4 +159,5 @@ design.r*.md
 spec.md
 spec.r*.md
 task-plan.r*.md
-brief.mdfrontend/node_modules
+brief.md
+frontend/node_modules
