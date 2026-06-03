@@ -158,6 +158,23 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition.GetProductCompositionHandler -> Anela.Heblo.Domain.Features.Manufacture.Ingredient",
     };
 
+    // Allowlist for DataQuality -> Catalog. Pre-existing ProductPairingDqtComparer references
+    // are out of scope for the 2026-06-03 StockWriteBackDqtComparer decoupling.
+    // Track follow-up: introduce DataQuality-owned IProductPairingQuery contract and Catalog-side
+    // adapter that surfaces eshop/erp product snapshots without leaking Catalog types.
+    private static readonly HashSet<string> DataQualityCatalogAllowlist = new(StringComparer.Ordinal)
+    {
+        // ProductPairingDqtComparer reads eshop/erp catalog clients to compare product pairing.
+        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.IEshopStockClient",
+        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.IErpStockClient",
+        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStock",
+        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.ProductType",
+
+        // Compiler-generated async state machine <CompareAsync>d__5 captures EshopStock in local
+        // fields when comparing product pairings. Covered by the declaring-type check above.
+        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer+<CompareAsync>d__5 -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStock",
+    };
+
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
         new ModuleBoundaryRule(
@@ -292,6 +309,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Manufacture",
             },
             Allowlist: CatalogManufactureAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "DataQuality -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.DataQuality",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: DataQualityCatalogAllowlist),
     };
 
     [Theory]
