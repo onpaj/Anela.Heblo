@@ -1,162 +1,98 @@
-I have enough to write the review. The key things I verified:
-
-- Existing repository template (`PackageRepository.GetPaginatedAsync`) shows the canonical filter+sort+paginate pattern with `EF.Functions.ILike` + `EscapeLike` helper — the spec's pattern aligns but omits `LIKE` escaping.
-- The repository test suite uses EF Core InMemory, which does **not** translate `EF.Functions.ILike` — a concrete risk for the spec's stated test coverage.
-- The frontend hook is hand-rolled (not consumed from the generated OpenAPI client) — spec's "regenerate the client" wording should be tightened.
-- `TransferId` has a unique B-tree index that cannot accelerate `%substring%` ILike; spec's "no proactive index work" stands but the reasoning belongs in the doc.
-- The spec says `Contains` (case-insensitive) for TransferId but `ILike` for Account — inconsistent; PostgreSQL `string.Contains` is case-sensitive, so both need ILike.
+Now I have enough context to write the architecture review.
 
 # Architecture Review: Wire Up Bank Import Tab Filter Inputs
 
 ## Skip Design: true
 
-No new UI controls, no layout, no copy, no visual decisions. Every control already exists in `ImportTab.tsx`; this work is end-to-end plumbing of values that the user already sees and types into.
-
 ## Architectural Fit Assessment
 
-The feature is a textbook fit for the existing slice. The Bank module already follows the Vertical Slice + MediatR + Repository convention (`Features/Bank/UseCases/GetBankStatementList/*`), and a near-identical multi-filter list query already lives in `PackageRepository.GetPaginatedAsync` (`backend/src/Anela.Heblo.Persistence/Repositories/Packaging/PackageRepository.cs:12`). That repository is the canonical template — it combines optional string predicates via `EF.Functions.ILike`, optional date-range bounds, and pagination/sorting in one method. Replicating that shape in `BankStatementImportRepository.GetFilteredAsync` is the lowest-risk path.
+The feature fits squarely within the existing vertical-slice pattern for the Bank module. Every layer already has a slot for what this change needs:
 
-Integration points are narrow and well isolated:
+- The MediatR query `GetBankStatementListRequest` is the established extension point for new optional filter parameters.
+- The handler already uses the `string? → DateTime?` parse convention for `statementDate` / `importDate`, so the new `dateFrom` / `dateTo` parameters slot in identically.
+- The repository's `GetFilteredAsync` already centralises database-level filter composition.
+- A PostgreSQL `ILIKE` pattern with an `EscapeLike` helper is already in use in `Anela.Heblo.Persistence/Repositories/Packaging/PackageRepository.cs` — this is the canonical pattern to copy, not to invent from scratch.
+- The frontend hook (`useBankStatements.ts`) builds query strings with `URLSearchParams`, so new optional fields drop in without restructuring.
 
-- One MediatR request DTO (`GetBankStatementListRequest`)
-- One handler (`GetBankStatementListHandler`)
-- One repository method (`GetFilteredAsync`) and its interface
-- One controller action (`BankStatementsController.GetBankStatements`)
-- One FluentValidation validator (`GetBankStatementListRequestValidator`)
-- One frontend hook (`useBankStatementsList`)
-- One consumer (`ImportTab.tsx`)
+Two real frictions exist:
 
-No new aggregates, no new modules, no cross-module communication. AutoMapper profile is untouched (the existing `ErrorType` mapping already encodes the FR-4 predicate). No schema changes.
+1. **Repository signature smell.** `GetFilteredAsync` already has seven positional optional parameters. Adding three more (`transferId`, `account`, `errorsOnly`) pushes the signature past a readability threshold and makes call sites in `BankStatementsController.GetBankStatement(int id)` (which still uses the same handler/repo for single-item lookup) opaque.
+2. **InMemory test database does not support `EF.Functions.ILike`.** The existing `BankStatementImportRepositoryTests` use `UseInMemoryDatabase`. Other modules (`MeetingTranscriptRepositorySearchIntegrationTests`, `IssuedInvoiceRepositoryTests`) handle this with one of two patterns: (a) cover ILike-driven filters via Testcontainers PostgreSQL integration tests, (b) leave the ILike path uncovered at the InMemory level and add an explanatory comment. We must pick one — the spec says "use existing repository test patterns" but does not name the pattern.
 
-The only architectural friction is the growth of the positional parameter list on the repository method (8 → 13 parameters). The codebase has tolerated this style elsewhere (`PackageRepository` uses 11), so introducing a criteria object now would diverge from in-repo precedent and is not warranted by this feature alone.
+Both are addressable without leaving the established architecture.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-ImportTab.tsx
-   │   (transferId, account, dateFrom, dateTo, errorsOnly)
-   │   committed-filters state (only mutated by Filtrovat / Vyčistit)
-   ▼
-useBankStatementsList(request)            ← frontend hook (hand-rolled fetch)
-   │   GET /api/bank-statements?transferId=…&account=…&dateFrom=…&dateTo=…&errorsOnly=…
-   ▼
-BankStatementsController.GetBankStatements   ← [FromQuery] params, builds DTO
-   ▼
-MediatR ── GetBankStatementListRequest
-   │
-   ├── ValidationBehavior → GetBankStatementListRequestValidator (extended)
-   │       400 on: dateFrom > dateTo, transferId/account > 100 chars,
-   │                unparseable dates (TryParse failure surfaced via validator)
-   ▼
-GetBankStatementListHandler
-   │   parses dateFrom/dateTo via DateTime.TryParse (same pattern as existing
-   │   statementDate/importDate); trims account; passes 13 args to repository
-   ▼
-IBankStatementImportRepository.GetFilteredAsync
-   │   IQueryable<BankStatementImport>.AsNoTracking()
-   │     .Where(id?) .Where(transferId? → ILike '%x%')
-   │     .Where(account? → ILike '%x%')   ← trimmed, LIKE-escaped
-   │     .Where(dateFrom? → StatementDate >= dateFrom.Date)
-   │     .Where(dateTo?   → StatementDate <  dateTo.Date.AddDays(1))
-   │     .Where(errorsOnly? → ImportResult != "OK")
-   │     .Where(statementDate?) .Where(importDate?)    ← existing equality filters
-   ▼
-PostgreSQL (BankStatements table; existing indexes only)
+Frontend (React)
+├── ImportTab.tsx
+│     • Local state per input (transferIdInput, accountInput, dateFrom, dateTo, showOnlyErrors)
+│     • Committed-filter state (object) → drives useBankStatementsList
+│     • handleApplyFilters: validate (dateFrom <= dateTo) → setCommittedFilters → reset page
+│     • handleClearFilters: empty committedFilters → reset page
+│
+└── useBankStatements.ts
+      • GetBankStatementListRequest: + transferId, account, dateFrom, dateTo, errorsOnly
+      • Hook serialises trimmed/non-empty values into URLSearchParams
+      • Query key already includes the request object → cache keyed correctly
+                              │
+                              ▼ GET /api/bank-statements?...
+Backend (.NET 8 + MediatR)
+├── BankStatementsController.GetBankStatements
+│     • [FromQuery] binding into GetBankStatementListRequest directly
+│     • (Replaces 7 individual [FromQuery] parameters with model binding)
+│
+├── GetBankStatementListRequest (MediatR)
+│     • + TransferId?: string, Account?: string, DateFrom?: string,
+│       DateTo?: string, ErrorsOnly?: bool
+│
+├── GetBankStatementListRequestValidator (FluentValidation)
+│     • + Length<=100 for TransferId, Account
+│     • + Parseable date for DateFrom, DateTo
+│     • + DateFrom <= DateTo when both provided
+│
+├── GetBankStatementListHandler
+│     • Parses DateFrom/DateTo (mirrors existing StatementDate/ImportDate parsing)
+│     • Builds BankStatementListFilter record (see below)
+│     • Calls _repository.GetFilteredAsync(filter, paging, sorting)
+│
+└── BankStatementImportRepository.GetFilteredAsync
+      • EF.Functions.ILike(bs.TransferId, $"%{escaped}%", "\\")
+      • EF.Functions.ILike(bs.Account,    $"%{escaped}%", "\\")
+      • bs.StatementDate.Date >= dateFrom.Value.Date
+      • bs.StatementDate.Date <= dateTo.Value.Date
+      • bs.ImportResult != ImportStatus.Success when errorsOnly==true
+      • Existing AsNoTracking, Count-before-paging, deterministic ordering preserved
 ```
 
 ### Key Design Decisions
 
-#### Decision 1: Match `PackageRepository`'s `ILike` + `EscapeLike` pattern; do not use `string.Contains`
-
+#### Decision 1: Repository signature — parameter object vs. more optional params
 **Options considered:**
-- (a) `query.Where(bs => bs.TransferId.Contains(value))` — what the spec literally says for TransferId.
-- (b) `query.Where(bs => EF.Functions.ILike(bs.TransferId, $"%{Escape(value)}%", "\\"))` — what `PackageRepository` and `IssuedInvoiceRepository` already do.
+- (a) Append three more positional optional parameters to `GetFilteredAsync` (`transferId`, `account`, `errorsOnly`).
+- (b) Introduce a `BankStatementListFilter` record that packages all filter criteria, leaving paging/sorting as separate parameters.
+- (c) Replace the tuple return with a query-object pattern across the whole feature.
 
-**Chosen approach:** (b) for both TransferId **and** Account.
-
-**Rationale:** The spec's "case-insensitive `Contains`" wording is internally inconsistent — Npgsql translates `string.Contains` to a case-sensitive `LIKE '%x%'`. Only `EF.Functions.ILike` yields case-insensitive matching on PostgreSQL. The spec already prescribes `ILike` for Account; using the same primitive for TransferId is both correct and uniform with two prior in-repo precedents. Additionally, both inputs are free-form user text and must be `LIKE`-escaped (reuse `EscapeLike` from `PackageRepository`, or extract it to a small `LikeEscape` helper under `Anela.Heblo.Persistence`). Without escaping, a user typing `100%` produces a query that matches everything.
-
-#### Decision 2: Date range comparison — half-open `>= from && < to.AddDays(1)` rather than `.Date <=` on both sides
-
-**Options considered:**
-- (a) `bs.StatementDate.Date >= dateFrom.Date && bs.StatementDate.Date <= dateTo.Date` (spec wording).
-- (b) `bs.StatementDate >= dateFrom.Date && bs.StatementDate < dateTo.Date.AddDays(1)`.
-
-**Chosen approach:** (b), the half-open form, matching `PackageRepository` (`PackageRepository.cs:38`).
-
-**Rationale:** Both forms translate, but (b) is the form already in use in the codebase, is sargable in a way that lets an `IX_BankStatements_StatementDate` B-tree index help when present, and avoids `date_trunc`-style server-side casts on every row. Functionally equivalent for the spec's day-granularity requirement, and the user-facing semantics (inclusive on both ends) are preserved.
-
-#### Decision 3: Validation lives in the existing FluentValidation validator; controller stays thin
-
-**Options considered:**
-- (a) Add `if (dateFrom > dateTo) return BadRequest(...)` and length checks inline in the controller action.
-- (b) Extend `GetBankStatementListRequestValidator` with the new rules; let MediatR's existing `ValidationBehavior` produce the 400.
-
-**Chosen approach:** (b).
-
-**Rationale:** The validator already exists and is the project's defined seam for request validation. Adding rules there keeps the controller a thin pass-through (its current shape) and ensures the same validation runs if any other caller dispatches the MediatR request directly. Date string parseability is checked by the handler today via `TryParse` with a silent fallback to `null`; the spec requires unparseable values to return 400, so a `Must(BeParseableDateOrNull)` rule is added in the validator, and the handler keeps its current parse-then-pass pattern (now safe because the validator rejects unparseable input before the handler runs).
-
-#### Decision 4: Frontend "committed filters" object, not five `useEffect`-driven props
-
-**Options considered:**
-- (a) Pass the live input state directly to `useBankStatementsList` — every keystroke refetches.
-- (b) Keep separate "input" and "committed" state; only `handleApplyFilters`/`handleClearFilters` write the committed state; pass the committed state into the hook.
-
-**Chosen approach:** (b), as the spec mandates explicit "Filtrovat"-driven submission.
-
-**Rationale:** The component already half-implements this pattern for `transferIdFilter`/`accountFilter` (`ImportTab.tsx:27-28`). Generalising it to a single `committedFilters` object reduces dependency-array surface for React Query's `queryKey`, gives one obvious place to reset on "Vyčistit", and removes the now-misleading `await refetch()` calls inside the apply/clear handlers (they're no-ops once `queryKey` changes drive the refetch).
-
-#### Decision 5: `errorsOnly` semantics anchored to the `ImportResult != "OK"` string predicate — no enum, no new column
-
-**Options considered:**
-- (a) Introduce an `ImportStatus` enum column.
-- (b) Keep `ImportResult` as the source of truth; predicate is `ImportResult != "OK"`.
-
-**Chosen approach:** (b).
-
-**Rationale:** The spec is explicit about this, and three call sites already encode the same predicate: the UI badge (`ImportTab.tsx:205`), the AutoMapper profile (`BankMappingProfile.cs:12`), and the DTO's computed `ErrorType` property (`BankStatementImportDto.cs:13`). Adding a fourth instance in the repository keeps the semantics consistent and avoids a migration. (Worth a separate, out-of-scope note: the DTO computed property and the AutoMapper `ForMember` are redundant — both compute `ErrorType` from `ImportResult`. The AutoMapper line is effectively dead. Not in scope here; flagging for a future cleanup.)
-
-## Implementation Guidance
-
-### Directory / Module Structure
-
-No new files on the backend. Edits in place:
-
-- `backend/src/Anela.Heblo.Application/Features/Bank/UseCases/GetBankStatementList/GetBankStatementListRequest.cs` — add five optional properties (classes, not records — already a class).
-- `backend/src/Anela.Heblo.Application/Features/Bank/UseCases/GetBankStatementList/GetBankStatementListHandler.cs` — parse the two new date strings; pass the seven additional values into the repository call; trim `Account` before passing.
-- `backend/src/Anela.Heblo.Application/Features/Bank/Validators/GetBankStatementListRequestValidator.cs` — add length, parseability, and range-ordering rules.
-- `backend/src/Anela.Heblo.Domain/Features/Bank/IBankStatementImportRepository.cs` — extend the `GetFilteredAsync` signature with five new optional parameters (default `null`/`false`), preserving backward compatibility for any other caller (`BankStatementsController` `GetBankStatement(id)` keeps working unchanged).
-- `backend/src/Anela.Heblo.Persistence/Features/Bank/BankStatementImportRepository.cs` — implement the new predicates; reuse a shared `LikeEscape` helper.
-- `backend/src/Anela.Heblo.API/Controllers/BankStatementsController.cs` — add five `[FromQuery]` parameters to `GetBankStatements` and pass them into the request DTO. Update the XML doc comments.
-- `backend/test/Anela.Heblo.Tests/Features/Bank/BankStatementImportRepositoryTests.cs` — new test methods per filter and one combined case (but see Risk 1 below — InMemory provider blocker).
-- New: `backend/test/Anela.Heblo.Tests/Features/Bank/GetBankStatementListHandlerTests.cs` — handler-level tests, including the `dateFrom > dateTo` 400 case (via the validator).
-
-One small shared utility (recommended, not required):
-
-- `backend/src/Anela.Heblo.Persistence/Shared/LikeEscape.cs` — extract `PackageRepository`'s private `EscapeLike` into a `public static class LikeEscape { public static string Escape(string s) … }`. This avoids duplicating the escape logic and consolidates the (currently private) implementation. Strictly optional; if rejected, copy the helper into `BankStatementImportRepository` and accept the duplication.
-
-Frontend edits (in place):
-
-- `frontend/src/api/hooks/useBankStatements.ts` — extend `GetBankStatementListRequest` and the `URLSearchParams` builder in `useBankStatementsList` with the five new fields. **Note:** this hook is hand-rolled (`apiClient.http.fetch`), not consumed from the generated NSwag client; regenerating the OpenAPI client will refresh the generated types but does not auto-update this hook. The spec's "regenerate the client" line should be read as "regenerate so generated types stay in sync; also manually extend the hand-rolled hook to pass the new params."
-- `frontend/src/components/customer/tabs/ImportTab.tsx` — collapse the two-state-per-filter pattern into a single `committedFilters` object, pass it into `useBankStatementsList`, drop the now-unnecessary `await refetch()` inside `handleApplyFilters`/`handleClearFilters`, and add a `dateFrom > dateTo` inline error.
-- No new frontend files. No new components.
-
-### Interfaces and Contracts
-
-**Repository (`IBankStatementImportRepository.GetFilteredAsync`) — new signature:**
+**Chosen approach:** (b). Add `BankStatementListFilter` (record) under `Anela.Heblo.Domain/Features/Bank/`:
 
 ```csharp
+public sealed record BankStatementListFilter(
+    int? Id = null,
+    string? TransferId = null,
+    string? Account = null,
+    DateTime? StatementDate = null,
+    DateTime? ImportDate = null,
+    DateTime? DateFrom = null,
+    DateTime? DateTo = null,
+    bool? ErrorsOnly = null);
+```
+
+New `GetFilteredAsync` becomes:
+```csharp
 Task<(IEnumerable<BankStatementImport> Items, int TotalCount)> GetFilteredAsync(
-    int? id = null,
-    DateTime? statementDate = null,
-    DateTime? importDate = null,
-    string? transferId = null,
-    string? account = null,
-    DateTime? dateFrom = null,
-    DateTime? dateTo = null,
-    bool? errorsOnly = null,
+    BankStatementListFilter filter,
     int skip = 0,
     int take = 50,
     string orderBy = "ImportDate",
@@ -164,90 +100,203 @@ Task<(IEnumerable<BankStatementImport> Items, int TotalCount)> GetFilteredAsync(
     CancellationToken cancellationToken = default);
 ```
 
-Adding `CancellationToken` is a small unrelated improvement but worth doing while the signature is already churning — every other repository in the codebase takes one (`PackageRepository`, `MeetingTranscriptRepository`, `IssuedInvoiceRepository`). Tests pass `CancellationToken.None`.
+**Rationale:** A 10-parameter method is a maintainability hazard for every future filter addition. The filter is a cohesive concept; packaging it is YAGNI-compatible because we are not building speculative generality — we are recognising the existing parameter list has already exceeded the threshold. This is a domain-layer record (not a DTO crossing the API boundary), so the project's "DTOs are classes, not records" rule does not apply.
 
-**Request DTO additions (`GetBankStatementListRequest`):**
+One existing call site needs updating: `BankStatementsController.GetBankStatement(int id)` builds a `GetBankStatementListRequest { Id = id, Take = 1 }`. It does not need new filters — the handler creates the filter object from request fields and the rest stay null. Backward-compatible at the handler boundary.
 
+#### Decision 2: ILike escaping
+**Options considered:**
+- (a) Inline `EF.Functions.ILike(..., $"%{value}%")` without escape — matches the simpler path used in `MeetingTranscriptRepository` / `IssuedInvoiceRepository`.
+- (b) Replicate the `EscapeLike` helper from `PackageRepository` to neutralise `%`, `_`, `\` in user input.
+
+**Chosen approach:** (b). Copy the `EscapeLike` helper (`PackageRepository.cs:75`) as a `private static` method on `BankStatementImportRepository`. Pass the escape char `"\\"` argument to `EF.Functions.ILike` so the wildcards in user input are matched literally.
+
+**Rationale:** Without escaping, a user typing `%` or `_` in the Account or Transfer ID input will produce wildcard matches — a correctness defect, not a security issue. The cost is one helper method that already exists elsewhere. Two callers in the codebase do this inconsistently today; we adopt the safer of the two patterns. Do not extract a shared helper across modules in this PR — that is a separate refactor.
+
+#### Decision 3: Errors-only predicate placement
+**Options considered:**
+- (a) Inline string literal: `bs.ImportResult != "OK"`.
+- (b) Reference the existing `ImportStatus.Success` constant from `Anela.Heblo.Domain/Features/Bank/ImportStatus.cs`.
+
+**Chosen approach:** (b). Use `ImportStatus.Success` in the repository `Where` clause. `BankMappingProfile.cs:12` and `BankStatementImportDto.cs:13` currently inline the `"OK"` literal — that drift is a separate cleanup item; do not touch it in this PR (per "surgical changes").
+
+**Rationale:** Keeps the new code aligned with the named constant that already exists for this exact purpose. EF will translate the constant to a parameterised SQL value identically.
+
+#### Decision 4: Controller binding
+**Options considered:**
+- (a) Add three more individual `[FromQuery]` parameters to `BankStatementsController.GetBankStatements`.
+- (b) Switch the action signature to `GetBankStatements([FromQuery] GetBankStatementListRequest request)` so the framework binds query string directly into the MediatR request.
+
+**Chosen approach:** (a). Keep individual `[FromQuery]` parameters; add the five new ones. The current explicit-parameter style preserves XML doc clarity and OpenAPI parameter descriptions per field, and matches the surrounding code's level of ceremony. Switching to model binding is a refactor that touches an already-working surface for no behavioural gain — out of scope.
+
+**Rationale:** "Surgical changes" rule. The signature growth is one-off; we do not need to refactor the binding shape today.
+
+#### Decision 5: Repository test coverage of ILike filters
+**Options considered:**
+- (a) Add Testcontainers PostgreSQL integration tests for the `transferId` / `account` paths (mirrors `MeetingTranscriptRepositorySearchIntegrationTests`).
+- (b) Cover what InMemory supports (`errorsOnly`, date range, combined non-ILike) at unit level; add a single `[Trait("Category","Integration")]` Testcontainers test that asserts `transferId` and `account` ILike behaviour and the escape-char handling against a real Postgres.
+- (c) Skip backend test coverage of the ILike paths entirely with an explanatory comment (the pattern used in `IssuedInvoiceRepositoryTests`).
+
+**Chosen approach:** (b). Unit-test what InMemory can express; add one focused integration test class for the ILike substring filters and one assertion that `%` and `_` are escaped literally.
+
+**Rationale:** The spec's NFR-4 requires per-filter coverage. ILike behaviour is the highest-risk path (escaping, case-insensitivity, dialect-specific). Pattern (a) is overkill for the other filters; pattern (c) leaves a real correctness path uncovered. The Testcontainers harness is already established in the test project — adding one class is cheap.
+
+#### Decision 6: Frontend commit-on-apply pattern
+**Options considered:**
+- (a) Pass live input state directly into `useBankStatementsList` (re-fetch on every keystroke).
+- (b) Introduce a "committed filters" state object that the hook depends on; "Filtrovat" copies inputs → committed; "Vyčistit" clears both.
+
+**Chosen approach:** (b), as the spec prescribes. React Query keys the cache on the request object, so making the request object change only on commit is what makes "Filtrovat" meaningful and prevents per-keystroke refetches.
+
+**Rationale:** Matches FR-6 acceptance criteria exactly and stops the current `refetch()` no-op pattern. The `transferIdFilter` / `accountFilter` state variables that exist today become the committed-filter object (consolidated, not duplicated).
+
+## Implementation Guidance
+
+### Directory / Module Structure
+
+No new directories. Files touched:
+
+**Backend:**
+- `backend/src/Anela.Heblo.Domain/Features/Bank/BankStatementListFilter.cs` *(new)* — filter record.
+- `backend/src/Anela.Heblo.Domain/Features/Bank/IBankStatementImportRepository.cs` — change `GetFilteredAsync` signature.
+- `backend/src/Anela.Heblo.Persistence/Features/Bank/BankStatementImportRepository.cs` — new filter clauses, `EscapeLike` helper, `CancellationToken` plumbed through.
+- `backend/src/Anela.Heblo.Application/Features/Bank/UseCases/GetBankStatementList/GetBankStatementListRequest.cs` — five new optional properties.
+- `backend/src/Anela.Heblo.Application/Features/Bank/UseCases/GetBankStatementList/GetBankStatementListHandler.cs` — parse `DateFrom`/`DateTo`, build filter, pass through.
+- `backend/src/Anela.Heblo.Application/Features/Bank/Validators/GetBankStatementListRequestValidator.cs` — length, date parse, date range rules.
+- `backend/src/Anela.Heblo.API/Controllers/BankStatementsController.cs` — five new `[FromQuery]` parameters on the list action; XML docs updated.
+- `backend/test/Anela.Heblo.Tests/Features/Bank/BankStatementImportRepositoryTests.cs` — unit-test additions for `errorsOnly`, date range, combined non-ILike.
+- `backend/test/Anela.Heblo.Tests/Features/Bank/BankStatementImportRepositoryIntegrationTests.cs` *(new)* — Testcontainers test for ILike + escape on `TransferId` and `Account`.
+- `backend/test/Anela.Heblo.Tests/Features/Bank/GetBankStatementListHandlerTests.cs` *(new — if not present)* — handler-level test covering 400 on `DateFrom > DateTo` and length rejection.
+
+**Frontend:**
+- `frontend/src/api/hooks/useBankStatements.ts` — extend `GetBankStatementListRequest`; trim and omit empty strings when serialising.
+- `frontend/src/components/customer/tabs/ImportTab.tsx` — collapse `transferIdFilter` / `accountFilter` into a single `committedFilters` object including all five fields; client-side `dateFrom <= dateTo` guard with inline error; remove `refetch()` post-state-set anti-pattern.
+- `frontend/src/components/customer/tabs/__tests__/ImportTab.test.tsx` *(new or extended)* — verify hook is called with expected payload on apply/clear, and that the validation guard blocks submission when `dateFrom > dateTo`.
+
+The generated client at `frontend/src/api/generated/api-client.ts` regenerates from the OpenAPI definition on build — no manual edits.
+
+### Interfaces and Contracts
+
+**Domain (new):**
 ```csharp
-public string? TransferId { get; set; }
-public string? Account { get; set; }
-public string? DateFrom { get; set; }   // ISO date string, parsed via DateTime.TryParse
-public string? DateTo { get; set; }     // ISO date string, parsed via DateTime.TryParse
-public bool? ErrorsOnly { get; set; }
+public sealed record BankStatementListFilter(
+    int? Id = null,
+    string? TransferId = null,
+    string? Account = null,
+    DateTime? StatementDate = null,
+    DateTime? ImportDate = null,
+    DateTime? DateFrom = null,
+    DateTime? DateTo = null,
+    bool? ErrorsOnly = null);
 ```
 
-Class, not record — consistent with the existing DTO and project-wide OpenAPI rule (`CLAUDE.md`, Project-specific rules).
-
-**Validator additions:**
-
+**Domain (changed):**
 ```csharp
-RuleFor(x => x.TransferId).MaximumLength(100);
-RuleFor(x => x.Account).MaximumLength(100);
-RuleFor(x => x.DateFrom).Must(BeParseableDateOrNull).WithMessage("DateFrom is not a valid date");
-RuleFor(x => x.DateTo).Must(BeParseableDateOrNull).WithMessage("DateTo is not a valid date");
-RuleFor(x => x).Must(HaveValidDateRange).WithMessage("DateFrom must be on or before DateTo");
+public interface IBankStatementImportRepository
+{
+    Task<(IEnumerable<BankStatementImport> Items, int TotalCount)> GetFilteredAsync(
+        BankStatementListFilter filter,
+        int skip = 0,
+        int take = 50,
+        string orderBy = "ImportDate",
+        bool ascending = false,
+        CancellationToken cancellationToken = default);
+
+    Task<BankStatementImport?> GetByIdAsync(int id);
+    Task<BankStatementImport> AddAsync(BankStatementImport bankStatement);
+}
 ```
 
-`HaveValidDateRange` returns true if either side is null or unparseable (length/parseability rules handle those independently); otherwise it parses both and asserts `from <= to`.
+**Application (changed):**
+```csharp
+public class GetBankStatementListRequest : IRequest<GetBankStatementListResponse>
+{
+    public int? Id { get; set; }
+    public string? TransferId { get; set; }
+    public string? Account { get; set; }
+    public string? StatementDate { get; set; }
+    public string? ImportDate { get; set; }
+    public string? DateFrom { get; set; }
+    public string? DateTo { get; set; }
+    public bool? ErrorsOnly { get; set; }
+    public int Skip { get; set; } = 0;
+    public int Take { get; set; } = 10;
+    public string? OrderBy { get; set; } = "ImportDate";
+    public bool Ascending { get; set; } = false;
+}
+```
 
-**Frontend type additions (`GetBankStatementListRequest`):**
+DTO remains a class (project rule). Domain `BankStatementListFilter` is a record because it does not cross the OpenAPI generator.
 
+**Frontend (changed):**
 ```typescript
-transferId?: string;
-account?: string;
-dateFrom?: string;   // YYYY-MM-DD
-dateTo?: string;     // YYYY-MM-DD
-errorsOnly?: boolean;
+export interface GetBankStatementListRequest {
+  id?: number;
+  transferId?: string;
+  account?: string;
+  statementDate?: string;
+  importDate?: string;
+  dateFrom?: string;   // ISO date 'YYYY-MM-DD'
+  dateTo?: string;     // ISO date 'YYYY-MM-DD'
+  errorsOnly?: boolean;
+  skip?: number;
+  take?: number;
+  orderBy?: string;
+  ascending?: boolean;
+}
 ```
 
 ### Data Flow
 
-User edits inputs → component-local input state updates, no network call.
-User clicks "Filtrovat" →
-1. Client-side guard: if `dateFrom > dateTo`, surface inline error and return.
-2. Setter writes a new `committedFilters` object and resets `pageNumber` to 1.
-3. React Query sees a new `queryKey` (because the request object changes) and triggers a fresh fetch.
-4. `useBankStatementsList` builds a URL with all non-empty/non-default params and calls `GET /api/bank-statements?...`.
-5. Controller binds the seven new query-string params plus the existing seven into `GetBankStatementListRequest` and dispatches via MediatR.
-6. MediatR `ValidationBehavior` runs `GetBankStatementListRequestValidator`; failure → HTTP 400.
-7. `GetBankStatementListHandler` parses `DateFrom`/`DateTo` (guaranteed parseable by the validator), trims `Account`, calls `IBankStatementImportRepository.GetFilteredAsync(...)`.
-8. Repository composes the queryable, runs one `CountAsync` for `TotalCount`, then `Skip/Take` for the page, returns `(items, totalCount)`.
-9. Handler maps to DTOs via AutoMapper; returns `GetBankStatementListResponse`. `TotalCount` reflects the filtered count.
-10. Controller returns 200; React Query caches against the new key; pagination footer updates and shows "(filtrováno)" indicator (the existing copy already handles this for transferId/account; extend the condition to include the other three filters).
+**Apply filters happy path:**
 
-User clicks "Vyčistit" → all input + committed state cleared, `pageNumber` reset, queryKey changes, unfiltered fetch fires.
+1. User types into inputs → local `useState` only.
+2. User clicks "Filtrovat" → `handleApplyFilters`:
+   - Trims `transferIdInput`, `accountInput`; converts empty strings to `undefined`.
+   - Validates `dateFrom <= dateTo`; if invalid, sets inline error state and returns (no network).
+   - Builds `committedFilters` object and `setCommittedFilters(next)`.
+   - `setPageNumber(1)`.
+3. `useBankStatementsList` re-keys on the new request object → React Query fires.
+4. Hook serialises only defined fields into `URLSearchParams`.
+5. `GET /api/bank-statements?transferId=...&account=...&dateFrom=...&dateTo=...&errorsOnly=true&skip=0&take=20&orderBy=ImportDate&ascending=false` reaches the controller.
+6. `[FromQuery]` binding populates `GetBankStatementListRequest`. FluentValidation runs (assuming the existing pipeline behaviour is in place; if not — see Prerequisites).
+7. Handler parses `DateFrom`/`DateTo` via `DateTime.TryParse` (mirrors existing `StatementDate`/`ImportDate` parsing); builds `BankStatementListFilter`; trims `Account` and `TransferId` defensively.
+8. Repository composes EF query: `IQueryable<BankStatementImport>` → optional `Where` clauses → `CountAsync` → ordering → pagination → `ToListAsync`.
+9. Response shape unchanged (`Items`, `TotalCount`). DTO mapping via existing `BankMappingProfile`.
+
+**Clear filters path:** `handleClearFilters` sets `committedFilters` to an empty object and `pageNumber` to 1 — the React Query key change triggers an unfiltered fetch. No explicit `refetch()` call needed.
+
+**400 paths (defence-in-depth):** `DateFrom > DateTo`, `transferId.Length > 100`, `account.Length > 100`, or unparseable date strings produce FluentValidation failures → MediatR pipeline returns 400. Frontend surfaces the existing error UI.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| **Existing repo tests use `UseInMemoryDatabase`, which does not translate `EF.Functions.ILike` — new tests for `transferId`/`account` will throw `InvalidOperationException` at runtime.** This is a concrete blocker for FR-1, FR-2 test coverage as the spec describes it. | High | Two acceptable paths: (a) keep the InMemory tests for `id`, date, and `errorsOnly` filters (which use plain `==`/`>=`/`<`/`!=` and translate fine) and add a separate Testcontainers-PostgreSQL-backed test class for the `ILike` filters, following the pattern used by `MeetingTranscriptRepositorySearchIntegrationTests` and `KnowledgeBaseRepositoryIntegrationTests`; or (b) abstract the predicate construction behind a tiny method on the repository so it can be unit-tested by inspecting the resulting `IQueryable` expression tree without executing it. Option (a) is consistent with existing precedent in this repo; option (b) is faster but less faithful. Recommend (a). |
-| **`TransferId` has a unique B-tree index but `LIKE '%substr%'` cannot use it.** Spec says "no proactive index work" — correct, but a worst-case full scan on this column is possible at scale. | Low | Accept as documented in spec NFR-1. Production data volume is small (one row per imported statement file). If a regression appears, add a PostgreSQL `gin_trgm_ops` index in a separate migration. |
-| **Unescaped LIKE wildcards in user input.** A user typing `%`, `_`, or `\` would silently expand the match set or break under the `"\\"` escape clause unless the input is escaped. | Medium | Reuse `EscapeLike` from `PackageRepository` (extract to a shared helper or duplicate). Spec is silent on this; it should be implemented regardless. |
-| **Backward compatibility for repository callers**: `BankStatementsController.GetBankStatement(int id)` calls `GetFilteredAsync` indirectly via a different MediatR request. | Low | All new repository parameters default to `null`/`false`; the single-record-by-id path is unchanged. Existing tests cover this. |
-| **Bank module BaseResponse / generic 500 catch in controller swallows validator errors as 500 today.** Look at `GetBankStatements` action — it wraps the `_mediator.Send` in a try/catch that returns a generic 500. FluentValidation throws `ValidationException`; without a MediatR `ValidationBehavior` registered application-wide, validator failures become 500s, not 400s. | Medium | Verify a `ValidationBehavior` is registered (the codebase uses FluentValidation broadly; this is likely already wired in `ApplicationModule`). If yes, no action. If no, register one before relying on validator-driven 400s; alternatively, catch `ValidationException` explicitly in the controller and translate. Implementer must confirm before merging. |
-| **The hand-rolled frontend hook diverges from the generated OpenAPI types.** Adding fields manually means a future regen could produce mismatched types without anyone noticing. | Low | Spec already requires the OpenAPI client regen; treat the hook field list as the single source of truth for the wire contract. A type assertion (`request satisfies GetBankStatementListRequestGenerated`) would catch drift but is not required by spec. |
-| **`StatementDate` is stored as `timestamp without time zone` with UTC kind on writes** (`BankStatementImport` ctor forces UTC) **but the filter input is a naive date string from `<input type="date">`** (no timezone). | Low | The half-open `>= from && < to.AddDays(1)` approach in Decision 2 is robust here; both bounds are constructed as `DateTime` (Unspecified kind), and the comparison happens on the column value directly. Spec's day-granularity semantics hold. |
+| `EF.Functions.ILike` unsupported by InMemory provider, breaking existing test suite | High | Add `[Trait("Category","Integration")]` Testcontainers-backed tests for ILike paths; keep existing InMemory unit tests for non-ILike filters and confirm they still pass after the signature change. |
+| Wildcard injection (user types `%` or `_` and gets surprising matches) | Medium | Use the `EscapeLike` helper pattern from `PackageRepository`; pass `"\\"` as the escape character to `EF.Functions.ILike`. |
+| Repository signature change ripples to `BankStatementsController.GetBankStatement(int id)` and to existing call sites in tests | Medium | The new filter record has all-optional defaults; existing callers pass `new BankStatementListFilter(Id: id)` (or pass a defaulted instance) — one-line changes per call site. |
+| Performance regression on `ILIKE '%...%'` for `TransferId` and `StatementDate` range scans on production-sized data | Medium | NFR-1 sets a target. The unique index `IX_BankStatements_TransferId` does not help substring scans, but the table is bounded by import frequency (batches, not high-volume). If a regression is measured, ship a follow-up index migration as the spec already permits. |
+| `Account` filter against the configured-name column might confuse users who expect IBAN matching | Low | Spec explicitly clarifies this matches the configured account name (e.g. `"ShoptetPay-CZK"`), matching the "Účet" column. No code change — preserve existing column header semantics. |
+| Empty-state copy ("Žádné bankovní výpisy nebyly nalezeny") misleads when emptiness is filter-induced | Low | Out of scope per spec; track separately. The copy is already neutral enough ("not found"), so risk is minor. |
+| Frontend "(filtrováno)" indicator only reads `transferIdFilter || accountFilter` (`ImportTab.tsx:484`) | Low | Update the condition to consider all five committed filters so the indicator is honest when only date range or errorsOnly is active. Surgical change inside the same component. |
 
 ## Specification Amendments
 
-These should be reflected back into `spec.r2.md` before implementation:
+1. **Add domain record `BankStatementListFilter`** to the spec's API/Interface section. The spec proposes extending the repository signature with five more parameters; the architecture instead introduces a filter record to keep the signature maintainable. The wire shape, handler behaviour, and acceptance criteria are unchanged.
 
-1. **FR-1 & §"API / Interface Design" backend table — replace "Case-insensitive `Contains`" with "Case-insensitive match via `EF.Functions.ILike(bs.TransferId, $"%{escaped}%", "\\")`, with `%` / `_` / `\` LIKE-escaped server-side."** The spec already says ILike for `Account` (FR-2); the same primitive must be used for `TransferId` to deliver the spec's own case-insensitivity guarantee on PostgreSQL.
-2. **FR-2 — add the LIKE-escape requirement** ("`%`, `_`, and `\` in the user input are escaped before composition into the `ILike` pattern"). Currently the spec says `EF.Functions.ILike(bs.Account, $"%{trimmedAccount}%")` with no escape clause; this allows a user typing `100%` to match all rows. The codebase has a precedent: `PackageRepository.EscapeLike`.
-3. **FR-3 date range — change wording from "inclusive `[from, to]` via `.Date <=`" to "inclusive on both ends, implemented as `StatementDate >= from.Date && StatementDate < to.Date.AddDays(1)`"** to align with the in-codebase `PackageRepository` convention and avoid per-row `.Date` projections in SQL. User-facing semantics are identical.
-4. **NFR-4 (Testability) — acknowledge the InMemory provider limitation for `ILike`.** Either replace "the existing repository test patterns" with "Testcontainers-backed PostgreSQL integration tests for `ILike`-based filters (per `MeetingTranscriptRepositorySearchIntegrationTests`); InMemory tests retained for `id`, date, and `errorsOnly` filters" — or drop the strict repository-level coverage requirement for the string filters and rely on a handler-level test with a mocked repository plus one end-to-end Postgres integration test.
-5. **§Frontend — clarify the OpenAPI client / hand-rolled hook split:** "Regenerate the OpenAPI client so generated types include the new fields. Note: `useBankStatementsList` is a hand-rolled hook (`apiClient.http.fetch`) and must be updated manually to forward the new fields; regeneration does not modify it."
-6. **§Backend validation — name the validation seam:** "All four backend validations (date-range ordering, length caps, date parseability) are added to the existing `GetBankStatementListRequestValidator` (FluentValidation). Controller code is not modified beyond adding the five `[FromQuery]` parameters and forwarding them into the request DTO."
-7. **§Out of Scope — add: "Deduplicating the `ErrorType` computation between `BankStatementImportDto` and `BankMappingProfile` (both compute `ImportResult != "OK"`; one is redundant)."** Flagged as a follow-up cleanup.
+2. **Pass `CancellationToken` through `GetFilteredAsync`.** The current signature does not accept one. The spec is silent on this. Adding it is consistent with C# async conventions in the rules file. Optional with a default value preserves call-site compatibility.
+
+3. **Use `ImportStatus.Success` constant for the errors-only predicate**, not a `"OK"` string literal. The spec mentions this in passing ("reuses the exact predicate") but does not explicitly require the named constant. Make it explicit.
+
+4. **Confirm test pattern.** The spec says "use the existing repository test patterns" but the existing pattern is InMemory, which cannot exercise ILike. Amend NFR-4 to specify: unit tests with InMemory for non-ILike filters; one Testcontainers integration test for ILike substring matching and escape-char behaviour on `TransferId` and `Account`.
+
+5. **`EscapeLike` helper** must be applied to `transferId` and `account` substring inputs (escaping `%`, `_`, `\` before interpolation into the `LIKE` pattern, and passing `"\\"` as the escape char). The spec calls for `EF.Functions.ILike(bs.Account, $"%{trimmedAccount}%")` but does not mention wildcard escaping. Add the escaping requirement.
+
+6. **Honest "(filtrováno)" indicator.** The existing pagination footer (`ImportTab.tsx:484`) checks only `transferIdFilter || accountFilter`. Extend the condition to all five committed-filter fields so it reflects reality after this change.
 
 ## Prerequisites
 
-None blocking. Specifically:
-
-- **No database migration** — every column the spec reads from already exists on `BankStatements`.
-- **No new infrastructure, config, or KV secrets.**
-- **No new external dependencies** — the codebase already uses `EF.Functions.ILike` (Npgsql), AutoMapper, FluentValidation, MediatR, and React Query.
-- **No feature flag** — the change is backward-compatible at the API level (all new query parameters are optional and default to "no constraint").
-- **Verify before merge:** that a global FluentValidation `ValidationBehavior` is registered with MediatR (so validator failures become HTTP 400, not HTTP 500 via the controller's generic catch). If absent, register it as part of this PR.
-- **If choosing Testcontainers for the new ILike tests:** ensure the local dev environment can run Docker (CI already does — Testcontainers-based suites exist elsewhere in the repo).
+- **None infrastructural.** No migrations, no new packages, no config changes, no Key Vault entries, no environment variables.
+- **OpenAPI client regenerates on build** — ensure the build pipeline that runs `npm run build` regenerates `frontend/src/api/generated/api-client.ts` after the controller signature changes. Per `docs/development/api-client-generation.md`, this is automatic on backend build → it does not require a manual step in this PR.
+- **Verify FluentValidation pipeline is active for MediatR requests.** The existing `GetBankStatementListRequestValidator` is registered, but if validation is not currently wired into the MediatR pipeline (e.g. through a `ValidationBehavior<TRequest,TResponse>`), the new validation rules will not run — confirm before relying on them for 400 responses. If absent, either add the behaviour or move validation guards into the handler. (Quick read of `BankModule.cs` and `ApplicationModule.cs` will confirm; do this in the first implementation step.)
+- **Docker available for Testcontainers integration tests.** The project already exercises this elsewhere; CI must continue to provide Docker for the new integration test class.
