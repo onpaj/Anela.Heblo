@@ -45,11 +45,13 @@ public class DisableTileHandlerTests
             .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GetUserSettingsResponse());
 
-        _handler = new DisableTileHandler(
+        var mutator = new UserDashboardSettingsMutator(
             _repositoryMock.Object,
             _lockMock.Object,
             _timeProvider,
             _mediatorMock.Object);
+
+        _handler = new DisableTileHandler(mutator);
     }
 
     [Fact]
