@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -11,7 +12,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture.Services;
 public class ResidueDistributionCalculatorTests
 {
     private readonly Mock<IManufactureClient> _manufactureClientMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly ResidueDistributionCalculator _calculator;
 
     private const string SemiProductCode = "SP-001";
@@ -21,7 +22,7 @@ public class ResidueDistributionCalculatorTests
     public ResidueDistributionCalculatorTests()
     {
         _manufactureClientMock = new Mock<IManufactureClient>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
 
         _calculator = new ResidueDistributionCalculator(
             _manufactureClientMock.Object,
