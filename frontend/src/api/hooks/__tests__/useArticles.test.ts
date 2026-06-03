@@ -22,16 +22,6 @@ const mockGetAuthenticatedApiClient =
     typeof clientModule.getAuthenticatedApiClient
   >;
 
-const mockGetAuthenticatedFetch =
-  clientModule.getAuthenticatedFetch as jest.MockedFunction<
-    typeof clientModule.getAuthenticatedFetch
-  >;
-
-const mockGetApiBaseUrl =
-  clientModule.getApiBaseUrl as jest.MockedFunction<
-    typeof clientModule.getApiBaseUrl
-  >;
-
 const createWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = new QueryClient({
     defaultOptions: {
