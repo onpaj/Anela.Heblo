@@ -173,6 +173,31 @@ public class DeleteMarketingActionHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ReturnsDatabaseError_WhenDbDeleteFails()
+    {
+        _repository
+            .Setup(x => x.DeleteSoftAsync(
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("DB unavailable"));
+
+        var result = await BuildHandler().Handle(BuildRequest(), CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.DatabaseError);
+        _outlookSync.Verify(
+            x => x.DeleteEventAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _logger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("already deleted")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_HonorsRuntimePushEnabledFlip_TrueToFalse()
     {
         _repository

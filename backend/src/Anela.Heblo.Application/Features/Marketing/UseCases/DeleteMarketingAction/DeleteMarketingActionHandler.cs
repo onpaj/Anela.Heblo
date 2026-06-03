@@ -72,8 +72,18 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
                 }
             }
 
-            await _repository.DeleteSoftAsync(
-                request.Id, currentUser.Id, currentUser.Name ?? "Unknown User", cancellationToken);
+            try
+            {
+                await _repository.DeleteSoftAsync(
+                    request.Id, currentUser.Id, currentUser.Name ?? "Unknown User", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "DB soft-delete failed after Outlook delete for MarketingAction {ActionId}; Outlook event {EventId} already deleted — DB row still present",
+                    request.Id, action.OutlookEventId);
+                return new DeleteMarketingActionResponse(ErrorCodes.DatabaseError);
+            }
 
             _logger.LogInformation("MarketingAction {ActionId} deleted by user {UserId}", request.Id, currentUser.Id);
 
