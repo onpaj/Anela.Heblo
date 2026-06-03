@@ -27,6 +27,18 @@ public class BankStatementImportRepository : IBankStatementImportRepository
         if (filter.Id.HasValue)
             query = query.Where(bs => bs.Id == filter.Id.Value);
 
+        if (!string.IsNullOrWhiteSpace(filter.TransferId))
+        {
+            var pattern = $"%{EscapeLike(filter.TransferId.Trim())}%";
+            query = query.Where(bs => EF.Functions.ILike(bs.TransferId, pattern, "\\"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Account))
+        {
+            var pattern = $"%{EscapeLike(filter.Account.Trim())}%";
+            query = query.Where(bs => EF.Functions.ILike(bs.Account, pattern, "\\"));
+        }
+
         if (filter.StatementDate.HasValue)
             query = query.Where(bs => bs.StatementDate.Date == filter.StatementDate.Value.Date);
 
@@ -75,4 +87,7 @@ public class BankStatementImportRepository : IBankStatementImportRepository
         await _context.SaveChangesAsync();
         return bankStatement;
     }
+
+    private static string EscapeLike(string value) =>
+        value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 }
