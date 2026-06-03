@@ -197,6 +197,14 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.InvoicePrice",
     };
 
+    // Allowlist for Manufacture -> Catalog. Populated after running the boundary test with
+    // an empty allowlist and pasting the residual violations grouped by referenced type.
+    // The deliberate pragmatic leak (CatalogAggregate and its property types flowing through
+    // IManufactureCatalogSource) is symmetric to the CatalogManufactureAllowlist entries for
+    // ManufactureHistoryRecord. Follow-up: introduce Manufacture-owned ProductCatalogSnapshot
+    // DTO and map in CatalogManufactureCatalogSourceAdapter.
+    private static readonly HashSet<string> ManufactureCatalogAllowlist = new(StringComparer.Ordinal);
+
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
         new ModuleBoundaryRule(
@@ -353,6 +361,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Invoices",
             },
             Allowlist: DataQualityInvoicesAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Manufacture -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Manufacture",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: ManufactureCatalogAllowlist),
     };
 
     [Theory]
