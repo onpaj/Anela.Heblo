@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Application.Features.DataQuality.Services;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.DataQuality;
 using FluentAssertions;
 using Moq;
@@ -8,27 +8,35 @@ namespace Anela.Heblo.Tests.Features.DataQuality;
 
 public class StockWriteBackDqtComparerTests
 {
-    private readonly Mock<IStockUpOperationRepository> _operationRepoMock = new();
-    private readonly Mock<IStockTakingRepository> _stockTakingRepoMock = new();
+    private readonly Mock<IStockOperationQuery> _stockOperationsMock = new();
+    private readonly Mock<IStockTakingQuery> _stockTakingsMock = new();
     private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.UtcNow);
 
     private StockWriteBackDqtComparer CreateSut(TimeSpan? stuckThreshold = null) =>
-        new(_operationRepoMock.Object, _stockTakingRepoMock.Object, stuckThreshold);
+        new(_stockOperationsMock.Object, _stockTakingsMock.Object, stuckThreshold);
 
     private void SetupNoStockTaking() =>
-        _stockTakingRepoMock.Setup(r => r.GetByDateRangeAsync(
+        _stockTakingsMock.Setup(q => q.GetByDateRangeAsync(
                 It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<StockTakingRecord>());
+            .ReturnsAsync(Array.Empty<StockTakingSnapshot>());
+
+    private void SetupOperations(params StockOperationSnapshot[] snapshots) =>
+        _stockOperationsMock.Setup(q => q.GetByCreatedDateRangeAsync(
+                It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
 
     [Fact]
     public async Task CompareAsync_ReturnsEmpty_WhenAllOperationsCompleted()
     {
         // Arrange
-        var completedOp = new StockUpOperation("OP001", "P001", 1, StockUpSourceType.TransportBox, 1);
-        completedOp.MarkAsSubmitted(DateTime.UtcNow);
-        completedOp.MarkAsCompleted(DateTime.UtcNow);
-
-        _operationRepoMock.Setup(r => r.GetAll()).Returns(new[] { completedOp }.AsQueryable());
+        SetupOperations(new StockOperationSnapshot
+        {
+            ProductCode = "P001",
+            Amount = 1,
+            DocumentNumber = "OP001",
+            State = StockOperationStateSnapshot.Completed,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
         SetupNoStockTaking();
 
         // Act
@@ -42,10 +50,15 @@ public class StockWriteBackDqtComparerTests
     public async Task CompareAsync_ReturnsOperationFailed_WhenOperationInFailedState()
     {
         // Arrange
-        var failedOp = new StockUpOperation("OP002", "P002", 5, StockUpSourceType.TransportBox, 1);
-        failedOp.MarkAsFailed(DateTime.UtcNow, "HTTP 500 from Shoptet");
-
-        _operationRepoMock.Setup(r => r.GetAll()).Returns(new[] { failedOp }.AsQueryable());
+        SetupOperations(new StockOperationSnapshot
+        {
+            ProductCode = "P002",
+            Amount = 5,
+            DocumentNumber = "OP002",
+            State = StockOperationStateSnapshot.Failed,
+            CreatedAtUtc = DateTime.UtcNow,
+            ErrorMessage = "HTTP 500 from Shoptet",
+        });
         SetupNoStockTaking();
 
         // Act
@@ -63,14 +76,19 @@ public class StockWriteBackDqtComparerTests
     public async Task CompareAsync_ReturnsOperationStuck_WhenPendingOperationExceedsThreshold()
     {
         // Arrange — use TimeSpan.Zero threshold so any Pending operation is "stuck"
-        var pendingOp = new StockUpOperation("OP003", "P003", 2, StockUpSourceType.TransportBox, 1);
-        // Stays Pending (no state transition called)
-
-        _operationRepoMock.Setup(r => r.GetAll()).Returns(new[] { pendingOp }.AsQueryable());
+        SetupOperations(new StockOperationSnapshot
+        {
+            ProductCode = "P003",
+            Amount = 2,
+            DocumentNumber = "OP003",
+            State = StockOperationStateSnapshot.Pending,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
         SetupNoStockTaking();
 
         // Act
-        var result = await CreateSut(stuckThreshold: TimeSpan.Zero).CompareAsync(Today, Today, CancellationToken.None);
+        var result = await CreateSut(stuckThreshold: TimeSpan.Zero)
+            .CompareAsync(Today, Today, CancellationToken.None);
 
         // Assert
         result.Mismatches.Should().HaveCount(1);
@@ -82,12 +100,12 @@ public class StockWriteBackDqtComparerTests
     public async Task CompareAsync_ReturnsStockTakingErrored_WhenRecordHasError()
     {
         // Arrange
-        _operationRepoMock.Setup(r => r.GetAll()).Returns(Array.Empty<StockUpOperation>().AsQueryable());
-        _stockTakingRepoMock.Setup(r => r.GetByDateRangeAsync(
+        SetupOperations();
+        _stockTakingsMock.Setup(q => q.GetByDateRangeAsync(
                 It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<StockTakingRecord>
+            .ReturnsAsync(new[]
             {
-                new() { Code = "P004", Error = "Shoptet API timeout", Date = DateTime.UtcNow, AmountNew = 10, AmountOld = 8 }
+                new StockTakingSnapshot { Code = "P004", AmountNew = 10, Error = "Shoptet API timeout" },
             });
 
         // Act
