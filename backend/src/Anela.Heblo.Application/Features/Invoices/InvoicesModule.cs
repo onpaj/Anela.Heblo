@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
@@ -22,6 +23,16 @@ public static class InvoicesModule
         // via an adapter. DI registration owned by provider (Invoices), not consumer
         // (PackingMaterials) — keeps the dependency direction inverted properly.
         services.AddScoped<IInvoiceConsumptionSource, InvoiceConsumptionSourceAdapter>();
+
+        // Cross-module contracts: Invoices implements DataQuality's IInvoiceShoptetSource
+        // and IInvoiceErpClient via adapters. Lifetimes mirror the wrapped services exactly:
+        //   - IIssuedInvoiceSource is registered Singleton in Program.cs:119, so the adapter
+        //     must also be Singleton (and DataQuality consumers must resolve it from a Scoped
+        //     scope as usual — Singleton from Scoped is legal, the inverse is captive).
+        //   - IIssuedInvoiceClient is registered Scoped in FlexiAdapterServiceCollectionExtensions.cs:93,
+        //     so the adapter must also be Scoped.
+        services.AddSingleton<IInvoiceShoptetSource, InvoiceShoptetSourceAdapter>();
+        services.AddScoped<IInvoiceErpClient, InvoiceErpClientAdapter>();
 
         // Register services
         services.AddScoped<IInvoiceImportService, InvoiceImportService>();

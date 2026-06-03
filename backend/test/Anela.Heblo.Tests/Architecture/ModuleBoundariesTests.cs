@@ -158,6 +158,28 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition.GetProductCompositionHandler -> Anela.Heblo.Domain.Features.Manufacture.Ingredient",
     };
 
+    // Allowlist for DataQuality -> Invoices. The DataQuality module owns IInvoiceShoptetSource
+    // and IInvoiceErpClient (in Application/Features/DataQuality/Contracts/) and consumes
+    // them via InvoiceDqtComparer. Shared invoice domain DTOs are referenced on the contracts
+    // and inside the comparer; lifting these to a shared kernel is a separate follow-up.
+    // Follow-up: extract a DataQuality-owned snapshot DTO and map in the adapters.
+    private static readonly HashSet<string> DataQualityInvoicesAllowlist = new(StringComparer.Ordinal)
+    {
+        // IInvoiceShoptetSource exposes IssuedInvoiceDetailBatch and IssuedInvoiceSourceQuery.
+        "Anela.Heblo.Application.Features.DataQuality.Contracts.IInvoiceShoptetSource -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetailBatch",
+        "Anela.Heblo.Application.Features.DataQuality.Contracts.IInvoiceShoptetSource -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSourceQuery",
+
+        // IInvoiceErpClient exposes IssuedInvoiceDetail.
+        "Anela.Heblo.Application.Features.DataQuality.Contracts.IInvoiceErpClient -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetail",
+
+        // InvoiceDqtComparer consumes shared invoice DTOs internally.
+        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetail",
+        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetailBatch",
+        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetailItem",
+        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSourceQuery",
+        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.InvoicePrice",
+    };
+
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
         new ModuleBoundaryRule(
@@ -292,6 +314,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Manufacture",
             },
             Allowlist: CatalogManufactureAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "DataQuality -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.DataQuality",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: DataQualityInvoicesAllowlist),
     };
 
     [Theory]
