@@ -319,12 +319,20 @@ export const getAuthenticatedApiClient = (
         try {
           const errorInfo = await extractErrorMessage(responseClone);
 
+          // Suppress toast on 409 when the backend returned a structured BaseResponse
+          // (success: false + errorCode). These 409s are typed business outcomes (e.g.
+          // "feedback already submitted") and the caller's hook handles them.
+          // Unstructured 409s (non-JSON or missing errorCode) still surface as toasts.
+          const suppressOn409 = response.status === 409 && errorInfo.isStructuredError;
+
           // Show toast for all errors - centralized handling
           console.log(
             `🔍 Error debug - isStructuredError: ${errorInfo.isStructuredError}, message: "${errorInfo.message}"`,
           );
 
-          if (errorInfo.isStructuredError && globalToastHandler) {
+          if (suppressOn409) {
+            console.log(`🔇 Toast suppressed for typed 409 business outcome: ${errorInfo.message}`);
+          } else if (errorInfo.isStructuredError && globalToastHandler) {
             // Structured API error - show ErrorMessage
             console.error(
               `🚨 Structured API Error [${response.status}] ${url}:`,
