@@ -20,7 +20,6 @@ public class DqtYesterdayStatusTile : ITile
     public TileCategory Category => TileCategory.DataQuality;
     public bool DefaultEnabled => true;
     public bool AutoShow => false;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public DqtYesterdayStatusTile(

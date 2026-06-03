@@ -38,7 +38,6 @@ public class ManufactureConditionsTileTests
         _tile.Category.Should().Be(TileCategory.Manufacture);
         _tile.DefaultEnabled.Should().BeTrue();
         _tile.AutoShow.Should().BeTrue();
-        _tile.ComponentType.Should().Be(typeof(object));
         _tile.RequiredPermissions.Should().BeEmpty();
     }
 

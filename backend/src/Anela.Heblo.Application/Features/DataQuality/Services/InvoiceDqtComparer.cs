@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Invoices;
 
@@ -7,10 +8,10 @@ public class InvoiceDqtComparer : IInvoiceDqtComparer
 {
     private const decimal Tolerance = 0.02m;
 
-    private readonly IIssuedInvoiceSource _shoptetSource;
-    private readonly IIssuedInvoiceClient _flexiClient;
+    private readonly IInvoiceShoptetSource _shoptetSource;
+    private readonly IInvoiceErpClient _flexiClient;
 
-    public InvoiceDqtComparer(IIssuedInvoiceSource shoptetSource, IIssuedInvoiceClient flexiClient)
+    public InvoiceDqtComparer(IInvoiceShoptetSource shoptetSource, IInvoiceErpClient flexiClient)
     {
         _shoptetSource = shoptetSource;
         _flexiClient = flexiClient;

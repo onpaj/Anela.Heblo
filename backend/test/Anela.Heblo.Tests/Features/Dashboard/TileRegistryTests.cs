@@ -90,7 +90,6 @@ public class TrackedTile : ITile, IDisposable
     public TileCategory Category => TileCategory.System;
     public bool DefaultEnabled => true;
     public bool AutoShow => false;
-    public Type ComponentType => typeof(TrackedTile);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)

@@ -1,7 +1,6 @@
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.Lots;
 using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -11,20 +10,17 @@ namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, GetCatalogDetailResponse>
 {
     private readonly ICatalogRepository _catalogRepository;
-    private readonly ILotsClient _lotsClient;
     private readonly IMapper _mapper;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<GetCatalogDetailHandler> _logger;
 
     public GetCatalogDetailHandler(
         ICatalogRepository catalogRepository,
-        ILotsClient lotsClient,
         IMapper mapper,
         TimeProvider timeProvider,
         ILogger<GetCatalogDetailHandler> logger)
     {
         _catalogRepository = catalogRepository;
-        _lotsClient = lotsClient;
         _mapper = mapper;
         _timeProvider = timeProvider;
         _logger = logger;

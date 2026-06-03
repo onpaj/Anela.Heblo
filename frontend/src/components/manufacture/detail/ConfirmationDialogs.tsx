@@ -5,7 +5,7 @@ import {
   X,
   StickyNote,
 } from "lucide-react";
-import { ManufactureOrderState, ResidueDistributionDto } from "../../../api/generated/api-client";
+import { ManufactureOrderState, ManufactureType, ResidueDistributionDto } from "../../../api/generated/api-client";
 import ConfirmSemiProductQuantityModal from "../../modals/ConfirmSemiProductQuantityModal";
 import ConfirmProductCompletionModal from "../../modals/ConfirmProductCompletionModal";
 import ResolveManualActionModal from "../../modals/ResolveManualActionModal";
@@ -194,7 +194,7 @@ export const ConfirmationDialogs: React.FC<ConfirmationDialogsProps> = ({
             productName: product.productName || "",
             plannedQuantity: product.plannedQuantity || 0
           }))}
-          semiProductCode={order.semiProduct?.productCode}
+          semiProductCode={order.manufactureType !== ManufactureType.SinglePhase ? order.semiProduct?.productCode : undefined}
           isLoading={isProductCompletionLoading}
           distributionPreview={distributionPreview}
           onConfirmDistribution={onConfirmDistribution}

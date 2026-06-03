@@ -1,7 +1,9 @@
 import {
   getApiBaseUrl,
+  getAuthenticatedApiClient,
   getAuthenticatedFetch,
   setGlobalTokenProvider,
+  setGlobalToastHandler,
   clearTokenCache,
 } from '../client';
 
@@ -164,5 +166,84 @@ describe('API Client - typed helpers', () => {
 
       fetchSpy.mockRestore();
     });
+  });
+});
+
+describe('getAuthenticatedApiClient toast suppression', () => {
+  let toastHandler: jest.Mock;
+  let originalFetch: typeof global.fetch;
+
+  beforeAll(() => {
+    originalFetch = global.fetch;
+    // Ensure window.location.pathname is a non-terminal route for all tests in this suite
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      get: () => ({ pathname: '/articles' }),
+    });
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      get: () => ({ pathname: '/' }),
+    });
+  });
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    clearTokenCache();
+
+    toastHandler = jest.fn();
+    setGlobalToastHandler(toastHandler);
+    setGlobalTokenProvider(
+      jest.fn().mockResolvedValue({ token: 'tok', expiresOn: null }),
+    );
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('does NOT fire a toast on 409 when body is a structured BaseResponse with errorCode', async () => {
+    global.fetch = jest.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ success: false, errorCode: 'ArticleFeedbackAlreadySubmitted', params: { id: 'art-1' } }),
+        { status: 409, headers: { 'Content-Type': 'application/json' } },
+      ),
+    ) as jest.Mock;
+
+    const client = getAuthenticatedApiClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (client as any).http.fetch('https://api.test.example/api/test', { method: 'POST' });
+
+    expect(toastHandler).not.toHaveBeenCalled();
+  });
+
+  it('DOES fire a toast on 500 with a structured BaseResponse body', async () => {
+    global.fetch = jest.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ success: false, errorCode: 'InternalServerError' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } },
+      ),
+    ) as jest.Mock;
+
+    const client = getAuthenticatedApiClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (client as any).http.fetch('https://api.test.example/api/test', { method: 'POST' });
+
+    expect(toastHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('still fires a toast on 409 with an unstructured body', async () => {
+    global.fetch = jest.fn().mockResolvedValue(
+      new Response('Conflict', { status: 409, headers: { 'Content-Type': 'text/plain' } }),
+    ) as jest.Mock;
+
+    const client = getAuthenticatedApiClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (client as any).http.fetch('https://api.test.example/api/test', { method: 'POST' });
+
+    expect(toastHandler).toHaveBeenCalledTimes(1);
   });
 });

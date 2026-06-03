@@ -25,7 +25,6 @@ public class TileRegistryValidationTests
         public TileCategory Category => TileCategory.System;
         public bool DefaultEnabled => false;
         public bool AutoShow => false;
-        public Type ComponentType => typeof(object);
         public string[] RequiredPermissions => Array.Empty<string>();
         public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
             => Task.FromResult<object>("alpha");
@@ -40,7 +39,6 @@ public class TileRegistryValidationTests
         public TileCategory Category => TileCategory.System;
         public bool DefaultEnabled => false;
         public bool AutoShow => false;
-        public Type ComponentType => typeof(object);
         public string[] RequiredPermissions => Array.Empty<string>();
         public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
             => Task.FromResult<object>("dup");
@@ -54,7 +52,6 @@ public class TileRegistryValidationTests
         public TileCategory Category => TileCategory.System;
         public bool DefaultEnabled => false;
         public bool AutoShow => false;
-        public Type ComponentType => typeof(object);
         public string[] RequiredPermissions => Array.Empty<string>();
         public Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
             => Task.FromResult<object>("none");

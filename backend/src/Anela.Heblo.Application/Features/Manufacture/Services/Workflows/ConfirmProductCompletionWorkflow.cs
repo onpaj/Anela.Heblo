@@ -149,16 +149,21 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
         var semiProduct = order.SemiProduct;
         var manufactureName = _nameBuilder.Build(order, ErpManufactureType.Product);
 
-        // Calculate direct semiproduct output total (rows where ProductCode == SemiProduct.ProductCode)
-        var directOutputTotal = order.Products
-            .Where(p => p.ProductCode == semiProduct.ProductCode)
-            .Sum(p => p.ActualQuantity ?? p.PlannedQuantity);
+        // "Direct semiproduct output" rows (ProductCode == SemiProduct.ProductCode) represent bulk
+        // semiproduct sold as-is and are excluded from the finished-product list. This concept only
+        // applies to MultiPhase orders. For SinglePhase the semiproduct is a placeholder pointing at
+        // the first product, so the sentinel would wrongly match the real product — keep all products
+        // and emit no direct output (the product is consumed from materials and received as a product).
+        var isMultiPhase = order.ManufactureType == ManufactureType.MultiPhase;
 
-        // Exclude direct semiproduct output rows from the ERP submission.
-        // These rows (ProductCode == SemiProduct.ProductCode) represent bulk semiproduct
-        // sold as-is and should not be reported as finished product output to the ERP.
+        var directOutputTotal = isMultiPhase
+            ? order.Products
+                .Where(p => p.ProductCode == semiProduct.ProductCode)
+                .Sum(p => p.ActualQuantity ?? p.PlannedQuantity)
+            : 0m;
+
         var items = order.Products
-            .Where(p => p.ProductCode != semiProduct.ProductCode)
+            .Where(p => !isMultiPhase || p.ProductCode != semiProduct.ProductCode)
             .Select(p => new SubmitManufactureRequestItem
             {
                 ProductCode = p.ProductCode,

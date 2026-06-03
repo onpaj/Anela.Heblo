@@ -171,6 +171,7 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             CreatedByUser = order.CreatedByUser,
             ResponsiblePerson = order.ResponsiblePerson,
             PlannedDate = order.PlannedDate,
+            ManufactureType = order.ManufactureType,
             State = order.State.ToString(),
             StateChangedAt = order.StateChangedAt,
             StateChangedByUser = order.StateChangedByUser,
