@@ -2,29 +2,68 @@
 Marketing
 
 ## Finding
-`UpdateMarketingActionRequest.FolderLinks` is typed as `List<CreateMarketingActionRequest.CreateFolderLinkRequest>?`, directly referencing a nested class from a sibling contract:
 
-`backend/src/Anela.Heblo.Application/Features/Marketing/Contracts/UpdateMarketingActionRequest.cs:30`
-```csharp
-public List<CreateMarketingActionRequest.CreateFolderLinkRequest>? FolderLinks { get; set; }
-```
-
-The two request types are independent use-case contracts (Create and Update), but the Update DTO has an implicit compile-time dependency on the Create DTO's nested class.
-
-## Why it matters
-Any change to `CreateFolderLinkRequest` (e.g., adding a creation-only field) silently propagates to the Update contract. The coupling is invisible without reading both files — a future developer could break the Update contract while editing the Create one. This is an Interface Segregation violation: the Update contract carries a type it doesn't own.
-
-## Suggested fix
-Extract `CreateFolderLinkRequest` to a standalone class in the Contracts folder (e.g., `MarketingFolderLinkRequest.cs`) and reference it from both `CreateMarketingActionRequest` and `UpdateMarketingActionRequest`.
+`CreateMarketingActionHandler` wraps the DB save in a try/catch and compensates (deletes the Outlook event) if the save fails:
 
 ```csharp
-// New file: Contracts/MarketingFolderLinkRequest.cs
-public class MarketingFolderLinkRequest
+// CreateMarketingActionHandler.cs:87–112
+try
 {
-    [Required][MaxLength(100)] public string FolderKey { get; set; } = null!;
-    [Required] public MarketingFolderType FolderType { get; set; }
+    await _repository.AddAsync(action, cancellationToken);
+    await _repository.SaveChangesAsync(cancellationToken);
+}
+catch (Exception dbEx)
+{
+    _logger.LogError(dbEx, "DB save failed after Outlook create; compensating Outlook event {EventId}", outlookEventId);
+    if (outlookEventId != null)
+    {
+        try { await _outlookSync.DeleteEventAsync(outlookEventId, cancellationToken); }
+        catch (Exception compEx) { /* logs orphan */ }
+    }
+    return new CreateMarketingActionResponse(ErrorCodes.DatabaseError);
 }
 ```
 
+`UpdateMarketingActionHandler` has **no such protection**:
+
+```csharp
+// UpdateMarketingActionHandler.cs:112–113
+await _repository.UpdateAsync(action, cancellationToken);
+await _repository.SaveChangesAsync(cancellationToken);  // ← unguarded; exception propagates
+```
+
+The Outlook push happens at lines 70–91 (before the DB save). If the DB save throws, the Outlook calendar already reflects the new data while the database still holds the old data. The exception surfaces to MediatR with no compensation attempt and no structured error response — the caller sees a 500 instead of the module's `ErrorCodes.DatabaseError`.
+
+The Delete handler (`DeleteMarketingActionHandler.cs:75–76`) has the same gap: it calls `_repository.DeleteSoftAsync` (which includes `SaveChangesAsync`) after a successful Outlook deletion, with no catch.
+
+## Why it matters
+
+- **Data consistency**: on any transient DB error (deadlock, connection drop), Outlook and the database diverge silently. The marketing action appears updated in the team calendar but unchanged in the app.
+- **Error surfacing**: the unhandled exception bypasses the response-object pattern used by every other handler in this module, causing the API to return 500 rather than a structured `{ success: false, errorCode: "..." }` response.
+- **Inconsistency**: the Create handler clearly documents the intended compensating-transaction pattern. The Update and Delete handlers don't follow it, which will confuse the next developer extending this module.
+
+## Suggested fix
+
+Wrap the DB save in `UpdateMarketingActionHandler` with the same compensation pattern used in `CreateMarketingActionHandler`. For an update, a full revert is harder (you'd need to re-issue a `PATCH` with the original values), so the minimal fix is: catch the DB exception, log the Outlook-vs-DB inconsistency explicitly, and return `ErrorCodes.DatabaseError` so the caller knows the operation failed:
+
+```csharp
+// UpdateMarketingActionHandler.cs — replace lines 112-113
+try
+{
+    await _repository.UpdateAsync(action, cancellationToken);
+    await _repository.SaveChangesAsync(cancellationToken);
+}
+catch (Exception dbEx)
+{
+    _logger.LogError(dbEx,
+        "DB save failed after Outlook update for MarketingAction {ActionId}; " +
+        "Outlook event {EventId} may now be out of sync",
+        action.Id, action.OutlookEventId);
+    return new UpdateMarketingActionResponse(ErrorCodes.DatabaseError);
+}
+```
+
+Apply the same pattern to `DeleteMarketingActionHandler` around its `DeleteSoftAsync` call.
+
 ---
-_Filed by daily arch-review routine on 2026-05-17._
+_Filed by daily arch-review routine on 2026-05-29._

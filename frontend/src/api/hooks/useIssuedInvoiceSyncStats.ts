@@ -34,7 +34,7 @@ export function useIssuedInvoiceSyncStats(params?: UseIssuedInvoiceSyncStatsPara
         searchParams.append('toDate', params.toDate.toISOString());
       }
 
-      const url = `/api/IssuedInvoices/sync-stats?${searchParams.toString()}`;
+      const url = `/api/invoices/stats?${searchParams.toString()}`;
       const fullUrl = `${(apiClient as any).baseUrl}${url}`;
       
       const response = await (apiClient as any).http.fetch(fullUrl, {

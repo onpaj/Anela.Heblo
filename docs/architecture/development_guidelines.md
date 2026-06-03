@@ -12,6 +12,7 @@ This document defines development rules, conventions, and best practices for the
 - Communication between modules **exclusively through `contracts/`** (e.g., `IProductQueryService`)
 - `API` project **never defines or owns DTOs** – it only uses them
 - Each module owns its contract interfaces and DTOs
+- **Module-specific bootstrap values belong to that module's own anonymous endpoint**, not to the cross-cutting `/api/configuration` response. The `Configuration` module exposes only application-wide values (version, environment, mock-auth flag). Module-specific values (e.g. Manufacture's responsible-person Entra group ID) live on a module-owned anonymous endpoint such as `/api/manufacture/settings`.
 
 ### Example:
 ```csharp

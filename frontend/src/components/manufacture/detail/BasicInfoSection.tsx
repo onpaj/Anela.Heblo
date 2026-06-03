@@ -9,7 +9,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import ResponsiblePersonCombobox from "../../common/ResponsiblePersonCombobox";
-import { useConfigurationQuery } from "../../../api/hooks/useConfiguration";
+import { useManufactureSettingsQuery } from "../../../api/hooks/useManufactureSettings";
 import { ManufactureType } from "../../../api/generated/api-client";
 
 interface BasicInfoSectionProps {
@@ -53,8 +53,8 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   shouldTruncateText,
   truncateText,
 }) => {
-  const { data: appConfig } = useConfigurationQuery();
-  const manufactureGroupId = appConfig?.manufactureGroupId ?? "";
+  const { data: manufactureSettings } = useManufactureSettingsQuery();
+  const manufactureGroupId = manufactureSettings?.manufactureGroupId ?? "";
 
   const flexiDocs = [
     { label: 'Výdej materiálu (polotovar)', value: order.docMaterialIssueForSemiProduct, date: order.docMaterialIssueForSemiProductDate, hideForSinglePhase: true },

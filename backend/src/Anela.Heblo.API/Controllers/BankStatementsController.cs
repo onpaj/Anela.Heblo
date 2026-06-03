@@ -71,8 +71,13 @@ public class BankStatementsController : BaseApiController
     /// Get list of bank statement imports with optional filtering and pagination
     /// </summary>
     /// <param name="id">Filter by import ID</param>
-    /// <param name="statementDate">Filter by statement date</param>
-    /// <param name="importDate">Filter by import date</param>
+    /// <param name="transferId">Case-insensitive substring filter on Transfer ID (max 100 chars)</param>
+    /// <param name="account">Case-insensitive substring filter on Account name (max 100 chars)</param>
+    /// <param name="statementDate">Filter by statement date (exact match)</param>
+    /// <param name="importDate">Filter by import date (exact match)</param>
+    /// <param name="dateFrom">Inclusive lower bound on statement date (ISO date)</param>
+    /// <param name="dateTo">Inclusive upper bound on statement date (ISO date)</param>
+    /// <param name="errorsOnly">When true, restricts to statements with ImportResult != "OK"</param>
     /// <param name="skip">Number of records to skip (default: 0)</param>
     /// <param name="take">Number of records to take (default: 10, max: 100)</param>
     /// <param name="orderBy">Order by field (default: ImportDate)</param>
@@ -81,8 +86,13 @@ public class BankStatementsController : BaseApiController
     [HttpGet]
     public async Task<ActionResult<GetBankStatementListResponse>> GetBankStatements(
         [FromQuery] int? id = null,
+        [FromQuery] string? transferId = null,
+        [FromQuery] string? account = null,
         [FromQuery] string? statementDate = null,
         [FromQuery] string? importDate = null,
+        [FromQuery] string? dateFrom = null,
+        [FromQuery] string? dateTo = null,
+        [FromQuery] bool? errorsOnly = null,
         [FromQuery] int skip = 0,
         [FromQuery] int take = 10,
         [FromQuery] string? orderBy = "ImportDate",
@@ -95,8 +105,13 @@ public class BankStatementsController : BaseApiController
             var request = new GetBankStatementListRequest
             {
                 Id = id,
+                TransferId = transferId,
+                Account = account,
                 StatementDate = statementDate,
                 ImportDate = importDate,
+                DateFrom = dateFrom,
+                DateTo = dateTo,
+                ErrorsOnly = errorsOnly,
                 Skip = skip,
                 Take = take,
                 OrderBy = orderBy,
@@ -105,6 +120,11 @@ public class BankStatementsController : BaseApiController
 
             var response = await _mediator.Send(request);
             return Ok(response);
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid request for bank statement list");
+            return BadRequest(new { message = "Invalid request", errors = ex.Errors.Select(e => new { e.PropertyName, e.ErrorMessage }) });
         }
         catch (Exception ex)
         {
