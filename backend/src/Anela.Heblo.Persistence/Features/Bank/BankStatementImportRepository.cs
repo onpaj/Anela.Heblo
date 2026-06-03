@@ -36,6 +36,12 @@ public class BankStatementImportRepository : IBankStatementImportRepository
         if (filter.ErrorsOnly == true)
             query = query.Where(bs => bs.ImportResult != ImportStatus.Success);
 
+        if (filter.DateFrom.HasValue)
+            query = query.Where(bs => bs.StatementDate.Date >= filter.DateFrom.Value.Date);
+
+        if (filter.DateTo.HasValue)
+            query = query.Where(bs => bs.StatementDate.Date <= filter.DateTo.Value.Date);
+
         var totalCount = await query.CountAsync(cancellationToken);
 
         query = orderBy.ToLowerInvariant() switch

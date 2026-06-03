@@ -317,6 +317,75 @@ public class BankStatementImportRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task GetFilteredAsync_WithDateFromOnly_ReturnsImportsOnOrAfterDate()
+    {
+        // Arrange
+        var twoDaysAgo = DateTime.UtcNow.Date.AddDays(-2);
+        var yesterday = DateTime.UtcNow.Date.AddDays(-1);
+        var today = DateTime.UtcNow.Date;
+        await _repository.AddAsync(CreateTestImport("T1", twoDaysAgo, "ACC", CurrencyCode.CZK));
+        await _repository.AddAsync(CreateTestImport("T2", yesterday, "ACC", CurrencyCode.CZK));
+        await _repository.AddAsync(CreateTestImport("T3", today, "ACC", CurrencyCode.CZK));
+
+        // Act — DateFrom = yesterday should include yesterday & today, exclude two-days-ago
+        var (items, totalCount) = await _repository.GetFilteredAsync(
+            new BankStatementListFilter(DateFrom: yesterday));
+
+        // Assert
+        Assert.Equal(2, totalCount);
+        Assert.DoesNotContain(items, i => i.TransferId == "T1");
+        Assert.Contains(items, i => i.TransferId == "T2");
+        Assert.Contains(items, i => i.TransferId == "T3");
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_WithDateToOnly_ReturnsImportsOnOrBeforeDate()
+    {
+        // Arrange
+        var twoDaysAgo = DateTime.UtcNow.Date.AddDays(-2);
+        var yesterday = DateTime.UtcNow.Date.AddDays(-1);
+        var today = DateTime.UtcNow.Date;
+        await _repository.AddAsync(CreateTestImport("T1", twoDaysAgo, "ACC", CurrencyCode.CZK));
+        await _repository.AddAsync(CreateTestImport("T2", yesterday, "ACC", CurrencyCode.CZK));
+        await _repository.AddAsync(CreateTestImport("T3", today, "ACC", CurrencyCode.CZK));
+
+        // Act — DateTo = yesterday should include two-days-ago & yesterday, exclude today
+        var (items, totalCount) = await _repository.GetFilteredAsync(
+            new BankStatementListFilter(DateTo: yesterday));
+
+        // Assert
+        Assert.Equal(2, totalCount);
+        Assert.Contains(items, i => i.TransferId == "T1");
+        Assert.Contains(items, i => i.TransferId == "T2");
+        Assert.DoesNotContain(items, i => i.TransferId == "T3");
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_WithDateRange_ReturnsInclusiveRange()
+    {
+        // Arrange
+        var threeDaysAgo = DateTime.UtcNow.Date.AddDays(-3);
+        var twoDaysAgo = DateTime.UtcNow.Date.AddDays(-2);
+        var yesterday = DateTime.UtcNow.Date.AddDays(-1);
+        var today = DateTime.UtcNow.Date;
+        await _repository.AddAsync(CreateTestImport("T0", threeDaysAgo, "ACC", CurrencyCode.CZK));
+        await _repository.AddAsync(CreateTestImport("T1", twoDaysAgo, "ACC", CurrencyCode.CZK));
+        await _repository.AddAsync(CreateTestImport("T2", yesterday, "ACC", CurrencyCode.CZK));
+        await _repository.AddAsync(CreateTestImport("T3", today, "ACC", CurrencyCode.CZK));
+
+        // Act — inclusive range [twoDaysAgo, yesterday]
+        var (items, totalCount) = await _repository.GetFilteredAsync(
+            new BankStatementListFilter(DateFrom: twoDaysAgo, DateTo: yesterday));
+
+        // Assert
+        Assert.Equal(2, totalCount);
+        Assert.Contains(items, i => i.TransferId == "T1");
+        Assert.Contains(items, i => i.TransferId == "T2");
+        Assert.DoesNotContain(items, i => i.TransferId == "T0");
+        Assert.DoesNotContain(items, i => i.TransferId == "T3");
+    }
+
+    [Fact]
     public async Task GetFilteredAsync_WithErrorsOnly_ReturnsOnlyNonOkImports()
     {
         // Arrange
