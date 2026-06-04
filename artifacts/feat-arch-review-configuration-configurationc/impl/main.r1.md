@@ -1,46 +1,51 @@
+All tasks complete. Here is the output summary:
+
 ---
 
-# Implementation: Move Infrastructure Constants out of Domain Layer
+# Implementation: Remove Unused ASPNETCORE_ENVIRONMENT Constant
 
 ## What was implemented
-Structural refactor restoring Clean Architecture dependency direction: 10 infrastructure-specific string constants were moved from `Anela.Heblo.Domain/Features/Configuration/ConfigurationConstants.cs` to a new `Anela.Heblo.API/Infrastructure/InfrastructureConstants.cs`. All 6 API consumer files were updated to reference the new location. No runtime behavior changed — only the declaring namespace/type of the constants.
+
+Deleted the single unused constant `ConfigurationConstants.ASPNETCORE_ENVIRONMENT` from the Configuration domain. Zero callers existed anywhere in the solution — verified by two ripgrep passes before deletion. The five raw-string call sites enumerated in spec FR-4 are explicitly preserved and untouched.
 
 ## Files created/modified
-- `backend/src/Anela.Heblo.API/Infrastructure/InfrastructureConstants.cs` — NEW: holds 10 infrastructure constants (AppInsights, DB connection, CORS, auth scheme, health check tags/names)
-- `backend/src/Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs` — switched to `InfrastructureConstants`; retained `using Anela.Heblo.Domain.Features.Configuration` for `ProductExportOptions`
-- `backend/src/Anela.Heblo.API/Extensions/AuthenticationExtensions.cs` — `MOCK_AUTH_SCHEME` → `InfrastructureConstants`; Domain using kept for `USE_MOCK_AUTH`/`BYPASS_JWT_VALIDATION`
-- `backend/src/Anela.Heblo.API/Extensions/ApplicationBuilderExtensions.cs` — `CORS_POLICY_NAME`, `DB_TAG` → `InfrastructureConstants`; Domain using removed
-- `backend/src/Anela.Heblo.API/Extensions/LoggingExtensions.cs` — AppInsights constants → `InfrastructureConstants`; Domain using removed
-- `backend/src/Anela.Heblo.API/Infrastructure/Hangfire/HangfireDashboardTokenAuthorizationFilter.cs` — `MOCK_AUTH_SCHEME` → `InfrastructureConstants`; Domain using kept for `USE_MOCK_AUTH`/`BYPASS_JWT_VALIDATION`
-- `backend/src/Anela.Heblo.Domain/Features/Configuration/ConfigurationConstants.cs` — stripped to 6 domain-level constants only
+
+- `backend/src/Anela.Heblo.Domain/Features/Configuration/ConfigurationConstants.cs` — removed the `ASPNETCORE_ENVIRONMENT = "ASPNETCORE_ENVIRONMENT"` declaration (one line, one deletion)
 
 ## Tests
-No test changes required — no test file directly referenced any of the moved constants via `ConfigurationConstants`.
+
+No new tests written — this is a dead-code deletion with no behavior change. The existing test suite (4,414 + 83 = 4,497 tests) passed with identical counts before and after the change. 38 pre-existing failures are a baseline condition unrelated to this change.
 
 ## How to verify
-```
-dotnet build Anela.Heblo.sln      # 0 errors
-dotnet format Anela.Heblo.sln --verify-no-changes   # 0 violations
-grep -r "ConfigurationConstants\.\(APPLICATION_INSIGHTS\|DEFAULT_CONNECTION\|CORS\|MOCK_AUTH_SCHEME\|DB_TAG\|POSTGRESQL\|DATABASE_HEALTH\)" backend/src/
-# → no output (all moved constants now referenced only via InfrastructureConstants)
+
+```bash
+# Confirm constant is gone
+rg 'ASPNETCORE_ENVIRONMENT' backend/src/Anela.Heblo.Domain/Features/Configuration/ConfigurationConstants.cs
+# Expected: no output
+
+# Confirm no qualified callers anywhere
+rg 'ConfigurationConstants\.ASPNETCORE_ENVIRONMENT' --type cs backend/
+# Expected: no output
+
+# Confirm commit shape
+git show HEAD --stat
+# Expected: 1 file changed, 1 deletion(-)
 ```
 
 ## Notes
-- `ProductExportOptions` lives in `Anela.Heblo.Domain.Features.Configuration` — the same namespace as `ConfigurationConstants`. The initial consumer-update subagent removed the `using` directive from `ServiceCollectionExtensions.cs` thinking it was only needed for `ConfigurationConstants`. A corrective commit restored it. This is architecturally correct: the API project may depend on Domain types; only the infrastructure-specific *constants* were relocated.
-- The three orphan Domain constants (`ASPNETCORE_ENVIRONMENT`, `DEFAULT_VERSION`, `DEFAULT_ENVIRONMENT`) remain in Domain unchanged per the arch review's decision (out of scope; dead code cleanup is a separate task).
-- `HangfireAuthenticationMiddleware.cs` required no changes — it only uses `USE_MOCK_AUTH`/`BYPASS_JWT_VALIDATION`, which remain in Domain.
+
+- **Pre-existing test failures (38):** Baseline condition on this branch, not introduced by this change. Pass counts match exactly before and after.
+- **Warning count:** Dropped from 234 → 229 (expected: compiler no longer emits a warning for the now-deleted unused symbol).
+- **Follow-up tracked:** Five raw-string `"ASPNETCORE_ENVIRONMENT"` sites in DiagnosticsController, E2ETestController, CostOptimizedTelemetryProcessor, DesignTimeDbContextFactory, and GetConfigurationHandler are intentionally preserved; migration to `IHostEnvironment.EnvironmentName` is a separate lower-priority task.
 
 ## PR Summary
-Moved 10 infrastructure-specific string constants out of the Domain layer into a new `InfrastructureConstants` class in the API project, restoring Clean Architecture's dependency direction. Domain no longer needs to be rebuilt when CORS policy naming, health check tags, or Application Insights connection string keys change.
+
+Removes `ConfigurationConstants.ASPNETCORE_ENVIRONMENT` — a dead-code constant that had zero qualified accessors anywhere in the solution. Every call site that reads the ASP.NET Core environment name either uses `IHostEnvironment.EnvironmentName` (the DI-preferred approach) or passes the raw string literal directly, making the constant a misleading signal of a centralization pattern that does not actually exist.
+
+Verified by two ripgrep passes before deletion (zero matches for both `ConfigurationConstants.ASPNETCORE_ENVIRONMENT` and `nameof(ConfigurationConstants.ASPNETCORE_ENVIRONMENT)`). Build and test suite pass with identical counts. The five raw-string call sites are preserved intentionally; their migration to `IHostEnvironment` is tracked as a follow-up.
 
 ### Changes
-- `backend/src/Anela.Heblo.API/Infrastructure/InfrastructureConstants.cs` — new file; holds all moved constants with byte-identical values
-- `backend/src/Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs` — switched to `InfrastructureConstants`
-- `backend/src/Anela.Heblo.API/Extensions/AuthenticationExtensions.cs` — `MOCK_AUTH_SCHEME` switched; Domain constants (`USE_MOCK_AUTH`, `BYPASS_JWT_VALIDATION`) remain
-- `backend/src/Anela.Heblo.API/Extensions/ApplicationBuilderExtensions.cs` — CORS/health tag constants switched
-- `backend/src/Anela.Heblo.API/Extensions/LoggingExtensions.cs` — AppInsights constants switched
-- `backend/src/Anela.Heblo.API/Infrastructure/Hangfire/HangfireDashboardTokenAuthorizationFilter.cs` — `MOCK_AUTH_SCHEME` switched
-- `backend/src/Anela.Heblo.Domain/Features/Configuration/ConfigurationConstants.cs` — stripped to 6 app-level constants
+- `backend/src/Anela.Heblo.Domain/Features/Configuration/ConfigurationConstants.cs` — removed `public const string ASPNETCORE_ENVIRONMENT = "ASPNETCORE_ENVIRONMENT";` (1 line deleted)
 
 ## Status
 DONE

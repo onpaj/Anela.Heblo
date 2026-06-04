@@ -1,0 +1,3 @@
+Plan saved to `docs/superpowers/plans/2026-06-03-bank-importdto-importstatus-constant.md`.
+
+**Summary:** Six-task TDD-style refactor plan. Two files touched: `BankStatementImportDto.cs` (add `using Anela.Heblo.Domain.Features.Bank;`, replace `"OK"` with `ImportStatus.Success`) and `BankMappingProfileTests.cs` (update lines 37 and 42 setup/assertion to reference the constant; leave the `"Failed"` non-success test untouched per surgical-changes rule). Tasks cover baseline-test pass, production edit + test, test-assertion update + test, scoped `dotnet format` + full build + Bank-scope test, TS client no-op verification, and a single focused commit. All spec FRs/NFRs and arch-review amendments (1, 2, 3) are mapped to specific task steps in the self-review table.
