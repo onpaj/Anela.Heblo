@@ -226,7 +226,7 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                     ? query.OrderBy(x => x.CreatedByUsername).ThenByDescending(x => x.EntryDate)
                     : query.OrderByDescending(x => x.CreatedByUsername).ThenByDescending(x => x.EntryDate),
 
-                _ => ApplyDefaultSort(query, ascending),
+                _ => ApplyDefaultSortWithWarning(query, ascending, sortBy, logger),
             };
         }
 
@@ -237,6 +237,20 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
             return ascending
                 ? query.OrderBy(x => x.EntryDate)
                 : query.OrderByDescending(x => x.EntryDate);
+        }
+
+        private static IQueryable<JournalEntry> ApplyDefaultSortWithWarning(
+            IQueryable<JournalEntry> query,
+            bool ascending,
+            string sortBy,
+            ILogger logger)
+        {
+            logger.LogWarning(
+                "Unknown sort key {SortBy} requested on {Repository}",
+                sortBy,
+                nameof(JournalRepository));
+
+            return ApplyDefaultSort(query, ascending);
         }
     }
 }
