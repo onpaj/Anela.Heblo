@@ -76,14 +76,14 @@ internal sealed class InvoiceImportStatisticsSourceAdapter : IInvoiceImportStati
             }).ToList();
         }
 
+        var resultsByDate = results.ToDictionary(r => r.Date.Date);
         var filledResults = new List<DailyInvoiceCount>();
         var currentDate = DateTime.SpecifyKind(startDate.Date, DateTimeKind.Utc);
         var endDateOnly = DateTime.SpecifyKind(endDate.Date, DateTimeKind.Utc);
 
         while (currentDate <= endDateOnly)
         {
-            var existingResult = results.FirstOrDefault(r => r.Date.Date == currentDate.Date);
-            if (existingResult != null)
+            if (resultsByDate.TryGetValue(currentDate.Date, out var existingResult))
             {
                 filledResults.Add(existingResult);
             }
