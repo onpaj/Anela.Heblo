@@ -24,7 +24,8 @@ internal sealed class EnableTileHandler : IRequestHandler<EnableTileRequest, Ena
             return new EnableTileResponse(ErrorCodes.RequiredFieldMissing);
         }
 
-        var userId = _currentUserService.GetCurrentUser().Id;
+        var currentUser = _currentUserService.GetCurrentUser();
+        var userId = currentUser.Id;
 
         await _mutator.MutateAsync(
             userId,
