@@ -32,7 +32,7 @@ public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDat
         var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
 
         var settingsResponse = await _mediator.Send(
-            new GetUserSettingsRequest { UserId = userId },
+            new GetUserSettingsRequest(),
             cancellationToken);
 
         var visibleTiles = settingsResponse.Settings.Tiles

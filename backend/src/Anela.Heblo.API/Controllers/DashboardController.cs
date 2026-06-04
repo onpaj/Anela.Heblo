@@ -34,8 +34,7 @@ public class DashboardController : BaseApiController
     [HttpGet("settings")]
     public async Task<ActionResult<Application.Features.Dashboard.Contracts.UserDashboardSettingsDto>> GetUserSettings()
     {
-        var userId = GetCurrentUserId();
-        var request = new GetUserSettingsRequest { UserId = userId };
+        var request = new GetUserSettingsRequest();
         var response = await _mediator.Send(request);
 
         return Ok(response.Settings);

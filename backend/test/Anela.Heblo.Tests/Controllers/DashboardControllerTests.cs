@@ -98,7 +98,7 @@ public class DashboardControllerTests
         var response = new GetUserSettingsResponse { Settings = expectedSettings };
 
         _mediatorMock
-            .Setup(x => x.Send(It.Is<GetUserSettingsRequest>(r => r.UserId == "test-user-123"), It.IsAny<CancellationToken>()))
+            .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(response);
 
         // Act
@@ -110,7 +110,7 @@ public class DashboardControllerTests
         settings.Should().BeEquivalentTo(expectedSettings);
 
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetUserSettingsRequest>(r => r.UserId == "test-user-123"),
+            It.IsAny<GetUserSettingsRequest>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

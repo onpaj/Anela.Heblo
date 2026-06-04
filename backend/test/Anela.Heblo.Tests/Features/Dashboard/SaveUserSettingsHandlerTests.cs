@@ -76,7 +76,7 @@ public class SaveUserSettingsHandlerTests
 
         // Assert
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetUserSettingsRequest>(r => r.UserId == "anonymous"),
+            It.IsAny<GetUserSettingsRequest>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
         _repositoryMock.Verify(x => x.GetByUserIdAsync("anonymous"), Times.Once);
@@ -301,7 +301,7 @@ public class SaveUserSettingsHandlerTests
         // Assert
         callOrder.Should().ContainInOrder("mediator", "lock");
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetUserSettingsRequest>(r => r.UserId == userId),
+            It.IsAny<GetUserSettingsRequest>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
     }

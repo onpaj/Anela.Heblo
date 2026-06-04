@@ -32,7 +32,7 @@ public class GetTileDataHandlerTests
     {
         _mediatorMock
             .Setup(x => x.Send(
-                It.Is<GetUserSettingsRequest>(r => r.UserId == userId),
+                It.IsAny<GetUserSettingsRequest>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GetUserSettingsResponse
             {
@@ -53,7 +53,7 @@ public class GetTileDataHandlerTests
         // Assert
         result.Should().NotBeNull();
         _mediatorMock.Verify(
-            x => x.Send(It.Is<GetUserSettingsRequest>(r => r.UserId == "anonymous"), It.IsAny<CancellationToken>()),
+            x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -70,7 +70,7 @@ public class GetTileDataHandlerTests
         // Assert
         result.Should().NotBeNull();
         _mediatorMock.Verify(
-            x => x.Send(It.Is<GetUserSettingsRequest>(r => r.UserId == "anonymous"), It.IsAny<CancellationToken>()),
+            x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

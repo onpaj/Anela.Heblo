@@ -222,7 +222,7 @@ public class DisableTileHandlerTests
         // Assert
         callOrder.Should().ContainInOrder("mediator", "lock");
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetUserSettingsRequest>(r => r.UserId == userId),
+            It.IsAny<GetUserSettingsRequest>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
     }
