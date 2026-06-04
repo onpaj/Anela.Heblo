@@ -167,7 +167,7 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .Include(x => x.ProductAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
-                .Where(x => !x.IsDeleted && (x.ProductAssociations.Any(pa => productCode.StartsWith(pa.ProductCodePrefix))))
+                .Where(x => x.ProductAssociations.Any(pa => productCode.StartsWith(pa.ProductCodePrefix)))
                 .OrderByDescending(x => x.EntryDate)
                 .ThenByDescending(x => x.CreatedAt)
                 .ToListAsync(cancellationToken);
