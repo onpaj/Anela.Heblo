@@ -9,8 +9,11 @@ jest.mock("../../api/hooks/useExpeditionListArchive", () => ({
   useExpeditionDates: jest.fn(),
   useExpeditionListsByDate: jest.fn(),
   useReprintExpeditionList: jest.fn(),
-  useRunExpeditionListPrintFix: jest.fn(),
   getExpeditionListDownloadUrl: jest.fn(),
+}));
+
+jest.mock("../../api/hooks/useExpeditionList", () => ({
+  useRunExpeditionListPrintFix: jest.fn(),
 }));
 
 jest.mock("../../api/hooks/useRecurringJobs", () => ({
@@ -28,8 +31,9 @@ const {
   useExpeditionDates,
   useExpeditionListsByDate,
   useReprintExpeditionList,
-  useRunExpeditionListPrintFix,
 } = require("../../api/hooks/useExpeditionListArchive");
+
+const { useRunExpeditionListPrintFix } = require("../../api/hooks/useExpeditionList");
 
 const { useTriggerRecurringJobMutation } = require("../../api/hooks/useRecurringJobs");
 
