@@ -203,8 +203,8 @@ describe("useJournal hooks", () => {
         { wrapper: createWrapper },
       );
 
-      // Search queries are disabled by default (enabled: false in useSearchJournalEntries)
-      // We need to manually trigger the query
+      // useSearchJournalEntries defaults to enabled=false; the only way to fire
+      // the query without opting in via the second arg is an explicit refetch().
       result.current.refetch();
 
       await waitFor(() => {
