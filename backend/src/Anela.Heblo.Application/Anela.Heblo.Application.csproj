@@ -44,6 +44,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Anela.Heblo.Tests" />
+    <InternalsVisibleTo Include="Anela.Heblo.API" />
   </ItemGroup>
 
   <ItemGroup>
