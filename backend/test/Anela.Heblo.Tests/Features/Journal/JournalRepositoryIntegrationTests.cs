@@ -293,6 +293,95 @@ public class JournalRepositoryIntegrationTests : IDisposable
         indicator.LastEntryDate.Should().Be(recent);
     }
 
+    [Fact]
+    public async Task GetEntriesAsync_SortsByCreatedByUsername_Ascending()
+    {
+        // Arrange
+        var alice = CreateEntryWithAuthor("alice", DateTime.Today.AddDays(-1), "Alice entry");
+        var carol = CreateEntryWithAuthor("carol", DateTime.Today.AddDays(-2), "Carol entry");
+        var bob = CreateEntryWithAuthor("bob", DateTime.Today.AddDays(-3), "Bob entry");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(alice, carol, bob);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEntriesAsync(
+            pageNumber: 1,
+            pageSize: 10,
+            sortBy: "createdByUsername",
+            sortDirection: "ASC");
+
+        // Assert
+        result.Items.Select(x => x.CreatedByUsername)
+            .Should()
+            .ContainInOrder("alice", "bob", "carol");
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_SortsByCreatedByUsername_Descending()
+    {
+        // Arrange
+        var alice = CreateEntryWithAuthor("alice", DateTime.Today.AddDays(-1), "Alice entry");
+        var carol = CreateEntryWithAuthor("carol", DateTime.Today.AddDays(-2), "Carol entry");
+        var bob = CreateEntryWithAuthor("bob", DateTime.Today.AddDays(-3), "Bob entry");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(alice, carol, bob);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEntriesAsync(
+            pageNumber: 1,
+            pageSize: 10,
+            sortBy: "createdByUsername",
+            sortDirection: "DESC");
+
+        // Assert
+        result.Items.Select(x => x.CreatedByUsername)
+            .Should()
+            .ContainInOrder("carol", "bob", "alice");
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_SortsByCreatedByUsername_AcceptsAnyCasing()
+    {
+        // Arrange
+        var alice = CreateEntryWithAuthor("alice", DateTime.Today.AddDays(-1), "Alice entry");
+        var bob = CreateEntryWithAuthor("bob", DateTime.Today.AddDays(-2), "Bob entry");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(alice, bob);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var upper = await _repository.GetEntriesAsync(1, 10, "CREATEDBYUSERNAME", "ASC");
+        var mixed = await _repository.GetEntriesAsync(1, 10, "CreatedByUsername", "ASC");
+        var lower = await _repository.GetEntriesAsync(1, 10, "createdbyusername", "ASC");
+
+        // Assert
+        upper.Items.Select(x => x.CreatedByUsername).Should().ContainInOrder("alice", "bob");
+        mixed.Items.Select(x => x.CreatedByUsername).Should().ContainInOrder("alice", "bob");
+        lower.Items.Select(x => x.CreatedByUsername).Should().ContainInOrder("alice", "bob");
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_SortByCreatedByUsername_TiebreaksByEntryDateDesc()
+    {
+        // Arrange
+        var aliceOlder = CreateEntryWithAuthor("alice", DateTime.Today.AddDays(-5), "Alice older");
+        var aliceNewer = CreateEntryWithAuthor("alice", DateTime.Today.AddDays(-1), "Alice newer");
+        var bob = CreateEntryWithAuthor("bob", DateTime.Today.AddDays(-3), "Bob entry");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(aliceOlder, aliceNewer, bob);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEntriesAsync(1, 10, "createdByUsername", "ASC");
+
+        // Assert
+        result.Items.Select(x => x.Title)
+            .Should()
+            .ContainInOrder("Alice newer", "Alice older", "Bob entry");
+    }
+
     private JournalEntry CreateEntryWithFamily(string prefix, string title)
     {
         var entry = new JournalEntry
@@ -306,6 +395,23 @@ public class JournalRepositoryIntegrationTests : IDisposable
         };
         entry.AssociateWithProduct(prefix);
         return entry;
+    }
+
+    private static JournalEntry CreateEntryWithAuthor(
+        string author,
+        DateTime entryDate,
+        string title)
+    {
+        return new JournalEntry
+        {
+            Title = title,
+            Content = $"Content authored by {author}",
+            EntryDate = entryDate,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user-id",
+            CreatedByUsername = author
+        };
     }
 
     public void Dispose()
