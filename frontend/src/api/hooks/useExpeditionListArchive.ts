@@ -46,28 +46,15 @@ const expeditionArchiveKeys = {
 export const useExpeditionDates = (page: number = 1, pageSize: number = 20) => {
   return useQuery<GetExpeditionDatesResponse>({
     queryKey: expeditionArchiveKeys.dates(page, pageSize),
-    queryFn: async () => {
-      const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/expedition-list-archive/dates`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const params = new URLSearchParams();
-      params.append("page", page.toString());
-      params.append("pageSize", pageSize.toString());
-
-      const response = await (apiClient as any).http.fetch(
-        `${fullUrl}?${params.toString()}`,
-        {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+    queryFn: async (): Promise<GetExpeditionDatesResponse> => {
+      const client = getAuthenticatedApiClient();
+      const response = await client.expeditionListArchive_GetDates(page, pageSize);
+      return {
+        dates: response.dates ?? [],
+        totalCount: response.totalCount ?? 0,
+        page: response.page ?? page,
+        pageSize: response.pageSize ?? pageSize,
+      };
     },
     staleTime: 1000 * 60 * 5,
   });
