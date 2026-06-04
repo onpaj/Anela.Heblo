@@ -75,10 +75,8 @@ public class DashboardController : BaseApiController
     [HttpPost("tiles/{tileId}/disable")]
     public async Task<ActionResult> DisableTile(string tileId)
     {
-        var userId = GetCurrentUserId();
         var request = new DisableTileRequest
         {
-            UserId = userId,
             TileId = tileId
         };
         await _mediator.Send(request);

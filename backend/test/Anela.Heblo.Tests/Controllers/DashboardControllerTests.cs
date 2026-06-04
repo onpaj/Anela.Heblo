@@ -219,7 +219,6 @@ public class DashboardControllerTests
 
         _mediatorMock.Verify(x => x.Send(
             It.Is<DisableTileRequest>(r =>
-                r.UserId == "test-user-123" &&
                 r.TileId == tileId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
