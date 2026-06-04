@@ -1,14 +1,14 @@
 Plan saved to `docs/superpowers/plans/2026-06-04-fix-orgchart-error-contract.md`.
 
-**Summary of the plan:**
+## Summary
 
-6 tasks, all TDD-ordered with bite-sized steps and frequent commits:
+The plan decomposes the OrgChart error-contract fix into 6 tasks following TDD:
 
-1. **Replace handler failure-path test (red)** — Rewrites `Handle_PropagatesException_WhenServiceThrows` to assert the new typed-envelope behavior + `LogError` invocation; adds an `OperationCanceledException` re-throw test.
-2. **Implement handler failure conversion (green)** — Adds try/catch in handler, returns `new OrgChartResponse(ErrorCodes.InternalServerError)`, re-throws cancellation.
-3. **Refactor controller onto `BaseApiController`** — Drops `ILogger`, deletes try/catch, switches to `HandleResponse`, types the 500 `[ProducesResponseType]`.
-4. **Full suite + format validation gate** — Greps for stale references to the old shape, runs all tests, runs `dotnet format`.
-5. **Integration test for FR-2 leakage assertion** — Uses `HebloWebApplicationFactory` + a sentinel URL exception to prove the 500 body never contains the data-source URL or wrapped-error prefix.
-6. **Final build + TS client regeneration check** — Runs `dotnet build`, `dotnet format --verify-no-changes`, full `dotnet test`, and inspects the regenerated TypeScript client diff.
+1. **Task 1 (RED)** — Replace `Handle_PropagatesException_WhenServiceThrows` with three new handler tests (success, typed error envelope, `OperationCanceledException` rethrow) and verify the failure-path test fails against the current handler.
+2. **Task 2 (GREEN)** — Update `GetOrganizationStructureHandler` to catch `Exception`, rethrow `OperationCanceledException`, log via `LogError`, and return `new OrgChartResponse(ErrorCodes.InternalServerError)`. Commit.
+3. **Task 3** — Convert `OrgChartController` to inherit `BaseApiController`, drop the `ILogger` dependency and `try/catch`, call `HandleResponse(result)`, and declare 500 as `typeof(OrgChartResponse)`. Commit.
+4. **Task 4** — Add `OrgChartControllerTests` integration tests using the existing `HebloWebApplicationFactory` with `WithWebHostBuilder` overriding `IOrgChartService`. Verifies wire-level 200 success, typed 500 envelope, and absence of the sentinel data-source URL / wrapped exception message in the response body. Commit.
+5. **Task 5** — Regenerate + commit OpenAPI/TS client artifacts; verify backend + frontend build pass.
+6. **Task 6** — Final build/test sweep and `git status` audit.
 
-The plan covers all FR/NFR requirements in the spec, both arch-review amendments (test replacement and `_logger` removal from controller), and applies the dominant project pattern (option A) per the architectural decision in the review.
+All concrete code, exact file paths/line numbers, expected test outputs, and commit messages are inlined. The self-review table maps every spec FR/NFR + arch-review amendment to a specific task.
