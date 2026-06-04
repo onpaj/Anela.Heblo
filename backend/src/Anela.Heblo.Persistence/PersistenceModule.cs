@@ -16,6 +16,8 @@ using Anela.Heblo.Persistence.Catalog.Inventory;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.Leaflet;
+using Anela.Heblo.Domain.Features.Journal;
+using Anela.Heblo.Persistence.Catalog.Journal;
 using Anela.Heblo.Persistence.BackgroundJobs;
 using Anela.Heblo.Persistence.DataQuality;
 using Anela.Heblo.Persistence.Catalog.Stock;
@@ -175,6 +177,10 @@ public static class PersistenceModule
 
         // Packaging repositories
         services.AddScoped<IPackageRepository, PackageRepository>();
+
+        // Journal repositories
+        services.AddScoped<IJournalRepository, JournalRepository>();
+        services.AddScoped<IJournalTagRepository, JournalTagRepository>();
 
         return services;
     }
