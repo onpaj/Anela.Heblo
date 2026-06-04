@@ -73,3 +73,69 @@ describe('useExpeditionDates', () => {
     });
   });
 });
+
+describe('useExpeditionListsByDate', () => {
+  let mockGetByDate: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetByDate = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      expeditionListArchive_GetByDate: mockGetByDate,
+    } as any);
+  });
+
+  it('passes the date through to the typed method and maps Date/undefined to string/null', async () => {
+    mockGetByDate.mockResolvedValue({
+      items: [
+        {
+          blobPath: '2024/12/10/file.pdf',
+          fileName: 'expedice-2024-12-10.pdf',
+          listId: 'L-1',
+          createdOn: new Date('2024-12-10T10:00:00.000Z'),
+          contentLength: 1024,
+        },
+        {
+          blobPath: '2024/12/10/other.pdf',
+          fileName: 'expedice-other.pdf',
+          listId: 'L-2',
+          createdOn: undefined,
+          contentLength: undefined,
+        },
+      ],
+    });
+
+    const { result } = renderHook(() => useExpeditionListsByDate('2024-12-10'), {
+      wrapper: createWrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockGetByDate).toHaveBeenCalledWith('2024-12-10');
+    expect(result.current.data).toEqual({
+      items: [
+        {
+          blobPath: '2024/12/10/file.pdf',
+          fileName: 'expedice-2024-12-10.pdf',
+          listId: 'L-1',
+          createdOn: '2024-12-10T10:00:00.000Z',
+          contentLength: 1024,
+        },
+        {
+          blobPath: '2024/12/10/other.pdf',
+          fileName: 'expedice-other.pdf',
+          listId: 'L-2',
+          createdOn: null,
+          contentLength: null,
+        },
+      ],
+    });
+  });
+
+  it('does not call the API when date is empty (enabled: !!date)', async () => {
+    renderHook(() => useExpeditionListsByDate(''), { wrapper: createWrapper });
+    // Give React Query a microtask to evaluate `enabled`
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockGetByDate).not.toHaveBeenCalled();
+  });
+});

@@ -63,21 +63,18 @@ export const useExpeditionDates = (page: number = 1, pageSize: number = 20) => {
 export const useExpeditionListsByDate = (date: string) => {
   return useQuery<GetExpeditionListsByDateResponse>({
     queryKey: expeditionArchiveKeys.itemsByDate(date),
-    queryFn: async () => {
-      const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/expedition-list-archive/${encodeURIComponent(date)}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+    queryFn: async (): Promise<GetExpeditionListsByDateResponse> => {
+      const client = getAuthenticatedApiClient();
+      const response = await client.expeditionListArchive_GetByDate(date);
+      return {
+        items: (response.items ?? []).map((item) => ({
+          blobPath: item.blobPath ?? '',
+          fileName: item.fileName ?? '',
+          listId: item.listId ?? '',
+          createdOn: item.createdOn ? item.createdOn.toISOString() : null,
+          contentLength: item.contentLength ?? null,
+        })),
+      };
     },
     enabled: !!date,
     staleTime: 1000 * 60 * 5,
