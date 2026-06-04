@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
+import { getAuthenticatedApiClient, getApiBaseUrl, QUERY_KEYS } from "../client";
 import { ReprintExpeditionListRequest } from "../generated/api-client";
 
 // --- Types ---
@@ -116,8 +116,6 @@ export const useRunExpeditionListPrintFix = () => {
 };
 
 export const getExpeditionListDownloadUrl = (blobPath: string): string => {
-  const apiClient = getAuthenticatedApiClient();
-  const baseUrl = (apiClient as any).baseUrl;
   const encodedPath = blobPath.split("/").map(encodeURIComponent).join("/");
-  return `${baseUrl}/api/expedition-list-archive/download/${encodedPath}`;
+  return `${getApiBaseUrl()}/api/expedition-list-archive/download/${encodedPath}`;
 };
