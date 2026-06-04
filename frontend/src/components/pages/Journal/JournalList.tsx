@@ -186,13 +186,16 @@ const JournalList: React.FC = () => {
     sortDirection: sortDescending ? "DESC" : "ASC",
   });
 
-  const searchQuery = useSearchJournalEntries({
-    searchText: searchTextFilter,
-    pageNumber: pageNumber,
-    pageSize: pageSize,
-    sortBy: sortBy,
-    sortDirection: sortDescending ? "DESC" : "ASC",
-  });
+  const searchQuery = useSearchJournalEntries(
+    {
+      searchText: searchTextFilter,
+      pageNumber: pageNumber,
+      pageSize: pageSize,
+      sortBy: sortBy,
+      sortDirection: sortDescending ? "DESC" : "ASC",
+    },
+    isSearchMode,
+  );
 
   const currentQuery = isSearchMode ? searchQuery : entriesQuery;
   const entries = currentQuery.data?.entries || [];
