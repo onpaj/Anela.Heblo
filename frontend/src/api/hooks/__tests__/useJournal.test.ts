@@ -214,6 +214,34 @@ describe("useJournal hooks", () => {
       expect(result.current.data).toEqual(mockSearchResponse);
       expect(result.current.data?.entries).toHaveLength(1);
     });
+
+    it("should not fetch on mount when enabled is omitted (default false)", async () => {
+      const searchMock = jest.fn().mockResolvedValue({
+        success: true,
+        entries: [],
+        totalCount: 0,
+      });
+
+      mockGetAuthenticatedApiClient.mockReturnValue({
+        journal_SearchJournalEntries: searchMock,
+        baseUrl: "http://localhost:5001",
+      } as any);
+
+      renderHook(
+        () =>
+          useSearchJournalEntries({
+            searchText: "test",
+            pageNumber: 1,
+            pageSize: 20,
+          }),
+        { wrapper: createWrapper },
+      );
+
+      // Wait long enough for any queued microtasks; the query must remain disabled.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(searchMock).not.toHaveBeenCalled();
+    });
   });
 
   describe("useCreateJournalEntry", () => {
