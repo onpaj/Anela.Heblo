@@ -28,8 +28,14 @@ export interface ReprintExpeditionListRequest {
 
 export interface ReprintExpeditionListResponse {
   success: boolean;
-  errorMessage: string | null;
+  errorCode: string | null;
+  params: Record<string, string> | null;
 }
+
+const REPRINT_ERROR_MESSAGES: Partial<Record<string, string>> = {
+  InvalidBlobPath: "Neplatná cesta k souboru.",
+};
+const GENERIC_REPRINT_ERROR = "Nepodařilo se odeslat na tisk.";
 
 // --- Query Keys ---
 
@@ -114,9 +120,10 @@ export const useReprintExpeditionList = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(
-          errorData?.errorMessage ?? `HTTP error! status: ${response.status}`
-        );
+        const errorCode: string | undefined = errorData?.errorCode ?? undefined;
+        const message =
+          (errorCode && REPRINT_ERROR_MESSAGES[errorCode]) ?? GENERIC_REPRINT_ERROR;
+        throw new Error(message);
       }
 
       return await response.json();
@@ -141,9 +148,13 @@ export const useRunExpeditionListPrintFix = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(
-          errorData?.errorMessage ?? `HTTP error! status: ${response.status}`
-        );
+        // The /api/expedition-list/run-fix endpoint is out of scope for this change
+        // and may still return the legacy errorMessage. Prefer errorCode if present.
+        const message =
+          (errorData?.errorCode as string | undefined) ??
+          (errorData?.errorMessage as string | undefined) ??
+          `HTTP error! status: ${response.status}`;
+        throw new Error(message);
       }
 
       return await response.json();
