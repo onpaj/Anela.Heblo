@@ -6,10 +6,10 @@ import {
   useExpeditionDates,
   useExpeditionListsByDate,
   useReprintExpeditionList,
-  useRunExpeditionListPrintFix,
   getExpeditionListDownloadUrl,
   ExpeditionListItemDto,
 } from "../api/hooks/useExpeditionListArchive";
+import { useRunExpeditionListPrintFix } from "../api/hooks/useExpeditionList";
 import { useTriggerRecurringJobMutation } from "../api/hooks/useRecurringJobs";
 import { useToast } from "../contexts/ToastContext";
 import { useScreenView } from "../telemetry/useScreenView";
