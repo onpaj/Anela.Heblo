@@ -30,7 +30,8 @@ public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, 
 
     public async Task<SaveUserSettingsResponse> Handle(SaveUserSettingsRequest request, CancellationToken cancellationToken)
     {
-        var userId = string.IsNullOrEmpty(_currentUserService.GetCurrentUser().Id) ? "anonymous" : _currentUserService.GetCurrentUser().Id;
+        var currentUser = _currentUserService.GetCurrentUser();
+        var userId = string.IsNullOrEmpty(currentUser.Id) ? "anonymous" : currentUser.Id;
 
         // Trigger provisioning outside the write lock (lock is non-reentrant)
         await _mediator.Send(new GetUserSettingsRequest(), cancellationToken);
