@@ -183,7 +183,7 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
             // Aggregate direct associations into a per-product accumulator.
             var directAssociations = await Context.Set<JournalEntryProduct>()
                 .Where(jep => productCodeList.Contains(jep.ProductCodePrefix))
-                .Join(Context.Set<JournalEntry>().Where(je => !je.IsDeleted),
+                .Join(Context.Set<JournalEntry>(),
                     jep => jep.JournalEntryId,
                     je => je.Id,
                     (jep, je) => new { ProductCode = jep.ProductCodePrefix, je.EntryDate, je.CreatedAt })
