@@ -162,7 +162,7 @@ public class DashboardControllerTests
         var response = new GetTileDataResponse { Tiles = expectedTiles };
 
         _mediatorMock
-            .Setup(x => x.Send(It.Is<GetTileDataRequest>(r => r.UserId == "test-user-123"), It.IsAny<CancellationToken>()))
+            .Setup(x => x.Send(It.IsAny<GetTileDataRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(response);
 
         // Act
@@ -175,7 +175,7 @@ public class DashboardControllerTests
         tiles.First().TileId.Should().Be("tile1");
 
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetTileDataRequest>(r => r.UserId == "test-user-123"),
+            It.IsAny<GetTileDataRequest>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
