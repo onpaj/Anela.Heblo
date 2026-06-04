@@ -375,6 +375,34 @@ public class JournalRepositoryIntegrationTests : IDisposable
         result.TotalCount.Should().Be(expectedTitlesInOrder.Length);
     }
 
+    [Theory]
+    [MemberData(nameof(SortMatrix))]
+    public async Task SearchEntriesAsync_AppliesExpectedOrdering(
+        string? sortBy, string sortDirection, string[] expectedTitlesInOrder)
+    {
+        // Arrange
+        await SeedSortFixtureAsync();
+
+        // Act
+        // No filters supplied -> all three seeded rows should come back, ordered by the sort args.
+        var result = await _repository.SearchEntriesAsync(
+            searchText: null,
+            dateFrom: null,
+            dateTo: null,
+            productCodePrefix: null,
+            tagIds: null,
+            createdByUserId: null,
+            pageNumber: 1,
+            pageSize: 10,
+            sortBy: sortBy!,
+            sortDirection: sortDirection);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Items.Select(x => x.Title).Should().Equal(expectedTitlesInOrder);
+        result.TotalCount.Should().Be(expectedTitlesInOrder.Length);
+    }
+
     private JournalEntry CreateEntryWithFamily(string prefix, string title)
     {
         var entry = new JournalEntry
