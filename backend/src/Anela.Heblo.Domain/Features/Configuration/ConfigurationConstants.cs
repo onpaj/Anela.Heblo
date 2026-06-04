@@ -7,7 +7,6 @@ public static class ConfigurationConstants
 {
     // Environment variable keys
     public const string APP_VERSION = "APP_VERSION";
-    public const string ASPNETCORE_ENVIRONMENT = "ASPNETCORE_ENVIRONMENT";
 
     // Configuration keys
     public const string USE_MOCK_AUTH = "UseMockAuth";
