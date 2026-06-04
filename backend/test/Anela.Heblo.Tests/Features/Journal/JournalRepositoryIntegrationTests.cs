@@ -371,7 +371,7 @@ public class JournalRepositoryIntegrationTests : IDisposable
 
         // Assert
         result.Should().NotBeNull();
-        result.Items.Select(x => x.Title).Should().ContainInOrder(expectedTitlesInOrder);
+        result.Items.Select(x => x.Title).Should().Equal(expectedTitlesInOrder);
         result.TotalCount.Should().Be(expectedTitlesInOrder.Length);
     }
 
