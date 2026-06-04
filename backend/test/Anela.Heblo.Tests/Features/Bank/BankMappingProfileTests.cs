@@ -34,12 +34,12 @@ public class BankMappingProfileTests
         var mapper = CreateMapper();
         var source = new BankStatementImport("transfer-1", new DateTime(2026, 6, 3, 0, 0, 0, DateTimeKind.Utc))
         {
-            ImportResult = "OK",
+            ImportResult = ImportStatus.Success,
         };
 
         var dto = mapper.Map<BankStatementImportDto>(source);
 
-        dto.ImportResult.Should().Be("OK");
+        dto.ImportResult.Should().Be(ImportStatus.Success);
         dto.ErrorType.Should().BeNull();
     }
 
