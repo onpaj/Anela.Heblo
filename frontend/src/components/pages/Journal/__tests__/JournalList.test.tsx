@@ -523,4 +523,84 @@ describe("JournalList", () => {
       });
     });
   });
+
+  it("re-invokes the search hook with the new sortBy when sorting in search mode", async () => {
+    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
+      data: {
+        entries: [mockJournalEntries[0]],
+        totalCount: 1,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 1,
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn().mockResolvedValue({}),
+    } as any);
+
+    render(<JournalList />, { wrapper: createWrapper });
+
+    // Enter search mode.
+    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
+    fireEvent.change(searchInput, { target: { value: "skincare" } });
+    fireEvent.click(screen.getByText("Filtrovat"));
+
+    // Click "Datum" header to switch sortBy to "entryDate".
+    const dateHeader = await screen.findByRole("columnheader", { name: /Datum/i });
+    fireEvent.click(dateHeader);
+
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      const params = lastCall?.[0];
+      const enabled = lastCall?.[1];
+
+      expect(enabled).toBe(true);
+      expect(params).toMatchObject({
+        searchText: "skincare",
+        sortBy: "entryDate",
+        sortDirection: "ASC",
+      });
+    });
+  });
+
+  it("re-invokes the search hook with the new pageSize and resets to page 1 in search mode", async () => {
+    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
+      data: {
+        entries: [mockJournalEntries[0]],
+        totalCount: 100,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 5,
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn().mockResolvedValue({}),
+    } as any);
+
+    render(<JournalList />, { wrapper: createWrapper });
+
+    // Enter search mode.
+    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
+    fireEvent.change(searchInput, { target: { value: "skincare" } });
+    fireEvent.click(screen.getByText("Filtrovat"));
+
+    // Change page size to 50 via the <select> in the pagination footer.
+    const pageSizeSelect = await screen.findByRole("combobox");
+    fireEvent.change(pageSizeSelect, { target: { value: "50" } });
+
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      const params = lastCall?.[0];
+      const enabled = lastCall?.[1];
+
+      expect(enabled).toBe(true);
+      expect(params).toMatchObject({
+        searchText: "skincare",
+        pageSize: 50,
+        pageNumber: 1, // page-size change must reset to page 1
+      });
+    });
+  });
 });
