@@ -481,4 +481,46 @@ describe("JournalList", () => {
       });
     });
   });
+
+  it("re-invokes the search hook with the new pageNumber when paginating in search mode", async () => {
+    // Search returns 25 entries across 2 pages so page-2 button is visible.
+    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
+      data: {
+        entries: [mockJournalEntries[0]],
+        totalCount: 25,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 2,
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn().mockResolvedValue({}),
+    } as any);
+
+    render(<JournalList />, { wrapper: createWrapper });
+
+    // Enter search mode.
+    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
+    fireEvent.change(searchInput, { target: { value: "skincare" } });
+    fireEvent.click(screen.getByText("Filtrovat"));
+
+    // Wait until search mode is active (page-2 button is rendered in the pagination footer).
+    const page2Button = await screen.findByRole("button", { name: "2" });
+
+    // Click page 2.
+    fireEvent.click(page2Button);
+
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      const params = lastCall?.[0];
+      const enabled = lastCall?.[1];
+
+      expect(enabled).toBe(true);
+      expect(params).toMatchObject({
+        searchText: "skincare",
+        pageNumber: 2,
+      });
+    });
+  });
 });
