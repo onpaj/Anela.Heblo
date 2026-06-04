@@ -86,7 +86,6 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .Include(x => x.ProductAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
-                .Where(x => !x.IsDeleted)
                 .AsQueryable();
 
             // Text search (simple contains for now, can be improved with full-text search)
