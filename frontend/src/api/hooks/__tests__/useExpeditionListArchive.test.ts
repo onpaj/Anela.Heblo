@@ -139,3 +139,43 @@ describe('useExpeditionListsByDate', () => {
     expect(mockGetByDate).not.toHaveBeenCalled();
   });
 });
+
+describe('useReprintExpeditionList', () => {
+  let mockReprint: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockReprint = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      expeditionListArchive_Reprint: mockReprint,
+    } as any);
+  });
+
+  it('instantiates ReprintExpeditionListRequest, calls the typed method, and returns the mapped response', async () => {
+    mockReprint.mockResolvedValue({ success: true, errorMessage: null });
+
+    const { result } = renderHook(() => useReprintExpeditionList(), {
+      wrapper: createWrapper,
+    });
+
+    const response = await result.current.mutateAsync({ blobPath: '2024/12/10/file.pdf' });
+
+    expect(mockReprint).toHaveBeenCalledTimes(1);
+    const calledWith = mockReprint.mock.calls[0][0];
+    expect(calledWith).toBeInstanceOf(ReprintExpeditionListRequest);
+    expect(calledWith.blobPath).toBe('2024/12/10/file.pdf');
+    expect(response).toEqual({ success: true, errorMessage: null });
+  });
+
+  it('rethrows SwaggerException-like errors so callers can surface a toast', async () => {
+    mockReprint.mockRejectedValue({ status: 500, message: 'Internal Server Error' });
+
+    const { result } = renderHook(() => useReprintExpeditionList(), {
+      wrapper: createWrapper,
+    });
+
+    await expect(
+      result.current.mutateAsync({ blobPath: '2024/12/10/file.pdf' }),
+    ).rejects.toMatchObject({ status: 500 });
+  });
+});

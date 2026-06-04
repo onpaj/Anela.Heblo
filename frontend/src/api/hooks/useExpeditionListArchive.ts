@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
+import { ReprintExpeditionListRequest } from "../generated/api-client";
 
 // --- Types ---
 
@@ -20,10 +21,6 @@ export interface GetExpeditionDatesResponse {
 
 export interface GetExpeditionListsByDateResponse {
   items: ExpeditionListItemDto[];
-}
-
-export interface ReprintExpeditionListRequest {
-  blobPath: string;
 }
 
 export interface ReprintExpeditionListResponse {
@@ -84,26 +81,15 @@ export const useExpeditionListsByDate = (date: string) => {
 export const useReprintExpeditionList = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<ReprintExpeditionListResponse, Error, ReprintExpeditionListRequest>({
-    mutationFn: async (request: ReprintExpeditionListRequest) => {
-      const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/expedition-list-archive/reprint`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ blobPath: request.blobPath }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(
-          errorData?.errorMessage ?? `HTTP error! status: ${response.status}`
-        );
-      }
-
-      return await response.json();
+  return useMutation<ReprintExpeditionListResponse, Error, { blobPath: string }>({
+    mutationFn: async (input): Promise<ReprintExpeditionListResponse> => {
+      const client = getAuthenticatedApiClient();
+      const request = new ReprintExpeditionListRequest({ blobPath: input.blobPath });
+      const response = await client.expeditionListArchive_Reprint(request);
+      return {
+        success: response.success ?? true,
+        errorMessage: response.errorMessage ?? null,
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expeditionListArchive });
