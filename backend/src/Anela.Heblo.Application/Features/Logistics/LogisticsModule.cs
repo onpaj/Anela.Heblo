@@ -31,6 +31,14 @@ public static class LogisticsModule
         // DI registration is owned by the provider (Logistics), not the consumer (Catalog).
         services.AddScoped<ICatalogTransportSource, LogisticsCatalogTransportSourceAdapter>();
 
+        // Cross-module contract: Logistics provides ExpeditionList's IExpeditionPickingSource via adapter.
+        // The adapter delegates to the Logistics-namespaced IPickingListSource (bound to
+        // ShoptetApiExpeditionListSource by AddShoptetApiAdapter). DI registration is owned by
+        // the provider (Logistics), not the consumer (ExpeditionList).
+        services.AddScoped<
+            ExpeditionList.Contracts.IExpeditionPickingSource,
+            Infrastructure.LogisticsExpeditionPickingAdapter>();
+
         // Register dashboard tiles
         services.RegisterTile<InTransitBoxesTile>();
         services.RegisterTile<ReceivedBoxesTile>();
