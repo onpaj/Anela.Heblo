@@ -382,6 +382,102 @@ public class JournalRepositoryIntegrationTests : IDisposable
             .ContainInOrder("Alice newer", "Alice older", "Bob entry");
     }
 
+    [Fact]
+    public async Task GetEntriesAsync_UnknownSortBy_LogsWarningWithStructuredProperty()
+    {
+        // Arrange
+        await _context.Set<JournalEntry>().AddAsync(
+            CreateEntryWithAuthor("alice", DateTime.Today, "Any entry"));
+        await _context.SaveChangesAsync();
+
+        // Act — "tags" is not handled; should default-sort AND log a warning.
+        var result = await _repository.GetEntriesAsync(1, 10, "tags", "ASC");
+
+        // Assert — call succeeded with the default sort applied.
+        result.Items.Should().HaveCount(1);
+
+        // Assert — exactly one Warning was logged, message references the sortBy value.
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("tags")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_NullSortBy_DoesNotLogWarning()
+    {
+        // Arrange
+        await _context.Set<JournalEntry>().AddAsync(
+            CreateEntryWithAuthor("alice", DateTime.Today, "Any entry"));
+        await _context.SaveChangesAsync();
+
+        // Act
+#pragma warning disable CS8625
+        var result = await _repository.GetEntriesAsync(1, 10, sortBy: null, sortDirection: "ASC");
+#pragma warning restore CS8625
+
+        // Assert
+        result.Items.Should().HaveCount(1);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_EmptySortBy_DoesNotLogWarning()
+    {
+        // Arrange
+        await _context.Set<JournalEntry>().AddAsync(
+            CreateEntryWithAuthor("alice", DateTime.Today, "Any entry"));
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEntriesAsync(1, 10, sortBy: "", sortDirection: "ASC");
+
+        // Assert
+        result.Items.Should().HaveCount(1);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_WhitespaceSortBy_DoesNotLogWarning()
+    {
+        // Arrange
+        await _context.Set<JournalEntry>().AddAsync(
+            CreateEntryWithAuthor("alice", DateTime.Today, "Any entry"));
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEntriesAsync(1, 10, sortBy: "   ", sortDirection: "ASC");
+
+        // Assert
+        result.Items.Should().HaveCount(1);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
     private JournalEntry CreateEntryWithFamily(string prefix, string title)
     {
         var entry = new JournalEntry
