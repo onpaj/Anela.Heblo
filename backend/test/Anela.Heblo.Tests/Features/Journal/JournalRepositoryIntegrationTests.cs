@@ -478,6 +478,36 @@ public class JournalRepositoryIntegrationTests : IDisposable
             Times.Never);
     }
 
+    [Fact]
+    public async Task SearchEntriesAsync_SortsByCreatedByUsername_Ascending()
+    {
+        // Arrange — same setup as GetEntriesAsync_SortsByCreatedByUsername_Ascending.
+        var alice = CreateEntryWithAuthor("alice", DateTime.Today.AddDays(-1), "Alice entry");
+        var carol = CreateEntryWithAuthor("carol", DateTime.Today.AddDays(-2), "Carol entry");
+        var bob = CreateEntryWithAuthor("bob", DateTime.Today.AddDays(-3), "Bob entry");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(alice, carol, bob);
+        await _context.SaveChangesAsync();
+
+        // Act — search path with no filters; sort by author ascending.
+        var result = await _repository.SearchEntriesAsync(
+            searchText: null,
+            dateFrom: null,
+            dateTo: null,
+            productCodePrefix: null,
+            tagIds: null,
+            createdByUserId: null,
+            pageNumber: 1,
+            pageSize: 10,
+            sortBy: "createdByUsername",
+            sortDirection: "ASC");
+
+        // Assert
+        result.Items.Select(x => x.CreatedByUsername)
+            .Should()
+            .ContainInOrder("alice", "bob", "carol");
+    }
+
     private JournalEntry CreateEntryWithFamily(string prefix, string title)
     {
         var entry = new JournalEntry
