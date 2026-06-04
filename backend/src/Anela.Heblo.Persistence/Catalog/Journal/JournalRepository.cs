@@ -37,7 +37,6 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .Include(x => x.ProductAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
-                .Where(x => !x.IsDeleted)
                 .AsQueryable();
 
             // Sorting
