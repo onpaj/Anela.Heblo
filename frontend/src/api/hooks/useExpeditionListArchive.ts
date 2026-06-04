@@ -28,6 +28,11 @@ export interface ReprintExpeditionListResponse {
   errorMessage: string | null;
 }
 
+export interface RunExpeditionListPrintFixResult {
+  totalCount: number;
+  errorMessage: string | null;
+}
+
 // --- Query Keys ---
 
 const expeditionArchiveKeys = {
@@ -98,25 +103,14 @@ export const useReprintExpeditionList = () => {
 };
 
 export const useRunExpeditionListPrintFix = () => {
-  return useMutation({
-    mutationFn: async () => {
-      const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/expedition-list/run-fix`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(
-          errorData?.errorMessage ?? `HTTP error! status: ${response.status}`
-        );
-      }
-
-      return await response.json();
+  return useMutation<RunExpeditionListPrintFixResult, Error, void>({
+    mutationFn: async (): Promise<RunExpeditionListPrintFixResult> => {
+      const client = getAuthenticatedApiClient();
+      const response = await client.expeditionList_RunFix();
+      return {
+        totalCount: response.totalCount ?? 0,
+        errorMessage: response.errorMessage ?? null,
+      };
     },
   });
 };
