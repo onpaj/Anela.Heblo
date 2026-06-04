@@ -46,7 +46,7 @@ public class ExpeditionListArchiveController : BaseApiController
 
         if (!response.Success || response.Stream == null)
         {
-            return BadRequest(response.ErrorMessage);
+            return BadRequest(response.ErrorCode);
         }
 
         return File(response.Stream, response.ContentType, response.FileName);
