@@ -510,17 +510,20 @@ describe("JournalList", () => {
     // Click page 2.
     fireEvent.click(page2Button);
 
+    let paginationParams: any;
+    let paginationEnabled: any;
     await waitFor(() => {
       const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
       const lastCall = calls[calls.length - 1];
-      const params = lastCall?.[0];
-      const enabled = lastCall?.[1];
+      paginationParams = lastCall?.[0];
+      paginationEnabled = lastCall?.[1];
 
-      expect(enabled).toBe(true);
-      expect(params).toMatchObject({
-        searchText: "skincare",
-        pageNumber: 2,
-      });
+      expect(paginationEnabled).toBe(true);
+    });
+
+    expect(paginationParams).toMatchObject({
+      searchText: "skincare",
+      pageNumber: 2,
     });
   });
 
@@ -549,18 +552,21 @@ describe("JournalList", () => {
     const dateHeader = await screen.findByRole("columnheader", { name: /Datum/i });
     fireEvent.click(dateHeader);
 
+    let sortParams: any;
+    let sortEnabled: any;
     await waitFor(() => {
       const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
       const lastCall = calls[calls.length - 1];
-      const params = lastCall?.[0];
-      const enabled = lastCall?.[1];
+      sortParams = lastCall?.[0];
+      sortEnabled = lastCall?.[1];
 
-      expect(enabled).toBe(true);
-      expect(params).toMatchObject({
-        searchText: "skincare",
-        sortBy: "entryDate",
-        sortDirection: "ASC",
-      });
+      expect(sortEnabled).toBe(true);
+    });
+
+    expect(sortParams).toMatchObject({
+      searchText: "skincare",
+      sortBy: "entryDate",
+      sortDirection: "ASC",
     });
   });
 
@@ -589,18 +595,21 @@ describe("JournalList", () => {
     const pageSizeSelect = await screen.findByRole("combobox");
     fireEvent.change(pageSizeSelect, { target: { value: "50" } });
 
+    let pageSizeParams: any;
+    let pageSizeEnabled: any;
     await waitFor(() => {
       const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
       const lastCall = calls[calls.length - 1];
-      const params = lastCall?.[0];
-      const enabled = lastCall?.[1];
+      pageSizeParams = lastCall?.[0];
+      pageSizeEnabled = lastCall?.[1];
 
-      expect(enabled).toBe(true);
-      expect(params).toMatchObject({
-        searchText: "skincare",
-        pageSize: 50,
-        pageNumber: 1, // page-size change must reset to page 1
-      });
+      expect(pageSizeEnabled).toBe(true);
+    });
+
+    expect(pageSizeParams).toMatchObject({
+      searchText: "skincare",
+      pageSize: 50,
+      pageNumber: 1, // page-size change must reset to page 1
     });
   });
 });
