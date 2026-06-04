@@ -293,6 +293,188 @@ public class JournalRepositoryIntegrationTests : IDisposable
         indicator.LastEntryDate.Should().Be(recent);
     }
 
+    [Fact]
+    public async Task GetByIdAsync_WhenEntryIsSoftDeleted_ReturnsNull()
+    {
+        // Arrange
+        var entry = new JournalEntry
+        {
+            Title = "Soft-deleted entry",
+            Content = "Content",
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user",
+            IsDeleted = true,
+            DeletedAt = DateTime.UtcNow,
+            DeletedByUserId = "test-user"
+        };
+        await _context.Set<JournalEntry>().AddAsync(entry);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetByIdAsync(entry.Id);
+
+        // Assert
+        result.Should().BeNull("soft-deleted entries must be excluded by the global query filter");
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_WhenEntryIsSoftDeleted_ExcludesFromResults()
+    {
+        // Arrange
+        var live = new JournalEntry
+        {
+            Title = "Live entry",
+            Content = "Content",
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user"
+        };
+        var deleted = new JournalEntry
+        {
+            Title = "Deleted entry",
+            Content = "Content",
+            EntryDate = DateTime.Today.AddDays(-1),
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user",
+            IsDeleted = true,
+            DeletedAt = DateTime.UtcNow,
+            DeletedByUserId = "test-user"
+        };
+        await _context.Set<JournalEntry>().AddRangeAsync(live, deleted);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEntriesAsync(pageNumber: 1, pageSize: 50, sortBy: "entrydate", sortDirection: "DESC");
+
+        // Assert
+        result.TotalCount.Should().Be(1);
+        result.Items.Should().ContainSingle(e => e.Title == "Live entry");
+        result.Items.Should().NotContain(e => e.Title == "Deleted entry");
+    }
+
+    [Fact]
+    public async Task SearchEntriesAsync_WhenEntryIsSoftDeleted_ExcludesFromResults()
+    {
+        // Arrange
+        var live = new JournalEntry
+        {
+            Title = "Searchable live",
+            Content = "matching term",
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user"
+        };
+        var deleted = new JournalEntry
+        {
+            Title = "Searchable deleted",
+            Content = "matching term",
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user",
+            IsDeleted = true,
+            DeletedAt = DateTime.UtcNow,
+            DeletedByUserId = "test-user"
+        };
+        await _context.Set<JournalEntry>().AddRangeAsync(live, deleted);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.SearchEntriesAsync(
+            searchText: "matching",
+            dateFrom: null,
+            dateTo: null,
+            productCodePrefix: null,
+            tagIds: null,
+            createdByUserId: null,
+            pageNumber: 1,
+            pageSize: 50,
+            sortBy: "entrydate",
+            sortDirection: "DESC");
+
+        // Assert
+        result.TotalCount.Should().Be(1);
+        result.Items.Should().ContainSingle(e => e.Title == "Searchable live");
+        result.Items.Should().NotContain(e => e.Title == "Searchable deleted");
+    }
+
+    [Fact]
+    public async Task GetEntriesByProductAsync_WhenEntryIsSoftDeleted_ExcludesFromResults()
+    {
+        // Arrange
+        var live = new JournalEntry
+        {
+            Title = "Live TON002 entry",
+            Content = "Content",
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user"
+        };
+        live.AssociateWithProduct("TON002");
+
+        var deleted = new JournalEntry
+        {
+            Title = "Deleted TON002 entry",
+            Content = "Content",
+            EntryDate = DateTime.Today.AddDays(-1),
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user",
+            IsDeleted = true,
+            DeletedAt = DateTime.UtcNow,
+            DeletedByUserId = "test-user"
+        };
+        deleted.AssociateWithProduct("TON002");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(live, deleted);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEntriesByProductAsync("TON002030");
+
+        // Assert
+        result.Should().ContainSingle();
+        result.Single().Title.Should().Be("Live TON002 entry");
+    }
+
+    [Fact]
+    public async Task GetJournalIndicatorsAsync_WhenEntryIsSoftDeleted_ExcludesFromCount()
+    {
+        // Arrange — verifies the join source honors the global query filter
+        var deleted = new JournalEntry
+        {
+            Title = "Deleted TON002 entry",
+            Content = "Content",
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user",
+            IsDeleted = true,
+            DeletedAt = DateTime.UtcNow,
+            DeletedByUserId = "test-user"
+        };
+        deleted.AssociateWithProduct("TON002");
+
+        await _context.Set<JournalEntry>().AddAsync(deleted);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetJournalIndicatorsAsync(new[] { "TON002" });
+
+        // Assert
+        result.Should().ContainKey("TON002");
+        var indicator = result["TON002"];
+        indicator.DirectEntries.Should().Be(0, "soft-deleted entries must not count toward indicators");
+        indicator.LastEntryDate.Should().BeNull();
+        indicator.HasRecentEntries.Should().BeFalse();
+    }
+
     private JournalEntry CreateEntryWithFamily(string prefix, string title)
     {
         var entry = new JournalEntry
