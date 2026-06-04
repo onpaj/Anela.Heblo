@@ -358,6 +358,52 @@ public class ModuleBoundariesTests
             InspectedAssembly: "Anela.Heblo.Domain"),
 
         new ModuleBoundaryRule(
+            Name: "Analytics (Application) -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Domain) -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Domain.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal),
+            InspectedAssembly: "Anela.Heblo.Domain"),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Application) -> Bank",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Bank",
+                "Anela.Heblo.Application.Features.Bank",
+                "Anela.Heblo.Persistence.Bank",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Domain) -> Bank",
+            InspectedNamespacePrefix: "Anela.Heblo.Domain.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Bank",
+                "Anela.Heblo.Application.Features.Bank",
+                "Anela.Heblo.Persistence.Bank",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal),
+            InspectedAssembly: "Anela.Heblo.Domain"),
+
+        new ModuleBoundaryRule(
             Name: "Catalog -> Logistics",
             InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Catalog",
             ForbiddenNamespacePrefixes: new[]
