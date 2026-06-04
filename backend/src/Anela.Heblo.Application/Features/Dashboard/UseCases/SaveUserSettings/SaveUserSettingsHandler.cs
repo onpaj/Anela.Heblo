@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Domain.Features.Dashboard;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Dashboard.UseCases.SaveUserSettings;
@@ -11,22 +12,25 @@ public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, 
     private readonly IUserDashboardSettingsLock _lock;
     private readonly TimeProvider _timeProvider;
     private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
     public SaveUserSettingsHandler(
         IUserDashboardSettingsRepository repository,
         IUserDashboardSettingsLock @lock,
         TimeProvider timeProvider,
-        IMediator mediator)
+        IMediator mediator,
+        ICurrentUserService currentUserService)
     {
         _repository = repository;
         _lock = @lock;
         _timeProvider = timeProvider;
         _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     public async Task<SaveUserSettingsResponse> Handle(SaveUserSettingsRequest request, CancellationToken cancellationToken)
     {
-        var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
+        var userId = string.IsNullOrEmpty(_currentUserService.GetCurrentUser().Id) ? "anonymous" : _currentUserService.GetCurrentUser().Id;
 
         // Trigger provisioning outside the write lock (lock is non-reentrant)
         await _mediator.Send(new GetUserSettingsRequest(), cancellationToken);

@@ -43,8 +43,6 @@ public class DashboardController : BaseApiController
     [HttpPost("settings")]
     public async Task<ActionResult> SaveUserSettings([FromBody] SaveUserSettingsRequest request)
     {
-        var userId = GetCurrentUserId();
-        request.UserId = userId;
         await _mediator.Send(request);
 
         return Ok();

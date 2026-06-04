@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.SaveUserSettings;
 using Anela.Heblo.Domain.Features.Dashboard;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using MediatR;
 using Moq;
@@ -15,6 +16,7 @@ public class SaveUserSettingsHandlerTests
     private readonly Mock<IUserDashboardSettingsRepository> _repositoryMock;
     private readonly Mock<IUserDashboardSettingsLock> _lockMock;
     private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly TimeProvider _timeProvider;
     private readonly SaveUserSettingsHandler _handler;
 
@@ -25,6 +27,7 @@ public class SaveUserSettingsHandlerTests
         _repositoryMock = new Mock<IUserDashboardSettingsRepository>();
         _lockMock = new Mock<IUserDashboardSettingsLock>();
         _mediatorMock = new Mock<IMediator>();
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
 
         var timeProviderMock = new Mock<TimeProvider>();
         timeProviderMock
@@ -46,20 +49,43 @@ public class SaveUserSettingsHandlerTests
             .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GetUserSettingsResponse());
 
+        // Default: current user has ID "user123"
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(Id: "user123", Name: null, Email: "user@example.com", IsAuthenticated: true));
+
         _handler = new SaveUserSettingsHandler(
             _repositoryMock.Object,
             _lockMock.Object,
             _timeProvider,
-            _mediatorMock.Object);
+            _mediatorMock.Object,
+            _currentUserServiceMock.Object);
+    }
+
+    private void SetCurrentUserId(string? id)
+    {
+        if (string.IsNullOrEmpty(id))
+        {
+            _currentUserServiceMock
+                .Setup(x => x.GetCurrentUser())
+                .Returns(new CurrentUser(Id: id ?? string.Empty, Name: null, Email: "user@example.com", IsAuthenticated: false));
+        }
+        else
+        {
+            _currentUserServiceMock
+                .Setup(x => x.GetCurrentUser())
+                .Returns(new CurrentUser(Id: id, Name: null, Email: "user@example.com", IsAuthenticated: true));
+        }
     }
 
     [Fact]
     public async Task Handle_WhenUserIdIsNull_ShouldUseAnonymous()
     {
         // Arrange
+        SetCurrentUserId(null);
+
         var request = new SaveUserSettingsRequest
         {
-            UserId = null,
             Tiles = new[]
             {
                 new UserDashboardTileDto { TileId = "tile1", IsVisible = true, DisplayOrder = 0 }
@@ -89,9 +115,10 @@ public class SaveUserSettingsHandlerTests
     public async Task Handle_WhenUserIdIsEmpty_ShouldUseAnonymous()
     {
         // Arrange
+        SetCurrentUserId("");
+
         var request = new SaveUserSettingsRequest
         {
-            UserId = "",
             Tiles = new[]
             {
                 new UserDashboardTileDto { TileId = "tile1", IsVisible = true, DisplayOrder = 0 }
@@ -117,9 +144,10 @@ public class SaveUserSettingsHandlerTests
     {
         // Arrange
         var userId = "user123";
+        SetCurrentUserId(userId);
+
         var request = new SaveUserSettingsRequest
         {
-            UserId = userId,
             Tiles = new[]
             {
                 new UserDashboardTileDto { TileId = "tile1", IsVisible = true, DisplayOrder = 0 },
@@ -164,9 +192,10 @@ public class SaveUserSettingsHandlerTests
     {
         // Arrange
         var userId = "user123";
+        SetCurrentUserId(userId);
+
         var request = new SaveUserSettingsRequest
         {
-            UserId = userId,
             Tiles = Array.Empty<UserDashboardTileDto>()
         };
 
@@ -189,9 +218,10 @@ public class SaveUserSettingsHandlerTests
     {
         // Arrange
         var userId = "user123";
+        SetCurrentUserId(userId);
+
         var request = new SaveUserSettingsRequest
         {
-            UserId = userId,
             Tiles = null
         };
 
@@ -222,9 +252,10 @@ public class SaveUserSettingsHandlerTests
     public async Task Handle_ShouldReturnSuccessResponse()
     {
         // Arrange
+        SetCurrentUserId("user123");
+
         var request = new SaveUserSettingsRequest
         {
-            UserId = "user123",
             Tiles = new[]
             {
                 new UserDashboardTileDto { TileId = "tile1", IsVisible = true, DisplayOrder = 0 }
@@ -249,9 +280,10 @@ public class SaveUserSettingsHandlerTests
     {
         // Arrange
         var userId = "user123";
+        SetCurrentUserId(userId);
+
         var request = new SaveUserSettingsRequest
         {
-            UserId = userId,
             Tiles = Array.Empty<UserDashboardTileDto>()
         };
 
@@ -271,9 +303,10 @@ public class SaveUserSettingsHandlerTests
     {
         // Arrange
         var userId = "user123";
+        SetCurrentUserId(userId);
+
         var request = new SaveUserSettingsRequest
         {
-            UserId = userId,
             Tiles = Array.Empty<UserDashboardTileDto>()
         };
 

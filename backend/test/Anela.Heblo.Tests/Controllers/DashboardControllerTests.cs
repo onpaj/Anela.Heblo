@@ -139,7 +139,6 @@ public class DashboardControllerTests
 
         _mediatorMock.Verify(x => x.Send(
             It.Is<SaveUserSettingsRequest>(r =>
-                r.UserId == "test-user-123" &&
                 r.Tiles.Length == 2 &&
                 r.Tiles.Any(t => t.TileId == "tile1" && t.IsVisible) &&
                 r.Tiles.Any(t => t.TileId == "tile2" && !t.IsVisible)),
