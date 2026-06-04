@@ -35,7 +35,7 @@ public class ExpeditionListArchiveController : BaseApiController
     {
         var request = new GetExpeditionListsByDateRequest { Date = date };
         var response = await _mediator.Send(request);
-        return Ok(response);
+        return HandleResponse(response);
     }
 
     [HttpGet("download/{*blobPath}")]
