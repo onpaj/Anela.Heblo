@@ -63,10 +63,8 @@ public class DashboardController : BaseApiController
     [HttpPost("tiles/{tileId}/enable")]
     public async Task<ActionResult> EnableTile(string tileId)
     {
-        var userId = GetCurrentUserId();
         var request = new EnableTileRequest
         {
-            UserId = userId,
             TileId = tileId
         };
         await _mediator.Send(request);

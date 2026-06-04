@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.EnableTile;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Domain.Features.Dashboard;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using MediatR;
 using Moq;
@@ -14,6 +15,7 @@ public class EnableTileHandlerTests
     private readonly Mock<IUserDashboardSettingsRepository> _repositoryMock;
     private readonly Mock<IUserDashboardSettingsLock> _lockMock;
     private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<ICurrentUserService> _currentUserMock;
     private readonly TimeProvider _timeProvider;
     private readonly EnableTileHandler _handler;
 
@@ -24,6 +26,7 @@ public class EnableTileHandlerTests
         _repositoryMock = new Mock<IUserDashboardSettingsRepository>();
         _lockMock = new Mock<IUserDashboardSettingsLock>();
         _mediatorMock = new Mock<IMediator>();
+        _currentUserMock = new Mock<ICurrentUserService>();
 
         var timeProviderMock = new Mock<TimeProvider>();
         timeProviderMock
@@ -45,20 +48,29 @@ public class EnableTileHandlerTests
             .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GetUserSettingsResponse());
 
+        // Default current user mock to return user123
+        _currentUserMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(Id: "user123", Name: "Test User", Email: "test@example.com", IsAuthenticated: true));
+
         var mutator = new UserDashboardSettingsMutator(
             _repositoryMock.Object,
             _lockMock.Object,
             _timeProvider,
             _mediatorMock.Object);
 
-        _handler = new EnableTileHandler(mutator);
+        _handler = new EnableTileHandler(mutator, _currentUserMock.Object);
     }
 
     [Fact]
     public async Task Handle_WhenUserIdIsNull_ShouldUseAnonymous()
     {
         // Arrange
-        var request = new EnableTileRequest { UserId = null, TileId = "tile1" };
+        _currentUserMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(Id: null, Name: null, Email: null, IsAuthenticated: false));
+
+        var request = new EnableTileRequest { TileId = "tile1" };
         var userSettings = CreateSampleUserSettings("anonymous");
 
         _repositoryMock
@@ -83,7 +95,7 @@ public class EnableTileHandlerTests
         // Arrange
         var userId = "user123";
         var tileId = "tile1";
-        var request = new EnableTileRequest { UserId = userId, TileId = tileId };
+        var request = new EnableTileRequest { TileId = tileId };
         var userSettings = CreateSampleUserSettings(userId);
 
         // Ensure tile exists but is disabled
@@ -120,7 +132,7 @@ public class EnableTileHandlerTests
         // Arrange
         var userId = "user123";
         var tileId = "new-tile";
-        var request = new EnableTileRequest { UserId = userId, TileId = tileId };
+        var request = new EnableTileRequest { TileId = tileId };
         var userSettings = CreateSampleUserSettings(userId);
         var originalTileCount = userSettings.Tiles.Count;
 
@@ -156,7 +168,7 @@ public class EnableTileHandlerTests
     public async Task Handle_WhenTileIdIsNull_ShouldReturnFailure()
     {
         // Arrange
-        var request = new EnableTileRequest { UserId = "user123", TileId = null };
+        var request = new EnableTileRequest { TileId = null };
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -174,7 +186,7 @@ public class EnableTileHandlerTests
     public async Task Handle_WhenTileIdIsEmpty_ShouldReturnFailure()
     {
         // Arrange
-        var request = new EnableTileRequest { UserId = "user123", TileId = "" };
+        var request = new EnableTileRequest { TileId = "" };
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -193,7 +205,7 @@ public class EnableTileHandlerTests
     {
         // Arrange
         var userId = "user123";
-        var request = new EnableTileRequest { UserId = userId, TileId = "tile1" };
+        var request = new EnableTileRequest { TileId = "tile1" };
 
         _repositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
@@ -211,7 +223,7 @@ public class EnableTileHandlerTests
     {
         // Arrange
         var userId = "user123";
-        var request = new EnableTileRequest { UserId = userId, TileId = "tile1" };
+        var request = new EnableTileRequest { TileId = "tile1" };
 
         _repositoryMock
             .Setup(x => x.GetByUserIdAsync(userId))
