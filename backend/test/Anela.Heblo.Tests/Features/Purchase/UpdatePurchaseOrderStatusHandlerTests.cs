@@ -356,7 +356,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     }
 
     [Fact]
-    public async Task Handle_TransitionFromInTransitToCompleted_ShouldReturnError()
+    public async Task Handle_TransitionFromInTransitToCompleted_Succeeds()
     {
         var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
         var purchaseOrder = CreateDraftPurchaseOrder();
@@ -366,11 +366,20 @@ public class UpdatePurchaseOrderStatusHandlerTests
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchaseOrder);
 
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
         var result = await _handler.Handle(request, CancellationToken.None);
 
         result.Should().NotBeNull();
-        result!.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.StatusTransitionNotAllowed);
+        result!.Success.Should().BeTrue();
+        result.Status.Should().Be("Completed");
+        purchaseOrder.Status.Should().Be(PurchaseOrderStatus.Completed);
     }
 
     private static PurchaseOrder CreateDraftPurchaseOrder()
