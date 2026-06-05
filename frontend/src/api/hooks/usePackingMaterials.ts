@@ -3,8 +3,11 @@ import { getAuthenticatedApiClient } from "../client";
 import {
   ProcessDailyConsumptionRequest as GeneratedProcessDailyConsumptionRequest,
   ProcessDailyConsumptionResponse as GeneratedProcessDailyConsumptionResponse,
-  ConsumptionType as ApiConsumptionType
+  ConsumptionType as ApiConsumptionType,
+  HistoryRecordType,
 } from "../generated/api-client";
+
+export { HistoryRecordType };
 
 // Define types based on our backend DTOs
 export interface PackingMaterialDto {
@@ -89,12 +92,12 @@ export type ProcessDailyConsumptionRequest = GeneratedProcessDailyConsumptionReq
 export type ProcessDailyConsumptionResponse = GeneratedProcessDailyConsumptionResponse;
 
 export interface ConsumptionHistoryItemDto {
-  recordType: number;
+  recordType: HistoryRecordType;
   recordTypeText: string;
   packingMaterialId: number;
   materialName: string;
-  date: string;
-  createdAt: string;
+  date: Date;
+  createdAt: Date;
   consumptionType?: ConsumptionType;
   consumptionTypeText?: string;
   invoiceId?: string;

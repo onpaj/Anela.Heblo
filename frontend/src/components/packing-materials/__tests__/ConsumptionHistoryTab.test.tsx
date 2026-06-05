@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ConsumptionHistoryTab from '../ConsumptionHistoryTab';
 import * as hooks from '../../../api/hooks/usePackingMaterials';
+import { HistoryRecordType } from '../../../api/hooks/usePackingMaterials';
 
 jest.mock('../../../api/hooks/usePackingMaterials', () => {
   const actual = jest.requireActual('../../../api/hooks/usePackingMaterials');
@@ -18,12 +19,12 @@ const mockUseConsumptionHistory = hooks.useConsumptionHistory as jest.Mock;
 const sampleResponse = {
   items: [
     {
-      recordType: 1,
+      recordType: HistoryRecordType.Consumption,
       recordTypeText: 'Spotřeba',
       packingMaterialId: 1,
       materialName: 'Tape',
-      date: '2026-01-10',
-      createdAt: '2026-01-10T08:00:00Z',
+      date: new Date('2026-01-10'),
+      createdAt: new Date('2026-01-10T08:00:00Z'),
       consumptionType: 1,
       consumptionTypeText: 'PerOrder',
       invoiceId: 'INV-1',
@@ -31,12 +32,12 @@ const sampleResponse = {
       amount: 5,
     },
     {
-      recordType: 2,
+      recordType: HistoryRecordType.QuantityChange,
       recordTypeText: 'Změna množství',
       packingMaterialId: 1,
       materialName: 'Tape',
-      date: '2026-01-12',
-      createdAt: '2026-01-12T08:00:00Z',
+      date: new Date('2026-01-12'),
+      createdAt: new Date('2026-01-12T08:00:00Z'),
       oldQuantity: 100,
       newQuantity: 90,
       changeAmount: -10,

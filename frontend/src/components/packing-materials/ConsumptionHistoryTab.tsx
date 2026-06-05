@@ -22,7 +22,7 @@ const formatNumber = (value?: number): string =>
     ? DASH
     : value.toLocaleString('cs-CZ', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-const formatDate = (value?: string): string => (value ? new Date(value).toLocaleDateString('cs-CZ') : DASH);
+const formatDate = (value?: Date): string => (value ? value.toLocaleDateString('cs-CZ') : DASH);
 
 const ConsumptionHistoryTab: React.FC = () => {
   const { data: materialsData } = usePackingMaterials();
