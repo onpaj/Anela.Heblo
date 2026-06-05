@@ -178,6 +178,7 @@ public class PurchaseOrder : IEntity<int>
         {
             (PurchaseOrderStatus.Draft, PurchaseOrderStatus.InTransit) => true,
             (PurchaseOrderStatus.InTransit, PurchaseOrderStatus.Received) => true,
+            (PurchaseOrderStatus.InTransit, PurchaseOrderStatus.Completed) => true,
             (PurchaseOrderStatus.Received, PurchaseOrderStatus.Completed) => true,
             _ => false
         };
