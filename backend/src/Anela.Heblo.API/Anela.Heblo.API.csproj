@@ -103,4 +103,15 @@
         <Message Text="Automatic client generation is disabled due to build conflicts. Use 'dotnet msbuild -t:GenerateFrontendClientManual' instead." Importance="high" />
     </Target>
 
+    <!-- Generate access matrix TypeScript artifacts during Debug builds -->
+    <Target Name="GenerateAccessMatrix" BeforeTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+        <Message Text="Generating access matrix artifacts..." Importance="high" />
+
+        <Exec Command="dotnet run --project $(MSBuildThisFileDirectory)../../tools/Anela.Heblo.AccessMatrixGen"
+              ContinueOnError="true"
+              WorkingDirectory="$(MSBuildThisFileDirectory)../../.." />
+
+        <Message Text="Access matrix generation completed." Importance="high" />
+    </Target>
+
 </Project>
