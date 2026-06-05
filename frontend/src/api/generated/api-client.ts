@@ -31206,7 +31206,7 @@ export interface IConsumptionDetailDto {
     amount?: number;
 }
 
-export class GetConsumptionHistoryResponse implements IGetConsumptionHistoryResponse {
+export class GetConsumptionHistoryResponse extends BaseResponse implements IGetConsumptionHistoryResponse {
     items?: MaterialConsumptionHistoryItemDto[];
     totalCount?: number;
     pageNumber?: number;
@@ -31214,15 +31214,11 @@ export class GetConsumptionHistoryResponse implements IGetConsumptionHistoryResp
     totalPages?: number;
 
     constructor(data?: IGetConsumptionHistoryResponse) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
+        super(data);
     }
 
-    init(_data?: any) {
+    override init(_data?: any) {
+        super.init(_data);
         if (_data) {
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
@@ -31236,14 +31232,14 @@ export class GetConsumptionHistoryResponse implements IGetConsumptionHistoryResp
         }
     }
 
-    static fromJS(data: any): GetConsumptionHistoryResponse {
+    static override fromJS(data: any): GetConsumptionHistoryResponse {
         data = typeof data === 'object' ? data : {};
         let result = new GetConsumptionHistoryResponse();
         result.init(data);
         return result;
     }
 
-    toJSON(data?: any) {
+    override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.items)) {
             data["items"] = [];
@@ -31254,11 +31250,12 @@ export class GetConsumptionHistoryResponse implements IGetConsumptionHistoryResp
         data["pageNumber"] = this.pageNumber;
         data["pageSize"] = this.pageSize;
         data["totalPages"] = this.totalPages;
+        super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetConsumptionHistoryResponse {
+export interface IGetConsumptionHistoryResponse extends IBaseResponse {
     items?: MaterialConsumptionHistoryItemDto[];
     totalCount?: number;
     pageNumber?: number;
