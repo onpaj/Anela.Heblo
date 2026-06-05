@@ -9,7 +9,7 @@ namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AuthorizationConstants.Roles.FinanceReader)]
+[Authorize(Roles = AccessRoles.FinancialOverviewRead)]
 public class FinancialOverviewController : ControllerBase
 {
     private readonly IMediator _mediator;

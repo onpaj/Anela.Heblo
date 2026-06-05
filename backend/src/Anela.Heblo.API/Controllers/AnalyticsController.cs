@@ -14,7 +14,7 @@ namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AuthorizationConstants.Roles.FinanceReader)]
+[Authorize(Roles = AccessRoles.MarginAnalysisRead)]
 public class AnalyticsController : BaseApiController
 {
     private readonly IMediator _mediator;

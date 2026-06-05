@@ -4,13 +4,14 @@ using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetLastUsedLot
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetMaterialContainerByCode;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.ListMaterialContainers;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.PrintMaterialContainerLabels;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = AccessRoles.MaterialContainersRead)]
 [Route("api/material-containers")]
 [ApiController]
 public class MaterialContainersController : BaseApiController
@@ -55,6 +56,7 @@ public class MaterialContainersController : BaseApiController
     }
 
     [HttpPost]
+    [Authorize(Roles = AccessRoles.MaterialContainersWrite)]
     public async Task<ActionResult<CreateMaterialContainersResponse>> Create(
         [FromBody] CreateMaterialContainersRequest request,
         CancellationToken cancellationToken)
@@ -64,6 +66,7 @@ public class MaterialContainersController : BaseApiController
     }
 
     [HttpPost("{id:int}/discard")]
+    [Authorize(Roles = AccessRoles.MaterialContainersWrite)]
     public async Task<ActionResult<DiscardMaterialContainerResponse>> Discard(int id, CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(new DiscardMaterialContainerRequest { Id = id }, cancellationToken);
@@ -71,6 +74,7 @@ public class MaterialContainersController : BaseApiController
     }
 
     [HttpPost("print-labels")]
+    [Authorize(Roles = AccessRoles.MaterialContainersWrite)]
     public async Task<ActionResult<PrintMaterialContainerLabelsResponse>> PrintLabels(
         [FromBody] PrintMaterialContainerLabelsRequest request, CancellationToken cancellationToken)
     {

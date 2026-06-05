@@ -4,13 +4,14 @@ using Anela.Heblo.Application.Features.CatalogDocuments.UseCases.ListMaterialDoc
 using Anela.Heblo.Application.Features.CatalogDocuments.UseCases.ListPifDocuments;
 using Anela.Heblo.Application.Features.CatalogDocuments.UseCases.UploadMaterialDocument;
 using Anela.Heblo.Application.Features.CatalogDocuments.UseCases.UploadPifDocument;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = AccessRoles.CatalogRead)]
 [ApiController]
 [Route("api/catalog-documents")]
 public class CatalogDocumentsController : BaseApiController
@@ -46,6 +47,7 @@ public class CatalogDocumentsController : BaseApiController
     }
 
     [HttpPost("materials/{productCode}")]
+    [Authorize(Roles = AccessRoles.CatalogWrite)]
     [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB
     public async Task<ActionResult<UploadDocumentResponse>> UploadMaterialDocument(
         string productCode,
@@ -77,6 +79,7 @@ public class CatalogDocumentsController : BaseApiController
     }
 
     [HttpPost("pif/{productCode}")]
+    [Authorize(Roles = AccessRoles.CatalogWrite)]
     [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB
     public async Task<ActionResult<UploadDocumentResponse>> UploadPifDocument(
         string productCode,
