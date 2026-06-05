@@ -12,4 +12,4 @@
 - Populate it inside `GiftPackageManufactureService` (next to the existing `_currentUserService` usage), not in a handler or a shared resolver.
 - Use the existing `TransportBox` pattern: `Guid.TryParse(user.Id, out var userId) ? userId : null` — nullable, no sentinel. See `CreateNewTransportBoxHandler.cs:43` and `OpenOrResumeBoxByCodeHandler.cs:72`.
 
-**Out of scope (still latent):** `DashboardController` has the same dead-code shape. Same delete-and-simplify treatment will apply when it is touched.
+**Resolved:** `DashboardController` had the same dead-code shape; PR #2602 applied the same delete-and-simplify treatment (handler-side resolution via `ICurrentUserService`, DTO `UserId` fields removed) to it and the `CarrierCooling`/`GiftSettings` controllers. The canonical pattern is now codified — see [user-identity-resolution.md](user-identity-resolution.md) and ADR-004.
