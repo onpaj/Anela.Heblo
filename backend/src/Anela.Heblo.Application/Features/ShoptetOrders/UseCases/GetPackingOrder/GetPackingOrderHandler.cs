@@ -53,7 +53,15 @@ public class GetPackingOrderHandler : IRequestHandler<GetPackingOrderRequest, Ge
                 },
                 CustomerNote = order.CustomerNote,
                 EshopNote = order.EshopNote,
-                Items = order.Items,
+                Items = order.Items
+                    .Select(i => new PackingOrderItemDto
+                    {
+                        Name = i.Name,
+                        Quantity = i.Quantity,
+                        ImageUrl = i.ImageUrl,
+                        SetName = i.SetName,
+                    })
+                    .ToList(),
             };
         }
         catch (Exception ex)

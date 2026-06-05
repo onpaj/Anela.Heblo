@@ -128,4 +128,17 @@ public class GetPackingOrderHandlerTests
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
     }
+
+    [Fact]
+    public void PackingOrderItemDto_HasExactlyTheFourPublicFields_AndNoWeightGrams()
+    {
+        var properties = typeof(PackingOrderItemDto)
+            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Select(p => p.Name)
+            .ToHashSet();
+
+        properties.Should().BeEquivalentTo(new[] { "Name", "Quantity", "ImageUrl", "SetName" },
+            "PackingOrderItemDto must not expose internal fields such as WeightGrams to API clients.");
+        typeof(PackingOrderItemDto).GetProperty("WeightGrams").Should().BeNull();
+    }
 }
