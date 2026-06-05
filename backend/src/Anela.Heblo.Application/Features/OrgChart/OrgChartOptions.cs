@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Anela.Heblo.Application.Features.OrgChart;
 
 /// <summary>
@@ -13,5 +15,6 @@ public class OrgChartOptions
     /// <summary>
     /// URL to the organizational structure JSON data source
     /// </summary>
+    [Required(AllowEmptyStrings = false)]
     public string DataSourceUrl { get; set; } = string.Empty;
 }
