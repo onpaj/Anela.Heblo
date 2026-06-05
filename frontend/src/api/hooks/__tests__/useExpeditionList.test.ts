@@ -36,7 +36,7 @@ describe('useRunExpeditionListPrintFix', () => {
   });
 
   it('POSTs to /api/expedition-list/run-fix and returns the parsed JSON response', async () => {
-    const responseBody = { totalCount: 7, errorMessage: null };
+    const responseBody = { totalCount: 7 };
     mockFetch.mockResolvedValue({
       ok: true,
       json: jest.fn().mockResolvedValue(responseBody),
