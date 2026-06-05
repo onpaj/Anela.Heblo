@@ -53,6 +53,9 @@ public class GetPackingOrderHandler : IRequestHandler<GetPackingOrderRequest, Ge
                 },
                 CustomerNote = order.CustomerNote,
                 EshopNote = order.EshopNote,
+                ShippingStreet = order.ShippingStreet,
+                ShippingCity = order.ShippingCity,
+                ShippingZip = order.ShippingZip,
                 Items = order.Items,
             };
         }

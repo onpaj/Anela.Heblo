@@ -12222,6 +12222,7 @@ export enum ErrorCodes {
     BlobNotFound = "BlobNotFound",
     FileTooLarge = "FileTooLarge",
     UnsupportedFileType = "UnsupportedFileType",
+    InvalidBlobPath = "InvalidBlobPath",
     RecurringJobNotFound = "RecurringJobNotFound",
     RecurringJobUpdateFailed = "RecurringJobUpdateFailed",
     InvalidCronExpression = "InvalidCronExpression",
@@ -17578,7 +17579,6 @@ export interface IExpeditionListItemDto {
 }
 
 export class ReprintExpeditionListResponse extends BaseResponse implements IReprintExpeditionListResponse {
-    errorMessage?: string | undefined;
 
     constructor(data?: IReprintExpeditionListResponse) {
         super(data);
@@ -17586,9 +17586,6 @@ export class ReprintExpeditionListResponse extends BaseResponse implements IRepr
 
     override init(_data?: any) {
         super.init(_data);
-        if (_data) {
-            this.errorMessage = _data["errorMessage"];
-        }
     }
 
     static override fromJS(data: any): ReprintExpeditionListResponse {
@@ -17600,14 +17597,12 @@ export class ReprintExpeditionListResponse extends BaseResponse implements IRepr
 
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["errorMessage"] = this.errorMessage;
         super.toJSON(data);
         return data;
     }
 }
 
 export interface IReprintExpeditionListResponse extends IBaseResponse {
-    errorMessage?: string | undefined;
 }
 
 export class ReprintExpeditionListRequest implements IReprintExpeditionListRequest {
@@ -35076,6 +35071,9 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
     eligibility?: PackingEligibility;
     customerNote?: string | undefined;
     eshopNote?: string | undefined;
+    shippingStreet?: string | undefined;
+    shippingCity?: string | undefined;
+    shippingZip?: string | undefined;
     items?: PackingOrderItem[];
 
     constructor(data?: IGetPackingOrderResponse) {
@@ -35093,6 +35091,9 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
             this.eligibility = _data["eligibility"] ? PackingEligibility.fromJS(_data["eligibility"]) : <any>undefined;
             this.customerNote = _data["customerNote"];
             this.eshopNote = _data["eshopNote"];
+            this.shippingStreet = _data["shippingStreet"];
+            this.shippingCity = _data["shippingCity"];
+            this.shippingZip = _data["shippingZip"];
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
                 for (let item of _data["items"])
@@ -35118,6 +35119,9 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
         data["eligibility"] = this.eligibility ? this.eligibility.toJSON() : <any>undefined;
         data["customerNote"] = this.customerNote;
         data["eshopNote"] = this.eshopNote;
+        data["shippingStreet"] = this.shippingStreet;
+        data["shippingCity"] = this.shippingCity;
+        data["shippingZip"] = this.shippingZip;
         if (Array.isArray(this.items)) {
             data["items"] = [];
             for (let item of this.items)
@@ -35137,6 +35141,9 @@ export interface IGetPackingOrderResponse extends IBaseResponse {
     eligibility?: PackingEligibility;
     customerNote?: string | undefined;
     eshopNote?: string | undefined;
+    shippingStreet?: string | undefined;
+    shippingCity?: string | undefined;
+    shippingZip?: string | undefined;
     items?: PackingOrderItem[];
 }
 
