@@ -51,7 +51,7 @@ public static class AccessMatrix
 
         // Administrace section
         new AccessFeature("data_quality", "Kvalita dat", "Administrace", "/automation/data-quality", HasWrite: true),
-        new AccessFeature("administration", "Administrace", "Administrace", "/admin/feature-flags", HasWrite: true),
+        new AccessFeature("administration", "Administrace", "Administrace", null, HasWrite: true),
         new AccessFeature("feature_flags", "Feature příznaky", "Administrace", "/admin/feature-flags", HasWrite: true),
     };
 
