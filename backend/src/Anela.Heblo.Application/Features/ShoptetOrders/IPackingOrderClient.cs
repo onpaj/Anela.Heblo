@@ -44,7 +44,7 @@ public class PackingOrder
     public List<PackingOrderItem> Items { get; set; } = new();
 }
 
-/// <summary>A single line on the packing screen. Also serialized in the API response.</summary>
+/// <summary>A single line on a packing order. Internal contract — not an API DTO.</summary>
 public class PackingOrderItem
 {
     public string Name { get; set; } = string.Empty;
