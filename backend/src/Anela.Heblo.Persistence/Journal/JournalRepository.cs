@@ -23,7 +23,7 @@ namespace Anela.Heblo.Persistence.Journal
                 .Include(x => x.ProductAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         }
 
         public async Task<PagedResult<JournalEntry>> GetEntriesAsync(
@@ -37,22 +37,10 @@ namespace Anela.Heblo.Persistence.Journal
                 .Include(x => x.ProductAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
-                .Where(x => !x.IsDeleted)
                 .AsQueryable();
 
             // Sorting
-            query = sortBy?.ToLower() switch
-            {
-                "title" => sortDirection == "ASC"
-                    ? query.OrderBy(x => x.Title)
-                    : query.OrderByDescending(x => x.Title),
-                "createdat" => sortDirection == "ASC"
-                    ? query.OrderBy(x => x.CreatedAt)
-                    : query.OrderByDescending(x => x.CreatedAt),
-                _ => sortDirection == "ASC"
-                    ? query.OrderBy(x => x.EntryDate)
-                    : query.OrderByDescending(x => x.EntryDate)
-            };
+            query = ApplySort(query, sortBy, sortDirection, _logger);
 
             var totalCount = await query.CountAsync(cancellationToken);
 
@@ -87,7 +75,6 @@ namespace Anela.Heblo.Persistence.Journal
                 .Include(x => x.ProductAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
-                .Where(x => !x.IsDeleted)
                 .AsQueryable();
 
             // Text search (simple contains for now, can be improved with full-text search)
@@ -132,18 +119,7 @@ namespace Anela.Heblo.Persistence.Journal
             }
 
             // Sorting
-            query = sortBy?.ToLower() switch
-            {
-                "title" => sortDirection == "ASC"
-                    ? query.OrderBy(x => x.Title)
-                    : query.OrderByDescending(x => x.Title),
-                "createdat" => sortDirection == "ASC"
-                    ? query.OrderBy(x => x.CreatedAt)
-                    : query.OrderByDescending(x => x.CreatedAt),
-                _ => sortDirection == "ASC"
-                    ? query.OrderBy(x => x.EntryDate)
-                    : query.OrderByDescending(x => x.EntryDate)
-            };
+            query = ApplySort(query, sortBy, sortDirection, _logger);
 
             var totalCount = await query.CountAsync(cancellationToken);
 
@@ -169,7 +145,7 @@ namespace Anela.Heblo.Persistence.Journal
                 .Include(x => x.ProductAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
-                .Where(x => !x.IsDeleted && (x.ProductAssociations.Any(pa => productCode.StartsWith(pa.ProductCodePrefix))))
+                .Where(x => x.ProductAssociations.Any(pa => productCode.StartsWith(pa.ProductCodePrefix)))
                 .OrderByDescending(x => x.EntryDate)
                 .ThenByDescending(x => x.CreatedAt)
                 .ToListAsync(cancellationToken);
@@ -185,7 +161,7 @@ namespace Anela.Heblo.Persistence.Journal
             // Aggregate direct associations into a per-product accumulator.
             var directAssociations = await Context.Set<JournalEntryProduct>()
                 .Where(jep => productCodeList.Contains(jep.ProductCodePrefix))
-                .Join(Context.Set<JournalEntry>().Where(je => !je.IsDeleted),
+                .Join(Context.Set<JournalEntry>(),
                     jep => jep.JournalEntryId,
                     je => je.Id,
                     (jep, je) => new { ProductCode = jep.ProductCodePrefix, je.EntryDate, je.CreatedAt })
@@ -223,6 +199,56 @@ namespace Anela.Heblo.Persistence.Journal
             }
 
             return result;
+        }
+
+        private static IQueryable<JournalEntry> ApplySort(
+            IQueryable<JournalEntry> query,
+            string? sortBy,
+            string sortDirection,
+            ILogger logger)
+        {
+            var ascending = string.Equals(sortDirection, "ASC", StringComparison.OrdinalIgnoreCase);
+
+            if (string.IsNullOrWhiteSpace(sortBy))
+            {
+                return ApplyDefaultSort(query, ascending);
+            }
+
+            return sortBy.ToLowerInvariant() switch
+            {
+                "title" => ascending
+                    ? query.OrderBy(x => x.Title)
+                    : query.OrderByDescending(x => x.Title),
+
+                "createdbyusername" => ascending
+                    ? query.OrderBy(x => x.CreatedByUsername).ThenByDescending(x => x.EntryDate)
+                    : query.OrderByDescending(x => x.CreatedByUsername).ThenByDescending(x => x.EntryDate),
+
+                _ => ApplyDefaultSortWithWarning(query, ascending, sortBy, logger),
+            };
+        }
+
+        private static IQueryable<JournalEntry> ApplyDefaultSort(
+            IQueryable<JournalEntry> query,
+            bool ascending)
+        {
+            return ascending
+                ? query.OrderBy(x => x.EntryDate)
+                : query.OrderByDescending(x => x.EntryDate);
+        }
+
+        private static IQueryable<JournalEntry> ApplyDefaultSortWithWarning(
+            IQueryable<JournalEntry> query,
+            bool ascending,
+            string sortBy,
+            ILogger logger)
+        {
+            logger.LogWarning(
+                "Unknown sort key {SortBy} requested on {Repository}",
+                sortBy,
+                nameof(JournalRepository));
+
+            return ApplyDefaultSort(query, ascending);
         }
     }
 }
