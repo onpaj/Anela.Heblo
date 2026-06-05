@@ -125,6 +125,10 @@ UserGroup                              -- user → group
   removed from `AccessMatrix` (DB ⊆ code).
 - The 10 existing `AccessMatrix.Groups` seed `PermissionGroup` rows with `IsSystem=true`
   and their `GroupPermission` edges → day-one behavior equals today's tiers.
+- **System groups (`IsSystem=true`) are read-only and re-synced from `AccessMatrix` on
+  every startup** (name + permissions). They are the canonical tiers; code stays their
+  source of truth. Admins compose custom access via **non-system groups, which may nest a
+  system group as a parent** — building on top of the canonical tiers without mutating them.
 - `super_user` is **not** a DB row — it is the Entra wildcard.
 
 ---
@@ -163,8 +167,9 @@ New admin area under the existing `administration` feature (gated by `administra
 - *Groups:* `GetGroups`, `GetGroupDetail`, `CreateGroup`, `UpdateGroup`
   (name/description/permissions/parents), `DeleteGroup`.
   - Validation: permissions ∈ `AccessMatrix`; parent edges **cycle-checked**; **system
-    groups are not deletable** (permission/description edits allowed — exact lock level to
-    confirm at review).
+    groups (`IsSystem=true`) are fully read-only** — not editable, not deletable; they are
+    re-synced from `AccessMatrix` on startup. Non-system groups support full CRUD and may
+    nest a system group as a parent.
 - *Users:* `GetUsers`, `GetUserEffectivePermissions` (read-only closure preview),
   `AssignUserGroups`, `RemoveUserGroups`, `SetUserActive`.
 - *Catalogue:* `GetPermissionCatalogue` — returns `AccessMatrix` features/levels/groups so
@@ -185,8 +190,10 @@ reads `administration.read`. OpenAPI → TS client auto-generated.
 
 Feature roles are no longer in the token, so the SPA fetches its own permissions:
 
-- **`GET /api/auth/me`** → `{ email, displayName, isSuperUser, permissions: ["catalog.read", …] }`,
-  computed server-side via the same `IPermissionResolver` (single source of truth).
+- **`GET /api/auth/me`** →
+  `{ email, displayName, isSuperUser, permissions: ["catalog.read", …], groups: ["Marketer", …] }`,
+  computed server-side via the same `IPermissionResolver` (single source of truth). `groups`
+  is the user's directly-assigned group names, for display ("You're in: Marketer, Skladnik").
 - `useAuth.ts`: replace `idTokenClaims?.roles` with `permissions` from `/api/auth/me`.
   Downstream (`RequireAccess.tsx`, `accessMatrix.generated.ts` route→permission map) is
   unchanged — it just consumes a differently-sourced string array.
@@ -203,7 +210,8 @@ Feature roles are no longer in the token, so the SPA fetches its own permissions
 
 **Seeding (idempotent; startup or migration):**
 1. Upsert the 10 `AccessMatrix.Groups` as `IsSystem=true` `PermissionGroup` rows + their
-   `GroupPermission` edges (`Spravce` = all roles, `Vedeni` = all `.read`, …).
+   `GroupPermission` edges (`Spravce` = all roles, `Vedeni` = all `.read`, …). System groups
+   are **re-synced** here on every startup (name + permissions authoritative from code).
 2. Prune `GroupPermission` rows whose `PermissionValue` left `AccessMatrix`.
 3. No user assignments seeded (decision #4). Until assigned, `super_user` (Entra) is the
    way in.
@@ -281,12 +289,18 @@ user → verify access), using `navigateToApp()` + fixtures.
 
 ---
 
-## 11. Open questions for spec review
+## 11. Resolved review decisions
 
-1. **System-group lock level:** are `IsSystem` groups fully read-only, or
-   editable-but-not-deletable? (Spec currently assumes the latter.)
-2. **`/api/auth/me` shape:** is `isSuperUser` + flat `permissions[]` enough, or do you also
-   want the user's assigned group names for display?
-3. **Cutover window:** comfortable with the brief "no access until assigned" gap, or do you
-   want the rejected Entra-group auto-map fallback reconsidered?
+These three points were left open during brainstorming and resolved before planning:
+
+1. **System-group lock level → fully read-only.** `IsSystem` groups are not editable and not
+   deletable; they are re-synced from `AccessMatrix` on every startup (avoids the
+   seed-overwrites-admin-edit conflict). Admins build custom access via non-system groups,
+   which may nest a system group as a parent. (See §3, §5, §7.)
+2. **`/api/auth/me` shape → include group names.** Returns `isSuperUser`, flat
+   `permissions[]`, and the user's directly-assigned `groups[]` for display. (See §6.)
+3. **Cutover → unchanged.** Keep direct cutover (#7) and no-access-until-assigned (#4); the
+   Graph-based Entra-group auto-map stays rejected (contradicts #4, adds complexity). The
+   runbook (low-traffic window, pre-written assignment list, super_user break-glass) is the
+   mitigation for the brief access gap. (See §7.)
 </content>
