@@ -1,7 +1,7 @@
 # Decision: One Canonical Way to Resolve the Current User
 
 **Date:** 2026-06-05
-**Status:** Accepted — see `docs/architecture/development_guidelines.md` ADR-004.
+**Status:** Accepted — see `docs/architecture/development_guidelines.md` ADR-005.
 
 **Decision:** User identity is resolved in exactly one place and one way.
 
@@ -16,7 +16,7 @@
 - Handlers never inject `IHttpContextAccessor` — always go through `ICurrentUserService`.
 - GUID audit values: `Guid.TryParse(user.Id, out var id) ? id : null` — nullable, no sentinel GUID. No shared `UserIdResolver` helper unless a real consumer exists. See `CreateNewTransportBoxHandler.cs` and `OpenOrResumeBoxByCodeHandler.cs`, and the related decision [logistics-no-userid-resolver.md](logistics-no-userid-resolver.md).
 
-**Why this exists:** The rule was written down nowhere, so a daily arch-review routine kept re-discovering fragments of the same concern as separate findings — which felt like the code was "moving back and forth." It was not: every step pushed the same direction. ADR-004 + the guidelines section are the single source of truth so the loop stops.
+**Why this exists:** The rule was written down nowhere, so a daily arch-review routine kept re-discovering fragments of the same concern as separate findings — which felt like the code was "moving back and forth." It was not: every step pushed the same direction. ADR-005 + the guidelines section are the single source of truth so the loop stops.
 
 **Convergence history (five arch-review features, all the same direction):**
 - `feat-arch-review-users-currentuserservice-liv` — move impl Application → API. *(merged)*

@@ -62,7 +62,7 @@ public class OrderDto { } // Never in API or Xcc!
 
 ### User Identity Resolution
 
-There is exactly **one** way to obtain the current user. See **ADR-004** for the full decision.
+There is exactly **one** way to obtain the current user. See **ADR-005** for the full decision.
 
 | Concern | Lives in |
 | --- | --- |
@@ -133,6 +133,19 @@ public static class OrdersModule
     }
 }
 ```
+
+### Repository bindings belong to the slice, never to `PersistenceModule`
+
+A repository's **implementation** lives in `Anela.Heblo.Persistence` (single `ApplicationDbContext`,
+Phase 1 — see ADR-001), but its **DI binding** must be written in the owning module's
+`{Feature}Module.cs`, exactly like the `IOrderRepository` line above. `PersistenceModule.cs` owns
+**only shared infrastructure**: the `DbContext`, `NpgsqlDataSource`, interceptors, telemetry, and the
+material-container code generator.
+
+Registering a repo centrally in `PersistenceModule.cs` splits one slice's wiring across two layers,
+turns `PersistenceModule` into a multi-module coupling/merge-conflict hotspot, and has already caused
+a duplicate registration (`IDqtRunRepository`). The rule is enforced by
+`PersistenceModuleTests.AddPersistenceServices_RegistersNoRepositoryBindings`.
 
 ### API Composition (Program.cs):
 ```csharp
@@ -247,7 +260,32 @@ When module A needs **read-only access** to data in module B, the dependency mus
 - **Decision**: Use standard ASP.NET Core Controllers with MediatR for request handling
 - **Consequences**: Clean architecture, testable handlers, standard /api/{controller} endpoints
 
-### ADR-004: User Identity Resolution
+### ADR-004: Repository DI Bindings Live in the Feature Module, Not `PersistenceModule`
+- **Status**: Accepted (2026-06-05)
+- **Context**: Repository **implementations** live in `Anela.Heblo.Persistence` because of the single
+  shared `ApplicationDbContext` (ADR-001). But the **DI binding**
+  (`services.AddScoped<IRepo, RepoImpl>()`) was written in two different places depending on the
+  module: some feature modules registered their own repos in `{Feature}Module.cs` (correct), while
+  ~15 modules had their repos registered centrally in `Anela.Heblo.Persistence/PersistenceModule.cs`.
+  This split a single vertical slice's wiring across two layers, turned `PersistenceModule` into a
+  multi-module coupling/merge-conflict hotspot, contradicted the documented DI pattern, and had
+  already produced a duplicate registration (`IDqtRunRepository`).
+- **Decision**: A repository's DI binding is **always** declared in its owning module's
+  `{Feature}Module.cs`. `PersistenceModule.cs` registers **only shared infrastructure**: the
+  `DbContext`, `NpgsqlDataSource`, interceptors, telemetry, and the material-container code generator
+  — never a repository. Repository implementation classes are `public` so the Application-layer module
+  can bind them. The implementation file still lives under `Persistence/{Feature}/`.
+- **Consequences**:
+  - Each vertical slice owns its full wiring in one file; adding a feature touches one module, not two.
+  - `PersistenceModule` stays small and stable (no per-feature churn).
+  - Enforced by `PersistenceModuleTests.AddPersistenceServices_RegistersNoRepositoryBindings`, which
+    fails CI if any `*Repository` binding reappears in `PersistenceModule`.
+  - Module-wiring tests that mock a repository must register the mock **after** the
+    `Add{Feature}Module` call so the mock overrides the module's real binding.
+- **Supersedes**: the previous mixed convention where `PersistenceModule` centrally registered
+  repositories. All future implementations must follow this pattern.
+
+### ADR-005: User Identity Resolution
 - **Status**: Accepted
 - **Context**: Identity resolution had drifted into two coexisting patterns — a `BaseApiController.GetCurrentUserId()` helper that duplicated `CurrentUserService`'s claim-priority chain (used by `Dashboard`, `CarrierCooling`, `GiftSettings`), alongside the handler-side `ICurrentUserService` pattern used by 60+ other handlers. A daily arch-review routine kept re-filing fragments of the same concern (impl location, missing `UsersModule`, dead controller injections, direct `IHttpContextAccessor` use) because the canonical rule was written down nowhere.
 - **Decision**: There is exactly one way to obtain the current user. The `ICurrentUserService` interface lives in `Domain/Features/Users/`; the `CurrentUserService` implementation lives in `API/Features/Users/` (outer ring, since it depends on the web-only `IHttpContextAccessor`); DI is wired in `UsersModule.cs`. **Identity is resolved inside MediatR handlers** via injected `ICurrentUserService` — never in controllers, never via a controller helper, never via direct `IHttpContextAccessor`. Request DTOs carry no client-settable `UserId`/`ModifiedBy`. GUID audit values use `Guid.TryParse(user.Id, out var id) ? id : null` with no sentinel. See the *User Identity Resolution* practices section above.
@@ -264,7 +302,7 @@ When module A needs **read-only access** to data in module B, the dependency mus
 5. **Don't bypass contracts** - Always communicate through interfaces
 6. **Don't create anemic domain models** - Put behavior in entities
 7. **Don't ignore module boundaries** - Respect the architecture
-8. **Don't resolve user identity in controllers** - No `GetCurrentUserId()` helper, no `IHttpContextAccessor` in handlers; resolve via `ICurrentUserService` inside the handler (ADR-004)
+8. **Don't resolve user identity in controllers** - No `GetCurrentUserId()` helper, no `IHttpContextAccessor` in handlers; resolve via `ICurrentUserService` inside the handler (ADR-005)
 
 ---
 

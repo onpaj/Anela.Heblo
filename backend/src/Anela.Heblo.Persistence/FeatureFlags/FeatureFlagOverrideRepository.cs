@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Persistence.FeatureFlags;
 
-internal sealed class FeatureFlagOverrideRepository : IFeatureFlagOverrideRepository
+public sealed class FeatureFlagOverrideRepository : IFeatureFlagOverrideRepository
 {
     private readonly ApplicationDbContext _ctx;
 
