@@ -390,6 +390,7 @@ jobs:
             REACT_APP_AZURE_AUTHORITY=${{ secrets.REACT_APP_AZURE_AUTHORITY }}
             REACT_APP_AZURE_BACKEND_CLIENT_ID=${{ secrets.REACT_APP_AZURE_BACKEND_CLIENT_ID }}
             REACT_APP_AZURE_TENANT_ID=${{ secrets.REACT_APP_AZURE_TENANT_ID }}
+            REACT_APP_AI_CONNECTION_STRING=${{ secrets.REACT_APP_AI_CONNECTION_STRING }}
 
       - name: 📝 Build Summary
         run: |

@@ -17,9 +17,27 @@ All auto-tracked telemetry (page views, Core Web Vitals, AJAX dependencies, unha
 
 ## Identity model
 
-Users are identified by their Entra ID `oid` claim — an opaque GUID, never a name or email address. Identification is set via `setAuthenticatedUserContext(oid)` on MSAL `LOGIN_SUCCESS` and cleared on `LOGOUT_SUCCESS`. On page reload (already-signed-in), the context is set during app init.
+The Entra ID `oid` claim — an opaque GUID — is the **stable identifier**, set via
+`setAuthenticatedUserContext(oid)` on MSAL `LOGIN_SUCCESS` and cleared on `LOGOUT_SUCCESS`. On
+page reload (already-signed-in), the context is set during app init. It lands in the
+`user_AuthenticatedId` telemetry field and is the reliable join key across events and time.
 
-No PII (name, email, UPN) is ever included in event properties.
+In addition, the signed-in user's **display name** and **email/UPN** are stamped onto every
+telemetry item as the custom dimensions `userName` and `userEmail`. This is done with a telemetry
+initializer driven by `setUserIdentity()` (`frontend/src/telemetry/appInsights.ts`), called next to
+`setAuthenticatedUserContext` in `frontend/src/App.tsx`. These make the analytics human-readable —
+you can group usage by a person instead of a GUID.
+
+> **Privacy note.** This is a deliberate, approved relaxation of the previous "no PII" rule. Anela
+> Heblo is an internal tool with a small, known set of named employees, so attaching name/email to
+> telemetry is acceptable here. PII now flows to Application Insights; cookie-consent wording and a
+> tighter retention policy are tracked as follow-ups. Do **not** add any *other* PII (free-text
+> input, customer data, token claims) to event properties.
+
+Because the `userName`/`userEmail` dimensions were added later, **historical telemetry and any data
+from a client not yet on this build carry only the `oid`**. Always read identity as
+`coalesce(tostring(customDimensions.userName), user_AuthenticatedId)` so old rows fall back to the
+GUID gracefully.
 
 ## Auto-tracked telemetry
 
@@ -72,6 +90,17 @@ customEvents
 | order by dcount_user_AuthenticatedId desc
 ```
 
+### Usage by named user
+
+```kusto
+customEvents
+| where timestamp > ago(30d)
+| extend user = coalesce(tostring(customDimensions.userName), user_AuthenticatedId)
+| summarize events=count(), screens=dcountif(tostring(customDimensions.screen), name == "ScreenViewed")
+            by user, email=tostring(customDimensions.userEmail)
+| order by events desc
+```
+
 ### Funnel: users who visited Dashboard but never opened Photobank
 
 ```kusto
@@ -101,6 +130,22 @@ customEvents
 
 Cross-reference distinct `(module, screen, subScreen)` tuples against `usage-analytics-coverage.md` to find wiring gaps (rows checked but never seen in telemetry) and doc drift (events seen but missing from the doc).
 
+## Azure Workbook
+
+An interactive **"App Usage Analytics"** Workbook lives under the production Application Insights
+resource (`aiHeblo` → *Workbooks*). It answers "what is used, how often, by whom" at a glance, with
+shared parameters for time range, module, and user. Sections: headline tiles (screen views / active
+users / distinct screens), usage by module, screen + sub-screen table, usage by named user, action
+events, and a daily-active-users trend.
+
+The Workbook is defined as code and deployed reproducibly:
+
+- Template: `scripts/monitoring/usage-analytics-workbook.template.json`
+- Deploy: `scripts/monitoring/deploy-usage-workbook.sh` (requires `az login` to the subscription)
+
+Re-running the script updates the Workbook in place. Edit the template (or export your portal
+changes back into it) to keep the repo as the source of truth.
+
 ## How to add a new event
 
 1. Pick a `TelemetryEventName` that does not exist yet (PascalCase, descriptive).
@@ -111,7 +156,6 @@ Cross-reference distinct `(module, screen, subScreen)` tuples against `usage-ana
 
 ## Future improvements (backlog)
 
-- Build a "Feature usage" Azure Workbook with a bar chart (events by name) and a table (unique users by feature).
 - Add `time-on-screen` tracking once there is a clear question to answer with it.
 - Add session-level engagement score (events per session, sessions per user per week).
 - Consider PostHog for funnels and retention analysis without writing KQL.
