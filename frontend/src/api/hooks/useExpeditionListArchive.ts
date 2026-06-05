@@ -34,11 +34,6 @@ export interface RunExpeditionListPrintFixResult {
   errorMessage: string | null;
 }
 
-const REPRINT_ERROR_MESSAGES: Partial<Record<string, string>> = {
-  InvalidBlobPath: "Neplatná cesta k souboru.",
-};
-const GENERIC_REPRINT_ERROR = "Nepodařilo se odeslat na tisk.";
-
 // --- Query Keys ---
 
 const expeditionArchiveKeys = {
@@ -92,27 +87,16 @@ export const useExpeditionListsByDate = (date: string) => {
 export const useReprintExpeditionList = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<ReprintExpeditionListResponse, Error, ReprintExpeditionListRequest>({
-    mutationFn: async (request: ReprintExpeditionListRequest) => {
-      const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/expedition-list-archive/reprint`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ blobPath: request.blobPath }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        const errorCode: string | undefined = errorData?.errorCode ?? undefined;
-        const message =
-          (errorCode && REPRINT_ERROR_MESSAGES[errorCode]) ?? GENERIC_REPRINT_ERROR;
-        throw new Error(message);
-      }
-
-      return await response.json();
+  return useMutation<ReprintExpeditionListResponse, Error, { blobPath: string }>({
+    mutationFn: async (input): Promise<ReprintExpeditionListResponse> => {
+      const client = getAuthenticatedApiClient();
+      const request = new ReprintExpeditionListRequest({ blobPath: input.blobPath });
+      const response = await client.expeditionListArchive_Reprint(request);
+      return {
+        success: response.success ?? true,
+        errorCode: (response.errorCode as string | null) ?? null,
+        params: response.params ?? null,
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expeditionListArchive });
