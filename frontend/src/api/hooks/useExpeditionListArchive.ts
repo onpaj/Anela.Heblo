@@ -25,7 +25,8 @@ export interface GetExpeditionListsByDateResponse {
 
 export interface ReprintExpeditionListResponse {
   success: boolean;
-  errorMessage: string | null;
+  errorCode: string | null;
+  params: Record<string, string> | null;
 }
 
 export interface RunExpeditionListPrintFixResult {
@@ -93,7 +94,8 @@ export const useReprintExpeditionList = () => {
       const response = await client.expeditionListArchive_Reprint(request);
       return {
         success: response.success ?? true,
-        errorMessage: response.errorMessage ?? null,
+        errorCode: (response.errorCode as string | null) ?? null,
+        params: response.params ?? null,
       };
     },
     onSuccess: () => {

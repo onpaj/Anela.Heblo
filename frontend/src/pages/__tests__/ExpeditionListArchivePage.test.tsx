@@ -76,7 +76,7 @@ describe("ExpeditionListArchivePage – refresh button", () => {
     (useExpeditionDates as jest.Mock).mockReturnValue(mockDatesData);
     (useExpeditionListsByDate as jest.Mock).mockReturnValue(mockItemsData);
     (useReprintExpeditionList as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn().mockResolvedValue({ success: true, errorMessage: null }),
+      mutateAsync: jest.fn().mockResolvedValue({ success: true, errorCode: null, params: null }),
       isPending: false,
     });
     (useRunExpeditionListPrintFix as jest.Mock).mockReturnValue({
