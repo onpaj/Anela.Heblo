@@ -46,7 +46,6 @@ public class OrgChartService : IOrgChartService
 
             if (orgChart == null)
             {
-                _logger.LogError("Failed to deserialize organizational structure from {Url}", _options.DataSourceUrl);
                 throw new InvalidOperationException("Failed to deserialize organizational structure");
             }
 
@@ -59,17 +58,14 @@ public class OrgChartService : IOrgChartService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error while fetching organizational structure from {Url}", _options.DataSourceUrl);
             throw new InvalidOperationException($"Failed to fetch organizational structure: {ex.Message}", ex);
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "JSON deserialization error for organizational structure from {Url}", _options.DataSourceUrl);
             throw new InvalidOperationException($"Failed to parse organizational structure: {ex.Message}", ex);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _logger.LogError(ex, "Unexpected error while fetching organizational structure from {Url}", _options.DataSourceUrl);
             throw;
         }
     }

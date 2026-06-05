@@ -1,36 +1,6 @@
-using Anela.Heblo.Domain.Features.Analytics;
-using Anela.Heblo.Domain.Features.Article;
-using Anela.Heblo.Domain.Features.BackgroundJobs;
-using Anela.Heblo.Domain.Features.FeatureFlags;
-using Anela.Heblo.Persistence.FeatureFlags;
-using Anela.Heblo.Domain.Features.DataQuality;
-using Anela.Heblo.Domain.Features.Bank;
-using Anela.Heblo.Domain.Features.Packaging;
-using Anela.Heblo.Domain.Features.Purchase;
-using Anela.Heblo.Domain.Features.GridLayouts;
-using Anela.Heblo.Persistence.GridLayouts;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
-using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Persistence.Catalog.Inventory;
-using Anela.Heblo.Domain.Features.KnowledgeBase;
-using Anela.Heblo.Domain.Features.MeetingTasks;
-using Anela.Heblo.Domain.Features.Leaflet;
-using Anela.Heblo.Persistence.BackgroundJobs;
-using Anela.Heblo.Persistence.DataQuality;
-using Anela.Heblo.Persistence.Catalog.Stock;
-using Anela.Heblo.Persistence.Dashboard;
-using Anela.Heblo.Persistence.Features.Analytics;
-using Anela.Heblo.Persistence.Features.Bank;
 using Anela.Heblo.Persistence.Infrastructure;
-using Anela.Heblo.Persistence.InvoiceClassification;
-using Anela.Heblo.Persistence.Features.Article;
-using Anela.Heblo.Persistence.Features.Leaflet;
-using Anela.Heblo.Persistence.KnowledgeBase;
-using Anela.Heblo.Persistence.Purchase.PurchaseOrders;
-using Anela.Heblo.Persistence.Repositories.Packaging;
-using Anela.Heblo.Persistence.MeetingTasks;
-using Anela.Heblo.Domain.Features.Dashboard;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -130,51 +100,10 @@ public static class PersistenceModule
         // Register telemetry services
         services.AddScoped<ITelemetryService, NoOpTelemetryService>(); // Default to NoOp, can be overridden by API layer
 
-        // Register repositories
-        services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
-        services.AddScoped<IUserDashboardSettingsRepository, UserDashboardSettingsRepository>();
-
-        // Bank repositories
-        services.AddScoped<IBankStatementImportRepository, BankStatementImportRepository>();
-
-        // Invoice Classification repositories
-        services.AddScoped<IClassificationRuleRepository, ClassificationRuleRepository>();
-        services.AddScoped<IClassificationHistoryRepository, ClassificationHistoryRepository>();
-
-        // Stock repositories
-        services.AddScoped<IStockUpOperationRepository, StockUpOperationRepository>();
-
-        // Background Jobs repositories
-        services.AddScoped<IRecurringJobConfigurationRepository, RecurringJobConfigurationRepository>();
-
-        // KnowledgeBase repositories
-        services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
-
-        // Meeting Tasks repositories
-        services.AddScoped<IMeetingTranscriptRepository, MeetingTranscriptRepository>();
-
-        // Leaflet repositories
-        services.AddScoped<ILeafletDocumentRepository, LeafletDocumentRepository>();
-        services.AddScoped<ILeafletGenerationRepository, LeafletGenerationRepository>();
-
-        // Article repositories
-        services.AddScoped<IArticleRepository, ArticleRepository>();
-        services.AddScoped<IArticleAdminRepository, ArticleAdminRepository>();
-
-        // Grid Layouts repositories
-        services.AddScoped<IGridLayoutRepository, GridLayoutRepository>();
-
-        // Data Quality repositories
-        services.AddScoped<IDqtRunRepository, DqtRunRepository>();
-
-        // Feature Flags repositories
-        services.AddScoped<IFeatureFlagOverrideRepository, FeatureFlagOverrideRepository>();
-
-        // Purchase repositories
-        services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
-
-        // Packaging repositories
-        services.AddScoped<IPackageRepository, PackageRepository>();
+        // NOTE: Repository bindings live in each module's {Feature}Module.cs (vertical-slice
+        // composition), not here. PersistenceModule owns only shared infrastructure: the
+        // DbContext, NpgsqlDataSource, interceptors, telemetry, and the code generator.
+        // See docs/architecture/development_guidelines.md (§Dependency Injection Patterns).
 
         return services;
     }

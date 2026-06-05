@@ -73,10 +73,10 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
     private string? GetVersionFromSources()
     {
         // 1. Try environment variable first (CI/CD pipeline)
-        var version = Environment.GetEnvironmentVariable(ConfigurationConstants.APP_VERSION);
+        var version = _configuration[ConfigurationConstants.APP_VERSION];
         if (!string.IsNullOrEmpty(version))
         {
-            _logger.LogDebug("Version found from APP_VERSION environment variable: {Version}", version);
+            _logger.LogDebug("Version resolved from configuration: {Version}", version);
             return version;
         }
 

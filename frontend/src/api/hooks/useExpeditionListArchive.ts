@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
+import { getAuthenticatedApiClient, getApiBaseUrl, QUERY_KEYS } from "../client";
+import { ReprintExpeditionListRequest } from "../generated/api-client";
 
 // --- Types ---
 
@@ -22,12 +23,13 @@ export interface GetExpeditionListsByDateResponse {
   items: ExpeditionListItemDto[];
 }
 
-export interface ReprintExpeditionListRequest {
-  blobPath: string;
-}
-
 export interface ReprintExpeditionListResponse {
   success: boolean;
+  errorMessage: string | null;
+}
+
+export interface RunExpeditionListPrintFixResult {
+  totalCount: number;
   errorMessage: string | null;
 }
 
@@ -46,28 +48,15 @@ const expeditionArchiveKeys = {
 export const useExpeditionDates = (page: number = 1, pageSize: number = 20) => {
   return useQuery<GetExpeditionDatesResponse>({
     queryKey: expeditionArchiveKeys.dates(page, pageSize),
-    queryFn: async () => {
-      const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/expedition-list-archive/dates`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const params = new URLSearchParams();
-      params.append("page", page.toString());
-      params.append("pageSize", pageSize.toString());
-
-      const response = await (apiClient as any).http.fetch(
-        `${fullUrl}?${params.toString()}`,
-        {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+    queryFn: async (): Promise<GetExpeditionDatesResponse> => {
+      const client = getAuthenticatedApiClient();
+      const response = await client.expeditionListArchive_GetDates(page, pageSize);
+      return {
+        dates: response.dates ?? [],
+        totalCount: response.totalCount ?? 0,
+        page: response.page ?? page,
+        pageSize: response.pageSize ?? pageSize,
+      };
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -76,21 +65,18 @@ export const useExpeditionDates = (page: number = 1, pageSize: number = 20) => {
 export const useExpeditionListsByDate = (date: string) => {
   return useQuery<GetExpeditionListsByDateResponse>({
     queryKey: expeditionArchiveKeys.itemsByDate(date),
-    queryFn: async () => {
-      const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/expedition-list-archive/${encodeURIComponent(date)}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+    queryFn: async (): Promise<GetExpeditionListsByDateResponse> => {
+      const client = getAuthenticatedApiClient();
+      const response = await client.expeditionListArchive_GetByDate(date);
+      return {
+        items: (response.items ?? []).map((item) => ({
+          blobPath: item.blobPath ?? '',
+          fileName: item.fileName ?? '',
+          listId: item.listId ?? '',
+          createdOn: item.createdOn ? item.createdOn.toISOString() : null,
+          contentLength: item.contentLength ?? null,
+        })),
+      };
     },
     enabled: !!date,
     staleTime: 1000 * 60 * 5,
@@ -100,26 +86,15 @@ export const useExpeditionListsByDate = (date: string) => {
 export const useReprintExpeditionList = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<ReprintExpeditionListResponse, Error, ReprintExpeditionListRequest>({
-    mutationFn: async (request: ReprintExpeditionListRequest) => {
-      const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/expedition-list-archive/reprint`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ blobPath: request.blobPath }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(
-          errorData?.errorMessage ?? `HTTP error! status: ${response.status}`
-        );
-      }
-
-      return await response.json();
+  return useMutation<ReprintExpeditionListResponse, Error, { blobPath: string }>({
+    mutationFn: async (input): Promise<ReprintExpeditionListResponse> => {
+      const client = getAuthenticatedApiClient();
+      const request = new ReprintExpeditionListRequest({ blobPath: input.blobPath });
+      const response = await client.expeditionListArchive_Reprint(request);
+      return {
+        success: response.success ?? true,
+        errorMessage: response.errorMessage ?? null,
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expeditionListArchive });
@@ -127,9 +102,8 @@ export const useReprintExpeditionList = () => {
   });
 };
 
+
 export const getExpeditionListDownloadUrl = (blobPath: string): string => {
-  const apiClient = getAuthenticatedApiClient();
-  const baseUrl = (apiClient as any).baseUrl;
   const encodedPath = blobPath.split("/").map(encodeURIComponent).join("/");
-  return `${baseUrl}/api/expedition-list-archive/download/${encodedPath}`;
+  return `${getApiBaseUrl()}/api/expedition-list-archive/download/${encodedPath}`;
 };

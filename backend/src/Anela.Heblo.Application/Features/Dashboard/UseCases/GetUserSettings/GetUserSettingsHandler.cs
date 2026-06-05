@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Dashboard.Contracts;
 using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Domain.Features.Dashboard;
+using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using MediatR;
 
@@ -12,22 +13,26 @@ public class GetUserSettingsHandler : IRequestHandler<GetUserSettingsRequest, Ge
     private readonly IUserDashboardSettingsRepository _repository;
     private readonly IUserDashboardSettingsLock _lock;
     private readonly TimeProvider _timeProvider;
+    private readonly ICurrentUserService _currentUserService;
 
     public GetUserSettingsHandler(
         ITileRegistry tileRegistry,
         IUserDashboardSettingsRepository repository,
         IUserDashboardSettingsLock @lock,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ICurrentUserService currentUserService)
     {
         _tileRegistry = tileRegistry;
         _repository = repository;
         _lock = @lock;
         _timeProvider = timeProvider;
+        _currentUserService = currentUserService;
     }
 
     public async Task<GetUserSettingsResponse> Handle(GetUserSettingsRequest request, CancellationToken cancellationToken)
     {
-        var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
+        var currentUserId = _currentUserService.GetCurrentUser().Id;
+        var userId = string.IsNullOrEmpty(currentUserId) ? "anonymous" : currentUserId;
 
         await using var _ = await _lock.AcquireAsync(userId, cancellationToken);
 

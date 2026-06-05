@@ -29,10 +29,14 @@ public class LeafletModuleIntegrationTests
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         services.AddSingleton(Mock.Of<IEmbeddingGenerator<string, Embedding<float>>>());
         services.AddSingleton(Mock.Of<IChatClient>());
-        services.AddSingleton(Mock.Of<ILeafletDocumentRepository>());
-        services.AddSingleton(Mock.Of<ILeafletGenerationRepository>());
         services.AddScoped<IWordWindowChunker, WordWindowChunker>();
         services.AddLeafletModule(configuration);
+
+        // AddLeafletModule now registers the real repository implementations (vertical-slice
+        // composition). Override them with mocks AFTER the module call so the mocks win
+        // resolution — this wiring test validates the module's services without a database.
+        services.AddSingleton(Mock.Of<ILeafletDocumentRepository>());
+        services.AddSingleton(Mock.Of<ILeafletGenerationRepository>());
         return services;
     }
 

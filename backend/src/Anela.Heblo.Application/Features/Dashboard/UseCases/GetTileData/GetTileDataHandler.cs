@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Anela.Heblo.Application.Features.Dashboard.Contracts;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
+using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -14,25 +15,26 @@ public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDat
     private readonly ITileRegistry _tileRegistry;
     private readonly DashboardOptions _dashboardOptions;
     private readonly ILogger<GetTileDataHandler> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
     public GetTileDataHandler(
         IMediator mediator,
         ITileRegistry tileRegistry,
         IOptions<DashboardOptions> dashboardOptions,
-        ILogger<GetTileDataHandler> logger)
+        ILogger<GetTileDataHandler> logger,
+        ICurrentUserService currentUserService)
     {
         _mediator = mediator;
         _tileRegistry = tileRegistry;
         _dashboardOptions = dashboardOptions.Value;
         _logger = logger;
+        _currentUserService = currentUserService;
     }
 
     public async Task<GetTileDataResponse> Handle(GetTileDataRequest request, CancellationToken cancellationToken)
     {
-        var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
-
         var settingsResponse = await _mediator.Send(
-            new GetUserSettingsRequest { UserId = userId },
+            new GetUserSettingsRequest(),
             cancellationToken);
 
         var visibleTiles = settingsResponse.Settings.Tiles

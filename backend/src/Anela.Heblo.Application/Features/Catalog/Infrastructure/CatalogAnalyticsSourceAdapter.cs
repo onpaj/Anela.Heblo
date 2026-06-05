@@ -31,16 +31,7 @@ internal sealed class CatalogAnalyticsSourceAdapter : IAnalyticsProductSource
             foreach (var product in batch)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var filteredSales = product.SalesHistory
-                    .Where(s => s.Date >= fromDate && s.Date <= toDate)
-                    .Select(s => new SalesDataPoint
-                    {
-                        Date = s.Date,
-                        AmountB2B = s.AmountB2B,
-                        AmountB2C = s.AmountB2C
-                    })
-                    .ToList();
-                yield return MapToAnalyticsProduct(product, fromDate, toDate, filteredSales);
+                yield return MapToAnalyticsProduct(product, fromDate, toDate);
             }
             GC.Collect();
         }
@@ -56,7 +47,15 @@ internal sealed class CatalogAnalyticsSourceAdapter : IAnalyticsProductSource
         if (product == null)
             return null;
 
-        var filteredSales = product.SalesHistory
+        return MapToAnalyticsProduct(product, fromDate, toDate);
+    }
+
+    private static AnalyticsProduct MapToAnalyticsProduct(
+        CatalogAggregate product,
+        DateTime fromDate,
+        DateTime toDate)
+    {
+        var salesHistory = product.SalesHistory
             .Where(s => s.Date >= fromDate && s.Date <= toDate)
             .Select(s => new SalesDataPoint
             {
@@ -66,15 +65,6 @@ internal sealed class CatalogAnalyticsSourceAdapter : IAnalyticsProductSource
             })
             .ToList();
 
-        return MapToAnalyticsProduct(product, fromDate, toDate, filteredSales);
-    }
-
-    private static AnalyticsProduct MapToAnalyticsProduct(
-        CatalogAggregate product,
-        DateTime fromDate,
-        DateTime toDate,
-        List<SalesDataPoint> salesHistory)
-    {
         var marginData = product.Margins;
         var relevantMargins = marginData.MonthlyData
             .Where(m => m.Key >= fromDate && m.Key <= toDate)

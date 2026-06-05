@@ -31,7 +31,6 @@ public class CarrierCoolingController : BaseApiController
         [FromBody] SetCarrierCoolingRequest request,
         CancellationToken cancellationToken = default)
     {
-        request.ModifiedBy = GetCurrentUserId();
         var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }

@@ -22,6 +22,7 @@ jest.mock("../../api/hooks/useRecurringJobs", () => ({
 
 jest.mock("../../api/client", () => ({
   getAuthenticatedApiClient: jest.fn(),
+  getAuthenticatedFetch: jest.fn(() => jest.fn()),
   QUERY_KEYS: {
     expeditionListArchive: ["expedition-list-archive"],
   },
