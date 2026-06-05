@@ -37,7 +37,7 @@ describe('DqtYesterdayStatusTile', () => {
   it('renders error state and does not navigate on click', () => {
     renderTile({ status: 'error', data: null, drillDown });
 
-    expect(screen.getByText('Chyba při načítání dat')).toBeInTheDocument();
+    expect(screen.getByText('Poslední DQT test selhal')).toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
