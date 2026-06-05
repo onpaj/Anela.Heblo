@@ -31,7 +31,6 @@ export interface ReprintExpeditionListResponse {
 
 export interface RunExpeditionListPrintFixResult {
   totalCount: number;
-  errorMessage: string | null;
 }
 
 // --- Query Keys ---

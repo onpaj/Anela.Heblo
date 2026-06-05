@@ -17708,7 +17708,6 @@ export interface IReprintExpeditionListRequest {
 
 export class RunExpeditionListPrintFixResponse extends BaseResponse implements IRunExpeditionListPrintFixResponse {
     totalCount?: number;
-    errorMessage?: string | undefined;
 
     constructor(data?: IRunExpeditionListPrintFixResponse) {
         super(data);
@@ -17718,7 +17717,6 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
         super.init(_data);
         if (_data) {
             this.totalCount = _data["totalCount"];
-            this.errorMessage = _data["errorMessage"];
         }
     }
 
@@ -17732,7 +17730,6 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["totalCount"] = this.totalCount;
-        data["errorMessage"] = this.errorMessage;
         super.toJSON(data);
         return data;
     }
@@ -17740,7 +17737,6 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
 
 export interface IRunExpeditionListPrintFixResponse extends IBaseResponse {
     totalCount?: number;
-    errorMessage?: string | undefined;
 }
 
 export class EvaluateFlagsForClientResponse extends BaseResponse implements IEvaluateFlagsForClientResponse {
