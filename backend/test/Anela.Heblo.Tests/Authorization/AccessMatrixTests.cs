@@ -21,4 +21,11 @@ public class DeterministicGuidTests
         DeterministicGuid.ForRole("purchase_orders.read")
             .Should().NotBe(DeterministicGuid.ForRole("purchase_orders.write"));
     }
+
+    [Fact]
+    public void ForRole_ThrowsOnNull()
+    {
+        var act = () => DeterministicGuid.ForRole(null!);
+        act.Should().Throw<ArgumentNullException>();
+    }
 }
