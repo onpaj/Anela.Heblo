@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionListsByDate;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -72,5 +73,33 @@ public class GetExpeditionListsByDateHandlerTests
         // Assert
         Assert.Single(result.Items);
         Assert.Equal("picking-list-001.pdf", result.Items[0].FileName);
+    }
+
+    [Theory]
+    [InlineData("not-a-date")]
+    [InlineData("2026/03/25")]
+    [InlineData("25-03-2026")]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task Handle_ReturnsFailure_WhenDateIsInvalid(string? invalidDate)
+    {
+        // Arrange
+        var request = new GetExpeditionListsByDateRequest { Date = invalidDate ?? string.Empty };
+
+        // Act
+        var result = await _handler.Handle(request, default);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.InvalidFormat, result.ErrorCode);
+        Assert.NotNull(result.Params);
+        Assert.Equal("Date", result.Params!["Field"]);
+        Assert.Equal("yyyy-MM-dd", result.Params!["ExpectedFormat"]);
+        Assert.Empty(result.Items);
+
+        _blobStorageServiceMock.Verify(
+            s => s.ListBlobsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
