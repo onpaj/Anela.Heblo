@@ -1,6 +1,6 @@
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Persistence;
-using Anela.Heblo.Persistence.Catalog.Journal;
+using Anela.Heblo.Persistence.Journal;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

@@ -4,7 +4,7 @@ using Anela.Heblo.Xcc.Persistance;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Persistence.Catalog.Journal
+namespace Anela.Heblo.Persistence.Journal
 {
     public class JournalRepository : BaseRepository<JournalEntry, int>, IJournalRepository
     {
