@@ -51,29 +51,23 @@ public class ScanPackingOrderHandlerPackagePersistenceTests
             DefaultPackageHeightMm = 200,
             DefaultPackageDepthMm = 150,
         });
-        var ordSettings = Options.Create(new ShoptetOrdersSettings
-        {
-            PackingStateId = 26,
-            PackedStateId = 52,
-        });
-
         return new ScanPackingOrderHandler(
             shipmentClient.Object,
             orderClient.Object,
             eshopClient.Object,
             shipmentSettings,
-            ordSettings,
             NullLogger<ScanPackingOrderHandler>.Instance,
             packageRepo.Object,
             currentUser.Object);
     }
 
-    private static PackingOrder MakeOrder(int statusId = 26) => new()
+    private static PackingOrder MakeOrder(int statusId = 26, bool isEligible = true) => new()
     {
         Code = "ORD-1",
         CustomerName = "Alice",
         ShippingMethodName = "PPL",
         StatusId = statusId,
+        IsEligibleForPacking = isEligible,
         Items = new List<PackingOrderItem>
         {
             new() { WeightGrams = 500, Quantity = 1 },

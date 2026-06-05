@@ -3,7 +3,9 @@ using System.Text;
 using System.Text.Json;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
+using Anela.Heblo.Application.Features.ShoptetOrders;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Tests.Adapters.ShoptetApi;
 
@@ -15,7 +17,7 @@ public class ShoptetOrderClientTests
         {
             BaseAddress = new Uri("https://fake.shoptet.cz"),
         };
-        return new ShoptetOrderClient(http);
+        return new ShoptetOrderClient(http, Options.Create(new ShoptetOrdersSettings()));
     }
 
     private static HttpResponseMessage Json(object obj)

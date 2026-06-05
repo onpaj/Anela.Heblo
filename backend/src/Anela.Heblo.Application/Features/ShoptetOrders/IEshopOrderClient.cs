@@ -35,4 +35,11 @@ public interface IEshopOrderClient
     /// Returns a map of status id → status name from GET /api/eshop?include=orderStatuses.
     /// </summary>
     Task<Dictionary<int, string>> GetOrderStatusNamesAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Transitions the order to the configured "packed" state
+    /// (Shoptet "Zabaleno", id 52 by default). Called by the Balení screen
+    /// after a successful scan + shipment creation.
+    /// </summary>
+    Task MarkAsPackedAsync(string orderCode, CancellationToken ct = default);
 }

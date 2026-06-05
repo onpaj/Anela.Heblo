@@ -4,12 +4,14 @@ using System.Text.Json.Serialization;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition.Model;
 using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Application.Features.ShoptetOrders;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 
 public class ShoptetOrderClient : IEshopOrderClient
 {
     private readonly HttpClient _http;
+    private readonly ShoptetOrdersSettings _orderSettings;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -21,9 +23,10 @@ public class ShoptetOrderClient : IEshopOrderClient
     private const int AdditionalFieldShortTextMaxIndex = 3;
     private const int AdditionalFieldShortTextMaxLength = 255;
 
-    public ShoptetOrderClient(HttpClient http)
+    public ShoptetOrderClient(HttpClient http, IOptions<ShoptetOrdersSettings> orderSettings)
     {
         _http = http;
+        _orderSettings = orderSettings.Value;
     }
 
     public async Task<List<EshopOrderSummary>> GetRecentOrdersAsync(int count = 20, CancellationToken ct = default)
@@ -221,6 +224,9 @@ public class ShoptetOrderClient : IEshopOrderClient
             .Where(s => !string.IsNullOrWhiteSpace(s.Name))
             .ToDictionary(s => s.Id, s => s.Name!);
     }
+
+    public Task MarkAsPackedAsync(string orderCode, CancellationToken ct = default) =>
+        UpdateStatusAsync(orderCode, _orderSettings.PackedStateId, ct);
 
     // ── Expedition methods ────────────────────────────────────────────────────
 
