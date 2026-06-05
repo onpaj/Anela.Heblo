@@ -40,7 +40,7 @@ export const DataQualityTile: React.FC<DataQualityTileProps> = ({ data }) => {
       <div className="h-full flex items-center justify-center text-center">
         <div>
           <XCircle className="h-10 w-10 text-red-500 mx-auto mb-2" />
-          <p className="text-red-600 text-sm">{data.error || 'Chyba při načítání dat'}</p>
+          <p className="text-red-600 text-sm">{data.error || 'Poslední DQT test selhal'}</p>
         </div>
       </div>
     );
