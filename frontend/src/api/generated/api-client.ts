@@ -29961,7 +29961,7 @@ export class ScanOrderData implements IScanOrderData {
     eshopNote?: string | undefined;
     shippingAddress?: ShippingAddress | undefined;
     eligibility?: ScanOrderEligibility;
-    items?: PackingOrderItem[];
+    items?: ScanPackingOrderItemDto[];
 
     constructor(data?: IScanOrderData) {
         if (data) {
@@ -29986,7 +29986,7 @@ export class ScanOrderData implements IScanOrderData {
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
                 for (let item of _data["items"])
-                    this.items!.push(PackingOrderItem.fromJS(item));
+                    this.items!.push(ScanPackingOrderItemDto.fromJS(item));
             }
         }
     }
@@ -30028,7 +30028,7 @@ export interface IScanOrderData {
     eshopNote?: string | undefined;
     shippingAddress?: ShippingAddress | undefined;
     eligibility?: ScanOrderEligibility;
-    items?: PackingOrderItem[];
+    items?: ScanPackingOrderItemDto[];
 }
 
 export class ShippingAddress implements IShippingAddress {
@@ -30119,14 +30119,13 @@ export interface IScanOrderEligibility {
     warningBody?: string | undefined;
 }
 
-export class PackingOrderItem implements IPackingOrderItem {
+export class ScanPackingOrderItemDto implements IScanPackingOrderItemDto {
     name?: string;
     quantity?: number;
     imageUrl?: string | undefined;
     setName?: string | undefined;
-    weightGrams?: number;
 
-    constructor(data?: IPackingOrderItem) {
+    constructor(data?: IScanPackingOrderItemDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -30141,13 +30140,12 @@ export class PackingOrderItem implements IPackingOrderItem {
             this.quantity = _data["quantity"];
             this.imageUrl = _data["imageUrl"];
             this.setName = _data["setName"];
-            this.weightGrams = _data["weightGrams"];
         }
     }
 
-    static fromJS(data: any): PackingOrderItem {
+    static fromJS(data: any): ScanPackingOrderItemDto {
         data = typeof data === 'object' ? data : {};
-        let result = new PackingOrderItem();
+        let result = new ScanPackingOrderItemDto();
         result.init(data);
         return result;
     }
@@ -30158,17 +30156,15 @@ export class PackingOrderItem implements IPackingOrderItem {
         data["quantity"] = this.quantity;
         data["imageUrl"] = this.imageUrl;
         data["setName"] = this.setName;
-        data["weightGrams"] = this.weightGrams;
         return data;
     }
 }
 
-export interface IPackingOrderItem {
+export interface IScanPackingOrderItemDto {
     name?: string;
     quantity?: number;
     imageUrl?: string | undefined;
     setName?: string | undefined;
-    weightGrams?: number;
 }
 
 export class ScanShipmentData implements IScanShipmentData {
@@ -35076,7 +35072,7 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
     eligibility?: PackingEligibility;
     customerNote?: string | undefined;
     eshopNote?: string | undefined;
-    items?: PackingOrderItem[];
+    items?: PackingOrderItemDto[];
 
     constructor(data?: IGetPackingOrderResponse) {
         super(data);
@@ -35096,7 +35092,7 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
                 for (let item of _data["items"])
-                    this.items!.push(PackingOrderItem.fromJS(item));
+                    this.items!.push(PackingOrderItemDto.fromJS(item));
             }
         }
     }
@@ -35137,7 +35133,7 @@ export interface IGetPackingOrderResponse extends IBaseResponse {
     eligibility?: PackingEligibility;
     customerNote?: string | undefined;
     eshopNote?: string | undefined;
-    items?: PackingOrderItem[];
+    items?: PackingOrderItemDto[];
 }
 
 export class PackingEligibility implements IPackingEligibility {
@@ -35182,6 +35178,54 @@ export interface IPackingEligibility {
     isEligible?: boolean;
     warningTitle?: string | undefined;
     warningBody?: string | undefined;
+}
+
+export class PackingOrderItemDto implements IPackingOrderItemDto {
+    name?: string;
+    quantity?: number;
+    imageUrl?: string | undefined;
+    setName?: string | undefined;
+
+    constructor(data?: IPackingOrderItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.quantity = _data["quantity"];
+            this.imageUrl = _data["imageUrl"];
+            this.setName = _data["setName"];
+        }
+    }
+
+    static fromJS(data: any): PackingOrderItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackingOrderItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["quantity"] = this.quantity;
+        data["imageUrl"] = this.imageUrl;
+        data["setName"] = this.setName;
+        return data;
+    }
+}
+
+export interface IPackingOrderItemDto {
+    name?: string;
+    quantity?: number;
+    imageUrl?: string | undefined;
+    setName?: string | undefined;
 }
 
 export class ListConversationsResponse extends BaseResponse implements IListConversationsResponse {
