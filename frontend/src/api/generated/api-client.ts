@@ -12381,7 +12381,7 @@ export class GetProductMarginAnalysisResponse extends BaseResponse implements IG
     totalUnitsSold?: number;
     analysisPeriodStart?: Date;
     analysisPeriodEnd?: Date;
-    monthlyBreakdown?: MonthlyMarginBreakdown[];
+    monthlyBreakdown?: MonthlyMarginBreakdownDto[];
 
     constructor(data?: IGetProductMarginAnalysisResponse) {
         super(data);
@@ -12402,7 +12402,7 @@ export class GetProductMarginAnalysisResponse extends BaseResponse implements IG
             if (Array.isArray(_data["monthlyBreakdown"])) {
                 this.monthlyBreakdown = [] as any;
                 for (let item of _data["monthlyBreakdown"])
-                    this.monthlyBreakdown!.push(MonthlyMarginBreakdown.fromJS(item));
+                    this.monthlyBreakdown!.push(MonthlyMarginBreakdownDto.fromJS(item));
             }
         }
     }
@@ -12445,17 +12445,17 @@ export interface IGetProductMarginAnalysisResponse extends IBaseResponse {
     totalUnitsSold?: number;
     analysisPeriodStart?: Date;
     analysisPeriodEnd?: Date;
-    monthlyBreakdown?: MonthlyMarginBreakdown[];
+    monthlyBreakdown?: MonthlyMarginBreakdownDto[];
 }
 
-export class MonthlyMarginBreakdown implements IMonthlyMarginBreakdown {
+export class MonthlyMarginBreakdownDto implements IMonthlyMarginBreakdownDto {
     month?: Date;
     marginAmount?: number;
     revenue?: number;
     cost?: number;
     unitsSold?: number;
 
-    constructor(data?: IMonthlyMarginBreakdown) {
+    constructor(data?: IMonthlyMarginBreakdownDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -12474,9 +12474,9 @@ export class MonthlyMarginBreakdown implements IMonthlyMarginBreakdown {
         }
     }
 
-    static fromJS(data: any): MonthlyMarginBreakdown {
+    static fromJS(data: any): MonthlyMarginBreakdownDto {
         data = typeof data === 'object' ? data : {};
-        let result = new MonthlyMarginBreakdown();
+        let result = new MonthlyMarginBreakdownDto();
         result.init(data);
         return result;
     }
@@ -12492,7 +12492,7 @@ export class MonthlyMarginBreakdown implements IMonthlyMarginBreakdown {
     }
 }
 
-export interface IMonthlyMarginBreakdown {
+export interface IMonthlyMarginBreakdownDto {
     month?: Date;
     marginAmount?: number;
     revenue?: number;
@@ -12509,8 +12509,8 @@ export class GetMarginReportResponse extends BaseResponse implements IGetMarginR
     averageMarginPercentage?: number;
     totalProductsAnalyzed?: number;
     totalUnitsSold?: number;
-    productSummaries?: ProductMarginSummary[];
-    categorySummaries?: CategoryMarginSummary[];
+    productSummaries?: ProductMarginSummaryDto[];
+    categorySummaries?: CategoryMarginSummaryDto[];
 
     constructor(data?: IGetMarginReportResponse) {
         super(data);
@@ -12530,12 +12530,12 @@ export class GetMarginReportResponse extends BaseResponse implements IGetMarginR
             if (Array.isArray(_data["productSummaries"])) {
                 this.productSummaries = [] as any;
                 for (let item of _data["productSummaries"])
-                    this.productSummaries!.push(ProductMarginSummary.fromJS(item));
+                    this.productSummaries!.push(ProductMarginSummaryDto.fromJS(item));
             }
             if (Array.isArray(_data["categorySummaries"])) {
                 this.categorySummaries = [] as any;
                 for (let item of _data["categorySummaries"])
-                    this.categorySummaries!.push(CategoryMarginSummary.fromJS(item));
+                    this.categorySummaries!.push(CategoryMarginSummaryDto.fromJS(item));
             }
         }
     }
@@ -12581,11 +12581,11 @@ export interface IGetMarginReportResponse extends IBaseResponse {
     averageMarginPercentage?: number;
     totalProductsAnalyzed?: number;
     totalUnitsSold?: number;
-    productSummaries?: ProductMarginSummary[];
-    categorySummaries?: CategoryMarginSummary[];
+    productSummaries?: ProductMarginSummaryDto[];
+    categorySummaries?: CategoryMarginSummaryDto[];
 }
 
-export class ProductMarginSummary implements IProductMarginSummary {
+export class ProductMarginSummaryDto implements IProductMarginSummaryDto {
     productId?: string;
     productName?: string;
     category?: string;
@@ -12603,7 +12603,7 @@ export class ProductMarginSummary implements IProductMarginSummary {
     cost?: number;
     unitsSold?: number;
 
-    constructor(data?: IProductMarginSummary) {
+    constructor(data?: IProductMarginSummaryDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -12633,9 +12633,9 @@ export class ProductMarginSummary implements IProductMarginSummary {
         }
     }
 
-    static fromJS(data: any): ProductMarginSummary {
+    static fromJS(data: any): ProductMarginSummaryDto {
         data = typeof data === 'object' ? data : {};
-        let result = new ProductMarginSummary();
+        let result = new ProductMarginSummaryDto();
         result.init(data);
         return result;
     }
@@ -12662,7 +12662,7 @@ export class ProductMarginSummary implements IProductMarginSummary {
     }
 }
 
-export interface IProductMarginSummary {
+export interface IProductMarginSummaryDto {
     productId?: string;
     productName?: string;
     category?: string;
@@ -12681,7 +12681,7 @@ export interface IProductMarginSummary {
     unitsSold?: number;
 }
 
-export class CategoryMarginSummary implements ICategoryMarginSummary {
+export class CategoryMarginSummaryDto implements ICategoryMarginSummaryDto {
     category?: string;
     totalMargin?: number;
     totalRevenue?: number;
@@ -12689,7 +12689,7 @@ export class CategoryMarginSummary implements ICategoryMarginSummary {
     productCount?: number;
     totalUnitsSold?: number;
 
-    constructor(data?: ICategoryMarginSummary) {
+    constructor(data?: ICategoryMarginSummaryDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -12709,9 +12709,9 @@ export class CategoryMarginSummary implements ICategoryMarginSummary {
         }
     }
 
-    static fromJS(data: any): CategoryMarginSummary {
+    static fromJS(data: any): CategoryMarginSummaryDto {
         data = typeof data === 'object' ? data : {};
-        let result = new CategoryMarginSummary();
+        let result = new CategoryMarginSummaryDto();
         result.init(data);
         return result;
     }
@@ -12728,7 +12728,7 @@ export class CategoryMarginSummary implements ICategoryMarginSummary {
     }
 }
 
-export interface ICategoryMarginSummary {
+export interface ICategoryMarginSummaryDto {
     category?: string;
     totalMargin?: number;
     totalRevenue?: number;

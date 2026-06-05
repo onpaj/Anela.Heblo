@@ -90,17 +90,8 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
         // Add monthly breakdown if requested
         if (request.IncludeBreakdown)
         {
-            response.MonthlyBreakdown = (_reportBuilderService
-                .BuildMonthlyBreakdown(productData.SalesHistory, productData, request.StartDate, request.EndDate) ?? [])
-                .Select(dto => new GetProductMarginAnalysisResponse.MonthlyMarginBreakdown
-                {
-                    Month = dto.Month,
-                    MarginAmount = dto.MarginAmount,
-                    Revenue = dto.Revenue,
-                    Cost = dto.Cost,
-                    UnitsSold = dto.UnitsSold
-                })
-                .ToList();
+            response.MonthlyBreakdown = _reportBuilderService
+                .BuildMonthlyBreakdown(productData.SalesHistory, productData, request.StartDate, request.EndDate) ?? new List<MonthlyMarginBreakdownDto>();
         }
 
         return response;
