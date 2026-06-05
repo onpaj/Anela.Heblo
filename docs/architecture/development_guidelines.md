@@ -60,6 +60,24 @@ public class OrderDto { } // Never in API or Xcc!
 - **Frontend owns routing**: URL construction happens in frontend based on its routing structure
 - **Backward compatibility**: Support both new filter-based and legacy URL approaches during transition
 
+### User Identity Resolution
+
+There is exactly **one** way to obtain the current user. See **ADR-005** for the full decision.
+
+| Concern | Lives in |
+| --- | --- |
+| `ICurrentUserService` interface | `Anela.Heblo.Domain/Features/Users/` |
+| `CurrentUserService` implementation (depends on `IHttpContextAccessor`) | `Anela.Heblo.API/Features/Users/` (outer ring, **not** Application) |
+| DI registration | `Anela.Heblo.API/Features/Users/UsersModule.cs` (`AddUsersModule()`) |
+| Resolution call-site | **inside MediatR handlers** that inject `ICurrentUserService` |
+
+**Rules:**
+- **Resolve identity inside the handler**, not the controller. Handlers inject `ICurrentUserService`.
+- **Controllers never resolve identity** — no `GetCurrentUserId()` helper, no `ICurrentUserService` injection, no stamping `UserId`/`ModifiedBy` onto requests.
+- **Request DTOs must not carry client-settable `UserId` / `ModifiedBy`** — these are server-resolved, never trusted from the client (spoofing hole).
+- **Never inject `IHttpContextAccessor` into a handler** — always go through `ICurrentUserService`.
+- When a GUID audit value is needed, use `Guid.TryParse(user.Id, out var id) ? id : null` — nullable, **no sentinel GUID** (see the `TransportBox` pattern in `CreateNewTransportBoxHandler`). Do **not** add a shared `UserIdResolver` helper unless a real consumer exists.
+
 ### Testing
 - Unit tests for domain logic
 - Integration tests for use cases
@@ -267,6 +285,12 @@ When module A needs **read-only access** to data in module B, the dependency mus
 - **Supersedes**: the previous mixed convention where `PersistenceModule` centrally registered
   repositories. All future implementations must follow this pattern.
 
+### ADR-005: User Identity Resolution
+- **Status**: Accepted
+- **Context**: Identity resolution had drifted into two coexisting patterns — a `BaseApiController.GetCurrentUserId()` helper that duplicated `CurrentUserService`'s claim-priority chain (used by `Dashboard`, `CarrierCooling`, `GiftSettings`), alongside the handler-side `ICurrentUserService` pattern used by 60+ other handlers. A daily arch-review routine kept re-filing fragments of the same concern (impl location, missing `UsersModule`, dead controller injections, direct `IHttpContextAccessor` use) because the canonical rule was written down nowhere.
+- **Decision**: There is exactly one way to obtain the current user. The `ICurrentUserService` interface lives in `Domain/Features/Users/`; the `CurrentUserService` implementation lives in `API/Features/Users/` (outer ring, since it depends on the web-only `IHttpContextAccessor`); DI is wired in `UsersModule.cs`. **Identity is resolved inside MediatR handlers** via injected `ICurrentUserService` — never in controllers, never via a controller helper, never via direct `IHttpContextAccessor`. Request DTOs carry no client-settable `UserId`/`ModifiedBy`. GUID audit values use `Guid.TryParse(user.Id, out var id) ? id : null` with no sentinel. See the *User Identity Resolution* practices section above.
+- **Consequences**: `BaseApiController.GetCurrentUserId()`, the three outlier controllers' identity assignments, and the spoofable DTO fields are removed (PR #2602, the final convergence of five arch-review findings). This ADR is the single source of truth — arch-review should treat any controller-side identity resolution or handler-side `IHttpContextAccessor` use as a violation of an accepted decision, not a new finding.
+
 ---
 
 ## ⚠️ Common Pitfalls to Avoid
@@ -278,6 +302,7 @@ When module A needs **read-only access** to data in module B, the dependency mus
 5. **Don't bypass contracts** - Always communicate through interfaces
 6. **Don't create anemic domain models** - Put behavior in entities
 7. **Don't ignore module boundaries** - Respect the architecture
+8. **Don't resolve user identity in controllers** - No `GetCurrentUserId()` helper, no `IHttpContextAccessor` in handlers; resolve via `ICurrentUserService` inside the handler (ADR-005)
 
 ---
 
