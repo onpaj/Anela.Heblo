@@ -25,7 +25,8 @@ export interface GetExpeditionListsByDateResponse {
 
 export interface ReprintExpeditionListResponse {
   success: boolean;
-  errorMessage: string | null;
+  errorCode: string | null;
+  params: Record<string, string> | null;
 }
 
 export interface RunExpeditionListPrintFixResult {
@@ -93,7 +94,8 @@ export const useReprintExpeditionList = () => {
       const response = await client.expeditionListArchive_Reprint(request);
       return {
         success: response.success ?? true,
-        errorMessage: response.errorMessage ?? null,
+        errorCode: (response.errorCode as string | null) ?? null,
+        params: response.params ?? null,
       };
     },
     onSuccess: () => {
@@ -102,18 +104,6 @@ export const useReprintExpeditionList = () => {
   });
 };
 
-export const useRunExpeditionListPrintFix = () => {
-  return useMutation<RunExpeditionListPrintFixResult, Error, void>({
-    mutationFn: async (): Promise<RunExpeditionListPrintFixResult> => {
-      const client = getAuthenticatedApiClient();
-      const response = await client.expeditionList_RunFix();
-      return {
-        totalCount: response.totalCount ?? 0,
-        errorMessage: response.errorMessage ?? null,
-      };
-    },
-  });
-};
 
 export const getExpeditionListDownloadUrl = (blobPath: string): string => {
   const encodedPath = blobPath.split("/").map(encodeURIComponent).join("/");

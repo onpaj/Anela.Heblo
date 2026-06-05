@@ -9,8 +9,11 @@ jest.mock("../../api/hooks/useExpeditionListArchive", () => ({
   useExpeditionDates: jest.fn(),
   useExpeditionListsByDate: jest.fn(),
   useReprintExpeditionList: jest.fn(),
-  useRunExpeditionListPrintFix: jest.fn(),
   getExpeditionListDownloadUrl: jest.fn(),
+}));
+
+jest.mock("../../api/hooks/useExpeditionList", () => ({
+  useRunExpeditionListPrintFix: jest.fn(),
 }));
 
 jest.mock("../../api/hooks/useRecurringJobs", () => ({
@@ -29,8 +32,9 @@ const {
   useExpeditionDates,
   useExpeditionListsByDate,
   useReprintExpeditionList,
-  useRunExpeditionListPrintFix,
 } = require("../../api/hooks/useExpeditionListArchive");
+
+const { useRunExpeditionListPrintFix } = require("../../api/hooks/useExpeditionList");
 
 const { useTriggerRecurringJobMutation } = require("../../api/hooks/useRecurringJobs");
 
@@ -72,7 +76,7 @@ describe("ExpeditionListArchivePage – refresh button", () => {
     (useExpeditionDates as jest.Mock).mockReturnValue(mockDatesData);
     (useExpeditionListsByDate as jest.Mock).mockReturnValue(mockItemsData);
     (useReprintExpeditionList as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn().mockResolvedValue({ success: true, errorMessage: null }),
+      mutateAsync: jest.fn().mockResolvedValue({ success: true, errorCode: null, params: null }),
       isPending: false,
     });
     (useRunExpeditionListPrintFix as jest.Mock).mockReturnValue({

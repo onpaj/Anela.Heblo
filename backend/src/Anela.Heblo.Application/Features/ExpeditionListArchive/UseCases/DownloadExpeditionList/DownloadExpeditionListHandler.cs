@@ -19,7 +19,7 @@ public class DownloadExpeditionListHandler : IRequestHandler<DownloadExpeditionL
     {
         if (!BlobPathValidator.IsValid(request.BlobPath))
         {
-            return DownloadExpeditionListResponse.Fail("Invalid blob path.");
+            return DownloadExpeditionListResponse.Fail();
         }
 
         var stream = await _blobStorageService.DownloadAsync(_containerName, request.BlobPath, cancellationToken);

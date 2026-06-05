@@ -5,7 +5,6 @@ import {
   useExpeditionDates,
   useExpeditionListsByDate,
   useReprintExpeditionList,
-  useRunExpeditionListPrintFix,
 } from '../useExpeditionListArchive';
 import { ReprintExpeditionListRequest } from '../../generated/api-client';
 import * as clientModule from '../../client';
@@ -152,7 +151,7 @@ describe('useReprintExpeditionList', () => {
   });
 
   it('instantiates ReprintExpeditionListRequest, calls the typed method, and returns the mapped response', async () => {
-    mockReprint.mockResolvedValue({ success: true, errorMessage: null });
+    mockReprint.mockResolvedValue({ success: true, errorCode: null, params: null });
 
     const { result } = renderHook(() => useReprintExpeditionList(), {
       wrapper: createWrapper,
@@ -164,7 +163,7 @@ describe('useReprintExpeditionList', () => {
     const calledWith = mockReprint.mock.calls[0][0];
     expect(calledWith).toBeInstanceOf(ReprintExpeditionListRequest);
     expect(calledWith.blobPath).toBe('2024/12/10/file.pdf');
-    expect(response).toEqual({ success: true, errorMessage: null });
+    expect(response).toEqual({ success: true, errorCode: null, params: null });
   });
 
   it('rethrows SwaggerException-like errors so callers can surface a toast', async () => {
@@ -180,38 +179,3 @@ describe('useReprintExpeditionList', () => {
   });
 });
 
-describe('useRunExpeditionListPrintFix', () => {
-  let mockRunFix: jest.Mock;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockRunFix = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue({
-      expeditionList_RunFix: mockRunFix,
-    } as any);
-  });
-
-  it('calls expeditionList_RunFix and returns the mapped response', async () => {
-    mockRunFix.mockResolvedValue({ totalCount: 7, errorMessage: null });
-
-    const { result } = renderHook(() => useRunExpeditionListPrintFix(), {
-      wrapper: createWrapper,
-    });
-
-    const response = await result.current.mutateAsync();
-
-    expect(mockRunFix).toHaveBeenCalledTimes(1);
-    expect(response).toEqual({ totalCount: 7, errorMessage: null });
-  });
-
-  it('defaults totalCount to 0 and errorMessage to null when the backend omits them', async () => {
-    mockRunFix.mockResolvedValue({});
-
-    const { result } = renderHook(() => useRunExpeditionListPrintFix(), {
-      wrapper: createWrapper,
-    });
-
-    const response = await result.current.mutateAsync();
-    expect(response).toEqual({ totalCount: 0, errorMessage: null });
-  });
-});

@@ -46,7 +46,7 @@ public class ExpeditionListArchiveController : BaseApiController
 
         if (!response.Success || response.Stream == null)
         {
-            return BadRequest(response.ErrorMessage);
+            return BadRequest(response);
         }
 
         return File(response.Stream, response.ContentType, response.FileName);
@@ -56,12 +56,6 @@ public class ExpeditionListArchiveController : BaseApiController
     public async Task<ActionResult<ReprintExpeditionListResponse>> Reprint([FromBody] ReprintExpeditionListRequest request)
     {
         var response = await _mediator.Send(request);
-
-        if (!response.Success)
-        {
-            return BadRequest(response);
-        }
-
-        return Ok(response);
+        return HandleResponse(response);
     }
 }

@@ -199,6 +199,8 @@ public enum ErrorCodes
     FileTooLarge = 1806,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     UnsupportedFileType = 1807,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidBlobPath = 1808,
 
     // BackgroundJobs module errors (19XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
