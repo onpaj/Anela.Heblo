@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.PackingMaterials.UseCases.CreateAllocatio
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeleteAllocation;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeletePackingMaterial;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetAllocations;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetConsumptionHistory;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetDailyConsumptionBreakdown;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDailyConsumption;
@@ -153,6 +154,17 @@ public class PackingMaterialsController : BaseApiController
         var request = new GetDailyConsumptionBreakdownRequest { Date = parsedDate, GroupBy = groupBy };
         var response = await _mediator.Send(request, cancellationToken);
         return response.Success ? Ok(response) : BadRequest(new { error = response.Error });
+    }
+
+    [HttpGet("consumption-history")]
+    [ProducesResponseType(typeof(GetConsumptionHistoryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<GetConsumptionHistoryResponse>> GetConsumptionHistory(
+        [FromQuery] GetConsumptionHistoryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _mediator.Send(request, cancellationToken);
+        return Ok(response);
     }
 
     [HttpGet("{id}/logs")]
