@@ -12222,6 +12222,7 @@ export enum ErrorCodes {
     BlobNotFound = "BlobNotFound",
     FileTooLarge = "FileTooLarge",
     UnsupportedFileType = "UnsupportedFileType",
+    InvalidBlobPath = "InvalidBlobPath",
     RecurringJobNotFound = "RecurringJobNotFound",
     RecurringJobUpdateFailed = "RecurringJobUpdateFailed",
     InvalidCronExpression = "InvalidCronExpression",
@@ -17578,7 +17579,6 @@ export interface IExpeditionListItemDto {
 }
 
 export class ReprintExpeditionListResponse extends BaseResponse implements IReprintExpeditionListResponse {
-    errorMessage?: string | undefined;
 
     constructor(data?: IReprintExpeditionListResponse) {
         super(data);
@@ -17586,9 +17586,6 @@ export class ReprintExpeditionListResponse extends BaseResponse implements IRepr
 
     override init(_data?: any) {
         super.init(_data);
-        if (_data) {
-            this.errorMessage = _data["errorMessage"];
-        }
     }
 
     static override fromJS(data: any): ReprintExpeditionListResponse {
@@ -17600,14 +17597,12 @@ export class ReprintExpeditionListResponse extends BaseResponse implements IRepr
 
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["errorMessage"] = this.errorMessage;
         super.toJSON(data);
         return data;
     }
 }
 
 export interface IReprintExpeditionListResponse extends IBaseResponse {
-    errorMessage?: string | undefined;
 }
 
 export class ReprintExpeditionListRequest implements IReprintExpeditionListRequest {
@@ -17648,7 +17643,6 @@ export interface IReprintExpeditionListRequest {
 
 export class RunExpeditionListPrintFixResponse extends BaseResponse implements IRunExpeditionListPrintFixResponse {
     totalCount?: number;
-    errorMessage?: string | undefined;
 
     constructor(data?: IRunExpeditionListPrintFixResponse) {
         super(data);
@@ -17658,7 +17652,6 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
         super.init(_data);
         if (_data) {
             this.totalCount = _data["totalCount"];
-            this.errorMessage = _data["errorMessage"];
         }
     }
 
@@ -17672,7 +17665,6 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["totalCount"] = this.totalCount;
-        data["errorMessage"] = this.errorMessage;
         super.toJSON(data);
         return data;
     }
@@ -17680,7 +17672,6 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
 
 export interface IRunExpeditionListPrintFixResponse extends IBaseResponse {
     totalCount?: number;
-    errorMessage?: string | undefined;
 }
 
 export class EvaluateFlagsForClientResponse extends BaseResponse implements IEvaluateFlagsForClientResponse {
