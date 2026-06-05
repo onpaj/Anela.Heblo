@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
-import { 
+import {
   ProcessDailyConsumptionRequest as GeneratedProcessDailyConsumptionRequest,
-  ProcessDailyConsumptionResponse as GeneratedProcessDailyConsumptionResponse 
+  ProcessDailyConsumptionResponse as GeneratedProcessDailyConsumptionResponse,
+  ConsumptionType as ApiConsumptionType
 } from "../generated/api-client";
 
 // Define types based on our backend DTOs
@@ -313,7 +314,10 @@ export const useConsumptionHistory = (params: ConsumptionHistoryParams) => {
         params.dateFrom ?? undefined,
         params.dateTo ?? undefined,
         params.packingMaterialId ?? undefined,
-        params.consumptionType ?? undefined,
+        // Local ConsumptionType is a numeric enum; the generated client types this
+        // param as its own (string) ConsumptionType. The numeric value binds correctly
+        // to the backend enum, so bridge the two enum types here.
+        (params.consumptionType as unknown as ApiConsumptionType | undefined) ?? undefined,
         params.productCode ?? undefined,
         params.invoiceId ?? undefined,
         params.pageNumber ?? undefined,
