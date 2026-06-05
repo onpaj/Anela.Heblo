@@ -15,7 +15,6 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
     private readonly IPackingOrderClient _orderClient;
     private readonly IEshopOrderClient _eshopOrderClient;
     private readonly ShipmentLabelsSettings _shipmentSettings;
-    private readonly ShoptetOrdersSettings _orderSettings;
     private readonly ILogger<ScanPackingOrderHandler> _logger;
     private readonly IPackageRepository _packageRepository;
     private readonly ICurrentUserService _currentUserService;
@@ -25,7 +24,6 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         IPackingOrderClient orderClient,
         IEshopOrderClient eshopOrderClient,
         IOptions<ShipmentLabelsSettings> shipmentSettings,
-        IOptions<ShoptetOrdersSettings> orderSettings,
         ILogger<ScanPackingOrderHandler> logger,
         IPackageRepository packageRepository,
         ICurrentUserService currentUserService)
@@ -34,7 +32,6 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         _orderClient = orderClient;
         _eshopOrderClient = eshopOrderClient;
         _shipmentSettings = shipmentSettings.Value;
-        _orderSettings = orderSettings.Value;
         _logger = logger;
         _packageRepository = packageRepository;
         _currentUserService = currentUserService;
@@ -46,7 +43,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         if (order is null)
             return new ScanPackingOrderResponse(ErrorCodes.ShoptetOrderNotFound);
 
-        var isEligible = order.StatusId == _orderSettings.PackingStateId;
+        var isEligible = order.IsEligibleForPacking;
         var orderData = new ScanOrderData
         {
             Code = order.Code,
@@ -183,12 +180,11 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
     {
         try
         {
-            await _eshopOrderClient.UpdateStatusAsync(orderCode, _orderSettings.PackedStateId, ct);
+            await _eshopOrderClient.MarkAsPackedAsync(orderCode, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to update order {OrderCode} to packed status {StatusId}",
-                orderCode, _orderSettings.PackedStateId);
+            _logger.LogWarning(ex, "Failed to mark order {OrderCode} as packed", orderCode);
         }
     }
 

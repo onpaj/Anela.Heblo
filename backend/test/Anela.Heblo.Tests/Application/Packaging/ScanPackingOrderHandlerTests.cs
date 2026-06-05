@@ -27,15 +27,7 @@ public class ScanPackingOrderHandlerTests
         MinPackageWeightGrams = 100,
     };
 
-    private static readonly ShoptetOrdersSettings DefaultOrderSettings = new()
-    {
-        PackingStateId = 26,
-        PackedStateId = 52,
-    };
-
-    private ScanPackingOrderHandler CreateHandler(
-        ShipmentLabelsSettings? labelSettings = null,
-        ShoptetOrdersSettings? orderSettings = null)
+    private ScanPackingOrderHandler CreateHandler(ShipmentLabelsSettings? labelSettings = null)
     {
         _currentUserService.Setup(c => c.GetCurrentUser())
             .Returns(new CurrentUser("uid-1", "Operator", "op@example.com", IsAuthenticated: true));
@@ -44,7 +36,6 @@ public class ScanPackingOrderHandlerTests
             _orderClient.Object,
             _eshopOrderClient.Object,
             Options.Create(labelSettings ?? DefaultLabelSettings),
-            Options.Create(orderSettings ?? DefaultOrderSettings),
             new Mock<ILogger<ScanPackingOrderHandler>>().Object,
             _packageRepository.Object,
             _currentUserService.Object);
@@ -55,6 +46,7 @@ public class ScanPackingOrderHandlerTests
         {
             Code = "0001234",
             StatusId = 26,
+            IsEligibleForPacking = true,
             Items = items.Select(i => new PackingOrderItem
             {
                 Name = i.name,
@@ -85,7 +77,7 @@ public class ScanPackingOrderHandlerTests
     {
         _orderClient
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PackingOrder { Code = "0001234", StatusId = 99 });
+            .ReturnsAsync(new PackingOrder { Code = "0001234", StatusId = 99, IsEligibleForPacking = false });
         _shipmentClient
             .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
@@ -121,7 +113,7 @@ public class ScanPackingOrderHandlerTests
 
         _orderClient
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PackingOrder { Code = "0001234", StatusId = 99 });
+            .ReturnsAsync(new PackingOrder { Code = "0001234", StatusId = 99, IsEligibleForPacking = false });
         _shipmentClient
             .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
             .ReturnsAsync([existingLabel]);
@@ -142,11 +134,11 @@ public class ScanPackingOrderHandlerTests
             c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _eshopOrderClient.Verify(
-            c => c.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            c => c.MarkAsPackedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
-    // Test 2: Labels already exist → return existing shipment without creating
+    // Test 3: Labels already exist on eligible order → return existing shipment without creating
     [Fact]
     public async Task Handle_LabelsExist_ReturnsExistingShipmentWithAlreadyExistedTrue()
     {
@@ -187,7 +179,7 @@ public class ScanPackingOrderHandlerTests
             Times.Never);
     }
 
-    // Test 3: All items have WeightGrams = 0 → weight unavailable error
+    // Test 4: All items have WeightGrams = 0 → weight unavailable error
     [Fact]
     public async Task Handle_AllItemsHaveZeroWeight_ReturnsShipmentOrderWeightUnavailable()
     {
@@ -207,7 +199,7 @@ public class ScanPackingOrderHandlerTests
         response.ErrorCode.Should().Be(ErrorCodes.ShipmentOrderWeightUnavailable);
     }
 
-    // Test 4: No shipping options returned → carrier not resolved error
+    // Test 5: No shipping options returned → carrier not resolved error
     [Fact]
     public async Task Handle_NoShippingOptions_ReturnsShipmentCarrierNotResolved()
     {
@@ -231,7 +223,7 @@ public class ScanPackingOrderHandlerTests
         response.ErrorCode.Should().Be(ErrorCodes.ShipmentCarrierNotResolved);
     }
 
-    // Test 5: CreateShipmentAsync throws → creation failed error
+    // Test 6: CreateShipmentAsync throws → creation failed error
     [Fact]
     public async Task Handle_CreateShipmentThrows_ReturnsShipmentCreationFailed()
     {
@@ -259,7 +251,7 @@ public class ScanPackingOrderHandlerTests
         response.ErrorCode.Should().Be(ErrorCodes.ShipmentCreationFailed);
     }
 
-    // Test 6: Eligible order, no existing shipment → creates new shipment, AlreadyExisted = false
+    // Test 7: Eligible order, no existing shipment → creates new shipment, AlreadyExisted = false
     [Fact]
     public async Task Handle_NoExistingShipment_CreatesNewShipmentWithAlreadyExistedFalse()
     {
@@ -269,6 +261,7 @@ public class ScanPackingOrderHandlerTests
         {
             Code = "0001234",
             StatusId = 26,
+            IsEligibleForPacking = true,
             Items = new List<PackingOrderItem>
             {
                 new() { Name = "P001", Quantity = 1, WeightGrams = 400 },
@@ -341,9 +334,9 @@ public class ScanPackingOrderHandlerTests
         response.Order!.ShippingAddress.Should().BeNull();
     }
 
-    // Status update: called with PackedStateId when existing shipment found
+    // MarkAsPackedAsync: called when existing shipment found and order is eligible
     [Fact]
-    public async Task Handle_LabelsExist_UpdatesOrderStatusToPacked()
+    public async Task Handle_LabelsExist_MarksOrderAsPacked()
     {
         var shipmentGuid = Guid.NewGuid();
 
@@ -361,13 +354,13 @@ public class ScanPackingOrderHandlerTests
 
         response.Success.Should().BeTrue();
         _eshopOrderClient.Verify(
-            c => c.UpdateStatusAsync("0001234", 52, It.IsAny<CancellationToken>()),
+            c => c.MarkAsPackedAsync("0001234", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
-    // Status update: called with PackedStateId when new shipment is created
+    // MarkAsPackedAsync: called when new shipment is created on eligible order
     [Fact]
-    public async Task Handle_NewShipmentCreated_UpdatesOrderStatusToPacked()
+    public async Task Handle_NewShipmentCreated_MarksOrderAsPacked()
     {
         var shipmentGuid = Guid.NewGuid();
 
@@ -394,13 +387,13 @@ public class ScanPackingOrderHandlerTests
 
         response.Success.Should().BeTrue();
         _eshopOrderClient.Verify(
-            c => c.UpdateStatusAsync("0001234", 52, It.IsAny<CancellationToken>()),
+            c => c.MarkAsPackedAsync("0001234", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
-    // Status update: failure is non-fatal — scan still returns success
+    // MarkAsPackedAsync: failure is non-fatal — scan still returns success
     [Fact]
-    public async Task Handle_StatusUpdateFails_StillReturnsSuccessfulScanResponse()
+    public async Task Handle_MarkAsPackedFails_StillReturnsSuccessfulScanResponse()
     {
         var shipmentGuid = Guid.NewGuid();
 
@@ -413,7 +406,7 @@ public class ScanPackingOrderHandlerTests
             .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://example.com/label.pdf" }]);
 
         _eshopOrderClient
-            .Setup(c => c.UpdateStatusAsync("0001234", It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(c => c.MarkAsPackedAsync("0001234", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Shoptet status update failed"));
 
         var response = await CreateHandler().Handle(
@@ -424,13 +417,13 @@ public class ScanPackingOrderHandlerTests
         response.Shipment.Should().NotBeNull();
     }
 
-    // Status update: NOT called when order is ineligible
+    // MarkAsPackedAsync: NOT called when order is ineligible
     [Fact]
-    public async Task Handle_OrderNotInPackingState_DoesNotUpdateStatus()
+    public async Task Handle_OrderNotInPackingState_DoesNotMarkAsPacked()
     {
         _orderClient
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PackingOrder { Code = "0001234", StatusId = 99 });
+            .ReturnsAsync(new PackingOrder { Code = "0001234", StatusId = 99, IsEligibleForPacking = false });
 
         _shipmentClient
             .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
@@ -441,7 +434,7 @@ public class ScanPackingOrderHandlerTests
             CancellationToken.None);
 
         _eshopOrderClient.Verify(
-            c => c.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            c => c.MarkAsPackedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 }
