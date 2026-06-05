@@ -255,6 +255,16 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
     };
 
+    // Allowlist for ExpeditionList -> Logistics.
+    // Carriers is a Domain enum (Zasilkovna/GLS/PPL/Osobak) consumed widely across the codebase.
+    // Duplicating it into ExpeditionList would create a synchronization burden far worse than
+    // the dependency it removes. The single entry below is the only Logistics-namespaced type
+    // ExpeditionList intentionally references, and it appears solely on ExpeditionPickingRequest.
+    private static readonly HashSet<string> ExpeditionListLogisticsAllowlist = new(StringComparer.Ordinal)
+    {
+        "Anela.Heblo.Application.Features.ExpeditionList.Contracts.ExpeditionPickingRequest -> Anela.Heblo.Domain.Features.Logistics.Carriers",
+    };
+
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
         new ModuleBoundaryRule(
@@ -422,6 +432,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Catalog",
             },
             Allowlist: ManufactureCatalogAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "ExpeditionList -> Logistics",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.ExpeditionList",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Logistics",
+                "Anela.Heblo.Application.Features.Logistics",
+                "Anela.Heblo.Persistence.Logistics",
+            },
+            Allowlist: ExpeditionListLogisticsAllowlist),
     };
 
     [Theory]
