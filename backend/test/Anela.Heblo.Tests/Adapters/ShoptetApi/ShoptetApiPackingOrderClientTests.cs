@@ -6,6 +6,7 @@ using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -26,7 +27,7 @@ public class ShoptetApiPackingOrderClientTests
         {
             BaseAddress = new Uri("https://fake.shoptet.cz"),
         };
-        return new ShoptetOrderClient(http);
+        return new ShoptetOrderClient(http, Options.Create(new ShoptetOrdersSettings()));
     }
 
     private static HttpResponseMessage Json(object obj, HttpStatusCode status = HttpStatusCode.OK)

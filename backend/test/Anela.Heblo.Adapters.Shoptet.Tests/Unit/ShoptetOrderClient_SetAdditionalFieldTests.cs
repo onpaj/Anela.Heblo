@@ -2,7 +2,9 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
+using Anela.Heblo.Application.Features.ShoptetOrders;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
 using Xunit;
@@ -21,7 +23,7 @@ public class ShoptetOrderClient_SetAdditionalFieldTests
     {
         var handler = new Mock<HttpMessageHandler>();
         var http = new HttpClient(handler.Object) { BaseAddress = new Uri("https://test.myshoptet.com") };
-        return (new ShoptetOrderClient(http), handler);
+        return (new ShoptetOrderClient(http, Options.Create(new ShoptetOrdersSettings())), handler);
     }
 
     [Fact]

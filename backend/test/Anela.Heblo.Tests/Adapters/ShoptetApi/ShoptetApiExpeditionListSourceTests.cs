@@ -9,8 +9,10 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using Anela.Heblo.Application.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using Moq;
 using QuestPDF.Infrastructure;
 
@@ -38,7 +40,7 @@ public class ShoptetApiExpeditionListSourceTests
     {
         var msgHandler = new FakeDelegatingHandler(handler);
         var http = new HttpClient(msgHandler) { BaseAddress = new Uri("https://fake.shoptet.cz") };
-        return new ShoptetOrderClient(http);
+        return new ShoptetOrderClient(http, Options.Create(new ShoptetOrdersSettings()));
     }
 
     private static HttpResponseMessage Json(object obj, HttpStatusCode status = HttpStatusCode.OK)
