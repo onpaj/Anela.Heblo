@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Smartsupp.UseCases.SendMessage;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetVisitorInfo;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -14,7 +15,7 @@ namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/smartsupp")]
-[Authorize]
+[Authorize(Roles = AccessRoles.SmartsuppRead)]
 public class SmartsuppController : BaseApiController
 {
     private readonly IMediator _mediator;

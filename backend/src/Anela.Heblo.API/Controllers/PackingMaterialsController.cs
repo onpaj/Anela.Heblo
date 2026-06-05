@@ -10,6 +10,7 @@ using Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDailyCon
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdateAllocation;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterialQuantity;
 using Anela.Heblo.API.Infrastructure;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -18,7 +19,7 @@ using System.Globalization;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = AccessRoles.LogisticsRead)]
 [ApiController]
 [Route("api/packing-materials")]
 public class PackingMaterialsController : BaseApiController
@@ -40,6 +41,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost]
+    [Authorize(Roles = AccessRoles.LogisticsWrite)]
     public async Task<ActionResult<CreatePackingMaterialResponse>> CreatePackingMaterial(
         [FromBody] CreatePackingMaterialRequest request,
         CancellationToken cancellationToken = default)
@@ -57,6 +59,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = AccessRoles.LogisticsWrite)]
     [ProducesResponseType(typeof(UpdatePackingMaterialResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -82,6 +85,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost("{id}/quantity")]
+    [Authorize(Roles = AccessRoles.LogisticsWrite)]
     [ProducesResponseType(typeof(UpdatePackingMaterialQuantityResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -109,6 +113,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = AccessRoles.LogisticsWrite)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -124,6 +129,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost("process-daily-consumption")]
+    [Authorize(Roles = AccessRoles.LogisticsWrite)]
     public async Task<ActionResult<ProcessDailyConsumptionResponse>> ProcessDailyConsumption(
         [FromBody] ProcessDailyConsumptionRequest request,
         CancellationToken cancellationToken = default)
@@ -191,6 +197,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost("{id}/allocations")]
+    [Authorize(Roles = AccessRoles.LogisticsWrite)]
     [ProducesResponseType(typeof(CreateAllocationResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -217,6 +224,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPut("{id}/allocations/{allocationId}")]
+    [Authorize(Roles = AccessRoles.LogisticsWrite)]
     [ProducesResponseType(typeof(UpdateAllocationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -241,6 +249,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpDelete("{id}/allocations/{allocationId}")]
+    [Authorize(Roles = AccessRoles.LogisticsWrite)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DeleteAllocationResponse>> DeleteAllocation(

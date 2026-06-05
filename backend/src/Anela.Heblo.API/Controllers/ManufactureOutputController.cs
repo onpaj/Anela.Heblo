@@ -1,12 +1,13 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = AccessRoles.ManufactureOutputRead)]
 [ApiController]
 [Route("api/manufacture-output")]
 public class ManufactureOutputController : BaseApiController

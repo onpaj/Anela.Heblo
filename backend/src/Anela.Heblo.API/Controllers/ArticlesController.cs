@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = AccessRoles.ArticleRead)]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class ArticlesController : BaseApiController
@@ -26,7 +26,7 @@ public sealed class ArticlesController : BaseApiController
     }
 
     [HttpPost("generate")]
-    [Authorize(Policy = AuthorizationConstants.Policies.MarketingReader)]
+    [Authorize(Roles = AccessRoles.ArticleWrite)]
     public async Task<ActionResult<GenerateArticleResponse>> Generate(
         [FromBody] GenerateArticleRequest request,
         CancellationToken ct = default)
@@ -83,7 +83,7 @@ public sealed class ArticlesController : BaseApiController
     }
 
     [HttpGet("feedback/list")]
-    [Authorize(Policy = AuthorizationConstants.Policies.MarketingReader)]
+    [Authorize(Roles = AccessRoles.ArticleWrite)]
     public async Task<ActionResult<GetArticleFeedbackListResponse>> FeedbackList(
         [FromQuery] bool? hasFeedback = null,
         [FromQuery] string? requestedBy = null,
@@ -106,7 +106,7 @@ public sealed class ArticlesController : BaseApiController
     }
 
     [HttpPost("admin/backfill-requested-by")]
-    [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+    [Authorize(Roles = AccessRoles.AdministrationWrite)]
     public async Task<ActionResult<BackfillArticleRequestedByResponse>> BackfillRequestedBy(
         [FromBody] BackfillArticleRequestedByCommand request,
         CancellationToken ct = default)

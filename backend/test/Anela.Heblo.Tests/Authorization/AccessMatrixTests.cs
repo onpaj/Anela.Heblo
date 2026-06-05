@@ -1,5 +1,8 @@
 using Anela.Heblo.Domain.Features.Authorization;
 using FluentAssertions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Reflection;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Authorization;
@@ -61,5 +64,44 @@ public class AccessMatrixConsistencyTests
         var bundled = AccessMatrix.Groups.SelectMany(g => g.Roles).ToHashSet();
         foreach (var role in AccessMatrix.AllRoleValues())
             bundled.Should().Contain(role, $"role {role} is not assigned to any group (would be unreachable)");
+    }
+}
+
+public class ControllerAuthorizationCoverageTests
+{
+    private static readonly HashSet<string> KnownRoles = AccessMatrix.AllRoleValues()
+        .Append(AccessRoles.Base)
+        .ToHashSet();
+
+    [Fact]
+    public void AllControllerRoles_AreKnownMatrixRoles()
+    {
+        var apiAssembly = typeof(Anela.Heblo.API.Program).Assembly;
+        var controllers = apiAssembly.GetTypes()
+            .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract);
+
+        foreach (var controller in controllers)
+        {
+            foreach (var attr in controller.GetCustomAttributes<AuthorizeAttribute>(true))
+            {
+                foreach (var role in (attr.Roles ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    KnownRoles.Should().Contain(role.Trim(),
+                        $"{controller.Name} uses unknown role '{role.Trim()}'");
+                }
+            }
+
+            foreach (var method in controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                foreach (var attr in method.GetCustomAttributes<AuthorizeAttribute>())
+                {
+                    foreach (var role in (attr.Roles ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        KnownRoles.Should().Contain(role.Trim(),
+                            $"{controller.Name}.{method.Name} uses unknown role '{role.Trim()}'");
+                    }
+                }
+            }
+        }
     }
 }

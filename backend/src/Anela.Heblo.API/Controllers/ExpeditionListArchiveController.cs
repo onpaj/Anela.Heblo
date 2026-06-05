@@ -2,13 +2,14 @@ using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.DownloadEx
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionDates;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionListsByDate;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = AccessRoles.ExpeditionRead)]
 [ApiController]
 [Route("api/expedition-list-archive")]
 public class ExpeditionListArchiveController : BaseApiController
@@ -53,6 +54,7 @@ public class ExpeditionListArchiveController : BaseApiController
     }
 
     [HttpPost("reprint")]
+    [Authorize(Roles = AccessRoles.ExpeditionWrite)]
     public async Task<ActionResult<ReprintExpeditionListResponse>> Reprint([FromBody] ReprintExpeditionListRequest request)
     {
         var response = await _mediator.Send(request);
