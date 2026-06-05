@@ -31,8 +31,15 @@ public class InvoiceDqtComparer : IInvoiceDqtComparer
 
         var flexiInvoices = await _flexiClient.GetAllAsync(from, to, ct);
 
-        var shoptetByCode = shoptetInvoices.ToDictionary(i => i.Code);
-        var flexiByCode = flexiInvoices.ToDictionary(i => i.Code);
+        // Invoice codes are expected to be unique, but a source occasionally returns the same
+        // code twice (e.g. paginated batch overlap). That is itself a data-quality finding —
+        // group instead of ToDictionary so a duplicate is reported, not a fatal crash.
+        var shoptetGroups = shoptetInvoices.GroupBy(i => i.Code).ToList();
+        var flexiGroups = flexiInvoices.GroupBy(i => i.Code).ToList();
+        var shoptetByCode = shoptetGroups.ToDictionary(g => g.Key, g => g.First());
+        var flexiByCode = flexiGroups.ToDictionary(g => g.Key, g => g.First());
+        var shoptetDupCounts = shoptetGroups.Where(g => g.Count() > 1).ToDictionary(g => g.Key, g => g.Count());
+        var flexiDupCounts = flexiGroups.Where(g => g.Count() > 1).ToDictionary(g => g.Key, g => g.Count());
 
         var allCodes = shoptetByCode.Keys.Union(flexiByCode.Keys).ToHashSet();
         var mismatches = new List<InvoiceDqtMismatch>();
@@ -42,12 +49,16 @@ public class InvoiceDqtComparer : IInvoiceDqtComparer
             var inShoptet = shoptetByCode.TryGetValue(code, out var shoptetInvoice);
             var inFlexi = flexiByCode.TryGetValue(code, out var flexiInvoice);
 
+            var duplicateDetail = BuildDuplicateDetail(code, shoptetDupCounts, flexiDupCounts);
+            var duplicateFlag = duplicateDetail is null ? InvoiceMismatchType.None : InvoiceMismatchType.DuplicateInvoiceCode;
+
             if (inShoptet && !inFlexi)
             {
                 mismatches.Add(new InvoiceDqtMismatch
                 {
                     InvoiceCode = code,
-                    MismatchType = InvoiceMismatchType.MissingInFlexi
+                    MismatchType = InvoiceMismatchType.MissingInFlexi | duplicateFlag,
+                    Details = duplicateDetail
                 });
                 continue;
             }
@@ -57,16 +68,17 @@ public class InvoiceDqtComparer : IInvoiceDqtComparer
                 mismatches.Add(new InvoiceDqtMismatch
                 {
                     InvoiceCode = code,
-                    MismatchType = InvoiceMismatchType.MissingInShoptet
+                    MismatchType = InvoiceMismatchType.MissingInShoptet | duplicateFlag,
+                    Details = duplicateDetail
                 });
                 continue;
             }
 
             // Both exist — compare
-            var flags = InvoiceMismatchType.None;
+            var flags = duplicateFlag;
             string? shoptetVal = null;
             string? flexiVal = null;
-            string? details = null;
+            string? details = duplicateDetail;
 
             if (Math.Abs(shoptetInvoice!.Price.TotalWithVat - flexiInvoice!.Price.TotalWithVat) > Tolerance)
             {
@@ -86,7 +98,7 @@ public class InvoiceDqtComparer : IInvoiceDqtComparer
             if (itemDiff != null)
             {
                 flags |= InvoiceMismatchType.ItemsDiffer;
-                details = itemDiff;
+                details = details is null ? itemDiff : $"{details}; {itemDiff}";
             }
 
             if (flags != InvoiceMismatchType.None)
@@ -113,15 +125,26 @@ public class InvoiceDqtComparer : IInvoiceDqtComparer
     {
         // Items without a product code (unidentifiable shipping/billing/discount lines) cannot
         // be matched cross-system — skip them to avoid duplicate-key crashes.
-        var shoptetByCode = shoptetItems
+        var shoptetGroups = shoptetItems
             .Where(i => !string.IsNullOrEmpty(i.Code))
-            .ToDictionary(i => i.Code);
-        var flexiByCode = flexiItems
+            .GroupBy(i => i.Code)
+            .ToList();
+        var flexiGroups = flexiItems
             .Where(i => !string.IsNullOrEmpty(i.Code))
-            .ToDictionary(i => i.Code);
+            .GroupBy(i => i.Code)
+            .ToList();
+        var shoptetByCode = shoptetGroups.ToDictionary(g => g.Key, g => g.First());
+        var flexiByCode = flexiGroups.ToDictionary(g => g.Key, g => g.First());
         var allCodes = shoptetByCode.Keys.Union(flexiByCode.Keys);
 
         var diffs = new List<string>();
+
+        // A product code appearing more than once within one invoice is itself a finding —
+        // report it rather than letting ToDictionary throw.
+        foreach (var g in shoptetGroups.Where(g => g.Count() > 1))
+            diffs.Add($"Item {g.Key}: duplicated in shoptet (x{g.Count()})");
+        foreach (var g in flexiGroups.Where(g => g.Count() > 1))
+            diffs.Add($"Item {g.Key}: duplicated in flexi (x{g.Count()})");
 
         foreach (var code in allCodes)
         {
@@ -151,5 +174,19 @@ public class InvoiceDqtComparer : IInvoiceDqtComparer
         }
 
         return diffs.Count > 0 ? string.Join("; ", diffs) : null;
+    }
+
+    private static string? BuildDuplicateDetail(
+        string code,
+        IReadOnlyDictionary<string, int> shoptetDupCounts,
+        IReadOnlyDictionary<string, int> flexiDupCounts)
+    {
+        var parts = new List<string>();
+        if (shoptetDupCounts.TryGetValue(code, out var shoptetCount))
+            parts.Add($"shoptet (x{shoptetCount})");
+        if (flexiDupCounts.TryGetValue(code, out var flexiCount))
+            parts.Add($"flexi (x{flexiCount})");
+
+        return parts.Count > 0 ? $"Duplicate invoice code in {string.Join(", ", parts)}" : null;
     }
 }
