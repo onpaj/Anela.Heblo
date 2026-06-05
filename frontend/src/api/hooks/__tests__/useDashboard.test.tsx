@@ -105,6 +105,8 @@ describe('useDashboard hooks', () => {
       };
 
       mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
         json: jest.fn().mockResolvedValue(mockSettings)
       });
 
@@ -149,6 +151,8 @@ describe('useDashboard hooks', () => {
       ];
 
       mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
         json: jest.fn().mockResolvedValue(mockTileData)
       });
 
