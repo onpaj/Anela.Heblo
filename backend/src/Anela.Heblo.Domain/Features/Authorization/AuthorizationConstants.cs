@@ -75,3 +75,80 @@ public static class AccessRoles
     public const string FeatureFlagsRead = "feature_flags.read";
     public const string FeatureFlagsWrite = "feature_flags.write";
 }
+
+/// <summary>Backward compatibility alias for AuthorizationConstants used throughout the codebase.</summary>
+public static class AuthorizationConstants
+{
+    public static class Roles
+    {
+        public const string Base = AccessRoles.Base;
+        public const string FinancialOverviewRead = AccessRoles.FinancialOverviewRead;
+        public const string MarginAnalysisRead = AccessRoles.MarginAnalysisRead;
+        public const string ProductMarginsRead = AccessRoles.ProductMarginsRead;
+        public const string CatalogRead = AccessRoles.CatalogRead;
+        public const string CatalogWrite = AccessRoles.CatalogWrite;
+        public const string JournalRead = AccessRoles.JournalRead;
+        public const string JournalWrite = AccessRoles.JournalWrite;
+        public const string BankStatementsRead = AccessRoles.BankStatementsRead;
+        public const string KnowledgeBaseRead = AccessRoles.KnowledgeBaseRead;
+        public const string KnowledgeBaseWrite = AccessRoles.KnowledgeBaseWrite;
+        public const string SmartsuppRead = AccessRoles.SmartsuppRead;
+        public const string PurchaseOrdersRead = AccessRoles.PurchaseOrdersRead;
+        public const string PurchaseOrdersWrite = AccessRoles.PurchaseOrdersWrite;
+        public const string PurchaseStockRead = AccessRoles.PurchaseStockRead;
+        public const string ManufactureOrdersRead = AccessRoles.ManufactureOrdersRead;
+        public const string ManufactureOrdersWrite = AccessRoles.ManufactureOrdersWrite;
+        public const string BatchPlanningRead = AccessRoles.BatchPlanningRead;
+        public const string BatchPlanningWrite = AccessRoles.BatchPlanningWrite;
+        public const string ManufactureOutputRead = AccessRoles.ManufactureOutputRead;
+        public const string ManufactureStockRead = AccessRoles.ManufactureStockRead;
+        public const string MaterialInventoryRead = AccessRoles.MaterialInventoryRead;
+        public const string MaterialInventoryWrite = AccessRoles.MaterialInventoryWrite;
+        public const string ProductInventoryRead = AccessRoles.ProductInventoryRead;
+        public const string ProductInventoryWrite = AccessRoles.ProductInventoryWrite;
+        public const string MaterialContainersRead = AccessRoles.MaterialContainersRead;
+        public const string MaterialContainersWrite = AccessRoles.MaterialContainersWrite;
+        public const string LogisticsRead = AccessRoles.LogisticsRead;
+        public const string LogisticsWrite = AccessRoles.LogisticsWrite;
+        public const string ExpeditionRead = AccessRoles.ExpeditionRead;
+        public const string ExpeditionWrite = AccessRoles.ExpeditionWrite;
+        public const string PackagingRead = AccessRoles.PackagingRead;
+        public const string PackagingWrite = AccessRoles.PackagingWrite;
+        public const string StockUpRead = AccessRoles.StockUpRead;
+        public const string StockUpWrite = AccessRoles.StockUpWrite;
+        public const string ArticleRead = AccessRoles.ArticleRead;
+        public const string ArticleWrite = AccessRoles.ArticleWrite;
+        public const string LeafletRead = AccessRoles.LeafletRead;
+        public const string LeafletWrite = AccessRoles.LeafletWrite;
+        public const string PhotobankRead = AccessRoles.PhotobankRead;
+        public const string PhotobankWrite = AccessRoles.PhotobankWrite;
+        public const string PhotobankAdmin = AccessRoles.PhotobankAdmin;
+        public const string MarketingCalendarRead = AccessRoles.MarketingCalendarRead;
+        public const string MarketingCalendarWrite = AccessRoles.MarketingCalendarWrite;
+        public const string MeetingsRead = AccessRoles.MeetingsRead;
+        public const string MeetingsWrite = AccessRoles.MeetingsWrite;
+        public const string OrgChartRead = AccessRoles.OrgChartRead;
+        public const string DataQualityRead = AccessRoles.DataQualityRead;
+        public const string DataQualityWrite = AccessRoles.DataQualityWrite;
+        public const string AdministrationRead = AccessRoles.AdministrationRead;
+        public const string AdministrationWrite = AccessRoles.AdministrationWrite;
+        public const string FeatureFlagsRead = AccessRoles.FeatureFlagsRead;
+        public const string FeatureFlagsWrite = AccessRoles.FeatureFlagsWrite;
+
+        // Legacy aliases
+        public const string MeetingManager = AccessRoles.MeetingsWrite;
+        public const string FinanceReader = AccessRoles.FinancialOverviewRead;
+        public const string MarketingWriter = AccessRoles.ArticleWrite; // Maps to article writing, represents general marketing write access
+        public const string MarketingReader = AccessRoles.ArticleRead; // Maps to article reading, represents general marketing read access
+        public const string HebloUser = AccessRoles.Base; // Base heblo_user role for all authenticated users
+        public const string SuperUser = AccessRoles.AdministrationWrite; // Super user has admin write access
+    }
+
+    public static class Policies
+    {
+        // Legacy policy constants - now mostly handled via role-based authorization
+        // Kept for backward compatibility with existing controller attributes
+        public const string MarketingReader = "MarketingReader";
+        public const string KnowledgeBaseUpload = "KnowledgeBaseUpload";
+    }
+}
