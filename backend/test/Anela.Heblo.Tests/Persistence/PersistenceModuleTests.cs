@@ -186,6 +186,44 @@ public class PersistenceModuleTests
             "Database:ConnectionPruningInterval must be applied to control how often idle connections are pruned");
     }
 
+    /// <summary>
+    /// Architecture guard: PersistenceModule must NOT register any repository bindings.
+    ///
+    /// Repository DI bindings belong to each feature's {Feature}Module.cs (vertical-slice
+    /// composition), not the central Persistence composition root. Registering repos here
+    /// splits a slice's wiring across two layers and previously caused a duplicate
+    /// registration of IDqtRunRepository. See docs/architecture/development_guidelines.md
+    /// (§Dependency Injection Patterns). This test prevents the pattern from returning.
+    /// </summary>
+    [Fact]
+    public void AddPersistenceServices_RegistersNoRepositoryBindings()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["UseInMemoryDatabase"] = "true",
+                ["ConnectionStrings:Test"] = "InMemory"
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddPersistenceServices(configuration, new FakeHostEnvironment("Test"));
+
+        // Assert
+        var repositoryRegistrations = services
+            .Where(d => d.ServiceType.Name.EndsWith("Repository", StringComparison.Ordinal))
+            .Select(d => d.ServiceType.Name)
+            .ToList();
+
+        repositoryRegistrations.Should().BeEmpty(
+            "repository bindings must live in their owning {Feature}Module.cs, not in PersistenceModule; " +
+            "PersistenceModule owns only shared infrastructure (DbContext, NpgsqlDataSource, interceptors, telemetry)");
+    }
+
     private sealed class FakeHostEnvironment : IHostEnvironment
     {
         public FakeHostEnvironment(string environmentName)
