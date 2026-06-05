@@ -14468,7 +14468,6 @@ export class SetCarrierCoolingRequest implements ISetCarrierCoolingRequest {
     deliveryHandling?: DeliveryHandling;
     cooling?: Cooling;
     coolingText?: string | undefined;
-    modifiedBy?: string;
 
     constructor(data?: ISetCarrierCoolingRequest) {
         if (data) {
@@ -14485,7 +14484,6 @@ export class SetCarrierCoolingRequest implements ISetCarrierCoolingRequest {
             this.deliveryHandling = _data["deliveryHandling"];
             this.cooling = _data["cooling"];
             this.coolingText = _data["coolingText"];
-            this.modifiedBy = _data["modifiedBy"];
         }
     }
 
@@ -14502,7 +14500,6 @@ export class SetCarrierCoolingRequest implements ISetCarrierCoolingRequest {
         data["deliveryHandling"] = this.deliveryHandling;
         data["cooling"] = this.cooling;
         data["coolingText"] = this.coolingText;
-        data["modifiedBy"] = this.modifiedBy;
         return data;
     }
 }
@@ -14512,7 +14509,6 @@ export interface ISetCarrierCoolingRequest {
     deliveryHandling?: DeliveryHandling;
     cooling?: Cooling;
     coolingText?: string | undefined;
-    modifiedBy?: string;
 }
 
 export class GetCatalogListResponse extends BaseResponse implements IGetCatalogListResponse {
@@ -16945,7 +16941,6 @@ export interface IUserDashboardTileDto {
 }
 
 export class SaveUserSettingsRequest implements ISaveUserSettingsRequest {
-    userId?: string;
     tiles?: UserDashboardTileDto[];
 
     constructor(data?: ISaveUserSettingsRequest) {
@@ -16959,7 +16954,6 @@ export class SaveUserSettingsRequest implements ISaveUserSettingsRequest {
 
     init(_data?: any) {
         if (_data) {
-            this.userId = _data["userId"];
             if (Array.isArray(_data["tiles"])) {
                 this.tiles = [] as any;
                 for (let item of _data["tiles"])
@@ -16977,7 +16971,6 @@ export class SaveUserSettingsRequest implements ISaveUserSettingsRequest {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["userId"] = this.userId;
         if (Array.isArray(this.tiles)) {
             data["tiles"] = [];
             for (let item of this.tiles)
@@ -16988,7 +16981,6 @@ export class SaveUserSettingsRequest implements ISaveUserSettingsRequest {
 }
 
 export interface ISaveUserSettingsRequest {
-    userId?: string;
     tiles?: UserDashboardTileDto[];
 }
 
@@ -18289,7 +18281,6 @@ export class SetGiftSettingCommand implements ISetGiftSettingCommand {
     isEnabled?: boolean;
     thresholdCzk?: number;
     text?: string;
-    modifiedBy?: string;
 
     constructor(data?: ISetGiftSettingCommand) {
         if (data) {
@@ -18305,7 +18296,6 @@ export class SetGiftSettingCommand implements ISetGiftSettingCommand {
             this.isEnabled = _data["isEnabled"];
             this.thresholdCzk = _data["thresholdCzk"];
             this.text = _data["text"];
-            this.modifiedBy = _data["modifiedBy"];
         }
     }
 
@@ -18321,7 +18311,6 @@ export class SetGiftSettingCommand implements ISetGiftSettingCommand {
         data["isEnabled"] = this.isEnabled;
         data["thresholdCzk"] = this.thresholdCzk;
         data["text"] = this.text;
-        data["modifiedBy"] = this.modifiedBy;
         return data;
     }
 }
@@ -18330,7 +18319,6 @@ export interface ISetGiftSettingCommand {
     isEnabled?: boolean;
     thresholdCzk?: number;
     text?: string;
-    modifiedBy?: string;
 }
 
 export class GridLayoutDto implements IGridLayoutDto {

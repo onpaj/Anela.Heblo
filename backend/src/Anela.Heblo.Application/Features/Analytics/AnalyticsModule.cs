@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 using Anela.Heblo.Application.Features.Analytics.Validators;
 using Anela.Heblo.Domain.Features.Analytics;
+using Anela.Heblo.Persistence.Features.Analytics;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentValidation;
 using MediatR;
@@ -21,6 +22,9 @@ public static class AnalyticsModule
     public static IServiceCollection AddAnalyticsModule(this IServiceCollection services)
     {
         // MediatR handlers are automatically registered by AddMediatR scan
+
+        // Repository (implementation lives in the Persistence layer)
+        services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
 
         // Register refactored services for clean separation of concerns
         // Note: IMarginCalculationService is registered by CatalogModule and injected here

@@ -33,7 +33,7 @@ internal sealed class UserDashboardSettingsMutator : IUserDashboardSettingsMutat
         var resolvedUserId = string.IsNullOrEmpty(userId) ? "anonymous" : userId;
 
         // Trigger provisioning outside the write lock (lock is non-reentrant).
-        await _mediator.Send(new GetUserSettingsRequest { UserId = resolvedUserId }, cancellationToken);
+        await _mediator.Send(new GetUserSettingsRequest(), cancellationToken);
 
         await using var lockHandle = await _lock.AcquireAsync(resolvedUserId, cancellationToken);
 

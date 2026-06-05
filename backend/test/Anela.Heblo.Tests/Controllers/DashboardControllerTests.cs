@@ -98,7 +98,7 @@ public class DashboardControllerTests
         var response = new GetUserSettingsResponse { Settings = expectedSettings };
 
         _mediatorMock
-            .Setup(x => x.Send(It.Is<GetUserSettingsRequest>(r => r.UserId == "test-user-123"), It.IsAny<CancellationToken>()))
+            .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(response);
 
         // Act
@@ -110,7 +110,7 @@ public class DashboardControllerTests
         settings.Should().BeEquivalentTo(expectedSettings);
 
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetUserSettingsRequest>(r => r.UserId == "test-user-123"),
+            It.IsAny<GetUserSettingsRequest>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -139,7 +139,6 @@ public class DashboardControllerTests
 
         _mediatorMock.Verify(x => x.Send(
             It.Is<SaveUserSettingsRequest>(r =>
-                r.UserId == "test-user-123" &&
                 r.Tiles.Length == 2 &&
                 r.Tiles.Any(t => t.TileId == "tile1" && t.IsVisible) &&
                 r.Tiles.Any(t => t.TileId == "tile2" && !t.IsVisible)),
@@ -163,7 +162,7 @@ public class DashboardControllerTests
         var response = new GetTileDataResponse { Tiles = expectedTiles };
 
         _mediatorMock
-            .Setup(x => x.Send(It.Is<GetTileDataRequest>(r => r.UserId == "test-user-123"), It.IsAny<CancellationToken>()))
+            .Setup(x => x.Send(It.IsAny<GetTileDataRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(response);
 
         // Act
@@ -176,7 +175,7 @@ public class DashboardControllerTests
         tiles.First().TileId.Should().Be("tile1");
 
         _mediatorMock.Verify(x => x.Send(
-            It.Is<GetTileDataRequest>(r => r.UserId == "test-user-123"),
+            It.IsAny<GetTileDataRequest>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -198,7 +197,6 @@ public class DashboardControllerTests
 
         _mediatorMock.Verify(x => x.Send(
             It.Is<EnableTileRequest>(r =>
-                r.UserId == "test-user-123" &&
                 r.TileId == tileId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -221,7 +219,6 @@ public class DashboardControllerTests
 
         _mediatorMock.Verify(x => x.Send(
             It.Is<DisableTileRequest>(r =>
-                r.UserId == "test-user-123" &&
                 r.TileId == tileId),
             It.IsAny<CancellationToken>()), Times.Once);
     }

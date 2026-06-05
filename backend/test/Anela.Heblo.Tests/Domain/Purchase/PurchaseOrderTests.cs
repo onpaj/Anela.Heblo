@@ -320,6 +320,26 @@ public class PurchaseOrderTests
         statusChangeEntry.ChangedBy.Should().Be(changedBy);
     }
 
+    [Fact]
+    public void ChangeStatus_FromInTransitToCompleted_ShouldUpdateStatusAndHistory()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        const string changedBy = "completer@example.com";
+
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, changedBy);
+
+        purchaseOrder.Status.Should().Be(PurchaseOrderStatus.Completed);
+        purchaseOrder.UpdatedBy.Should().Be(changedBy);
+        purchaseOrder.History.Should().HaveCount(3);
+
+        var statusChangeEntry = purchaseOrder.History.Last();
+        statusChangeEntry.Action.Should().Contain("Status changed");
+        statusChangeEntry.OldValue.Should().Be("InTransit");
+        statusChangeEntry.NewValue.Should().Be("Completed");
+        statusChangeEntry.ChangedBy.Should().Be(changedBy);
+    }
+
     [Theory]
     [InlineData(PurchaseOrderStatus.Draft, PurchaseOrderStatus.Completed)]
     [InlineData(PurchaseOrderStatus.InTransit, PurchaseOrderStatus.Draft)]

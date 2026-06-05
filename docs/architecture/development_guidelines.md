@@ -116,6 +116,19 @@ public static class OrdersModule
 }
 ```
 
+### Repository bindings belong to the slice, never to `PersistenceModule`
+
+A repository's **implementation** lives in `Anela.Heblo.Persistence` (single `ApplicationDbContext`,
+Phase 1 — see ADR-001), but its **DI binding** must be written in the owning module's
+`{Feature}Module.cs`, exactly like the `IOrderRepository` line above. `PersistenceModule.cs` owns
+**only shared infrastructure**: the `DbContext`, `NpgsqlDataSource`, interceptors, telemetry, and the
+material-container code generator.
+
+Registering a repo centrally in `PersistenceModule.cs` splits one slice's wiring across two layers,
+turns `PersistenceModule` into a multi-module coupling/merge-conflict hotspot, and has already caused
+a duplicate registration (`IDqtRunRepository`). The rule is enforced by
+`PersistenceModuleTests.AddPersistenceServices_RegistersNoRepositoryBindings`.
+
 ### API Composition (Program.cs):
 ```csharp
 // Aggregate all modules
@@ -228,6 +241,31 @@ When module A needs **read-only access** to data in module B, the dependency mus
 - **Context**: Need clean separation between HTTP layer and business logic
 - **Decision**: Use standard ASP.NET Core Controllers with MediatR for request handling
 - **Consequences**: Clean architecture, testable handlers, standard /api/{controller} endpoints
+
+### ADR-004: Repository DI Bindings Live in the Feature Module, Not `PersistenceModule`
+- **Status**: Accepted (2026-06-05)
+- **Context**: Repository **implementations** live in `Anela.Heblo.Persistence` because of the single
+  shared `ApplicationDbContext` (ADR-001). But the **DI binding**
+  (`services.AddScoped<IRepo, RepoImpl>()`) was written in two different places depending on the
+  module: some feature modules registered their own repos in `{Feature}Module.cs` (correct), while
+  ~15 modules had their repos registered centrally in `Anela.Heblo.Persistence/PersistenceModule.cs`.
+  This split a single vertical slice's wiring across two layers, turned `PersistenceModule` into a
+  multi-module coupling/merge-conflict hotspot, contradicted the documented DI pattern, and had
+  already produced a duplicate registration (`IDqtRunRepository`).
+- **Decision**: A repository's DI binding is **always** declared in its owning module's
+  `{Feature}Module.cs`. `PersistenceModule.cs` registers **only shared infrastructure**: the
+  `DbContext`, `NpgsqlDataSource`, interceptors, telemetry, and the material-container code generator
+  — never a repository. Repository implementation classes are `public` so the Application-layer module
+  can bind them. The implementation file still lives under `Persistence/{Feature}/`.
+- **Consequences**:
+  - Each vertical slice owns its full wiring in one file; adding a feature touches one module, not two.
+  - `PersistenceModule` stays small and stable (no per-feature churn).
+  - Enforced by `PersistenceModuleTests.AddPersistenceServices_RegistersNoRepositoryBindings`, which
+    fails CI if any `*Repository` binding reappears in `PersistenceModule`.
+  - Module-wiring tests that mock a repository must register the mock **after** the
+    `Add{Feature}Module` call so the mock overrides the module's real binding.
+- **Supersedes**: the previous mixed convention where `PersistenceModule` centrally registered
+  repositories. All future implementations must follow this pattern.
 
 ---
 

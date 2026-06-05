@@ -1,214 +1,177 @@
-# Architecture Review: Refactor GetProductMarginSummary Handler to Depend on Abstractions
+I have everything I need. The pattern is clear: MediatR handlers should delegate domain concerns to injected services (Vertical Slice + Application Services). The duplication is a textbook leaked concern. Producing the architecture review now.
+
+# Architecture Review: Consolidate Margin-Level Resolution in GetProductMarginSummaryHandler
 
 ## Skip Design: true
 
+This is a backend-only, behavior-preserving refactor inside an Application handler. No UI components, screens, layouts, DTOs, OpenAPI surface, or visual design decisions are touched.
+
 ## Architectural Fit Assessment
 
-The proposal aligns cleanly with the codebase's established patterns. Verification of the actual code confirms:
+The change aligns cleanly with the project's existing architectural commitments:
 
-- **Clean Architecture violation is real.** `MarginCalculator` lives in `Anela.Heblo.Domain.Features.Analytics` (`backend/src/Anela.Heblo.Domain/Features/Analytics/MarginCalculator.cs:1`). It contains no entity/value-object semantics — it is a stateless service that consumes `IAsyncEnumerable<AnalyticsProduct>` and produces a result DTO. It belongs in Application.
-- **Sibling pattern is well-established.** `IProductFilterService`/`ProductFilterService` and `IReportBuilderService`/`ReportBuilderService` both live in `backend/src/Anela.Heblo.Application/Features/Analytics/Services/` and are registered by interface in `AnalyticsModule.cs`. The proposed change brings `MarginCalculator` and `MonthlyBreakdownGenerator` into compliance with this pattern.
-- **One missing dependency edge in spec.** `MonthlyBreakdownGenerator` itself injects the concrete `MarginCalculator` (`MonthlyBreakdownGenerator.cs:13-18`). The spec's FR-4 says "no behavioural changes — only the implementation declaration is added," but once `MarginCalculator` is registered only by interface (FR-5), the existing concrete-constructor dependency in `MonthlyBreakdownGenerator` will fail to resolve at runtime unless its constructor is also updated to depend on `IMarginCalculator`. This is a required, not optional, change.
-- **Cross-module impact is zero.** A solution-wide search confirms only `GetProductMarginSummaryHandler`, `MonthlyBreakdownGenerator`, `AnalyticsModule`, and `GetProductMarginSummaryHandlerTests` reference the two classes. The unrelated `SafeMarginCalculator` / `IMarginCalculationService` in the Catalog feature are distinct and untouched.
+- **Vertical Slice + MediatR (per `docs/architecture/development_guidelines.md`).** The handler `GetProductMarginSummaryHandler` is the application service for this slice; domain calculation logic belongs in `IMarginCalculator`. Today the handler bypasses its own injected service to reimplement `GetMarginAmountForLevel` inline — a classic *leaked concern* that the guideline explicitly warns against ("business logic in controller class → should be in MediatR handlers" extends to "domain calc inline in handler → should be in domain service").
+- **Dependency already wired.** `IMarginCalculator` is injected at line 15 and already used by `CalculateAsync` (line 39), `GetGroupDisplayName` (line 71), and indirectly by `MonthlyBreakdownGenerator`. The refactor introduces zero new dependencies, zero new DI registrations, zero new contracts.
+- **Consistency with `MarginCalculator.CalculateAsync`.** Inside the calculator itself (`MarginCalculator.cs:63`), the per-product margin contribution is computed as `(decimal)totalSold * GetMarginAmountForLevel(product, marginLevel)` — identical to what `CalculateTotalMarginForLevel` should become. After the refactor the handler will use the *same expression shape* as the canonical service, eliminating the only place in the Analytics module where margin-level resolution is duplicated.
+- **Integration points are minimal.** Only one call site (`GenerateTopProducts`, line 78) consumes `CalculateTotalMarginForLevel`; the call signature is unchanged.
+
+`grep` confirms the duplication is exactly two sites (`GetProductMarginSummaryHandler.cs:227` and `MarginCalculator.cs:120`) — no hidden third call site to worry about.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-Anela.Heblo.Application
-└── Features/Analytics/
-    ├── Services/
-    │   ├── IMarginCalculator.cs            (NEW — interface + impl, single file)
-    │   ├── MarginCalculator.cs             (RELOCATED from Domain)
-    │   ├── IMonthlyBreakdownGenerator.cs   (NEW — interface + impl, single file)
-    │   └── MonthlyBreakdownGenerator.cs    (UPDATED: implements interface,
-    │                                                 depends on IMarginCalculator)
-    ├── UseCases/GetProductMarginSummary/
-    │   └── GetProductMarginSummaryHandler.cs
-    │       └── ctor(IAnalyticsRepository, IMarginCalculator, IMonthlyBreakdownGenerator)
-    └── AnalyticsModule.cs
-        └── services.AddScoped<IMarginCalculator, MarginCalculator>()
-        └── services.AddScoped<IMonthlyBreakdownGenerator, MonthlyBreakdownGenerator>()
-
-Anela.Heblo.Domain
-└── Features/Analytics/
-    ├── AnalyticsProduct.cs                 (unchanged — also defines MarginCalculationResult)
-    ├── AnalyticsProductType.cs             (unchanged)
-    └── ProductGroupingMode.cs              (unchanged)
-    [MarginCalculator.cs REMOVED]
+GetProductMarginSummaryRequest
+        │
+        ▼
+GetProductMarginSummaryHandler  ──── injects ────►  IMarginCalculator
+        │                                                  │
+        │  Handle()                                         │
+        │   ├─► _marginCalculator.CalculateAsync(...)       │
+        │   ├─► GenerateTopProducts(...)                    │
+        │   │     ├─► _marginCalculator.GetGroupDisplayName │
+        │   │     ├─► CalculateGroupMarginData(...)         │
+        │   │     └─► CalculateTotalMarginForLevel(...)     │
+        │   │            │                                   │
+        │   │            └─► _marginCalculator              │
+        │   │                .GetMarginAmountForLevel(...)  │  ◄── single source of truth
+        │   │                                                │
+        │   └─► _monthlyBreakdownGenerator.Generate(...)    │
+        ▼
+GetProductMarginSummaryResponse
 ```
 
-`MarginCalculationResult` and `DateRange` remain in Domain. The Application interface returns a Domain-defined type — this is acceptable under Clean Architecture (Application depends on Domain).
+The only structural change: the dotted internal switch in `CalculateTotalMarginForLevel` is removed and the arrow now goes through the already-existing dependency.
 
 ### Key Design Decisions
 
-#### Decision 1: Interface co-location vs. separate file
+#### Decision 1: Delegate via the existing private helper (do not inline at the call site)
 **Options considered:**
-1. Spec's approach — interface in its own file (`IMarginCalculator.cs`) separate from `MarginCalculator.cs`.
-2. Match sibling convention — interface and implementation in the same file (`MarginCalculator.cs`), as `ProductFilterService.cs` and `ReportBuilderService.cs` already do.
+- **A.** Keep the private method `CalculateTotalMarginForLevel` and have its body call `_marginCalculator.GetMarginAmountForLevel`.
+- **B.** Delete the private method, inline the LINQ `Sum` at the single call site in `GenerateTopProducts`.
+- **C.** Expose a new public method like `IMarginCalculator.SumTotalMarginForLevel(products, marginLevel)` and have the handler call that.
 
-**Chosen approach:** Option 2. Place `IMarginCalculator` and `MarginCalculator` in the same file (`MarginCalculator.cs`); same for `IMonthlyBreakdownGenerator` and `MonthlyBreakdownGenerator`.
+**Chosen approach:** A.
 
-**Rationale:** The two sibling services in the same `Services/` folder both use single-file co-location. The whole point of this refactor is to bring the two outlier classes in line with the established pattern — adopting a *different* file structure for them would re-create inconsistency in a refactor whose explicit goal is consistency. This is a spec amendment.
+**Rationale:**
+- Matches the spec's `Out of Scope` constraint ("Renaming or removing the private `CalculateTotalMarginForLevel` helper… is out of scope").
+- Keeps the diff surgical (single method body changes), reducing review and regression risk.
+- Avoids broadening `IMarginCalculator`'s contract for a single private call — option C would be over-engineering for one call site (YAGNI). If a future second caller appears, promoting the helper is cheap.
+- Option B would collapse the readable `var totalMarginForLevel = CalculateTotalMarginForLevel(products, marginLevel);` line in `GenerateTopProducts` into a less self-documenting LINQ block.
 
-#### Decision 2: Where `MarginCalculationResult` lives
+#### Decision 2: Preserve the silent `_ => M2` fallback
 **Options considered:**
-1. Leave `MarginCalculationResult` in Domain (`AnalyticsProduct.cs:59`).
-2. Move it to Application alongside the relocated `MarginCalculator`.
+- **A.** Preserve the existing fallback semantics by delegating verbatim to `GetMarginAmountForLevel`, which already implements the same fallback.
+- **B.** Tighten behavior to throw on unknown margin level.
 
-**Chosen approach:** Option 1 — leave it in Domain.
+**Chosen approach:** A.
 
-**Rationale:** The spec annotates `MarginCalculationResult` as "(Application layer DTO)" but verification shows it currently lives in Domain. Moving it expands the refactor's blast radius and creates churn for an isolated structural goal. Application-layer code returning Domain-defined types is allowed under Clean Architecture. The spec's annotation is incorrect and should be amended (see Specification Amendments).
+**Rationale:**
+- Spec explicitly puts fallback changes out of scope (`Out of Scope` § 3).
+- `MarginCalculator.GetMarginAmountForLevel` already implements `_ => product.M2Amount`, so delegating is automatically behavior-preserving for unknown inputs.
+- Any future move to strict validation should change the *canonical* method so both `CalculateAsync` and the summary handler benefit simultaneously — exactly the property this refactor enables.
 
-#### Decision 3: `MonthlyBreakdownGenerator` constructor change
+#### Decision 3: Do not modify `IMarginCalculator` or its implementation
 **Options considered:**
-1. Leave `MonthlyBreakdownGenerator`'s constructor untouched (spec FR-4 as written).
-2. Update it to inject `IMarginCalculator` instead of the concrete `MarginCalculator`.
+- **A.** Leave `IMarginCalculator.GetMarginAmountForLevel` and `MarginCalculator` untouched.
+- **B.** Mark `GetMarginAmountForLevel` `internal` or hide it behind a more specific signature.
 
-**Chosen approach:** Option 2 — required, not optional.
+**Chosen approach:** A.
 
-**Rationale:** Once `services.AddScoped<IMarginCalculator, MarginCalculator>()` replaces `services.AddScoped<MarginCalculator>()`, the concrete `MarginCalculator` is no longer in the DI container. `MonthlyBreakdownGenerator`'s current `ctor(MarginCalculator)` would fail to resolve at runtime. This is a correctness issue, not a style preference.
-
-#### Decision 4: Exact `CalculateAsync` signature on the interface
-**Options considered:** Preserve the existing signature verbatim, or trim.
-
-**Chosen approach:** Preserve verbatim:
-```csharp
-Task<MarginCalculationResult> CalculateAsync(
-    IAsyncEnumerable<AnalyticsProduct> products,
-    DateRange dateRange,
-    ProductGroupingMode groupingMode,
-    string marginLevel = "M2",
-    CancellationToken cancellationToken = default);
-```
-
-**Rationale:** The spec uses a placeholder. The handler's call site at `GetProductMarginSummaryHandler.cs:40` passes all five arguments; any divergence breaks compilation. Note: `dateRange` is unused inside `MarginCalculator.CalculateAsync` today — leave that alone; it's out of scope.
+**Rationale:** FR-3 explicitly forbids changes to the interface or canonical implementation. Visibility tightening would also break the existing `CalculateAsync` consumer at line 63.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
+No new files. No new folders. No changes to module boundaries.
 
-```
-backend/src/Anela.Heblo.Application/Features/Analytics/Services/
-├── MarginCalculator.cs               (contains IMarginCalculator + MarginCalculator)
-├── MonthlyBreakdownGenerator.cs      (contains IMonthlyBreakdownGenerator + MonthlyBreakdownGenerator)
-├── ProductFilterService.cs           (unchanged — reference pattern)
-├── ReportBuilderService.cs           (unchanged — reference pattern)
-└── TimeWindowParser.cs               (unchanged)
+Modified file:
+- `backend/src/Anela.Heblo.Application/Features/Analytics/UseCases/GetProductMarginSummary/GetProductMarginSummaryHandler.cs` — replace the body of `CalculateTotalMarginForLevel` (lines 217–237).
 
-DELETE: backend/src/Anela.Heblo.Domain/Features/Analytics/MarginCalculator.cs
-```
+Test file (extended, not restructured):
+- `backend/test/Anela.Heblo.Tests/Features/Analytics/GetProductMarginSummaryHandlerTests.cs` — add cases for FR-2 acceptance (case-insensitive resolution, unknown-level fallback to M2).
+
+Unchanged (per FR-3):
+- `backend/src/Anela.Heblo.Application/Features/Analytics/Services/MarginCalculator.cs`
+- `IMarginCalculator` contract
 
 ### Interfaces and Contracts
 
+No contract changes. Existing surface to preserve:
+
 ```csharp
-// backend/src/Anela.Heblo.Application/Features/Analytics/Services/MarginCalculator.cs
-using Anela.Heblo.Domain.Features.Analytics;
+// IMarginCalculator (unchanged)
+decimal GetMarginAmountForLevel(AnalyticsProduct product, string marginLevel);
 
-namespace Anela.Heblo.Application.Features.Analytics.Services;
-
-public interface IMarginCalculator
-{
-    Task<MarginCalculationResult> CalculateAsync(
-        IAsyncEnumerable<AnalyticsProduct> products,
-        DateRange dateRange,
-        ProductGroupingMode groupingMode,
-        string marginLevel = "M2",
-        CancellationToken cancellationToken = default);
-
-    string GetGroupKey(AnalyticsProduct product, ProductGroupingMode groupingMode);
-
-    string GetGroupDisplayName(
-        string groupKey,
-        ProductGroupingMode groupingMode,
-        List<AnalyticsProduct> products);
-
-    decimal GetMarginAmountForLevel(AnalyticsProduct product, string marginLevel);
-}
-
-public class MarginCalculator : IMarginCalculator { /* body unchanged */ }
+// Handler private helper (signature unchanged)
+private decimal CalculateTotalMarginForLevel(List<AnalyticsProduct> products, string marginLevel);
 ```
 
+Target body of the private helper:
+
 ```csharp
-// backend/src/Anela.Heblo.Application/Features/Analytics/Services/MonthlyBreakdownGenerator.cs
-using System.Globalization;
-using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Domain.Features.Analytics;
-
-namespace Anela.Heblo.Application.Features.Analytics.Services;
-
-public interface IMonthlyBreakdownGenerator
+private decimal CalculateTotalMarginForLevel(List<AnalyticsProduct> products, string marginLevel)
 {
-    List<MonthlyProductMarginDto> Generate(
-        MarginCalculationResult calculationResult,
-        DateRange dateRange,
-        ProductGroupingMode groupingMode,
-        string marginLevel = "M2");
-}
-
-public class MonthlyBreakdownGenerator : IMonthlyBreakdownGenerator
-{
-    private readonly IMarginCalculator _marginCalculator;   // interface, not concrete
-
-    public MonthlyBreakdownGenerator(IMarginCalculator marginCalculator)
-    {
-        _marginCalculator = marginCalculator;
-    }
-    // remaining body unchanged
+    return products.Sum(p =>
+        (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)
+        * _marginCalculator.GetMarginAmountForLevel(p, marginLevel));
 }
 ```
 
-`AnalyticsModule.cs` lines 36–38 replaced with:
-```csharp
-services.AddScoped<IMarginCalculator, MarginCalculator>();
-services.AddScoped<IMonthlyBreakdownGenerator, MonthlyBreakdownGenerator>();
-```
-Misleading "Legacy services" comment removed.
+Notes for the implementer:
+- The cast to `decimal` must remain on the sales total (the operand from `SalesHistory.Sum` is `double`/`int`-typed; mirroring the existing pattern at `MarginCalculator.cs:63` keeps numeric semantics identical).
+- Keep the existing XML `<summary>` comment on the method.
+- Do not change `GenerateTopProducts`, `CalculateGroupMarginData`, `ApplySorting`, or any other handler internals.
 
 ### Data Flow
-Unchanged. The handler streams products from `IAnalyticsRepository`, hands them to `IMarginCalculator.CalculateAsync` (streaming aggregation), then `IMonthlyBreakdownGenerator.Generate` materializes the monthly view from the already-aggregated result. Both calls are now through abstractions; runtime behavior is identical.
+
+For the single affected path `Handle → GenerateTopProducts → CalculateTotalMarginForLevel`:
+
+```
+products: List<AnalyticsProduct>           marginLevel: string
+        │                                          │
+        └──────────────► CalculateTotalMarginForLevel ◄─────────┐
+                                  │                              │
+              per product p:      ▼                              │
+              totalSales = Σ(B2B + B2C)                          │
+              marginPerUnit = _marginCalculator                  │
+                              .GetMarginAmountForLevel(p, level) │ ◄── single source of truth
+              contribution  = (decimal)totalSales * marginPerUnit│     (was duplicated; now delegated)
+                                  │
+                                  ▼
+                       Σ contributions  →  totalMarginForLevel  →  TopProductDto.TotalMargin
+```
+
+Numerically identical to today for all `(products, marginLevel)` pairs, including the unknown-level fallback to M2.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| `MonthlyBreakdownGenerator` constructor not updated → DI resolution failure at runtime | HIGH | Make the update explicit (Decision 3). Add a smoke test or integration test that resolves `IMonthlyBreakdownGenerator` from the container. |
-| `MarginCalculationResult` mis-located by spec annotation, leading implementer to move the type unnecessarily | MEDIUM | Spec amendment clarifies the type stays in Domain. |
-| Other callers of concrete classes outside the searched scope | LOW | Solution-wide grep performed: only the four expected sites match. FR-7 already covers this; PR description should confirm "no other callers found." |
-| Tests still construct concrete `new MarginCalculator()` / `new MonthlyBreakdownGenerator(...)` | LOW | Existing test in `GetProductMarginSummaryHandlerTests.cs:25-33` continues to compile (concrete class still exists, just relocated). New mockability test (FR-8) is additive. |
-| Service lifetime drift | LOW | Spec NFR mandates preserving `Scoped`. Both new registrations must use `AddScoped`. |
-| Domain assembly metadata change due to file removal (e.g., consumers reflecting over types) | LOW | No reflection-based consumers found; safe to remove. |
+| Silent numerical drift from operator precedence or cast placement | Low | Mirror the exact expression shape used in `MarginCalculator.CalculateAsync` (`(decimal)totalSold * GetMarginAmountForLevel(...)`); existing `GetProductMarginSummaryHandlerTests` cover `M2` totals and will catch arithmetic regressions. |
+| Unknown-level callers begin to throw (semantics tightening leaks in) | Low | FR-3 + Decision 3: do not modify `MarginCalculator`; the `_ => M2Amount` arm stays in place. Add an explicit unit test asserting fallback for unknown level (FR-2 AC). |
+| Coverage regression from spec's prohibition on removing tests | Low | NFR-4 explicitly forbids reducing coverage; add the two new cases (case-insensitive, unknown-level fallback) on top of the existing suite rather than replacing any. |
+| Future divergence reappearing if a developer reintroduces the inline switch | Low | NFR-3 grep guard (`grep -r "M0\" =>" backend/src/Anela.Heblo.Application/Features/Analytics/` ⇒ exactly 1 hit) can be run locally or codified later as a lightweight architecture test. Not in scope to add, but worth noting. |
+| Performance regression from extra virtual call per product | Negligible | Interface dispatch on a hot path that already enumerates `SalesHistory`; NFR-1 budget (≤1% median) is comfortably met by an O(1) switch behind one indirection. No benchmark required for this change. |
 
 ## Specification Amendments
 
-1. **FR-2 wording — append**: `MonthlyBreakdownGenerator`'s constructor must be updated to depend on `IMarginCalculator` rather than the concrete `MarginCalculator`, because the concrete type will no longer be registered in DI after FR-5. This is required for correctness, not stylistic — treat it as part of FR-4 or as a new FR-4b. Add as acceptance criterion: "After the change, `MonthlyBreakdownGenerator` has no compile-time reference to the concrete `MarginCalculator` class."
+The spec is internally consistent, scoped tightly, and traceable to verified source locations (line numbers in `GetProductMarginSummaryHandler.cs` and `MarginCalculator.cs` were independently confirmed). No amendments are required.
 
-2. **FR-1/FR-2 file layout**: Change "Create a new interface `IMarginCalculator` in `…/IMarginCalculator.cs`" to "Define `IMarginCalculator` alongside the `MarginCalculator` implementation in `…/MarginCalculator.cs`" (and analogously for `IMonthlyBreakdownGenerator`). Rationale: matches the existing `ProductFilterService.cs` / `ReportBuilderService.cs` convention in the same folder.
+Two minor clarifications for the implementer (not changes to the spec):
 
-3. **FR-1 `CalculateAsync` signature**: Replace the placeholder `/* current parameter list preserved verbatim */` with the explicit signature:
-   ```csharp
-   Task<MarginCalculationResult> CalculateAsync(
-       IAsyncEnumerable<AnalyticsProduct> products,
-       DateRange dateRange,
-       ProductGroupingMode groupingMode,
-       string marginLevel = "M2",
-       CancellationToken cancellationToken = default);
-   ```
-
-4. **Data Model annotation correction**: `MarginCalculationResult` is currently defined in **Domain** (`backend/src/Anela.Heblo.Domain/Features/Analytics/AnalyticsProduct.cs:59`), not Application. The spec's "(Application layer DTO)" tag is incorrect. The refactor must **not** move this type — it stays in Domain. Update the Data Model section accordingly.
-
-5. **FR-3 acceptance criterion — strengthen**: Add "After deletion, `backend/src/Anela.Heblo.Domain/Features/Analytics/` contains only `AnalyticsProduct.cs`, `AnalyticsProductType.cs`, and `ProductGroupingMode.cs`." This makes the post-state explicit and verifiable.
-
-6. **FR-8 — be specific about the mockability test**: Add an acceptance criterion that the new test instantiates `GetProductMarginSummaryHandler` with `Mock<IMarginCalculator>` and `Mock<IMonthlyBreakdownGenerator>` (project uses Moq — confirmed via existing `GetProductMarginSummaryHandlerTests` imports) and asserts both mocks are invoked with the expected arguments for one representative request. Existing handler tests that use the real `MarginCalculator`/`MonthlyBreakdownGenerator` are fine to keep as-is — they become integration-style tests against the real services.
+1. **Test placement.** The FR-2 acceptance tests (case-insensitive resolution, unknown-level fallback) should be added to `backend/test/Anela.Heblo.Tests/Features/Analytics/GetProductMarginSummaryHandlerTests.cs` — exercising the handler's full `Handle` path with `MarginLevel = "m1"` / `MarginLevel = "M9"` — rather than to `MarginCalculatorTests.cs`. The point is to verify the *handler now delegates*; testing only the calculator would not catch a regression where the handler reintroduces a local switch.
+2. **`SalesHistory` enumeration parity.** Use `p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)` (the existing expression) verbatim; do not "improve" it to a single pass or precompute outside the LINQ block. Surgical-changes rule.
 
 ## Prerequisites
 
-None. The refactor is self-contained:
-- No DB migration.
-- No config change.
-- No new NuGet packages.
-- No infrastructure or environment change.
-- The Domain project's existing references (used by the unchanged entities/enums) remain valid; nothing needs to be added to or removed from Domain's `.csproj`.
+None. Specifically:
 
-Implementation can begin immediately.
+- No database migrations.
+- No new DI registration — `IMarginCalculator` is already registered (it's resolved by the existing handler constructor and by `GetProductMarginSummaryHandlerTests`).
+- No configuration, Key Vault, or feature-flag changes.
+- No OpenAPI client regeneration (no DTO or controller surface affected).
+- No coordination with frontend, E2E suite, or staging environment.
+
+The change can begin immediately on the current worktree (`feat-arch-review-analytics-getproductmarginsu`) and ship as a single small commit.

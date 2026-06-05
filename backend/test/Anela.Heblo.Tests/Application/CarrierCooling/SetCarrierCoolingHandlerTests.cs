@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.CarrierCooling.UseCases.SetCarrierCooling;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Moq;
@@ -12,9 +13,16 @@ public class SetCarrierCoolingHandlerTests
 {
     private readonly Mock<ICarrierCoolingRepository> _repositoryMock = new();
     private readonly Mock<IShippingMethodCatalog> _catalogMock = new();
+    private readonly Mock<ICurrentUserService> _currentUserMock = new();
+
+    public SetCarrierCoolingHandlerTests()
+    {
+        _currentUserMock.Setup(s => s.GetCurrentUser())
+            .Returns(new CurrentUser(Id: "user-123", Name: "Test", Email: null, IsAuthenticated: true));
+    }
 
     private SetCarrierCoolingHandler CreateSut() =>
-        new(_repositoryMock.Object, _catalogMock.Object);
+        new(_repositoryMock.Object, _catalogMock.Object, _currentUserMock.Object);
 
     private void SetupValidCombo(Carriers carrier, DeliveryHandling handling)
     {
@@ -31,7 +39,6 @@ public class SetCarrierCoolingHandlerTests
             Carrier = Carriers.PPL,
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = Cooling.L1,
-            ModifiedBy = "user-123",
         };
 
         _repositoryMock
@@ -62,7 +69,6 @@ public class SetCarrierCoolingHandlerTests
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = Cooling.L1,
             CoolingText = "MRAZ",
-            ModifiedBy = "user-123",
         };
         _repositoryMock
             .Setup(r => r.UpsertAsync(It.IsAny<CarrierCoolingSetting>(), It.IsAny<CancellationToken>()))
@@ -89,13 +95,33 @@ public class SetCarrierCoolingHandlerTests
             Carrier = Carriers.Osobak,
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = Cooling.L1,
-            ModifiedBy = "user-123",
         };
 
         var result = await CreateSut().Handle(request, CancellationToken.None);
 
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.ValidationError);
+        _repositoryMock.Verify(r => r.UpsertAsync(It.IsAny<CarrierCoolingSetting>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsUnauthorized_WhenCurrentUserIdIsNullOrEmpty()
+    {
+        SetupValidCombo(Carriers.PPL, DeliveryHandling.NaRuky);
+        _currentUserMock.Setup(s => s.GetCurrentUser())
+            .Returns(new CurrentUser(Id: null, Name: null, Email: null, IsAuthenticated: false));
+
+        var request = new SetCarrierCoolingRequest
+        {
+            Carrier = Carriers.PPL,
+            DeliveryHandling = DeliveryHandling.NaRuky,
+            Cooling = Cooling.L1,
+        };
+
+        var result = await CreateSut().Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.Unauthorized);
         _repositoryMock.Verify(r => r.UpsertAsync(It.IsAny<CarrierCoolingSetting>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

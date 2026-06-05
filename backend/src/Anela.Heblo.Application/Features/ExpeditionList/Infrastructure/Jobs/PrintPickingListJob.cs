@@ -1,6 +1,6 @@
+using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
-using Anela.Heblo.Application.Features.Logistics.Picking;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -46,9 +46,9 @@ public class PrintPickingListJob : IRecurringJob
 
         try
         {
-            var request = new PrintPickingListRequest
+            var request = new ExpeditionPickingRequest
             {
-                Carriers = PrintPickingListRequest.DefaultCarriers,
+                Carriers = ExpeditionPickingRequest.DefaultCarriers,
                 SourceStateId = _options.Value.SourceStateId,
                 DesiredStateId = _options.Value.DesiredStateId,
                 ChangeOrderState = _options.Value.ChangeOrderStateByDefault,

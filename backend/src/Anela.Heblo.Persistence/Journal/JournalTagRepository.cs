@@ -2,7 +2,7 @@ using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 
-namespace Anela.Heblo.Persistence.Catalog.Journal
+namespace Anela.Heblo.Persistence.Journal
 {
     public class JournalTagRepository : BaseRepository<JournalEntryTag, int>, IJournalTagRepository
     {

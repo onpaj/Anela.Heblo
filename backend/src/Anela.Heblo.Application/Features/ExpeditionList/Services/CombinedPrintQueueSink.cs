@@ -1,7 +1,7 @@
 using Anela.Heblo.Application.Shared.Printing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Anela.Heblo.API.Features.ExpeditionList;
+namespace Anela.Heblo.Application.Features.ExpeditionList.Services;
 
 internal sealed class CombinedPrintQueueSink : IPrintQueueSink
 {
