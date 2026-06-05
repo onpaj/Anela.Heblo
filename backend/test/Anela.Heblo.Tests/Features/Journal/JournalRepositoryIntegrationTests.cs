@@ -294,6 +294,221 @@ public class JournalRepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task GetEntriesAsync_SortsByCreatedByUsername_Ascending()
+    {
+        // Arrange
+        var alice = CreateEntryWithAuthor("alice", DateTime.Today.AddDays(-1), "Alice entry");
+        var carol = CreateEntryWithAuthor("carol", DateTime.Today.AddDays(-2), "Carol entry");
+        var bob = CreateEntryWithAuthor("bob", DateTime.Today.AddDays(-3), "Bob entry");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(alice, carol, bob);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEntriesAsync(
+            pageNumber: 1,
+            pageSize: 10,
+            sortBy: "createdByUsername",
+            sortDirection: "ASC");
+
+        // Assert
+        result.Items.Select(x => x.CreatedByUsername)
+            .Should()
+            .ContainInOrder("alice", "bob", "carol");
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_SortsByCreatedByUsername_Descending()
+    {
+        // Arrange
+        var alice = CreateEntryWithAuthor("alice", DateTime.Today.AddDays(-1), "Alice entry");
+        var carol = CreateEntryWithAuthor("carol", DateTime.Today.AddDays(-2), "Carol entry");
+        var bob = CreateEntryWithAuthor("bob", DateTime.Today.AddDays(-3), "Bob entry");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(alice, carol, bob);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEntriesAsync(
+            pageNumber: 1,
+            pageSize: 10,
+            sortBy: "createdByUsername",
+            sortDirection: "DESC");
+
+        // Assert
+        result.Items.Select(x => x.CreatedByUsername)
+            .Should()
+            .ContainInOrder("carol", "bob", "alice");
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_SortsByCreatedByUsername_AcceptsAnyCasing()
+    {
+        // Arrange
+        var alice = CreateEntryWithAuthor("alice", DateTime.Today.AddDays(-1), "Alice entry");
+        var bob = CreateEntryWithAuthor("bob", DateTime.Today.AddDays(-2), "Bob entry");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(alice, bob);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var upper = await _repository.GetEntriesAsync(1, 10, "CREATEDBYUSERNAME", "ASC");
+        var mixed = await _repository.GetEntriesAsync(1, 10, "CreatedByUsername", "ASC");
+        var lower = await _repository.GetEntriesAsync(1, 10, "createdbyusername", "ASC");
+
+        // Assert
+        upper.Items.Select(x => x.CreatedByUsername).Should().ContainInOrder("alice", "bob");
+        mixed.Items.Select(x => x.CreatedByUsername).Should().ContainInOrder("alice", "bob");
+        lower.Items.Select(x => x.CreatedByUsername).Should().ContainInOrder("alice", "bob");
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_SortByCreatedByUsername_TiebreaksByEntryDateDesc()
+    {
+        // Arrange
+        var aliceOlder = CreateEntryWithAuthor("alice", DateTime.Today.AddDays(-5), "Alice older");
+        var aliceNewer = CreateEntryWithAuthor("alice", DateTime.Today.AddDays(-1), "Alice newer");
+        var bob = CreateEntryWithAuthor("bob", DateTime.Today.AddDays(-3), "Bob entry");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(aliceOlder, aliceNewer, bob);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEntriesAsync(1, 10, "createdByUsername", "ASC");
+
+        // Assert
+        result.Items.Select(x => x.Title)
+            .Should()
+            .ContainInOrder("Alice newer", "Alice older", "Bob entry");
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_UnknownSortBy_LogsWarningWithStructuredProperty()
+    {
+        // Arrange
+        await _context.Set<JournalEntry>().AddAsync(
+            CreateEntryWithAuthor("alice", DateTime.Today, "Any entry"));
+        await _context.SaveChangesAsync();
+
+        // Act — "tags" is not handled; should default-sort AND log a warning.
+        var result = await _repository.GetEntriesAsync(1, 10, "tags", "ASC");
+
+        // Assert — call succeeded with the default sort applied.
+        result.Items.Should().HaveCount(1);
+
+        // Assert — exactly one Warning was logged, message references the sortBy value.
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("tags")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_NullSortBy_DoesNotLogWarning()
+    {
+        // Arrange
+        await _context.Set<JournalEntry>().AddAsync(
+            CreateEntryWithAuthor("alice", DateTime.Today, "Any entry"));
+        await _context.SaveChangesAsync();
+
+        // Act
+#pragma warning disable CS8625
+        var result = await _repository.GetEntriesAsync(1, 10, sortBy: null, sortDirection: "ASC");
+#pragma warning restore CS8625
+
+        // Assert
+        result.Items.Should().HaveCount(1);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_EmptySortBy_DoesNotLogWarning()
+    {
+        // Arrange
+        await _context.Set<JournalEntry>().AddAsync(
+            CreateEntryWithAuthor("alice", DateTime.Today, "Any entry"));
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEntriesAsync(1, 10, sortBy: "", sortDirection: "ASC");
+
+        // Assert
+        result.Items.Should().HaveCount(1);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetEntriesAsync_WhitespaceSortBy_DoesNotLogWarning()
+    {
+        // Arrange
+        await _context.Set<JournalEntry>().AddAsync(
+            CreateEntryWithAuthor("alice", DateTime.Today, "Any entry"));
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetEntriesAsync(1, 10, sortBy: "   ", sortDirection: "ASC");
+
+        // Assert
+        result.Items.Should().HaveCount(1);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task SearchEntriesAsync_SortsByCreatedByUsername_Ascending()
+    {
+        // Arrange — same setup as GetEntriesAsync_SortsByCreatedByUsername_Ascending.
+        var alice = CreateEntryWithAuthor("alice", DateTime.Today.AddDays(-1), "Alice entry");
+        var carol = CreateEntryWithAuthor("carol", DateTime.Today.AddDays(-2), "Carol entry");
+        var bob = CreateEntryWithAuthor("bob", DateTime.Today.AddDays(-3), "Bob entry");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(alice, carol, bob);
+        await _context.SaveChangesAsync();
+
+        // Act — search path with no filters; sort by author ascending.
+        var result = await _repository.SearchEntriesAsync(
+            searchText: null,
+            dateFrom: null,
+            dateTo: null,
+            productCodePrefix: null,
+            tagIds: null,
+            createdByUserId: null,
+            pageNumber: 1,
+            pageSize: 10,
+            sortBy: "createdByUsername",
+            sortDirection: "ASC");
+
+        // Assert
+        result.Items.Select(x => x.CreatedByUsername)
+            .Should()
+            .ContainInOrder("alice", "bob", "carol");
+    }
+
+    [Fact]
     public async Task GetByIdAsync_WhenEntryIsSoftDeleted_ReturnsNull()
     {
         // Arrange
@@ -488,6 +703,23 @@ public class JournalRepositoryIntegrationTests : IDisposable
         };
         entry.AssociateWithProduct(prefix);
         return entry;
+    }
+
+    private static JournalEntry CreateEntryWithAuthor(
+        string author,
+        DateTime entryDate,
+        string title)
+    {
+        return new JournalEntry
+        {
+            Title = title,
+            Content = $"Content authored by {author}",
+            EntryDate = entryDate,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user-id",
+            CreatedByUsername = author
+        };
     }
 
     public void Dispose()

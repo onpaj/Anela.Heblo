@@ -40,18 +40,7 @@ namespace Anela.Heblo.Persistence.Journal
                 .AsQueryable();
 
             // Sorting
-            query = sortBy?.ToLower() switch
-            {
-                "title" => sortDirection == "ASC"
-                    ? query.OrderBy(x => x.Title)
-                    : query.OrderByDescending(x => x.Title),
-                "createdat" => sortDirection == "ASC"
-                    ? query.OrderBy(x => x.CreatedAt)
-                    : query.OrderByDescending(x => x.CreatedAt),
-                _ => sortDirection == "ASC"
-                    ? query.OrderBy(x => x.EntryDate)
-                    : query.OrderByDescending(x => x.EntryDate)
-            };
+            query = ApplySort(query, sortBy, sortDirection, _logger);
 
             var totalCount = await query.CountAsync(cancellationToken);
 
@@ -130,18 +119,7 @@ namespace Anela.Heblo.Persistence.Journal
             }
 
             // Sorting
-            query = sortBy?.ToLower() switch
-            {
-                "title" => sortDirection == "ASC"
-                    ? query.OrderBy(x => x.Title)
-                    : query.OrderByDescending(x => x.Title),
-                "createdat" => sortDirection == "ASC"
-                    ? query.OrderBy(x => x.CreatedAt)
-                    : query.OrderByDescending(x => x.CreatedAt),
-                _ => sortDirection == "ASC"
-                    ? query.OrderBy(x => x.EntryDate)
-                    : query.OrderByDescending(x => x.EntryDate)
-            };
+            query = ApplySort(query, sortBy, sortDirection, _logger);
 
             var totalCount = await query.CountAsync(cancellationToken);
 
@@ -221,6 +199,56 @@ namespace Anela.Heblo.Persistence.Journal
             }
 
             return result;
+        }
+
+        private static IQueryable<JournalEntry> ApplySort(
+            IQueryable<JournalEntry> query,
+            string? sortBy,
+            string sortDirection,
+            ILogger logger)
+        {
+            var ascending = string.Equals(sortDirection, "ASC", StringComparison.OrdinalIgnoreCase);
+
+            if (string.IsNullOrWhiteSpace(sortBy))
+            {
+                return ApplyDefaultSort(query, ascending);
+            }
+
+            return sortBy.ToLowerInvariant() switch
+            {
+                "title" => ascending
+                    ? query.OrderBy(x => x.Title)
+                    : query.OrderByDescending(x => x.Title),
+
+                "createdbyusername" => ascending
+                    ? query.OrderBy(x => x.CreatedByUsername).ThenByDescending(x => x.EntryDate)
+                    : query.OrderByDescending(x => x.CreatedByUsername).ThenByDescending(x => x.EntryDate),
+
+                _ => ApplyDefaultSortWithWarning(query, ascending, sortBy, logger),
+            };
+        }
+
+        private static IQueryable<JournalEntry> ApplyDefaultSort(
+            IQueryable<JournalEntry> query,
+            bool ascending)
+        {
+            return ascending
+                ? query.OrderBy(x => x.EntryDate)
+                : query.OrderByDescending(x => x.EntryDate);
+        }
+
+        private static IQueryable<JournalEntry> ApplyDefaultSortWithWarning(
+            IQueryable<JournalEntry> query,
+            bool ascending,
+            string sortBy,
+            ILogger logger)
+        {
+            logger.LogWarning(
+                "Unknown sort key {SortBy} requested on {Repository}",
+                sortBy,
+                nameof(JournalRepository));
+
+            return ApplyDefaultSort(query, ascending);
         }
     }
 }
