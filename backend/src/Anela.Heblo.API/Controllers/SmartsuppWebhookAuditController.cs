@@ -12,7 +12,7 @@ namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/admin/smartsupp/webhooks")]
-[Authorize(Roles = AccessRoles.AdministrationRead)]
+[Authorize(Roles = AccessRoles.AdministrationWrite)]
 public class SmartsuppWebhookAuditController : BaseApiController
 {
     private readonly IMediator _mediator;

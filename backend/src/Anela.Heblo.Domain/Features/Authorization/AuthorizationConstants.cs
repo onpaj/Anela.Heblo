@@ -143,12 +143,4 @@ public static class AuthorizationConstants
         public const string HebloUser = AccessRoles.Base; // Base heblo_user role for all authenticated users
         public const string SuperUser = AccessRoles.AdministrationWrite; // Super user has admin write access
     }
-
-    public static class Policies
-    {
-        // Legacy policy constants - now mostly handled via role-based authorization
-        // Kept for backward compatibility with existing controller attributes
-        public const string MarketingReader = "MarketingReader";
-        public const string KnowledgeBaseUpload = "KnowledgeBaseUpload";
-    }
 }
