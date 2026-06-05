@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Bank.Infrastructure;
 using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementList;
 using Anela.Heblo.Application.Features.Bank.Validators;
 using Anela.Heblo.Domain.Features.Bank;
+using Anela.Heblo.Persistence.Features.Bank;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Configuration;
@@ -16,6 +17,9 @@ public static class BankModule
     {
         services.AddTransient<IBankClientFactory, BankClientFactory>();
         services.Configure<BankAccountSettings>(configuration.GetSection(BankAccountSettings.ConfigurationKey));
+
+        // Repository (implementation lives in the Persistence layer)
+        services.AddScoped<IBankStatementImportRepository, BankStatementImportRepository>();
 
         services.AddScoped<IValidator<GetBankStatementListRequest>, GetBankStatementListRequestValidator>();
         services.AddScoped<

@@ -48,15 +48,12 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.UpdateJournalEntry
             // Check if user owns the entry (for now, allow all authenticated users to edit)
             // In production, you might want to restrict this to the original author
 
-            var now = DateTime.UtcNow;
-
-            // Update basic fields
-            entry.Title = request.Title?.Trim();
-            entry.Content = request.Content.Trim();
-            entry.EntryDate = request.EntryDate.Date;
-            entry.ModifiedAt = now;
-            entry.ModifiedByUserId = currentUser.Id;
-            entry.ModifiedByUsername = currentUser.Name ?? "Unknown User";
+            entry.Update(
+                request.Title,
+                request.Content,
+                request.EntryDate,
+                currentUser.Id,
+                currentUser.Name ?? "Unknown User");
 
             entry.ReplaceProductAssociations(request.AssociatedProducts);
             entry.ReplaceTagAssignments(request.TagIds);
