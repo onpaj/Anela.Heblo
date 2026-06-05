@@ -57,7 +57,15 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             CustomerNote = order.CustomerNote,
             EshopNote = order.EshopNote,
             ShippingAddress = BuildShippingAddress(order),
-            Items = order.Items,
+            Items = order.Items
+                .Select(i => new ScanPackingOrderItemDto
+                {
+                    Name = i.Name,
+                    Quantity = i.Quantity,
+                    ImageUrl = i.ImageUrl,
+                    SetName = i.SetName,
+                })
+                .ToList(),
             Eligibility = new ScanOrderEligibility
             {
                 IsEligible = isEligible,

@@ -444,4 +444,26 @@ public class ScanPackingOrderHandlerTests
             c => c.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public void ScanPackingOrderItemDto_HasExactlyTheFourPublicFields_AndNoWeightGrams()
+    {
+        var properties = typeof(ScanPackingOrderItemDto)
+            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Select(p => p.Name)
+            .ToHashSet();
+
+        properties.Should().BeEquivalentTo(new[] { "Name", "Quantity", "ImageUrl", "SetName" },
+            "ScanPackingOrderItemDto must not expose internal fields such as WeightGrams to API clients.");
+        typeof(ScanPackingOrderItemDto).GetProperty("WeightGrams").Should().BeNull();
+    }
+
+    [Fact]
+    public void InternalPackingOrderItem_StillExposesWeightGrams_ForShipmentMath()
+    {
+        // Anchor the symmetric guarantee: WeightGrams must remain on the internal adapter
+        // contract because ScanPackingOrderHandler and ResetOrderShipmentHandler depend on it.
+        typeof(PackingOrderItem).GetProperty("WeightGrams").Should().NotBeNull(
+            "PackingOrderItem is the internal Application contract and ScanPackingOrderHandler.cs:102 reads WeightGrams.");
+    }
 }
