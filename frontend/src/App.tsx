@@ -90,7 +90,7 @@ import BaleniPlaceholder from "./components/baleni/BaleniPlaceholder";
 import BaleniPacking from "./components/baleni/BaleniPacking";
 import { ZasilkyPage } from "./components/baleni/zasilky/ZasilkyPage";
 import "./i18n";
-import { initAppInsights, getAppInsights } from './telemetry/appInsights';
+import { initAppInsights, getAppInsights, setUserIdentity } from './telemetry/appInsights';
 import { AppInsightsProvider } from './telemetry/AppInsightsProvider';
 
 let isRedirecting = false;
@@ -156,19 +156,23 @@ function App() {
             const oid = (account?.idTokenClaims as { oid?: string } | undefined)?.oid;
             if (oid) {
               getAppInsights()?.setAuthenticatedUserContext(oid, undefined, true);
+              setUserIdentity({ name: account?.name, email: account?.username });
             }
           }
           if (event.eventType === EventType.LOGOUT_SUCCESS) {
             getAppInsights()?.clearAuthenticatedUserContext();
+            setUserIdentity(null);
           }
         });
 
         // For users already signed in (page reload), set context immediately
         const existingAccounts = instance.getAllAccounts();
         if (existingAccounts.length > 0) {
-          const oid = (existingAccounts[0].idTokenClaims as { oid?: string } | undefined)?.oid;
+          const existingAccount = existingAccounts[0];
+          const oid = (existingAccount.idTokenClaims as { oid?: string } | undefined)?.oid;
           if (oid) {
             getAppInsights()?.setAuthenticatedUserContext(oid, undefined, true);
+            setUserIdentity({ name: existingAccount.name, email: existingAccount.username });
           }
         }
 
