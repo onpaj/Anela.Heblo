@@ -3,7 +3,7 @@ using Anela.Heblo.Persistence.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Anela.Heblo.Persistence.Catalog.Journal
+namespace Anela.Heblo.Persistence.Journal
 {
     public class JournalEntryTagAssignmentConfiguration : IEntityTypeConfiguration<JournalEntryTagAssignment>
     {

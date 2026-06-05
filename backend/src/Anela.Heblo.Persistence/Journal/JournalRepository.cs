@@ -4,7 +4,7 @@ using Anela.Heblo.Xcc.Persistance;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Persistence.Catalog.Journal
+namespace Anela.Heblo.Persistence.Journal
 {
     public class JournalRepository : BaseRepository<JournalEntry, int>, IJournalRepository
     {
@@ -23,7 +23,7 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .Include(x => x.ProductAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         }
 
         public async Task<PagedResult<JournalEntry>> GetEntriesAsync(
@@ -37,7 +37,6 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .Include(x => x.ProductAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
-                .Where(x => !x.IsDeleted)
                 .AsQueryable();
 
             // Sorting
@@ -87,7 +86,6 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .Include(x => x.ProductAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
-                .Where(x => !x.IsDeleted)
                 .AsQueryable();
 
             // Text search (simple contains for now, can be improved with full-text search)
@@ -169,7 +167,7 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .Include(x => x.ProductAssociations)
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
-                .Where(x => !x.IsDeleted && (x.ProductAssociations.Any(pa => productCode.StartsWith(pa.ProductCodePrefix))))
+                .Where(x => x.ProductAssociations.Any(pa => productCode.StartsWith(pa.ProductCodePrefix)))
                 .OrderByDescending(x => x.EntryDate)
                 .ThenByDescending(x => x.CreatedAt)
                 .ToListAsync(cancellationToken);
@@ -185,7 +183,7 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
             // Aggregate direct associations into a per-product accumulator.
             var directAssociations = await Context.Set<JournalEntryProduct>()
                 .Where(jep => productCodeList.Contains(jep.ProductCodePrefix))
-                .Join(Context.Set<JournalEntry>().Where(je => !je.IsDeleted),
+                .Join(Context.Set<JournalEntry>(),
                     jep => jep.JournalEntryId,
                     je => je.Id,
                     (jep, je) => new { ProductCode = jep.ProductCodePrefix, je.EntryDate, je.CreatedAt })

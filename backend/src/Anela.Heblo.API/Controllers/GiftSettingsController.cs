@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.GiftSettings.UseCases.GetGiftSetting;
 using Anela.Heblo.Application.Features.GiftSettings.UseCases.SetGiftSetting;
+using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,9 +31,9 @@ public class GiftSettingsController : BaseApiController
         [FromBody] SetGiftSettingCommand command,
         CancellationToken cancellationToken = default)
     {
-        command.ModifiedBy = GetCurrentUserId();
         var response = await _mediator.Send(command, cancellationToken);
         if (response.Success) return NoContent();
+        if (response.ErrorCode == ErrorCodes.Unauthorized) return Unauthorized(response);
         return BadRequest(response);
     }
 }

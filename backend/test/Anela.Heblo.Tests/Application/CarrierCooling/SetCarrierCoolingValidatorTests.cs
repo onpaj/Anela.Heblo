@@ -29,7 +29,6 @@ public class SetCarrierCoolingValidatorTests
             Carrier = Carriers.PPL,
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = Cooling.L1,
-            ModifiedBy = "user-123",
         };
 
         var result = validator.TestValidate(request);
@@ -47,7 +46,6 @@ public class SetCarrierCoolingValidatorTests
             Carrier = Carriers.GLS,
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = Cooling.L1,
-            ModifiedBy = "user-123",
         };
 
         var result = validator.TestValidate(request);
@@ -65,7 +63,6 @@ public class SetCarrierCoolingValidatorTests
             Carrier = (Carriers)999,
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = Cooling.L1,
-            ModifiedBy = "user-123",
         };
 
         var result = validator.TestValidate(request);
@@ -83,7 +80,6 @@ public class SetCarrierCoolingValidatorTests
             Carrier = Carriers.PPL,
             DeliveryHandling = (DeliveryHandling)999,
             Cooling = Cooling.L1,
-            ModifiedBy = "user-123",
         };
 
         var result = validator.TestValidate(request);
@@ -102,7 +98,6 @@ public class SetCarrierCoolingValidatorTests
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = Cooling.L1,
             CoolingText = new string('x', 51),
-            ModifiedBy = "user-123",
         };
 
         var result = validator.TestValidate(request);
@@ -121,7 +116,6 @@ public class SetCarrierCoolingValidatorTests
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = Cooling.L1,
             CoolingText = new string('x', 50),
-            ModifiedBy = "user-123",
         };
 
         var result = validator.TestValidate(request);
@@ -139,7 +133,6 @@ public class SetCarrierCoolingValidatorTests
             Carrier = Carriers.PPL,
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = (Cooling)999,
-            ModifiedBy = "user-123",
         };
 
         var result = validator.TestValidate(request);

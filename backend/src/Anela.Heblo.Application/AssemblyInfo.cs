@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Anela.Heblo.Tests")]
+[assembly: InternalsVisibleTo("Anela.Heblo.API")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

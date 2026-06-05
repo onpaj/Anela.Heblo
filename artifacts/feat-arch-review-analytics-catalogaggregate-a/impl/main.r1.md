@@ -1,43 +1,48 @@
-Write permission is needed for the artifacts directory. Let me output the implementation artifact content directly:
+All 4 tasks complete. Let me write the final output summary.
 
 ---
 
-# Implementation: Remove Dead `StockSeverity.Severe` Member
+# Implementation: Consolidate AnalyticsProduct Mapping — SalesHistory Projection
 
 ## What was implemented
-The task-plan called for removing the unreachable `Severe` member from the `StockSeverity` enum in the Purchase module and regenerating the TypeScript API client. Pre-implementation verification confirmed that commit `79178cac` (PR #1895 — "feat: Remove Unused `Severe` Member from `StockSeverity` Enum") already delivered the complete change before this branch was created. All acceptance criteria are satisfied by the existing commit; no new changes were required.
+
+Verified that PR #1805 already delivered all 5 FRs from the original spec (mapping helper exists on `CatalogAnalyticsSourceAdapter`, both call sites route through it, `SalesHistory` drift bug was already fixed). Executed the one justified follow-up identified by the arch review ("delta 1"): moved the duplicated `SalesHistory.Where(...).Select(...).ToList()` projection from both call sites into the `MapToAnalyticsProduct` helper, dropping the helper's `List<SalesDataPoint>` parameter.
 
 ## Files created/modified
-No files were modified in this session. The changes landed in PR #1895:
 
-- `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/GetPurchaseStockAnalysis/GetPurchaseStockAnalysisResponse.cs` — `Severe,` line removed; remaining members: `Critical, Low, Optimal, Overstocked, NotConfigured`
-- `frontend/src/api/generated/api-client.ts` — NSwag-regenerated; `Severe = "Severe",` absent from `StockSeverity`; `GiftPackageSeverity.Severe` unaffected
+- `backend/test/Anela.Heblo.Tests/Features/Catalog/Infrastructure/CatalogAnalyticsSourceAdapterTests.cs` — added `GetProductAnalysisDataAsync_ExcludesSalesOutsidePeriodEvenWhenCallerPassesUnfilteredAggregate` regression test (commit `0844c42e`)
+- `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogAnalyticsSourceAdapter.cs` — changed `MapToAnalyticsProduct` from 4-arg to 3-arg; moved `SalesHistory` projection inside; removed duplicate 6-line LINQ blocks from both call sites (commit `e145432e`)
 
 ## Tests
-No test changes needed. Purchase-module and full backend test suites verified green against current branch state.
+
+- `CatalogAnalyticsSourceAdapterTests.cs` — 9 tests pass (8 original + 1 new regression test)
+- `ModuleBoundariesTests` — all pass; no boundary violations introduced
+- Full solution: all tests pass
 
 ## How to verify
+
 ```bash
-grep -n "Severe" backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/GetPurchaseStockAnalysis/GetPurchaseStockAnalysisResponse.cs
-# Expected: no output
-
-grep -A 8 "^export enum StockSeverity" frontend/src/api/generated/api-client.ts
-# Expected: Critical, Low, Optimal, Overstocked, NotConfigured only
-
-grep -nR "StockSeverity\.Severe" backend frontend/src --include="*.cs" --include="*.ts" --include="*.tsx"
-# Expected: no output
+cd /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-analytics-catalogaggregate-a
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~CatalogAnalyticsSourceAdapterTests|FullyQualifiedName~ModuleBoundariesTests" --no-build
 ```
 
+Expected: all tests pass.
+
 ## Notes
-- **Spec/plan staleness:** All tasks in task-plan.r1.md were already completed by PR #1895 before this branch was created. The same applies to the Analytics spec — extraction done by PR #1847. The only remaining open item from the arch review (FR-3: SalesHistory date-filter consistency in `CatalogAnalyticsSourceAdapter.GetProductAnalysisDataAsync`) was not covered by the task-plan.
-- **`GiftPackageSeverity.Severe` intentionally preserved** — distinct Logistics enum, not a target of this change.
-- **Docs stale reference:** `docs/features/gift-package-manufacture.md:476` still reads `StockSeverity.Severe` where it should say `GiftPackageSeverity.Severe` — tracked for a separate docs PR.
+
+Load-bearing decisions confirmed preserved: `M1_A` (not `M1`) for all three M1 fields, `MapProductType(product.Type)` (not raw `product.Type`), `marginData.Averages.M0.Amount` fallback for `MarginAmount`. The spec is now fully superseded by #1805 plus this consolidation.
 
 ## PR Summary
-No PR needed — implementation pre-existed in commit `79178cac` (PR #1895), already merged to `main` and present on this branch.
+
+The original spec (extract `CatalogAggregate → AnalyticsProduct` mapping helper) was already delivered by PR #1805. This branch executes the one remaining consolidation the arch review identified: the duplicated `SalesHistory.Where(...).Select(...).ToList()` projection that still appeared at both call sites has been moved inside `MapToAnalyticsProduct`, completing the "one mapping site" intent.
+
+A regression test was added first to pin the observable contract — `SalesHistory` is date-bounded — so the helper can never silently lose the filter again regardless of future call-site changes.
 
 ### Changes
-- *(no new changes — implementation pre-existed in commit `79178cac`)*
+- `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogAnalyticsSourceAdapter.cs` — changed `MapToAnalyticsProduct` from 4-arg (caller passes pre-filtered `List<SalesDataPoint>`) to 3-arg (helper owns the `Where/Select/ToList` projection); both call sites drop the duplicate 6-line LINQ block
+- `backend/test/Anela.Heblo.Tests/Features/Catalog/Infrastructure/CatalogAnalyticsSourceAdapterTests.cs` — added `GetProductAnalysisDataAsync_ExcludesSalesOutsidePeriodEvenWhenCallerPassesUnfilteredAggregate` to permanently pin the date-filter contract at the helper level
 
 ## Status
+
 DONE
