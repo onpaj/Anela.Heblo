@@ -2,36 +2,57 @@
 Journal
 
 ## Finding
-`UpdateJournalEntryHandler` directly mutates navigation-property collections on the `JournalEntry` aggregate instead of going through domain methods:
+`JournalEntry` has a well-formed domain method for soft-delete that encapsulates audit-trail bookkeeping:
 
 ```csharp
-// backend/src/Anela.Heblo.Application/Features/Journal/UseCases/UpdateJournalEntry/UpdateJournalEntryHandler.cs
-// Lines 62–78
-entry.ProductAssociations.Clear();   // ← raw collection mutation
-if (request.AssociatedProducts?.Any() == true)
+// backend/src/Anela.Heblo.Domain/Features/Journal/JournalEntry.cs:153
+public void SoftDelete(string userId, string username)
 {
-    foreach (var productIdentifier in request.AssociatedProducts.Distinct())
-        entry.AssociateWithProduct(productIdentifier);   // ← then domain method
-}
-
-entry.TagAssignments.Clear();         // ← raw collection mutation
-if (request.TagIds?.Any() == true)
-{
-    foreach (var tagId in request.TagIds.Distinct())
-        entry.AssignTag(tagId);                          // ← then domain method
+    IsDeleted = true;
+    DeletedAt = DateTime.UtcNow;
+    DeletedByUserId = userId;
+    DeletedByUsername = username;
+    ModifiedAt = DateTime.UtcNow;
+    ModifiedByUserId = userId;
+    ModifiedByUsername = username;
 }
 ```
 
-The entity already provides `AssociateWithProduct` and `AssignTag` for the *add* path (used consistently in `CreateJournalEntryHandler`), but the *replace* path skips domain encapsulation entirely by calling `.Clear()` directly on the collections.
+The `UpdateJournalEntryHandler` does not follow the same pattern. It mutates `ModifiedAt`, `ModifiedByUserId`, `ModifiedByUsername`, `Title`, `Content`, and `EntryDate` as direct property assignments from the application layer:
+
+```csharp
+// backend/src/Anela.Heblo.Application/Features/Journal/UseCases/UpdateJournalEntry/UpdateJournalEntryHandler.cs:51-59
+var now = DateTime.UtcNow;
+entry.Title = request.Title?.Trim();
+entry.Content = request.Content.Trim();
+entry.EntryDate = request.EntryDate.Date;
+entry.ModifiedAt = now;
+entry.ModifiedByUserId = currentUser.Id;
+entry.ModifiedByUsername = currentUser.Name ?? "Unknown User";
+```
 
 ## Why it matters
-- **Inconsistency between create and update paths**: create routes all mutations through domain methods; update partially bypasses them.
-- **Domain invariants not enforced for removal**: `.Clear()` does not go through any domain logic; future invariants on removal (e.g. audit trail, validation) would need to be added in two places — the handler and the domain method.
-- **EF change-tracking fragility**: clearing owned collections directly can cause unexpected behaviour under EF tracking if the collection is lazy-loaded or if the cascade delete behaviour changes.
-- **Violates tell-don't-ask**: the handler asks for the collection and mutates it rather than telling the entity what its new state should be.
+The entity owns the rule "who sets ModifiedAt and when" for deletion, but the handler owns that rule for updates. This split means:
+- The audit trail logic (`ModifiedAt`, `ModifiedBy*`) for updates lives in the wrong layer.
+- A future update rule (e.g. "only the original author may edit") or a new invariant (e.g. "content may not be blanked") would need to be added to the handler rather than the entity — the exact opposite of the pattern already established by `SoftDelete`.
+- Content trimming (`request.Title?.Trim()`) is also applied in the handler instead of being a domain-level normalisation.
 
 ## Suggested fix
-Add `ReplaceProductAssociations(IEnumerable<string> productIdentifiers)` and `ReplaceTagAssignments(IEnumerable<int> tagIds)` domain methods to `JournalEntry` (mirroring the existing guard logic in `AssociateWithProduct`/`AssignTag`), then call those from the handler instead of the raw `.Clear()` + loop pattern.
+Add an `Update(string title, string content, DateTime entryDate, string userId, string username)` method to `JournalEntry` that mirrors `SoftDelete`:
+
+```csharp
+public void Update(string? title, string content, DateTime entryDate, string userId, string username)
+{
+    Title = title?.Trim();
+    Content = content.Trim();
+    EntryDate = entryDate.Date;
+    ModifiedAt = DateTime.UtcNow;
+    ModifiedByUserId = userId;
+    ModifiedByUsername = username;
+}
+```
+
+Replace the direct field assignments in `UpdateJournalEntryHandler` with a single call to `entry.Update(...)`. This makes the entity consistently responsible for its own audit trail and puts future invariants in the right place.
 
 ---
-_Filed by daily arch-review routine on 2026-05-12._
+_Filed by daily arch-review routine on 2026-06-04._
