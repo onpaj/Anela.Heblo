@@ -19,6 +19,7 @@ var appRoles = roles.Select(r => new
 });
 var groups = AccessMatrix.Groups.Select(g => new { name = g.Name, roles = g.Roles });
 var manifest = new { appRoles, groups };
+Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(jsonPath)) ?? ".");
 File.WriteAllText(jsonPath,
     JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }));
 
@@ -33,6 +34,7 @@ sb.AppendLine();
 sb.AppendLine("export const ACCESS_ROLES = [");
 foreach (var r in roles) sb.AppendLine($"  \"{r.Value}\",");
 sb.AppendLine("] as const;");
+Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(tsPath)) ?? ".");
 File.WriteAllText(tsPath, sb.ToString());
 
 Console.WriteLine($"Wrote {tsPath} and {jsonPath}");
