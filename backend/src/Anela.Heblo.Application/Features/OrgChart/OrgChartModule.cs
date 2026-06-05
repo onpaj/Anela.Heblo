@@ -15,8 +15,12 @@ public static class OrgChartModule
     /// </summary>
     public static IServiceCollection AddOrgChartServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Register configuration options
-        services.Configure<OrgChartOptions>(configuration.GetSection(OrgChartOptions.SectionName));
+        // Register configuration options with startup validation
+        services
+            .AddOptions<OrgChartOptions>()
+            .Bind(configuration.GetSection(OrgChartOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         // Register HTTP client for fetching organization data
         services.AddHttpClient<IOrgChartService, OrgChartService>();
