@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { UserInfo } from "./useAuth";
 import { StoredUserInfo } from "./userStorage";
+import { ACCESS_ROLES } from "./accessMatrix.generated";
 
 /**
  * E2E Authentication for UI tests
@@ -13,7 +14,7 @@ const E2E_USER: UserInfo = {
   name: "E2E Test User",
   email: "e2e@anela-heblo.com",
   initials: "E2E",
-  roles: ["finance_reader"],
+  roles: [...ACCESS_ROLES],
 };
 
 /**
