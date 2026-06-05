@@ -13,7 +13,7 @@ namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/feature-flags")]
-[Authorize(Roles = AccessRoles.FeatureFlagsRead)]
+[Authorize]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 public class FeatureFlagsController : BaseApiController
 {
@@ -22,6 +22,7 @@ public class FeatureFlagsController : BaseApiController
     public FeatureFlagsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(EvaluateFlagsForClientResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<EvaluateFlagsForClientResponse>> Get(CancellationToken ct)
         => HandleResponse(await _mediator.Send(new EvaluateFlagsForClientRequest(), ct));
