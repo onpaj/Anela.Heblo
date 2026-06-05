@@ -23,6 +23,7 @@ import UserProfile from "../auth/UserProfile";
 import { useAuth } from "../../auth/useAuth";
 import { useMockAuth, shouldUseMockAuth } from "../../auth/mockAuth";
 import { useChangelogContext } from "../../contexts/ChangelogContext";
+import { ACCESS_ROUTES } from "../../auth/accessMatrix.generated";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -52,9 +53,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Changelog context
   const { openModal } = useChangelogContext();
 
-  // Helper function to check if user has a specific role
-  const hasRole = (role: string): boolean => {
-    return userInfo?.roles?.includes(role) || false;
+  // Helper function to check if user can see a route based on access matrix
+  const canSee = (path?: string): boolean => {
+    if (!path) return true; // section headers / items without a primary route
+    const required = ACCESS_ROUTES[path];
+    if (!required) return true; // base/un-gated pages (Dashboard, etc.)
+    return (userInfo?.roles ?? []).includes(required);
   };
 
   // Function to open Hangfire dashboard in new window
@@ -107,8 +111,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         },
       ],
     },
-    // Finance section - only visible for finance_reader role
-    ...(hasRole("finance_reader")
+    // Finance section - visibility driven by access matrix
+    ...(canSee("/finance/overview")
       ? [
           {
             id: "finance",
@@ -171,8 +175,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         { id: "photobank", name: "Fotobanka", href: "/marketing/photobank" },
         { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator" },
         { id: "articles", name: "Generátor článků", href: "/articles" },
-        
-        ...(hasRole("super_user") || hasRole("marketing_reader")
+
+        ...(canSee("/articles")
           ? [{ id: "marketing-feedback", name: "Feedback", href: "/marketing/feedback" }]
           : []),
       ],
