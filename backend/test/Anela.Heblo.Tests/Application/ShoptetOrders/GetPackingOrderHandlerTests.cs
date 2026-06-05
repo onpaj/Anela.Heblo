@@ -4,7 +4,6 @@ using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Anela.Heblo.Tests.Application.ShoptetOrders;
@@ -13,10 +12,9 @@ public class GetPackingOrderHandlerTests
 {
     private readonly Mock<IPackingOrderClient> _clientMock = new();
 
-    private GetPackingOrderHandler CreateHandler(int packingStateId = 26) =>
+    private GetPackingOrderHandler CreateHandler() =>
         new(
             _clientMock.Object,
-            Options.Create(new ShoptetOrdersSettings { PackingStateId = packingStateId }),
             NullLogger<GetPackingOrderHandler>.Instance);
 
     [Fact]
@@ -32,6 +30,7 @@ public class GetPackingOrderHandlerTests
                 Cooling = Cooling.L1,
                 IsCooled = true,
                 StatusId = 26,
+                IsEligibleForPacking = true,
                 CustomerNote = "Zabalit jako dárek",
                 EshopNote = "Stálý zákazník",
                 Items = new List<PackingOrderItem>
@@ -65,6 +64,7 @@ public class GetPackingOrderHandlerTests
                 CustomerName = "Jan Novák",
                 ShippingMethodName = "PPL",
                 StatusId = 26,
+                IsEligibleForPacking = true,
                 Items = [],
             });
 
@@ -88,6 +88,7 @@ public class GetPackingOrderHandlerTests
                 CustomerName = "Jana Nováková",
                 ShippingMethodName = "PPL",
                 StatusId = 99,
+                IsEligibleForPacking = false,
                 Items = [],
             });
 
@@ -96,7 +97,7 @@ public class GetPackingOrderHandlerTests
 
         result.Success.Should().BeTrue();
         result.Eligibility.IsEligible.Should().BeFalse();
-        result.Eligibility.WarningTitle.Should().Be("Objednávka není ve stavu „Balí se“");
+        result.Eligibility.WarningTitle.Should().Be("Objednávka není ve stavu „Balí se”");
         result.Eligibility.WarningBody.Should().Be("Tuto objednávku nezpracovávejte, dokud nebude ve správném stavu.");
     }
 
