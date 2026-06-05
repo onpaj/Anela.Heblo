@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Bank.Infrastructure;
 using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementList;
 using Anela.Heblo.Application.Features.Bank.Validators;
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Persistence.Features.Bank;
 using FluentValidation;
@@ -25,6 +26,11 @@ public static class BankModule
         services.AddScoped<
             IPipelineBehavior<GetBankStatementListRequest, GetBankStatementListResponse>,
             ValidationBehavior<GetBankStatementListRequest, GetBankStatementListResponse>>();
+
+        // Cross-module contract: Bank implements Analytics' IBankStatementStatisticsSource
+        // via an adapter. DI registration owned by provider (Bank), not consumer (Analytics).
+        // Scoped because the adapter wraps ApplicationDbContext (also Scoped).
+        services.AddScoped<IBankStatementStatisticsSource, BankStatementStatisticsSourceAdapter>();
 
         return services;
     }
