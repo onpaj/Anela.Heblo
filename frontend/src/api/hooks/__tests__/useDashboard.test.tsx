@@ -49,7 +49,7 @@ describe('useDashboard hooks', () => {
     mockFetch.mockClear();
     
     // Set up the mock implementation
-    (clientModule.getAuthenticatedApiClient as jest.Mock).mockResolvedValue(mockApiClient);
+    (clientModule.getAuthenticatedApiClient as jest.Mock).mockReturnValue(mockApiClient);
   });
 
   describe('useAvailableTiles', () => {
