@@ -519,12 +519,23 @@
       "displayName": "feature_flags.write",
       "isEnabled": true,
       "value": "feature_flags.write"
+    },
+    {
+      "id": "31382767-9ea1-ae54-9a64-18cb12ebed9f",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Base Heblo user — required to log in",
+      "displayName": "heblo_user",
+      "isEnabled": true,
+      "value": "heblo_user"
     }
   ],
   "groups": [
     {
-      "name": "Spravce",
+      "name": "SG_Spravce",
       "roles": [
+        "heblo_user",
         "financial_overview.read",
         "margin_analysis.read",
         "product_margins.read",
@@ -580,8 +591,9 @@
       ]
     },
     {
-      "name": "Vedeni",
+      "name": "SG_Vedeni",
       "roles": [
+        "heblo_user",
         "financial_overview.read",
         "margin_analysis.read",
         "product_margins.read",
@@ -615,8 +627,9 @@
       ]
     },
     {
-      "name": "Ucetni",
+      "name": "SG_Ucetni",
       "roles": [
+        "heblo_user",
         "financial_overview.read",
         "margin_analysis.read",
         "product_margins.read",
@@ -627,8 +640,9 @@
       ]
     },
     {
-      "name": "Marketer",
+      "name": "SG_Marketer",
       "roles": [
+        "heblo_user",
         "marketing_calendar.read",
         "marketing_calendar.write",
         "photobank.read",
@@ -640,16 +654,18 @@
       ]
     },
     {
-      "name": "Nakupci",
+      "name": "SG_Nakupci",
       "roles": [
+        "heblo_user",
         "purchase_orders.read",
         "purchase_orders.write",
         "purchase_stock.read"
       ]
     },
     {
-      "name": "Vedouci_vyroby",
+      "name": "SG_Vedouci_vyroby",
       "roles": [
+        "heblo_user",
         "manufacture_orders.read",
         "manufacture_orders.write",
         "manufacture_output.read",
@@ -665,8 +681,9 @@
       ]
     },
     {
-      "name": "Pracovnik_vyroby",
+      "name": "SG_Pracovnik_vyroby",
       "roles": [
+        "heblo_user",
         "manufacture_orders.read",
         "material_inventory.read",
         "material_inventory.write",
@@ -675,8 +692,9 @@
       ]
     },
     {
-      "name": "Vedouci_skladu",
+      "name": "SG_Vedouci_skladu",
       "roles": [
+        "heblo_user",
         "logistics.read",
         "logistics.write",
         "expedition.read",
@@ -688,8 +706,9 @@
       ]
     },
     {
-      "name": "Skladnik",
+      "name": "SG_Skladnik",
       "roles": [
+        "heblo_user",
         "logistics.read",
         "expedition.read",
         "packaging.read",
@@ -697,8 +716,9 @@
       ]
     },
     {
-      "name": "Poradenstvi",
+      "name": "SG_Poradenstvi",
       "roles": [
+        "heblo_user",
         "knowledge_base.read",
         "knowledge_base.write"
       ]
