@@ -7,6 +7,8 @@ using Microsoft.Identity.Web;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Persistence.KnowledgeBase;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,7 +49,8 @@ public static class KnowledgeBaseModule
         // Scoped to match existing Article contract bindings above.
         services.AddScoped<IArticleKnowledgeSource, KnowledgeBaseArticleKnowledgeSource>();
 
-        // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)
+        // Repository (real EF Core implementation lives in the Persistence layer)
+        services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
 
         // OneDrive service — use real Graph service only when SharePoint drives are configured
         // AND real authentication is active. Mock auth has no Azure AD token so Graph calls
