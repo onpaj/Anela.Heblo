@@ -102,18 +102,6 @@ export const useReprintExpeditionList = () => {
   });
 };
 
-export const useRunExpeditionListPrintFix = () => {
-  return useMutation<RunExpeditionListPrintFixResult, Error, void>({
-    mutationFn: async (): Promise<RunExpeditionListPrintFixResult> => {
-      const client = getAuthenticatedApiClient();
-      const response = await client.expeditionList_RunFix();
-      return {
-        totalCount: response.totalCount ?? 0,
-        errorMessage: response.errorMessage ?? null,
-      };
-    },
-  });
-};
 
 export const getExpeditionListDownloadUrl = (blobPath: string): string => {
   const encodedPath = blobPath.split("/").map(encodeURIComponent).join("/");
