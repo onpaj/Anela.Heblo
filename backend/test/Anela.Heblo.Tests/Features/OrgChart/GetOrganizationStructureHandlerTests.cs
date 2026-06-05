@@ -63,7 +63,8 @@ public class GetOrganizationStructureHandlerTests
         var caught = await act.Should().ThrowAsync<InvalidOperationException>();
         caught.Which.Should().BeSameAs(thrown);
 
-        // Assert: the handler does NOT emit its own LogError — the controller owns failure logging.
+        // Assert: the handler does NOT emit its own LogError. The OrgChartController is the
+        // single error-logging site for the OrgChart slice; service and handler stay silent.
         _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Error,
