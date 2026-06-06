@@ -697,6 +697,414 @@ export class ApiClient {
         return Promise.resolve<BackfillArticleRequestedByResponse>(null as any);
     }
 
+    auth_Me(): Promise<GetMeResponse> {
+        let url_ = this.baseUrl + "/api/auth/me";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuth_Me(_response);
+        });
+    }
+
+    protected processAuth_Me(response: Response): Promise<GetMeResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMeResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMeResponse>(null as any);
+    }
+
+    authorization_Catalogue(): Promise<GetPermissionCatalogueResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/catalogue";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_Catalogue(_response);
+        });
+    }
+
+    protected processAuthorization_Catalogue(response: Response): Promise<GetPermissionCatalogueResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPermissionCatalogueResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPermissionCatalogueResponse>(null as any);
+    }
+
+    authorization_GetGroups(): Promise<GetGroupsResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/groups";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_GetGroups(_response);
+        });
+    }
+
+    protected processAuthorization_GetGroups(response: Response): Promise<GetGroupsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetGroupsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetGroupsResponse>(null as any);
+    }
+
+    authorization_CreateGroup(request: CreateGroupRequest): Promise<CreateGroupResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/groups";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_CreateGroup(_response);
+        });
+    }
+
+    protected processAuthorization_CreateGroup(response: Response): Promise<CreateGroupResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateGroupResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateGroupResponse>(null as any);
+    }
+
+    authorization_GetGroup(id: string): Promise<GetGroupDetailResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/groups/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_GetGroup(_response);
+        });
+    }
+
+    protected processAuthorization_GetGroup(response: Response): Promise<GetGroupDetailResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetGroupDetailResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetGroupDetailResponse>(null as any);
+    }
+
+    authorization_UpdateGroup(id: string, request: UpdateGroupRequest): Promise<UpdateGroupResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/groups/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_UpdateGroup(_response);
+        });
+    }
+
+    protected processAuthorization_UpdateGroup(response: Response): Promise<UpdateGroupResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateGroupResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateGroupResponse>(null as any);
+    }
+
+    authorization_DeleteGroup(id: string): Promise<DeleteGroupResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/groups/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_DeleteGroup(_response);
+        });
+    }
+
+    protected processAuthorization_DeleteGroup(response: Response): Promise<DeleteGroupResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteGroupResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteGroupResponse>(null as any);
+    }
+
+    authorization_GetUsers(): Promise<GetUsersResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/users";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_GetUsers(_response);
+        });
+    }
+
+    protected processAuthorization_GetUsers(response: Response): Promise<GetUsersResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetUsersResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetUsersResponse>(null as any);
+    }
+
+    authorization_GetUserPermissions(id: string): Promise<GetUserEffectivePermissionsResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/users/{id}/permissions";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_GetUserPermissions(_response);
+        });
+    }
+
+    protected processAuthorization_GetUserPermissions(response: Response): Promise<GetUserEffectivePermissionsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetUserEffectivePermissionsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetUserEffectivePermissionsResponse>(null as any);
+    }
+
+    authorization_AssignGroups(id: string, request: AssignUserGroupsRequest): Promise<AssignUserGroupsResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/users/{id}/groups";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_AssignGroups(_response);
+        });
+    }
+
+    protected processAuthorization_AssignGroups(response: Response): Promise<AssignUserGroupsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AssignUserGroupsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AssignUserGroupsResponse>(null as any);
+    }
+
+    authorization_SetActive(id: string, request: SetUserActiveRequest): Promise<SetUserActiveResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/users/{id}/active";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_SetActive(_response);
+        });
+    }
+
+    protected processAuthorization_SetActive(response: Response): Promise<SetUserActiveResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SetUserActiveResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SetUserActiveResponse>(null as any);
+    }
+
     backgroundRefresh_GetRegisteredTasks(): Promise<RefreshTaskDto[]> {
         let url_ = this.baseUrl + "/api/BackgroundRefresh/tasks";
         url_ = url_.replace(/[?&]$/, "");
@@ -12366,6 +12774,12 @@ export enum ErrorCodes {
     CatalogDocumentFolderMultipleMatches = "CatalogDocumentFolderMultipleMatches",
     CatalogDocumentFileMissing = "CatalogDocumentFileMissing",
     CatalogDocumentGraphError = "CatalogDocumentGraphError",
+    AuthorizationGroupNotFound = "AuthorizationGroupNotFound",
+    AuthorizationUserNotFound = "AuthorizationUserNotFound",
+    AuthorizationInvalidPermission = "AuthorizationInvalidPermission",
+    AuthorizationGroupCycleDetected = "AuthorizationGroupCycleDetected",
+    AuthorizationSystemGroupImmutable = "AuthorizationSystemGroupImmutable",
+    AuthorizationDuplicateGroupName = "AuthorizationDuplicateGroupName",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -13916,6 +14330,949 @@ export class BackfillArticleRequestedByCommand implements IBackfillArticleReques
 export interface IBackfillArticleRequestedByCommand {
     groupId?: string;
     dryRun?: boolean;
+}
+
+export class GetMeResponse extends BaseResponse implements IGetMeResponse {
+    email?: string | undefined;
+    displayName?: string | undefined;
+    isSuperUser?: boolean;
+    permissions?: string[];
+    groups?: string[];
+
+    constructor(data?: IGetMeResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.email = _data["email"];
+            this.displayName = _data["displayName"];
+            this.isSuperUser = _data["isSuperUser"];
+            if (Array.isArray(_data["permissions"])) {
+                this.permissions = [] as any;
+                for (let item of _data["permissions"])
+                    this.permissions!.push(item);
+            }
+            if (Array.isArray(_data["groups"])) {
+                this.groups = [] as any;
+                for (let item of _data["groups"])
+                    this.groups!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetMeResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMeResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["email"] = this.email;
+        data["displayName"] = this.displayName;
+        data["isSuperUser"] = this.isSuperUser;
+        if (Array.isArray(this.permissions)) {
+            data["permissions"] = [];
+            for (let item of this.permissions)
+                data["permissions"].push(item);
+        }
+        if (Array.isArray(this.groups)) {
+            data["groups"] = [];
+            for (let item of this.groups)
+                data["groups"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMeResponse extends IBaseResponse {
+    email?: string | undefined;
+    displayName?: string | undefined;
+    isSuperUser?: boolean;
+    permissions?: string[];
+    groups?: string[];
+}
+
+export class GetPermissionCatalogueResponse extends BaseResponse implements IGetPermissionCatalogueResponse {
+    permissions?: string[];
+    features?: CatalogueFeatureDto[];
+    systemGroups?: CatalogueGroupDto[];
+
+    constructor(data?: IGetPermissionCatalogueResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["permissions"])) {
+                this.permissions = [] as any;
+                for (let item of _data["permissions"])
+                    this.permissions!.push(item);
+            }
+            if (Array.isArray(_data["features"])) {
+                this.features = [] as any;
+                for (let item of _data["features"])
+                    this.features!.push(CatalogueFeatureDto.fromJS(item));
+            }
+            if (Array.isArray(_data["systemGroups"])) {
+                this.systemGroups = [] as any;
+                for (let item of _data["systemGroups"])
+                    this.systemGroups!.push(CatalogueGroupDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetPermissionCatalogueResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPermissionCatalogueResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.permissions)) {
+            data["permissions"] = [];
+            for (let item of this.permissions)
+                data["permissions"].push(item);
+        }
+        if (Array.isArray(this.features)) {
+            data["features"] = [];
+            for (let item of this.features)
+                data["features"].push(item.toJSON());
+        }
+        if (Array.isArray(this.systemGroups)) {
+            data["systemGroups"] = [];
+            for (let item of this.systemGroups)
+                data["systemGroups"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPermissionCatalogueResponse extends IBaseResponse {
+    permissions?: string[];
+    features?: CatalogueFeatureDto[];
+    systemGroups?: CatalogueGroupDto[];
+}
+
+export class CatalogueFeatureDto implements ICatalogueFeatureDto {
+    key?: string;
+    label?: string;
+    section?: string;
+    hasWrite?: boolean;
+    hasAdmin?: boolean;
+
+    constructor(data?: ICatalogueFeatureDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.label = _data["label"];
+            this.section = _data["section"];
+            this.hasWrite = _data["hasWrite"];
+            this.hasAdmin = _data["hasAdmin"];
+        }
+    }
+
+    static fromJS(data: any): CatalogueFeatureDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CatalogueFeatureDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["label"] = this.label;
+        data["section"] = this.section;
+        data["hasWrite"] = this.hasWrite;
+        data["hasAdmin"] = this.hasAdmin;
+        return data;
+    }
+}
+
+export interface ICatalogueFeatureDto {
+    key?: string;
+    label?: string;
+    section?: string;
+    hasWrite?: boolean;
+    hasAdmin?: boolean;
+}
+
+export class CatalogueGroupDto implements ICatalogueGroupDto {
+    name?: string;
+    permissions?: string[];
+
+    constructor(data?: ICatalogueGroupDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            if (Array.isArray(_data["permissions"])) {
+                this.permissions = [] as any;
+                for (let item of _data["permissions"])
+                    this.permissions!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): CatalogueGroupDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CatalogueGroupDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        if (Array.isArray(this.permissions)) {
+            data["permissions"] = [];
+            for (let item of this.permissions)
+                data["permissions"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface ICatalogueGroupDto {
+    name?: string;
+    permissions?: string[];
+}
+
+export class GetGroupsResponse extends BaseResponse implements IGetGroupsResponse {
+    groups?: GroupSummaryDto[];
+
+    constructor(data?: IGetGroupsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["groups"])) {
+                this.groups = [] as any;
+                for (let item of _data["groups"])
+                    this.groups!.push(GroupSummaryDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetGroupsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetGroupsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.groups)) {
+            data["groups"] = [];
+            for (let item of this.groups)
+                data["groups"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetGroupsResponse extends IBaseResponse {
+    groups?: GroupSummaryDto[];
+}
+
+export class GroupSummaryDto implements IGroupSummaryDto {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    isSystem?: boolean;
+    permissionCount?: number;
+    parentCount?: number;
+    memberCount?: number;
+
+    constructor(data?: IGroupSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.isSystem = _data["isSystem"];
+            this.permissionCount = _data["permissionCount"];
+            this.parentCount = _data["parentCount"];
+            this.memberCount = _data["memberCount"];
+        }
+    }
+
+    static fromJS(data: any): GroupSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new GroupSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["isSystem"] = this.isSystem;
+        data["permissionCount"] = this.permissionCount;
+        data["parentCount"] = this.parentCount;
+        data["memberCount"] = this.memberCount;
+        return data;
+    }
+}
+
+export interface IGroupSummaryDto {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    isSystem?: boolean;
+    permissionCount?: number;
+    parentCount?: number;
+    memberCount?: number;
+}
+
+export class GetGroupDetailResponse extends BaseResponse implements IGetGroupDetailResponse {
+    group?: GroupDetailDto | undefined;
+
+    constructor(data?: IGetGroupDetailResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.group = _data["group"] ? GroupDetailDto.fromJS(_data["group"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetGroupDetailResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetGroupDetailResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["group"] = this.group ? this.group.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetGroupDetailResponse extends IBaseResponse {
+    group?: GroupDetailDto | undefined;
+}
+
+export class GroupDetailDto implements IGroupDetailDto {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    isSystem?: boolean;
+    permissions?: string[];
+    parentGroupIds?: string[];
+
+    constructor(data?: IGroupDetailDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.isSystem = _data["isSystem"];
+            if (Array.isArray(_data["permissions"])) {
+                this.permissions = [] as any;
+                for (let item of _data["permissions"])
+                    this.permissions!.push(item);
+            }
+            if (Array.isArray(_data["parentGroupIds"])) {
+                this.parentGroupIds = [] as any;
+                for (let item of _data["parentGroupIds"])
+                    this.parentGroupIds!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): GroupDetailDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new GroupDetailDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["isSystem"] = this.isSystem;
+        if (Array.isArray(this.permissions)) {
+            data["permissions"] = [];
+            for (let item of this.permissions)
+                data["permissions"].push(item);
+        }
+        if (Array.isArray(this.parentGroupIds)) {
+            data["parentGroupIds"] = [];
+            for (let item of this.parentGroupIds)
+                data["parentGroupIds"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IGroupDetailDto {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    isSystem?: boolean;
+    permissions?: string[];
+    parentGroupIds?: string[];
+}
+
+export class CreateGroupResponse extends BaseResponse implements ICreateGroupResponse {
+    id?: string;
+
+    constructor(data?: ICreateGroupResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+        }
+    }
+
+    static override fromJS(data: any): CreateGroupResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateGroupResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateGroupResponse extends IBaseResponse {
+    id?: string;
+}
+
+export class CreateGroupRequest implements ICreateGroupRequest {
+    name?: string;
+    description?: string | undefined;
+    permissions?: string[];
+    parentGroupIds?: string[];
+
+    constructor(data?: ICreateGroupRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.description = _data["description"];
+            if (Array.isArray(_data["permissions"])) {
+                this.permissions = [] as any;
+                for (let item of _data["permissions"])
+                    this.permissions!.push(item);
+            }
+            if (Array.isArray(_data["parentGroupIds"])) {
+                this.parentGroupIds = [] as any;
+                for (let item of _data["parentGroupIds"])
+                    this.parentGroupIds!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): CreateGroupRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateGroupRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["description"] = this.description;
+        if (Array.isArray(this.permissions)) {
+            data["permissions"] = [];
+            for (let item of this.permissions)
+                data["permissions"].push(item);
+        }
+        if (Array.isArray(this.parentGroupIds)) {
+            data["parentGroupIds"] = [];
+            for (let item of this.parentGroupIds)
+                data["parentGroupIds"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface ICreateGroupRequest {
+    name?: string;
+    description?: string | undefined;
+    permissions?: string[];
+    parentGroupIds?: string[];
+}
+
+export class UpdateGroupResponse extends BaseResponse implements IUpdateGroupResponse {
+
+    constructor(data?: IUpdateGroupResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): UpdateGroupResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateGroupResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateGroupResponse extends IBaseResponse {
+}
+
+export class UpdateGroupRequest implements IUpdateGroupRequest {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    permissions?: string[];
+    parentGroupIds?: string[];
+
+    constructor(data?: IUpdateGroupRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            if (Array.isArray(_data["permissions"])) {
+                this.permissions = [] as any;
+                for (let item of _data["permissions"])
+                    this.permissions!.push(item);
+            }
+            if (Array.isArray(_data["parentGroupIds"])) {
+                this.parentGroupIds = [] as any;
+                for (let item of _data["parentGroupIds"])
+                    this.parentGroupIds!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): UpdateGroupRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateGroupRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        if (Array.isArray(this.permissions)) {
+            data["permissions"] = [];
+            for (let item of this.permissions)
+                data["permissions"].push(item);
+        }
+        if (Array.isArray(this.parentGroupIds)) {
+            data["parentGroupIds"] = [];
+            for (let item of this.parentGroupIds)
+                data["parentGroupIds"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IUpdateGroupRequest {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    permissions?: string[];
+    parentGroupIds?: string[];
+}
+
+export class DeleteGroupResponse extends BaseResponse implements IDeleteGroupResponse {
+
+    constructor(data?: IDeleteGroupResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteGroupResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteGroupResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteGroupResponse extends IBaseResponse {
+}
+
+export class GetUsersResponse extends BaseResponse implements IGetUsersResponse {
+    users?: AppUserDto[];
+
+    constructor(data?: IGetUsersResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["users"])) {
+                this.users = [] as any;
+                for (let item of _data["users"])
+                    this.users!.push(AppUserDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetUsersResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetUsersResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.users)) {
+            data["users"] = [];
+            for (let item of this.users)
+                data["users"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetUsersResponse extends IBaseResponse {
+    users?: AppUserDto[];
+}
+
+export class AppUserDto implements IAppUserDto {
+    id?: string;
+    email?: string;
+    displayName?: string;
+    isActive?: boolean;
+    lastLoginAt?: Date | undefined;
+    groupIds?: string[];
+
+    constructor(data?: IAppUserDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.email = _data["email"];
+            this.displayName = _data["displayName"];
+            this.isActive = _data["isActive"];
+            this.lastLoginAt = _data["lastLoginAt"] ? new Date(_data["lastLoginAt"].toString()) : <any>undefined;
+            if (Array.isArray(_data["groupIds"])) {
+                this.groupIds = [] as any;
+                for (let item of _data["groupIds"])
+                    this.groupIds!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): AppUserDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AppUserDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["email"] = this.email;
+        data["displayName"] = this.displayName;
+        data["isActive"] = this.isActive;
+        data["lastLoginAt"] = this.lastLoginAt ? this.lastLoginAt.toISOString() : <any>undefined;
+        if (Array.isArray(this.groupIds)) {
+            data["groupIds"] = [];
+            for (let item of this.groupIds)
+                data["groupIds"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IAppUserDto {
+    id?: string;
+    email?: string;
+    displayName?: string;
+    isActive?: boolean;
+    lastLoginAt?: Date | undefined;
+    groupIds?: string[];
+}
+
+export class GetUserEffectivePermissionsResponse extends BaseResponse implements IGetUserEffectivePermissionsResponse {
+    permissions?: string[];
+
+    constructor(data?: IGetUserEffectivePermissionsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["permissions"])) {
+                this.permissions = [] as any;
+                for (let item of _data["permissions"])
+                    this.permissions!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetUserEffectivePermissionsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetUserEffectivePermissionsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.permissions)) {
+            data["permissions"] = [];
+            for (let item of this.permissions)
+                data["permissions"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetUserEffectivePermissionsResponse extends IBaseResponse {
+    permissions?: string[];
+}
+
+export class AssignUserGroupsResponse extends BaseResponse implements IAssignUserGroupsResponse {
+
+    constructor(data?: IAssignUserGroupsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): AssignUserGroupsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new AssignUserGroupsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IAssignUserGroupsResponse extends IBaseResponse {
+}
+
+export class AssignUserGroupsRequest implements IAssignUserGroupsRequest {
+    userId?: string;
+    groupIds?: string[];
+
+    constructor(data?: IAssignUserGroupsRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.userId = _data["userId"];
+            if (Array.isArray(_data["groupIds"])) {
+                this.groupIds = [] as any;
+                for (let item of _data["groupIds"])
+                    this.groupIds!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): AssignUserGroupsRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AssignUserGroupsRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["userId"] = this.userId;
+        if (Array.isArray(this.groupIds)) {
+            data["groupIds"] = [];
+            for (let item of this.groupIds)
+                data["groupIds"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IAssignUserGroupsRequest {
+    userId?: string;
+    groupIds?: string[];
+}
+
+export class SetUserActiveResponse extends BaseResponse implements ISetUserActiveResponse {
+
+    constructor(data?: ISetUserActiveResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): SetUserActiveResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetUserActiveResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISetUserActiveResponse extends IBaseResponse {
+}
+
+export class SetUserActiveRequest implements ISetUserActiveRequest {
+    userId?: string;
+    isActive?: boolean;
+
+    constructor(data?: ISetUserActiveRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.userId = _data["userId"];
+            this.isActive = _data["isActive"];
+        }
+    }
+
+    static fromJS(data: any): SetUserActiveRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetUserActiveRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["userId"] = this.userId;
+        data["isActive"] = this.isActive;
+        return data;
+    }
+}
+
+export interface ISetUserActiveRequest {
+    userId?: string;
+    isActive?: boolean;
 }
 
 export class RefreshTaskDto implements IRefreshTaskDto {
