@@ -145,6 +145,6 @@ public static class AuthorizationConstants
         public const string MarketingWriter = AccessRoles.ArticleWrite; // Maps to article writing, represents general marketing write access
         public const string MarketingReader = AccessRoles.ArticleRead; // Maps to article reading, represents general marketing read access
         public const string HebloUser = AccessRoles.Base; // Base heblo_user role for all authenticated users
-        public const string SuperUser = AccessRoles.AdministrationWrite; // Super user has admin write access
+        public const string SuperUser = AccessRoles.SuperUser;
     }
 }

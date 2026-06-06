@@ -40,6 +40,11 @@ public class PermissionResolver : IPermissionResolver
             await _repo.AddUserAsync(user, ct);
             await _repo.SaveChangesAsync(ct);
         }
+        else
+        {
+            user.LastLoginAt = DateTimeOffset.UtcNow;
+            await _repo.SaveChangesAsync(ct);
+        }
 
         EffectivePermissions result;
         if (!user.IsActive)

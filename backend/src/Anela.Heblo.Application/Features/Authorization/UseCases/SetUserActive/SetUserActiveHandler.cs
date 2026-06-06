@@ -7,7 +7,13 @@ namespace Anela.Heblo.Application.Features.Authorization.UseCases.SetUserActive;
 public class SetUserActiveHandler : IRequestHandler<SetUserActiveRequest, SetUserActiveResponse>
 {
     private readonly IAuthorizationRepository _repo;
-    public SetUserActiveHandler(IAuthorizationRepository repo) => _repo = repo;
+    private readonly IPermissionResolver _resolver;
+
+    public SetUserActiveHandler(IAuthorizationRepository repo, IPermissionResolver resolver)
+    {
+        _repo = repo;
+        _resolver = resolver;
+    }
 
     public async Task<SetUserActiveResponse> Handle(SetUserActiveRequest request, CancellationToken ct)
     {
@@ -17,6 +23,7 @@ public class SetUserActiveHandler : IRequestHandler<SetUserActiveRequest, SetUse
 
         user.IsActive = request.IsActive;
         await _repo.SaveChangesAsync(ct);
+        _resolver.InvalidateCache(user.EntraObjectId);
         return new SetUserActiveResponse();
     }
 }

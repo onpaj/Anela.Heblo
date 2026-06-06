@@ -1,11 +1,13 @@
 using Anela.Heblo.Application.Features.Authorization.UseCases.AssignUserGroups;
 using Anela.Heblo.Application.Features.Authorization.UseCases.SetUserActive;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Authorization.Entities;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Features.Authorization;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Authorization;
@@ -15,6 +17,12 @@ public class AssignUserGroupsHandlerTests
     private static ApplicationDbContext NewDb() =>
         new(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase($"assign_{Guid.NewGuid()}").Options);
+
+    private static IPermissionResolver NoOpResolver()
+    {
+        var mock = new Mock<IPermissionResolver>();
+        return mock.Object;
+    }
 
     private static async Task<(AppUser user, PermissionGroup g1, PermissionGroup g2)> Seed(ApplicationDbContext db)
     {
@@ -32,7 +40,7 @@ public class AssignUserGroupsHandlerTests
     {
         await using var db = NewDb();
         var (user, _, g2) = await Seed(db);
-        var handler = new AssignUserGroupsHandler(new AuthorizationRepository(db));
+        var handler = new AssignUserGroupsHandler(new AuthorizationRepository(db), NoOpResolver());
 
         var result = await handler.Handle(new AssignUserGroupsRequest
         {
@@ -49,9 +57,38 @@ public class AssignUserGroupsHandlerTests
     public async Task Assign_UnknownUser_ReturnsNotFound()
     {
         await using var db = NewDb();
-        var handler = new AssignUserGroupsHandler(new AuthorizationRepository(db));
+        var handler = new AssignUserGroupsHandler(new AuthorizationRepository(db), NoOpResolver());
         var result = await handler.Handle(new AssignUserGroupsRequest { UserId = Guid.NewGuid(), GroupIds = new() }, default);
         result.ErrorCode.Should().Be(ErrorCodes.AuthorizationUserNotFound);
+    }
+
+    [Fact]
+    public async Task Assign_UnknownGroupId_ReturnsGroupNotFound()
+    {
+        await using var db = NewDb();
+        var (user, _, _) = await Seed(db);
+        var handler = new AssignUserGroupsHandler(new AuthorizationRepository(db), NoOpResolver());
+
+        var result = await handler.Handle(new AssignUserGroupsRequest
+        {
+            UserId = user.Id,
+            GroupIds = new() { Guid.NewGuid() }
+        }, default);
+
+        result.ErrorCode.Should().Be(ErrorCodes.AuthorizationGroupNotFound);
+    }
+
+    [Fact]
+    public async Task Assign_InvalidatesCacheForUser()
+    {
+        await using var db = NewDb();
+        var (user, _, g2) = await Seed(db);
+        var resolverMock = new Mock<IPermissionResolver>();
+        var handler = new AssignUserGroupsHandler(new AuthorizationRepository(db), resolverMock.Object);
+
+        await handler.Handle(new AssignUserGroupsRequest { UserId = user.Id, GroupIds = new() { g2.Id } }, default);
+
+        resolverMock.Verify(r => r.InvalidateCache(user.EntraObjectId), Times.Once);
     }
 
     [Fact]
@@ -59,11 +96,24 @@ public class AssignUserGroupsHandlerTests
     {
         await using var db = NewDb();
         var (user, _, _) = await Seed(db);
-        var handler = new SetUserActiveHandler(new AuthorizationRepository(db));
+        var handler = new SetUserActiveHandler(new AuthorizationRepository(db), NoOpResolver());
 
         var result = await handler.Handle(new SetUserActiveRequest { UserId = user.Id, IsActive = false }, default);
 
         result.Success.Should().BeTrue();
         (await db.AppUsers.SingleAsync(u => u.Id == user.Id)).IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetActive_InvalidatesCacheForUser()
+    {
+        await using var db = NewDb();
+        var (user, _, _) = await Seed(db);
+        var resolverMock = new Mock<IPermissionResolver>();
+        var handler = new SetUserActiveHandler(new AuthorizationRepository(db), resolverMock.Object);
+
+        await handler.Handle(new SetUserActiveRequest { UserId = user.Id, IsActive = false }, default);
+
+        resolverMock.Verify(r => r.InvalidateCache(user.EntraObjectId), Times.Once);
     }
 }
