@@ -27,7 +27,7 @@ public class AuthorizationRepository : IAuthorizationRepository
 
     public async Task<List<PermissionGroup>> GetAllGroupsAsync(CancellationToken ct = default) =>
         await _db.PermissionGroups.AsNoTracking()
-            .Include(g => g.Permissions).Include(g => g.Parents)
+            .Include(g => g.Permissions).Include(g => g.Parents).Include(g => g.UserGroups)
             .ToListAsync(ct);
 
     public Task<PermissionGroup?> GetGroupByIdAsync(Guid id, CancellationToken ct = default) =>
