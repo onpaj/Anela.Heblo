@@ -386,6 +386,20 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.InternalServerError)]
     CatalogDocumentGraphError = 3106,
 
+    // Authorization module errors (32XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    AuthorizationGroupNotFound = 3201,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    AuthorizationUserNotFound = 3202,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    AuthorizationInvalidPermission = 3203,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    AuthorizationGroupCycleDetected = 3204,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    AuthorizationSystemGroupImmutable = 3205,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    AuthorizationDuplicateGroupName = 3206,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
