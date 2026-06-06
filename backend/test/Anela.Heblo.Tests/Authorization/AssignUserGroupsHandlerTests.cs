@@ -36,7 +36,8 @@ public class AssignUserGroupsHandlerTests
 
         var result = await handler.Handle(new AssignUserGroupsRequest
         {
-            UserId = user.Id, GroupIds = new() { g2.Id }
+            UserId = user.Id,
+            GroupIds = new() { g2.Id }
         }, default);
 
         result.Success.Should().BeTrue();

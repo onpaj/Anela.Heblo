@@ -77,7 +77,9 @@ public class CreateGroupHandlerTests
         await db.SaveChangesAsync();
         var result = await NewHandler(db).Handle(new CreateGroupRequest
         {
-            Name = "Child", Permissions = new(), ParentGroupIds = new() { p.Id },
+            Name = "Child",
+            Permissions = new(),
+            ParentGroupIds = new() { p.Id },
         }, default);
 
         result.Success.Should().BeTrue();

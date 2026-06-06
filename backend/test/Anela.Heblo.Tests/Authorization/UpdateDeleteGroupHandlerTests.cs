@@ -34,7 +34,10 @@ public class UpdateDeleteGroupHandlerTests
 
         var result = await handler.Handle(new UpdateGroupRequest
         {
-            Id = g.Id, Name = "G2", Permissions = new() { "journal.read" }, ParentGroupIds = new()
+            Id = g.Id,
+            Name = "G2",
+            Permissions = new() { "journal.read" },
+            ParentGroupIds = new()
         }, default);
 
         result.Success.Should().BeTrue();
@@ -52,7 +55,10 @@ public class UpdateDeleteGroupHandlerTests
 
         var result = await handler.Handle(new UpdateGroupRequest
         {
-            Id = g.Id, Name = "X", Permissions = new(), ParentGroupIds = new()
+            Id = g.Id,
+            Name = "X",
+            Permissions = new(),
+            ParentGroupIds = new()
         }, default);
 
         result.ErrorCode.Should().Be(ErrorCodes.AuthorizationSystemGroupImmutable);
