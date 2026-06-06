@@ -108,6 +108,7 @@ public static class AuthenticationExtensions
                 .RequireAuthenticatedUser()
                 .RequireRole(AccessRoles.Base)
                 .Build();
+            options.AddPolicy("AuthenticatedUser", p => p.RequireAuthenticatedUser());
             // Per-feature gating is expressed via [Authorize(Roles = …)] on controllers/actions.
         });
 
