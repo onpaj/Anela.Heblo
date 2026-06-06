@@ -53,6 +53,14 @@ public class AuthorizationRepository : IAuthorizationRepository
     public async Task<List<UserGroup>> GetUserGroupsAsync(Guid userId, CancellationToken ct = default) =>
         await _db.UserGroups.Where(ug => ug.UserId == userId).ToListAsync(ct);
 
+    public async Task SetUserGroupsAsync(Guid userId, IEnumerable<Guid> groupIds, CancellationToken ct = default)
+    {
+        var existing = await _db.UserGroups.Where(ug => ug.UserId == userId).ToListAsync(ct);
+        _db.UserGroups.RemoveRange(existing);
+        foreach (var gid in groupIds.Distinct())
+            _db.UserGroups.Add(new UserGroup { UserId = userId, GroupId = gid });
+    }
+
     public async Task<(List<GroupPermission> Permissions, List<GroupParent> Parents)> GetGroupGraphAsync(CancellationToken ct = default)
     {
         var perms = await _db.GroupPermissions.AsNoTracking().ToListAsync(ct);
