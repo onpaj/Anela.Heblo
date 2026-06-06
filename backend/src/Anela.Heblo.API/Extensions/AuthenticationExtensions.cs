@@ -110,5 +110,7 @@ public static class AuthenticationExtensions
                 .Build();
             // Per-feature gating is expressed via [Authorize(Roles = …)] on controllers/actions.
         });
+
+        services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, PermissionClaimsTransformation>();
     }
 }
