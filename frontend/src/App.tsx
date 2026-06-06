@@ -71,6 +71,7 @@ import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
 import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog";
 import { FeatureFlagProvider } from "./features/feature-flags/FeatureFlagProvider";
+import { PermissionsProvider } from "./auth/PermissionsContext";
 import { OpenFeatureProvider } from "@openfeature/react-sdk";
 import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
 import TerminalLayout from "./components/terminal/TerminalLayout";
@@ -400,6 +401,7 @@ function App() {
                   }}
                 >
                   <AuthGuard>
+                    <PermissionsProvider isAuthenticated={true}>
                     <FeatureFlagProvider>
                     <AppInsightsProvider>
                     <Routes>
@@ -487,6 +489,7 @@ function App() {
                     </Routes>
                     </AppInsightsProvider>
                     </FeatureFlagProvider>
+                    </PermissionsProvider>
                   </AuthGuard>
                 </Router>
               </MsalProvider>
