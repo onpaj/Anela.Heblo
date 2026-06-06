@@ -35,6 +35,7 @@ import MeetingTasksPage from "./components/pages/automation/MeetingTasksPage";
 import MeetingTaskDetailPage from "./components/pages/automation/MeetingTaskDetailPage";
 import OrgChartPage from "./pages/OrgChartPage";
 import FeatureFlagsAdminPage from "./pages/FeatureFlagsAdminPage";
+import AccessManagementPage from "./pages/AccessManagementPage";
 import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClassificationPage";
 import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import StockOperationsPage from "./pages/StockOperationsPage";
@@ -485,6 +486,14 @@ function App() {
                         <Route path="/articles" element={guard("/articles", <ArticlesPage />)} />
                         <Route path="/automation/data-quality" element={guard("/automation/data-quality", <DataQualityPage />)} />
                         <Route path="/admin/feature-flags" element={guard("/admin/feature-flags", <FeatureFlagsAdminPage />)} />
+                        <Route
+                          path="/admin/access"
+                          element={
+                            <RequireAccess requiredRole="administration.read">
+                              <AccessManagementPage />
+                            </RequireAccess>
+                          }
+                        />
                       </Route>
                     </Routes>
                     </AppInsightsProvider>
