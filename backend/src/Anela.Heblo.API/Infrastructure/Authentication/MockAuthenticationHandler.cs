@@ -35,9 +35,12 @@ public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticatio
             new Claim("scp", "access_as_user"), // Scopes
         };
 
-        var roleClaims = new[] { AccessMatrix.BaseRole }
-            .Concat(AccessMatrix.AllRoleValues())
-            .Select(r => new Claim(ClaimTypes.Role, r));
+        // Mock users are super_users: full access via the same wildcard path as production break-glass.
+        var roleClaims = new[]
+        {
+            new Claim(ClaimTypes.Role, AccessMatrix.BaseRole),
+            new Claim(ClaimTypes.Role, AccessRoles.SuperUser),
+        };
 
         var claims = identityClaims.Concat(roleClaims).ToArray();
         var identity = new ClaimsIdentity(claims, "Mock");
