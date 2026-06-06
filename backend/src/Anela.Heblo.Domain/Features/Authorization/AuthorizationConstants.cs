@@ -5,6 +5,10 @@ public static class AccessRoles
 {
     public const string Base = "heblo_user";
 
+    /// <summary>Entra app role granting ALL permissions (wildcard / break-glass). Honored
+    /// directly from the token by the claims transformation, independent of any DB state.</summary>
+    public const string SuperUser = "super_user";
+
     // Finance
     public const string FinancialOverviewRead = "financial_overview.read";
     public const string MarginAnalysisRead = "margin_analysis.read";
