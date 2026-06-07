@@ -11,6 +11,8 @@ using Anela.Heblo.API;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Features.UserManagement.Contracts;
+using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
 using Microsoft.Extensions.Hosting;
 using Hangfire;
@@ -112,6 +114,13 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
             foreach (var d in codeGeneratorDescriptors)
                 services.Remove(d);
             services.AddScoped<IMaterialContainerCodeGenerator, MockMaterialContainerCodeGenerator>();
+
+            // Replace IGraphService with a no-op mock in tests.
+            // The real GraphService requires ITokenAcquisition which is unavailable under mock authentication.
+            var graphServiceDescriptors = services.Where(s => s.ServiceType == typeof(IGraphService)).ToList();
+            foreach (var d in graphServiceDescriptors)
+                services.Remove(d);
+            services.AddScoped<IGraphService, MockGraphService>();
 
             // Apply any additional service configuration from derived classes
             ConfigureTestServices(services);
@@ -225,4 +234,21 @@ public class MockMaterialContainerCodeGenerator : IMaterialContainerCodeGenerato
             .ToList();
         return Task.FromResult<IReadOnlyList<string>>(codes);
     }
+}
+
+/// <summary>
+/// No-op implementation of IGraphService for test environments.
+/// The real GraphService requires ITokenAcquisition which is not available when
+/// mock authentication is active (UseMockAuth=true in appsettings.Test.json).
+/// </summary>
+public class MockGraphService : IGraphService
+{
+    public Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken = default)
+        => Task.FromResult(new List<UserDto>());
+
+    public Task<List<UserDto>> SearchUsersAsync(string query, CancellationToken cancellationToken = default)
+        => Task.FromResult(new List<UserDto>());
+
+    public Task<List<UserDto>> GetAppRoleMembersAsync(string appRoleValue, CancellationToken cancellationToken = default)
+        => Task.FromResult(new List<UserDto>());
 }
