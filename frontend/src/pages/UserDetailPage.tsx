@@ -25,7 +25,6 @@ export default function UserDetailPage() {
   const setActive = useSetUserActive();
 
   const [draft, setDraft] = useState<UserDraft | null>(null);
-  const [original, setOriginal] = useState<UserDraft | null>(null);
   const initialized = useRef(false);
 
   const user = usersQuery.data?.users?.find((u) => u.id === id);
@@ -36,7 +35,6 @@ export default function UserDetailPage() {
 
     const d: UserDraft = { groupIds: user.groupIds ?? [] };
     setDraft(d);
-    setOriginal(d);
     initialized.current = true;
   }, [user]);
 
@@ -51,7 +49,6 @@ export default function UserDetailPage() {
         request: new AssignUserGroupsRequest({ userId: id, groupIds: draft.groupIds }),
       });
       toast.showSuccess("Saved", "User groups updated successfully");
-      setOriginal(draft);
     } catch {
       toast.showError("Save failed", "An error occurred while saving changes");
     }
@@ -64,6 +61,10 @@ export default function UserDetailPage() {
         id: user.id,
         request: new SetUserActiveRequest({ userId: user.id, isActive: !user.isActive }),
       });
+      toast.showSuccess(
+        user.isActive ? "User disabled" : "User enabled",
+        user.isActive ? "The user has been disabled" : "The user has been enabled"
+      );
     } catch {
       toast.showError("Action failed", "Could not update user status");
     }
