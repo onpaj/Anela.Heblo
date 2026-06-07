@@ -293,6 +293,113 @@ public class JournalRepositoryIntegrationTests : IDisposable
         indicator.LastEntryDate.Should().Be(recent);
     }
 
+    // ---------- Sort matrix tests (FR-1 / FR-4) ----------
+
+    private async Task SeedSortFixtureAsync()
+    {
+        // Three entries with deliberately distinct Title, CreatedAt, and EntryDate
+        // values so each (sortBy, sortDirection) combination produces a unique ordering.
+        var alpha = new JournalEntry
+        {
+            Title = "Alpha",
+            Content = "alpha content",
+            EntryDate = new DateTime(2024, 1, 1),
+            CreatedAt = new DateTime(2024, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+            ModifiedAt = new DateTime(2024, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+            CreatedByUserId = "test-user"
+        };
+        var bravo = new JournalEntry
+        {
+            Title = "Bravo",
+            Content = "bravo content",
+            EntryDate = new DateTime(2024, 2, 1),
+            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            ModifiedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            CreatedByUserId = "test-user"
+        };
+        var charlie = new JournalEntry
+        {
+            Title = "Charlie",
+            Content = "charlie content",
+            EntryDate = new DateTime(2024, 3, 1),
+            CreatedAt = new DateTime(2024, 2, 1, 0, 0, 0, DateTimeKind.Utc),
+            ModifiedAt = new DateTime(2024, 2, 1, 0, 0, 0, DateTimeKind.Utc),
+            CreatedByUserId = "test-user"
+        };
+
+        await _context.Set<JournalEntry>().AddRangeAsync(alpha, bravo, charlie);
+        await _context.SaveChangesAsync();
+    }
+
+    public static IEnumerable<object[]> SortMatrix()
+    {
+        // (sortBy, sortDirection, expectedTitlesInOrder)
+        // Mapping of sortBy values:
+        //   "title"             -> sort by Title
+        //   "createdbyusername" -> sort by CreatedByUsername + tiebreak EntryDate DESC
+        //   anything else (including null and unknown) -> sort by EntryDate (default)
+        // Mapping of sortDirection:
+        //   "ASC" (case-insensitive) -> ascending; anything else -> descending
+        yield return new object[] { "title", "ASC", new[] { "Alpha", "Bravo", "Charlie" } };
+        yield return new object[] { "title", "DESC", new[] { "Charlie", "Bravo", "Alpha" } };
+        yield return new object[] { "title", "weird", new[] { "Charlie", "Bravo", "Alpha" } };
+        yield return new object[] { "TITLE", "ASC", new[] { "Alpha", "Bravo", "Charlie" } };
+        yield return new object[] { "unknown", "ASC", new[] { "Alpha", "Bravo", "Charlie" } };
+        yield return new object[] { "unknown", "DESC", new[] { "Charlie", "Bravo", "Alpha" } };
+        yield return new object[] { null!, "ASC", new[] { "Alpha", "Bravo", "Charlie" } };
+        yield return new object[] { null!, "DESC", new[] { "Charlie", "Bravo", "Alpha" } };
+        yield return new object[] { null!, "weird", new[] { "Charlie", "Bravo", "Alpha" } };
+    }
+
+    [Theory]
+    [MemberData(nameof(SortMatrix))]
+    public async Task GetEntriesAsync_AppliesExpectedOrdering(
+        string? sortBy, string sortDirection, string[] expectedTitlesInOrder)
+    {
+        // Arrange
+        await SeedSortFixtureAsync();
+
+        // Act
+        var result = await _repository.GetEntriesAsync(
+            pageNumber: 1,
+            pageSize: 10,
+            sortBy: sortBy!,
+            sortDirection: sortDirection);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Items.Select(x => x.Title).Should().Equal(expectedTitlesInOrder);
+        result.TotalCount.Should().Be(expectedTitlesInOrder.Length);
+    }
+
+    [Theory]
+    [MemberData(nameof(SortMatrix))]
+    public async Task SearchEntriesAsync_AppliesExpectedOrdering(
+        string? sortBy, string sortDirection, string[] expectedTitlesInOrder)
+    {
+        // Arrange
+        await SeedSortFixtureAsync();
+
+        // Act
+        // No filters supplied -> all three seeded rows should come back, ordered by the sort args.
+        var result = await _repository.SearchEntriesAsync(
+            searchText: null,
+            dateFrom: null,
+            dateTo: null,
+            productCodePrefix: null,
+            tagIds: null,
+            createdByUserId: null,
+            pageNumber: 1,
+            pageSize: 10,
+            sortBy: sortBy!,
+            sortDirection: sortDirection);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Items.Select(x => x.Title).Should().Equal(expectedTitlesInOrder);
+        result.TotalCount.Should().Be(expectedTitlesInOrder.Length);
+    }
+
     [Fact]
     public async Task GetEntriesAsync_SortsByCreatedByUsername_Ascending()
     {
