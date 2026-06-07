@@ -3,6 +3,7 @@ namespace Anela.Heblo.Application.Features.Authorization.UseCases;
 public class AppUserDto
 {
     public Guid Id { get; set; }
+    public string EntraObjectId { get; set; } = null!;
     public string Email { get; set; } = null!;
     public string DisplayName { get; set; } = null!;
     public bool IsActive { get; set; }

@@ -17,6 +17,7 @@ public class GetUsersHandler : IRequestHandler<GetUsersRequest, GetUsersResponse
             Users = users.Select(u => new AppUserDto
             {
                 Id = u.Id,
+                EntraObjectId = u.EntraObjectId,
                 Email = u.Email,
                 DisplayName = u.DisplayName,
                 IsActive = u.IsActive,
