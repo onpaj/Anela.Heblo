@@ -44,7 +44,6 @@ public class CreateGroupHandler : IRequestHandler<CreateGroupRequest, CreateGrou
             Id = id,
             Name = request.Name.Trim(),
             Description = request.Description,
-            IsSystem = false,
             CreatedAt = DateTimeOffset.UtcNow,
             CreatedBy = _currentUser.GetCurrentUser().Email,
         };

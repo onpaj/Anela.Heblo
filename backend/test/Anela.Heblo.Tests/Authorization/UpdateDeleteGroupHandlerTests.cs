@@ -16,9 +16,9 @@ public class UpdateDeleteGroupHandlerTests
         new(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase($"upd_{Guid.NewGuid()}").Options);
 
-    private static async Task<PermissionGroup> SeedGroup(ApplicationDbContext db, bool isSystem)
+    private static async Task<PermissionGroup> SeedGroup(ApplicationDbContext db)
     {
-        var g = new PermissionGroup { Id = Guid.NewGuid(), Name = "G", IsSystem = isSystem, CreatedAt = DateTimeOffset.UtcNow };
+        var g = new PermissionGroup { Id = Guid.NewGuid(), Name = "G", CreatedAt = DateTimeOffset.UtcNow };
         g.Permissions.Add(new GroupPermission { GroupId = g.Id, PermissionValue = "catalog.read" });
         db.PermissionGroups.Add(g);
         await db.SaveChangesAsync();
@@ -26,10 +26,10 @@ public class UpdateDeleteGroupHandlerTests
     }
 
     [Fact]
-    public async Task Update_NonSystem_ReplacesPermissions()
+    public async Task Update_ReplacesPermissions()
     {
         await using var db = NewDb();
-        var g = await SeedGroup(db, isSystem: false);
+        var g = await SeedGroup(db);
         var handler = new UpdateGroupHandler(new AuthorizationRepository(db));
 
         var result = await handler.Handle(new UpdateGroupRequest
@@ -47,46 +47,43 @@ public class UpdateDeleteGroupHandlerTests
     }
 
     [Fact]
-    public async Task Update_SystemGroup_ReturnsImmutable()
+    public async Task Update_NotFound_ReturnsNotFound()
     {
         await using var db = NewDb();
-        var g = await SeedGroup(db, isSystem: true);
         var handler = new UpdateGroupHandler(new AuthorizationRepository(db));
 
         var result = await handler.Handle(new UpdateGroupRequest
         {
-            Id = g.Id,
+            Id = Guid.NewGuid(),
             Name = "X",
             Permissions = new(),
             ParentGroupIds = new()
         }, default);
 
-        result.ErrorCode.Should().Be(ErrorCodes.AuthorizationSystemGroupImmutable);
+        result.ErrorCode.Should().Be(ErrorCodes.AuthorizationGroupNotFound);
     }
 
     [Fact]
-    public async Task Delete_SystemGroup_ReturnsImmutable()
+    public async Task Delete_Removes()
     {
         await using var db = NewDb();
-        var g = await SeedGroup(db, isSystem: true);
-        var handler = new DeleteGroupHandler(new AuthorizationRepository(db));
-
-        var result = await handler.Handle(new DeleteGroupRequest { Id = g.Id }, default);
-
-        result.ErrorCode.Should().Be(ErrorCodes.AuthorizationSystemGroupImmutable);
-        (await db.PermissionGroups.CountAsync()).Should().Be(1);
-    }
-
-    [Fact]
-    public async Task Delete_NonSystem_Removes()
-    {
-        await using var db = NewDb();
-        var g = await SeedGroup(db, isSystem: false);
+        var g = await SeedGroup(db);
         var handler = new DeleteGroupHandler(new AuthorizationRepository(db));
 
         var result = await handler.Handle(new DeleteGroupRequest { Id = g.Id }, default);
 
         result.Success.Should().BeTrue();
         (await db.PermissionGroups.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Delete_NotFound_ReturnsNotFound()
+    {
+        await using var db = NewDb();
+        var handler = new DeleteGroupHandler(new AuthorizationRepository(db));
+
+        var result = await handler.Handle(new DeleteGroupRequest { Id = Guid.NewGuid() }, default);
+
+        result.ErrorCode.Should().Be(ErrorCodes.AuthorizationGroupNotFound);
     }
 }

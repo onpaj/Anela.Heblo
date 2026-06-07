@@ -12,7 +12,6 @@ public class PermissionGroupConfiguration : IEntityTypeConfiguration<PermissionG
         builder.HasKey(g => g.Id);
         builder.Property(g => g.Name).IsRequired().HasMaxLength(100);
         builder.Property(g => g.Description).HasMaxLength(500);
-        builder.Property(g => g.IsSystem).IsRequired();
         builder.Property(g => g.CreatedAt).IsRequired();
         builder.Property(g => g.CreatedBy).HasMaxLength(255);
         builder.HasIndex(g => g.Name).IsUnique();

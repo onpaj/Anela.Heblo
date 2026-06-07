@@ -23,7 +23,6 @@ public class GetGroupDetailHandler : IRequestHandler<GetGroupDetailRequest, GetG
                 Id = group.Id,
                 Name = group.Name,
                 Description = group.Description,
-                IsSystem = group.IsSystem,
                 Permissions = group.Permissions.Select(p => p.PermissionValue).OrderBy(v => v).ToList(),
                 ParentGroupIds = group.Parents.Select(p => p.ParentGroupId).ToList(),
             },

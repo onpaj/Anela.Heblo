@@ -15,8 +15,6 @@ public class UpdateGroupHandler : IRequestHandler<UpdateGroupRequest, UpdateGrou
         var group = await _repo.GetGroupByIdAsync(request.Id, ct);
         if (group is null)
             return new UpdateGroupResponse(ErrorCodes.AuthorizationGroupNotFound);
-        if (group.IsSystem)
-            return new UpdateGroupResponse(ErrorCodes.AuthorizationSystemGroupImmutable);
         if (string.IsNullOrWhiteSpace(request.Name))
             return new UpdateGroupResponse(ErrorCodes.ValidationError);
 

@@ -14,8 +14,6 @@ public class DeleteGroupHandler : IRequestHandler<DeleteGroupRequest, DeleteGrou
         var group = await _repo.GetGroupByIdAsync(request.Id, ct);
         if (group is null)
             return new DeleteGroupResponse(ErrorCodes.AuthorizationGroupNotFound);
-        if (group.IsSystem)
-            return new DeleteGroupResponse(ErrorCodes.AuthorizationSystemGroupImmutable);
 
         await _repo.RemoveGroupAsync(group, ct);
         await _repo.SaveChangesAsync(ct);

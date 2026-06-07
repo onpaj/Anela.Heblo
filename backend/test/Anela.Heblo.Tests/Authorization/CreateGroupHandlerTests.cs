@@ -38,7 +38,6 @@ public class CreateGroupHandlerTests
 
         result.Success.Should().BeTrue();
         var saved = await db.PermissionGroups.Include(g => g.Permissions).SingleAsync();
-        saved.IsSystem.Should().BeFalse();
         saved.Permissions.Select(p => p.PermissionValue).Should().BeEquivalentTo(new[] { "catalog.read", "journal.read" });
     }
 

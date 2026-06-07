@@ -19,7 +19,6 @@ public class GetGroupsHandler : IRequestHandler<GetGroupsRequest, GetGroupsRespo
                 Id = g.Id,
                 Name = g.Name,
                 Description = g.Description,
-                IsSystem = g.IsSystem,
                 PermissionCount = g.Permissions.Count,
                 ParentCount = g.Parents.Count,
                 MemberCount = g.UserGroups.Count,

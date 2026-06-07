@@ -15,14 +15,13 @@ public class AuthorizationSeederTests
             .UseInMemoryDatabase($"seed_{Guid.NewGuid()}").Options);
 
     [Fact]
-    public async Task Seed_CreatesAllSystemGroupsFromAccessMatrix()
+    public async Task Seed_CreatesAllGroupsFromAccessMatrix()
     {
         await using var db = NewDb();
         await AuthorizationSeeder.SeedAsync(db, default);
 
         var groups = await db.PermissionGroups.Include(g => g.Permissions).ToListAsync();
         groups.Should().HaveCount(AccessMatrix.Groups.Count);
-        groups.Should().OnlyContain(g => g.IsSystem);
 
         var spravce = groups.Single(g => g.Name == "Spravce");
         spravce.Permissions.Select(p => p.PermissionValue)

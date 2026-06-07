@@ -395,8 +395,6 @@ public enum ErrorCodes
     AuthorizationInvalidPermission = 3203,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     AuthorizationGroupCycleDetected = 3204,
-    [HttpStatusCode(HttpStatusCode.BadRequest)]
-    AuthorizationSystemGroupImmutable = 3205,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     AuthorizationDuplicateGroupName = 3206,
 
