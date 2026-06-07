@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
@@ -37,7 +38,8 @@ public sealed class GraphServiceSearchTests
 
         var cache = new MemoryCache(new MemoryCacheOptions());
         var logger = Mock.Of<ILogger<GraphService>>();
-        return new GraphService(tokenMock.Object, cache, logger, factoryMock.Object);
+        var configuration = Mock.Of<IConfiguration>();
+        return new GraphService(tokenMock.Object, cache, logger, factoryMock.Object, configuration);
     }
 
     [Fact]
@@ -94,7 +96,7 @@ public sealed class GraphServiceSearchTests
                 It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<TokenAcquisitionOptions?>()))
             .ThrowsAsync(new MsalUiRequiredException("err", "msg"));
         var cache = new MemoryCache(new MemoryCacheOptions());
-        var service = new GraphService(tokenMock.Object, cache, Mock.Of<ILogger<GraphService>>(), factoryMock.Object);
+        var service = new GraphService(tokenMock.Object, cache, Mock.Of<ILogger<GraphService>>(), factoryMock.Object, Mock.Of<IConfiguration>());
 
         var result = await service.SearchUsersAsync("ali");
 

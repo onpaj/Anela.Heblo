@@ -57,4 +57,27 @@ public class MockGraphService : IGraphService
 
         return Task.FromResult(results);
     }
+
+    public Task<List<UserDto>> GetAppRoleMembersAsync(string appRoleValue, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Mock GraphService: Returning mock app role members for role '{AppRoleValue}'", appRoleValue);
+
+        var results = new List<UserDto>
+        {
+            new UserDto
+            {
+                Id = "mock-role-user-1",
+                DisplayName = "Mock Role User 1",
+                Email = "mock.roleuser1@anela-heblo.com"
+            },
+            new UserDto
+            {
+                Id = "mock-role-user-2",
+                DisplayName = "Mock Role User 2",
+                Email = "mock.roleuser2@anela-heblo.com"
+            }
+        };
+
+        return Task.FromResult(results);
+    }
 }

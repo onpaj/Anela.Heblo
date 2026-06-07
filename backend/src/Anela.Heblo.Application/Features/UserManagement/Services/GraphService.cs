@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Client;
@@ -18,6 +19,7 @@ public class GraphService : IGraphService
     private readonly IMemoryCache _cache;
     private readonly ILogger<GraphService> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
     private readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(20);
     private const int SearchResultLimit = 25;
 
@@ -25,12 +27,14 @@ public class GraphService : IGraphService
         ITokenAcquisition tokenAcquisition,
         IMemoryCache cache,
         ILogger<GraphService> logger,
-        IHttpClientFactory httpClientFactory)
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration)
     {
         _tokenAcquisition = tokenAcquisition;
         _cache = cache;
         _logger = logger;
         _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
     }
 
     public async Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken = default)
@@ -265,6 +269,152 @@ public class GraphService : IGraphService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during Graph directory user search");
+            return new List<UserDto>();
+        }
+    }
+
+    public async Task<List<UserDto>> GetAppRoleMembersAsync(string appRoleValue, CancellationToken cancellationToken = default)
+    {
+        var cacheKey = $"app_role_members_{appRoleValue}";
+        if (_cache.TryGetValue(cacheKey, out List<UserDto>? cached) && cached != null)
+            return cached;
+
+        try
+        {
+            var clientId = _configuration["AzureAd:ClientId"];
+            if (string.IsNullOrEmpty(clientId))
+            {
+                _logger.LogError("AzureAd:ClientId is not configured — cannot resolve app role members");
+                return new List<UserDto>();
+            }
+
+            string graphToken;
+            try
+            {
+                graphToken = await _tokenAcquisition.GetAccessTokenForAppAsync("https://graph.microsoft.com/.default");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to acquire Graph token for app role member lookup");
+                return new List<UserDto>();
+            }
+
+            var httpClient = _httpClientFactory.CreateClient("MicrosoftGraph");
+
+            // Step 1: resolve the service principal id and app roles for this app registration
+            var spUrl = $"https://graph.microsoft.com/v1.0/servicePrincipals(appId='{clientId}')?$select=id,appRoles";
+            using var spRequest = new HttpRequestMessage(HttpMethod.Get, spUrl);
+            spRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
+            var spResponse = await httpClient.SendAsync(spRequest, cancellationToken);
+            if (!spResponse.IsSuccessStatusCode)
+            {
+                var body = await spResponse.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("Failed to resolve service principal. Status: {Status}, Body: {Body}", spResponse.StatusCode, body);
+                return new List<UserDto>();
+            }
+
+            var spJson = await spResponse.Content.ReadAsStringAsync(cancellationToken);
+            using var spDoc = System.Text.Json.JsonDocument.Parse(spJson);
+            var spId = spDoc.RootElement.TryGetProperty("id", out var spIdProp) ? spIdProp.GetString() : null;
+            if (string.IsNullOrEmpty(spId))
+            {
+                _logger.LogError("Service principal id not found in Graph response for clientId {ClientId}", clientId);
+                return new List<UserDto>();
+            }
+
+            // Step 2: find the appRoleId for the requested role value
+            string? appRoleId = null;
+            if (spDoc.RootElement.TryGetProperty("appRoles", out var appRolesEl))
+            {
+                foreach (var role in appRolesEl.EnumerateArray())
+                {
+                    if (role.TryGetProperty("value", out var roleName) && roleName.GetString() == appRoleValue)
+                    {
+                        appRoleId = role.TryGetProperty("id", out var rid) ? rid.GetString() : null;
+                        break;
+                    }
+                }
+            }
+
+            if (string.IsNullOrEmpty(appRoleId))
+            {
+                _logger.LogWarning("App role '{RoleValue}' not found on service principal {SpId}", appRoleValue, spId);
+                return new List<UserDto>();
+            }
+
+            // Step 3: get all principals assigned to this role
+            var assignUrl = $"https://graph.microsoft.com/v1.0/servicePrincipals/{spId}/appRoleAssignedTo?$top=999";
+            using var assignRequest = new HttpRequestMessage(HttpMethod.Get, assignUrl);
+            assignRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
+            var assignResponse = await httpClient.SendAsync(assignRequest, cancellationToken);
+            if (!assignResponse.IsSuccessStatusCode)
+            {
+                var body = await assignResponse.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("Failed to get app role assignments. Status: {Status}, Body: {Body}", assignResponse.StatusCode, body);
+                return new List<UserDto>();
+            }
+
+            var assignJson = await assignResponse.Content.ReadAsStringAsync(cancellationToken);
+            using var assignDoc = System.Text.Json.JsonDocument.Parse(assignJson);
+
+            var directUserIds = new HashSet<string>();
+            var groupIdsToExpand = new List<string>();
+
+            if (assignDoc.RootElement.TryGetProperty("value", out var assignments))
+            {
+                foreach (var assignment in assignments.EnumerateArray())
+                {
+                    var roleId = assignment.TryGetProperty("appRoleId", out var rid) ? rid.GetString() : null;
+                    if (roleId != appRoleId) continue;
+
+                    var principalType = assignment.TryGetProperty("principalType", out var pt) ? pt.GetString() : null;
+                    var principalId = assignment.TryGetProperty("principalId", out var pid) ? pid.GetString() : null;
+                    if (string.IsNullOrEmpty(principalId)) continue;
+
+                    if (principalType == "User")
+                        directUserIds.Add(principalId);
+                    else if (principalType == "Group")
+                        groupIdsToExpand.Add(principalId);
+                }
+            }
+
+            // Step 4: expand group members (reuse existing method)
+            foreach (var groupId in groupIdsToExpand)
+            {
+                var members = await GetGroupMembersAsync(groupId, cancellationToken);
+                foreach (var member in members)
+                    if (!string.IsNullOrEmpty(member.Id))
+                        directUserIds.Add(member.Id);
+            }
+
+            // Step 5: resolve display name + email for each user id
+            var users = new List<UserDto>();
+            foreach (var userId in directUserIds)
+            {
+                var userUrl = $"https://graph.microsoft.com/v1.0/users/{userId}?$select=id,displayName,mail,userPrincipalName";
+                using var userRequest = new HttpRequestMessage(HttpMethod.Get, userUrl);
+                userRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
+                var userResponse = await httpClient.SendAsync(userRequest, cancellationToken);
+                if (!userResponse.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Could not resolve user {UserId}", userId);
+                    continue;
+                }
+                var userJson = await userResponse.Content.ReadAsStringAsync(cancellationToken);
+                using var userDoc = System.Text.Json.JsonDocument.Parse(userJson);
+                var displayName = userDoc.RootElement.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? "" : "";
+                var mail = userDoc.RootElement.TryGetProperty("mail", out var m) ? m.GetString() : null;
+                var upn = userDoc.RootElement.TryGetProperty("userPrincipalName", out var u) ? u.GetString() : null;
+                users.Add(new UserDto { Id = userId, DisplayName = displayName, Email = mail ?? upn ?? "" });
+            }
+
+            _cache.Set(cacheKey, users, _cacheExpiration);
+            _logger.LogInformation("Resolved {Count} app role members for role '{RoleValue}'", users.Count, appRoleValue);
+            return users;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error fetching app role members for role '{RoleValue}'", appRoleValue);
             return new List<UserDto>();
         }
     }
