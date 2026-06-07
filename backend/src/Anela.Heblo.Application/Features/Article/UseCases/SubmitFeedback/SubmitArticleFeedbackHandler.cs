@@ -31,9 +31,9 @@ public sealed class SubmitArticleFeedbackHandler
                 new Dictionary<string, string> { { "id", request.ArticleId.ToString() } });
         }
 
-        // RequestedBy stores currentUser.Name (set in GenerateArticleHandler). Compare by Name.
         var user = _currentUser.GetCurrentUser();
-        if (!string.Equals(article.RequestedBy, user.Name, StringComparison.Ordinal))
+        if (article.RequestedBy is null ||
+            !string.Equals(article.RequestedBy, user.GetIdentifier(), StringComparison.Ordinal))
         {
             return new SubmitArticleFeedbackResponse(
                 ErrorCodes.Forbidden,

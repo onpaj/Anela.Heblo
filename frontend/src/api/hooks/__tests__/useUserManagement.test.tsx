@@ -3,13 +3,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import { useResponsiblePersonsQuery } from '../useUserManagement';
 
-// Mock the entire API client module
+const mockGetGroupMembers = jest.fn();
+
 jest.mock('../../client', () => ({
     getAuthenticatedApiClient: jest.fn(() => ({
-        baseUrl: 'http://localhost:5000',
-        http: {
-            fetch: jest.fn()
-        }
+        userManagement_GetGroupMembers: mockGetGroupMembers,
     })),
     QUERY_KEYS: {
         userManagement: ['user-management']
@@ -33,8 +31,7 @@ const createWrapper = () => {
 describe('useResponsiblePersonsQuery', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        // Mock fetch globally
-        global.fetch = jest.fn();
+        mockGetGroupMembers.mockResolvedValue({ success: true, members: [] });
     });
 
     afterEach(() => {
@@ -42,9 +39,9 @@ describe('useResponsiblePersonsQuery', () => {
     });
 
     it('should show loading state initially', () => {
-        (global.fetch as jest.Mock).mockImplementation(() => new Promise(() => {})); // Never resolves
+        mockGetGroupMembers.mockImplementation(() => new Promise(() => {})); // Never resolves
 
-        const { result } = renderHook(() => useResponsiblePersonsQuery(), {
+        const { result } = renderHook(() => useResponsiblePersonsQuery('test-group-id'), {
             wrapper: createWrapper(),
         });
 
@@ -54,31 +51,19 @@ describe('useResponsiblePersonsQuery', () => {
     });
 
     it('should have correct initial state', () => {
-        (global.fetch as jest.Mock).mockResolvedValue({
-            ok: true,
-            json: () => Promise.resolve({ success: true, members: [] })
-        });
-
-        const { result } = renderHook(() => useResponsiblePersonsQuery(), {
+        const { result } = renderHook(() => useResponsiblePersonsQuery('test-group-id'), {
             wrapper: createWrapper(),
         });
 
-        // Check initial query state
         expect(result.current.failureCount).toBe(0);
         expect(result.current.dataUpdatedAt).toBeDefined();
     });
 
     it('should be a query hook with proper structure', () => {
-        (global.fetch as jest.Mock).mockResolvedValue({
-            ok: true,
-            json: () => Promise.resolve({ success: true, members: [] })
-        });
-
-        const { result } = renderHook(() => useResponsiblePersonsQuery(), {
+        const { result } = renderHook(() => useResponsiblePersonsQuery('test-group-id'), {
             wrapper: createWrapper(),
         });
 
-        // Check that it has the expected React Query structure
         expect(typeof result.current.isLoading).toBe('boolean');
         expect(typeof result.current.isError).toBe('boolean');
         expect(typeof result.current.isSuccess).toBe('boolean');
@@ -86,16 +71,10 @@ describe('useResponsiblePersonsQuery', () => {
     });
 
     it('should handle hook cleanup properly', () => {
-        (global.fetch as jest.Mock).mockResolvedValue({
-            ok: true,
-            json: () => Promise.resolve({ success: true, members: [] })
-        });
-
-        const { unmount } = renderHook(() => useResponsiblePersonsQuery(), {
+        const { unmount } = renderHook(() => useResponsiblePersonsQuery('test-group-id'), {
             wrapper: createWrapper(),
         });
 
-        // Test that unmounting doesn't throw errors
         expect(() => unmount()).not.toThrow();
     });
 });

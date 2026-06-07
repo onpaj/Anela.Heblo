@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,23 +15,26 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
     private readonly IPackingOrderClient _orderClient;
     private readonly IEshopOrderClient _eshopOrderClient;
     private readonly ShipmentLabelsSettings _shipmentSettings;
-    private readonly ShoptetOrdersSettings _orderSettings;
     private readonly ILogger<ScanPackingOrderHandler> _logger;
+    private readonly IPackageRepository _packageRepository;
+    private readonly ICurrentUserService _currentUserService;
 
     public ScanPackingOrderHandler(
         IShipmentClient shipmentClient,
         IPackingOrderClient orderClient,
         IEshopOrderClient eshopOrderClient,
         IOptions<ShipmentLabelsSettings> shipmentSettings,
-        IOptions<ShoptetOrdersSettings> orderSettings,
-        ILogger<ScanPackingOrderHandler> logger)
+        ILogger<ScanPackingOrderHandler> logger,
+        IPackageRepository packageRepository,
+        ICurrentUserService currentUserService)
     {
         _shipmentClient = shipmentClient;
         _orderClient = orderClient;
         _eshopOrderClient = eshopOrderClient;
         _shipmentSettings = shipmentSettings.Value;
-        _orderSettings = orderSettings.Value;
         _logger = logger;
+        _packageRepository = packageRepository;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ScanPackingOrderResponse> Handle(ScanPackingOrderRequest request, CancellationToken ct)
@@ -38,7 +43,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         if (order is null)
             return new ScanPackingOrderResponse(ErrorCodes.ShoptetOrderNotFound);
 
-        var isEligible = order.StatusId == _orderSettings.PackingStateId;
+        var isEligible = order.IsEligibleForPacking;
         var orderData = new ScanOrderData
         {
             Code = order.Code,
@@ -49,7 +54,15 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             CustomerNote = order.CustomerNote,
             EshopNote = order.EshopNote,
             ShippingAddress = BuildShippingAddress(order),
-            Items = order.Items,
+            Items = order.Items
+                .Select(i => new ScanPackingOrderItemDto
+                {
+                    Name = i.Name,
+                    Quantity = i.Quantity,
+                    ImageUrl = i.ImageUrl,
+                    SetName = i.SetName,
+                })
+                .ToList(),
             Eligibility = new ScanOrderEligibility
             {
                 IsEligible = isEligible,
@@ -137,6 +150,14 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             }).ToList()
             : [new ScanShipmentPackage { Name = "PKG-1" }];
 
+        await PersistPackagesAsync(
+            request.OrderCode,
+            orderData.CustomerName,
+            command.CarrierCode,
+            createdShipment.ShipmentGuid,
+            newLabels,
+            ct);
+
         await TryMarkAsPackedAsync(request.OrderCode, ct);
         return new ScanPackingOrderResponse(orderData, new ScanShipmentData
         {
@@ -167,12 +188,49 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
     {
         try
         {
-            await _eshopOrderClient.UpdateStatusAsync(orderCode, _orderSettings.PackedStateId, ct);
+            await _eshopOrderClient.MarkAsPackedAsync(orderCode, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to update order {OrderCode} to packed status {StatusId}",
-                orderCode, _orderSettings.PackedStateId);
+            _logger.LogWarning(ex, "Failed to mark order {OrderCode} as packed", orderCode);
+        }
+    }
+
+    private async Task PersistPackagesAsync(
+        string orderCode,
+        string customerName,
+        string carrierCode,
+        Guid shipmentGuid,
+        IReadOnlyList<ShipmentLabel> labels,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var packedBy = _currentUserService.GetCurrentUser().Email;
+
+        foreach (var label in labels)
+        {
+            try
+            {
+                await _packageRepository.AddAsync(new Package
+                {
+                    OrderCode = orderCode,
+                    CustomerName = customerName,
+                    PackageNumber = label.PackageName,
+                    TrackingNumber = label.TrackingNumber,
+                    ShippingProviderCode = carrierCode,
+                    ShippingProviderName = null,
+                    ShipmentGuid = shipmentGuid,
+                    PackedAt = now,
+                    PackedBy = packedBy,
+                    CreatedAt = now,
+                }, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Failed to persist Package row for order {OrderCode} package {PackageName}",
+                    orderCode, label.PackageName);
+            }
         }
     }
 }

@@ -8,7 +8,7 @@ public class CompanyNameClassificationRule : IClassificationRule
     public string DisplayName => "Název firmy";
     public string Description => "Regex nebo text v názvu firmy";
 
-    public bool Evaluate(ReceivedInvoiceDto invoice, string pattern)
+    public bool Evaluate(ReceivedInvoice invoice, string pattern)
     {
         if (string.IsNullOrWhiteSpace(invoice.CompanyName) || string.IsNullOrWhiteSpace(pattern))
             return false;

@@ -9,6 +9,7 @@ import PackingStateWarning from './PackingStateWarning';
 import PackingOrderNotes from './PackingOrderNotes';
 import PackingItems from './PackingItems';
 import PackingShipmentCreator from './PackingShipmentCreator';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 function CenteredMessage({ children }: { children: ReactNode }) {
   return (
@@ -62,6 +63,7 @@ function OrderBody({ order, shipment, isShowingDoneView, onDoneStateChange }: Or
 }
 
 function BaleniPacking() {
+  useScreenView('Baleni', 'BaleniPacking');
   const scanMutation = useScanPackingOrder();
   const [isShowingDoneView, setIsShowingDoneView] = useState(false);
 

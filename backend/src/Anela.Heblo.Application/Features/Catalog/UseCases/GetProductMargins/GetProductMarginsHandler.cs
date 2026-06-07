@@ -12,14 +12,16 @@ namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetProductMargins;
 public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest, GetProductMarginsResponse>
 {
     private readonly ICatalogRepository _catalogRepository;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<GetProductMarginsHandler> _logger;
 
     public GetProductMarginsHandler(
         ICatalogRepository catalogRepository,
-        ILogger<GetProductMarginsHandler> logger
-        )
+        TimeProvider timeProvider,
+        ILogger<GetProductMarginsHandler> logger)
     {
         _catalogRepository = catalogRepository;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -186,7 +188,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             var marginHistory = product.Margins;
 
             // Filter monthly history to last 13 months
-            var dateFrom = DateTime.Now.AddMonths(-13);
+            var dateFrom = _timeProvider.GetUtcNow().DateTime.AddMonths(-13);
             var filteredMonthlyData = marginHistory.MonthlyData
                 .Where(m => m.Key >= dateFrom)
                 .ToList();

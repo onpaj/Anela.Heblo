@@ -9,29 +9,24 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.DuplicateManufacture
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.ResolveManualAction;
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
-using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Configuration;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = AccessRoles.ManufactureOrdersRead)]
 [ApiController]
 [Route("api/[controller]")]
 public class ManufactureOrderController : BaseApiController
 {
     private readonly IMediator _mediator;
-    private readonly IConfiguration _configuration;
 
-    public ManufactureOrderController(
-        IMediator mediator,
-        IConfiguration configuration)
+    public ManufactureOrderController(IMediator mediator)
     {
         _mediator = mediator;
-        _configuration = configuration;
     }
 
     /// <summary>
@@ -59,6 +54,7 @@ public class ManufactureOrderController : BaseApiController
     /// Create manufacture order from batch calculation
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = AccessRoles.ManufactureOrdersWrite)]
     public async Task<ActionResult<CreateManufactureOrderResponse>> CreateOrder([FromBody] CreateManufactureOrderRequest request)
     {
         var response = await _mediator.Send(request);
@@ -69,6 +65,7 @@ public class ManufactureOrderController : BaseApiController
     /// Update manufacture order
     /// </summary>
     [HttpPut("{id}")]
+    [Authorize(Roles = AccessRoles.ManufactureOrdersWrite)]
     public async Task<ActionResult<UpdateManufactureOrderResponse>> UpdateOrder(int id, [FromBody] UpdateManufactureOrderRequest request)
     {
         if (id != request.Id)
@@ -84,6 +81,7 @@ public class ManufactureOrderController : BaseApiController
     /// Update manufacture order status
     /// </summary>
     [HttpPatch("{id}/status")]
+    [Authorize(Roles = AccessRoles.ManufactureOrdersWrite)]
     public async Task<ActionResult<UpdateManufactureOrderStatusResponse>> UpdateOrderStatus(int id, [FromBody] UpdateManufactureOrderStatusRequest request)
     {
         if (id != request.Id)
@@ -99,6 +97,7 @@ public class ManufactureOrderController : BaseApiController
     /// Confirm semi-product manufacture with actual quantity and change state from Planned to SemiProductManufactured
     /// </summary>
     [HttpPost("{id}/confirm-semi-product")]
+    [Authorize(Roles = AccessRoles.ManufactureOrdersWrite)]
     public async Task<ActionResult<ConfirmSemiProductManufactureResponse>> ConfirmSemiProductManufacture(int id, [FromBody] ConfirmSemiProductManufactureRequest request)
     {
         if (id != request.Id)
@@ -114,6 +113,7 @@ public class ManufactureOrderController : BaseApiController
     /// Confirm product completion with actual quantities and change state from SemiProductManufactured to Completed
     /// </summary>
     [HttpPost("{id}/confirm-products")]
+    [Authorize(Roles = AccessRoles.ManufactureOrdersWrite)]
     public async Task<ActionResult<ConfirmProductCompletionResponse>> ConfirmProductCompletion(int id, [FromBody] ConfirmProductCompletionRequest request)
     {
         if (id != request.Id)
@@ -139,6 +139,7 @@ public class ManufactureOrderController : BaseApiController
     /// Duplicate existing manufacture order with updated dates
     /// </summary>
     [HttpPost("{id}/duplicate")]
+    [Authorize(Roles = AccessRoles.ManufactureOrdersWrite)]
     public async Task<ActionResult<DuplicateManufactureOrderResponse>> DuplicateOrder(int id)
     {
         var request = new DuplicateManufactureOrderRequest { SourceOrderId = id };
@@ -147,54 +148,10 @@ public class ManufactureOrderController : BaseApiController
     }
 
     /// <summary>
-    /// Get responsible persons from Entra ID group for manufacture orders
-    /// </summary>
-    [HttpGet("responsible-persons")]
-    public async Task<ActionResult<GetGroupMembersResponse>> GetResponsiblePersons(CancellationToken cancellationToken)
-    {
-        var logger = HttpContext.RequestServices.GetRequiredService<ILogger<ManufactureOrderController>>();
-        logger.LogInformation("GetResponsiblePersons endpoint called for manufacture orders");
-
-        var groupId = _configuration["ManufactureGroupId"];
-        logger.LogInformation("Retrieved ManufactureGroupId from configuration: {GroupId}", string.IsNullOrEmpty(groupId) ? "[NULL_OR_EMPTY]" : groupId);
-
-        if (string.IsNullOrEmpty(groupId))
-        {
-            logger.LogError("ManufactureGroupId configuration is missing or empty. Cannot fetch responsible persons from MS Entra.");
-            return BadRequest("Manufacture group ID not configured");
-        }
-
-        try
-        {
-            var request = new GetGroupMembersRequest { GroupId = groupId };
-            logger.LogInformation("Sending GetGroupMembersRequest to mediator for groupId: {GroupId}", groupId);
-
-            var response = await _mediator.Send(request, cancellationToken);
-
-            if (response.Success)
-            {
-                logger.LogInformation("Successfully retrieved {Count} responsible persons from MS Entra group {GroupId}",
-                    response.Members?.Count ?? 0, groupId);
-            }
-            else
-            {
-                logger.LogError("Failed to retrieve responsible persons from MS Entra group {GroupId}. ErrorCode: {ErrorCode}",
-                    groupId, response.ErrorCode);
-            }
-
-            return HandleResponse(response);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Unexpected error occurred while retrieving responsible persons from MS Entra group {GroupId}", groupId);
-            throw;
-        }
-    }
-
-    /// <summary>
     /// Resolve manual action for a manufacture order
     /// </summary>
     [HttpPost("{id}/resolve-manual-action")]
+    [Authorize(Roles = AccessRoles.ManufactureOrdersWrite)]
     public async Task<ActionResult<ResolveManualActionResponse>> ResolveManualAction(int id, [FromBody] ResolveManualActionRequest request)
     {
         if (id != request.OrderId)
@@ -228,6 +185,7 @@ public class ManufactureOrderController : BaseApiController
     /// Update schedule dates for a manufacture order (used by drag & drop functionality)
     /// </summary>
     [HttpPatch("{id}/schedule")]
+    [Authorize(Roles = AccessRoles.ManufactureOrdersWrite)]
     public async Task<ActionResult<UpdateManufactureOrderScheduleResponse>> UpdateOrderSchedule(int id, [FromBody] UpdateManufactureOrderScheduleRequest request)
     {
         if (id != request.Id)

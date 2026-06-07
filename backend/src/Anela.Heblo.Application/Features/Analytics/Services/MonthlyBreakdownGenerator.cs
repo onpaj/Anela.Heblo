@@ -4,15 +4,24 @@ using Anela.Heblo.Domain.Features.Analytics;
 
 namespace Anela.Heblo.Application.Features.Analytics.Services;
 
+public interface IMonthlyBreakdownGenerator
+{
+    List<MonthlyProductMarginDto> Generate(
+        MarginCalculationResult calculationResult,
+        DateRange dateRange,
+        ProductGroupingMode groupingMode,
+        string marginLevel = "M2");
+}
+
 /// <summary>
 /// 🔒 PERFORMANCE FIX: Extracted monthly breakdown logic from handler
 /// Implements single responsibility principle and reduces handler complexity
 /// </summary>
-public class MonthlyBreakdownGenerator
+public class MonthlyBreakdownGenerator : IMonthlyBreakdownGenerator
 {
-    private readonly MarginCalculator _marginCalculator;
+    private readonly IMarginCalculator _marginCalculator;
 
-    public MonthlyBreakdownGenerator(MarginCalculator marginCalculator)
+    public MonthlyBreakdownGenerator(IMarginCalculator marginCalculator)
     {
         _marginCalculator = marginCalculator;
     }

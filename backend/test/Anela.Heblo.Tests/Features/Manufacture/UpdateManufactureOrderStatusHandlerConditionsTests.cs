@@ -1,10 +1,11 @@
-using System.Security.Claims;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -14,7 +15,8 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
 {
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
     private readonly Mock<IManufacturedProductInventoryRepository> _inventoryRepositoryMock;
-    private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<IConditionsReadingProvider> _conditionsProviderMock;
     private readonly Mock<ILogger<UpdateManufactureOrderStatusHandler>> _loggerMock;
 
@@ -22,19 +24,26 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
         _inventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderStatusHandler>>();
         _conditionsProviderMock = new Mock<IConditionsReadingProvider>();
-        _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
 
-        var claims = new List<Claim> { new(ClaimTypes.Name, "Test User") };
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
-        var httpContext = new Mock<HttpContext>();
-        httpContext.Setup(x => x.User).Returns(principal);
-        _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext.Object);
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(
+                Id: "test-id",
+                Name: "Test User",
+                Email: "test@example.com",
+                IsAuthenticated: true));
 
         _inventoryRepositoryMock
             .Setup(r => r.AddAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ManufacturedProductInventoryItem item, CancellationToken _) => item);
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
     }
 
     private UpdateManufactureOrderStatusHandler CreateHandler() =>
@@ -42,9 +51,10 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
             _repositoryMock.Object,
             TimeProvider.System,
             _loggerMock.Object,
-            _httpContextAccessorMock.Object,
+            _currentUserServiceMock.Object,
             _conditionsProviderMock.Object,
-            _inventoryRepositoryMock.Object);
+            _inventoryRepositoryMock.Object,
+            _catalogRepositoryMock.Object);
 
     private ManufactureOrder CreateOrderInState(ManufactureOrderState state) =>
         new ManufactureOrder

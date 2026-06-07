@@ -463,4 +463,153 @@ describe("JournalList", () => {
     // Basic test that entry is displayed
     expect(screen.getByText("Skincare Research Entry")).toBeInTheDocument();
   });
+
+  it('clicking the "Datum" header invokes the journal-entries hook with updated sort params', async () => {
+    render(<JournalList />, { wrapper: createWrapper });
+
+    const dateHeader = screen.getByRole("columnheader", { name: /Datum/i });
+    fireEvent.click(dateHeader);
+
+    // After clicking "entryDate" column (not equal to initial "EntryDate"), sortBy switches and
+    // sortDescending resets to false → sortDirection becomes "ASC"
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1]?.[0];
+      expect(lastCall).toMatchObject({
+        sortBy: "entryDate",
+        sortDirection: "ASC",
+      });
+    });
+  });
+
+  it("re-invokes the search hook with the new pageNumber when paginating in search mode", async () => {
+    // Search returns 25 entries across 2 pages so page-2 button is visible.
+    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
+      data: {
+        entries: [mockJournalEntries[0]],
+        totalCount: 25,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 2,
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn().mockResolvedValue({}),
+    } as any);
+
+    render(<JournalList />, { wrapper: createWrapper });
+
+    // Enter search mode.
+    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
+    fireEvent.change(searchInput, { target: { value: "skincare" } });
+    fireEvent.click(screen.getByText("Filtrovat"));
+
+    // Wait until search mode is active (page-2 button is rendered in the pagination footer).
+    const page2Button = await screen.findByRole("button", { name: "2" });
+
+    // Click page 2.
+    fireEvent.click(page2Button);
+
+    let paginationParams: any;
+    let paginationEnabled: any;
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      paginationParams = lastCall?.[0];
+      paginationEnabled = lastCall?.[1];
+
+      expect(paginationEnabled).toBe(true);
+    });
+
+    expect(paginationParams).toMatchObject({
+      searchText: "skincare",
+      pageNumber: 2,
+    });
+  });
+
+  it("re-invokes the search hook with the new sortBy when sorting in search mode", async () => {
+    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
+      data: {
+        entries: [mockJournalEntries[0]],
+        totalCount: 1,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 1,
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn().mockResolvedValue({}),
+    } as any);
+
+    render(<JournalList />, { wrapper: createWrapper });
+
+    // Enter search mode.
+    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
+    fireEvent.change(searchInput, { target: { value: "skincare" } });
+    fireEvent.click(screen.getByText("Filtrovat"));
+
+    // Click "Datum" header to switch sortBy to "entryDate".
+    const dateHeader = await screen.findByRole("columnheader", { name: /Datum/i });
+    fireEvent.click(dateHeader);
+
+    let sortParams: any;
+    let sortEnabled: any;
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      sortParams = lastCall?.[0];
+      sortEnabled = lastCall?.[1];
+
+      expect(sortEnabled).toBe(true);
+    });
+
+    expect(sortParams).toMatchObject({
+      searchText: "skincare",
+      sortBy: "entryDate",
+      sortDirection: "ASC",
+    });
+  });
+
+  it("re-invokes the search hook with the new pageSize and resets to page 1 in search mode", async () => {
+    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
+      data: {
+        entries: [mockJournalEntries[0]],
+        totalCount: 100,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 5,
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn().mockResolvedValue({}),
+    } as any);
+
+    render(<JournalList />, { wrapper: createWrapper });
+
+    // Enter search mode.
+    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
+    fireEvent.change(searchInput, { target: { value: "skincare" } });
+    fireEvent.click(screen.getByText("Filtrovat"));
+
+    // Change page size to 50 via the <select> in the pagination footer.
+    const pageSizeSelect = await screen.findByRole("combobox");
+    fireEvent.change(pageSizeSelect, { target: { value: "50" } });
+
+    let pageSizeParams: any;
+    let pageSizeEnabled: any;
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      pageSizeParams = lastCall?.[0];
+      pageSizeEnabled = lastCall?.[1];
+
+      expect(pageSizeEnabled).toBe(true);
+    });
+
+    expect(pageSizeParams).toMatchObject({
+      searchText: "skincare",
+      pageSize: 50,
+      pageNumber: 1, // page-size change must reset to page 1
+    });
+  });
 });

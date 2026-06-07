@@ -1,13 +1,15 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = AccessRoles.BatchPlanningRead)]
 [ApiController]
 [Route("api/manufacture-batch")]
 public class ManufactureBatchController : BaseApiController
@@ -31,6 +33,7 @@ public class ManufactureBatchController : BaseApiController
     }
 
     [HttpPost("calculate-by-size")]
+    [Authorize(Roles = AccessRoles.BatchPlanningWrite)]
     public async Task<ActionResult<CalculatedBatchSizeResponse>> CalculateBatchBySize(
         [FromBody] CalculatedBatchSizeRequest request,
         CancellationToken cancellationToken = default)
@@ -41,6 +44,7 @@ public class ManufactureBatchController : BaseApiController
     }
 
     [HttpPost("calculate-by-ingredient")]
+    [Authorize(Roles = AccessRoles.BatchPlanningWrite)]
     public async Task<ActionResult<CalculateBatchByIngredientResponse>> CalculateBatchByIngredient(
         [FromBody] CalculateBatchByIngredientRequest request,
         CancellationToken cancellationToken = default)
@@ -51,6 +55,7 @@ public class ManufactureBatchController : BaseApiController
     }
 
     [HttpPost("calculate-batch-plan")]
+    [Authorize(Roles = AccessRoles.BatchPlanningWrite)]
     public async Task<ActionResult<CalculateBatchPlanResponse>> CalculateBatchPlan(
         [FromBody] CalculateBatchPlanRequest request,
         CancellationToken cancellationToken = default)
@@ -58,5 +63,16 @@ public class ManufactureBatchController : BaseApiController
         var response = await _mediator.Send(request, cancellationToken);
 
         return HandleResponse(response);
+    }
+
+    [HttpGet("recipe-pdf/{productCode}")]
+    public async Task<IActionResult> GetRecipePdf(string productCode, [FromQuery] double? batchSize, CancellationToken cancellationToken = default)
+    {
+        var response = await _mediator.Send(new GetSemiproductRecipePdfRequest { ProductCode = productCode, BatchSize = batchSize }, cancellationToken);
+
+        if (!response.Success)
+            return BadRequest(response);
+
+        return File(response.PdfBytes, "application/pdf", response.FileName);
     }
 }

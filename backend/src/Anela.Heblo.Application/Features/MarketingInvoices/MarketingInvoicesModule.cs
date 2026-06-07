@@ -10,7 +10,7 @@ public static class MarketingInvoicesModule
     public static IServiceCollection AddMarketingInvoicesModule(this IServiceCollection services)
     {
         services.AddScoped<IImportedMarketingTransactionRepository, ImportedMarketingTransactionRepository>();
-        services.AddScoped<MarketingInvoiceImportService>();
+        services.AddScoped<IMarketingInvoiceImportService, MarketingInvoiceImportService>();
 
         return services;
     }

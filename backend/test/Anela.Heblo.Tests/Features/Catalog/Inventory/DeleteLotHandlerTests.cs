@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.DeleteLot;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
+using Anela.Heblo.Xcc.Persistance;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -10,21 +11,22 @@ namespace Anela.Heblo.Tests.Features.Catalog.Inventory;
 public class DeleteLotHandlerTests
 {
     private readonly Mock<ILotRepository> _lotRepo = new();
-    private readonly Mock<IEanRepository> _eanRepo = new();
+    private readonly Mock<IMaterialContainerRepository> _containerRepo = new();
     private readonly DeleteLotHandler _handler;
 
     public DeleteLotHandlerTests()
     {
-        _handler = new DeleteLotHandler(NullLogger<DeleteLotHandler>.Instance, _lotRepo.Object, _eanRepo.Object);
+        _handler = new DeleteLotHandler(NullLogger<DeleteLotHandler>.Instance, _lotRepo.Object, _containerRepo.Object);
     }
 
     [Fact]
-    public async Task Handle_LotWithNoEans_DeletesSuccessfully()
+    public async Task Handle_LotWithNoContainers_DeletesSuccessfully()
     {
         // Arrange
         var lot = new Lot("MAT001", "L1", null, DateOnly.FromDateTime(DateTime.Today), null, "user");
         _lotRepo.Setup(r => r.GetByIdAsync(1, default)).ReturnsAsync(lot);
-        _eanRepo.Setup(r => r.AnyByLotIdAsync(1, default)).ReturnsAsync(false);
+        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "L1", null, 1, 1, default))
+            .ReturnsAsync(new PagedResult<MaterialContainer> { Items = new List<MaterialContainer>(), TotalCount = 0, PageNumber = 1, PageSize = 1 });
 
         // Act
         var result = await _handler.Handle(new DeleteLotRequest { Id = 1 }, default);
@@ -36,12 +38,14 @@ public class DeleteLotHandlerTests
     }
 
     [Fact]
-    public async Task Handle_LotWithEans_ReturnsLotHasEans()
+    public async Task Handle_LotWithContainers_ReturnsLotHasEans()
     {
         // Arrange
         var lot = new Lot("MAT001", "L1", null, DateOnly.FromDateTime(DateTime.Today), null, "user");
         _lotRepo.Setup(r => r.GetByIdAsync(1, default)).ReturnsAsync(lot);
-        _eanRepo.Setup(r => r.AnyByLotIdAsync(1, default)).ReturnsAsync(true);
+        var container = new MaterialContainer("INT-00000001", "MAT001", "L1", 25m, "kg", "user");
+        _containerRepo.Setup(r => r.GetPaginatedAsync("MAT001", "L1", null, 1, 1, default))
+            .ReturnsAsync(new PagedResult<MaterialContainer> { Items = new List<MaterialContainer> { container }, TotalCount = 1, PageNumber = 1, PageSize = 1 });
 
         // Act
         var result = await _handler.Handle(new DeleteLotRequest { Id = 1 }, default);

@@ -65,6 +65,7 @@ jest.mock("../../../../../api/hooks/useSmartsupp", () => ({
   useSmartsuppConversation: () => ({ data: { messages: [] }, isLoading: false }),
   useSmartsuppShoptetInfo: () => ({ data: null, isLoading: false }),
   useSmartsuppVisitorInfo: () => ({ data: null, isLoading: false }),
+  useCloseConversation: () => ({ mutate: jest.fn(), isPending: false }),
   SMARTSUPP_QUERY_KEYS: { conversations: () => [], conversation: () => [] },
 }));
 

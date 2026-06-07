@@ -43,19 +43,26 @@ public class BlockOrderProcessingHandler : IRequestHandler<BlockOrderProcessingR
 
             await _eshopOrderClient.UpdateStatusAsync(
                 request.OrderCode, _settings.Value.BlockedStatusId, cancellationToken);
-
-            var currentRemark = await _eshopOrderClient.GetEshopRemarkAsync(request.OrderCode, cancellationToken);
-            var updatedRemark = string.IsNullOrEmpty(currentRemark)
-                ? request.Note
-                : $"{currentRemark}\n{request.Note}";
-            await _eshopOrderClient.UpdateEshopRemarkAsync(request.OrderCode, updatedRemark, cancellationToken);
-
-            return new BlockOrderProcessingResponse();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to block order {OrderCode}", request.OrderCode);
             return new BlockOrderProcessingResponse(ErrorCodes.InternalServerError);
         }
+
+        try
+        {
+            var currentRemark = await _eshopOrderClient.GetEshopRemarkAsync(request.OrderCode, cancellationToken);
+            var updatedRemark = string.IsNullOrEmpty(currentRemark)
+                ? request.Note
+                : $"{currentRemark}\n{request.Note}";
+            await _eshopOrderClient.UpdateEshopRemarkAsync(request.OrderCode, updatedRemark, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Order {OrderCode} was blocked but the note could not be appended", request.OrderCode);
+        }
+
+        return new BlockOrderProcessingResponse();
     }
 }

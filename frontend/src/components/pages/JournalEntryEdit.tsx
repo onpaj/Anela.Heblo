@@ -3,8 +3,11 @@ import { useParams, Navigate } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 import JournalEntryForm from "../JournalEntryForm";
 import { useJournalEntry } from "../../api/hooks/useJournal";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 export default function JournalEntryEdit() {
+  useScreenView('Journal', 'JournalEntryEdit');
+
   const { id } = useParams<{ id: string }>();
   const entryId = id ? parseInt(id, 10) : 0;
 

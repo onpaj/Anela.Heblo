@@ -29,7 +29,6 @@ public class SetCarrierCoolingValidatorTests
             Carrier = Carriers.PPL,
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = Cooling.L1,
-            ModifiedBy = "user-123",
         };
 
         var result = validator.TestValidate(request);
@@ -47,7 +46,6 @@ public class SetCarrierCoolingValidatorTests
             Carrier = Carriers.GLS,
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = Cooling.L1,
-            ModifiedBy = "user-123",
         };
 
         var result = validator.TestValidate(request);
@@ -65,7 +63,6 @@ public class SetCarrierCoolingValidatorTests
             Carrier = (Carriers)999,
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = Cooling.L1,
-            ModifiedBy = "user-123",
         };
 
         var result = validator.TestValidate(request);
@@ -83,12 +80,47 @@ public class SetCarrierCoolingValidatorTests
             Carrier = Carriers.PPL,
             DeliveryHandling = (DeliveryHandling)999,
             Cooling = Cooling.L1,
-            ModifiedBy = "user-123",
         };
 
         var result = validator.TestValidate(request);
 
         result.ShouldHaveValidationErrorFor(x => x.DeliveryHandling);
+    }
+
+    [Fact]
+    public void Validator_FailsForCoolingTextExceedingMaxLength()
+    {
+        SetupCatalog((Carriers.PPL, DeliveryHandling.NaRuky));
+        var validator = CreateValidator();
+        var request = new SetCarrierCoolingRequest
+        {
+            Carrier = Carriers.PPL,
+            DeliveryHandling = DeliveryHandling.NaRuky,
+            Cooling = Cooling.L1,
+            CoolingText = new string('x', 51),
+        };
+
+        var result = validator.TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.CoolingText);
+    }
+
+    [Fact]
+    public void Validator_PassesForCoolingTextAtMaxLength()
+    {
+        SetupCatalog((Carriers.PPL, DeliveryHandling.NaRuky));
+        var validator = CreateValidator();
+        var request = new SetCarrierCoolingRequest
+        {
+            Carrier = Carriers.PPL,
+            DeliveryHandling = DeliveryHandling.NaRuky,
+            Cooling = Cooling.L1,
+            CoolingText = new string('x', 50),
+        };
+
+        var result = validator.TestValidate(request);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.CoolingText);
     }
 
     [Fact]
@@ -101,7 +133,6 @@ public class SetCarrierCoolingValidatorTests
             Carrier = Carriers.PPL,
             DeliveryHandling = DeliveryHandling.NaRuky,
             Cooling = (Cooling)999,
-            ModifiedBy = "user-123",
         };
 
         var result = validator.TestValidate(request);

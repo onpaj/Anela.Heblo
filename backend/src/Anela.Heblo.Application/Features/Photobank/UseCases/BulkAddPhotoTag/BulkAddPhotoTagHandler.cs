@@ -12,8 +12,6 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag
 {
     public class BulkAddPhotoTagHandler : IRequestHandler<BulkAddPhotoTagRequest, BulkAddPhotoTagResponse>
     {
-        private const int BulkTagLimit = 5_000;
-
         private readonly IPhotobankRepository _repository;
         private readonly IPhotobankTagsCache _cache;
 
@@ -28,13 +26,13 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag
             var total = await _repository.CountFilteredPhotosAsync(
                 request.Tags, request.Search, cancellationToken);
 
-            if (total > BulkTagLimit)
+            if (total > PhotobankConstants.BulkTagLimit)
                 return new BulkAddPhotoTagResponse(ErrorCodes.BulkTagLimitExceeded)
                 {
                     Params = new Dictionary<string, string>
                     {
                         { "Count", total.ToString() },
-                        { "Limit", BulkTagLimit.ToString() },
+                        { "Limit", PhotobankConstants.BulkTagLimit.ToString() },
                     },
                 };
 

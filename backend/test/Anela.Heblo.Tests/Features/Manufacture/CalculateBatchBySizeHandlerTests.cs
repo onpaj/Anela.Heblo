@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -10,13 +11,13 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class CalculateBatchBySizeHandlerTests
 {
     private readonly Mock<IManufactureClient> _manufactureClientMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly CalculatedBatchSizeHandler _handler;
 
     public CalculateBatchBySizeHandlerTests()
     {
         _manufactureClientMock = new Mock<IManufactureClient>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _handler = new CalculatedBatchSizeHandler(_manufactureClientMock.Object, _catalogRepositoryMock.Object);
     }
 
@@ -62,6 +63,9 @@ public class CalculateBatchBySizeHandlerTests
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
 
         var request = new CalculatedBatchSizeRequest
         {
@@ -224,6 +228,9 @@ public class CalculateBatchBySizeHandlerTests
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
 
         var request = new CalculatedBatchSizeRequest
         {

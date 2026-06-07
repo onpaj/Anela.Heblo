@@ -1,13 +1,14 @@
-using System.Security.Claims;
 using Anela.Heblo.Application.Features.GiftSettings.UseCases.GetGiftSetting;
 using Anela.Heblo.Application.Features.GiftSettings.UseCases.SetGiftSetting;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = AccessRoles.LogisticsRead)]
 [ApiController]
 [Route("api/gift-settings")]
 public class GiftSettingsController : BaseApiController
@@ -27,21 +28,14 @@ public class GiftSettingsController : BaseApiController
     }
 
     [HttpPut]
+    [Authorize(Roles = AccessRoles.LogisticsWrite)]
     public async Task<IActionResult> SetGiftSetting(
         [FromBody] SetGiftSettingCommand command,
         CancellationToken cancellationToken = default)
     {
-        command.ModifiedBy = GetCurrentUserId();
         var response = await _mediator.Send(command, cancellationToken);
         if (response.Success) return NoContent();
+        if (response.ErrorCode == ErrorCodes.Unauthorized) return Unauthorized(response);
         return BadRequest(response);
-    }
-
-    private string GetCurrentUserId()
-    {
-        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? User.FindFirst("sub")?.Value
-            ?? User.FindFirst("oid")?.Value
-            ?? throw new InvalidOperationException("Authenticated user has no identity claim.");
     }
 }

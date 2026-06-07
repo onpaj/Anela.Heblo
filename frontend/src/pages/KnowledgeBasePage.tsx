@@ -4,12 +4,19 @@ import KnowledgeBaseSearchAskTab from '../components/knowledge-base/KnowledgeBas
 import KnowledgeBaseDocumentsTab from '../components/knowledge-base/KnowledgeBaseDocumentsTab';
 import KnowledgeBaseUploadTab from '../components/knowledge-base/KnowledgeBaseUploadTab';
 import { useKnowledgeBaseUploadPermission } from '../api/hooks/useKnowledgeBase';
+import { useScreenView } from '../telemetry/useScreenView';
 
 type Tab = 'search' | 'documents' | 'upload';
 
 const KnowledgeBasePage: React.FC = () => {
   const canUpload = useKnowledgeBaseUploadPermission();
   const [activeTab, setActiveTab] = useState<Tab>('search');
+
+  const subScreen =
+    activeTab === 'search' ? 'SearchTab' :
+    activeTab === 'documents' ? 'DocumentsTab' :
+    'UploadTab';
+  useScreenView('Knowledge', 'KnowledgeBase', subScreen);
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'search', label: 'Hledat' },

@@ -1,0 +1,47 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import {
+  UpdateProductCompositionOrderRequest,
+  IngredientOrderItem as GeneratedIngredientOrderItem,
+} from '../generated/api-client';
+
+export interface IngredientOrderItem {
+  ingredientProductCode: string;
+  sortOrder: number;
+  phaseLabel?: string | null;
+}
+
+export interface UpdateProductCompositionOrderPayload {
+  productCode: string;
+  order: IngredientOrderItem[];
+}
+
+export const useUpdateProductCompositionOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: UpdateProductCompositionOrderPayload) => {
+      const apiClient = getAuthenticatedApiClient();
+      return apiClient.catalog_UpdateCompositionOrder(
+        payload.productCode,
+        new UpdateProductCompositionOrderRequest({
+          productCode: payload.productCode,
+          order: payload.order.map(
+            (item) =>
+              new GeneratedIngredientOrderItem({
+                ingredientProductCode: item.ingredientProductCode,
+                sortOrder: item.sortOrder,
+                // Generated interface uses `string | undefined`; local type allows null — normalise here.
+                phaseLabel: item.phaseLabel ?? undefined,
+              }),
+          ),
+        }),
+      );
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.catalog, 'composition', variables.productCode],
+      });
+    },
+  });
+};

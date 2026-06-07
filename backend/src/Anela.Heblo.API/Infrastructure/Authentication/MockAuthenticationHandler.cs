@@ -20,7 +20,7 @@ public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticatio
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var claims = new[]
+        var identityClaims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, "mock-user-id"),
             new Claim(ClaimTypes.Name, "Mock User"),
@@ -32,15 +32,14 @@ public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticatio
             // Add Entra ID specific claims
             new Claim("oid", "00000000-0000-0000-0000-000000000000"), // Object ID
             new Claim("tid", "11111111-1111-1111-1111-111111111111"), // Tenant ID
-            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.FinanceReader), // Finance reader role for testing
-            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.HebloUser), // Base role for application access
-            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.SuperUser),
-            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.MeetingManager),
             new Claim("scp", "access_as_user"), // Scopes
-            // Add permission claims for testing
-            new Claim("permission", "FinancialOverview.View")
         };
 
+        var roleClaims = new[] { AccessMatrix.BaseRole }
+            .Concat(AccessMatrix.AllRoleValues())
+            .Select(r => new Claim(ClaimTypes.Role, r));
+
+        var claims = identityClaims.Concat(roleClaims).ToArray();
         var identity = new ClaimsIdentity(claims, "Mock");
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, "Mock");

@@ -12,6 +12,7 @@ import BulkTagDialog from "../BulkTagDialog";
 import PhotobankBulkActionBar from "../PhotobankBulkActionBar";
 import { usePhotos, usePhotoTags, useBulkAddPhotoTagByIds, useRetagPhotos } from "../../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
+import { useScreenView } from "../../../../telemetry/useScreenView";
 
 const ADMIN_ROLE = "super_user";
 const TAGGER_ROLE = "marketing_writer";
@@ -62,6 +63,8 @@ function PhotobankPage() {
   const [bulkTagDialogOpen, setBulkTagDialogOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [selectionAnchorId, setSelectionAnchorId] = useState<number | null>(null);
+
+  useScreenView('Marketing', 'Photobank', view === 'tiles' ? 'TilesView' : 'ListView');
 
   useEffect(() => {
     try {

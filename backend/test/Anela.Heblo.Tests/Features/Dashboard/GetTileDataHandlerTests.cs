@@ -1,6 +1,12 @@
+using Anela.Heblo.Application.Features.Dashboard.Contracts;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetTileData;
+using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
+using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentAssertions;
+using MediatR;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -8,198 +14,276 @@ namespace Anela.Heblo.Tests.Features.Dashboard;
 
 public class GetTileDataHandlerTests
 {
-    private readonly Mock<IDashboardService> _dashboardServiceMock;
+    private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<ITileRegistry> _tileRegistryMock;
+    private readonly Mock<ILogger<GetTileDataHandler>> _loggerMock;
+    private readonly Mock<ICurrentUserService> _currentUserMock;
     private readonly GetTileDataHandler _handler;
 
     public GetTileDataHandlerTests()
     {
-        _dashboardServiceMock = new Mock<IDashboardService>();
-        _handler = new GetTileDataHandler(_dashboardServiceMock.Object);
+        _mediatorMock = new Mock<IMediator>();
+        _tileRegistryMock = new Mock<ITileRegistry>();
+        _loggerMock = new Mock<ILogger<GetTileDataHandler>>();
+        _currentUserMock = new Mock<ICurrentUserService>();
+        _currentUserMock.Setup(x => x.GetCurrentUser()).Returns(new CurrentUser("test-user", null, "test@example.com", true));
+
+        var options = Options.Create(new DashboardOptions { MaxConcurrentTileLoads = 4 });
+        _handler = new GetTileDataHandler(_mediatorMock.Object, _tileRegistryMock.Object, options, _loggerMock.Object, _currentUserMock.Object);
+    }
+
+    private void SetupUserSettings(string userId, UserDashboardTileDto[] tiles)
+    {
+        _mediatorMock
+            .Setup(x => x.Send(
+                It.IsAny<GetUserSettingsRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetUserSettingsResponse
+            {
+                Settings = new UserDashboardSettingsDto { Tiles = tiles }
+            });
     }
 
     [Fact]
     public async Task Handle_WhenUserIdIsNull_ShouldUseAnonymous()
     {
         // Arrange
-        var request = new GetTileDataRequest { UserId = null };
-        var tileData = CreateSampleTileData();
-
-        _dashboardServiceMock
-            .Setup(x => x.GetTileDataAsync("anonymous", It.IsAny<Dictionary<string, string>?>()))
-            .ReturnsAsync(tileData);
+        var request = new GetTileDataRequest();
+        SetupUserSettings("anonymous", Array.Empty<UserDashboardTileDto>());
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
-        result.Tiles.Should().NotBeNull();
-        _dashboardServiceMock.Verify(x => x.GetTileDataAsync("anonymous", It.IsAny<Dictionary<string, string>?>()), Times.Once);
+        _mediatorMock.Verify(
+            x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
     public async Task Handle_WhenUserIdIsEmpty_ShouldUseAnonymous()
     {
         // Arrange
-        var request = new GetTileDataRequest { UserId = "" };
-        var tileData = CreateSampleTileData();
-
-        _dashboardServiceMock
-            .Setup(x => x.GetTileDataAsync("anonymous", It.IsAny<Dictionary<string, string>?>()))
-            .ReturnsAsync(tileData);
+        var request = new GetTileDataRequest();
+        SetupUserSettings("anonymous", Array.Empty<UserDashboardTileDto>());
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
-        result.Tiles.Should().NotBeNull();
-        _dashboardServiceMock.Verify(x => x.GetTileDataAsync("anonymous", It.IsAny<Dictionary<string, string>?>()), Times.Once);
+        _mediatorMock.Verify(
+            x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task Handle_WhenValidUserId_ShouldReturnTileData()
+    public async Task Handle_WhenNoVisibleTiles_ShouldReturnEmpty()
     {
         // Arrange
-        var userId = "user123";
-        var request = new GetTileDataRequest { UserId = userId };
-        var tileData = CreateSampleTileData();
-
-        _dashboardServiceMock
-            .Setup(x => x.GetTileDataAsync(userId, It.IsAny<Dictionary<string, string>?>()))
-            .ReturnsAsync(tileData);
+        var request = new GetTileDataRequest();
+        SetupUserSettings("user1", new[]
+        {
+            new UserDashboardTileDto { TileId = "tile-a", IsVisible = false, DisplayOrder = 0 },
+            new UserDashboardTileDto { TileId = "tile-b", IsVisible = false, DisplayOrder = 1 }
+        });
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
-        result.Tiles.Should().NotBeNull();
-        result.Tiles.Should().HaveCount(2);
-
-        var tiles = result.Tiles.ToArray();
-        tiles[0].TileId.Should().Be("analytics-tile");
-        tiles[0].Title.Should().Be("Analytics");
-        tiles[0].Description.Should().Be("System analytics data");
-        tiles[0].Size.Should().Be("Large");
-        tiles[0].Category.Should().Be("Finance");
-        tiles[0].Data.Should().NotBeNull();
-
-        tiles[1].TileId.Should().Be("finance-tile");
-        tiles[1].Title.Should().Be("Finance");
-        tiles[1].Description.Should().Be("Financial overview");
-        tiles[1].Size.Should().Be("Medium");
-        tiles[1].Category.Should().Be("Finance");
-        tiles[1].Data.Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task Handle_WhenNoTileData_ShouldReturnEmptyList()
-    {
-        // Arrange
-        var userId = "user123";
-        var request = new GetTileDataRequest { UserId = userId };
-
-        _dashboardServiceMock
-            .Setup(x => x.GetTileDataAsync(userId, It.IsAny<Dictionary<string, string>?>()))
-            .ReturnsAsync(new List<TileData>());
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Tiles.Should().NotBeNull();
         result.Tiles.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task Handle_WhenTileDataWithNullData_ShouldReturnTileWithNullData()
+    public async Task Handle_WhenTileNotFound_ShouldReturnErrorDto()
     {
         // Arrange
-        var userId = "user123";
-        var request = new GetTileDataRequest { UserId = userId };
-        var tileData = new List<TileData>
+        const string tileId = "missing-tile";
+        var request = new GetTileDataRequest();
+        SetupUserSettings("user1", new[]
         {
-            new()
-            {
-                TileId = "empty-tile",
-                Title = "Empty Tile",
-                Description = "Tile with no data",
-                Size = TileSize.Small,
-                Category = TileCategory.Orders,
-                DefaultEnabled = true,
-                AutoShow = false,
-                ComponentType = typeof(object),
-                RequiredPermissions = Array.Empty<string>(),
-                Data = null
-            }
-        };
+            new UserDashboardTileDto { TileId = tileId, IsVisible = true, DisplayOrder = 0 }
+        });
 
-        _dashboardServiceMock
-            .Setup(x => x.GetTileDataAsync(userId, It.IsAny<Dictionary<string, string>?>()))
-            .ReturnsAsync(tileData);
+        _tileRegistryMock
+            .Setup(x => x.GetTileMetadata(tileId))
+            .Returns((TileMetadata?)null);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Tiles.Should().HaveCount(1);
-        var tile = result.Tiles.First();
-        tile.TileId.Should().Be("empty-tile");
-        tile.Data.Should().BeNull();
+        var tile = result.Tiles.Should().ContainSingle().Subject;
+        tile.TileId.Should().Be(tileId);
+        tile.Title.Should().Be("Error");
+        tile.Category.Should().Be("Error");
     }
 
     [Fact]
-    public async Task Handle_ShouldCallDashboardServiceOnce()
+    public async Task Handle_WhenTileThrows_ShouldReturnErrorDto()
     {
         // Arrange
-        var userId = "user123";
-        var request = new GetTileDataRequest { UserId = userId };
-        var tileData = CreateSampleTileData();
+        const string tileId = "throwing-tile";
+        const string errorMessage = "Data source unavailable";
+        var request = new GetTileDataRequest();
+        SetupUserSettings("user1", new[]
+        {
+            new UserDashboardTileDto { TileId = tileId, IsVisible = true, DisplayOrder = 0 }
+        });
 
-        _dashboardServiceMock
-            .Setup(x => x.GetTileDataAsync(userId, It.IsAny<Dictionary<string, string>?>()))
-            .ReturnsAsync(tileData);
+        _tileRegistryMock
+            .Setup(x => x.GetTileMetadata(tileId))
+            .Returns(new TileMetadata(tileId, "Throwing Tile", "Desc", TileSize.Medium,
+                TileCategory.Finance, true, false, Array.Empty<string>()));
+
+        _tileRegistryMock
+            .Setup(x => x.GetTileDataAsync(tileId, It.IsAny<Dictionary<string, string>?>()))
+            .ThrowsAsync(new InvalidOperationException(errorMessage));
 
         // Act
-        await _handler.Handle(request, CancellationToken.None);
+        var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        _dashboardServiceMock.Verify(x => x.GetTileDataAsync(userId, It.IsAny<Dictionary<string, string>?>()), Times.Once);
+        var tile = result.Tiles.Should().ContainSingle().Subject;
+        tile.TileId.Should().Be(tileId);
+        tile.Title.Should().Be("Error");
+        tile.Category.Should().Be("Error");
+        tile.Description.Should().Be($"Failed to load tile '{tileId}'");
     }
 
-    private static List<TileData> CreateSampleTileData()
+    [Fact]
+    public async Task Handle_WhenTilesHaveOutOfOrderDisplayOrder_ShouldReturnInOrder()
     {
-        return new List<TileData>
+        // Arrange
+        var request = new GetTileDataRequest();
+        SetupUserSettings("user1", new[]
         {
-            new()
-            {
-                TileId = "analytics-tile",
-                Title = "Analytics",
-                Description = "System analytics data",
-                Size = TileSize.Large,
-                Category = TileCategory.Finance,
-                DefaultEnabled = true,
-                AutoShow = true,
-                ComponentType = typeof(object),
-                RequiredPermissions = new[] { "read", "analytics" },
-                Data = new { Count = 42, Status = "Active" }
-            },
-            new()
-            {
-                TileId = "finance-tile",
-                Title = "Finance",
-                Description = "Financial overview",
-                Size = TileSize.Medium,
-                Category = TileCategory.Finance,
-                DefaultEnabled = false,
-                AutoShow = false,
-                ComponentType = typeof(object),
-                RequiredPermissions = new[] { "finance", "read" },
-                Data = new { Revenue = 15000.50m, Expenses = 8500.25m }
-            }
-        };
+            new UserDashboardTileDto { TileId = "tile-c", IsVisible = true, DisplayOrder = 2 },
+            new UserDashboardTileDto { TileId = "tile-a", IsVisible = true, DisplayOrder = 0 },
+            new UserDashboardTileDto { TileId = "tile-b", IsVisible = true, DisplayOrder = 1 }
+        });
+
+        foreach (var id in new[] { "tile-a", "tile-b", "tile-c" })
+        {
+            var capturedId = id;
+            _tileRegistryMock.Setup(x => x.GetTileMetadata(capturedId))
+                .Returns(new TileMetadata(capturedId, $"Title {capturedId}", "Desc", TileSize.Small,
+                    TileCategory.System, true, false, Array.Empty<string>()));
+            _tileRegistryMock
+                .Setup(x => x.GetTileDataAsync(capturedId, It.IsAny<Dictionary<string, string>?>()))
+                .ReturnsAsync(new { Id = capturedId });
+        }
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        var tiles = result.Tiles.ToArray();
+        tiles.Should().HaveCount(3);
+        // Results must be ordered by DisplayOrder (0, 1, 2) regardless of parallel execution order
+        // tile-a (DisplayOrder=0), tile-b (DisplayOrder=1), tile-c (DisplayOrder=2)
+        // GetTileId() uses type name, so we check via the registry-returned tile metadata
+        tiles[0].Title.Should().Be("Title tile-a");
+        tiles[1].Title.Should().Be("Title tile-b");
+        tiles[2].Title.Should().Be("Title tile-c");
+    }
+
+    [Fact]
+    public async Task Handle_WhenTilesAreVisible_ShouldReturnTileData()
+    {
+        // Arrange
+        const string tileId = "analytics-tile";
+        var expectedData = new { Count = 42, Status = "Active" };
+        var request = new GetTileDataRequest { TileParameters = null };
+        SetupUserSettings("user1", new[]
+        {
+            new UserDashboardTileDto { TileId = tileId, IsVisible = true, DisplayOrder = 0 }
+        });
+
+        _tileRegistryMock
+            .Setup(x => x.GetTileMetadata(tileId))
+            .Returns(new TileMetadata(tileId, "Analytics", "Analytics description", TileSize.Large,
+                TileCategory.Finance, true, true, new[] { "read", "analytics" }));
+
+        _tileRegistryMock
+            .Setup(x => x.GetTileDataAsync(tileId, null))
+            .ReturnsAsync(expectedData);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        var tile = result.Tiles.Should().ContainSingle().Subject;
+        tile.Title.Should().Be("Analytics");
+        tile.Description.Should().Be("Analytics description");
+        tile.Size.Should().Be("Large");
+        tile.Category.Should().Be("Finance");
+        tile.DefaultEnabled.Should().BeTrue();
+        tile.AutoShow.Should().BeTrue();
+        tile.RequiredPermissions.Should().BeEquivalentTo(new[] { "read", "analytics" });
+        tile.Data.Should().Be(expectedData);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTwoSlowTilesAndMaxDoP2_ShouldLoadInParallel()
+    {
+        // Arrange — verify structural parallelism: both tiles must be in-flight simultaneously.
+        // Each tile waits until both have started before completing. With MaxDegreeOfParallelism=2,
+        // Parallel.ForEachAsync dispatches both lambdas before either finishes, so both tiles start
+        // before either awaits its result — the TCS resolves immediately and both tiles complete.
+        // With sequential execution (MaxDegreeOfParallelism=1), tile 1 would wait indefinitely for
+        // tile 2 to start, which never happens, and the 10-second timeout fires instead.
+        // This avoids wall-clock timing assertions that are flaky on loaded CI runners.
+        const int tileCount = 2;
+        var startedCount = 0;
+        var allStartedTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var anyTimedOut = false;
+
+        var request = new GetTileDataRequest();
+        SetupUserSettings("user1", new[]
+        {
+            new UserDashboardTileDto { TileId = "slow-tile-1", IsVisible = true, DisplayOrder = 0 },
+            new UserDashboardTileDto { TileId = "slow-tile-2", IsVisible = true, DisplayOrder = 1 }
+        });
+
+        var options = Options.Create(new DashboardOptions { MaxConcurrentTileLoads = 2 });
+        var handler = new GetTileDataHandler(_mediatorMock.Object, _tileRegistryMock.Object, options, _loggerMock.Object, _currentUserMock.Object);
+
+        foreach (var id in new[] { "slow-tile-1", "slow-tile-2" })
+        {
+            var capturedId = id;
+            _tileRegistryMock.Setup(x => x.GetTileMetadata(capturedId))
+                .Returns(new TileMetadata(capturedId, "Slow", "Slow tile", TileSize.Small,
+                    TileCategory.System, true, false, Array.Empty<string>()));
+            _tileRegistryMock
+                .Setup(x => x.GetTileDataAsync(capturedId, It.IsAny<Dictionary<string, string>?>()))
+                .Returns(async () =>
+                {
+                    if (Interlocked.Increment(ref startedCount) >= tileCount)
+                        allStartedTcs.TrySetResult(true);
+
+                    try
+                    {
+                        await allStartedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                    }
+                    catch (TimeoutException)
+                    {
+                        anyTimedOut = true;
+                        throw;
+                    }
+
+                    return (object)new { Id = capturedId };
+                });
+        }
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        anyTimedOut.Should().BeFalse("tiles should be loaded in parallel, not sequentially");
+        result.Tiles.Should().HaveCount(tileCount);
     }
 }

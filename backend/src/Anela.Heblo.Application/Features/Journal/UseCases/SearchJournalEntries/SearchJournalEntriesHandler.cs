@@ -18,21 +18,18 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.SearchJournalEntries
             SearchJournalEntriesRequest request,
             CancellationToken cancellationToken)
         {
-            var criteria = new JournalSearchCriteria
-            {
-                SearchText = request.SearchText,
-                DateFrom = request.DateFrom,
-                DateTo = request.DateTo,
-                ProductCodePrefix = request.ProductCodePrefix,
-                TagIds = request.TagIds,
-                CreatedByUserId = request.CreatedByUserId,
-                PageNumber = request.PageNumber,
-                PageSize = request.PageSize,
-                SortBy = request.SortBy,
-                SortDirection = request.SortDirection
-            };
-
-            var result = await _journalRepository.SearchEntriesAsync(criteria, cancellationToken);
+            var result = await _journalRepository.SearchEntriesAsync(
+                searchText: request.SearchText,
+                dateFrom: request.DateFrom,
+                dateTo: request.DateTo,
+                productCodePrefix: request.ProductCodePrefix,
+                tagIds: request.TagIds,
+                createdByUserId: request.CreatedByUserId,
+                pageNumber: request.PageNumber,
+                pageSize: request.PageSize,
+                sortBy: request.SortBy,
+                sortDirection: request.SortDirection,
+                cancellationToken: cancellationToken);
 
             var searchText = request.SearchText ?? string.Empty;
             var hasSearchText = !string.IsNullOrEmpty(searchText);

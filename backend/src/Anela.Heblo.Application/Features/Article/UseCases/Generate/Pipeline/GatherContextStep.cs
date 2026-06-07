@@ -1,34 +1,32 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
-using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+using Anela.Heblo.Application.Features.Article.Contracts;
 using Anela.Heblo.Application.Shared.WebSearch;
 using Anela.Heblo.Domain.Features.Article;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
-public class GatherContextStep : IArticlePipelineStep
+public class GatherContextStep
 {
-    private readonly IMediator _mediator;
+    private readonly IArticleKnowledgeSource _knowledgeSource;
     private readonly IWebSearchClient _webSearch;
-    private readonly IOneDriveService _oneDrive;
+    private readonly IArticleStyleGuideSource _styleGuideSource;
     private readonly ArticleOptions _options;
     private readonly ILogger<GatherContextStep> _logger;
     private readonly PipelineStepRecorder _recorder;
 
     public GatherContextStep(
-        IMediator mediator,
+        IArticleKnowledgeSource knowledgeSource,
         IWebSearchClient webSearch,
-        IOneDriveService oneDrive,
+        IArticleStyleGuideSource styleGuideSource,
         IOptions<ArticleOptions> options,
         ILogger<GatherContextStep> logger,
         PipelineStepRecorder recorder)
     {
-        _mediator = mediator;
+        _knowledgeSource = knowledgeSource;
         _webSearch = webSearch;
-        _oneDrive = oneDrive;
+        _styleGuideSource = styleGuideSource;
         _options = options.Value;
         _logger = logger;
         _recorder = recorder;
@@ -85,11 +83,9 @@ public class GatherContextStep : IArticlePipelineStep
         {
             try
             {
-                var response = await _mediator.Send(
-                    new SearchDocumentsRequest { Query = query, TopK = _options.KnowledgeBaseTopK },
-                    ct);
+                var chunks = await _knowledgeSource.SearchAsync(query, _options.KnowledgeBaseTopK, ct);
 
-                snippets.AddRange(response.Chunks.Select(chunk => new ContextSnippet
+                snippets.AddRange(chunks.Select(chunk => new ContextSnippet
                 {
                     Source = SourceType.KnowledgeBase,
                     Title = chunk.SourceFilename,
@@ -144,7 +140,7 @@ public class GatherContextStep : IArticlePipelineStep
     {
         try
         {
-            return await _oneDrive.DownloadFileTextByPathAsync(
+            return await _styleGuideSource.DownloadStyleGuideTextAsync(
                 article.StyleGuideDriveId!,
                 article.StyleGuideItemPath!,
                 ct);

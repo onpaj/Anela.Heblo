@@ -8,6 +8,7 @@ namespace Anela.Heblo.Application.Features.Logistics.DashboardTiles;
 /// <summary>
 /// Dashboard tile showing count of gift packages with critical stock severity.
 /// </summary>
+[TileId("criticalgiftpackages")]
 public class CriticalGiftPackagesTile : ITile
 {
     private readonly IMediator _mediator;
@@ -27,7 +28,6 @@ public class CriticalGiftPackagesTile : ITile
     public TileCategory Category => TileCategory.Warehouse;
     public bool DefaultEnabled => true;
     public bool AutoShow => true;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)

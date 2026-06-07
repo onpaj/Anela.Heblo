@@ -6,6 +6,7 @@ import {
   useProductMarginSummaryQuery,
   ProductGroupingMode,
 } from "../../api/hooks/useProductMarginSummary";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 type TimeWindowType =
   | "current-year"
@@ -45,6 +46,8 @@ const ProductMarginSummary: React.FC = () => {
     useState<ProductGroupingMode>(ProductGroupingMode.Products);
   const [selectedMarginLevel, setSelectedMarginLevel] =
     useState<MarginLevelType>("M2");
+
+  useScreenView('Finance', 'ProductMarginSummary');
 
   const { data, isLoading, error } = useProductMarginSummaryQuery(
     selectedTimeWindow,

@@ -1,9 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
-import { 
+import {
   ProcessDailyConsumptionRequest as GeneratedProcessDailyConsumptionRequest,
-  ProcessDailyConsumptionResponse as GeneratedProcessDailyConsumptionResponse 
+  ProcessDailyConsumptionResponse as GeneratedProcessDailyConsumptionResponse,
+  ConsumptionType as ApiConsumptionType,
+  HistoryRecordType,
 } from "../generated/api-client";
+
+export { HistoryRecordType };
 
 // Define types based on our backend DTOs
 export interface PackingMaterialDto {
@@ -87,6 +91,47 @@ export interface UpdatePackingMaterialQuantityResponse {
 export type ProcessDailyConsumptionRequest = GeneratedProcessDailyConsumptionRequest;
 export type ProcessDailyConsumptionResponse = GeneratedProcessDailyConsumptionResponse;
 
+export interface ConsumptionHistoryItemDto {
+  recordType: HistoryRecordType;
+  recordTypeText: string;
+  packingMaterialId: number;
+  materialName: string;
+  date: Date;
+  createdAt: Date;
+  consumptionType?: ConsumptionType;
+  consumptionTypeText?: string;
+  invoiceId?: string;
+  productCode?: string;
+  productQuantity?: number;
+  amount?: number;
+  oldQuantity?: number;
+  newQuantity?: number;
+  changeAmount?: number;
+  logType?: LogEntryType;
+  logTypeText?: string;
+  userId?: string;
+}
+
+export interface ConsumptionHistoryParams {
+  dateFrom?: string;
+  dateTo?: string;
+  packingMaterialId?: number;
+  consumptionType?: ConsumptionType;
+  productCode?: string;
+  invoiceId?: string;
+  pageNumber?: number;
+  pageSize?: number;
+  sortDescending?: boolean;
+}
+
+export interface GetConsumptionHistoryResponse {
+  items: ConsumptionHistoryItemDto[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 // API client class
 class PackingMaterialsApiClient {
   private baseUrl: string;
@@ -167,6 +212,8 @@ const createApiClient = (): PackingMaterialsApiClient => {
 const QUERY_KEYS = {
   packingMaterials: ['packingMaterials'] as const,
   packingMaterialLogs: (id: number, days: number) => ['packingMaterials', id, 'logs', days] as const,
+  consumptionHistory: (params: ConsumptionHistoryParams) =>
+    ['packingMaterials', 'consumptionHistory', params] as const,
 };
 
 // Hooks
@@ -258,5 +305,29 @@ export const usePackingMaterialLogs = (id: number, days: number = 60) => {
       return client.getPackingMaterialLogs(id, days);
     },
     enabled: !!id,
+  });
+};
+
+export const useConsumptionHistory = (params: ConsumptionHistoryParams) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.consumptionHistory(params),
+    queryFn: async (): Promise<GetConsumptionHistoryResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const response = await apiClient.packingMaterials_GetConsumptionHistory(
+        params.dateFrom ?? undefined,
+        params.dateTo ?? undefined,
+        params.packingMaterialId ?? undefined,
+        // Local ConsumptionType is a numeric enum; the generated client types this
+        // param as its own (string) ConsumptionType. The numeric value binds correctly
+        // to the backend enum, so bridge the two enum types here.
+        (params.consumptionType as unknown as ApiConsumptionType | undefined) ?? undefined,
+        params.productCode ?? undefined,
+        params.invoiceId ?? undefined,
+        params.pageNumber ?? undefined,
+        params.pageSize ?? undefined,
+        params.sortDescending ?? undefined,
+      );
+      return response as unknown as GetConsumptionHistoryResponse;
+    },
   });
 };

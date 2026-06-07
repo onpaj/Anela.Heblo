@@ -23,6 +23,7 @@ import UserProfile from "../auth/UserProfile";
 import { useAuth } from "../../auth/useAuth";
 import { useMockAuth, shouldUseMockAuth } from "../../auth/mockAuth";
 import { useChangelogContext } from "../../contexts/ChangelogContext";
+import { ACCESS_ROUTES } from "../../auth/accessMatrix.generated";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -52,9 +53,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Changelog context
   const { openModal } = useChangelogContext();
 
-  // Helper function to check if user has a specific role
-  const hasRole = (role: string): boolean => {
-    return userInfo?.roles?.includes(role) || false;
+  // Helper function to check if user can see a route based on access matrix
+  const canSee = (path?: string): boolean => {
+    if (!path) return true; // section headers / items without a primary route
+    const required = ACCESS_ROUTES[path];
+    if (!required) return true; // base/un-gated pages (Dashboard, etc.)
+    return (userInfo?.roles ?? []).includes(required);
   };
 
   // Function to open Hangfire dashboard in new window
@@ -68,6 +72,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Function to open organization chart in new window
   const openOrgChart = () => {
     window.open("https://orgchart.anela.cz", "_blank", "noopener,noreferrer");
+  };
+
+  const openBaleni = () => {
+    window.open(`${window.location.origin}/baleni`, "_blank", "noopener,noreferrer");
+  };
+
+  const openTerminal = () => {
+    window.open(`${window.location.origin}/terminal`, "_blank", "noopener,noreferrer");
   };
 
   // Navigation sections - only implemented pages
@@ -99,8 +111,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         },
       ],
     },
-    // Finance section - only visible for finance_reader role
-    ...(hasRole("finance_reader")
+    // Finance section - visibility driven by access matrix
+    ...(canSee("/finance/overview")
       ? [
           {
             id: "finance",
@@ -138,14 +150,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Bankovní výpisy",
           href: "/customer/bank-statements-overview",
         },
-        {
-          id: "archiv-expedic-zakaznicke",
-          name: "Expedice",
-          href: "/logistics/expedition-archive",
-        },
         { id: "knowledge-base", name: "Poradenství (KB)", href: "/knowledge-base" },
         { id: "smartsupp", name: "Smartsupp", href: "/customer/smartsupp" },
-        { id: "chlazeni", name: "Nastavení expedice", href: "/customer/expedition-settings" },
       ],
     },
     {
@@ -169,8 +175,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         { id: "photobank", name: "Fotobanka", href: "/marketing/photobank" },
         { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator" },
         { id: "articles", name: "Generátor článků", href: "/articles" },
-        
-        ...(hasRole("super_user") || hasRole("marketing_reader")
+
+        ...(canSee("/articles")
           ? [{ id: "marketing-feedback", name: "Feedback", href: "/marketing/feedback" }]
           : []),
       ],
@@ -239,6 +245,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Sklad výroby",
           href: "/manufacturing/product-inventory",
         },
+        {
+          id: "sarze",
+          name: "Šarže",
+          href: "/manufacturing/material-containers",
+        },
       ],
     },
     {
@@ -268,24 +279,33 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "/logistics/gift-package-manufacturing",
         },
         {
-          id: "statistiky-skladu",
-          name: "Statistiky skladu",
-          href: "/logistics/warehouse-statistics",
-        },
-        {
           id: "sledovani-materialu",
           name: "Sledování materiálů",
           href: "/logistics/packing-materials",
         },
         {
+          id: "tisk-expedice",
+          name: "Tisk expedice",
+          href: "/logistics/expedition-archive",
+        },
+        {
+          id: "nastaveni-expedice",
+          name: "Nastavení expedice",
+          href: "/customer/expedition-settings",
+        },
+        {
           id: "terminal",
           name: "Terminál",
-          href: "/terminal",
+          href: "#",
+          onClick: openTerminal,
+          isExternal: true,
         },
         {
           id: "baleni",
           name: "Balení",
-          href: "/baleni",
+          href: "#",
+          onClick: openBaleni,
+          isExternal: true,
         },
       ],
     },

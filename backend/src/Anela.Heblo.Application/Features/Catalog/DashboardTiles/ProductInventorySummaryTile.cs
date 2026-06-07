@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 
@@ -6,6 +7,7 @@ namespace Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 /// Dashboard tile showing summary of products by inventory age.
 /// Shows counts for: < 120 days, 120-250 days, > 250 days since last stock taking.
 /// </summary>
+[TileId("productinventorysummary")]
 public class ProductInventorySummaryTile : InventorySummaryTileBase
 {
     public ProductInventorySummaryTile(ICatalogRepository catalogRepository)

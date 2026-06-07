@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { useBulkAddPhotoTag } from "../../../api/hooks/usePhotobank";
 import type { TagWithCountDto } from "../../../api/hooks/usePhotobank";
 import { useToast } from "../../../contexts/ToastContext";
+import { useTelemetry } from "../../../telemetry/useTelemetry";
 
 const MAX_AUTOCOMPLETE_SUGGESTIONS = 8;
 const BULK_TAG_LIMIT_EXCEEDED_CODE = 2606;
@@ -34,6 +35,7 @@ export default function BulkTagDialog({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { showSuccess } = useToast();
+  const { trackEvent } = useTelemetry();
   const { mutateAsync, isPending } = useBulkAddPhotoTag();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -68,6 +70,11 @@ export default function BulkTagDialog({
         showSuccess(
           "Štítek přidán",
           `Přidán štítek "${result.tagName}" k ${result.addedCount} fotkám (${result.alreadyTaggedCount} už ho mělo).`,
+        );
+        trackEvent(
+          "PhotobankBulkTagApplied",
+          { tagCount: String(selectedTagNames.length > 0 ? selectedTagNames.length : 1) },
+          { photoCount: result.addedCount ?? 0 },
         );
         onClose();
         return;

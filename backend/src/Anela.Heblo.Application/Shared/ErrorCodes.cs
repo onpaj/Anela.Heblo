@@ -63,6 +63,8 @@ public enum ErrorCodes
     InvalidSupplier = 1106,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     PurchaseOrderUpdateFailed = 1107,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PurchaseOrderLineNotFound = 1108,
 
     // Manufacture module errors (12XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
@@ -197,6 +199,8 @@ public enum ErrorCodes
     FileTooLarge = 1806,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     UnsupportedFileType = 1807,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidBlobPath = 1808,
 
     // BackgroundJobs module errors (19XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
@@ -205,6 +209,10 @@ public enum ErrorCodes
     RecurringJobUpdateFailed = 1902,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     InvalidCronExpression = 1903,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    RecurringJobDisabled = 1904,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    RecurringJobEnqueueFailed = 1905,
 
     // KnowledgeBase module errors (20XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
@@ -307,12 +315,14 @@ public enum ErrorCodes
     SmartsuppSendMessageUnavailable = 2706,
     [HttpStatusCode(HttpStatusCode.InternalServerError)]
     SmartsuppAgentMappingNotFound = 2707,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    SmartsuppCloseConversationUnavailable = 2708,
 
     // Inventory module errors (28XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     LotNotFound = 2801,
     [HttpStatusCode(HttpStatusCode.NotFound)]
-    EanNotFound = 2802,
+    MaterialContainerNotFound = 2802,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     LotAlreadyExists = 2803,
     [HttpStatusCode(HttpStatusCode.NotFound)]
@@ -321,6 +331,12 @@ public enum ErrorCodes
     InventoryMaterialInvalidType = 2805,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     LotHasEans = 2806,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MaterialContainerCodeExists = 2807,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MaterialContainerCodeInvalidFormat = 2808,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    UnknownMaterialContainerCode = 2809,
 
     // WeatherForecast module errors (29XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
@@ -353,6 +369,8 @@ public enum ErrorCodes
     PackageLabelNotFound = 3004,
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     PackageLabelDownloadFailed = 3005,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PackageNotFound = 3006,
 
     // CatalogDocuments module errors (31XX)
     [HttpStatusCode(HttpStatusCode.BadRequest)]

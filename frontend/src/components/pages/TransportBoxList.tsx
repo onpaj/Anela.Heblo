@@ -31,6 +31,7 @@ import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useStockUpOperationsSummary } from '../../api/hooks/useStockUpOperations';
 import { StockUpSourceType } from '../../api/generated/api-client';
 import StockUpOperationStatusIndicator from '../common/StockUpOperationStatusIndicator';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 // State labels mapping - using string keys since DTO returns strings
 const stateLabels: Record<string, string> = {
@@ -82,6 +83,8 @@ const TransportBoxList: React.FC = () => {
 
   // State for collapsible sections
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
+
+  useScreenView('Logistics', 'TransportBoxes');
 
   // Add summary hook for StockUpOperations status
   const { data: stockUpSummary } = useStockUpOperationsSummary(

@@ -1,5 +1,6 @@
-using Anela.Heblo.Application.Features.ExpeditionList;
+using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.DownloadExpeditionList;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -16,7 +17,7 @@ public class DownloadExpeditionListHandlerTests
     public DownloadExpeditionListHandlerTests()
     {
         _blobStorageServiceMock = new Mock<IBlobStorageService>();
-        _handler = new DownloadExpeditionListHandler(_blobStorageServiceMock.Object, Options.Create(new PrintPickingListOptions()));
+        _handler = new DownloadExpeditionListHandler(_blobStorageServiceMock.Object, Options.Create(new ExpeditionListArchiveOptions()));
     }
 
     [Fact]
@@ -58,6 +59,7 @@ public class DownloadExpeditionListHandlerTests
 
         // Assert
         Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.InvalidBlobPath, result.ErrorCode);
         Assert.Null(result.Stream);
 
         _blobStorageServiceMock.Verify(

@@ -1,9 +1,9 @@
-using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.GetRecurringJobsList;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.UpdateRecurringJobStatus;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.UpdateRecurringJobCron;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.TriggerRecurringJob;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,7 +15,7 @@ namespace Anela.Heblo.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Roles = AccessRoles.AdministrationRead)]
 public class RecurringJobsController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -47,6 +47,7 @@ public class RecurringJobsController : BaseApiController
     /// <param name="request">The status update request containing the new enabled state</param>
     /// <returns>Updated job information</returns>
     [HttpPut("{jobName}/status")]
+    [Authorize(Roles = AccessRoles.AdministrationWrite)]
     [ProducesResponseType(typeof(UpdateRecurringJobStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -73,6 +74,7 @@ public class RecurringJobsController : BaseApiController
     /// <param name="request">The CRON update request containing the new expression</param>
     /// <returns>Updated job information with new CRON expression</returns>
     [HttpPut("{jobName}/cron")]
+    [Authorize(Roles = AccessRoles.AdministrationWrite)]
     [ProducesResponseType(typeof(UpdateRecurringJobCronResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -99,9 +101,12 @@ public class RecurringJobsController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Background job ID if triggered successfully</returns>
     [HttpPost("{jobName}/trigger")]
+    [Authorize(Roles = AccessRoles.AdministrationWrite)]
     [ProducesResponseType(typeof(TriggerRecurringJobResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<TriggerRecurringJobResponse>> TriggerJob(
         string jobName,
         CancellationToken cancellationToken = default)
@@ -115,32 +120,9 @@ public class RecurringJobsController : BaseApiController
 
         if (!response.Success)
         {
-            return NotFound(response);
+            return HandleResponse(response);
         }
 
         return Accepted(response);
     }
-}
-
-/// <summary>
-/// Request body for updating recurring job status
-/// </summary>
-public class UpdateJobStatusRequestBody
-{
-    /// <summary>
-    /// Whether the job should be enabled
-    /// </summary>
-    public bool IsEnabled { get; set; }
-}
-
-/// <summary>
-/// Request body for updating recurring job CRON expression
-/// </summary>
-public class UpdateJobCronRequestBody
-{
-    /// <summary>
-    /// The new CRON expression (e.g. "0 3 * * *")
-    /// </summary>
-    [Required]
-    public string CronExpression { get; set; } = string.Empty;
 }

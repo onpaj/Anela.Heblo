@@ -1,11 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
-using Anela.Heblo.Domain.Features.Invoices;
-using Anela.Heblo.Domain.Features.Bank;
-using Anela.Heblo.Persistence.Features.Invoices;
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
+using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
 using Anela.Heblo.Application.Features.Invoices.Services;
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Domain.Features.Analytics;
+using Anela.Heblo.Domain.Features.Bank;
 
 namespace Anela.Heblo.Application.Features.Invoices;
 
@@ -23,6 +24,22 @@ public static class InvoicesModule
         // via an adapter. DI registration owned by provider (Invoices), not consumer
         // (PackingMaterials) — keeps the dependency direction inverted properly.
         services.AddScoped<IInvoiceConsumptionSource, InvoiceConsumptionSourceAdapter>();
+
+        // Cross-module contract: Invoices implements Analytics' IInvoiceImportStatisticsSource
+        // via an adapter. DI registration owned by provider (Invoices), not consumer
+        // (Analytics) — mirrors the IInvoiceConsumptionSource pattern above. Scoped because
+        // the adapter wraps ApplicationDbContext (also Scoped).
+        services.AddScoped<IInvoiceImportStatisticsSource, InvoiceImportStatisticsSourceAdapter>();
+
+        // Cross-module contracts: Invoices implements DataQuality's IInvoiceShoptetSource
+        // and IInvoiceErpClient via adapters. Lifetimes mirror the wrapped services exactly:
+        //   - IIssuedInvoiceSource is registered Singleton in Program.cs:119, so the adapter
+        //     must also be Singleton (and DataQuality consumers must resolve it from a Scoped
+        //     scope as usual — Singleton from Scoped is legal, the inverse is captive).
+        //   - IIssuedInvoiceClient is registered Scoped in FlexiAdapterServiceCollectionExtensions.cs:93,
+        //     so the adapter must also be Scoped.
+        services.AddSingleton<IInvoiceShoptetSource, InvoiceShoptetSourceAdapter>();
+        services.AddScoped<IInvoiceErpClient, InvoiceErpClientAdapter>();
 
         // Register services
         services.AddScoped<IInvoiceImportService, InvoiceImportService>();

@@ -1,62 +1,50 @@
-All tasks complete. Writing the output artifact:
-
 ---
 
-# Implementation: Extract Shared MarketingFolderLinkRequest DTO
+# Implementation: Marketing Module — Consistent DB Save Error Handling for Update and Delete Handlers
 
 ## What was implemented
 
-Replaced the cross-contract nested type `CreateMarketingActionRequest.CreateFolderLinkRequest` with a standalone `MarketingFolderLinkRequest` class, consumed by both Create and Update marketing-action request contracts. The wire format is byte-for-byte unchanged. The OpenAPI/NSwag TypeScript client was regenerated and now exposes `MarketingFolderLinkRequest` under the new name.
+Added a `try/catch (Exception)` guard around the DB save calls in `UpdateMarketingActionHandler` and `DeleteMarketingActionHandler`, mirroring the pattern already in `CreateMarketingActionHandler`. On DB failure after a successful Outlook write, each handler now logs a structured `LogError` and returns `ErrorCodes.DatabaseError` instead of letting the exception surface as HTTP 500.
 
 ## Files created/modified
 
-- `backend/src/Anela.Heblo.Application/Features/Marketing/Contracts/MarketingFolderLinkRequest.cs` — new shared DTO class (`FolderKey`, `FolderType`; block-scoped namespace; plain class per project rule)
-- `backend/src/Anela.Heblo.Application/Features/Marketing/Contracts/CreateMarketingActionRequest.cs` — `FolderLinks` retyped to `List<MarketingFolderLinkRequest>?`; nested `CreateFolderLinkRequest` class deleted
-- `backend/src/Anela.Heblo.Application/Features/Marketing/Contracts/UpdateMarketingActionRequest.cs` — `FolderLinks` retyped to `List<MarketingFolderLinkRequest>?`
-- `backend/test/Anela.Heblo.Tests/Application/Marketing/CreateMarketingActionHandlerTests.cs` — new `Handle_PersistsFolderLinks_WhenProvided` test added (NFR-3 coverage); type updated to `MarketingFolderLinkRequest`
-- `backend/test/Anela.Heblo.Tests/Application/Marketing/UpdateMarketingActionHandlerTests.cs` — existing `Handle_UpdatesProductsAndFolderLinks_WhenProvided` test updated to `MarketingFolderLinkRequest`
-- `frontend/src/api/generated/api-client.ts` — regenerated via `dotnet msbuild -t:GenerateFrontendClientManual`; class renamed from `CreateFolderLinkRequest` to `MarketingFolderLinkRequest`
+- `backend/src/Anela.Heblo.Application/Features/Marketing/UseCases/UpdateMarketingAction/UpdateMarketingActionHandler.cs` — wrapped `UpdateAsync` + `SaveChangesAsync` in try/catch; logs `{ActionId}`, `{EventId}`, greppable phrase "may now be out of sync"; returns `ErrorCodes.DatabaseError`
+- `backend/src/Anela.Heblo.Application/Features/Marketing/UseCases/DeleteMarketingAction/DeleteMarketingActionHandler.cs` — wrapped `DeleteSoftAsync` in try/catch; logs `{ActionId}`, `{EventId}`, greppable phrase "already deleted — DB row still present"; returns `ErrorCodes.DatabaseError`
+- `backend/test/Anela.Heblo.Tests/Application/Marketing/UpdateMarketingActionHandlerTests.cs` — added `Handle_ReturnsDatabaseError_WhenDbSaveFails` test; asserts `Success == false`, `ErrorCode == DatabaseError`, Outlook update called once, no Outlook rollback, error log contains "may now be out of sync"
+- `backend/test/Anela.Heblo.Tests/Application/Marketing/DeleteMarketingActionHandlerTests.cs` — added `Handle_ReturnsDatabaseError_WhenDbDeleteFails` test; asserts `Success == false`, `ErrorCode == DatabaseError`, Outlook delete called once, error log contains "already deleted"
 
 ## Tests
 
-- All 27 marketing handler tests pass (unit tests in `Anela.Heblo.Tests.Application.Marketing`)
-- New `Handle_PersistsFolderLinks_WhenProvided` test covers the Create handler's `FolderLinks` path (previously uncovered)
-- Existing `Handle_UpdatesProductsAndFolderLinks_WhenProvided` continues to cover the Update handler path
-- 22 pre-existing `KnowledgeBase.Integration` failures (require live DB connection, unrelated to this change)
+All 27 Marketing handler tests pass (`dotnet test --filter "FullyQualifiedName~Application.Marketing"` — 0 failures, 0 skipped).
+
+- `UpdateMarketingActionHandlerTests` — 11 tests including new DB-failure test
+- `DeleteMarketingActionHandlerTests` — 9 tests including new DB-failure test
+- `CreateMarketingActionHandlerTests` — 7 tests, all unchanged and still passing
 
 ## How to verify
 
 ```bash
-# Backend acceptance gates
-dotnet build                                           # 0 errors
-dotnet test --filter "FullyQualifiedName~Application.Marketing" --no-build  # 27/27 pass
-grep -rn "CreateFolderLinkRequest" backend/ frontend/src/  # zero output
-
-# Frontend
-cd frontend && npm run build    # Compiled successfully
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~Application.Marketing"
+# Expected: 27 passed, 0 failed
 ```
 
 ## Notes
 
-- `npm run build` alone does not regenerate the TypeScript client — it requires `dotnet msbuild backend/src/Anela.Heblo.API -t:GenerateFrontendClientManual` (or the Debug dotnet build). The prebuild script invokes this but requires msbuild, not the plain `react-scripts build`.
-- Frontend lint has 106 pre-existing errors across testing-library conventions in unrelated test files (marketing component tests included, but the errors there are node-access / waitFor patterns, not type errors). None were introduced by this refactoring.
-- Handlers (`CreateMarketingActionHandler.cs`, `UpdateMarketingActionHandler.cs`) were intentionally left untouched — they reference only `request.FolderLinks`, `link.FolderKey`, and `link.FolderType`, so no type name appears in handler code.
+- The solution-wide build fails due to missing NuGet restore assets in the worktree (pre-existing, not caused by this change). The Application project and test project both build cleanly.
+- Integration tests were not added — no existing `WebApplicationFactory`-based harness covers Marketing endpoints, per the arch-review specification amendment.
+- `CreateMarketingActionHandler` is untouched (FR-4).
 
 ## PR Summary
 
-Eliminates an Interface Segregation violation in the marketing module where `UpdateMarketingActionRequest` depended on a nested type owned by `CreateMarketingActionRequest`. A new `MarketingFolderLinkRequest` sibling class (same shape, same namespace) is now the single shared contract for folder-link data across both use cases. Wire format is unchanged; the TypeScript client regeneration renames the component transparently.
+Added guarded DB save error handling to `UpdateMarketingActionHandler` and `DeleteMarketingActionHandler` to match the existing pattern in `CreateMarketingActionHandler`. Previously, a DB failure after a successful Outlook write in these two handlers would propagate as an unhandled HTTP 500 and leave Outlook and the database silently diverged. Now both handlers catch the exception, log a structured error (with `{ActionId}`, `{EventId}`, and a greppable phrase), and return a `DatabaseError` response envelope.
 
 ### Changes
-- `backend/src/Anela.Heblo.Application/Features/Marketing/Contracts/MarketingFolderLinkRequest.cs` — new shared DTO
-- `backend/src/Anela.Heblo.Application/Features/Marketing/Contracts/CreateMarketingActionRequest.cs` — retype + delete nested class
-- `backend/src/Anela.Heblo.Application/Features/Marketing/Contracts/UpdateMarketingActionRequest.cs` — retype
-- `backend/test/Anela.Heblo.Tests/Application/Marketing/CreateMarketingActionHandlerTests.cs` — new baseline test + type update
-- `backend/test/Anela.Heblo.Tests/Application/Marketing/UpdateMarketingActionHandlerTests.cs` — type update
-- `frontend/src/api/generated/api-client.ts` — regenerated
+- `UpdateMarketingActionHandler.cs` — try/catch around `UpdateAsync` + `SaveChangesAsync`; `LogError` with "may now be out of sync"; returns `ErrorCodes.DatabaseError`
+- `DeleteMarketingActionHandler.cs` — try/catch around `DeleteSoftAsync`; `LogError` with "already deleted — DB row still present"; returns `ErrorCodes.DatabaseError`
+- `UpdateMarketingActionHandlerTests.cs` — `Handle_ReturnsDatabaseError_WhenDbSaveFails` covering response shape, no Outlook rollback, and log assertion
+- `DeleteMarketingActionHandlerTests.cs` — `Handle_ReturnsDatabaseError_WhenDbDeleteFails` covering response shape, Outlook delete called once, and log assertion
 
 ## Status
-DONE_WITH_CONCERNS
 
-**Concerns:**
-1. `npm run lint` reports 106 pre-existing errors (testing-library conventions) that were present before this change. NFR-2 states lint should pass — it doesn't, but that's a pre-existing state, not a regression introduced here.
-2. The `npm run build` prebuild step invokes `dotnet msbuild -t:GenerateFrontendClientManual` for client generation. If `dotnet` is not on PATH at npm build time (CI or fresh checkouts), the client won't regenerate automatically. Manual step documented in Notes above.
+DONE

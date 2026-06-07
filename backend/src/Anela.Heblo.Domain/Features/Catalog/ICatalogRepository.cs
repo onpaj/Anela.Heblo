@@ -43,7 +43,6 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     DateTime? ErpPricesLoadDate { get; }
     DateTime? EshopUrlLoadDate { get; }
     DateTime? ManufactureDifficultySettingsLoadDate { get; }
-    DateTime? ManufactureCostLoadDate { get; }
 
     // Merge operation tracking
     DateTime? LastMergeDateTime { get; }

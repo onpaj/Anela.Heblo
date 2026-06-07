@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockTakingHistory;
 using Anela.Heblo.Application.Features.Catalog.UseCases.SubmitStockTaking;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Roles = AccessRoles.MaterialInventoryRead)]
 public class StockTakingController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -25,6 +26,7 @@ public class StockTakingController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Stock taking record</returns>
     [HttpPost("submit")]
+    [Authorize(Roles = AccessRoles.MaterialInventoryWrite)]
     public async Task<ActionResult<SubmitStockTakingResponse>> SubmitStockTaking(
         [FromBody] SubmitStockTakingRequest request,
         CancellationToken cancellationToken = default)

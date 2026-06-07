@@ -172,6 +172,49 @@ export const getApiClient = (): ApiClient => {
 };
 
 /**
+ * Get the API base URL from runtime configuration
+ */
+export const getApiBaseUrl = (): string => {
+  const config = getConfig();
+  return config.apiUrl;
+};
+
+/**
+ * Build authentication headers for API requests
+ * Includes Authorization header, E2E test token, and Content-Type
+ * NOTE: Content-Type is included here but may be overridden by FormData handling
+ */
+async function buildAuthHeaders(
+  init?: RequestInit,
+): Promise<Record<string, string>> {
+  const authHeader = await getAuthHeader();
+
+  const headers: Record<string, string> = {
+    ...((init?.headers as Record<string, string>) || {}),
+  };
+
+  // Do not set Content-Type for FormData — browser sets it automatically with the correct multipart boundary
+  if (!(init?.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  // Handle E2E authentication with special header
+  if (isE2ETestMode()) {
+    const e2eToken = getE2EAccessToken();
+    if (e2eToken) {
+      console.log("🧪 Setting X-E2E-Test-Token header for API call");
+      headers["X-E2E-Test-Token"] = e2eToken;
+    } else {
+      console.log("🧪 E2E mode: Using session cookies, no special headers");
+    }
+  } else if (authHeader) {
+    headers["Authorization"] = authHeader;
+  }
+
+  return headers;
+}
+
+/**
  * Extract error message from API response and check if it's a structured API error
  */
 const extractErrorMessage = async (
@@ -237,29 +280,7 @@ export const getAuthenticatedApiClient = (
   // Create http object with custom fetch that includes authentication and error handling
   const authenticatedHttp = {
     fetch: async (url: RequestInfo, init?: RequestInit): Promise<Response> => {
-      const authHeader = await getAuthHeader();
-
-      const headers: Record<string, string> = {
-        ...((init?.headers as Record<string, string>) || {}),
-      };
-
-      // Do not set Content-Type for FormData — browser sets it automatically with the correct multipart boundary
-      if (!(init?.body instanceof FormData)) {
-        headers["Content-Type"] = "application/json";
-      }
-
-      // Handle E2E authentication with special header
-      if (isE2ETestMode()) {
-        const e2eToken = getE2EAccessToken();
-        if (e2eToken) {
-          console.log("🧪 Setting X-E2E-Test-Token header for API call");
-          headers["X-E2E-Test-Token"] = e2eToken;
-        } else {
-          console.log("🧪 E2E mode: Using session cookies, no special headers");
-        }
-      } else if (authHeader) {
-        headers["Authorization"] = authHeader;
-      }
+      const headers = await buildAuthHeaders(init);
 
       const response = await fetch(url, {
         ...init,
@@ -298,12 +319,20 @@ export const getAuthenticatedApiClient = (
         try {
           const errorInfo = await extractErrorMessage(responseClone);
 
+          // Suppress toast on 409 when the backend returned a structured BaseResponse
+          // (success: false + errorCode). These 409s are typed business outcomes (e.g.
+          // "feedback already submitted") and the caller's hook handles them.
+          // Unstructured 409s (non-JSON or missing errorCode) still surface as toasts.
+          const suppressOn409 = response.status === 409 && errorInfo.isStructuredError;
+
           // Show toast for all errors - centralized handling
           console.log(
             `🔍 Error debug - isStructuredError: ${errorInfo.isStructuredError}, message: "${errorInfo.message}"`,
           );
 
-          if (errorInfo.isStructuredError && globalToastHandler) {
+          if (suppressOn409) {
+            console.log(`🔇 Toast suppressed for typed 409 business outcome: ${errorInfo.message}`);
+          } else if (errorInfo.isStructuredError && globalToastHandler) {
             // Structured API error - show ErrorMessage
             console.error(
               `🚨 Structured API Error [${response.status}] ${url}:`,
@@ -368,6 +397,38 @@ export const getAuthenticatedApiClientWithProvider = (
 
   return new ApiClient(config.apiUrl, customHttp);
 };
+
+/**
+ * Get an authenticated fetch function with the same headers as the API client.
+ * Returns a fetch-like function that automatically attaches auth headers.
+ *
+ * Key behaviors:
+ * - Auth header ALWAYS wins: caller-supplied `Authorization` headers are overwritten by the helper's auth header.
+ * - Does NOT throw on non-2xx response — the caller owns status-code branching.
+ * - Does NOT trigger global error toasts or the 401 login redirect — those belong to `getAuthenticatedApiClient()`.
+ *   Callers must handle error UX themselves.
+ *
+ * When to use this:
+ * Prefer the typed generated client (`getAuthenticatedApiClient()`) for normal calls. Reach for this
+ * helper only when an endpoint's success/business-outcome contract cannot yet be expressed through the
+ * generated client — for example, an `If-Match`-based update returning HTTP 412 Precondition Failed
+ * before the controller has been annotated with `[ProducesResponseType(StatusCodes.Status412PreconditionFailed)]`
+ * and before the NSwag template knows to surface 412 as a typed branch. Once the contract is annotated
+ * and the typed branch is generated, migrate the call site back to the generated client.
+ */
+export function getAuthenticatedFetch(): (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) => Promise<Response> {
+  return async (input, init = {}) => {
+    const headers = await buildAuthHeaders(init);
+    return fetch(input, {
+      ...init,
+      headers: { ...(init.headers ?? {}), ...headers },
+      credentials: isE2ETestMode() ? "include" : "same-origin",
+    });
+  };
+}
 
 /**
  * Make a single GET request with the same authentication headers as the API client.
@@ -445,6 +506,7 @@ export const QUERY_KEYS = {
   shipmentLabels: ["shipmentLabels"] as const,
   featureFlags: ["feature-flags"] as const,
   catalogDocuments: ["catalog-documents"] as const,
+  materialContainers: ["materialContainers"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

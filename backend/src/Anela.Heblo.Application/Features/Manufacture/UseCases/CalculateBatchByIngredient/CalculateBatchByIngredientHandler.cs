@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -9,12 +10,12 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBy
 public class CalculateBatchByIngredientHandler : IRequestHandler<CalculateBatchByIngredientRequest, CalculateBatchByIngredientResponse>
 {
     private readonly IManufactureClient _manufactureClient;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
 
-    public CalculateBatchByIngredientHandler(IManufactureClient manufactureClient, ICatalogRepository catalogRepository)
+    public CalculateBatchByIngredientHandler(IManufactureClient manufactureClient, IManufactureCatalogSource catalogSource)
     {
         _manufactureClient = manufactureClient;
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
     }
 
     public async Task<CalculateBatchByIngredientResponse> Handle(CalculateBatchByIngredientRequest request, CancellationToken cancellationToken)
@@ -49,7 +50,7 @@ public class CalculateBatchByIngredientHandler : IRequestHandler<CalculateBatchB
             var ingredientsWithStock = new List<CalculatedIngredientDto>();
             foreach (var ingredient in template.Ingredients)
             {
-                var ingredientCatalog = await _catalogRepository.GetByIdAsync(ingredient.ProductCode, cancellationToken);
+                var ingredientCatalog = await _catalogSource.GetByIdAsync(ingredient.ProductCode, cancellationToken);
 
                 // Get the latest stock taking date for this ingredient
                 var lastStockTaking = ingredientCatalog?.StockTakingHistory

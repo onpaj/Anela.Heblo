@@ -6,6 +6,7 @@ import type { TagWithCountDto } from "../../../../api/hooks/usePhotobank";
 // ---- Mocks ------------------------------------------------------------------
 
 const mockShowSuccess = jest.fn();
+const mockTrackEvent = jest.fn();
 
 jest.mock("../../../../api/hooks/usePhotobank", () => ({
   useBulkAddPhotoTag: jest.fn(),
@@ -13,6 +14,10 @@ jest.mock("../../../../api/hooks/usePhotobank", () => ({
 
 jest.mock("../../../../contexts/ToastContext", () => ({
   useToast: () => ({ showSuccess: mockShowSuccess, showError: jest.fn() }),
+}));
+
+jest.mock("../../../../telemetry/useTelemetry", () => ({
+  useTelemetry: () => ({ trackEvent: mockTrackEvent }),
 }));
 
 const { useBulkAddPhotoTag } = jest.requireMock("../../../../api/hooks/usePhotobank") as {
@@ -51,6 +56,7 @@ function renderDialog(props: Partial<typeof DEFAULT_PROPS> = {}) {
 
 beforeEach(() => {
   mockShowSuccess.mockClear();
+  mockTrackEvent.mockClear();
   (DEFAULT_PROPS.onClose as jest.Mock).mockClear();
   useBulkAddPhotoTag.mockReturnValue(buildMockMutation());
 });
@@ -202,4 +208,71 @@ test("shows generic error message when mutateAsync rejects", async () => {
   await waitFor(() => {
     expect(screen.getByText("Operace selhala. Zkuste to prosím znovu.")).toBeInTheDocument();
   });
+});
+
+// ---- Telemetry tests --------------------------------------------------------
+
+test("tracks PhotobankBulkTagApplied with tagCount and photoCount on successful submit", async () => {
+  const mutateAsync = jest.fn().mockResolvedValue({
+    success: true,
+    tagName: "summer",
+    addedCount: 3,
+    alreadyTaggedCount: 0,
+  });
+  useBulkAddPhotoTag.mockReturnValue(buildMockMutation({ mutateAsync }));
+
+  renderDialog({ selectedTagNames: [] });
+
+  fireEvent.change(screen.getByLabelText("Štítek"), { target: { value: "summer" } });
+  fireEvent.click(screen.getByRole("button", { name: /Použít/i }));
+
+  await waitFor(() => {
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "PhotobankBulkTagApplied",
+      { tagCount: "1" },
+      { photoCount: 3 },
+    );
+  });
+});
+
+test("tracks PhotobankBulkTagApplied with correct tagCount when selectedTagNames is provided", async () => {
+  const mutateAsync = jest.fn().mockResolvedValue({
+    success: true,
+    tagName: "akce",
+    addedCount: 7,
+    alreadyTaggedCount: 2,
+  });
+  useBulkAddPhotoTag.mockReturnValue(buildMockMutation({ mutateAsync }));
+
+  renderDialog({ selectedTagNames: ["jarní", "letní", "promo"] });
+
+  fireEvent.change(screen.getByLabelText("Štítek"), { target: { value: "akce" } });
+  fireEvent.click(screen.getByRole("button", { name: /Použít/i }));
+
+  await waitFor(() => {
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "PhotobankBulkTagApplied",
+      { tagCount: "3" },
+      { photoCount: 7 },
+    );
+  });
+});
+
+test("does not track when submit returns an error", async () => {
+  const mutateAsync = jest.fn().mockResolvedValue({
+    success: false,
+    errorCode: 2606,
+    params: { Count: 6000, Limit: 5000 },
+  });
+  useBulkAddPhotoTag.mockReturnValue(buildMockMutation({ mutateAsync }));
+
+  renderDialog({ search: "foo" });
+
+  fireEvent.change(screen.getByLabelText("Štítek"), { target: { value: "akce" } });
+  fireEvent.click(screen.getByRole("button", { name: /Použít/i }));
+
+  await waitFor(() => {
+    expect(mutateAsync).toHaveBeenCalled();
+  });
+  expect(mockTrackEvent).not.toHaveBeenCalled();
 });

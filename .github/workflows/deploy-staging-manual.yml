@@ -4,8 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'PR number to deploy to staging'
-        required: true
+        description: 'PR number to deploy (leave blank if using branch_name)'
+        required: false
+        type: string
+      branch_name:
+        description: 'Branch name to deploy, e.g. main or feature/my-feature (leave blank if using pr_number)'
+        required: false
         type: string
 
 permissions:
@@ -18,28 +22,67 @@ env:
 
 jobs:
   deploy-staging:
-    name: 🚀 Deploy PR to Staging
+    name: 🚀 Deploy to Staging
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔍 Resolve image tag from PR
+      - name: 🔍 Resolve image tag
         id: resolve
         run: |
           PR_NUMBER="${{ github.event.inputs.pr_number }}"
+          BRANCH_NAME="${{ github.event.inputs.branch_name }}"
 
-          SHA=$(gh pr view "$PR_NUMBER" --json headRefOid -q .headRefOid | cut -c1-7)
-
-          if [ -z "$SHA" ]; then
-            echo "❌ Could not resolve SHA for PR #$PR_NUMBER"
+          # Validate exactly one input is provided
+          if [ -z "$PR_NUMBER" ] && [ -z "$BRANCH_NAME" ]; then
+            echo "❌ Provide either pr_number or branch_name"
+            exit 1
+          fi
+          if [ -n "$PR_NUMBER" ] && [ -n "$BRANCH_NAME" ]; then
+            echo "❌ Provide only one of pr_number or branch_name, not both"
             exit 1
           fi
 
-          VERSION="staging-PR${PR_NUMBER}-${SHA}"
+          if [ -n "$PR_NUMBER" ]; then
+            # PR number path (existing behaviour)
+            SHA=$(gh pr view "$PR_NUMBER" --json headRefOid -q .headRefOid | cut -c1-7)
+            if [ -z "$SHA" ]; then
+              echo "❌ Could not resolve SHA for PR #$PR_NUMBER"
+              exit 1
+            fi
+            VERSION="staging-PR${PR_NUMBER}-${SHA}"
+            RESOLVED_PR_NUMBER="$PR_NUMBER"
+            DEPLOYMENT_SOURCE="Manual-PR${PR_NUMBER}"
+            echo "📌 PR path → image: $VERSION"
+          else
+            # Branch name path (new)
+            echo "🔍 Resolving branch: $BRANCH_NAME"
+            FULL_SHA=$(gh api "repos/${{ github.repository }}/git/refs/heads/${BRANCH_NAME}" -q '.object.sha' 2>/dev/null)
+            if [ -z "$FULL_SHA" ]; then
+              echo "❌ Branch not found or has no commits: $BRANCH_NAME"
+              exit 1
+            fi
+            SHA="${FULL_SHA:0:7}"
+
+            # Find an associated PR (any state: open, closed, merged)
+            RESOLVED_PR_NUMBER=$(gh pr list --head "$BRANCH_NAME" --state all --json number -q '.[0].number' 2>/dev/null)
+
+            if [ -n "$RESOLVED_PR_NUMBER" ]; then
+              VERSION="staging-PR${RESOLVED_PR_NUMBER}-${SHA}"
+              echo "✅ Branch $BRANCH_NAME → PR #${RESOLVED_PR_NUMBER} → image: $VERSION"
+            else
+              VERSION="sha-${SHA}"
+              echo "ℹ️  No PR found for branch $BRANCH_NAME — using SHA tag: $VERSION"
+            fi
+
+            DEPLOYMENT_SOURCE="Manual-Branch-${BRANCH_NAME}"
+            echo "📌 Branch path → image: $VERSION"
+          fi
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "📌 Resolved image: $VERSION"
+          echo "pr_number=$RESOLVED_PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "deployment_source=$DEPLOYMENT_SOURCE" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -98,7 +141,9 @@ jobs:
               DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \
               SCM_DO_BUILD_DURING_DEPLOYMENT=false \
               APP_VERSION="${{ steps.resolve.outputs.version }}" \
-              DEPLOYMENT_SOURCE="Manual-PR${{ steps.resolve.outputs.pr_number }}"
+              DEPLOYMENT_SOURCE="${{ steps.resolve.outputs.deployment_source }}" \
+              APPLICATIONINSIGHTS_CONNECTION_STRING="${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING_STAGING }}" \
+              ApplicationInsights__ConnectionString="${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING_STAGING }}"
 
       - name: ⏳ Wait for deployment to be ready
         run: |
@@ -114,6 +159,7 @@ jobs:
           done
 
       - name: 💬 Comment on PR
+        if: steps.resolve.outputs.pr_number != ''
         run: |
           gh pr comment ${{ steps.resolve.outputs.pr_number }} \
             --body "## 🚀 Manually Deployed to Staging
@@ -141,7 +187,14 @@ jobs:
         run: |
           echo "## 🚀 Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **PR**: #${{ steps.resolve.outputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ github.event.inputs.pr_number }}" ]; then
+            echo "- **PR**: #${{ github.event.inputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Branch**: ${{ github.event.inputs.branch_name }}" >> $GITHUB_STEP_SUMMARY
+            if [ -n "${{ steps.resolve.outputs.pr_number }}" ]; then
+              echo "- **Resolved PR**: #${{ steps.resolve.outputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
           echo "- **Version**: ${{ steps.resolve.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **URL**: https://${{ steps.deploy.outputs.hostname }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY

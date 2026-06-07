@@ -19,8 +19,17 @@ public static class HomeAssistantAdapterServiceCollectionExtensions
         services.AddHttpClient<HomeAssistantConditionsReadingProvider>((sp, client) =>
         {
             var settings = sp.GetRequiredService<IOptions<HomeAssistantSettings>>().Value;
-            client.BaseAddress = new Uri(
-                settings.BaseUrl ?? throw new InvalidOperationException("HomeAssistant:BaseUrl is required but not configured."));
+
+            if (string.IsNullOrWhiteSpace(settings.BaseUrl)
+                || !Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out var baseUri))
+            {
+                // HomeAssistant is not configured for this environment.
+                // HTTP calls in HomeAssistantConditionsReadingProvider will fail per-sensor and
+                // return null, which bubbles up as ConditionsReadingSource.Unavailable — no exception.
+                return;
+            }
+
+            client.BaseAddress = baseUri;
             client.Timeout = TimeSpan.FromSeconds(settings.RequestTimeoutSeconds);
             client.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", settings.AccessToken);

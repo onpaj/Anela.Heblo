@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from "react-router-dom";
 import { MsalProvider } from "@azure/msal-react";
-import { PublicClientApplication } from "@azure/msal-browser";
+import { PublicClientApplication, EventType, AccountInfo } from "@azure/msal-browser";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Layout from "./components/Layout/Layout";
 import Dashboard from "./components/pages/Dashboard";
@@ -25,6 +25,7 @@ import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturin
 import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import InventoryList from "./components/pages/InventoryList";
 import ManufactureInventoryList from "./components/pages/ManufactureInventoryList";
+import MaterialContainerList from "./components/pages/MaterialContainerList";
 import ManufacturedInventoryPage from "./components/pages/ManufacturedInventoryPage";
 import ManufactureOrderList from "./components/manufacture/pages/ManufactureOrderList";
 import ManufactureOrderDetail from "./components/manufacture/pages/ManufactureOrderDetail";
@@ -47,6 +48,8 @@ import MarketingCalendarPage from "./components/marketing/pages/MarketingCalenda
 import PhotobankPage from "./components/marketing/photobank/pages/PhotobankPage";
 import PhotobankSettingsPage from "./components/marketing/photobank/pages/PhotobankSettingsPage";
 import AuthGuard from "./components/auth/AuthGuard";
+import { ACCESS_ROUTES } from "./auth/accessMatrix.generated";
+import { RequireAccess } from "./components/auth/RequireAccess";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
@@ -76,11 +79,21 @@ import TransportBoxCheck from "./components/terminal/TransportBoxCheck";
 import TransportBoxReceive from "./components/terminal/TransportBoxReceive";
 import ComingSoonPage from "./components/terminal/ComingSoonPage";
 import BoxFillWorkflow from "./components/terminal/box-fill/BoxFillWorkflow";
+import LotIdentificationHome from "./components/terminal/lot-identification/LotIdentificationHome";
+import PoPickStep from "./components/terminal/lot-identification/PoPickStep";
+import PoLinePickStep from "./components/terminal/lot-identification/PoLinePickStep";
+import LotEntryStep from "./components/terminal/lot-identification/LotEntryStep";
+import ContainerScanLoop from "./components/terminal/lot-identification/ContainerScanLoop";
+import FinishPoStep from "./components/terminal/lot-identification/FinishPoStep";
+import FreeformMaterialStep from "./components/terminal/lot-identification/FreeformMaterialStep";
 import BaleniLayout from "./components/baleni/BaleniLayout";
 import BaleniHome from "./components/baleni/BaleniHome";
 import BaleniPlaceholder from "./components/baleni/BaleniPlaceholder";
 import BaleniPacking from "./components/baleni/BaleniPacking";
+import { ZasilkyPage } from "./components/baleni/zasilky/ZasilkyPage";
 import "./i18n";
+import { initAppInsights, getAppInsights, setUserIdentity } from './telemetry/appInsights';
+import { AppInsightsProvider } from './telemetry/AppInsightsProvider';
 
 let isRedirecting = false;
 
@@ -111,6 +124,8 @@ function App() {
         const appConfig = loadConfig();
         setConfig(appConfig);
 
+        initAppInsights(appConfig.aiConnectionString);
+
         // Create MSAL configuration with app configuration
         const msalConfig = {
           auth: {
@@ -135,6 +150,33 @@ function App() {
         console.log("📱 Creating MSAL instance...");
         const instance = new PublicClientApplication(msalConfig);
         setMsalInstance(instance);
+
+        // Wire Application Insights user context to MSAL authentication events
+        instance.addEventCallback((event) => {
+          if (event.eventType === EventType.LOGIN_SUCCESS && event.payload) {
+            const account = (event.payload as { account?: AccountInfo }).account;
+            const oid = (account?.idTokenClaims as { oid?: string } | undefined)?.oid;
+            if (oid) {
+              getAppInsights()?.setAuthenticatedUserContext(oid, undefined, true);
+              setUserIdentity({ name: account?.name, email: account?.username });
+            }
+          }
+          if (event.eventType === EventType.LOGOUT_SUCCESS) {
+            getAppInsights()?.clearAuthenticatedUserContext();
+            setUserIdentity(null);
+          }
+        });
+
+        // For users already signed in (page reload), set context immediately
+        const existingAccounts = instance.getAllAccounts();
+        if (existingAccounts.length > 0) {
+          const existingAccount = existingAccounts[0];
+          const oid = (existingAccount.idTokenClaims as { oid?: string } | undefined)?.oid;
+          if (oid) {
+            getAppInsights()?.setAuthenticatedUserContext(oid, undefined, true);
+            setUserIdentity({ name: existingAccount.name, email: existingAccount.username });
+          }
+        }
 
         // Clean up stale returnUrl on normal app start (not during MSAL redirect callback)
         const isHandlingRedirect = window.location.search.includes('code=') || window.location.hash.includes('code=');
@@ -270,6 +312,10 @@ function App() {
     initializeApp();
   }, []);
 
+  const guard = (path: string, element: React.ReactNode) => (
+    <RequireAccess requiredRole={ACCESS_ROUTES[path]}>{element}</RequireAccess>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -355,6 +401,7 @@ function App() {
                 >
                   <AuthGuard>
                     <FeatureFlagProvider>
+                    <AppInsightsProvider>
                     <Routes>
                       {/* Mobile terminal — no sidebar, no topbar */}
                       <Route path="/terminal" element={<TerminalLayout />}>
@@ -363,73 +410,82 @@ function App() {
                         <Route path="box-fill" element={<BoxFillWorkflow />} />
                         <Route path="receive" element={<TransportBoxReceive />} />
                         <Route path="stocktake" element={<ComingSoonPage title="Inventura" />} />
-                        <Route
-                          path="lot-identification"
-                          element={<ComingSoonPage title="Identifikace šarže" />}
-                        />
+                        <Route path="lot-identification">
+                          <Route index element={<LotIdentificationHome />} />
+                          <Route path="po" element={<PoPickStep />} />
+                          <Route path="po/:id" element={<PoLinePickStep />} />
+                          <Route path="po/:id/line/:lineId/material/:material/lot" element={<LotEntryStep mode="po" />} />
+                          <Route path="po/:id/line/:lineId/material/:material/lot/:lot/scan" element={<ContainerScanLoop mode="po" />} />
+                          <Route path="po/:id/finish" element={<FinishPoStep />} />
+                          <Route path="freeform" element={<FreeformMaterialStep />} />
+                          <Route path="freeform/:material/lot" element={<LotEntryStep mode="freeform" />} />
+                          <Route path="freeform/:material/lot/:lot/scan" element={<ContainerScanLoop mode="freeform" />} />
+                        </Route>
                       </Route>
 
                       {/* Balení device module — landscape touch PC, no sidebar */}
-                      <Route path="/baleni" element={<BaleniLayout />}>
+                      <Route path="/baleni" element={guard("/baleni", <BaleniLayout />)}>
                         <Route index element={<BaleniHome />} />
                         <Route path="baleni" element={<BaleniPacking />} />
-                        <Route path="zasilky" element={<BaleniPlaceholder title="Zásilky" />} />
+                        <Route path="zasilky" element={<ZasilkyPage />} />
                         <Route path="statistiky" element={<BaleniPlaceholder title="Statistiky" />} />
                       </Route>
 
                       {/* Desktop app — full Layout with sidebar (pathless layout route) */}
                       <Route element={<Layout statusBar={<StatusBar />}><Outlet /></Layout>}>
                         <Route path="/" element={<Dashboard />} />
-                        <Route path="/finance/overview" element={<FinancialOverview />} />
+                        <Route path="/finance/overview" element={guard("/finance/overview", <FinancialOverview />)} />
                         <Route path="/finance/bank-statements" element={<BankStatementImportChart />} />
-                        <Route path="/analytics/product-margin-summary" element={<ProductMarginSummary />} />
-                        <Route path="/catalog" element={<CatalogList />} />
-                        <Route path="/purchase/orders" element={<PurchaseOrderList />} />
-                        <Route path="/purchase/stock-analysis" element={<PurchaseStockAnalysis />} />
+                        <Route path="/analytics/product-margin-summary" element={guard("/analytics/product-margin-summary", <ProductMarginSummary />)} />
+                        <Route path="/catalog" element={guard("/catalog", <CatalogList />)} />
+                        <Route path="/purchase/orders" element={guard("/purchase/orders", <PurchaseOrderList />)} />
+                        <Route path="/purchase/stock-analysis" element={guard("/purchase/stock-analysis", <PurchaseStockAnalysis />)} />
                         <Route path="/purchase/invoice-classification" element={<InvoiceClassificationPage />} />
-                        <Route path="/manufacturing/stock-analysis" element={<ManufacturingStockAnalysis />} />
-                        <Route path="/manufacturing/output" element={<ManufactureOutput />} />
+                        <Route path="/manufacturing/stock-analysis" element={guard("/manufacturing/stock-analysis", <ManufacturingStockAnalysis />)} />
+                        <Route path="/manufacturing/output" element={guard("/manufacturing/output", <ManufactureOutput />)} />
                         <Route path="/manufacturing/batch-calculator" element={<ManufactureBatchCalculator />} />
-                        <Route path="/manufacturing/batch-planning" element={<BatchPlanningCalculator />} />
-                        <Route path="/manufacturing/orders" element={<ManufactureOrderList />} />
+                        <Route path="/manufacturing/batch-planning" element={guard("/manufacturing/batch-planning", <BatchPlanningCalculator />)} />
+                        <Route path="/manufacturing/orders" element={guard("/manufacturing/orders", <ManufactureOrderList />)} />
                         <Route path="/manufacturing/orders/:id" element={<ManufactureOrderDetail />} />
-                        <Route path="/products/margins" element={<ProductMarginsList />} />
-                        <Route path="/journal" element={<JournalList />} />
-                        <Route path="/marketing/calendar" element={<MarketingCalendarPage />} />
-                        <Route path="/marketing/photobank" element={<PhotobankPage />} />
+                        <Route path="/products/margins" element={guard("/products/margins", <ProductMarginsList />)} />
+                        <Route path="/journal" element={guard("/journal", <JournalList />)} />
+                        <Route path="/marketing/calendar" element={guard("/marketing/calendar", <MarketingCalendarPage />)} />
+                        <Route path="/marketing/photobank" element={guard("/marketing/photobank", <PhotobankPage />)} />
                         <Route path="/marketing/photobank/settings" element={<PhotobankSettingsPage />} />
-                        <Route path="/leaflet-generator" element={<LeafletGeneratorPage />} />
+                        <Route path="/leaflet-generator" element={guard("/leaflet-generator", <LeafletGeneratorPage />)} />
                         <Route path="/journal/new" element={<JournalEntryNew />} />
                         <Route path="/journal/:id/edit" element={<JournalEntryEdit />} />
-                        <Route path="/logistics/inventory" element={<InventoryList />} />
-                        <Route path="/manufacturing/inventory" element={<ManufactureInventoryList />} />
-                        <Route path="/manufacturing/product-inventory" element={<ManufacturedInventoryPage />} />
+                        <Route path="/logistics/inventory" element={guard("/logistics/inventory", <InventoryList />)} />
+                        <Route path="/manufacturing/inventory" element={guard("/manufacturing/inventory", <ManufactureInventoryList />)} />
+                        <Route path="/manufacturing/product-inventory" element={guard("/manufacturing/product-inventory", <ManufacturedInventoryPage />)} />
+                        <Route path="/manufacturing/material-containers" element={guard("/manufacturing/material-containers", <MaterialContainerList />)} />
                         <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
                         <Route path="/logistics/receive-boxes" element={<TransportBoxReceivePage />} />
                         <Route path="/logistics/gift-package-manufacturing" element={<GiftPackageManufacturing />} />
                         <Route path="/logistics/warehouse-statistics" element={<WarehouseStatistics />} />
                         <Route path="/logistics/packing-materials" element={<PackingMaterialsPage />} />
-                        <Route path="/logistics/expedition-archive" element={<ExpeditionListArchivePage />} />
+                        <Route path="/logistics/expedition-archive" element={guard("/logistics/expedition-archive", <ExpeditionListArchivePage />)} />
                         <Route path="/automation/invoice-import-statistics" element={<InvoiceImportStatistics />} />
                         <Route path="/automation/background-tasks" element={<BackgroundTasks />} />
-                        <Route path="/automation/meeting-tasks" element={<MeetingTasksPage />} />
+                        <Route path="/automation/meeting-tasks" element={guard("/automation/meeting-tasks", <MeetingTasksPage />)} />
                         <Route path="/automation/meeting-tasks/:id" element={<MeetingTaskDetailPage />} />
                         <Route path="/customer/issued-invoices" element={<IssuedInvoicesPage />} />
-                        <Route path="/customer/bank-statements-overview" element={<BankStatementsOverviewPage />} />
-                        <Route path="/customer/smartsupp" element={<SmartsuppChatsPage />} />
+                        <Route path="/customer/bank-statements-overview" element={guard("/customer/bank-statements-overview", <BankStatementsOverviewPage />)} />
+                        <Route path="/customer/smartsupp" element={guard("/customer/smartsupp", <SmartsuppChatsPage />)} />
                         <Route path="/customer/expedition-settings" element={<ExpeditionSettingsPage />} />
                         <Route path="/customer/cooling" element={<Navigate to="/customer/expedition-settings?tab=cooling" replace />} />
                         <Route path="/orgchart" element={<OrgChartPage />} />
-                        <Route path="/stock-up-operations" element={<StockOperationsPage />} />
+                        <Route path="/stock-up-operations" element={guard("/stock-up-operations", <StockOperationsPage />)} />
                         <Route path="/recurring-jobs" element={<RecurringJobsPage />} />
-                        <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
+                        <Route path="/knowledge-base" element={guard("/knowledge-base", <KnowledgeBasePage />)} />
                         <Route path="/knowledge-base/feedback" element={<KnowledgeBaseFeedbackPage />} />
                         <Route path="/marketing/feedback" element={<MarketingFeedbackPage />} />
-                        <Route path="/articles" element={<ArticlesPage />} />
-                        <Route path="/automation/data-quality" element={<DataQualityPage />} />
-                        <Route path="/admin/feature-flags" element={<FeatureFlagsAdminPage />} />
+                        <Route path="/articles" element={guard("/articles", <ArticlesPage />)} />
+                        <Route path="/automation/data-quality" element={guard("/automation/data-quality", <DataQualityPage />)} />
+                        <Route path="/admin/feature-flags" element={guard("/admin/feature-flags", <FeatureFlagsAdminPage />)} />
                       </Route>
                     </Routes>
+                    </AppInsightsProvider>
                     </FeatureFlagProvider>
                   </AuthGuard>
                 </Router>

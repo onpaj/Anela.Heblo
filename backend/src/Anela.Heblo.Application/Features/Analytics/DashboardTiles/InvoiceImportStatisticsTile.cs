@@ -1,9 +1,9 @@
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
-using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Application.Features.Analytics.DashboardTiles;
 
+[TileId("invoiceimportstatistics")]
 public class InvoiceImportStatisticsTile : ITile
 {
     private readonly IAnalyticsRepository _analyticsRepository;
@@ -15,7 +15,6 @@ public class InvoiceImportStatisticsTile : ITile
     public TileCategory Category => TileCategory.Finance;
     public bool DefaultEnabled => true;
     public bool AutoShow => true;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public InvoiceImportStatisticsTile(

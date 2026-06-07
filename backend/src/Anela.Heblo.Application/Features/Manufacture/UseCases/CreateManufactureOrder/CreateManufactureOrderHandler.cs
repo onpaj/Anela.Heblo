@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -11,20 +12,20 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
 {
     private readonly IManufactureOrderRepository _repository;
     private readonly IProductNameFormatter _productNameFormatter;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
     private readonly ICurrentUserService _currentUserService;
     private readonly TimeProvider _timeProvider;
 
     public CreateManufactureOrderHandler(
         IManufactureOrderRepository repository,
         IProductNameFormatter productNameFormatter,
-        ICatalogRepository catalogRepository,
+        IManufactureCatalogSource catalogSource,
         ICurrentUserService currentUserService,
         TimeProvider timeProvider)
     {
         _repository = repository;
         _productNameFormatter = productNameFormatter;
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
         _currentUserService = currentUserService;
         _timeProvider = timeProvider;
     }
@@ -52,7 +53,7 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             StateChangedByUser = currentUser.Name
         };
 
-        var semiproduct = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+        var semiproduct = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
         if (semiproduct == null)
         {
             return new CreateManufactureOrderResponse(ErrorCodes.ProductNotFound);

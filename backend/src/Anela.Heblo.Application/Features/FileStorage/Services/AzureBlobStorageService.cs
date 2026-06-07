@@ -196,6 +196,45 @@ public sealed class AzureBlobStorageService : IBlobStorageService
         }
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> ListVirtualDirectoriesAsync(
+        string containerName,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+            var prefixes = new List<string>();
+
+            // Use named arguments: the positional order is (BlobTraits, BlobStates, string delimiter, string prefix, CancellationToken),
+            // so a naive caller writing (null, "/") positionally would pass null as delimiter and "/" as prefix — the opposite of intent.
+            // Named arguments make the intent unambiguous.
+            // No GetOrCreateContainerAsync — matches ListBlobsAsync behaviour.
+            await foreach (var item in containerClient.GetBlobsByHierarchyAsync(
+                prefix: null,
+                delimiter: "/",
+                cancellationToken: cancellationToken))
+            {
+                if (item.IsPrefix)
+                {
+                    var name = item.Prefix;
+                    if (name.EndsWith('/'))
+                    {
+                        name = name[..^1];
+                    }
+                    prefixes.Add(name);
+                }
+            }
+
+            return prefixes.AsReadOnly();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing virtual directories in container {ContainerName}", containerName);
+            throw;
+        }
+    }
+
     /// <summary>
     /// Wraps a blob streaming download to ensure the underlying Azure SDK response is disposed
     /// together with the content stream, preventing connection leaks.

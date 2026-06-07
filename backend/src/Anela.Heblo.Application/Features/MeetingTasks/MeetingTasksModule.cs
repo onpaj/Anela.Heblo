@@ -1,4 +1,7 @@
 using Anela.Heblo.Application.Features.MeetingTasks.Services;
+using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Features.MeetingTasks;
+using Anela.Heblo.Persistence.MeetingTasks;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,7 +21,7 @@ public static class MeetingTasksModule
             .ValidateOnStart();
 
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
-        var bypassJwt = configuration.GetValue<bool>("BypassJwtValidation", false);
+        var bypassJwt = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, false);
 
         if (!useMockAuth && !bypassJwt)
         {
@@ -44,8 +47,10 @@ public static class MeetingTasksModule
         services.AddSingleton<IMeetingUserDirectory, MeetingUserDirectory>();
         services.AddScoped<IMeetingAccessGuard, MeetingAccessGuard>();
 
+        // Repository (implementation lives in the Persistence layer)
+        services.AddScoped<IMeetingTranscriptRepository, MeetingTranscriptRepository>();
+
         // PlaudPollingJob is auto-discovered via IRecurringJob assembly scan in AddRecurringJobs().
-        // IMeetingTranscriptRepository is registered in PersistenceModule (subtask 1).
         // MediatR handlers are auto-registered by the MediatR assembly scan in ApplicationModule.
         return services;
     }

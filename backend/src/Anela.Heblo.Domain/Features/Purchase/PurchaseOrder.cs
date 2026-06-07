@@ -177,7 +177,9 @@ public class PurchaseOrder : IEntity<int>
         return (from, to) switch
         {
             (PurchaseOrderStatus.Draft, PurchaseOrderStatus.InTransit) => true,
+            (PurchaseOrderStatus.InTransit, PurchaseOrderStatus.Received) => true,
             (PurchaseOrderStatus.InTransit, PurchaseOrderStatus.Completed) => true,
+            (PurchaseOrderStatus.Received, PurchaseOrderStatus.Completed) => true,
             _ => false
         };
     }

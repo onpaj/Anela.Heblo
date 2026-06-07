@@ -2,23 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import type { GetGroupMembersResponse } from '../generated/api-client';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
-export const useResponsiblePersonsQuery = () => {
+export const useResponsiblePersonsQuery = (groupId: string) => {
   return useQuery({
-    queryKey: [...QUERY_KEYS.userManagement, 'responsible-persons'],
+    queryKey: [...QUERY_KEYS.userManagement, 'group-members', groupId],
+    enabled: Boolean(groupId),
     queryFn: async (): Promise<GetGroupMembersResponse> => {
-      const apiClient = await getAuthenticatedApiClient();
-      const relativeUrl = '/api/ManufactureOrder/responsible-persons';
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return response.json();
+      const apiClient = getAuthenticatedApiClient();
+      return apiClient.userManagement_GetGroupMembers(groupId);
     },
     staleTime: 15 * 60 * 1000, // 15 minutes cache
     retry: 2,

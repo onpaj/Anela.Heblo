@@ -7,6 +7,7 @@ using Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
@@ -14,7 +15,11 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficulty
 using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight;
 using Anela.Heblo.Application.Features.Catalog.UseCases.SubmitStockTaking;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
+using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder;
 using Anela.Heblo.Application.Features.Catalog.Validators;
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
+using Anela.Heblo.Application.Features.Logistics.Contracts;
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.CostProviders;
@@ -22,6 +27,7 @@ using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Persistence.Catalog.ManufactureDifficulty;
+using Anela.Heblo.Persistence.Catalog.Stock;
 using Anela.Heblo.Persistence.Repositories;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentValidation;
@@ -40,9 +46,23 @@ public static class CatalogModule
         // Register default implementations - tests can override these
         services.AddTransient<ICatalogRepository, CatalogRepository>();
         services.AddTransient<IManufactureDifficultyRepository, ManufactureDifficultyRepository>();
-
+        // Stock is a Catalog subdomain; its repository implementation lives in the Persistence layer
+        services.AddScoped<IStockUpOperationRepository, StockUpOperationRepository>();
         // Register adapter to expose catalog services to Purchase module
         services.AddScoped<IMaterialCatalogService, PurchaseMaterialCatalogAdapter>();
+        services.AddScoped<IPurchasePriceRecalculationService, CatalogPurchasePriceRecalculationAdapter>();
+        services.AddTransient<IAnalyticsProductSource, CatalogAnalyticsSourceAdapter>();
+        services.AddTransient<ILogisticsCatalogSource, LogisticsCatalogSourceAdapter>();
+        services.AddTransient<ILogisticsStockOperationService, LogisticsStockOperationAdapter>();
+        // Logistics owns the query contract; Catalog (this module) provides the adapter implementation.
+        services.AddTransient<ILogisticsStockOperationQueryService, LogisticsStockOperationQueryAdapter>();
+        // DataQuality owns the query contracts; Catalog (this module) provides the adapter implementations.
+        services.AddScoped<IStockOperationQuery, DataQualityStockOperationQueryAdapter>();
+        services.AddScoped<IStockTakingQuery, DataQualityStockTakingQueryAdapter>();
+
+        // Cross-module contract: Catalog implements Manufacture's IManufactureCatalogSource via adapter.
+        // DI registration is owned by the provider (Catalog), not the consumer (Manufacture).
+        services.AddScoped<IManufactureCatalogSource, CatalogManufactureCatalogSourceAdapter>();
 
         // Register cost repositories
         services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others
@@ -52,6 +72,11 @@ public static class CatalogModule
 
         // Register cache services (scoped - data persists in IMemoryCache singleton)
         services.AddMemoryCache(); // Required for IMemoryCache injection
+        // CatalogRepository decomposed collaborators
+        services.AddSingleton<CatalogCacheStore>();
+        services.AddSingleton<CatalogMergeService>();
+        services.AddTransient<CatalogDataRefreshService>();
+        services.AddHostedService<CatalogMergeCallbackWiring>();
         services.AddScoped<IMaterialCostCache, MaterialCostCache>();
         services.AddScoped<IFlatManufactureCostCache, FlatManufactureCostCache>();
         services.AddScoped<IDirectManufactureCostCache, DirectManufactureCostCache>();
@@ -61,6 +86,10 @@ public static class CatalogModule
         services.AddTransient<IMarginCalculationService, MarginCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
         services.AddSingleton<ICatalogMergeScheduler, CatalogMergeScheduler>();
+        services.AddSingleton<CatalogCacheStore>();
+        services.AddSingleton<CatalogMergeService>();
+        services.AddTransient<CatalogDataRefreshService>();
+        services.AddHostedService<CatalogMergeCallbackWiring>();
         services.AddTransient<SafeMarginCalculator>();
         services.AddTransient<IProductWeightRecalculationService, ProductWeightRecalculationService>();
         services.AddTransient<IStockUpProcessingService, StockUpProcessingService>();
@@ -92,6 +121,7 @@ public static class CatalogModule
         services.AddScoped<IValidator<GetManufactureDifficultySettingsRequest>, GetManufactureDifficultyHistoryRequestValidator>();
         services.AddScoped<IValidator<SubmitStockTakingRequest>, SubmitStockTakingRequestValidator>();
         services.AddScoped<IValidator<RecalculateProductWeightRequest>, RecalculateProductWeightRequestValidator>();
+        services.AddScoped<IValidator<UpdateProductCompositionOrderRequest>, UpdateProductCompositionOrderRequestValidator>();
 
         // Register MediatR validation behavior only for catalog requests
         services.AddScoped<IPipelineBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>, ValidationBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>>();
@@ -100,6 +130,7 @@ public static class CatalogModule
         services.AddScoped<IPipelineBehavior<GetManufactureDifficultySettingsRequest, GetManufactureDifficultySettingsResponse>, ValidationBehavior<GetManufactureDifficultySettingsRequest, GetManufactureDifficultySettingsResponse>>();
         services.AddScoped<IPipelineBehavior<SubmitStockTakingRequest, SubmitStockTakingResponse>, ValidationBehavior<SubmitStockTakingRequest, SubmitStockTakingResponse>>();
         services.AddScoped<IPipelineBehavior<RecalculateProductWeightRequest, RecalculateProductWeightResponse>, ValidationBehavior<RecalculateProductWeightRequest, RecalculateProductWeightResponse>>();
+        services.AddScoped<IPipelineBehavior<UpdateProductCompositionOrderRequest, UpdateProductCompositionOrderResponse>, ValidationBehavior<UpdateProductCompositionOrderRequest, UpdateProductCompositionOrderResponse>>();
 
         RegisterBackgroundRefreshTasks(services);
 

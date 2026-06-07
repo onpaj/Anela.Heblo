@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
-public class PlanQueriesStep : IArticlePipelineStep
+public class PlanQueriesStep
 {
     private const int MaxQueries = 8;
 

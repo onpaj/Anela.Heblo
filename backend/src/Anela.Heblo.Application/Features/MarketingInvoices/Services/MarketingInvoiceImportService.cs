@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.MarketingInvoices.Services;
 
-public class MarketingInvoiceImportService
+public class MarketingInvoiceImportService : IMarketingInvoiceImportService
 {
     private readonly IImportedMarketingTransactionRepository _repository;
     private readonly ILogger<MarketingInvoiceImportService> _logger;
@@ -36,6 +36,15 @@ public class MarketingInvoiceImportService
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(transaction.Currency))
+                {
+                    _logger.LogWarning(
+                        "Marketing transaction {TransactionId} for {Platform} has empty Currency — skipping",
+                        transaction.TransactionId, source.Platform);
+                    result.Failed++;
+                    continue;
+                }
+
                 if (stagedIds.Contains(transaction.TransactionId))
                 {
                     _logger.LogDebug(
@@ -60,9 +69,11 @@ public class MarketingInvoiceImportService
                     TransactionId = transaction.TransactionId,
                     Platform = source.Platform,
                     Amount = transaction.Amount,
+                    Currency = transaction.Currency,
                     TransactionDate = transaction.TransactionDate,
                     ImportedAt = DateTime.UtcNow,
-                    IsSynced = false,
+                    Description = transaction.Description,
+                    RawData = transaction.RawData,
                 };
 
                 await _repository.AddAsync(entity, ct);

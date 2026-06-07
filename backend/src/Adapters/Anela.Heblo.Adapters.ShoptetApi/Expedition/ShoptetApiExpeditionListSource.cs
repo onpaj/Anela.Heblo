@@ -5,9 +5,10 @@ using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
-using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.Logistics.Picking;
 using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Xcc;
+using Microsoft.Extensions.Logging;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Anela.Heblo.Adapters.Shoptet.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Anela.Heblo.Tests")]
@@ -23,7 +24,11 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     private readonly ICatalogRepository _catalog;
     private readonly ICarrierCoolingRepository _carrierCooling;
     private readonly IGiftSettingRepository _giftSettings;
+    private readonly ILogger<ShoptetApiExpeditionListSource> _logger;
     private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
+
+    private const string CoolingMarkerValue = "CHLAZENE";
+    private const int CoolingAdditionalFieldIndex = 6;
 
     public ShoptetApiExpeditionListSource(
         IEshopOrderClient client,
@@ -31,6 +36,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling,
         IGiftSettingRepository giftSettings,
+        ILogger<ShoptetApiExpeditionListSource> logger,
         Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
     {
         _client = (ShoptetOrderClient)client;
@@ -38,6 +44,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         _catalog = catalog;
         _carrierCooling = carrierCooling;
         _giftSettings = giftSettings;
+        _logger = logger;
         _generateDocument = generateDocument ?? ExpeditionProtocolDocument.Generate;
     }
 
@@ -81,6 +88,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         var coolingMatrix = allSettings.ToDictionary(
             s => (s.Carrier, s.DeliveryHandling),
             s => s.Cooling);
+        var coolingTextMatrix = allSettings.ToDictionary(
+            s => (s.Carrier, s.DeliveryHandling),
+            s => s.CoolingText);
 
         // Load gift setting once for the entire run
         var giftSetting = await _giftSettings.GetAsync(cancellationToken);
@@ -101,6 +111,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                 var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
                 var expeditionOrder = MapToExpeditionOrder(detail);
                 expeditionOrder.CarrierCooling = ResolveCarrierCooling(shippingGuid, coolingMatrix);
+                expeditionOrder.CoolingText = ResolveCarrierCoolingText(shippingGuid, coolingTextMatrix);
                 expeditionOrder.GiftBadgeText = ResolveGiftBadge(totalWithVat, currencyCode, giftSetting);
                 allExpeditionOrders.Add(expeditionOrder);
                 processedCodes.Add(code);
@@ -155,6 +166,30 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                 var filePath = Path.Combine(Path.GetTempPath(), fileName);
                 await File.WriteAllBytesAsync(filePath, pdfBytes, cancellationToken);
                 exportedFiles.Add(filePath);
+
+                foreach (var order in batch)
+                {
+                    if (!order.IsCooled)
+                        continue;
+
+                    try
+                    {
+                        await _client.SetAdditionalFieldAsync(
+                            order.Code,
+                            CoolingAdditionalFieldIndex,
+                            CoolingMarkerValue,
+                            cancellationToken);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _logger.LogWarning(
+                            ex,
+                            "Failed to set Shoptet additionalField[{Index}]={Value} for order {OrderCode}; PDF print continues.",
+                            CoolingAdditionalFieldIndex,
+                            CoolingMarkerValue,
+                            order.Code);
+                    }
+                }
 
                 if (onBatchFilesReady != null)
                     await onBatchFilesReady(new List<string> { filePath });
@@ -276,6 +311,22 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         return matrix.TryGetValue((method.Carrier, handling.Value), out var cooling)
             ? cooling
             : Cooling.None;
+    }
+
+    internal static string? ResolveCarrierCoolingText(
+        string shippingGuid,
+        IReadOnlyDictionary<(Carriers, DeliveryHandling), string?> matrix)
+    {
+        if (!ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method))
+            return null;
+
+        var handling = ShippingMethodRegistry.ResolveDeliveryHandling(method);
+        if (!handling.HasValue)
+            return null;
+
+        return matrix.TryGetValue((method.Carrier, handling.Value), out var text)
+            ? text
+            : null;
     }
 
     internal static string? ResolveGiftBadge(

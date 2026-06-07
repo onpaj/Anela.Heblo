@@ -113,7 +113,7 @@ public class RecurringJobsControllerTriggerTests
     }
 
     [Fact]
-    public async Task TriggerJob_WhenTriggerFails_ShouldReturnBadRequest()
+    public async Task TriggerJob_WhenUpdateFailedErrorReturned_ShouldReturn500()
     {
         // Arrange
         var jobName = "test-job";
@@ -129,10 +129,67 @@ public class RecurringJobsControllerTriggerTests
         var result = await _controller.TriggerJob(jobName);
 
         // Assert
-        var notFoundResult = result.Result.Should().BeOfType<NotFoundObjectResult>().Subject;
-        var returnedResponse = notFoundResult.Value.Should().BeAssignableTo<TriggerRecurringJobResponse>().Subject;
+        var objectResult = result.Result.Should().BeAssignableTo<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+        var returnedResponse = objectResult.Value.Should().BeAssignableTo<TriggerRecurringJobResponse>().Subject;
         returnedResponse.Success.Should().BeFalse();
         returnedResponse.ErrorCode.Should().Be(ErrorCodes.RecurringJobUpdateFailed);
+
+        _mediatorMock.Verify(x => x.Send(
+            It.Is<TriggerRecurringJobRequest>(r => r.JobName == jobName),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TriggerJob_WhenJobIsDisabled_ShouldReturn409Conflict()
+    {
+        // Arrange
+        var jobName = "disabled-job";
+        var errorResponse = new TriggerRecurringJobResponse(ErrorCodes.RecurringJobDisabled);
+
+        _mediatorMock
+            .Setup(x => x.Send(
+                It.Is<TriggerRecurringJobRequest>(r => r.JobName == jobName),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(errorResponse);
+
+        // Act
+        var result = await _controller.TriggerJob(jobName);
+
+        // Assert
+        var objectResult = result.Result.Should().BeAssignableTo<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(StatusCodes.Status409Conflict);
+        var returnedResponse = objectResult.Value.Should().BeAssignableTo<TriggerRecurringJobResponse>().Subject;
+        returnedResponse.Success.Should().BeFalse();
+        returnedResponse.ErrorCode.Should().Be(ErrorCodes.RecurringJobDisabled);
+
+        _mediatorMock.Verify(x => x.Send(
+            It.Is<TriggerRecurringJobRequest>(r => r.JobName == jobName),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TriggerJob_WhenEnqueueFails_ShouldReturn500InternalServerError()
+    {
+        // Arrange
+        var jobName = "test-job";
+        var errorResponse = new TriggerRecurringJobResponse(ErrorCodes.RecurringJobEnqueueFailed);
+
+        _mediatorMock
+            .Setup(x => x.Send(
+                It.Is<TriggerRecurringJobRequest>(r => r.JobName == jobName),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(errorResponse);
+
+        // Act
+        var result = await _controller.TriggerJob(jobName);
+
+        // Assert
+        var objectResult = result.Result.Should().BeAssignableTo<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+        var returnedResponse = objectResult.Value.Should().BeAssignableTo<TriggerRecurringJobResponse>().Subject;
+        returnedResponse.Success.Should().BeFalse();
+        returnedResponse.ErrorCode.Should().Be(ErrorCodes.RecurringJobEnqueueFailed);
 
         _mediatorMock.Verify(x => x.Send(
             It.Is<TriggerRecurringJobRequest>(r => r.JobName == jobName),

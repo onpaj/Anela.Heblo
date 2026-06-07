@@ -1,3 +1,5 @@
+using Anela.Heblo.Application.Common.TimePeriods;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
 using Anela.Heblo.Application.Shared;
@@ -5,6 +7,7 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -12,19 +15,29 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 
 public class BatchPlanningServiceTests
 {
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<IBatchDistributionCalculator> _batchDistributionCalculatorMock;
     private readonly Mock<ILogger<BatchPlanningService>> _loggerMock;
+    private readonly IConsumptionRateCalculator _consumptionRateCalculator;
     private readonly BatchPlanningService _service;
+
+    private static readonly IReadOnlyList<DateRange> DefaultRanges =
+        new[] { new DateRange(DateTime.Now.AddDays(-30), DateTime.Now) };
 
     public BatchPlanningServiceTests()
     {
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _manufactureClientMock = new Mock<IManufactureClient>();
         _batchDistributionCalculatorMock = new Mock<IBatchDistributionCalculator>();
         _loggerMock = new Mock<ILogger<BatchPlanningService>>();
-        _service = new BatchPlanningService(_catalogRepositoryMock.Object, _manufactureClientMock.Object, _batchDistributionCalculatorMock.Object, _loggerMock.Object);
+        _consumptionRateCalculator = new ConsumptionRateCalculator(NullLogger<ConsumptionRateCalculator>.Instance);
+        _service = new BatchPlanningService(
+            _catalogRepositoryMock.Object,
+            _manufactureClientMock.Object,
+            _batchDistributionCalculatorMock.Object,
+            _consumptionRateCalculator,
+            _loggerMock.Object);
     }
 
     [Fact]
@@ -43,7 +56,7 @@ public class BatchPlanningServiceTests
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            _service.CalculateBatchPlan(request, CancellationToken.None));
+            _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None));
         Assert.Contains("not found", exception.Message);
     }
 
@@ -68,7 +81,7 @@ public class BatchPlanningServiceTests
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            _service.CalculateBatchPlan(request, CancellationToken.None));
+            _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None));
         Assert.Contains("No products found", exception.Message);
     }
 
@@ -92,7 +105,7 @@ public class BatchPlanningServiceTests
         SetupRepositoryMocks(semiproduct, templates, products);
 
         // Act
-        var result = await _service.CalculateBatchPlan(request, CancellationToken.None);
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
 
         // Assert
         Assert.True(result.Success);
@@ -127,7 +140,7 @@ public class BatchPlanningServiceTests
         SetupRepositoryMocks(semiproduct, templates, products);
 
         // Act
-        var result = await _service.CalculateBatchPlan(request, CancellationToken.None);
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
 
         // Assert
         Assert.True(result.Success);
@@ -156,7 +169,7 @@ public class BatchPlanningServiceTests
         SetupRepositoryMocks(semiproduct, templates, products);
 
         // Act
-        var result = await _service.CalculateBatchPlan(request, CancellationToken.None);
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
 
         // Assert
         Assert.True(result.Success);
@@ -186,7 +199,7 @@ public class BatchPlanningServiceTests
         SetupRepositoryMocks(semiproduct, templates, products);
 
         // Act
-        var result = await _service.CalculateBatchPlan(request, CancellationToken.None);
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
 
         // Assert
         Assert.True(result.Success);
@@ -223,7 +236,7 @@ public class BatchPlanningServiceTests
         SetupRepositoryMocks(semiproduct, templates, products);
 
         // Act
-        var result = await _service.CalculateBatchPlan(request, CancellationToken.None);
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
 
         // Assert
         Assert.False(result.Success); // Should indicate error
@@ -282,7 +295,7 @@ public class BatchPlanningServiceTests
         SetupRepositoryMocks(semiproduct, templates, products);
 
         // Act
-        var result = await _service.CalculateBatchPlan(request, CancellationToken.None);
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
 
         // Assert
         Assert.True(result.Success); // Should succeed
@@ -324,7 +337,7 @@ public class BatchPlanningServiceTests
         SetupRepositoryMocks(semiproduct, templates, products);
 
         // Act
-        var result = await _service.CalculateBatchPlan(request, CancellationToken.None);
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
 
         // Assert
         Assert.True(result.Success);
@@ -333,6 +346,89 @@ public class BatchPlanningServiceTests
         Assert.Equal(200, result.DirectSemiproductAmount);
         // Total volume used by variants must not exceed the reduced available volume
         Assert.True(result.TotalVolumeUsed <= 1300);
+    }
+
+    [Fact]
+    public async Task CalculateBatchPlan_MultipleRanges_UsesSumOfSalesAcrossAllRanges()
+    {
+        // Arrange: simulate Q9M-style two ranges. Product sells 2 units/day in range A (30 days)
+        // and 1 unit/day in range B (30 days). Combined daily rate must equal
+        // (2*30 + 1*30) / (30 + 30) = 1.5 units/day — confirming sales sum across both ranges
+        // rather than only the primary range (which would give 2.0 or 1.0).
+        var rangeAFrom = DateTime.Now.AddDays(-365);
+        var rangeATo = rangeAFrom.AddDays(30);
+        var rangeBFrom = DateTime.Now.AddDays(-30);
+        var rangeBTo = DateTime.Now;
+        var ranges = new[]
+        {
+            new DateRange(rangeAFrom, rangeATo),
+            new DateRange(rangeBFrom, rangeBTo)
+        };
+
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.TargetDaysCoverage,
+            TargetDaysCoverage = 30
+        };
+
+        var semiproduct = CreateSemiproduct("SEMI001", 1000);
+        var templates = CreateManufactureTemplates();
+        var prod1 = new CatalogAggregate
+        {
+            ProductCode = "PROD001",
+            ProductName = "Product 1",
+            Stock = new StockData { Erp = 50 },
+            NetWeight = 10.0,
+            MinimalManufactureQuantity = 10,
+            SalesHistory = CreateSalesAcrossRanges(rangeAFrom, 30, 2.0, rangeBFrom, 30, 1.0)
+        };
+        var prod2 = new CatalogAggregate
+        {
+            ProductCode = "PROD002",
+            ProductName = "Product 2",
+            Stock = new StockData { Erp = 25 },
+            NetWeight = 5.0,
+            MinimalManufactureQuantity = 20,
+            SalesHistory = CreateSalesHistory(1)
+        };
+
+        SetupRepositoryMocks(semiproduct, templates, new List<CatalogAggregate> { prod1, prod2 });
+
+        // Act
+        var result = await _service.CalculateBatchPlan(request, ranges, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+        var item = result.ProductSizes.First(p => p.ProductCode == "PROD001");
+        // Expected daily rate: (2*30 + 1*30) / (30 + 30) = 1.5 (Math.Round to 2 decimals)
+        Assert.Equal(1.5, item.DailySalesRate, 2);
+    }
+
+    private static List<Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord> CreateSalesAcrossRanges(
+        DateTime range1From, int range1Days, double range1Daily,
+        DateTime range2From, int range2Days, double range2Daily)
+    {
+        var sales = new List<Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord>();
+        for (int i = 0; i < range1Days; i++)
+        {
+            sales.Add(new Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord
+            {
+                Date = range1From.AddDays(i),
+                AmountB2B = range1Daily / 2,
+                AmountB2C = range1Daily / 2
+            });
+        }
+        for (int i = 0; i < range2Days; i++)
+        {
+            sales.Add(new Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord
+            {
+                Date = range2From.AddDays(i),
+                AmountB2B = range2Daily / 2,
+                AmountB2C = range2Daily / 2
+            });
+        }
+        return sales;
     }
 
     [Fact]
@@ -356,7 +452,7 @@ public class BatchPlanningServiceTests
         SetupRepositoryMocks(semiproduct, templates, products);
 
         // Act
-        var result = await _service.CalculateBatchPlan(request, CancellationToken.None);
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
 
         // Assert
         Assert.True(result.Success);

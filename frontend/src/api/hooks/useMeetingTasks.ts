@@ -124,15 +124,28 @@ async function fetchJson<T>(path: string, init: RequestInit): Promise<T> {
 
 export function useMeetingTasksList(
   statusFilter?: string,
+  searchText?: string,
+  searchInTranscript: boolean = false,
   page: number = 1,
   pageSize: number = 20,
 ) {
   return useQuery<TranscriptListResponse>({
-    queryKey: [...QUERY_KEYS.meetingTasks, statusFilter ?? "", page, pageSize],
+    queryKey: [
+      ...QUERY_KEYS.meetingTasks,
+      statusFilter ?? "",
+      searchText ?? "",
+      searchInTranscript,
+      page,
+      pageSize,
+    ],
     refetchOnMount: "always",
     queryFn: () => {
       const params = new URLSearchParams();
       if (statusFilter) params.append("statusFilter", statusFilter);
+      if (searchText) {
+        params.append("searchText", searchText);
+        if (searchInTranscript) params.append("searchInTranscript", "true");
+      }
       params.append("pageNumber", String(page));
       params.append("pageSize", String(pageSize));
       return fetchJson<TranscriptListResponse>(

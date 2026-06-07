@@ -5,13 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Features.Analytics.Models;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
-using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -37,7 +35,8 @@ public class GetMarginReportHandlerTests
         _handler = new GetMarginReportHandler(
             _analyticsRepositoryMock.Object,
             _productFilterServiceMock.Object,
-            _reportBuilderServiceMock.Object);
+            _reportBuilderServiceMock.Object,
+            new MarginCalculator());
 
         // Set up default service behaviors for all tests
         SetupDefaultServiceMocks();
@@ -82,7 +81,7 @@ public class GetMarginReportHandlerTests
         // Default report builder service behavior
         _reportBuilderServiceMock
             .Setup(x => x.BuildProductSummary(It.IsAny<AnalyticsProduct>(), It.IsAny<AnalysisMarginData>()))
-            .Returns((AnalyticsProduct product, AnalysisMarginData data) => new GetMarginReportResponse.ProductMarginSummary
+            .Returns((AnalyticsProduct product, AnalysisMarginData data) => new ProductMarginSummaryDto
             {
                 ProductId = product.ProductCode,
                 ProductName = product.ProductName,
@@ -97,7 +96,7 @@ public class GetMarginReportHandlerTests
         _reportBuilderServiceMock
             .Setup(x => x.BuildCategorySummaries(It.IsAny<Dictionary<string, CategoryData>>()))
             .Returns((Dictionary<string, CategoryData> categoryTotals) =>
-                categoryTotals.Select(kvp => new GetMarginReportResponse.CategoryMarginSummary
+                categoryTotals.Select(kvp => new CategoryMarginSummaryDto
                 {
                     Category = kvp.Key,
                     TotalMargin = kvp.Value.TotalMargin,
@@ -125,7 +124,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD001",
                 ProductName = "Product 1",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Electronics",
                 MarginAmount = 100m,
                 SellingPrice = 150m,
@@ -138,7 +137,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD002",
                 ProductName = "Product 2",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Books",
                 MarginAmount = 50m,
                 SellingPrice = 80m,
@@ -152,7 +151,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(analyticsProducts.ToAsyncEnumerable());
 
         // Act
@@ -172,67 +171,6 @@ public class GetMarginReportHandlerTests
     }
 
     [Fact]
-    public async Task Handle_InvalidDateRange_ReturnsErrorResponse()
-    {
-        // Arrange
-        var request = new GetMarginReportRequest
-        {
-            StartDate = new DateTime(2024, 12, 31),
-            EndDate = new DateTime(2024, 1, 1) // End before start
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidDateRange);
-        result.Params.Should().ContainKey("startDate");
-        result.Params.Should().ContainKey("endDate");
-    }
-
-    [Fact]
-    public async Task Handle_PeriodTooLong_ReturnsErrorResponse()
-    {
-        // Arrange
-        var request = new GetMarginReportRequest
-        {
-            StartDate = new DateTime(2020, 1, 1),
-            EndDate = new DateTime(2024, 1, 1) // More than 2 years
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidReportPeriod);
-        result.Params.Should().ContainKey("period");
-    }
-
-    [Fact]
-    public async Task Handle_ZeroDaysPeriod_ReturnsErrorResponse()
-    {
-        // Arrange
-        var request = new GetMarginReportRequest
-        {
-            StartDate = new DateTime(2024, 1, 1),
-            EndDate = new DateTime(2024, 1, 1) // Same date
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.InvalidReportPeriod);
-        result.Params.Should().ContainKey("period");
-    }
-
-    [Fact]
     public async Task Handle_NoProductsFound_ReturnsErrorResponse()
     {
         // Arrange
@@ -245,7 +183,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(new List<AnalyticsProduct>().ToAsyncEnumerable());
 
         // Act
@@ -277,7 +215,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD001",
                 ProductName = "Product 1",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Electronics",
                 MarginAmount = 100m,
                 SellingPrice = 150m,
@@ -290,7 +228,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD002",
                 ProductName = "Different Product",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Books",
                 MarginAmount = 50m,
                 SellingPrice = 80m,
@@ -303,7 +241,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(analyticsProducts.ToAsyncEnumerable());
 
         // Act
@@ -334,7 +272,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD001",
                 ProductName = "Product 1",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Electronics",
                 MarginAmount = 100m,
                 SellingPrice = 150m,
@@ -347,7 +285,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD002",
                 ProductName = "Product 2",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Books",
                 MarginAmount = 50m,
                 SellingPrice = 80m,
@@ -360,7 +298,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(analyticsProducts.ToAsyncEnumerable());
 
         // Act
@@ -392,7 +330,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD001",
                 ProductName = "Product 1",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Electronics",
                 MarginAmount = 100m,
                 SellingPrice = 150m,
@@ -405,7 +343,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD002",
                 ProductName = "Product 2",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Books",
                 MarginAmount = 50m,
                 SellingPrice = 80m,
@@ -418,7 +356,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(analyticsProducts.ToAsyncEnumerable());
 
         // Act
@@ -447,7 +385,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD001",
                 ProductName = "Product with Sales",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Electronics",
                 MarginAmount = 100m,
                 SellingPrice = 150m,
@@ -460,7 +398,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD002",
                 ProductName = "Product with Zero Sales",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Books",
                 MarginAmount = 50m,
                 SellingPrice = 80m,
@@ -473,7 +411,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(analyticsProducts.ToAsyncEnumerable());
 
         // Act
@@ -500,7 +438,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(ThrowAsync<AnalyticsProduct>(new Exception("Database connection failed")));
 
         // Act

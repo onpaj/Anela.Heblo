@@ -8,7 +8,7 @@ public class ItemDescriptionClassificationRule : IClassificationRule
     public string DisplayName => "Popis položky";
     public string Description => "Regex nebo text v popisu některé položky faktury";
 
-    public bool Evaluate(ReceivedInvoiceDto invoice, string pattern)
+    public bool Evaluate(ReceivedInvoice invoice, string pattern)
     {
         if (string.IsNullOrWhiteSpace(pattern))
             return false;
