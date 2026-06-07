@@ -1,0 +1,5 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+[scripts]
+run = "./scripts/conductor-run.sh"
+setup = "dotnet restore && npm --prefix frontend install --legacy-peer-deps"
