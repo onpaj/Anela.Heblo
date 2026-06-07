@@ -67,6 +67,8 @@ jest.mock("../../api/hooks/useAccessManagement", () => ({
   useUpdateGroup: () => ({ mutateAsync: mockUpdateGroup, isPending: false }),
   useAssignUserGroups: () => ({ mutateAsync: mockAssignUserGroups, isPending: false }),
   useCreateGroup: () => ({ mutateAsync: mockCreateGroup, isPending: false }),
+  useEntraAccessUsers: () => ({ data: { users: [] }, isLoading: false }),
+  useAddGroupMember: () => ({ mutateAsync: jest.fn().mockResolvedValue({}), isPending: false }),
 }));
 
 jest.mock("react-router-dom", () => ({
