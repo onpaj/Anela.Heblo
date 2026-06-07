@@ -9,25 +9,6 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Manufacture;
 
-/// <summary>
-/// Fixed TimeProvider for testing purposes.
-/// </summary>
-internal class FixedTimeProvider : TimeProvider
-{
-    private readonly DateTime _fixedDateTime;
-
-    public FixedTimeProvider(DateTimeOffset fixedTime)
-    {
-        _fixedDateTime = fixedTime.DateTime;
-    }
-
-    public override DateTimeOffset GetUtcNow() =>
-        new DateTimeOffset(_fixedDateTime, TimeSpan.Zero);
-
-    public override TimeZoneInfo LocalTimeZone =>
-        TimeZoneInfo.Utc;
-}
-
 public class CalculateBatchPlanHandlerTests
 {
     private static readonly DateTimeOffset FixedClock =
@@ -37,6 +18,7 @@ public class CalculateBatchPlanHandlerTests
     private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<ITimePeriodResolver> _timePeriodResolverMock;
+    private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly CalculateBatchPlanHandler _handler;
 
     public CalculateBatchPlanHandlerTests()
@@ -45,6 +27,8 @@ public class CalculateBatchPlanHandlerTests
         _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _manufactureClientMock = new Mock<IManufactureClient>();
         _timePeriodResolverMock = new Mock<ITimePeriodResolver>();
+        _timeProviderMock = new Mock<TimeProvider>();
+        _timeProviderMock.Setup(tp => tp.GetUtcNow()).Returns(FixedClock);
 
         // Set up default behavior for catalog repository to avoid null reference exceptions
         _catalogRepositoryMock
@@ -56,7 +40,7 @@ public class CalculateBatchPlanHandlerTests
             _catalogRepositoryMock.Object,
             _manufactureClientMock.Object,
             _timePeriodResolverMock.Object,
-            new FixedTimeProvider(FixedClock));
+            _timeProviderMock.Object);
     }
 
     [Fact]
@@ -196,6 +180,39 @@ public class CalculateBatchPlanHandlerTests
         Assert.Single(capturedRanges!);
         Assert.Equal(from, capturedRanges![0].From);
         Assert.Equal(to, capturedRanges[0].To);
+        _timePeriodResolverMock.Verify(
+            x => x.Resolve(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_TimePeriodNullAndToDateNull_UsesInjectedClockAsEndDate()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0,
+            FromDate = null,
+            ToDate = null,
+            TimePeriod = null
+        };
+
+        IReadOnlyList<DateRange>? capturedRanges = null;
+        _batchPlanningServiceMock
+            .Setup(x => x.CalculateBatchPlan(request, It.IsAny<IReadOnlyList<DateRange>>(), It.IsAny<CancellationToken>()))
+            .Callback<CalculateBatchPlanRequest, IReadOnlyList<DateRange>, CancellationToken>((_, ranges, _) => capturedRanges = ranges)
+            .ReturnsAsync(new CalculateBatchPlanResponse { Success = true });
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(capturedRanges);
+        Assert.Single(capturedRanges!);
+        Assert.Equal(FixedClock.DateTime, capturedRanges![0].To);
+        Assert.Equal(FixedClock.DateTime.AddDays(-30), capturedRanges[0].From);
         _timePeriodResolverMock.Verify(
             x => x.Resolve(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()),
             Times.Never);
