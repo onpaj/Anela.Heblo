@@ -9,6 +9,7 @@ import {
   useTileData,
   useSaveDashboardSettings
 } from "../../api/hooks/useDashboard";
+import { useAuth } from "../../auth/useAuth";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import DashboardGrid from "../dashboard/DashboardGrid";
 import DashboardSettings from "../dashboard/DashboardSettings";
@@ -24,25 +25,30 @@ const Dashboard: React.FC = () => {
 
   useScreenView('Dashboard', 'Dashboard');
 
+  const { getUserInfo } = useAuth();
+
   const { data: userSettings, isLoading: settingsLoading } = useUserDashboardSettings();
   const { data: allTileData = [], isLoading: dataLoading } = useTileData();
   const saveDashboardSettings = useSaveDashboardSettings();
 
-  // Filter visible tiles based on user settings and handle AutoShow tiles
+  // Filter visible tiles based on user settings, role access, and AutoShow
   const visibleTileData = React.useMemo(() => {
     if (!userSettings || !allTileData.length) return [];
 
-    // Get user's visible tile settings
+    const userRoles = getUserInfo()?.roles ?? [];
+
     const userTileSettings = userSettings.tiles.reduce((acc, tile) => {
       acc[tile.tileId] = tile;
       return acc;
     }, {} as Record<string, any>);
 
-    // Filter and sort tiles
     return allTileData
       .filter(tile => {
+        const hasAccess = tile.requiredPermissions.length === 0 ||
+          tile.requiredPermissions.every(role => userRoles.includes(role));
+        if (!hasAccess) return false;
+
         const userSetting = userTileSettings[tile.tileId];
-        // Show tile if user has it enabled, or if it's AutoShow and not explicitly disabled
         return userSetting?.isVisible || (tile.autoShow && userSetting?.isVisible !== false);
       })
       .sort((a, b) => {
@@ -50,7 +56,7 @@ const Dashboard: React.FC = () => {
         const bOrder = userTileSettings[b.tileId]?.displayOrder ?? 999;
         return aOrder - bOrder;
       });
-  }, [userSettings, allTileData]);
+  }, [userSettings, allTileData, getUserInfo]);
 
   const handleReorder = async (tileIds: string[]) => {
     if (!userSettings) return;

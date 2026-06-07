@@ -7,19 +7,8 @@ export const useResponsiblePersonsQuery = (groupId: string) => {
     queryKey: [...QUERY_KEYS.userManagement, 'group-members', groupId],
     enabled: Boolean(groupId),
     queryFn: async (): Promise<GetGroupMembersResponse> => {
-      const apiClient = await getAuthenticatedApiClient();
-      const relativeUrl = `/api/UserManagement/group-members?groupId=${encodeURIComponent(groupId)}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return response.json();
+      const apiClient = getAuthenticatedApiClient();
+      return apiClient.userManagement_GetGroupMembers(groupId);
     },
     staleTime: 15 * 60 * 1000, // 15 minutes cache
     retry: 2,

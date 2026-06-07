@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Smartsupp.UseCases.SendMessage;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetVisitorInfo;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -14,7 +15,7 @@ namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/smartsupp")]
-[Authorize]
+[Authorize(Roles = AccessRoles.SmartsuppRead)]
 public class SmartsuppController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -54,6 +55,7 @@ public class SmartsuppController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    // Intentional: smartsupp feature has only read level; read-role holders can also interact with chats.
     public async Task<ActionResult<GenerateDraftReplyResponse>> GenerateDraftReply(
         string id,
         [FromBody] GenerateDraftReplyBody? body,
@@ -99,6 +101,7 @@ public class SmartsuppController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    // Intentional: smartsupp feature has only read level; read-role holders can also interact with chats.
     public async Task<ActionResult<SendMessageResponse>> SendMessage(
         string conversationId,
         [FromBody] SendMessageBody body,
@@ -113,6 +116,7 @@ public class SmartsuppController : BaseApiController
     [ProducesResponseType(typeof(CloseConversationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    // Intentional: smartsupp feature has only read level; read-role holders can also interact with chats.
     public async Task<ActionResult<CloseConversationResponse>> CloseConversation(
         string id,
         CancellationToken cancellationToken = default)

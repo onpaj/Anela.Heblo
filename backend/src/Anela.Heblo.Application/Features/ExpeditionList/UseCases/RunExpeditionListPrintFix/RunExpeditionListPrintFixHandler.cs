@@ -37,7 +37,6 @@ public class RunExpeditionListPrintFixHandler : IRequestHandler<RunExpeditionLis
 
         return new RunExpeditionListPrintFixResponse
         {
-            Success = true,
             TotalCount = result.TotalCount,
         };
     }

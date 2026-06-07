@@ -20,19 +20,22 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
     private readonly ICarrierCoolingRepository _carrierCooling;
     private readonly ILogger<ShoptetApiPackingOrderClient> _logger;
     private readonly int _defaultItemWeightGrams;
+    private readonly ShoptetOrdersSettings _orderSettings;
 
     public ShoptetApiPackingOrderClient(
         ShoptetOrderClient orderClient,
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling,
         ILogger<ShoptetApiPackingOrderClient> logger,
-        IOptions<ShoptetApiSettings> settings)
+        IOptions<ShoptetApiSettings> settings,
+        IOptions<ShoptetOrdersSettings> orderSettings)
     {
         _orderClient = orderClient;
         _catalog = catalog;
         _carrierCooling = carrierCooling;
         _logger = logger;
         _defaultItemWeightGrams = settings.Value.DefaultItemWeightGrams;
+        _orderSettings = orderSettings.Value;
     }
 
     public async Task<PackingOrder?> GetPackingOrderAsync(string code, CancellationToken ct = default)
@@ -109,6 +112,7 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             Cooling = order.CarrierCooling,
             IsCooled = order.IsCooled,
             StatusId = statusId,
+            IsEligibleForPacking = statusId == _orderSettings.PackingStateId,
             CustomerNote = string.IsNullOrWhiteSpace(order.CustomerRemark) ? null : order.CustomerRemark,
             EshopNote = string.IsNullOrWhiteSpace(order.EshopRemark) ? null : order.EshopRemark,
             ShippingStreet = shippingStreet,

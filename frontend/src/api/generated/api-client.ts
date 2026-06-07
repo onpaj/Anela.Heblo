@@ -8400,6 +8400,71 @@ export class ApiClient {
         return Promise.resolve<GetDailyConsumptionBreakdownResponse>(null as any);
     }
 
+    packingMaterials_GetConsumptionHistory(dateFrom: string | null | undefined, dateTo: string | null | undefined, packingMaterialId: number | null | undefined, consumptionType: ConsumptionType | null | undefined, productCode: string | null | undefined, invoiceId: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortDescending: boolean | undefined): Promise<GetConsumptionHistoryResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/consumption-history?";
+        if (dateFrom !== undefined && dateFrom !== null)
+            url_ += "DateFrom=" + encodeURIComponent("" + dateFrom) + "&";
+        if (dateTo !== undefined && dateTo !== null)
+            url_ += "DateTo=" + encodeURIComponent("" + dateTo) + "&";
+        if (packingMaterialId !== undefined && packingMaterialId !== null)
+            url_ += "PackingMaterialId=" + encodeURIComponent("" + packingMaterialId) + "&";
+        if (consumptionType !== undefined && consumptionType !== null)
+            url_ += "ConsumptionType=" + encodeURIComponent("" + consumptionType) + "&";
+        if (productCode !== undefined && productCode !== null)
+            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+        if (invoiceId !== undefined && invoiceId !== null)
+            url_ += "InvoiceId=" + encodeURIComponent("" + invoiceId) + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_GetConsumptionHistory(_response);
+        });
+    }
+
+    protected processPackingMaterials_GetConsumptionHistory(response: Response): Promise<GetConsumptionHistoryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetConsumptionHistoryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetConsumptionHistoryResponse>(null as any);
+    }
+
     packingMaterials_GetPackingMaterialLogs(id: number, days: number | undefined): Promise<GetPackingMaterialLogsResponse> {
         let url_ = this.baseUrl + "/api/packing-materials/{id}/logs?";
         if (id === undefined || id === null)
@@ -17643,7 +17708,6 @@ export interface IReprintExpeditionListRequest {
 
 export class RunExpeditionListPrintFixResponse extends BaseResponse implements IRunExpeditionListPrintFixResponse {
     totalCount?: number;
-    errorMessage?: string | undefined;
 
     constructor(data?: IRunExpeditionListPrintFixResponse) {
         super(data);
@@ -17653,7 +17717,6 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
         super.init(_data);
         if (_data) {
             this.totalCount = _data["totalCount"];
-            this.errorMessage = _data["errorMessage"];
         }
     }
 
@@ -17667,7 +17730,6 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["totalCount"] = this.totalCount;
-        data["errorMessage"] = this.errorMessage;
         super.toJSON(data);
         return data;
     }
@@ -17675,7 +17737,6 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
 
 export interface IRunExpeditionListPrintFixResponse extends IBaseResponse {
     totalCount?: number;
-    errorMessage?: string | undefined;
 }
 
 export class EvaluateFlagsForClientResponse extends BaseResponse implements IEvaluateFlagsForClientResponse {
@@ -29956,7 +30017,7 @@ export class ScanOrderData implements IScanOrderData {
     eshopNote?: string | undefined;
     shippingAddress?: ShippingAddress | undefined;
     eligibility?: ScanOrderEligibility;
-    items?: PackingOrderItem[];
+    items?: ScanPackingOrderItemDto[];
 
     constructor(data?: IScanOrderData) {
         if (data) {
@@ -29981,7 +30042,7 @@ export class ScanOrderData implements IScanOrderData {
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
                 for (let item of _data["items"])
-                    this.items!.push(PackingOrderItem.fromJS(item));
+                    this.items!.push(ScanPackingOrderItemDto.fromJS(item));
             }
         }
     }
@@ -30023,7 +30084,7 @@ export interface IScanOrderData {
     eshopNote?: string | undefined;
     shippingAddress?: ShippingAddress | undefined;
     eligibility?: ScanOrderEligibility;
-    items?: PackingOrderItem[];
+    items?: ScanPackingOrderItemDto[];
 }
 
 export class ShippingAddress implements IShippingAddress {
@@ -30114,14 +30175,13 @@ export interface IScanOrderEligibility {
     warningBody?: string | undefined;
 }
 
-export class PackingOrderItem implements IPackingOrderItem {
+export class ScanPackingOrderItemDto implements IScanPackingOrderItemDto {
     name?: string;
     quantity?: number;
     imageUrl?: string | undefined;
     setName?: string | undefined;
-    weightGrams?: number;
 
-    constructor(data?: IPackingOrderItem) {
+    constructor(data?: IScanPackingOrderItemDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -30136,13 +30196,12 @@ export class PackingOrderItem implements IPackingOrderItem {
             this.quantity = _data["quantity"];
             this.imageUrl = _data["imageUrl"];
             this.setName = _data["setName"];
-            this.weightGrams = _data["weightGrams"];
         }
     }
 
-    static fromJS(data: any): PackingOrderItem {
+    static fromJS(data: any): ScanPackingOrderItemDto {
         data = typeof data === 'object' ? data : {};
-        let result = new PackingOrderItem();
+        let result = new ScanPackingOrderItemDto();
         result.init(data);
         return result;
     }
@@ -30153,17 +30212,15 @@ export class PackingOrderItem implements IPackingOrderItem {
         data["quantity"] = this.quantity;
         data["imageUrl"] = this.imageUrl;
         data["setName"] = this.setName;
-        data["weightGrams"] = this.weightGrams;
         return data;
     }
 }
 
-export interface IPackingOrderItem {
+export interface IScanPackingOrderItemDto {
     name?: string;
     quantity?: number;
     imageUrl?: string | undefined;
     setName?: string | undefined;
-    weightGrams?: number;
 }
 
 export class ScanShipmentData implements IScanShipmentData {
@@ -31141,6 +31198,177 @@ export interface IConsumptionDetailDto {
     amount?: number;
 }
 
+export class GetConsumptionHistoryResponse extends BaseResponse implements IGetConsumptionHistoryResponse {
+    items?: MaterialConsumptionHistoryItemDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+
+    constructor(data?: IGetConsumptionHistoryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(MaterialConsumptionHistoryItemDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+        }
+    }
+
+    static override fromJS(data: any): GetConsumptionHistoryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetConsumptionHistoryResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetConsumptionHistoryResponse extends IBaseResponse {
+    items?: MaterialConsumptionHistoryItemDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+}
+
+export class MaterialConsumptionHistoryItemDto implements IMaterialConsumptionHistoryItemDto {
+    recordType?: HistoryRecordType;
+    recordTypeText?: string;
+    packingMaterialId?: number;
+    materialName?: string;
+    date?: Date;
+    createdAt?: Date;
+    consumptionType?: ConsumptionType | undefined;
+    consumptionTypeText?: string | undefined;
+    invoiceId?: string | undefined;
+    productCode?: string | undefined;
+    productQuantity?: number | undefined;
+    amount?: number | undefined;
+    oldQuantity?: number | undefined;
+    newQuantity?: number | undefined;
+    changeAmount?: number | undefined;
+    logType?: LogEntryType | undefined;
+    logTypeText?: string | undefined;
+    userId?: string | undefined;
+
+    constructor(data?: IMaterialConsumptionHistoryItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.recordType = _data["recordType"];
+            this.recordTypeText = _data["recordTypeText"];
+            this.packingMaterialId = _data["packingMaterialId"];
+            this.materialName = _data["materialName"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.consumptionType = _data["consumptionType"];
+            this.consumptionTypeText = _data["consumptionTypeText"];
+            this.invoiceId = _data["invoiceId"];
+            this.productCode = _data["productCode"];
+            this.productQuantity = _data["productQuantity"];
+            this.amount = _data["amount"];
+            this.oldQuantity = _data["oldQuantity"];
+            this.newQuantity = _data["newQuantity"];
+            this.changeAmount = _data["changeAmount"];
+            this.logType = _data["logType"];
+            this.logTypeText = _data["logTypeText"];
+            this.userId = _data["userId"];
+        }
+    }
+
+    static fromJS(data: any): MaterialConsumptionHistoryItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MaterialConsumptionHistoryItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["recordType"] = this.recordType;
+        data["recordTypeText"] = this.recordTypeText;
+        data["packingMaterialId"] = this.packingMaterialId;
+        data["materialName"] = this.materialName;
+        data["date"] = this.date ? formatDate(this.date) : <any>undefined;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["consumptionType"] = this.consumptionType;
+        data["consumptionTypeText"] = this.consumptionTypeText;
+        data["invoiceId"] = this.invoiceId;
+        data["productCode"] = this.productCode;
+        data["productQuantity"] = this.productQuantity;
+        data["amount"] = this.amount;
+        data["oldQuantity"] = this.oldQuantity;
+        data["newQuantity"] = this.newQuantity;
+        data["changeAmount"] = this.changeAmount;
+        data["logType"] = this.logType;
+        data["logTypeText"] = this.logTypeText;
+        data["userId"] = this.userId;
+        return data;
+    }
+}
+
+export interface IMaterialConsumptionHistoryItemDto {
+    recordType?: HistoryRecordType;
+    recordTypeText?: string;
+    packingMaterialId?: number;
+    materialName?: string;
+    date?: Date;
+    createdAt?: Date;
+    consumptionType?: ConsumptionType | undefined;
+    consumptionTypeText?: string | undefined;
+    invoiceId?: string | undefined;
+    productCode?: string | undefined;
+    productQuantity?: number | undefined;
+    amount?: number | undefined;
+    oldQuantity?: number | undefined;
+    newQuantity?: number | undefined;
+    changeAmount?: number | undefined;
+    logType?: LogEntryType | undefined;
+    logTypeText?: string | undefined;
+    userId?: string | undefined;
+}
+
+export enum HistoryRecordType {
+    Consumption = "Consumption",
+    QuantityChange = "QuantityChange",
+}
+
+export enum LogEntryType {
+    Manual = "Manual",
+    AutomaticConsumption = "AutomaticConsumption",
+}
+
 export class GetPackingMaterialLogsResponse extends BaseResponse implements IGetPackingMaterialLogsResponse {
     material?: PackingMaterialDto;
     logs?: PackingMaterialLogDto[];
@@ -31260,11 +31488,6 @@ export interface IPackingMaterialLogDto {
     logTypeText?: string;
     userId?: string | undefined;
     createdAt?: Date;
-}
-
-export enum LogEntryType {
-    Manual = "Manual",
-    AutomaticConsumption = "AutomaticConsumption",
 }
 
 export class GetAllocationsResponse extends BaseResponse implements IGetAllocationsResponse {
@@ -35074,7 +35297,7 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
     shippingStreet?: string | undefined;
     shippingCity?: string | undefined;
     shippingZip?: string | undefined;
-    items?: PackingOrderItem[];
+    items?: PackingOrderItemDto[];
 
     constructor(data?: IGetPackingOrderResponse) {
         super(data);
@@ -35097,7 +35320,7 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
                 for (let item of _data["items"])
-                    this.items!.push(PackingOrderItem.fromJS(item));
+                    this.items!.push(PackingOrderItemDto.fromJS(item));
             }
         }
     }
@@ -35144,7 +35367,7 @@ export interface IGetPackingOrderResponse extends IBaseResponse {
     shippingStreet?: string | undefined;
     shippingCity?: string | undefined;
     shippingZip?: string | undefined;
-    items?: PackingOrderItem[];
+    items?: PackingOrderItemDto[];
 }
 
 export class PackingEligibility implements IPackingEligibility {
@@ -35189,6 +35412,54 @@ export interface IPackingEligibility {
     isEligible?: boolean;
     warningTitle?: string | undefined;
     warningBody?: string | undefined;
+}
+
+export class PackingOrderItemDto implements IPackingOrderItemDto {
+    name?: string;
+    quantity?: number;
+    imageUrl?: string | undefined;
+    setName?: string | undefined;
+
+    constructor(data?: IPackingOrderItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.quantity = _data["quantity"];
+            this.imageUrl = _data["imageUrl"];
+            this.setName = _data["setName"];
+        }
+    }
+
+    static fromJS(data: any): PackingOrderItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackingOrderItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["quantity"] = this.quantity;
+        data["imageUrl"] = this.imageUrl;
+        data["setName"] = this.setName;
+        return data;
+    }
+}
+
+export interface IPackingOrderItemDto {
+    name?: string;
+    quantity?: number;
+    imageUrl?: string | undefined;
+    setName?: string | undefined;
 }
 
 export class ListConversationsResponse extends BaseResponse implements IListConversationsResponse {

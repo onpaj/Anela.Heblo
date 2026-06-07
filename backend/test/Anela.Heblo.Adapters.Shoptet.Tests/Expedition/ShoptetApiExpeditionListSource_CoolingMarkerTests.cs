@@ -6,9 +6,11 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using Anela.Heblo.Application.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
 using Xunit;
@@ -173,7 +175,7 @@ public class ShoptetApiExpeditionListSource_CoolingMarkerTests
         Action<ExpeditionProtocolData>? captureData = null)
     {
         var http = new HttpClient(handler.Object) { BaseAddress = new Uri("https://test.myshoptet.com") };
-        var client = new ShoptetOrderClient(http);
+        var client = new ShoptetOrderClient(http, Options.Create(new ShoptetOrdersSettings()));
 
         var catalog = new Mock<ICatalogRepository>();
         catalog.Setup(x => x.GetByIdAsync(CooledProductCode, It.IsAny<CancellationToken>()))

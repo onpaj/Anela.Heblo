@@ -265,6 +265,32 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.ExpeditionList.Contracts.ExpeditionPickingRequest -> Anela.Heblo.Domain.Features.Logistics.Carriers",
     };
 
+    // Allowlist for Packaging -> ShoptetOrders. The Packaging module legitimately consumes
+    // the IPackingOrderClient / IEshopOrderClient contracts (and their DTOs) defined in
+    // Anela.Heblo.Application.Features.ShoptetOrders. Everything else — particularly
+    // ShoptetOrdersSettings, PackingStateId, and PackedStateId — must not be referenced
+    // from Packaging. This rule pins the 2026-06-05 decoupling in place.
+    private static readonly HashSet<string> PackagingShoptetOrdersAllowlist = new(StringComparer.Ordinal)
+    {
+        // Constructor injections in ScanPackingOrderHandler.
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder.ScanPackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder.ScanPackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IEshopOrderClient",
+
+        // PackingOrder is consumed in Handle and in the private BuildShippingAddress helper;
+        // PackingOrderItem flows through ScanOrderData.Items.
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder.ScanPackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrder",
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder.ScanPackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
+
+        // ScanOrderData.Items is List<PackingOrderItem> — the DTO uses the contract item type directly.
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder.ScanOrderData -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
+
+        // ResetOrderShipmentHandler also uses IPackingOrderClient, PackingOrder, and PackingOrderItem
+        // (compiler-generated async state machine and closure types are covered by the declaring-type check).
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrder",
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
+    };
+
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
         new ModuleBoundaryRule(
@@ -368,6 +394,52 @@ public class ModuleBoundariesTests
             InspectedAssembly: "Anela.Heblo.Domain"),
 
         new ModuleBoundaryRule(
+            Name: "Analytics (Application) -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Domain) -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Domain.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal),
+            InspectedAssembly: "Anela.Heblo.Domain"),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Application) -> Bank",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Bank",
+                "Anela.Heblo.Application.Features.Bank",
+                "Anela.Heblo.Persistence.Bank",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Domain) -> Bank",
+            InspectedNamespacePrefix: "Anela.Heblo.Domain.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Bank",
+                "Anela.Heblo.Application.Features.Bank",
+                "Anela.Heblo.Persistence.Bank",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal),
+            InspectedAssembly: "Anela.Heblo.Domain"),
+
+        new ModuleBoundaryRule(
             Name: "Catalog -> Logistics",
             InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Catalog",
             ForbiddenNamespacePrefixes: new[]
@@ -443,6 +515,15 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Logistics",
             },
             Allowlist: ExpeditionListLogisticsAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Packaging -> ShoptetOrders",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Packaging",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Application.Features.ShoptetOrders",
+            },
+            Allowlist: PackagingShoptetOrdersAllowlist),
     };
 
     [Theory]

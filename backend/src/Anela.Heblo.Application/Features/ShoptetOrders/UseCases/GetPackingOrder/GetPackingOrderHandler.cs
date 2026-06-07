@@ -1,23 +1,19 @@
 using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.ShoptetOrders.UseCases.GetPackingOrder;
 
 public class GetPackingOrderHandler : IRequestHandler<GetPackingOrderRequest, GetPackingOrderResponse>
 {
     private readonly IPackingOrderClient _client;
-    private readonly IOptions<ShoptetOrdersSettings> _settings;
     private readonly ILogger<GetPackingOrderHandler> _logger;
 
     public GetPackingOrderHandler(
         IPackingOrderClient client,
-        IOptions<ShoptetOrdersSettings> settings,
         ILogger<GetPackingOrderHandler> logger)
     {
         _client = client;
-        _settings = settings;
         _logger = logger;
     }
 
@@ -36,7 +32,7 @@ public class GetPackingOrderHandler : IRequestHandler<GetPackingOrderRequest, Ge
                     new Dictionary<string, string> { { "orderCode", request.Code } });
             }
 
-            var isEligible = order.StatusId == _settings.Value.PackingStateId;
+            var isEligible = order.IsEligibleForPacking;
 
             return new GetPackingOrderResponse
             {
@@ -48,7 +44,7 @@ public class GetPackingOrderHandler : IRequestHandler<GetPackingOrderRequest, Ge
                 Eligibility = new PackingEligibility
                 {
                     IsEligible = isEligible,
-                    WarningTitle = isEligible ? null : "Objednávka není ve stavu „Balí se“",
+                    WarningTitle = isEligible ? null : "Objednávka není ve stavu „Balí se”",
                     WarningBody = isEligible ? null : "Tuto objednávku nezpracovávejte, dokud nebude ve správném stavu.",
                 },
                 CustomerNote = order.CustomerNote,
@@ -56,7 +52,15 @@ public class GetPackingOrderHandler : IRequestHandler<GetPackingOrderRequest, Ge
                 ShippingStreet = order.ShippingStreet,
                 ShippingCity = order.ShippingCity,
                 ShippingZip = order.ShippingZip,
-                Items = order.Items,
+                Items = order.Items
+                    .Select(i => new PackingOrderItemDto
+                    {
+                        Name = i.Name,
+                        Quantity = i.Quantity,
+                        ImageUrl = i.ImageUrl,
+                        SetName = i.SetName,
+                    })
+                    .ToList(),
             };
         }
         catch (Exception ex)
