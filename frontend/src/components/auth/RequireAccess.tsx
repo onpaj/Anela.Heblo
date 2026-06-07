@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "../../auth/useAuth";
+import { usePermissionsContext } from "../../auth/PermissionsContext";
 
 interface RequireAccessProps {
   requiredRole?: string;
@@ -8,11 +8,13 @@ interface RequireAccessProps {
 }
 
 export function RequireAccess({ requiredRole, children }: RequireAccessProps) {
-  const { getUserInfo } = useAuth();
-  const userInfo = getUserInfo();
-  const roles = userInfo?.roles ?? [];
+  const { hasPermission, isLoading } = usePermissionsContext();
 
-  if (requiredRole && !roles.includes(requiredRole)) {
+  if (isLoading) {
+    return null; // wait for /api/auth/me before deciding
+  }
+
+  if (requiredRole && !hasPermission(requiredRole)) {
     return <Navigate to="/" replace />;
   }
 

@@ -294,6 +294,14 @@ const resources = {
         CatalogDocumentFileMissing: "Soubor dokumentu katalogu chybí.",
         CatalogDocumentGraphError: "Chyba přístupu k úložišti dokumentů katalogu.",
 
+        // Authorization module errors
+        AuthorizationGroupNotFound: "Skupina oprávnění nebyla nalezena.",
+        AuthorizationUserNotFound: "Uživatel nebyl nalezen.",
+        AuthorizationInvalidPermission: "Neplatné oprávnění.",
+        AuthorizationGroupCycleDetected: "Přiřazení skupiny by vytvořilo cyklus.",
+        AuthorizationSystemGroupImmutable: "Systémové skupiny nelze upravovat.",
+        AuthorizationDuplicateGroupName: "Skupina s tímto názvem již existuje.",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",

@@ -35,6 +35,9 @@ import MeetingTasksPage from "./components/pages/automation/MeetingTasksPage";
 import MeetingTaskDetailPage from "./components/pages/automation/MeetingTaskDetailPage";
 import OrgChartPage from "./pages/OrgChartPage";
 import FeatureFlagsAdminPage from "./pages/FeatureFlagsAdminPage";
+import AccessManagementPage from "./pages/AccessManagementPage";
+import GroupDetailPage from "./pages/GroupDetailPage";
+import UserDetailPage from "./pages/UserDetailPage";
 import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClassificationPage";
 import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import StockOperationsPage from "./pages/StockOperationsPage";
@@ -71,6 +74,7 @@ import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
 import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog";
 import { FeatureFlagProvider } from "./features/feature-flags/FeatureFlagProvider";
+import { PermissionsProvider } from "./auth/PermissionsContext";
 import { OpenFeatureProvider } from "@openfeature/react-sdk";
 import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
 import TerminalLayout from "./components/terminal/TerminalLayout";
@@ -400,6 +404,7 @@ function App() {
                   }}
                 >
                   <AuthGuard>
+                    <PermissionsProvider isAuthenticated={true}>
                     <FeatureFlagProvider>
                     <AppInsightsProvider>
                     <Routes>
@@ -483,10 +488,35 @@ function App() {
                         <Route path="/articles" element={guard("/articles", <ArticlesPage />)} />
                         <Route path="/automation/data-quality" element={guard("/automation/data-quality", <DataQualityPage />)} />
                         <Route path="/admin/feature-flags" element={guard("/admin/feature-flags", <FeatureFlagsAdminPage />)} />
+                        <Route
+                          path="/admin/access"
+                          element={
+                            <RequireAccess requiredRole="administration.read">
+                              <AccessManagementPage />
+                            </RequireAccess>
+                          }
+                        />
+                        <Route
+                          path="/admin/access/groups/:id"
+                          element={
+                            <RequireAccess requiredRole="administration.read">
+                              <GroupDetailPage />
+                            </RequireAccess>
+                          }
+                        />
+                        <Route
+                          path="/admin/access/users/:id"
+                          element={
+                            <RequireAccess requiredRole="administration.read">
+                              <UserDetailPage />
+                            </RequireAccess>
+                          }
+                        />
                       </Route>
                     </Routes>
                     </AppInsightsProvider>
                     </FeatureFlagProvider>
+                    </PermissionsProvider>
                   </AuthGuard>
                 </Router>
               </MsalProvider>

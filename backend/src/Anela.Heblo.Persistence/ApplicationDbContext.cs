@@ -156,6 +156,13 @@ public class ApplicationDbContext : DbContext
     // Feature Flags module
     public DbSet<FeatureFlagOverride> FeatureFlagOverrides { get; set; } = null!;
 
+    // Authorization (in-app permissions)
+    public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.AppUser> AppUsers { get; set; } = null!;
+    public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.PermissionGroup> PermissionGroups { get; set; } = null!;
+    public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.GroupPermission> GroupPermissions { get; set; } = null!;
+    public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.GroupParent> GroupParents { get; set; } = null!;
+    public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.UserGroup> UserGroups { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

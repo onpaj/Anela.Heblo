@@ -5,6 +5,10 @@ public static class AccessRoles
 {
     public const string Base = "heblo_user";
 
+    /// <summary>Entra app role granting ALL permissions (wildcard / break-glass). Honored
+    /// directly from the token by the claims transformation, independent of any DB state.</summary>
+    public const string SuperUser = "super_user";
+
     // Finance
     public const string FinancialOverviewRead = "financial_overview.read";
     public const string MarginAnalysisRead = "margin_analysis.read";
@@ -141,6 +145,6 @@ public static class AuthorizationConstants
         public const string MarketingWriter = AccessRoles.ArticleWrite; // Maps to article writing, represents general marketing write access
         public const string MarketingReader = AccessRoles.ArticleRead; // Maps to article reading, represents general marketing read access
         public const string HebloUser = AccessRoles.Base; // Base heblo_user role for all authenticated users
-        public const string SuperUser = AccessRoles.AdministrationWrite; // Super user has admin write access
+        public const string SuperUser = AccessRoles.SuperUser;
     }
 }

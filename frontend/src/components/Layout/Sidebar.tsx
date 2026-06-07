@@ -347,6 +347,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Feature Flags",
           href: "/admin/feature-flags",
         },
+        {
+          id: "access-management",
+          name: "Access management",
+          href: "/admin/access",
+        },
       ],
     },
   ];

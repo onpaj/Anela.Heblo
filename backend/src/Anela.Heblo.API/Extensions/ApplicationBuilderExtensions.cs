@@ -292,33 +292,37 @@ public static class ApplicationBuilderExtensions
             using var scope = app.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            if (!db.Database.IsRelational())
+            if (db.Database.IsRelational())
+            {
+                var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
+
+                if (pending.Count == 0)
+                {
+                    logger.LogInformation("Database schema is up to date; no pending migrations.");
+                }
+                else
+                {
+                    foreach (var migration in pending)
+                    {
+                        logger.LogInformation("Pending migration: {MigrationName}", migration);
+                    }
+
+                    var stopwatch = Stopwatch.StartNew();
+                    await db.Database.MigrateAsync();
+                    stopwatch.Stop();
+
+                    logger.LogInformation(
+                        "Applied {Count} migration(s) in {Elapsed} ms.",
+                        pending.Count,
+                        stopwatch.ElapsedMilliseconds);
+                }
+            }
+            else
             {
                 logger.LogInformation("Non-relational database provider — skipping migrations.");
-                return;
             }
 
-            var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
-
-            if (pending.Count == 0)
-            {
-                logger.LogInformation("Database schema is up to date; no pending migrations.");
-                return;
-            }
-
-            foreach (var migration in pending)
-            {
-                logger.LogInformation("Pending migration: {MigrationName}", migration);
-            }
-
-            var stopwatch = Stopwatch.StartNew();
-            await db.Database.MigrateAsync();
-            stopwatch.Stop();
-
-            logger.LogInformation(
-                "Applied {Count} migration(s) in {Elapsed} ms.",
-                pending.Count,
-                stopwatch.ElapsedMilliseconds);
+            await Anela.Heblo.Persistence.Features.Authorization.AuthorizationSeeder.SeedAsync(db, default);
         }
         catch (Exception ex)
         {

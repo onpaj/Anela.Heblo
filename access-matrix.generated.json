@@ -1,6 +1,16 @@
 {
   "appRoles": [
     {
+      "id": "8bc7eabb-a014-5aa0-8e16-d325a373011e",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Break-glass: grants all permissions regardless of DB group assignments",
+      "displayName": "super_user",
+      "isEnabled": true,
+      "value": "super_user"
+    },
+    {
       "id": "e73ac6f7-c80e-517b-a09f-54810c5b53e8",
       "allowedMemberTypes": [
         "User"
@@ -519,23 +529,12 @@
       "displayName": "feature_flags.write",
       "isEnabled": true,
       "value": "feature_flags.write"
-    },
-    {
-      "id": "31382767-9ea1-ae54-9a64-18cb12ebed9f",
-      "allowedMemberTypes": [
-        "User"
-      ],
-      "description": "Base Heblo user — required to log in",
-      "displayName": "heblo_user",
-      "isEnabled": true,
-      "value": "heblo_user"
     }
   ],
   "groups": [
     {
-      "name": "SG_Spravce",
+      "name": "Spravce",
       "roles": [
-        "heblo_user",
         "financial_overview.read",
         "margin_analysis.read",
         "product_margins.read",
@@ -591,9 +590,8 @@
       ]
     },
     {
-      "name": "SG_Vedeni",
+      "name": "Vedeni",
       "roles": [
-        "heblo_user",
         "financial_overview.read",
         "margin_analysis.read",
         "product_margins.read",
@@ -627,9 +625,8 @@
       ]
     },
     {
-      "name": "SG_Ucetni",
+      "name": "Ucetni",
       "roles": [
-        "heblo_user",
         "financial_overview.read",
         "margin_analysis.read",
         "product_margins.read",
@@ -640,9 +637,8 @@
       ]
     },
     {
-      "name": "SG_Marketer",
+      "name": "Marketer",
       "roles": [
-        "heblo_user",
         "marketing_calendar.read",
         "marketing_calendar.write",
         "photobank.read",
@@ -654,18 +650,16 @@
       ]
     },
     {
-      "name": "SG_Nakupci",
+      "name": "Nakupci",
       "roles": [
-        "heblo_user",
         "purchase_orders.read",
         "purchase_orders.write",
         "purchase_stock.read"
       ]
     },
     {
-      "name": "SG_Vedouci_vyroby",
+      "name": "Vedouci_vyroby",
       "roles": [
-        "heblo_user",
         "manufacture_orders.read",
         "manufacture_orders.write",
         "manufacture_output.read",
@@ -681,9 +675,8 @@
       ]
     },
     {
-      "name": "SG_Pracovnik_vyroby",
+      "name": "Pracovnik_vyroby",
       "roles": [
-        "heblo_user",
         "manufacture_orders.read",
         "material_inventory.read",
         "material_inventory.write",
@@ -692,9 +685,8 @@
       ]
     },
     {
-      "name": "SG_Vedouci_skladu",
+      "name": "Vedouci_skladu",
       "roles": [
-        "heblo_user",
         "logistics.read",
         "logistics.write",
         "expedition.read",
@@ -706,9 +698,8 @@
       ]
     },
     {
-      "name": "SG_Skladnik",
+      "name": "Skladnik",
       "roles": [
-        "heblo_user",
         "logistics.read",
         "expedition.read",
         "packaging.read",
@@ -716,9 +707,8 @@
       ]
     },
     {
-      "name": "SG_Poradenstvi",
+      "name": "Poradenstvi",
       "roles": [
-        "heblo_user",
         "knowledge_base.read",
         "knowledge_base.write"
       ]

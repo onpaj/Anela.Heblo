@@ -39,6 +39,7 @@ using Anela.Heblo.Application.Features.Smartsupp;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.Packaging;
+using Anela.Heblo.Application.Features.Authorization;
 using Anela.Heblo.Application.Features.UserManagement;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.Configuration;
@@ -109,6 +110,7 @@ public static class ApplicationModule
         services.AddInventoryModule();
         // services.AddOrdersModule();
 
+        services.AddAuthorizationModule();
         services.AddFeatureFlagsModule(configuration);
 
         return services;

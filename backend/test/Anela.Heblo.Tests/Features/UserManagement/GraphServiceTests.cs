@@ -53,8 +53,10 @@ public class GraphServiceTests
         var logger = Mock.Of<ILogger<GraphService>>();
         var httpClientFactory = Mock.Of<IHttpClientFactory>();
 
+        var configuration = Mock.Of<IConfiguration>();
+
         // Act
-        var service = new GraphService(tokenAcquisition, cache, logger, httpClientFactory);
+        var service = new GraphService(tokenAcquisition, cache, logger, httpClientFactory, configuration);
 
         // Assert
         service.Should().NotBeNull();
@@ -81,8 +83,9 @@ public class GraphServiceTests
 
         cache = new MemoryCache(new MemoryCacheOptions());
         var logger = Mock.Of<ILogger<GraphService>>();
+        var configuration = Mock.Of<IConfiguration>();
 
-        return new GraphService(tokenMock.Object, cache, logger, factoryMock.Object);
+        return new GraphService(tokenMock.Object, cache, logger, factoryMock.Object, configuration);
     }
 
     [Fact]
@@ -118,6 +121,7 @@ public class GraphServiceTests
         services.AddMemoryCache();
         services.AddSingleton(Mock.Of<ITokenAcquisition>());
         var configuration = new ConfigurationBuilder().Build(); // no mock-auth keys => production branch
+        services.AddSingleton<IConfiguration>(configuration);
 
         // Act
         services.AddUserManagement(configuration);
@@ -265,7 +269,8 @@ public class GraphServiceTests
 
         var cache = new MemoryCache(new MemoryCacheOptions());
         var logger = Mock.Of<ILogger<GraphService>>();
-        var service = new GraphService(tokenMock.Object, cache, logger, factoryMock.Object);
+        var configuration = Mock.Of<IConfiguration>();
+        var service = new GraphService(tokenMock.Object, cache, logger, factoryMock.Object, configuration);
 
         // Act
         await service.GetGroupMembersAsync("group-1");
