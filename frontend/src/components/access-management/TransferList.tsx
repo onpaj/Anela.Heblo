@@ -31,7 +31,20 @@ interface ItemRowProps {
   onMove: () => void;
 }
 
-const ItemRow: React.FC<ItemRowProps> = ({ item, direction, onMove }) => {
+function buildGroups(
+  items: TransferItem[],
+  groupByFn: (item: TransferItem) => string
+): Map<string, TransferItem[]> {
+  const map = new Map<string, TransferItem[]>();
+  for (const item of items) {
+    const key = groupByFn(item);
+    const bucket = map.get(key);
+    map.set(key, bucket ? [...bucket, item] : [item]);
+  }
+  return map;
+}
+
+function ItemRow({ item, direction, onMove }: ItemRowProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: item.id });
   const style = transform ? { transform: CSS.Transform.toString(transform) } : undefined;
@@ -77,14 +90,14 @@ interface DropZoneProps {
   variant: "left" | "right";
 }
 
-const DropZone: React.FC<DropZoneProps> = ({
+function DropZone({
   id,
   label,
   emptyMessage,
   children,
   isEmpty,
   variant,
-}) => {
+}: DropZoneProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
     <div
@@ -110,13 +123,13 @@ const DropZone: React.FC<DropZoneProps> = ({
   );
 };
 
-const TransferList: React.FC<TransferListProps> = ({
+function TransferList({
   available,
   assignedIds,
   onChange,
   groupBy,
   labels = {},
-}) => {
+}: TransferListProps) {
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
 
   const availableItems = available.filter((item) => !assignedIds.includes(item.id));
@@ -138,22 +151,7 @@ const TransferList: React.FC<TransferListProps> = ({
     }
   };
 
-  const buildGroups = (items: TransferItem[]): Map<string, TransferItem[]> | null => {
-    if (!groupBy) return null;
-    const map = new Map<string, TransferItem[]>();
-    for (const item of items) {
-      const key = groupBy(item);
-      const bucket = map.get(key);
-      if (bucket) {
-        bucket.push(item);
-      } else {
-        map.set(key, [item]);
-      }
-    }
-    return map;
-  };
-
-  const availableGroups = buildGroups(availableItems);
+  const availableGroups = groupBy ? buildGroups(availableItems, groupBy) : null;
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
