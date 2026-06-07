@@ -68,5 +68,12 @@ public class AuthorizationRepository : IAuthorizationRepository
         return (perms, parents);
     }
 
+    public async Task AddUserToGroupAsync(Guid userId, Guid groupId, CancellationToken ct = default)
+    {
+        var exists = await _db.UserGroups.AnyAsync(ug => ug.UserId == userId && ug.GroupId == groupId, ct);
+        if (!exists)
+            _db.UserGroups.Add(new UserGroup { UserId = userId, GroupId = groupId });
+    }
+
     public Task<int> SaveChangesAsync(CancellationToken ct = default) => _db.SaveChangesAsync(ct);
 }

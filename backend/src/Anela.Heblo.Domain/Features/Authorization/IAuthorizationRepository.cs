@@ -21,6 +21,8 @@ public interface IAuthorizationRepository
     // Edges
     Task<List<UserGroup>> GetUserGroupsAsync(Guid userId, CancellationToken ct = default);
     Task SetUserGroupsAsync(Guid userId, IEnumerable<Guid> groupIds, CancellationToken ct = default);
+    /// <summary>Inserts a UserGroup row for (userId, groupId) if one does not already exist (idempotent).</summary>
+    Task AddUserToGroupAsync(Guid userId, Guid groupId, CancellationToken ct = default);
 
     /// <summary>All group→permission and group→parent edges, for closure resolution.</summary>
     Task<(List<GroupPermission> Permissions, List<GroupParent> Parents)> GetGroupGraphAsync(CancellationToken ct = default);
