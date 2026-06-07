@@ -63,6 +63,26 @@ jest.mock("../../api/hooks/useAccessManagement", () => ({
       ],
     },
     isLoading: false,
+    refetch: jest.fn().mockResolvedValue({
+      data: {
+        users: [
+          {
+            id: "user-1",
+            displayName: "Alice",
+            email: "alice@test.com",
+            groupIds: ["group-1"],
+            isActive: true,
+          },
+          {
+            id: "user-2",
+            displayName: "Bob",
+            email: "bob@test.com",
+            groupIds: [],
+            isActive: true,
+          },
+        ],
+      },
+    }),
   }),
   useUpdateGroup: () => ({ mutateAsync: mockUpdateGroup, isPending: false }),
   useAssignUserGroups: () => ({ mutateAsync: mockAssignUserGroups, isPending: false }),
