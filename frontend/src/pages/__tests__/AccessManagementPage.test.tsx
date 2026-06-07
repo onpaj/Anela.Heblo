@@ -19,7 +19,20 @@ jest.mock("../../api/hooks/useAccessManagement", () => ({
     },
     isLoading: false,
   }),
-  useUsers: () => ({ data: { users: [] }, isLoading: false }),
+  useUsers: () => ({
+    data: {
+      users: [
+        {
+          id: "user-1",
+          displayName: "Alice",
+          email: "alice@test.com",
+          groupIds: [],
+          isActive: true,
+        },
+      ],
+    },
+    isLoading: false,
+  }),
   useCatalogue: () => ({ data: { permissions: ["catalog.read"] } }),
   useDeleteGroup: () => ({ mutate: jest.fn(), isPending: false }),
   useSetUserActive: () => ({ mutate: jest.fn(), isPending: false }),
@@ -62,5 +75,20 @@ describe("AccessManagementPage", () => {
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: /new group/i }));
     expect(mockNavigate).toHaveBeenCalledWith("/admin/access/groups/new");
+  });
+
+  it("clicking a user name in Users tab navigates to user detail page", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /users/i }));
+    const aliceButtons = screen.getAllByRole("button", { name: /alice/i });
+    fireEvent.click(aliceButtons[0]);
+    expect(mockNavigate).toHaveBeenCalledWith("/admin/access/users/user-1");
+  });
+
+  it("clicking Edit icon in Users tab navigates to user detail page", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /users/i }));
+    fireEvent.click(screen.getByRole("button", { name: /edit alice/i }));
+    expect(mockNavigate).toHaveBeenCalledWith("/admin/access/users/user-1");
   });
 });

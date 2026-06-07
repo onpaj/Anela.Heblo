@@ -99,26 +99,40 @@ export default function AccessManagementPage() {
               key={u.id}
               className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4"
             >
-              <div>
-                <div className="font-medium text-gray-900">{u.displayName}</div>
+              <div className="min-w-0 flex-1">
+                <button
+                  onClick={() => u.id && navigate(`/admin/access/users/${u.id}`)}
+                  className="font-medium text-gray-900 hover:text-indigo-600 text-left"
+                >
+                  {u.displayName}
+                </button>
                 <p className="text-sm text-gray-500">
                   {u.email} · {u.groupIds?.length ?? 0} groups
                 </p>
               </div>
-              <button
-                onClick={() =>
-                  u.id &&
-                  setActive.mutate({
-                    id: u.id,
-                    request: new SetUserActiveRequest({ userId: u.id, isActive: !u.isActive }),
-                  })
-                }
-                disabled={setActive.isPending}
-                className={`text-sm ${u.isActive ? "text-red-600" : "text-green-600"} hover:underline`}
-                aria-label={`Toggle active ${u.email}`}
-              >
-                {u.isActive ? "Disable" : "Enable"}
-              </button>
+              <div className="flex items-center gap-2 ml-4">
+                <button
+                  onClick={() => u.id && navigate(`/admin/access/users/${u.id}`)}
+                  className="p-2 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-gray-50"
+                  aria-label={`Edit ${u.displayName}`}
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() =>
+                    u.id &&
+                    setActive.mutate({
+                      id: u.id,
+                      request: new SetUserActiveRequest({ userId: u.id, isActive: !u.isActive }),
+                    })
+                  }
+                  disabled={setActive.isPending}
+                  className={`text-sm ${u.isActive ? "text-red-600" : "text-green-600"} hover:underline`}
+                  aria-label={`Toggle active ${u.email}`}
+                >
+                  {u.isActive ? "Disable" : "Enable"}
+                </button>
+              </div>
             </div>
           ))}
         </div>
