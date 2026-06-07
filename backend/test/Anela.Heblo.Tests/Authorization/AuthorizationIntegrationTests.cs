@@ -64,7 +64,6 @@ public class AuthorizationIntegrationTests : IClassFixture<HebloWebApplicationFa
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<GetEntraAccessUsersResponse>();
         body!.Success.Should().BeTrue();
-        body.Users.Should().NotBeNull();
         body.Users.Should().BeEmpty();
     }
 
@@ -86,15 +85,17 @@ public class AuthorizationIntegrationTests : IClassFixture<HebloWebApplicationFa
     {
         var client = _factory.CreateClient();
 
+        var groupName = $"EntraIntegrationTestGroup_{Guid.NewGuid():N}";
+
         // Create a group
         var createResp = await client.PostAsJsonAsync(
             "/api/admin/authorization/groups",
-            new { name = "EntraIntegrationTestGroup", permissions = new string[] { } });
+            new { name = groupName, permissions = new string[] { } });
         createResp.EnsureSuccessStatusCode();
 
         // Get the group id
         var groupsResp = await client.GetFromJsonAsync<GetGroupsResponse>("/api/admin/authorization/groups");
-        var group = groupsResp!.Groups.First(g => g.Name == "EntraIntegrationTestGroup");
+        var group = groupsResp!.Groups.First(g => g.Name == groupName);
 
         var response = await client.PostAsJsonAsync(
             $"/api/admin/authorization/groups/{group.Id}/members",

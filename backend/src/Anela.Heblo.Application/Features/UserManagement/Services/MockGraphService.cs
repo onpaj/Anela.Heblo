@@ -14,70 +14,19 @@ public class MockGraphService : IGraphService
 
     public Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Mock GraphService: Returning mock group members for group {GroupId}", groupId);
-
-        var mockMembers = new List<UserDto>
-        {
-            new UserDto
-            {
-                Id = "mock-user-1",
-                DisplayName = "Mock User 1",
-                Email = "mock.user1@anela-heblo.com"
-            },
-            new UserDto
-            {
-                Id = "mock-user-2",
-                DisplayName = "Mock User 2",
-                Email = "mock.user2@anela-heblo.com"
-            },
-            new UserDto
-            {
-                Id = "mock-user-3",
-                DisplayName = "Mock Administrator",
-                Email = "mock.admin@anela-heblo.com"
-            }
-        };
-
-        return Task.FromResult(mockMembers);
+        _logger.LogInformation("Mock GraphService: GetGroupMembersAsync called for group {GroupId}", groupId);
+        return Task.FromResult(new List<UserDto>());
     }
 
     public Task<List<UserDto>> SearchUsersAsync(string query, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Mock GraphService: Returning mock search results for query '{Query}'", query);
-
-        var results = new List<UserDto>
-        {
-            new UserDto
-            {
-                Id = "mock-search-user-1",
-                DisplayName = "Mock Search Result",
-                Email = "mock.search@anela-heblo.com"
-            }
-        };
-
-        return Task.FromResult(results);
+        _logger.LogInformation("Mock GraphService: SearchUsersAsync called for query '{Query}'", query);
+        return Task.FromResult(new List<UserDto>());
     }
 
     public Task<List<UserDto>> GetAppRoleMembersAsync(string appRoleValue, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Mock GraphService: Returning mock app role members for role '{AppRoleValue}'", appRoleValue);
-
-        var results = new List<UserDto>
-        {
-            new UserDto
-            {
-                Id = "mock-role-user-1",
-                DisplayName = "Mock Role User 1",
-                Email = "mock.roleuser1@anela-heblo.com"
-            },
-            new UserDto
-            {
-                Id = "mock-role-user-2",
-                DisplayName = "Mock Role User 2",
-                Email = "mock.roleuser2@anela-heblo.com"
-            }
-        };
-
-        return Task.FromResult(results);
+        _logger.LogInformation("Mock GraphService: GetAppRoleMembersAsync called for role '{AppRoleValue}'", appRoleValue);
+        return Task.FromResult(new List<UserDto>());
     }
 }
