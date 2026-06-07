@@ -35,6 +35,43 @@ const EMPTY_DRAFT: GroupDraft = {
   memberUserIds: [],
 };
 
+function buildMemberMutationArgs(
+  draft: { memberUserIds: string[] },
+  original: { memberUserIds: string[] } | null,
+  groupId: string,
+  allUsers: Array<{ id?: string | null; groupIds?: string[] | null }>
+): Array<{ id: string; request: { userId: string; groupIds: string[] } }> {
+  const originalIds = new Set(original?.memberUserIds ?? []);
+  const newIds = new Set(draft.memberUserIds);
+  const result: Array<{ id: string; request: { userId: string; groupIds: string[] } }> = [];
+
+  for (const userId of draft.memberUserIds) {
+    if (!originalIds.has(userId)) {
+      const user = allUsers.find((u) => u.id === userId);
+      if (user?.id) {
+        result.push({
+          id: userId,
+          request: { userId, groupIds: [...(user.groupIds ?? []), groupId] },
+        });
+      }
+    }
+  }
+
+  for (const userId of original?.memberUserIds ?? []) {
+    if (!newIds.has(userId)) {
+      const user = allUsers.find((u) => u.id === userId);
+      if (user?.id) {
+        result.push({
+          id: userId,
+          request: { userId, groupIds: (user.groupIds ?? []).filter((g) => g !== groupId) },
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
 export default function GroupDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -98,8 +135,6 @@ export default function GroupDetailPage() {
 
     try {
       if (isCreateMode) {
-        // eslint-disable-next-line no-console
-        console.log("mutateAsync type:", typeof createGroup.mutateAsync, "fn?:", createGroup.mutateAsync?.toString().slice(0, 50));
         const result = await createGroup.mutateAsync(
           new CreateGroupRequest({
             name: draft.name.trim(),
@@ -124,47 +159,15 @@ export default function GroupDetailPage() {
         }),
       });
 
-      const originalIds = new Set(original?.memberUserIds ?? []);
-      const newIds = new Set(draft.memberUserIds);
-      const allUsers = usersQuery.data?.users ?? [];
-
-      const memberMutations: Promise<unknown>[] = [];
-
-      for (const userId of draft.memberUserIds) {
-        if (!originalIds.has(userId)) {
-          const user = allUsers.find((u) => u.id === userId);
-          if (user) {
-            memberMutations.push(
-              assignUserGroups.mutateAsync({
-                id: userId,
-                request: new AssignUserGroupsRequest({
-                  userId,
-                  groupIds: [...(user.groupIds ?? []), id],
-                }),
-              })
-            );
-          }
-        }
-      }
-
-      for (const userId of original?.memberUserIds ?? []) {
-        if (!newIds.has(userId)) {
-          const user = allUsers.find((u) => u.id === userId);
-          if (user) {
-            memberMutations.push(
-              assignUserGroups.mutateAsync({
-                id: userId,
-                request: new AssignUserGroupsRequest({
-                  userId,
-                  groupIds: (user.groupIds ?? []).filter((g) => g !== id),
-                }),
-              })
-            );
-          }
-        }
-      }
-
-      await Promise.all(memberMutations);
+      const memberArgs = buildMemberMutationArgs(draft, original, id, usersQuery.data?.users ?? []);
+      await Promise.all(
+        memberArgs.map(({ id: userId, request }) =>
+          assignUserGroups.mutateAsync({
+            id: userId,
+            request: new AssignUserGroupsRequest(request),
+          })
+        )
+      );
 
       toast.showSuccess("Saved", "Group updated successfully");
       setOriginal(draft);
