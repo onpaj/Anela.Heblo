@@ -12,15 +12,18 @@ public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputR
     private readonly IManufactureHistoryClient _manufactureHistoryClient;
     private readonly IManufactureCatalogSource _catalogSource;
     private readonly ILogger<GetManufactureOutputHandler> _logger;
+    private readonly TimeProvider _timeProvider;
 
     public GetManufactureOutputHandler(
         IManufactureHistoryClient manufactureHistoryClient,
         IManufactureCatalogSource catalogSource,
-        ILogger<GetManufactureOutputHandler> logger)
+        ILogger<GetManufactureOutputHandler> logger,
+        TimeProvider timeProvider)
     {
         _manufactureHistoryClient = manufactureHistoryClient;
         _catalogSource = catalogSource;
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
     public async Task<GetManufactureOutputResponse> Handle(
@@ -28,7 +31,8 @@ public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputR
         CancellationToken cancellationToken)
     {
         // Calculate date range - last N months
-        var toDate = DateTime.Now;
+        var now = _timeProvider.GetUtcNow().DateTime;
+        var toDate = now;
         var fromDate = toDate.AddMonths(-request.MonthsBack);
 
         _logger.LogInformation($"Fetching manufacture output from {fromDate:yyyy-MM-dd} to {toDate:yyyy-MM-dd}");
@@ -126,7 +130,7 @@ public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputR
         // Fill in missing months with zero output
         var result = new List<ManufactureOutputMonth>();
         var currentDate = new DateTime(fromDate.Year, fromDate.Month, 1);
-        var endDate = new DateTime(toDate.Year, toDate.Month, 1);
+        var endDate = new DateTime(now.Year, now.Month, 1);
 
         while (currentDate <= endDate)
         {
