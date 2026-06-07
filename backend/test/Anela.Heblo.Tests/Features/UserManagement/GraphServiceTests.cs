@@ -121,6 +121,7 @@ public class GraphServiceTests
         services.AddMemoryCache();
         services.AddSingleton(Mock.Of<ITokenAcquisition>());
         var configuration = new ConfigurationBuilder().Build(); // no mock-auth keys => production branch
+        services.AddSingleton<IConfiguration>(configuration);
 
         // Act
         services.AddUserManagement(configuration);

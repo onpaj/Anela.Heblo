@@ -275,6 +275,12 @@ public class GraphService : IGraphService
 
     public async Task<List<UserDto>> GetAppRoleMembersAsync(string appRoleValue, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(appRoleValue))
+        {
+            _logger.LogWarning("appRoleValue is null or empty — skipping app role member lookup");
+            return new List<UserDto>();
+        }
+
         var cacheKey = $"app_role_members_{appRoleValue}";
         if (_cache.TryGetValue(cacheKey, out List<UserDto>? cached) && cached != null)
             return cached;
@@ -306,14 +312,12 @@ public class GraphService : IGraphService
             using var spRequest = new HttpRequestMessage(HttpMethod.Get, spUrl);
             spRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
             var spResponse = await httpClient.SendAsync(spRequest, cancellationToken);
+            var spJson = await spResponse.Content.ReadAsStringAsync(cancellationToken);
             if (!spResponse.IsSuccessStatusCode)
             {
-                var body = await spResponse.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogError("Failed to resolve service principal. Status: {Status}, Body: {Body}", spResponse.StatusCode, body);
+                _logger.LogError("Failed to resolve service principal. Status: {Status}, Body: {Body}", spResponse.StatusCode, spJson);
                 return new List<UserDto>();
             }
-
-            var spJson = await spResponse.Content.ReadAsStringAsync(cancellationToken);
             using var spDoc = System.Text.Json.JsonDocument.Parse(spJson);
             var spId = spDoc.RootElement.TryGetProperty("id", out var spIdProp) ? spIdProp.GetString() : null;
             if (string.IsNullOrEmpty(spId))
@@ -342,40 +346,43 @@ public class GraphService : IGraphService
                 return new List<UserDto>();
             }
 
-            // Step 3: get all principals assigned to this role
-            var assignUrl = $"https://graph.microsoft.com/v1.0/servicePrincipals/{spId}/appRoleAssignedTo?$top=999";
-            using var assignRequest = new HttpRequestMessage(HttpMethod.Get, assignUrl);
-            assignRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
-            var assignResponse = await httpClient.SendAsync(assignRequest, cancellationToken);
-            if (!assignResponse.IsSuccessStatusCode)
-            {
-                var body = await assignResponse.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogError("Failed to get app role assignments. Status: {Status}, Body: {Body}", assignResponse.StatusCode, body);
-                return new List<UserDto>();
-            }
-
-            var assignJson = await assignResponse.Content.ReadAsStringAsync(cancellationToken);
-            using var assignDoc = System.Text.Json.JsonDocument.Parse(assignJson);
-
+            // Step 3: get all principals assigned to this role (paginated)
             var directUserIds = new HashSet<string>();
             var groupIdsToExpand = new List<string>();
 
-            if (assignDoc.RootElement.TryGetProperty("value", out var assignments))
+            string? nextLink = $"https://graph.microsoft.com/v1.0/servicePrincipals/{spId}/appRoleAssignedTo?$top=100";
+            while (nextLink != null)
             {
-                foreach (var assignment in assignments.EnumerateArray())
+                using var assignRequest = new HttpRequestMessage(HttpMethod.Get, nextLink);
+                assignRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
+                var assignResponse = await httpClient.SendAsync(assignRequest, cancellationToken);
+                var assignJson = await assignResponse.Content.ReadAsStringAsync(cancellationToken);
+                if (!assignResponse.IsSuccessStatusCode)
                 {
-                    var roleId = assignment.TryGetProperty("appRoleId", out var rid) ? rid.GetString() : null;
-                    if (roleId != appRoleId) continue;
-
-                    var principalType = assignment.TryGetProperty("principalType", out var pt) ? pt.GetString() : null;
-                    var principalId = assignment.TryGetProperty("principalId", out var pid) ? pid.GetString() : null;
-                    if (string.IsNullOrEmpty(principalId)) continue;
-
-                    if (principalType == "User")
-                        directUserIds.Add(principalId);
-                    else if (principalType == "Group")
-                        groupIdsToExpand.Add(principalId);
+                    _logger.LogError("Failed to get app role assignments. Status: {Status}, Body: {Body}", assignResponse.StatusCode, assignJson);
+                    return new List<UserDto>();
                 }
+
+                using var assignDoc = System.Text.Json.JsonDocument.Parse(assignJson);
+                if (assignDoc.RootElement.TryGetProperty("value", out var assignments))
+                {
+                    foreach (var assignment in assignments.EnumerateArray())
+                    {
+                        var roleId = assignment.TryGetProperty("appRoleId", out var rid) ? rid.GetString() : null;
+                        if (roleId != appRoleId) continue;
+
+                        var principalType = assignment.TryGetProperty("principalType", out var pt) ? pt.GetString() : null;
+                        var principalId = assignment.TryGetProperty("principalId", out var pid) ? pid.GetString() : null;
+                        if (string.IsNullOrEmpty(principalId)) continue;
+
+                        if (principalType == "User")
+                            directUserIds.Add(principalId);
+                        else if (principalType == "Group")
+                            groupIdsToExpand.Add(principalId);
+                    }
+                }
+
+                nextLink = assignDoc.RootElement.TryGetProperty("@odata.nextLink", out var nl) ? nl.GetString() : null;
             }
 
             // Step 4: expand group members (reuse existing method)
