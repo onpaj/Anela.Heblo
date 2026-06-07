@@ -1,6 +1,9 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import AccessManagementPage from "../AccessManagementPage";
+
+const mockNavigate = jest.fn();
 
 jest.mock("../../api/hooks/useAccessManagement", () => ({
   useGroups: () => ({
@@ -9,7 +12,6 @@ jest.mock("../../api/hooks/useAccessManagement", () => ({
         {
           id: "1",
           name: "Spravce",
-          isSystem: true,
           permissionCount: 52,
           memberCount: 1,
         },
@@ -23,10 +25,42 @@ jest.mock("../../api/hooks/useAccessManagement", () => ({
   useSetUserActive: () => ({ mutate: jest.fn(), isPending: false }),
 }));
 
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => mockNavigate,
+}));
+
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <AccessManagementPage />
+    </MemoryRouter>
+  );
+
+beforeEach(() => mockNavigate.mockClear());
+
 describe("AccessManagementPage", () => {
-  it("renders groups tab with a system group badge", () => {
-    render(<AccessManagementPage />);
+  it("renders groups tab with group name and delete button", () => {
+    renderPage();
     expect(screen.getByText("Spravce")).toBeInTheDocument();
-    expect(screen.getByText("system")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /delete spravce/i })).toBeInTheDocument();
+  });
+
+  it("clicking the group name navigates to the group detail page", () => {
+    renderPage();
+    fireEvent.click(screen.getByText("Spravce"));
+    expect(mockNavigate).toHaveBeenCalledWith("/admin/access/groups/1");
+  });
+
+  it("clicking the Edit button navigates to the group detail page", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /edit spravce/i }));
+    expect(mockNavigate).toHaveBeenCalledWith("/admin/access/groups/1");
+  });
+
+  it("clicking New group navigates to the create page", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /new group/i }));
+    expect(mockNavigate).toHaveBeenCalledWith("/admin/access/groups/new");
   });
 });

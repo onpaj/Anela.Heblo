@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Edit } from "lucide-react";
 import {
   useGroups,
   useUsers,
@@ -8,8 +10,9 @@ import {
 } from "../api/hooks/useAccessManagement";
 import { SetUserActiveRequest } from "../api/generated/api-client";
 
-const AccessManagementPage: React.FC = () => {
+export default function AccessManagementPage() {
   const [tab, setTab] = useState<"groups" | "users">("groups");
+  const navigate = useNavigate();
   const groups = useGroups();
   const users = useUsers();
   const catalogue = useCatalogue();
@@ -18,39 +21,68 @@ const AccessManagementPage: React.FC = () => {
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-4">Access management</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-semibold text-gray-900">Access management</h1>
+        <button
+          onClick={() => navigate("/admin/access/groups/new")}
+          className="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700"
+          aria-label="New group"
+        >
+          New group
+        </button>
+      </div>
 
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setTab("groups")}
           className={`px-4 py-2 rounded ${tab === "groups" ? "bg-indigo-600 text-white" : "bg-gray-100"}`}
-        >Groups</button>
+        >
+          Groups
+        </button>
         <button
           onClick={() => setTab("users")}
           className={`px-4 py-2 rounded ${tab === "users" ? "bg-indigo-600 text-white" : "bg-gray-100"}`}
-        >Users</button>
+        >
+          Users
+        </button>
       </div>
 
       {tab === "groups" && (
         <div className="space-y-3">
           {groups.isLoading && <div className="text-gray-500">Loading groups…</div>}
           {groups.data?.groups?.map((g) => (
-            <div key={g.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900">{g.name}</span>
-                  {g.isSystem && <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">system</span>}
-                </div>
-                <p className="text-sm text-gray-500">{g.permissionCount} permissions · {g.memberCount} members</p>
+            <div
+              key={g.id}
+              className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4"
+            >
+              <div className="min-w-0 flex-1">
+                <button
+                  onClick={() => g.id && navigate(`/admin/access/groups/${g.id}`)}
+                  className="font-medium text-gray-900 hover:text-indigo-600 text-left"
+                >
+                  {g.name}
+                </button>
+                <p className="text-sm text-gray-500">
+                  {g.permissionCount} permissions · {g.memberCount} members
+                </p>
               </div>
-              {!g.isSystem && (
+              <div className="flex items-center gap-2 ml-4">
+                <button
+                  onClick={() => g.id && navigate(`/admin/access/groups/${g.id}`)}
+                  className="p-2 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-gray-50"
+                  aria-label={`Edit ${g.name}`}
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => g.id && deleteGroup.mutate(g.id)}
                   disabled={deleteGroup.isPending}
                   className="text-sm text-red-600 hover:underline"
                   aria-label={`Delete ${g.name}`}
-                >Delete</button>
-              )}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
           <p className="text-xs text-gray-400">
@@ -63,10 +95,15 @@ const AccessManagementPage: React.FC = () => {
         <div className="space-y-3">
           {users.isLoading && <div className="text-gray-500">Loading users…</div>}
           {users.data?.users?.map((u) => (
-            <div key={u.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4">
+            <div
+              key={u.id}
+              className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4"
+            >
               <div>
                 <div className="font-medium text-gray-900">{u.displayName}</div>
-                <p className="text-sm text-gray-500">{u.email} · {u.groupIds?.length ?? 0} groups</p>
+                <p className="text-sm text-gray-500">
+                  {u.email} · {u.groupIds?.length ?? 0} groups
+                </p>
               </div>
               <button
                 onClick={() =>
@@ -79,13 +116,13 @@ const AccessManagementPage: React.FC = () => {
                 disabled={setActive.isPending}
                 className={`text-sm ${u.isActive ? "text-red-600" : "text-green-600"} hover:underline`}
                 aria-label={`Toggle active ${u.email}`}
-              >{u.isActive ? "Disable" : "Enable"}</button>
+              >
+                {u.isActive ? "Disable" : "Enable"}
+              </button>
             </div>
           ))}
         </div>
       )}
     </div>
   );
-};
-
-export default AccessManagementPage;
+}
