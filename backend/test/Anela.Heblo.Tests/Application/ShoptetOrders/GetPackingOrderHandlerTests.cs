@@ -33,6 +33,9 @@ public class GetPackingOrderHandlerTests
                 IsEligibleForPacking = true,
                 CustomerNote = "Zabalit jako dárek",
                 EshopNote = "Stálý zákazník",
+                ShippingStreet = "Hlavní 123/4",
+                ShippingCity = "Praha",
+                ShippingZip = "110 00",
                 Items = new List<PackingOrderItem>
                 {
                     new() { Name = "Krém", Quantity = 2, ImageUrl = "https://img/p.jpg" },
@@ -50,6 +53,9 @@ public class GetPackingOrderHandlerTests
         response.IsCooled.Should().BeTrue();
         response.CustomerNote.Should().Be("Zabalit jako dárek");
         response.EshopNote.Should().Be("Stálý zákazník");
+        response.ShippingStreet.Should().Be("Hlavní 123/4");
+        response.ShippingCity.Should().Be("Praha");
+        response.ShippingZip.Should().Be("110 00");
         response.Items.Should().ContainSingle().Which.Name.Should().Be("Krém");
     }
 
@@ -75,6 +81,9 @@ public class GetPackingOrderHandlerTests
         result.Eligibility.IsEligible.Should().BeTrue();
         result.Eligibility.WarningTitle.Should().BeNull();
         result.Eligibility.WarningBody.Should().BeNull();
+        result.ShippingStreet.Should().BeNull();
+        result.ShippingCity.Should().BeNull();
+        result.ShippingZip.Should().BeNull();
     }
 
     [Fact]

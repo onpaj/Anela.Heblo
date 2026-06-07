@@ -36887,6 +36887,9 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
     eligibility?: PackingEligibility;
     customerNote?: string | undefined;
     eshopNote?: string | undefined;
+    shippingStreet?: string | undefined;
+    shippingCity?: string | undefined;
+    shippingZip?: string | undefined;
     items?: PackingOrderItemDto[];
 
     constructor(data?: IGetPackingOrderResponse) {
@@ -36904,6 +36907,9 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
             this.eligibility = _data["eligibility"] ? PackingEligibility.fromJS(_data["eligibility"]) : <any>undefined;
             this.customerNote = _data["customerNote"];
             this.eshopNote = _data["eshopNote"];
+            this.shippingStreet = _data["shippingStreet"];
+            this.shippingCity = _data["shippingCity"];
+            this.shippingZip = _data["shippingZip"];
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
                 for (let item of _data["items"])
@@ -36929,6 +36935,9 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
         data["eligibility"] = this.eligibility ? this.eligibility.toJSON() : <any>undefined;
         data["customerNote"] = this.customerNote;
         data["eshopNote"] = this.eshopNote;
+        data["shippingStreet"] = this.shippingStreet;
+        data["shippingCity"] = this.shippingCity;
+        data["shippingZip"] = this.shippingZip;
         if (Array.isArray(this.items)) {
             data["items"] = [];
             for (let item of this.items)
@@ -36948,6 +36957,9 @@ export interface IGetPackingOrderResponse extends IBaseResponse {
     eligibility?: PackingEligibility;
     customerNote?: string | undefined;
     eshopNote?: string | undefined;
+    shippingStreet?: string | undefined;
+    shippingCity?: string | undefined;
+    shippingZip?: string | undefined;
     items?: PackingOrderItemDto[];
 }
 
