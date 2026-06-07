@@ -147,7 +147,7 @@ export const useAssignUserGroups = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keys.users });
-      queryClient.invalidateQueries({ queryKey: keys.userPermissionsPrefix }, { exact: false });
+      queryClient.invalidateQueries({ queryKey: keys.userPermissionsPrefix, exact: false });
     },
   });
 };
