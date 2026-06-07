@@ -1,178 +1,139 @@
-# Specification: GraphService HttpClientFactory Migration
+# Specification: Fix Error Handling in GetGroupMembers Flow
 
 ## Summary
-Replace the raw `new HttpClient()` instantiation inside `GraphService.GetGroupMembersAsync` with an `IHttpClientFactory`-provided client to eliminate socket exhaustion and DNS-staleness risks against `graph.microsoft.com`. The change is a localized refactor of one service plus the `UserManagementModule` DI registration; public behavior, response shape, and caching semantics must remain identical.
+The `GraphService.GetGroupMembersAsync` method currently swallows all exceptions and returns an empty list, making the handler's error path dead code and preventing callers from distinguishing "empty group" from "Graph API failure". This specification defines a refactor that establishes a single, clear error-handling boundary so the `Success` flag accurately reflects the outcome of the operation.
 
 ## Background
-`GraphService` is the production implementation of `IGraphService`, registered in `UserManagementModule.AddUserManagement` when neither `USE_MOCK_AUTH` nor `BYPASS_JWT_VALIDATION` is enabled. It is consumed by `GetGroupMembersHandler` to resolve Microsoft Entra group memberships used for user-management flows.
+The `UserManagement` module exposes a `GetGroupMembers` use case backed by Microsoft Graph. Today the failure-handling responsibility is duplicated and incorrect:
 
-Today, every cache miss (cold start or 20-minute expiry per group) executes `using var httpClient = new HttpClient()` at `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs:84`. Per Microsoft's guidance on `HttpClient` lifetime, this pattern:
+- `GraphService.GetGroupMembersAsync` (`backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs:50-193`) catches `MsalException`, `ODataError`, `UnauthorizedAccessException`, and the outer `Exception` and returns `new List<UserDto>()` in every branch.
+- `GetGroupMembersHandler` (`backend/src/Anela.Heblo.Application/Features/UserManagement/UseCases/GetGroupMembers/GetGroupMembersHandler.cs:18-43`) wraps the call in another `try/catch` that sets `Success = false`, but this branch never fires for real Graph failures.
 
-- Bypasses connection pooling: each call opens and closes a fresh TCP socket against `graph.microsoft.com`.
-- Holds sockets in `TIME_WAIT` after disposal, contributing to port/socket exhaustion under concurrent cache misses.
-- Bypasses DNS TTL refresh handled by `SocketsHttpHandler` when reused through `IHttpClientFactory`.
-- Has previously been linked to silent failures (HTTP errors surfacing as empty member lists) when sockets exhaust or Graph throttles.
+Consequences:
+- The API contract is misleading: consumers (frontend, MCP tool) always observe `Success = true` regardless of Graph errors.
+- `GetGroupMembersHandlerTests.Handle_WhenGraphServiceThrowsException_ReturnsFailureResponse` exercises a path production never reaches, giving false confidence.
+- Layers duplicate the same catch-all behavior, violating single-level-of-abstraction and single-responsibility principles.
 
-The 20-minute cache lowers but does not remove the risk: concurrent first-hits, staggered group lookups, and process restarts all bypass the cache simultaneously. Migrating to `IHttpClientFactory` is the standard, low-risk remediation and aligns the module with the rest of the platform.
+This refactor was filed by the daily architectural review routine on 2026-06-05.
 
 ## Functional Requirements
 
-### FR-1: Inject IHttpClientFactory into GraphService
-`GraphService` must obtain its `HttpClient` from `IHttpClientFactory` instead of instantiating one directly. The factory is added to the constructor as a required dependency; the existing `ITokenAcquisition`, `IMemoryCache`, and `ILogger<GraphService>` parameters remain unchanged.
+### FR-1: Service Propagates Exceptions
+`GraphService.GetGroupMembersAsync` must no longer swallow Graph-related exceptions. It logs the failure (preserving current log context — exception type, group id, correlation id where available) and then rethrows so the caller can react.
 
 **Acceptance criteria:**
-- `GraphService`'s constructor accepts `IHttpClientFactory httpClientFactory` and stores it in a `private readonly` field.
-- No code path inside `GraphService` calls `new HttpClient(...)`; the only client construction is `_httpClientFactory.CreateClient("MicrosoftGraph")`.
-- `MockGraphService` is **not** changed (no behavioral or signature changes required).
-- `IGraphService` interface is unchanged.
+- The method contains no `catch` block that returns `new List<UserDto>()`.
+- Each formerly-caught exception type (`MsalException`, `ODataError`, `UnauthorizedAccessException`, and the general `Exception`) either has no catch at all, or has a catch that logs and rethrows (using `throw;` to preserve the stack trace).
+- Logging output for failure cases is at least as informative as today (same log level, same fields).
+- Successful calls still return the populated `List<UserDto>` unchanged.
 
-### FR-2: Register named HttpClient `"MicrosoftGraph"`
-A named `HttpClient` registration with the logical name `"MicrosoftGraph"` must be added in `UserManagementModule.AddUserManagement`. The registration must apply only on the real-service branch (i.e., when `useMockAuth == false` and `bypassJwtValidation == false`); when mocks are used, the named client need not be registered, since `MockGraphService` does not perform HTTP calls.
-
-**Acceptance criteria:**
-- `services.AddHttpClient("MicrosoftGraph")` is invoked alongside `services.AddScoped<IGraphService, GraphService>()` in the production branch of `UserManagementModule.AddUserManagement`.
-- The registration uses the default `HttpMessageHandler` lifetime supplied by `IHttpClientFactory` (no custom handler lifetime is configured in this change).
-- No `BaseAddress`, `DefaultRequestHeaders`, or handler is configured on the named client in this change (the absolute Graph URL and per-request Authorization header continue to be set inside `GetGroupMembersAsync`, preserving current behavior).
-- If the production branch is selected but the named client somehow is not registered, the service must still resolve a default client (i.e., `CreateClient("MicrosoftGraph")` returns a usable client; the factory creates a default-configured client when the name is unknown — this is the standard .NET behavior and is acceptable as a safety fallback, not a substitute for FR-2).
-
-### FR-3: Preserve existing GetGroupMembersAsync behavior
-The refactor is non-functional from the caller's perspective. All current behaviors of `GetGroupMembersAsync` must be preserved byte-for-byte where the change does not directly require modification.
+### FR-2: Handler is the Single Catch-and-Convert Boundary
+`GetGroupMembersHandler` is the single place that translates exceptions into a `GetGroupMembersResponse`. It maps known failure modes to specific error codes and falls back to `InternalServerError` for unexpected exceptions.
 
 **Acceptance criteria:**
-- The cache key (`group_members_{groupId}`), 20-minute TTL, and cache hit/miss branches behave identically.
-- The token-acquisition flow (`GetAccessTokenForAppAsync` with `https://graph.microsoft.com/.default`) is unchanged.
-- The request URL, query string (`$select=id,displayName,mail,userPrincipalName`), and `Bearer` header construction remain identical.
-- The same response parsing (`@odata.type` / `userPrincipalName` detection, `id` / `displayName` / `mail` / `userPrincipalName` extraction) is preserved.
-- All existing `try`/`catch` branches (`MsalException`, generic token exception, `ODataError`, `UnauthorizedAccessException`, generic `Exception`) continue to return `new List<UserDto>()` and log via the same templates and structured properties.
-- The `Authorization` header continues to be set per request (necessary because the token is per-call and `HttpClient` instances returned by `IHttpClientFactory` are shared — setting it on `DefaultRequestHeaders` is acceptable for the lifetime of the returned instance, but the team should not rely on it persisting; per-request `HttpRequestMessage` is preferred. See NFR-3.).
-- `CancellationToken` continues to flow into `GetAsync` and `ReadAsStringAsync`.
+- The handler catches exceptions from the service and returns `Success = false` with an appropriate `ErrorCode`.
+- Exception-to-`ErrorCode` mapping:
+  - `MsalException` → an authentication error code (new or existing, e.g. `ExternalAuthenticationFailed`).
+  - `ODataError` → `ExternalServiceError` (or equivalent existing code) with the OData error message preserved in logs.
+  - `UnauthorizedAccessException` → `Forbidden` (or equivalent existing code).
+  - Any other `Exception` → `InternalServerError`.
+- On failure, `Members` is `new List<UserDto>()` (preserving the existing response shape) and the response includes a non-null `ErrorCode`.
+- The exception is logged once, at the handler level, with the request payload and the exception details.
 
-### FR-4: Lifecycle correctness
-The injected `IHttpClientFactory` is a singleton; `GraphService` is registered as scoped. The change must not introduce captive-dependency or lifetime mismatch warnings.
+### FR-3: Distinguishable Empty vs. Failed Responses
+Callers must be able to differentiate "group is genuinely empty" from "the Graph call failed".
 
 **Acceptance criteria:**
-- `GraphService` remains registered as `Scoped` (unchanged from current).
-- No `using` block disposes the `HttpClient` returned from `IHttpClientFactory.CreateClient(...)` — disposal is the factory's responsibility. (Disposing a factory-provided client is non-fatal but defeats pooling; the change must remove the `using` keyword on the client.)
-- `dotnet build` produces no new analyzer warnings (`CA2000`, `CA1816`, etc.) for `GraphService`.
+- A genuinely empty group returns `Success = true`, `Members = []`, `ErrorCode = null`.
+- A Graph failure returns `Success = false`, `Members = []`, `ErrorCode != null`.
+- A successful fetch with members returns `Success = true`, `Members = [...]`, `ErrorCode = null`.
+
+### FR-4: Test Coverage Reflects Production Behavior
+The handler and service tests cover the real exception paths now that exceptions propagate.
+
+**Acceptance criteria:**
+- `GetGroupMembersHandlerTests` contains test cases for each mapped exception type (`MsalException`, `ODataError`, `UnauthorizedAccessException`, generic `Exception`), each asserting the expected `Success`, `ErrorCode`, and that `Members` is empty.
+- The existing `Handle_WhenGraphServiceThrowsException_ReturnsFailureResponse` test is kept (covering generic `Exception`) or split into the specific cases above; no test depends on the service's old swallow-and-return-empty behavior.
+- New or updated `GraphService` unit tests assert that the service rethrows for each of the four exception types instead of returning an empty list.
+- Test coverage for the touched files remains at or above 80%.
+
+### FR-5: API Consumer Compatibility
+Existing API and MCP-tool consumers continue to deserialize successful responses without code changes; failure responses now carry meaningful error information.
+
+**Acceptance criteria:**
+- The JSON shape of `GetGroupMembersResponse` is unchanged (same field names, same types).
+- Existing successful integrations (frontend group-member list, MCP `get_group_members` tool) function identically against the refactored backend.
+- Failure responses carry `Success = false` and a populated `ErrorCode`, allowing the frontend/MCP to surface a meaningful error to the user.
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
-- The change must reduce the number of TCP connections opened to `graph.microsoft.com` under load. The expected steady-state behavior is that all `GraphService` calls within a `SocketsHttpHandler` rotation window (default 2 minutes per `IHttpClientFactory`) share a pooled connection.
-- No regression in latency for cached hits (still served from `IMemoryCache` without touching the factory).
-- No regression in latency on cache miss beyond normal variance; the factory's handler reuse should reduce, not increase, per-call cost.
+No measurable change. The refactor is purely about error-flow plumbing; the happy path executes the same Graph call and returns the same payload.
 
 ### NFR-2: Security
-- No new secrets, configuration values, or credentials introduced.
-- The Graph token is still acquired through `ITokenAcquisition.GetAccessTokenForAppAsync` and attached per call; the token must never be logged.
-- No change to existing OAuth scopes (`https://graph.microsoft.com/.default`) or application-permission posture.
+- No exception messages from Microsoft Graph or MSAL may leak to the API response body. Detailed exception data stays in server-side logs only; the response surfaces a stable `ErrorCode` plus a generic, user-safe message.
+- No new credentials, tokens, or PII are introduced into logs beyond what is already logged today.
 
-### NFR-3: Maintainability and correctness
-- The named-client identifier `"MicrosoftGraph"` should be defined as a `private const string` (e.g., `GraphHttpClientName`) on `GraphService` to avoid string drift between registration and consumption. The same constant must be referenced from `UserManagementModule` (either by exposing it as `public const` or by duplicating the literal with a code comment cross-referencing the class — preferred is `public const string` on `GraphService` for single source of truth).
-- The previous `using` declaration on the HTTP client must be removed; do not dispose factory-provided clients.
-- Setting `DefaultRequestHeaders.Authorization` on a factory-provided client is acceptable for this single-call usage and matches the suggested fix in the brief. The implementer may choose to switch to a per-request `HttpRequestMessage` with `Headers.Authorization` set on the request if they wish to be defensive against future code changes that reuse the client across calls; either approach is acceptable as long as behavior is preserved (see Open Questions OQ-1).
+### NFR-3: Observability
+- Every failure path must emit a single, structured log entry at `Error` (or the existing level used today, whichever is higher) including: exception type, group id, correlation id (if available), and exception message + stack trace.
+- Avoid double-logging: if the handler logs the exception, the service should not also log the same exception with the same severity. Choose one canonical log site (recommended: the handler, since it has full request context).
 
-### NFR-4: Observability
-- All existing log statements, structured properties, and log levels must be preserved verbatim.
-- No new log statements are required by this change; if added, they must be at `Debug` or `Information` and must not log token contents or full response bodies above what exists today.
+### NFR-4: Backward Compatibility
+The wire contract (response field names and types) is unchanged. Only the runtime values of `Success` and `ErrorCode` change in failure scenarios, which is the intended fix.
 
-### NFR-5: Backward compatibility
-- The change is purely internal to the `Anela.Heblo.Application` assembly. No public API, DTO, MediatR contract, or controller signature changes.
-- No database migrations, configuration keys, or environment variable changes are introduced.
+### NFR-5: Maintainability
+- Each layer has a single, clear responsibility: the service performs the Graph call; the handler translates outcomes (including exceptions) into the response.
+- No `try/catch` block exists solely to convert an exception into an empty collection.
 
 ## Data Model
-No data-model changes. `UserDto` (returned shape) is unchanged. `IMemoryCache` entries remain `List<UserDto>` keyed by `group_members_{groupId}`.
+No data-model changes. The affected types are:
+
+- `UserDto` — unchanged.
+- `GetGroupMembersResponse` — unchanged shape; fields `Success`, `ErrorCode`, `Members` now carry their intended semantics in all paths.
+- `ErrorCodes` — may gain a small number of new constants (e.g. `ExternalAuthenticationFailed`, `ExternalServiceError`) if equivalents do not already exist. Implementer should reuse existing codes wherever they cover the case.
 
 ## API / Interface Design
 
-### Service interface (unchanged)
+### `IGraphService.GetGroupMembersAsync`
+Signature unchanged:
 ```csharp
-public interface IGraphService
-{
-    Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken = default);
-}
+Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken);
 ```
+Behavior change: throws on failure (previously returned empty list on any failure).
 
-### Constructor (changed)
-```csharp
-public GraphService(
-    ITokenAcquisition tokenAcquisition,
-    IMemoryCache cache,
-    ILogger<GraphService> logger,
-    IHttpClientFactory httpClientFactory)
-{
-    _tokenAcquisition = tokenAcquisition;
-    _cache = cache;
-    _logger = logger;
-    _httpClientFactory = httpClientFactory;
-}
-```
+### `GetGroupMembersHandler.Handle`
+Signature unchanged. Behavior:
+1. Call `IGraphService.GetGroupMembersAsync`.
+2. On success → return `Success = true, Members = result, ErrorCode = null`.
+3. On exception → log once with full context; map to `ErrorCode` per FR-2; return `Success = false, Members = [], ErrorCode = <mapped>`.
 
-### Client acquisition inside `GetGroupMembersAsync` (changed)
-Replace lines 84–85 of `GraphService.cs`:
-
-```csharp
-// Before
-using var httpClient = new HttpClient();
-httpClient.DefaultRequestHeaders.Authorization =
-    new AuthenticationHeaderValue("Bearer", graphToken);
-
-// After
-var httpClient = _httpClientFactory.CreateClient(GraphHttpClientName);
-httpClient.DefaultRequestHeaders.Authorization =
-    new AuthenticationHeaderValue("Bearer", graphToken);
-```
-
-with `private const string GraphHttpClientName = "MicrosoftGraph";` (or equivalent shared constant — see NFR-3).
-
-### DI registration in `UserManagementModule.AddUserManagement` (changed)
-Inside the existing `else` branch (production path):
-
-```csharp
-services.AddHttpClient(GraphService.GraphHttpClientName);
-services.AddScoped<IGraphService, GraphService>();
-```
-
-No changes to the mock branch.
+### `GetGroupMembersResponse` (consumer-facing contract)
+| Field | Type | Empty group | Graph failure |
+|-------|------|-------------|---------------|
+| `Success` | `bool` | `true` | `false` |
+| `Members` | `List<UserDto>` | `[]` | `[]` |
+| `ErrorCode` | `string?` | `null` | non-null |
 
 ## Dependencies
-- `Microsoft.Extensions.Http` — already transitively available in the API layer via ASP.NET Core; verify it is present in `Anela.Heblo.Application.csproj`. If not, add the package reference. (`IHttpClientFactory` and `services.AddHttpClient` live in this package.)
-- `Microsoft.Identity.Web` (unchanged) — still provides `ITokenAcquisition`.
-- `Microsoft.Extensions.Caching.Memory` (unchanged).
-- No new runtime services. The host already registers `IHttpClientFactory` whenever any module calls `services.AddHttpClient(...)`; the API layer already calls `AddHttpClient` for other clients (verify during implementation; if absent, `AddHttpClient` calls in this module are sufficient to bootstrap the factory).
+- Microsoft Graph SDK (existing).
+- MSAL (existing).
+- The project's logging abstraction (existing — likely `ILogger<T>`).
+- Existing `ErrorCodes` constants in the application layer (extend if needed).
+- Existing handler test infrastructure (xUnit/NUnit + Moq or equivalent — implementer should follow project convention).
 
-## Testing Requirements
-
-### Unit tests (new)
-Add a `GraphServiceTests` class under `backend/test/...UserManagement/Services/` (mirror existing test project layout):
-
-- **Constructor wiring**: Resolving `GraphService` from a `ServiceCollection` that registered `AddHttpClient("MicrosoftGraph")` succeeds without throwing.
-- **Cache hit**: When `_cache.TryGetValue` returns a populated list, `IHttpClientFactory.CreateClient` is **not** invoked.
-- **Cache miss invokes factory**: When the cache is empty and token acquisition succeeds, `IHttpClientFactory.CreateClient("MicrosoftGraph")` is invoked exactly once per call. Use a mocked `IHttpClientFactory` returning an `HttpClient` backed by a stub `HttpMessageHandler` that returns a canned Graph payload; assert the resulting `List<UserDto>` matches the parsed payload and is cached.
-- **Failure modes preserved**: Stub handler returns non-2xx, token acquisition throws `MsalException`, handler throws `HttpRequestException` — each path returns `new List<UserDto>()` (preserved behavior).
-- **No `using` on factory client**: Assert (by mock verification) that the factory's `HttpClient` is not disposed by `GraphService` (either by asserting the underlying `HttpMessageHandler` is not disposed by the SUT, or by relying on the mock to throw if `Dispose` is called).
-
-Coverage target: cover all new branches; overall service coverage must meet or exceed the project's 80% threshold for the file.
-
-### Integration / smoke
-- No integration test against the live Graph API is in scope. Manual smoke verification: start the API locally with production auth wiring, invoke an endpoint that calls `GetGroupMembers`, confirm a successful member list is returned and no `SocketException` is observed across two consecutive cache-miss windows (>20 minutes apart, or by clearing cache).
-
-### Build/format gates
-- `dotnet build` must succeed with no new warnings.
-- `dotnet format` must produce no diff after the change.
-- All existing tests in the `UserManagement` namespace must continue to pass.
+No new external dependencies are required.
 
 ## Out of Scope
-- Switching from raw HTTP calls to the `GraphServiceClient` SDK (Microsoft.Graph). The comment at `UserManagementModule.cs:28–29` mentions this as a future direction, but this change is limited to fixing the lifetime issue with the existing raw-HTTP approach.
-- Replacing the in-memory cache with a distributed cache.
-- Adding Polly resilience policies (retry/circuit breaker) on the named client. These are sensible follow-ups but are not part of this fix.
-- Changing the cache TTL, cache key strategy, or eager refresh behavior.
-- Modifying `MockGraphService` or the mock-auth code path.
-- Adding paging support to handle Graph's `@odata.nextLink` (existing behavior is preserved as-is, even though it does not page).
-- Changing logging templates, levels, or structured property names beyond what is required.
+- Changing the `GetGroupMembersResponse` shape (e.g. introducing a `Result<T>` envelope across the API).
+- Refactoring other methods on `GraphService` that exhibit the same anti-pattern. Those should be filed as separate tickets so this PR stays focused and reviewable.
+- Frontend or MCP-tool changes to *surface* the new `ErrorCode` to end users (the backend will return it correctly; UI uplift is a follow-up).
+- Introducing a retry policy for transient Graph failures (e.g. Polly). Retries can be layered on later once the error path is honest.
+- Changing the broader project convention between exception-based and Result-based error handling.
 
 ## Open Questions
-None.
 
-## Status: COMPLETE
+1. **Specific `ErrorCode` values for MSAL / OData / Unauthorized exceptions.** The codebase likely already has a partial set in `ErrorCodes`. Implementer should reuse existing codes where they fit; if none exist for `ExternalAuthenticationFailed` / `ExternalServiceError` / `Forbidden`, confirm with the team before adding new constants.
+2. **Canonical log site.** This spec recommends the handler as the single log site (since it has the request context and is the catch-and-convert boundary). Confirm that the service does not have other callers that would lose logging if the service's catches are removed entirely.
+3. **Assumption flagged: chose Option A (exceptions propagate, handler catches once).** Option B (service returns `Result<T>`) was deferred because it would require a broader project-wide convention change and would touch every consumer of `IGraphService`. If the team has already adopted a Result/discriminated-union convention elsewhere, revisit this choice before implementation.
 
+## Status: HAS_QUESTIONS
