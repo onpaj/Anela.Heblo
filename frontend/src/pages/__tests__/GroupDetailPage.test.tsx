@@ -101,35 +101,33 @@ beforeEach(() => {
 describe("GroupDetailPage", () => {
   it("renders name and description from loaded group", async () => {
     renderWithRoute("group-1");
-    await waitFor(() => {
-      expect(screen.getByDisplayValue("Test Group")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("A description")).toBeInTheDocument();
-    });
+    expect(await screen.findByDisplayValue("Test Group")).toBeInTheDocument();
+    expect(await screen.findByDisplayValue("A description")).toBeInTheDocument();
   });
 
   it("Save calls updateGroup with name, description, permissions, parentGroupIds", async () => {
     renderWithRoute("group-1");
-    await waitFor(() => screen.getByDisplayValue("Test Group"));
+    await screen.findByDisplayValue("Test Group");
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
-    await waitFor(() => {
-      expect(mockUpdateGroup).toHaveBeenCalledTimes(1);
-      expect(mockUpdateGroup).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: "group-1",
-          request: expect.objectContaining({
-            name: "Test Group",
-            description: "A description",
-            permissions: ["catalog.read"],
-            parentGroupIds: ["group-2"],
-          }),
-        })
-      );
-    });
+    await waitFor(() =>
+      expect(mockUpdateGroup).toHaveBeenCalledTimes(1)
+    );
+    expect(mockUpdateGroup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "group-1",
+        request: expect.objectContaining({
+          name: "Test Group",
+          description: "A description",
+          permissions: ["catalog.read"],
+          parentGroupIds: ["group-2"],
+        }),
+      })
+    );
   });
 
   it("Save does not call assignUserGroups when members are unchanged", async () => {
     renderWithRoute("group-1");
-    await waitFor(() => screen.getByDisplayValue("Test Group"));
+    await screen.findByDisplayValue("Test Group");
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
     await waitFor(() => expect(mockUpdateGroup).toHaveBeenCalled());
     expect(mockAssignUserGroups).not.toHaveBeenCalled();
@@ -137,7 +135,7 @@ describe("GroupDetailPage", () => {
 
   it("Save calls assignUserGroups to add a new member", async () => {
     renderWithRoute("group-1");
-    await waitFor(() => screen.getByDisplayValue("Test Group"));
+    await screen.findByDisplayValue("Test Group");
 
     // Bob (user-2) is in the available column of MembersPicker — click + to assign
     fireEvent.click(screen.getByRole("button", { name: /assign bob/i }));
@@ -158,7 +156,7 @@ describe("GroupDetailPage", () => {
 
   it("Save calls assignUserGroups to remove an existing member", async () => {
     renderWithRoute("group-1");
-    await waitFor(() => screen.getByDisplayValue("Test Group"));
+    await screen.findByDisplayValue("Test Group");
 
     // Alice (user-1) is already a member — click − to remove
     fireEvent.click(screen.getByRole("button", { name: /remove alice/i }));
@@ -179,36 +177,36 @@ describe("GroupDetailPage", () => {
 
   it("Cancel navigates back to the access management list", async () => {
     renderWithRoute("group-1");
-    await waitFor(() => screen.getByDisplayValue("Test Group"));
+    await screen.findByDisplayValue("Test Group");
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
     expect(mockNavigate).toHaveBeenCalledWith("/admin/access");
   });
 
   it("create mode (id=new) renders empty form and Save calls createGroup then navigates", async () => {
     renderWithRoute("new");
-    await waitFor(() => screen.getByLabelText(/name/i));
+    await screen.findByLabelText(/name/i);
 
     fireEvent.change(screen.getByLabelText(/name/i), { target: { value: "Brand New Group" } });
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(mockCreateGroup).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "Brand New Group",
         })
-      );
-      expect(mockNavigate).toHaveBeenCalledWith("/admin/access/groups/new-group-id");
-    });
+      )
+    );
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith("/admin/access/groups/new-group-id")
+    );
   });
 
   it("shows validation error if name is empty on Save", async () => {
     renderWithRoute("new");
-    await waitFor(() => screen.getByLabelText(/name/i));
+    await screen.findByLabelText(/name/i);
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
 
-    await waitFor(() => {
-      expect(mockUpdateGroup).not.toHaveBeenCalled();
-      expect(mockCreateGroup).not.toHaveBeenCalled();
-    });
+    await waitFor(() => expect(mockUpdateGroup).not.toHaveBeenCalled());
+    expect(mockCreateGroup).not.toHaveBeenCalled();
   });
 });
