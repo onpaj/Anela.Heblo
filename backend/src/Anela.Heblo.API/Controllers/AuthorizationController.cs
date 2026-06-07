@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Authorization.UseCases.AddGroupMember;
 using Anela.Heblo.Application.Features.Authorization.UseCases.AssignUserGroups;
 using Anela.Heblo.Application.Features.Authorization.UseCases.CreateGroup;
 using Anela.Heblo.Application.Features.Authorization.UseCases.DeleteGroup;
@@ -53,6 +54,14 @@ public class AuthorizationController : BaseApiController
     [Authorize(Roles = AccessRoles.AdministrationWrite)]
     public async Task<ActionResult<DeleteGroupResponse>> DeleteGroup([FromRoute] Guid id, CancellationToken ct)
         => HandleResponse(await _mediator.Send(new DeleteGroupRequest { Id = id }, ct));
+
+    [HttpPost("groups/{id:guid}/members")]
+    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    public async Task<ActionResult<AddGroupMemberResponse>> AddGroupMember([FromRoute] Guid id, [FromBody] AddGroupMemberRequest request, CancellationToken ct)
+    {
+        request.GroupId = id;
+        return HandleResponse(await _mediator.Send(request, ct));
+    }
 
     [HttpGet("users")]
     public async Task<ActionResult<GetUsersResponse>> GetUsers(CancellationToken ct)
