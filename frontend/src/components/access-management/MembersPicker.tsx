@@ -15,7 +15,8 @@ export default function MembersPicker({ value, onChange }: MembersPickerProps) {
       (users.data?.users ?? []).map((u) => ({
         id: u.id ?? "",
         label: u.displayName ?? u.email ?? u.id ?? "",
-        sublabel: u.email,
+        sublabel: u.email ?? undefined,
+        badge: u.lastLoginAt == null ? "Never logged in" : undefined,
       })),
     [users.data]
   );

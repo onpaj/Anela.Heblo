@@ -15,6 +15,7 @@ export type TransferItem = {
   id: string;
   label: string;
   sublabel?: string;
+  badge?: string;
 };
 
 interface TransferListProps {
@@ -57,7 +58,14 @@ function ItemRow({ item, direction, onMove }: ItemRowProps) {
       {...listeners}
     >
       <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-sm text-gray-900 truncate">{item.label}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm text-gray-900 truncate">{item.label}</span>
+          {item.badge && (
+            <span className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
+              {item.badge}
+            </span>
+          )}
+        </div>
         {item.sublabel && (
           <span className="text-xs text-gray-500 truncate">{item.sublabel}</span>
         )}
