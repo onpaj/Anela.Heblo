@@ -9,8 +9,30 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Manufacture;
 
+/// <summary>
+/// Fixed TimeProvider for testing purposes.
+/// </summary>
+internal class FixedTimeProvider : TimeProvider
+{
+    private readonly DateTime _fixedDateTime;
+
+    public FixedTimeProvider(DateTimeOffset fixedTime)
+    {
+        _fixedDateTime = fixedTime.DateTime;
+    }
+
+    public override DateTimeOffset GetUtcNow() =>
+        new DateTimeOffset(_fixedDateTime, TimeSpan.Zero);
+
+    public override TimeZoneInfo LocalTimeZone =>
+        TimeZoneInfo.Utc;
+}
+
 public class CalculateBatchPlanHandlerTests
 {
+    private static readonly DateTimeOffset FixedClock =
+        new DateTimeOffset(2026, 03, 15, 10, 0, 0, TimeSpan.Zero);
+
     private readonly Mock<IBatchPlanningService> _batchPlanningServiceMock;
     private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
@@ -23,11 +45,18 @@ public class CalculateBatchPlanHandlerTests
         _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _manufactureClientMock = new Mock<IManufactureClient>();
         _timePeriodResolverMock = new Mock<ITimePeriodResolver>();
+
+        // Set up default behavior for catalog repository to avoid null reference exceptions
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CatalogAggregate?)null);
+
         _handler = new CalculateBatchPlanHandler(
             _batchPlanningServiceMock.Object,
             _catalogRepositoryMock.Object,
             _manufactureClientMock.Object,
-            _timePeriodResolverMock.Object);
+            _timePeriodResolverMock.Object,
+            new FixedTimeProvider(FixedClock));
     }
 
     [Fact]
