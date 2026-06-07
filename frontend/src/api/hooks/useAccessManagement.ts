@@ -12,6 +12,7 @@ import type {
   SetUserActiveResponse,
   GetEntraAccessUsersResponse,
   AddGroupMemberResponse,
+  GetUserEffectivePermissionsResponse,
 } from "../generated/api-client";
 import {
   CreateGroupRequest,
@@ -27,6 +28,7 @@ const keys = {
   group: (id: string) => ["authz", "group", id] as const,
   users: ["authz", "users"] as const,
   entraUsers: ["authz", "entra-users"] as const,
+  userPermissions: (id: string) => ["authz", "user-permissions", id] as const,
 };
 
 export const useCatalogue = () => {
@@ -66,6 +68,17 @@ export const useUsers = () => {
     queryFn: async (): Promise<GetUsersResponse> => {
       const client = getAuthenticatedApiClient();
       return client.authorization_GetUsers();
+    },
+  });
+};
+
+export const useUserPermissions = (id: string | null) => {
+  return useQuery({
+    queryKey: id ? keys.userPermissions(id) : keys.userPermissions(""),
+    enabled: id !== null,
+    queryFn: async (): Promise<GetUserEffectivePermissionsResponse> => {
+      const client = getAuthenticatedApiClient();
+      return client.authorization_GetUserPermissions(id!);
     },
   });
 };
@@ -133,6 +146,7 @@ export const useAssignUserGroups = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keys.users });
+      queryClient.invalidateQueries({ queryKey: ["authz", "user-permissions"] });
     },
   });
 };
