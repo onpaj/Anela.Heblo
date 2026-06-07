@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = AccessRoles.KnowledgeBaseRead)]
 [ApiController]
 [Route("api/[controller]")]
 public class KnowledgeBaseController : BaseApiController
@@ -84,7 +84,7 @@ public class KnowledgeBaseController : BaseApiController
     }
 
     [HttpDelete("documents/{id:guid}")]
-    [Authorize(Policy = AuthorizationConstants.Policies.KnowledgeBaseUpload)]
+    [Authorize(Roles = AccessRoles.KnowledgeBaseWrite)]
     public async Task<ActionResult<DeleteDocumentResponse>> DeleteDocument(Guid id, CancellationToken ct)
     {
         var result = await _mediator.Send(new DeleteDocumentRequest { DocumentId = id }, ct);
@@ -92,7 +92,7 @@ public class KnowledgeBaseController : BaseApiController
     }
 
     [HttpGet("feedback/list")]
-    [Authorize(Policy = AuthorizationConstants.Policies.KnowledgeBaseUpload)]
+    [Authorize(Roles = AccessRoles.KnowledgeBaseWrite)]
     public async Task<ActionResult<GetFeedbackListResponse>> GetFeedbackList(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
@@ -124,7 +124,7 @@ public class KnowledgeBaseController : BaseApiController
     }
 
     [HttpPost("documents/upload")]
-    [Authorize(Policy = AuthorizationConstants.Policies.KnowledgeBaseUpload)]
+    [Authorize(Roles = AccessRoles.KnowledgeBaseWrite)]
     public async Task<ActionResult<UploadDocumentResponse>> UploadDocument(
         IFormFile file,
         [FromForm] string documentType = "KnowledgeBase",

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Options;
@@ -65,6 +66,7 @@ public class ReprintExpeditionListHandlerTests
 
         // Assert
         Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.InvalidBlobPath, result.ErrorCode);
         _blobStorageServiceMock.Verify(
             s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);

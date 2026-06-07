@@ -19,7 +19,7 @@ namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/leaflet")]
-[Authorize]
+[Authorize(Roles = AccessRoles.LeafletRead)]
 public class LeafletController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -30,7 +30,7 @@ public class LeafletController : BaseApiController
     }
 
     [HttpPost("generate")]
-    [Authorize(Policy = AuthorizationConstants.Policies.MarketingReader)]
+    [Authorize(Roles = AccessRoles.LeafletWrite)]
     [ProducesResponseType(typeof(GenerateLeafletResponse), 200)]
     [ProducesResponseType(typeof(ProblemDetails), 400)]
     [ProducesResponseType(typeof(ProblemDetails), 422)]
@@ -106,7 +106,7 @@ public class LeafletController : BaseApiController
     }
 
     [HttpDelete("documents/{id:guid}")]
-    [Authorize(Policy = AuthorizationConstants.Policies.MarketingReader)]
+    [Authorize(Roles = AccessRoles.LeafletWrite)]
     public async Task<ActionResult<DeleteLeafletDocumentResponse>> DeleteDocument(Guid id, CancellationToken ct)
     {
         var result = await _mediator.Send(new DeleteLeafletDocumentRequest { DocumentId = id }, ct);
@@ -114,7 +114,7 @@ public class LeafletController : BaseApiController
     }
 
     [HttpPost("documents/upload")]
-    [Authorize(Policy = AuthorizationConstants.Policies.MarketingReader)]
+    [Authorize(Roles = AccessRoles.LeafletWrite)]
     public async Task<ActionResult<UploadLeafletResponse>> UploadDocument(
         IFormFile file,
         CancellationToken ct = default)
@@ -145,7 +145,7 @@ public class LeafletController : BaseApiController
     }
 
     [HttpGet("feedback/list")]
-    [Authorize(Policy = AuthorizationConstants.Policies.MarketingReader)]
+    [Authorize(Roles = AccessRoles.LeafletWrite)]
     public async Task<ActionResult<GetLeafletFeedbackListResponse>> GetFeedbackList(
         [FromQuery] bool? hasFeedback = null,
         [FromQuery] string? userId = null,

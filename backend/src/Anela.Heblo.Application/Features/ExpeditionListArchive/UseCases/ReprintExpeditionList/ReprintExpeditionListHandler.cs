@@ -22,7 +22,7 @@ public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionLis
     {
         if (!BlobPathValidator.IsValid(request.BlobPath))
         {
-            return ReprintExpeditionListResponse.Fail("Invalid blob path.");
+            return ReprintExpeditionListResponse.Fail();
         }
 
         var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.pdf");

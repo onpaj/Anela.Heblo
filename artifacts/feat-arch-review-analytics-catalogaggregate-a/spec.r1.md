@@ -1,26 +1,32 @@
 # Specification: Extract `CatalogAggregate` → `AnalyticsProduct` Mapping Helper
 
 ## Summary
-Eliminate verbatim duplication of the `CatalogAggregate` → `AnalyticsProduct` mapping logic in `AnalyticsRepository` by extracting a single private helper method. This consolidates ~60 lines of identical code, removes a latent inconsistency where one of the two call sites failed to filter `SalesHistory` by date range, and reduces the migration surface for the upcoming cross-module refactor (#1805).
+The conversion logic from `CatalogAggregate` to `AnalyticsProduct` is duplicated verbatim across two methods in `AnalyticsRepository`, with one copy already silently drifted (missing date-range filter on `SalesHistory`). Extract a single private helper method `MapToAnalyticsProduct(CatalogAggregate, DateTime, DateTime)` and route both call sites through it. This eliminates duplication, corrects the latent `SalesHistory` filter bug, and reduces the migration surface for the upcoming cross-module refactor (#1805) into `CatalogAnalyticsSourceAdapter`.
 
 ## Background
-`backend/src/Anela.Heblo.Application/Features/Analytics/Infrastructure/AnalyticsRepository.cs` contains two methods — `StreamProductsWithSalesAsync` and `GetProductAnalysisDataAsync` — that each materialize an `AnalyticsProduct` from a `CatalogAggregate`. The mapping bodies are identical step-for-step:
 
-1. Extract `marginData = product.Margins`.
-2. Filter `marginData.MonthlyData` to entries inside `[fromDate, toDate]` to obtain `relevantMargins`.
-3. Pick the latest entry, with a fallback to `marginData.MonthlyData.LastOrDefault()` when none falls in range.
-4. Repeat the same `latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))` guard for `MarginAmount`, `MaterialCost`, `HandlingCost`, `M0Amount`/`M1Amount`/`M2Amount`, and the three `*Percentage` fields.
-5. Resolve `PurchasePrice` from the most recent `PurchaseHistory` entry.
-6. Project the result into a `new AnalyticsProduct { ... }`.
+`backend/src/Anela.Heblo.Application/Features/Analytics/Infrastructure/AnalyticsRepository.cs` exposes two methods that both project a `CatalogAggregate` into an `AnalyticsProduct`:
 
-The only behavioural difference today is that `StreamProductsWithSalesAsync` filters `SalesHistory` by `[fromDate, toDate]` while `GetProductAnalysisDataAsync` returns the full `SalesHistory` unfiltered. Per the brief, this is treated as latent drift to be corrected — both call sites should filter consistently going forward.
+- `StreamProductsWithSalesAsync` (lines 52–116)
+- `GetProductAnalysisDataAsync` (lines 168–231)
 
-The mapping will need to move into a `CatalogAnalyticsSourceAdapter` when issue #1805 (cross-module Analytics refactor) lands. Removing the duplication now halves the migration surface for that work.
+Both blocks perform identical operations in the same order:
+1. Extract `marginData = product.Margins`
+2. Filter `relevantMargins` by `[fromDate, toDate]`
+3. Resolve `latestMarginEntry` with fallback to the last available margin entry
+4. Apply the `latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))` ternary guard six times across `MarginAmount`, `M0Amount`/`M1Amount`/`M2Amount`, `M0Percentage`/`M1Percentage`/`M2Percentage`, `MaterialCost`, `HandlingCost`
+5. Resolve `purchasePrice` from `PurchaseHistory` (latest by `Date`)
+6. Project `SalesHistory` entries into `SalesDataPoint`
+7. Construct an `AnalyticsProduct`
+
+The two copies have already drifted: `GetProductAnalysisDataAsync` does **not** filter `SalesHistory` by date range, while `StreamProductsWithSalesAsync` does. This is a latent bug — both paths feed the same downstream analytics consumers and should produce identically scoped data.
+
+Issue #1805 will move this mapping into a `CatalogAnalyticsSourceAdapter`. Keeping the duplication doubles that migration surface and increases the risk of dropping the drift fix during the move.
 
 ## Functional Requirements
 
-### FR-1: Introduce `MapToAnalyticsProduct` helper
-Add a private instance method on `AnalyticsRepository` with the signature:
+### FR-1: Introduce private mapping helper
+Add a private method on `AnalyticsRepository`:
 
 ```csharp
 private AnalyticsProduct MapToAnalyticsProduct(
@@ -29,89 +35,120 @@ private AnalyticsProduct MapToAnalyticsProduct(
     DateTime toDate)
 ```
 
-The method encapsulates the full mapping pipeline (margin selection, fallback, per-field guards, purchase-price resolution, sales-history projection, and `AnalyticsProduct` construction) exactly as described in the brief.
+The helper encapsulates the full `CatalogAggregate` → `AnalyticsProduct` projection currently duplicated in lines 52–116 and 168–231. Behavior preserved from the existing blocks:
+- `relevantMargins` filtered to `[fromDate, toDate]` inclusive on `MonthlyData.Key`
+- `latestMarginEntry = relevantMargins.LastOrDefault()`; if equal to `default(KeyValuePair<DateTime, MarginData>)`, fall back to `marginData.MonthlyData.LastOrDefault()`
+- A single `hasEntry` boolean derived once from the same default check, replacing the six repeated ternaries
+- `latestPurchase = product.PurchaseHistory?.OrderByDescending(p => p.Date).FirstOrDefault()`
+- `PurchasePrice = latestPurchase?.PricePerPiece ?? 0`
+- `SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0`
+- `EshopPriceWithoutVat = product.EshopPrice?.PriceWithoutVat` (nullable, distinct from `SellingPrice`)
+- `MarginAmount`: when no entry exists, falls back to `marginData.Averages.M0.Amount` (matches current behavior in both blocks)
+- All other margin/cost fields default to `0` when no entry exists
+- `SalesHistory` projected via `Where(s => s.Date >= fromDate && s.Date <= toDate).Select(...)` (date-range filter applied unconditionally)
 
 **Acceptance criteria:**
-- A single private method on `AnalyticsRepository` performs the complete mapping.
-- All property assignments on the returned `AnalyticsProduct` match the existing mapping verbatim (same source expressions, same fallback semantics).
-- The fallback to `marginData.MonthlyData.LastOrDefault()` when `relevantMargins` is empty is preserved.
-- The `MarginAmount` field falls back to `marginData.Averages.M0.Amount` when no margin entry is available, matching current behaviour.
-- All other margin-derived fields (`M0Amount`, `M1Amount`, `M2Amount`, `M0Percentage`, `M1Percentage`, `M2Percentage`, `MaterialCost`, `HandlingCost`) fall back to `0` when no margin entry is available, matching current behaviour.
-- `PurchasePrice` resolves from the most recent `PurchaseHistory` entry ordered by `Date` descending, defaulting to `0` when absent or null.
-- `SellingPrice` uses `product.EshopPrice?.PriceWithoutVat ?? 0`, and `EshopPriceWithoutVat` uses `product.EshopPrice?.PriceWithoutVat` (nullable), matching current behaviour.
+- A `private AnalyticsProduct MapToAnalyticsProduct(CatalogAggregate, DateTime, DateTime)` method exists on `AnalyticsRepository`.
+- The helper's output matches the existing field mapping for `StreamProductsWithSalesAsync` exactly when called with the same `(product, fromDate, toDate)` inputs.
+- The `latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))` ternary appears at most once inside the helper (collapsed to a single `hasEntry` boolean).
 
-### FR-2: Replace both duplicated blocks with helper calls
-Both `StreamProductsWithSalesAsync` (lines 52–116) and `GetProductAnalysisDataAsync` (lines 168–231) must invoke `MapToAnalyticsProduct(product, fromDate, toDate)` in place of the inline mapping block.
+### FR-2: Replace duplicated block in `StreamProductsWithSalesAsync`
+Lines 52–116 (the per-product projection inside the `foreach`) are replaced by a single call to `MapToAnalyticsProduct(product, fromDate, toDate)`.
 
 **Acceptance criteria:**
-- The inline mapping blocks in both methods are removed.
-- Each call site invokes the helper with the method's own `fromDate` and `toDate` parameters.
-- No other surrounding logic in these methods (streaming, iteration, batching, repository calls) is changed.
-- The two methods are functionally equivalent to their previous behaviour in every respect *except* the `SalesHistory` filtering correction (see FR-3).
+- `StreamProductsWithSalesAsync` no longer contains the inline mapping block; it invokes the helper.
+- Streaming/async behavior, ordering, and yielded results are unchanged for the same inputs.
+- No other behavioral change in this method (date filters, iteration shape, cancellation handling).
 
-### FR-3: Correct `SalesHistory` filtering drift
-`GetProductAnalysisDataAsync` currently emits `AnalyticsProduct.SalesHistory` without applying the date filter. After this change, both call sites must apply the same `s.Date >= fromDate && s.Date <= toDate` filter when projecting `SalesHistory` into `SalesDataPoint` entries.
-
-**Acceptance criteria:**
-- The helper's `SalesHistory` projection filters by `[fromDate, toDate]` inclusively.
-- `GetProductAnalysisDataAsync` callers receive only sales data points inside the requested window.
-- This is documented in the commit message / PR description as an intentional consistency fix.
-
-### FR-4: Preserve external behaviour beyond the documented fix
-No change is made to:
-- Method signatures, return types, async semantics, or streaming behaviour of `StreamProductsWithSalesAsync` and `GetProductAnalysisDataAsync`.
-- Repository registration, DI configuration, or call sites consuming these methods.
-- The `AnalyticsProduct`, `SalesDataPoint`, `CatalogAggregate`, or `MarginData` types.
+### FR-3: Replace duplicated block in `GetProductAnalysisDataAsync`
+Lines 168–231 are replaced by a call to `MapToAnalyticsProduct(product, fromDate, toDate)`.
 
 **Acceptance criteria:**
-- Public surface of `AnalyticsRepository` is unchanged.
-- Callers of either method require no modification.
-- No new types, interfaces, or files are introduced.
+- `GetProductAnalysisDataAsync` no longer contains the inline mapping block; it invokes the helper.
+- After extraction, `SalesHistory` is filtered by `[fromDate, toDate]` — the latent drift bug is fixed as a deliberate, documented side effect of this refactor.
+- No other behavioral changes (input parameters, return shape, ordering).
+
+### FR-4: Preserve public API and observable behavior (apart from FR-3 fix)
+No public signatures change. No new fields, no removed fields, no reordering of returned data, no change to logging or exception behavior.
+
+**Acceptance criteria:**
+- Public method signatures of `AnalyticsRepository` are unchanged.
+- Existing callers of `StreamProductsWithSalesAsync` and `GetProductAnalysisDataAsync` compile without modification.
+- Aside from the `SalesHistory` filter now being applied in `GetProductAnalysisDataAsync` (FR-3), observable outputs are identical to the pre-refactor implementation.
+
+### FR-5: Test coverage for the helper and fix
+Add or update unit tests so the mapping is covered in one place:
+- A test asserting `SalesHistory` is filtered by `[fromDate, toDate]` when consumed through `GetProductAnalysisDataAsync` (regression test for the drift bug).
+- A test asserting the `hasEntry == false` path: when `MonthlyData` is empty, `MarginAmount` falls back to `marginData.Averages.M0.Amount` and the other margin/cost fields are `0`.
+- A test asserting the `hasEntry == true` path picks values from the last entry within `[fromDate, toDate]`, not from outside the range.
+- A test asserting `PurchasePrice` resolves to the latest `PurchaseHistory` entry by `Date` and defaults to `0` when history is null/empty.
+
+**Acceptance criteria:**
+- New/updated tests live alongside existing `AnalyticsRepository` tests.
+- All tests pass on `dotnet test`.
+- Coverage for `AnalyticsRepository` does not regress (per global 80%+ standard).
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
-The helper is a straight extraction. No additional allocations, enumerations, or repository calls are introduced. Streaming semantics of `StreamProductsWithSalesAsync` (per-product yielding) are preserved — the helper is invoked once per product, exactly as the inline block was.
+No measurable regression. The helper performs the same LINQ operations as the current inline code; allocations and enumeration patterns are preserved. `StreamProductsWithSalesAsync` must continue to stream — the helper is synchronous per-product and does not introduce buffering, materialization beyond the existing `ToList()` on `relevantMargins`, or extra DB hits.
 
-### NFR-2: Maintainability
-A future change to the mapping (new margin field, altered fallback, different purchase-price source) must require modification in exactly one location. This is the primary motivation for the refactor and the chief acceptance metric for code review.
+### NFR-2: Security
+N/A — pure in-memory mapping over already-authorized aggregates. No new inputs, no new boundaries.
 
-### NFR-3: Test coverage
-Existing unit tests covering `StreamProductsWithSalesAsync` and `GetProductAnalysisDataAsync` must continue to pass. Any test asserting the *previously incorrect* unfiltered `SalesHistory` behaviour in `GetProductAnalysisDataAsync` must be updated to reflect the corrected, date-filtered output. If no test currently exercises the date-filter consistency between the two methods, add one.
+### NFR-3: Maintainability
+The mapping logic exists in exactly one place after the refactor. Future field additions, fallback fixes, or `PurchasePrice` rule changes touch one method. The helper is structured so it can be lifted into `CatalogAnalyticsSourceAdapter` (#1805) without further rework.
 
-### NFR-4: Validation
-Before completion: `dotnet build` and `dotnet format` must succeed; all touched tests must pass.
+### NFR-4: Backward compatibility
+- Database schema: unchanged.
+- API contracts: unchanged.
+- Wire format of `AnalyticsProduct`: unchanged.
+- One intentional behavior change: `GetProductAnalysisDataAsync` now date-filters `SalesHistory`. This is the documented bug fix per FR-3 and must be called out in the PR description.
 
 ## Data Model
-No data-model changes. The refactor touches mapping logic only.
 
-Entities referenced (read-only, unchanged):
-- `CatalogAggregate` — source, supplies `Margins` (`MarginData` with `MonthlyData : IDictionary<DateTime, MarginData>` and `Averages`), `PurchaseHistory`, `SalesHistory`, `EshopPrice`, `ProductCode`, `ProductName`, `Type`, `ProductFamily`, `ProductCategory`.
-- `AnalyticsProduct` — target DTO; field layout unchanged.
-- `SalesDataPoint` — projection target for `SalesHistory`; unchanged.
+No schema changes. The refactor operates on existing in-memory types:
+
+- **`CatalogAggregate`** (input) — owns `Margins` (with `MonthlyData: IDictionary<DateTime, MarginData>` and `Averages`), `PurchaseHistory`, `SalesHistory`, `EshopPrice`, and core product metadata (`ProductCode`, `ProductName`, `Type`, `ProductFamily`, `ProductCategory`).
+- **`MarginData`** — exposes `M0`, `M1`, `M2`, `M1_A` margin slices, each with `Amount`, `Percentage`, `CostLevel`.
+- **`AnalyticsProduct`** (output) — flat DTO consumed by analytics callers. Field set unchanged.
+- **`SalesDataPoint`** — `{ Date, AmountB2B, AmountB2C }`.
 
 ## API / Interface Design
-No public API changes. Internal change only:
 
-- **Added:** `private AnalyticsProduct AnalyticsRepository.MapToAnalyticsProduct(CatalogAggregate product, DateTime fromDate, DateTime toDate)`
-- **Modified bodies:** `AnalyticsRepository.StreamProductsWithSalesAsync`, `AnalyticsRepository.GetProductAnalysisDataAsync` — inline mapping replaced with helper call.
-- **Removed:** ~60 lines of duplicated mapping logic per method.
+Internal refactor only. No HTTP endpoints, no MediatR handlers, no events, no UI changes.
+
+**Internal change:**
+```csharp
+public class AnalyticsRepository
+{
+    // unchanged public methods:
+    public async IAsyncEnumerable<AnalyticsProduct> StreamProductsWithSalesAsync(/* ... */) { /* now calls MapToAnalyticsProduct */ }
+    public async Task<IReadOnlyList<AnalyticsProduct>> GetProductAnalysisDataAsync(/* ... */) { /* now calls MapToAnalyticsProduct */ }
+
+    // new private helper:
+    private AnalyticsProduct MapToAnalyticsProduct(CatalogAggregate product, DateTime fromDate, DateTime toDate);
+}
+```
 
 ## Dependencies
-- File scope: `backend/src/Anela.Heblo.Application/Features/Analytics/Infrastructure/AnalyticsRepository.cs` only.
-- Related (informational, not blocked on / blocking): issue #1805 — cross-module Analytics refactor that will later relocate this helper into `CatalogAnalyticsSourceAdapter`. This spec does **not** perform that relocation.
-- No new NuGet packages, no new project references, no new DI registrations.
+
+- **`CatalogAggregate`** and `MarginData` types — no changes required.
+- **Issue #1805** (Catalog→Analytics decoupling refactor) — downstream consumer. The helper is intentionally shaped so it lifts cleanly into `CatalogAnalyticsSourceAdapter` when #1805 lands. This spec does **not** preempt #1805; it only removes duplication ahead of it.
+- No new NuGet packages.
 
 ## Out of Scope
-- Moving the helper into `CatalogAnalyticsSourceAdapter` (deferred to #1805).
-- Changing the shape, fields, or semantics of `AnalyticsProduct` or `SalesDataPoint`.
-- Altering margin-fallback logic beyond the verbatim extraction (e.g. choosing a different fallback strategy, changing the `default(KeyValuePair<…>)` sentinel pattern).
-- Adjusting how `PurchasePrice`, `SellingPrice`, or `EshopPriceWithoutVat` are sourced.
-- Filtering `PurchaseHistory` by date range (current code uses the latest entry overall; this is preserved).
-- Refactoring `StreamProductsWithSalesAsync` streaming/batching or `GetProductAnalysisDataAsync` query semantics.
-- Adding new unit tests beyond what's required to lock in the `SalesHistory` filtering consistency (NFR-3).
+
+- Moving the helper into `CatalogAnalyticsSourceAdapter` — that is #1805's job.
+- Changing how `MarginAmount` falls back (preserving current `marginData.Averages.M0.Amount` fallback).
+- Changing `PurchasePrice` semantics (still latest `PurchaseHistory` entry by `Date`).
+- Adding new fields to `AnalyticsProduct`.
+- Performance optimization of the underlying `MonthlyData` lookup or `PurchaseHistory` ordering.
+- Renaming `AnalyticsRepository` or restructuring the file.
+- Behavior changes other than the `SalesHistory` date-filter fix in `GetProductAnalysisDataAsync`.
 
 ## Open Questions
+
 None.
 
 ## Status: COMPLETE

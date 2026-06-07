@@ -187,6 +187,7 @@ const resources = {
         BlobNotFound: "Soubor nenalezen",
         FileTooLarge: "Soubor je příliš velký",
         UnsupportedFileType: "Nepodporovaný typ souboru",
+        InvalidBlobPath: "Neplatná cesta k souboru.",
 
         // BackgroundJobs module errors
         RecurringJobNotFound: "Opakovaná úloha nenalezena",

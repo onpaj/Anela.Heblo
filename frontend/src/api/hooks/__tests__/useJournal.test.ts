@@ -203,8 +203,8 @@ describe("useJournal hooks", () => {
         { wrapper: createWrapper },
       );
 
-      // Search queries are disabled by default (enabled: false in useSearchJournalEntries)
-      // We need to manually trigger the query
+      // useSearchJournalEntries defaults to enabled=false; the only way to fire
+      // the query without opting in via the second arg is an explicit refetch().
       result.current.refetch();
 
       await waitFor(() => {
@@ -213,6 +213,113 @@ describe("useJournal hooks", () => {
 
       expect(result.current.data).toEqual(mockSearchResponse);
       expect(result.current.data?.entries).toHaveLength(1);
+    });
+
+    it("should not fetch on mount when enabled is omitted (default false)", async () => {
+      const searchMock = jest.fn().mockResolvedValue({
+        success: true,
+        entries: [],
+        totalCount: 0,
+      });
+
+      mockGetAuthenticatedApiClient.mockReturnValue({
+        journal_SearchJournalEntries: searchMock,
+        baseUrl: "http://localhost:5001",
+      } as any);
+
+      renderHook(
+        () =>
+          useSearchJournalEntries({
+            searchText: "test",
+            pageNumber: 1,
+            pageSize: 20,
+          }),
+        { wrapper: createWrapper },
+      );
+
+      // Wait long enough for any queued microtasks; the query must remain disabled.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(searchMock).not.toHaveBeenCalled();
+    });
+
+    it("should fetch on mount when enabled is true", async () => {
+      const mockSearchResponse = {
+        ...mockJournalEntriesResponse,
+        entries: [mockJournalEntriesResponse.entries[0]],
+        totalCount: 1,
+      };
+
+      const searchMock = jest.fn().mockResolvedValue(mockSearchResponse);
+      mockGetAuthenticatedApiClient.mockReturnValue({
+        journal_SearchJournalEntries: searchMock,
+        baseUrl: "http://localhost:5001",
+      } as any);
+
+      const { result } = renderHook(
+        () =>
+          useSearchJournalEntries(
+            {
+              searchText: "test",
+              pageNumber: 1,
+              pageSize: 20,
+            },
+            true,
+          ),
+        { wrapper: createWrapper },
+      );
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(searchMock).toHaveBeenCalledTimes(1);
+      expect(result.current.data).toEqual(mockSearchResponse);
+    });
+
+    it("should auto-refetch when params change while enabled is true", async () => {
+      const searchMock = jest.fn().mockResolvedValue({
+        success: true,
+        entries: [],
+        totalCount: 0,
+      });
+
+      mockGetAuthenticatedApiClient.mockReturnValue({
+        journal_SearchJournalEntries: searchMock,
+        baseUrl: "http://localhost:5001",
+      } as any);
+
+      const { result, rerender } = renderHook(
+        ({ pageNumber }: { pageNumber: number }) =>
+          useSearchJournalEntries(
+            {
+              searchText: "test",
+              pageNumber,
+              pageSize: 20,
+            },
+            true,
+          ),
+        {
+          wrapper: createWrapper,
+          initialProps: { pageNumber: 1 },
+        },
+      );
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+      expect(searchMock).toHaveBeenCalledTimes(1);
+
+      // Change the page number → query key changes → React Query refetches.
+      rerender({ pageNumber: 2 });
+
+      await waitFor(() => {
+        expect(searchMock).toHaveBeenCalledTimes(2);
+      });
+
+      // The most recent call should reflect the new page number (positional arg #7).
+      const lastCallArgs = searchMock.mock.calls[searchMock.mock.calls.length - 1];
+      expect(lastCallArgs[6]).toBe(2); // pageNumber is the 7th positional arg
     });
   });
 

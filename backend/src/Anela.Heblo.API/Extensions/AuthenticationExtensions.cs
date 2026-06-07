@@ -104,19 +104,11 @@ public static class AuthenticationExtensions
     {
         services.AddAuthorization(options =>
         {
-            // Default policy requires HebloUser role for all endpoints with [Authorize]
             options.DefaultPolicy = new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
-                .RequireRole(AuthorizationConstants.Roles.HebloUser)
+                .RequireRole(AccessRoles.Base)
                 .Build();
-
-            options.AddPolicy(AuthorizationConstants.Policies.KnowledgeBaseUpload, policy =>
-                policy.RequireAuthenticatedUser()
-                      .RequireRole(AuthorizationConstants.Roles.SuperUser));
-
-            options.AddPolicy(AuthorizationConstants.Policies.MarketingReader, policy =>
-                policy.RequireAuthenticatedUser()
-                      .RequireRole(AuthorizationConstants.Roles.MarketingReader));
+            // Per-feature gating is expressed via [Authorize(Roles = …)] on controllers/actions.
         });
     }
 }

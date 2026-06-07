@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
 using Microsoft.Extensions.Options;
@@ -20,7 +21,16 @@ public class GetExpeditionListsByDateHandler : IRequestHandler<GetExpeditionList
     {
         if (!DateOnly.TryParseExact(request.Date, "yyyy-MM-dd", out _))
         {
-            return new GetExpeditionListsByDateResponse { Items = new List<ExpeditionListItemDto>() };
+            return new GetExpeditionListsByDateResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.InvalidFormat,
+                Params = new Dictionary<string, string>
+                {
+                    { "Field", "Date" },
+                    { "ExpectedFormat", "yyyy-MM-dd" }
+                }
+            };
         }
 
         var blobs = await _blobStorageService.ListBlobsAsync(_containerName, request.Date, cancellationToken);

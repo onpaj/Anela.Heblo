@@ -23,8 +23,17 @@ public class PackingOrder
     public Cooling Cooling { get; set; } = Cooling.None;
     public bool IsCooled { get; set; }
 
-    /// <summary>Shoptet order status ID, used to verify the order is in the packing state.</summary>
+    /// <summary>
+    /// Shoptet order status ID. Kept for diagnostic/logging purposes. Do <b>not</b>
+    /// derive packing eligibility from this value — use <see cref="IsEligibleForPacking"/>.
+    /// </summary>
     public int StatusId { get; set; }
+
+    /// <summary>
+    /// True when the order is in the configured packing state (Shoptet "Balí se").
+    /// Computed by the adapter so callers do not need to know the status-id rule.
+    /// </summary>
+    public bool IsEligibleForPacking { get; set; }
 
     /// <summary>Customer remark entered at checkout; null when none.</summary>
     public string? CustomerNote { get; set; }
@@ -44,7 +53,7 @@ public class PackingOrder
     public List<PackingOrderItem> Items { get; set; } = new();
 }
 
-/// <summary>A single line on the packing screen. Also serialized in the API response.</summary>
+/// <summary>A single line on a packing order. Internal contract — not an API DTO.</summary>
 public class PackingOrderItem
 {
     public string Name { get; set; } = string.Empty;

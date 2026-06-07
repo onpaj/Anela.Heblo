@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Dashboard;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Dashboard.UseCases.EnableTile;
@@ -8,10 +9,12 @@ namespace Anela.Heblo.Application.Features.Dashboard.UseCases.EnableTile;
 internal sealed class EnableTileHandler : IRequestHandler<EnableTileRequest, EnableTileResponse>
 {
     private readonly IUserDashboardSettingsMutator _mutator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public EnableTileHandler(IUserDashboardSettingsMutator mutator)
+    public EnableTileHandler(IUserDashboardSettingsMutator mutator, ICurrentUserService currentUserService)
     {
         _mutator = mutator;
+        _currentUserService = currentUserService;
     }
 
     public async Task<EnableTileResponse> Handle(EnableTileRequest request, CancellationToken cancellationToken)
@@ -21,8 +24,11 @@ internal sealed class EnableTileHandler : IRequestHandler<EnableTileRequest, Ena
             return new EnableTileResponse(ErrorCodes.RequiredFieldMissing);
         }
 
+        var currentUser = _currentUserService.GetCurrentUser();
+        var userId = currentUser.Id;
+
         await _mutator.MutateAsync(
-            request.UserId,
+            userId,
             request.TileId,
             onTileFound: static (_, tile) => tile.IsVisible = true,
             onTileMissing: (settings, resolvedUserId) =>

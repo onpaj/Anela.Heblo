@@ -1,0 +1,175 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## App Usage Analytics\n\nWhat parts of the app are used, how often, and by whom — sourced from frontend `ScreenViewed` and action telemetry in Application Insights. Use the filters below to scope by time range, module, and user.\n\nUsers show as their display name where available; older rows (before identity enrichment was deployed) fall back to the Entra ID GUID."
+      },
+      "name": "title"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "a1111111-1111-1111-1111-111111111111",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time range",
+            "type": 4,
+            "isRequired": true,
+            "value": { "durationMs": 2592000000 },
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 86400000 },
+                { "durationMs": 604800000 },
+                { "durationMs": 2592000000 },
+                { "durationMs": 7776000000 }
+              ],
+              "allowCustom": true
+            }
+          },
+          {
+            "id": "a2222222-2222-2222-2222-222222222222",
+            "version": "KqlParameterItem/1.0",
+            "name": "Module",
+            "label": "Module",
+            "type": 2,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "customEvents | where name == 'ScreenViewed' | summarize by module = tostring(customDimensions.module) | where isnotempty(module) | order by module asc",
+            "value": ["value::all"],
+            "typeSettings": {
+              "additionalResourceOptions": ["value::all"],
+              "selectAllValue": "*"
+            },
+            "timeContextFromParameter": "TimeRange",
+            "queryType": 0,
+            "resourceType": "microsoft.insights/components"
+          },
+          {
+            "id": "a3333333-3333-3333-3333-333333333333",
+            "version": "KqlParameterItem/1.0",
+            "name": "User",
+            "label": "User",
+            "type": 2,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "customEvents | extend u = coalesce(tostring(customDimensions.userName), user_AuthenticatedId) | where isnotempty(u) | summarize by u | order by u asc",
+            "value": ["value::all"],
+            "typeSettings": {
+              "additionalResourceOptions": ["value::all"],
+              "selectAllValue": "*"
+            },
+            "timeContextFromParameter": "TimeRange",
+            "queryType": 0,
+            "resourceType": "microsoft.insights/components"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents | where name == 'ScreenViewed' | extend module = tostring(customDimensions.module), screen = tostring(customDimensions.screen), userDisplay = coalesce(tostring(customDimensions.userName), user_AuthenticatedId) | where '*' in ({Module}) or module in ({Module}) | where '*' in ({User}) or userDisplay in ({User}) | summarize ['Screen views'] = count(), ['Active users'] = dcount(userDisplay), ['Distinct screens'] = dcount(strcat(module, '/', screen))",
+        "size": 4,
+        "title": "Overview",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "name": "overview"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents | where name == 'ScreenViewed' | extend module = tostring(customDimensions.module), userDisplay = coalesce(tostring(customDimensions.userName), user_AuthenticatedId) | where '*' in ({Module}) or module in ({Module}) | where '*' in ({User}) or userDisplay in ({User}) | summarize Hits = count(), Users = dcount(userDisplay) by module | order by Hits desc",
+        "size": 0,
+        "title": "Usage by module",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "barchart"
+      },
+      "name": "usage-by-module"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents | where name == 'ScreenViewed' | extend module = tostring(customDimensions.module), screen = tostring(customDimensions.screen), subScreen = tostring(customDimensions.subScreen), userDisplay = coalesce(tostring(customDimensions.userName), user_AuthenticatedId) | where '*' in ({Module}) or module in ({Module}) | where '*' in ({User}) or userDisplay in ({User}) | summarize Hits = count(), Users = dcount(userDisplay) by module, screen, subScreen | order by Hits desc",
+        "size": 0,
+        "title": "Screen and sub-screen usage",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "sortBy": [{ "itemKey": "Hits", "sortOrder": 2 }]
+        }
+      },
+      "name": "screen-usage"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents | where name == 'ScreenViewed' | extend module = tostring(customDimensions.module), screen = tostring(customDimensions.screen), userDisplay = coalesce(tostring(customDimensions.userName), user_AuthenticatedId), userEmail = tostring(customDimensions.userEmail) | where '*' in ({Module}) or module in ({Module}) | where '*' in ({User}) or userDisplay in ({User}) | summarize ['Screen views'] = count(), ['Distinct screens'] = dcount(strcat(module, '/', screen)), ['Last seen'] = max(timestamp) by User = userDisplay, Email = userEmail | order by ['Screen views'] desc",
+        "size": 0,
+        "title": "Usage by user",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "sortBy": [{ "itemKey": "Screen views", "sortOrder": 2 }]
+        }
+      },
+      "name": "usage-by-user"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents | where name != 'ScreenViewed' | extend userDisplay = coalesce(tostring(customDimensions.userName), user_AuthenticatedId) | where '*' in ({User}) or userDisplay in ({User}) | summarize Count = count(), Users = dcount(userDisplay) by Event = name | order by Count desc",
+        "size": 0,
+        "title": "Action events",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "sortBy": [{ "itemKey": "Count", "sortOrder": 2 }]
+        }
+      },
+      "name": "action-events"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents | where name == 'ScreenViewed' | extend module = tostring(customDimensions.module), userDisplay = coalesce(tostring(customDimensions.userName), user_AuthenticatedId) | where '*' in ({Module}) or module in ({Module}) | where '*' in ({User}) or userDisplay in ({User}) | summarize ['Screen views'] = count(), ['Active users'] = dcount(userDisplay) by bin(timestamp, 1d) | order by timestamp asc",
+        "size": 0,
+        "title": "Daily trend",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "timechart"
+      },
+      "name": "daily-trend"
+    }
+  ],
+  "fallbackResourceIds": [],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

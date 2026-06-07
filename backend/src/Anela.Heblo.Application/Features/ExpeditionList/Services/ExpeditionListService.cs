@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 using Anela.Heblo.Xcc.Services.Email;
 using Anela.Heblo.Application.Shared.Printing;
 using Microsoft.Extensions.Logging;
@@ -8,7 +8,7 @@ namespace Anela.Heblo.Application.Features.ExpeditionList.Services;
 
 public class ExpeditionListService : IExpeditionListService
 {
-    private readonly IPickingListSource _pickingListSource;
+    private readonly IExpeditionPickingSource _pickingSource;
     private readonly IEmailSender _emailSender;
     private readonly TimeProvider _clock;
     private readonly IOptions<PrintPickingListOptions> _options;
@@ -16,14 +16,14 @@ public class ExpeditionListService : IExpeditionListService
     private readonly ILogger<ExpeditionListService> _logger;
 
     public ExpeditionListService(
-        IPickingListSource pickingListSource,
+        IExpeditionPickingSource pickingSource,
         IEmailSender emailSender,
         TimeProvider clock,
         IOptions<PrintPickingListOptions> options,
         IPrintQueueSink printQueueSink,
         ILogger<ExpeditionListService> logger)
     {
-        _pickingListSource = pickingListSource;
+        _pickingSource = pickingSource;
         _emailSender = emailSender;
         _clock = clock;
         _options = options;
@@ -31,16 +31,13 @@ public class ExpeditionListService : IExpeditionListService
         _logger = logger;
     }
 
-    public async Task<PrintPickingListResult> PrintPickingListAsync(
-        PrintPickingListRequest request,
+    public async Task<ExpeditionPickingResult> PrintPickingListAsync(
+        ExpeditionPickingRequest request,
         IList<string>? emailList = null,
         CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Generating new expedition list");
 
-        // Build a per-batch callback that handles upload/email/printer for each printed batch.
-        // State change in Shoptet happens inside CreatePickingList only after this callback succeeds,
-        // ensuring orders are never moved to the new state when a downstream action fails.
         Func<IList<string>, Task>? batchCallback = null;
 
         if (request.SendToPrinter || (emailList != null && emailList.Any()))
@@ -61,7 +58,7 @@ public class ExpeditionListService : IExpeditionListService
             };
         }
 
-        var result = await _pickingListSource.CreatePickingList(request, batchCallback, cancellationToken);
+        var result = await _pickingSource.CreatePickingListAsync(request, batchCallback, cancellationToken);
 
         _logger.LogDebug("Expedition list complete — {Total} orders processed", result.TotalCount);
 
@@ -70,7 +67,7 @@ public class ExpeditionListService : IExpeditionListService
         return result;
     }
 
-    private Task Cleanup(PrintPickingListResult result)
+    private Task Cleanup(ExpeditionPickingResult result)
     {
         foreach (var f in result.ExportedFiles)
         {

@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Invoices.Infrastructure;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
 using Anela.Heblo.Application.Features.Invoices.Services;
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Bank;
 
 namespace Anela.Heblo.Application.Features.Invoices;
@@ -23,6 +24,12 @@ public static class InvoicesModule
         // via an adapter. DI registration owned by provider (Invoices), not consumer
         // (PackingMaterials) — keeps the dependency direction inverted properly.
         services.AddScoped<IInvoiceConsumptionSource, InvoiceConsumptionSourceAdapter>();
+
+        // Cross-module contract: Invoices implements Analytics' IInvoiceImportStatisticsSource
+        // via an adapter. DI registration owned by provider (Invoices), not consumer
+        // (Analytics) — mirrors the IInvoiceConsumptionSource pattern above. Scoped because
+        // the adapter wraps ApplicationDbContext (also Scoped).
+        services.AddScoped<IInvoiceImportStatisticsSource, InvoiceImportStatisticsSourceAdapter>();
 
         // Cross-module contracts: Invoices implements DataQuality's IInvoiceShoptetSource
         // and IInvoiceErpClient via adapters. Lifetimes mirror the wrapped services exactly:

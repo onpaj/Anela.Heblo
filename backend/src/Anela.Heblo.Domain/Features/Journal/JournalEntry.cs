@@ -150,6 +150,16 @@ namespace Anela.Heblo.Domain.Features.Journal
             }
         }
 
+        public void Update(string? title, string content, DateTime entryDate, string userId, string username)
+        {
+            Title = title?.Trim();
+            Content = content.Trim();
+            EntryDate = entryDate.Date;
+            ModifiedAt = DateTime.UtcNow;
+            ModifiedByUserId = userId;
+            ModifiedByUsername = username;
+        }
+
         public void SoftDelete(string userId, string username)
         {
             IsDeleted = true;

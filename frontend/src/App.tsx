@@ -48,6 +48,8 @@ import MarketingCalendarPage from "./components/marketing/pages/MarketingCalenda
 import PhotobankPage from "./components/marketing/photobank/pages/PhotobankPage";
 import PhotobankSettingsPage from "./components/marketing/photobank/pages/PhotobankSettingsPage";
 import AuthGuard from "./components/auth/AuthGuard";
+import { ACCESS_ROUTES } from "./auth/accessMatrix.generated";
+import { RequireAccess } from "./components/auth/RequireAccess";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
@@ -90,7 +92,7 @@ import BaleniPlaceholder from "./components/baleni/BaleniPlaceholder";
 import BaleniPacking from "./components/baleni/BaleniPacking";
 import { ZasilkyPage } from "./components/baleni/zasilky/ZasilkyPage";
 import "./i18n";
-import { initAppInsights, getAppInsights } from './telemetry/appInsights';
+import { initAppInsights, getAppInsights, setUserIdentity } from './telemetry/appInsights';
 import { AppInsightsProvider } from './telemetry/AppInsightsProvider';
 
 let isRedirecting = false;
@@ -156,19 +158,23 @@ function App() {
             const oid = (account?.idTokenClaims as { oid?: string } | undefined)?.oid;
             if (oid) {
               getAppInsights()?.setAuthenticatedUserContext(oid, undefined, true);
+              setUserIdentity({ name: account?.name, email: account?.username });
             }
           }
           if (event.eventType === EventType.LOGOUT_SUCCESS) {
             getAppInsights()?.clearAuthenticatedUserContext();
+            setUserIdentity(null);
           }
         });
 
         // For users already signed in (page reload), set context immediately
         const existingAccounts = instance.getAllAccounts();
         if (existingAccounts.length > 0) {
-          const oid = (existingAccounts[0].idTokenClaims as { oid?: string } | undefined)?.oid;
+          const existingAccount = existingAccounts[0];
+          const oid = (existingAccount.idTokenClaims as { oid?: string } | undefined)?.oid;
           if (oid) {
             getAppInsights()?.setAuthenticatedUserContext(oid, undefined, true);
+            setUserIdentity({ name: existingAccount.name, email: existingAccount.username });
           }
         }
 
@@ -306,6 +312,10 @@ function App() {
     initializeApp();
   }, []);
 
+  const guard = (path: string, element: React.ReactNode) => (
+    <RequireAccess requiredRole={ACCESS_ROUTES[path]}>{element}</RequireAccess>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -414,7 +424,7 @@ function App() {
                       </Route>
 
                       {/* Balení device module — landscape touch PC, no sidebar */}
-                      <Route path="/baleni" element={<BaleniLayout />}>
+                      <Route path="/baleni" element={guard("/baleni", <BaleniLayout />)}>
                         <Route index element={<BaleniHome />} />
                         <Route path="baleni" element={<BaleniPacking />} />
                         <Route path="zasilky" element={<ZasilkyPage />} />
@@ -424,55 +434,55 @@ function App() {
                       {/* Desktop app — full Layout with sidebar (pathless layout route) */}
                       <Route element={<Layout statusBar={<StatusBar />}><Outlet /></Layout>}>
                         <Route path="/" element={<Dashboard />} />
-                        <Route path="/finance/overview" element={<FinancialOverview />} />
+                        <Route path="/finance/overview" element={guard("/finance/overview", <FinancialOverview />)} />
                         <Route path="/finance/bank-statements" element={<BankStatementImportChart />} />
-                        <Route path="/analytics/product-margin-summary" element={<ProductMarginSummary />} />
-                        <Route path="/catalog" element={<CatalogList />} />
-                        <Route path="/purchase/orders" element={<PurchaseOrderList />} />
-                        <Route path="/purchase/stock-analysis" element={<PurchaseStockAnalysis />} />
+                        <Route path="/analytics/product-margin-summary" element={guard("/analytics/product-margin-summary", <ProductMarginSummary />)} />
+                        <Route path="/catalog" element={guard("/catalog", <CatalogList />)} />
+                        <Route path="/purchase/orders" element={guard("/purchase/orders", <PurchaseOrderList />)} />
+                        <Route path="/purchase/stock-analysis" element={guard("/purchase/stock-analysis", <PurchaseStockAnalysis />)} />
                         <Route path="/purchase/invoice-classification" element={<InvoiceClassificationPage />} />
-                        <Route path="/manufacturing/stock-analysis" element={<ManufacturingStockAnalysis />} />
-                        <Route path="/manufacturing/output" element={<ManufactureOutput />} />
+                        <Route path="/manufacturing/stock-analysis" element={guard("/manufacturing/stock-analysis", <ManufacturingStockAnalysis />)} />
+                        <Route path="/manufacturing/output" element={guard("/manufacturing/output", <ManufactureOutput />)} />
                         <Route path="/manufacturing/batch-calculator" element={<ManufactureBatchCalculator />} />
-                        <Route path="/manufacturing/batch-planning" element={<BatchPlanningCalculator />} />
-                        <Route path="/manufacturing/orders" element={<ManufactureOrderList />} />
+                        <Route path="/manufacturing/batch-planning" element={guard("/manufacturing/batch-planning", <BatchPlanningCalculator />)} />
+                        <Route path="/manufacturing/orders" element={guard("/manufacturing/orders", <ManufactureOrderList />)} />
                         <Route path="/manufacturing/orders/:id" element={<ManufactureOrderDetail />} />
-                        <Route path="/products/margins" element={<ProductMarginsList />} />
-                        <Route path="/journal" element={<JournalList />} />
-                        <Route path="/marketing/calendar" element={<MarketingCalendarPage />} />
-                        <Route path="/marketing/photobank" element={<PhotobankPage />} />
+                        <Route path="/products/margins" element={guard("/products/margins", <ProductMarginsList />)} />
+                        <Route path="/journal" element={guard("/journal", <JournalList />)} />
+                        <Route path="/marketing/calendar" element={guard("/marketing/calendar", <MarketingCalendarPage />)} />
+                        <Route path="/marketing/photobank" element={guard("/marketing/photobank", <PhotobankPage />)} />
                         <Route path="/marketing/photobank/settings" element={<PhotobankSettingsPage />} />
-                        <Route path="/leaflet-generator" element={<LeafletGeneratorPage />} />
+                        <Route path="/leaflet-generator" element={guard("/leaflet-generator", <LeafletGeneratorPage />)} />
                         <Route path="/journal/new" element={<JournalEntryNew />} />
                         <Route path="/journal/:id/edit" element={<JournalEntryEdit />} />
-                        <Route path="/logistics/inventory" element={<InventoryList />} />
-                        <Route path="/manufacturing/inventory" element={<ManufactureInventoryList />} />
-                        <Route path="/manufacturing/product-inventory" element={<ManufacturedInventoryPage />} />
-                        <Route path="/manufacturing/material-containers" element={<MaterialContainerList />} />
+                        <Route path="/logistics/inventory" element={guard("/logistics/inventory", <InventoryList />)} />
+                        <Route path="/manufacturing/inventory" element={guard("/manufacturing/inventory", <ManufactureInventoryList />)} />
+                        <Route path="/manufacturing/product-inventory" element={guard("/manufacturing/product-inventory", <ManufacturedInventoryPage />)} />
+                        <Route path="/manufacturing/material-containers" element={guard("/manufacturing/material-containers", <MaterialContainerList />)} />
                         <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
                         <Route path="/logistics/receive-boxes" element={<TransportBoxReceivePage />} />
                         <Route path="/logistics/gift-package-manufacturing" element={<GiftPackageManufacturing />} />
                         <Route path="/logistics/warehouse-statistics" element={<WarehouseStatistics />} />
                         <Route path="/logistics/packing-materials" element={<PackingMaterialsPage />} />
-                        <Route path="/logistics/expedition-archive" element={<ExpeditionListArchivePage />} />
+                        <Route path="/logistics/expedition-archive" element={guard("/logistics/expedition-archive", <ExpeditionListArchivePage />)} />
                         <Route path="/automation/invoice-import-statistics" element={<InvoiceImportStatistics />} />
                         <Route path="/automation/background-tasks" element={<BackgroundTasks />} />
-                        <Route path="/automation/meeting-tasks" element={<MeetingTasksPage />} />
+                        <Route path="/automation/meeting-tasks" element={guard("/automation/meeting-tasks", <MeetingTasksPage />)} />
                         <Route path="/automation/meeting-tasks/:id" element={<MeetingTaskDetailPage />} />
                         <Route path="/customer/issued-invoices" element={<IssuedInvoicesPage />} />
-                        <Route path="/customer/bank-statements-overview" element={<BankStatementsOverviewPage />} />
-                        <Route path="/customer/smartsupp" element={<SmartsuppChatsPage />} />
+                        <Route path="/customer/bank-statements-overview" element={guard("/customer/bank-statements-overview", <BankStatementsOverviewPage />)} />
+                        <Route path="/customer/smartsupp" element={guard("/customer/smartsupp", <SmartsuppChatsPage />)} />
                         <Route path="/customer/expedition-settings" element={<ExpeditionSettingsPage />} />
                         <Route path="/customer/cooling" element={<Navigate to="/customer/expedition-settings?tab=cooling" replace />} />
                         <Route path="/orgchart" element={<OrgChartPage />} />
-                        <Route path="/stock-up-operations" element={<StockOperationsPage />} />
+                        <Route path="/stock-up-operations" element={guard("/stock-up-operations", <StockOperationsPage />)} />
                         <Route path="/recurring-jobs" element={<RecurringJobsPage />} />
-                        <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
+                        <Route path="/knowledge-base" element={guard("/knowledge-base", <KnowledgeBasePage />)} />
                         <Route path="/knowledge-base/feedback" element={<KnowledgeBaseFeedbackPage />} />
                         <Route path="/marketing/feedback" element={<MarketingFeedbackPage />} />
-                        <Route path="/articles" element={<ArticlesPage />} />
-                        <Route path="/automation/data-quality" element={<DataQualityPage />} />
-                        <Route path="/admin/feature-flags" element={<FeatureFlagsAdminPage />} />
+                        <Route path="/articles" element={guard("/articles", <ArticlesPage />)} />
+                        <Route path="/automation/data-quality" element={guard("/automation/data-quality", <DataQualityPage />)} />
+                        <Route path="/admin/feature-flags" element={guard("/admin/feature-flags", <FeatureFlagsAdminPage />)} />
                       </Route>
                     </Routes>
                     </AppInsightsProvider>

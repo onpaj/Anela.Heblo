@@ -118,4 +118,42 @@ public class CurrentUserServiceTests
         Assert.False(user.IsAuthenticated);
         Assert.Equal("Anonymous", user.Name);
     }
+
+    [Fact]
+    public void GetCurrentUser_PrefersNameIdentifierOverSubAndOid()
+    {
+        var principal = Authenticated(
+            new Claim(ClaimTypes.NameIdentifier, "name-id-123"),
+            new Claim("sub", "sub-456"),
+            new Claim("oid", "oid-789"));
+        var service = CreateService(principal);
+
+        var user = service.GetCurrentUser();
+
+        Assert.Equal("name-id-123", user.Id);
+    }
+
+    [Fact]
+    public void GetCurrentUser_PrefersSubOverOid_WhenNameIdentifierAbsent()
+    {
+        var principal = Authenticated(
+            new Claim("sub", "sub-456"),
+            new Claim("oid", "oid-789"));
+        var service = CreateService(principal);
+
+        var user = service.GetCurrentUser();
+
+        Assert.Equal("sub-456", user.Id);
+    }
+
+    [Fact]
+    public void GetCurrentUser_WhenNoSupportedIdClaim_ReturnsNullId()
+    {
+        var principal = Authenticated(new Claim(ClaimTypes.Name, "Some Display Name"));
+        var service = CreateService(principal);
+
+        var user = service.GetCurrentUser();
+
+        Assert.Null(user.Id);
+    }
 }

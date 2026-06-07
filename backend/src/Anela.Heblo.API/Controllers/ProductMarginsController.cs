@@ -1,11 +1,12 @@
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductMargins;
+using Anela.Heblo.Domain.Features.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = AccessRoles.ProductMarginsRead)]
 [ApiController]
 [Route("api/[controller]")]
 public class ProductMarginsController : BaseApiController

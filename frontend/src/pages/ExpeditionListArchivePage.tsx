@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { FileText, Printer, ExternalLink, ChevronLeft, ChevronRight, Play, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getAuthenticatedApiClient, QUERY_KEYS } from "../api/client";
+import { getAuthenticatedFetch, QUERY_KEYS } from "../api/client";
 import {
   useExpeditionDates,
   useExpeditionListsByDate,
   useReprintExpeditionList,
-  useRunExpeditionListPrintFix,
   getExpeditionListDownloadUrl,
   ExpeditionListItemDto,
 } from "../api/hooks/useExpeditionListArchive";
+import { useRunExpeditionListPrintFix } from "../api/hooks/useExpeditionList";
 import { useTriggerRecurringJobMutation } from "../api/hooks/useRecurringJobs";
 import { useToast } from "../contexts/ToastContext";
 import { useScreenView } from "../telemetry/useScreenView";
@@ -61,9 +61,8 @@ const ExpeditionListArchivePage: React.FC = () => {
 
   const handleOpen = async (item: ExpeditionListItemDto) => {
     const url = getExpeditionListDownloadUrl(item.blobPath);
-    const apiClient = getAuthenticatedApiClient();
     try {
-      const response = await (apiClient as any).http.fetch(url, { method: 'GET' });
+      const response = await getAuthenticatedFetch()(url, { method: 'GET' });
       if (!response.ok) {
         showError('Chyba', `Nepodařilo se otevřít soubor (${response.status}).`);
         return;

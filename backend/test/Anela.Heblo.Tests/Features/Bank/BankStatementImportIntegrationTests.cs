@@ -298,6 +298,65 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
             Assert.Equal("OK", savedImport.ImportResult);
         }
     }
+
+    [Fact]
+    public async Task GetBankStatement_WithExistingId_Returns200WithDtoBody()
+    {
+        // Arrange — seed a bank statement directly through the DbContext.
+        int seededId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<Anela.Heblo.Persistence.ApplicationDbContext>();
+            var entity = new Anela.Heblo.Domain.Features.Bank.BankStatementImport("T-INT-GET", new DateTime(2026, 3, 1))
+            {
+                Account = "ComgateCZK",
+                Currency = Anela.Heblo.Domain.Shared.CurrencyCode.CZK,
+                ItemCount = 4,
+                ImportResult = "OK"
+            };
+            context.BankStatements.Add(entity);
+            await context.SaveChangesAsync();
+            seededId = entity.Id;
+        }
+
+        // Act
+        var response = await _client.GetAsync($"/api/bank-statements/{seededId}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadAsStringAsync();
+        var dto = JsonSerializer.Deserialize<Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto>(
+            body,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.NotNull(dto);
+        Assert.Equal(seededId, dto!.Id);
+        Assert.Equal("T-INT-GET", dto.TransferId);
+        Assert.Equal("ComgateCZK", dto.Account);
+        Assert.Equal("CZK", dto.Currency);
+        Assert.Equal(4, dto.ItemCount);
+        Assert.Equal("OK", dto.ImportResult);
+    }
+
+    [Fact]
+    public async Task GetBankStatement_WithMissingId_Returns404WithMessageBody()
+    {
+        // Arrange — pick an id that cannot exist.
+        const int missingId = 987654321;
+
+        // Act
+        var response = await _client.GetAsync($"/api/bank-statements/{missingId}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        var body = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(body);
+        Assert.True(doc.RootElement.TryGetProperty("message", out var messageProp),
+            "404 response must contain a 'message' field to preserve wire format");
+        Assert.Equal($"Bank statement import with ID {missingId} not found", messageProp.GetString());
+    }
 }
 
 /// <summary>

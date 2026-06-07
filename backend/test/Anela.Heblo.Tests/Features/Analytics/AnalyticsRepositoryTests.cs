@@ -43,7 +43,7 @@ public class AnalyticsRepositoryTests
                 It.IsAny<CancellationToken>()))
             .Returns(ToAsyncEnumerable(products));
 
-        var repository = new AnalyticsRepository(productSourceMock.Object, null!);
+        var repository = new AnalyticsRepository(productSourceMock.Object, null!, null!);
 
         var fromDate = new DateTime(2024, 1, 1);
         var toDate = new DateTime(2024, 12, 31);

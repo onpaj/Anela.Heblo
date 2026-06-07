@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -10,7 +11,7 @@ namespace Anela.Heblo.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = AccessRoles.MarketingCalendarRead)]
     public class MarketingCalendarController : BaseApiController
     {
         private readonly IMediator _mediator;
@@ -61,6 +62,7 @@ namespace Anela.Heblo.API.Controllers
         /// Create a new marketing action
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = AccessRoles.MarketingCalendarWrite)]
         [ProducesResponseType(typeof(CreateMarketingActionResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -77,6 +79,7 @@ namespace Anela.Heblo.API.Controllers
         /// Update an existing marketing action
         /// </summary>
         [HttpPut("{id:int}")]
+        [Authorize(Roles = AccessRoles.MarketingCalendarWrite)]
         [ProducesResponseType(typeof(UpdateMarketingActionResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -93,6 +96,7 @@ namespace Anela.Heblo.API.Controllers
         /// Delete a marketing action (soft delete)
         /// </summary>
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = AccessRoles.MarketingCalendarWrite)]
         [ProducesResponseType(typeof(DeleteMarketingActionResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -107,7 +111,7 @@ namespace Anela.Heblo.API.Controllers
         /// Import marketing actions from the configured Outlook calendar (admin only)
         /// </summary>
         [HttpPost("import-from-outlook")]
-        [Authorize(Roles = "super_user")]
+        [Authorize(Roles = AccessRoles.MarketingCalendarWrite)]
         [ProducesResponseType(typeof(ImportFromOutlookResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]

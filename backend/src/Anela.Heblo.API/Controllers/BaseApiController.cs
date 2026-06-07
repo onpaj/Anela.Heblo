@@ -1,6 +1,5 @@
 using System.Net;
 using System.Reflection;
-using System.Security.Claims;
 using Anela.Heblo.Application.Shared;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -71,10 +70,4 @@ public abstract class BaseApiController : ControllerBase
 
         return attribute?.StatusCode ?? HttpStatusCode.BadRequest;
     }
-
-    protected string GetCurrentUserId()
-        => User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-           ?? User.FindFirst("sub")?.Value
-           ?? User.FindFirst("oid")?.Value
-           ?? throw new UnauthorizedAccessException("Authenticated user has no identifiable claim.");
 }
