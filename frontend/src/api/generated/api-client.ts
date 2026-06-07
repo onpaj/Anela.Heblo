@@ -952,6 +952,47 @@ export class ApiClient {
         return Promise.resolve<DeleteGroupResponse>(null as any);
     }
 
+    authorization_AddGroupMember(id: string, request: AddGroupMemberRequest): Promise<AddGroupMemberResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/groups/{id}/members";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_AddGroupMember(_response);
+        });
+    }
+
+    protected processAuthorization_AddGroupMember(response: Response): Promise<AddGroupMemberResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AddGroupMemberResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AddGroupMemberResponse>(null as any);
+    }
+
     authorization_GetUsers(): Promise<GetUsersResponse> {
         let url_ = this.baseUrl + "/api/admin/authorization/users";
         url_ = url_.replace(/[?&]$/, "");
@@ -984,6 +1025,40 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetUsersResponse>(null as any);
+    }
+
+    authorization_GetEntraUsers(): Promise<GetEntraAccessUsersResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/entra-users";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_GetEntraUsers(_response);
+        });
+    }
+
+    protected processAuthorization_GetEntraUsers(response: Response): Promise<GetEntraAccessUsersResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetEntraAccessUsersResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetEntraAccessUsersResponse>(null as any);
     }
 
     authorization_GetUserPermissions(id: string): Promise<GetUserEffectivePermissionsResponse> {
@@ -12778,7 +12853,6 @@ export enum ErrorCodes {
     AuthorizationUserNotFound = "AuthorizationUserNotFound",
     AuthorizationInvalidPermission = "AuthorizationInvalidPermission",
     AuthorizationGroupCycleDetected = "AuthorizationGroupCycleDetected",
-    AuthorizationSystemGroupImmutable = "AuthorizationSystemGroupImmutable",
     AuthorizationDuplicateGroupName = "AuthorizationDuplicateGroupName",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
@@ -14607,7 +14681,6 @@ export class GroupSummaryDto implements IGroupSummaryDto {
     id?: string;
     name?: string;
     description?: string | undefined;
-    isSystem?: boolean;
     permissionCount?: number;
     parentCount?: number;
     memberCount?: number;
@@ -14626,7 +14699,6 @@ export class GroupSummaryDto implements IGroupSummaryDto {
             this.id = _data["id"];
             this.name = _data["name"];
             this.description = _data["description"];
-            this.isSystem = _data["isSystem"];
             this.permissionCount = _data["permissionCount"];
             this.parentCount = _data["parentCount"];
             this.memberCount = _data["memberCount"];
@@ -14645,7 +14717,6 @@ export class GroupSummaryDto implements IGroupSummaryDto {
         data["id"] = this.id;
         data["name"] = this.name;
         data["description"] = this.description;
-        data["isSystem"] = this.isSystem;
         data["permissionCount"] = this.permissionCount;
         data["parentCount"] = this.parentCount;
         data["memberCount"] = this.memberCount;
@@ -14657,7 +14728,6 @@ export interface IGroupSummaryDto {
     id?: string;
     name?: string;
     description?: string | undefined;
-    isSystem?: boolean;
     permissionCount?: number;
     parentCount?: number;
     memberCount?: number;
@@ -14700,7 +14770,6 @@ export class GroupDetailDto implements IGroupDetailDto {
     id?: string;
     name?: string;
     description?: string | undefined;
-    isSystem?: boolean;
     permissions?: string[];
     parentGroupIds?: string[];
 
@@ -14718,7 +14787,6 @@ export class GroupDetailDto implements IGroupDetailDto {
             this.id = _data["id"];
             this.name = _data["name"];
             this.description = _data["description"];
-            this.isSystem = _data["isSystem"];
             if (Array.isArray(_data["permissions"])) {
                 this.permissions = [] as any;
                 for (let item of _data["permissions"])
@@ -14744,7 +14812,6 @@ export class GroupDetailDto implements IGroupDetailDto {
         data["id"] = this.id;
         data["name"] = this.name;
         data["description"] = this.description;
-        data["isSystem"] = this.isSystem;
         if (Array.isArray(this.permissions)) {
             data["permissions"] = [];
             for (let item of this.permissions)
@@ -14763,7 +14830,6 @@ export interface IGroupDetailDto {
     id?: string;
     name?: string;
     description?: string | undefined;
-    isSystem?: boolean;
     permissions?: string[];
     parentGroupIds?: string[];
 }
@@ -14987,6 +15053,155 @@ export class DeleteGroupResponse extends BaseResponse implements IDeleteGroupRes
 export interface IDeleteGroupResponse extends IBaseResponse {
 }
 
+export class AddGroupMemberResponse extends BaseResponse implements IAddGroupMemberResponse {
+    user?: AppUserDto | undefined;
+
+    constructor(data?: IAddGroupMemberResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.user = _data["user"] ? AppUserDto.fromJS(_data["user"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): AddGroupMemberResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddGroupMemberResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["user"] = this.user ? this.user.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IAddGroupMemberResponse extends IBaseResponse {
+    user?: AppUserDto | undefined;
+}
+
+export class AppUserDto implements IAppUserDto {
+    id?: string;
+    entraObjectId?: string;
+    email?: string;
+    displayName?: string;
+    isActive?: boolean;
+    lastLoginAt?: Date | undefined;
+    groupIds?: string[];
+
+    constructor(data?: IAppUserDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.entraObjectId = _data["entraObjectId"];
+            this.email = _data["email"];
+            this.displayName = _data["displayName"];
+            this.isActive = _data["isActive"];
+            this.lastLoginAt = _data["lastLoginAt"] ? new Date(_data["lastLoginAt"].toString()) : <any>undefined;
+            if (Array.isArray(_data["groupIds"])) {
+                this.groupIds = [] as any;
+                for (let item of _data["groupIds"])
+                    this.groupIds!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): AppUserDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AppUserDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["entraObjectId"] = this.entraObjectId;
+        data["email"] = this.email;
+        data["displayName"] = this.displayName;
+        data["isActive"] = this.isActive;
+        data["lastLoginAt"] = this.lastLoginAt ? this.lastLoginAt.toISOString() : <any>undefined;
+        if (Array.isArray(this.groupIds)) {
+            data["groupIds"] = [];
+            for (let item of this.groupIds)
+                data["groupIds"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IAppUserDto {
+    id?: string;
+    entraObjectId?: string;
+    email?: string;
+    displayName?: string;
+    isActive?: boolean;
+    lastLoginAt?: Date | undefined;
+    groupIds?: string[];
+}
+
+export class AddGroupMemberRequest implements IAddGroupMemberRequest {
+    groupId?: string;
+    entraObjectId?: string;
+    email?: string;
+    displayName?: string;
+
+    constructor(data?: IAddGroupMemberRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.groupId = _data["groupId"];
+            this.entraObjectId = _data["entraObjectId"];
+            this.email = _data["email"];
+            this.displayName = _data["displayName"];
+        }
+    }
+
+    static fromJS(data: any): AddGroupMemberRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddGroupMemberRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["groupId"] = this.groupId;
+        data["entraObjectId"] = this.entraObjectId;
+        data["email"] = this.email;
+        data["displayName"] = this.displayName;
+        return data;
+    }
+}
+
+export interface IAddGroupMemberRequest {
+    groupId?: string;
+    entraObjectId?: string;
+    email?: string;
+    displayName?: string;
+}
+
 export class GetUsersResponse extends BaseResponse implements IGetUsersResponse {
     users?: AppUserDto[];
 
@@ -15028,15 +15243,53 @@ export interface IGetUsersResponse extends IBaseResponse {
     users?: AppUserDto[];
 }
 
-export class AppUserDto implements IAppUserDto {
-    id?: string;
+export class GetEntraAccessUsersResponse extends BaseResponse implements IGetEntraAccessUsersResponse {
+    users?: EntraUserDto[];
+
+    constructor(data?: IGetEntraAccessUsersResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["users"])) {
+                this.users = [] as any;
+                for (let item of _data["users"])
+                    this.users!.push(EntraUserDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetEntraAccessUsersResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetEntraAccessUsersResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.users)) {
+            data["users"] = [];
+            for (let item of this.users)
+                data["users"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetEntraAccessUsersResponse extends IBaseResponse {
+    users?: EntraUserDto[];
+}
+
+export class EntraUserDto implements IEntraUserDto {
+    entraObjectId?: string;
     email?: string;
     displayName?: string;
-    isActive?: boolean;
-    lastLoginAt?: Date | undefined;
-    groupIds?: string[];
 
-    constructor(data?: IAppUserDto) {
+    constructor(data?: IEntraUserDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -15047,49 +15300,32 @@ export class AppUserDto implements IAppUserDto {
 
     init(_data?: any) {
         if (_data) {
-            this.id = _data["id"];
+            this.entraObjectId = _data["entraObjectId"];
             this.email = _data["email"];
             this.displayName = _data["displayName"];
-            this.isActive = _data["isActive"];
-            this.lastLoginAt = _data["lastLoginAt"] ? new Date(_data["lastLoginAt"].toString()) : <any>undefined;
-            if (Array.isArray(_data["groupIds"])) {
-                this.groupIds = [] as any;
-                for (let item of _data["groupIds"])
-                    this.groupIds!.push(item);
-            }
         }
     }
 
-    static fromJS(data: any): AppUserDto {
+    static fromJS(data: any): EntraUserDto {
         data = typeof data === 'object' ? data : {};
-        let result = new AppUserDto();
+        let result = new EntraUserDto();
         result.init(data);
         return result;
     }
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
+        data["entraObjectId"] = this.entraObjectId;
         data["email"] = this.email;
         data["displayName"] = this.displayName;
-        data["isActive"] = this.isActive;
-        data["lastLoginAt"] = this.lastLoginAt ? this.lastLoginAt.toISOString() : <any>undefined;
-        if (Array.isArray(this.groupIds)) {
-            data["groupIds"] = [];
-            for (let item of this.groupIds)
-                data["groupIds"].push(item);
-        }
         return data;
     }
 }
 
-export interface IAppUserDto {
-    id?: string;
+export interface IEntraUserDto {
+    entraObjectId?: string;
     email?: string;
     displayName?: string;
-    isActive?: boolean;
-    lastLoginAt?: Date | undefined;
-    groupIds?: string[];
 }
 
 export class GetUserEffectivePermissionsResponse extends BaseResponse implements IGetUserEffectivePermissionsResponse {

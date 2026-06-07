@@ -10,12 +10,15 @@ import type {
   DeleteGroupResponse,
   AssignUserGroupsResponse,
   SetUserActiveResponse,
+  GetEntraAccessUsersResponse,
+  AddGroupMemberResponse,
 } from "../generated/api-client";
 import {
   CreateGroupRequest,
   UpdateGroupRequest,
   AssignUserGroupsRequest,
   SetUserActiveRequest,
+  AddGroupMemberRequest,
 } from "../generated/api-client";
 
 const keys = {
@@ -23,6 +26,7 @@ const keys = {
   groups: ["authz", "groups"] as const,
   group: (id: string) => ["authz", "group", id] as const,
   users: ["authz", "users"] as const,
+  entraUsers: ["authz", "entra-users"] as const,
 };
 
 export const useCatalogue = () => {
@@ -152,4 +156,35 @@ export const useSetUserActive = () => {
   });
 };
 
-export type { CreateGroupRequest, UpdateGroupRequest, AssignUserGroupsRequest, SetUserActiveRequest };
+export const useEntraAccessUsers = () => {
+  return useQuery({
+    queryKey: keys.entraUsers,
+    queryFn: async (): Promise<GetEntraAccessUsersResponse> => {
+      const client = getAuthenticatedApiClient();
+      return client.authorization_GetEntraUsers();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useAddGroupMember = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      groupId,
+      request,
+    }: {
+      groupId: string;
+      request: AddGroupMemberRequest;
+    }): Promise<AddGroupMemberResponse> => {
+      const client = getAuthenticatedApiClient();
+      return client.authorization_AddGroupMember(groupId, request);
+    },
+    onSuccess: (_data, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: keys.users });
+      queryClient.invalidateQueries({ queryKey: keys.group(groupId) });
+    },
+  });
+};
+
+export type { CreateGroupRequest, UpdateGroupRequest, AssignUserGroupsRequest, SetUserActiveRequest, AddGroupMemberRequest };
