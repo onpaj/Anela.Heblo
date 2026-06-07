@@ -28,6 +28,7 @@ const keys = {
   group: (id: string) => ["authz", "group", id] as const,
   users: ["authz", "users"] as const,
   entraUsers: ["authz", "entra-users"] as const,
+  userPermissionsPrefix: ["authz", "user-permissions"] as const,
   userPermissions: (id: string) => ["authz", "user-permissions", id] as const,
 };
 
@@ -146,7 +147,7 @@ export const useAssignUserGroups = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keys.users });
-      queryClient.invalidateQueries({ queryKey: ["authz", "user-permissions"] });
+      queryClient.invalidateQueries({ queryKey: keys.userPermissionsPrefix }, { exact: false });
     },
   });
 };
