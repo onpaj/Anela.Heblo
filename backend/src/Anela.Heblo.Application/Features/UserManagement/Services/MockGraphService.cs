@@ -40,4 +40,21 @@ public class MockGraphService : IGraphService
 
         return Task.FromResult(mockMembers);
     }
+
+    public Task<List<UserDto>> SearchUsersAsync(string query, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Mock GraphService: Returning mock search results for query '{Query}'", query);
+
+        var results = new List<UserDto>
+        {
+            new UserDto
+            {
+                Id = "mock-search-user-1",
+                DisplayName = "Mock Search Result",
+                Email = "mock.search@anela-heblo.com"
+            }
+        };
+
+        return Task.FromResult(results);
+    }
 }
