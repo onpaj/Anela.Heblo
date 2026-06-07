@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetEntraAccessUsers;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.Services;
+using Anela.Heblo.Domain.Features.Authorization;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -16,7 +17,7 @@ public class GetEntraAccessUsersHandlerTests
     public async Task Handle_ReturnsEntraUsersOrderedByDisplayName()
     {
         var mock = new Mock<IGraphService>();
-        mock.Setup(g => g.GetAppRoleMembersAsync("heblo_user", default))
+        mock.Setup(g => g.GetAppRoleMembersAsync(AccessRoles.Base, default))
             .ReturnsAsync(new List<UserDto>
             {
                 new() { Id = "obj-2", DisplayName = "Zdenek Novak", Email = "z@x.cz" },
