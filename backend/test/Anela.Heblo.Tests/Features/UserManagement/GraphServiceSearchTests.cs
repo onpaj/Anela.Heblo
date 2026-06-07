@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.UserManagement;
 
-public class GraphServiceSearchTests
+public sealed class GraphServiceSearchTests
 {
     private const string MicrosoftGraphClientName = "MicrosoftGraph";
 
@@ -68,5 +68,50 @@ public class GraphServiceSearchTests
         var result = await service.SearchUsersAsync("ali");
 
         result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task SearchUsersAsync_EmptyQuery_ReturnsEmpty_WithoutTouchingFactory()
+    {
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, SampleUsersResponse);
+        var service = BuildService(handler, out var factoryMock);
+
+        var result = await service.SearchUsersAsync("   ");
+
+        result.Should().BeEmpty();
+        factoryMock.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SearchUsersAsync_TokenFailure_ReturnsEmpty_WithoutTouchingFactory()
+    {
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, SampleUsersResponse);
+        var factoryMock = new Mock<IHttpClientFactory>();
+        factoryMock.Setup(f => f.CreateClient(MicrosoftGraphClientName))
+            .Returns(() => new HttpClient(handler, disposeHandler: false));
+        var tokenMock = new Mock<ITokenAcquisition>();
+        tokenMock.Setup(t => t.GetAccessTokenForAppAsync(
+                It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<TokenAcquisitionOptions?>()))
+            .ThrowsAsync(new MsalUiRequiredException("err", "msg"));
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new GraphService(tokenMock.Object, cache, Mock.Of<ILogger<GraphService>>(), factoryMock.Object);
+
+        var result = await service.SearchUsersAsync("ali");
+
+        result.Should().BeEmpty();
+        factoryMock.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SearchUsersAsync_StripsDoubleQuotesFromQuery()
+    {
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, SampleUsersResponse);
+        var service = BuildService(handler, out _);
+
+        await service.SearchUsersAsync("ali\"ce");
+
+        // The injected double-quote is removed before encoding, so the encoded term is "alice" not "ali"ce".
+        handler.LastRequestUri!.ToString().Should().Contain("alice");
+        handler.LastRequestUri!.ToString().Should().NotContain("ali%22ce");
     }
 }
