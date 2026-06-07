@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Authorization.UseCases.GetGroupDetail;
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetGroups;
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetPermissionCatalogue;
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetUserEffectivePermissions;
+using Anela.Heblo.Application.Features.Authorization.UseCases.GetEntraAccessUsers;
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetUsers;
 using Anela.Heblo.Application.Features.Authorization.UseCases.SetUserActive;
 using Anela.Heblo.Application.Features.Authorization.UseCases.UpdateGroup;
@@ -56,6 +57,10 @@ public class AuthorizationController : BaseApiController
     [HttpGet("users")]
     public async Task<ActionResult<GetUsersResponse>> GetUsers(CancellationToken ct)
         => HandleResponse(await _mediator.Send(new GetUsersRequest(), ct));
+
+    [HttpGet("entra-users")]
+    public async Task<ActionResult<GetEntraAccessUsersResponse>> GetEntraUsers(CancellationToken ct)
+        => HandleResponse(await _mediator.Send(new GetEntraAccessUsersRequest(), ct));
 
     [HttpGet("users/{id:guid}/permissions")]
     public async Task<ActionResult<GetUserEffectivePermissionsResponse>> GetUserPermissions([FromRoute] Guid id, CancellationToken ct)
