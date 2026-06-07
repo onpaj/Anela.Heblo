@@ -8,7 +8,7 @@ var jsonPath = args.ElementAtOrDefault(1) ?? "access-matrix.generated.json";
 var roles = AccessMatrix.Roles().ToList();
 
 // 1. JSON manifest for the az script.
-var appRoles = roles.Select(r => new
+var featureRoles = roles.Select(r => new
 {
     id = DeterministicGuid.ForRole(r.Value).ToString(),
     allowedMemberTypes = new[] { "User" },
@@ -17,6 +17,19 @@ var appRoles = roles.Select(r => new
     isEnabled = true,
     value = r.Value
 });
+var superUserRole = new[]
+{
+    new
+    {
+        id = DeterministicGuid.ForRole(AccessRoles.SuperUser).ToString(),
+        allowedMemberTypes = new[] { "User" },
+        description = "Break-glass: grants all permissions regardless of DB group assignments",
+        displayName = AccessRoles.SuperUser,
+        isEnabled = true,
+        value = AccessRoles.SuperUser,
+    }
+};
+var appRoles = superUserRole.Concat(featureRoles);
 var groups = AccessMatrix.Groups.Select(g => new { name = g.Name, roles = g.Roles });
 var manifest = new { appRoles, groups };
 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(jsonPath)) ?? ".");
