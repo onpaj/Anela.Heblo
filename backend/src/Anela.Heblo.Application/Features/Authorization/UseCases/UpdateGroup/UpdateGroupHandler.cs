@@ -18,6 +18,11 @@ public class UpdateGroupHandler : IRequestHandler<UpdateGroupRequest, UpdateGrou
         if (string.IsNullOrWhiteSpace(request.Name))
             return new UpdateGroupResponse(ErrorCodes.ValidationError);
 
+        var trimmedName = request.Name.Trim();
+        var duplicate = await _repo.GetGroupByNameAsync(trimmedName, ct);
+        if (duplicate is not null && duplicate.Id != group.Id)
+            return new UpdateGroupResponse(ErrorCodes.AuthorizationDuplicateGroupName);
+
         var valid = AccessMatrix.AllRoleValues().ToHashSet();
         if (request.Permissions.Any(p => !valid.Contains(p)))
             return new UpdateGroupResponse(ErrorCodes.AuthorizationInvalidPermission);
@@ -29,7 +34,7 @@ public class UpdateGroupHandler : IRequestHandler<UpdateGroupRequest, UpdateGrou
         if (GroupCycleCheck.WouldCreateCycle(group.Id, request.ParentGroupIds, existing))
             return new UpdateGroupResponse(ErrorCodes.AuthorizationGroupCycleDetected);
 
-        group.Name = request.Name.Trim();
+        group.Name = trimmedName;
         group.Description = request.Description;
 
         group.Permissions.Clear();

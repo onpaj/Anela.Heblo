@@ -160,7 +160,8 @@ export default function GroupDetailPage() {
         }),
       });
 
-      const memberArgs = buildMemberMutationArgs(draft, original, id, usersQuery.data?.users ?? []);
+      const { data: freshUsersData } = await usersQuery.refetch();
+      const memberArgs = buildMemberMutationArgs(draft, original, id, freshUsersData?.users ?? []);
       await Promise.all(
         memberArgs.map(({ id: userId, request }) =>
           assignUserGroups.mutateAsync({

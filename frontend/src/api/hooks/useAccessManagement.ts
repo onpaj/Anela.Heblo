@@ -167,6 +167,7 @@ export const useSetUserActive = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keys.users });
+      queryClient.invalidateQueries({ queryKey: keys.userPermissionsPrefix, exact: false });
     },
   });
 };

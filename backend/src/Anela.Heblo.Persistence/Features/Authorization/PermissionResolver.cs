@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Authorization.Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Anela.Heblo.Persistence.Features.Authorization;
@@ -27,7 +28,7 @@ public class PermissionResolver : IPermissionResolver
         var user = await _repo.GetUserByObjectIdAsync(entraObjectId, ct);
         if (user is null)
         {
-            user = new AppUser
+            var newUser = new AppUser
             {
                 Id = Guid.NewGuid(),
                 EntraObjectId = entraObjectId,
@@ -37,8 +38,18 @@ public class PermissionResolver : IPermissionResolver
                 CreatedAt = DateTimeOffset.UtcNow,
                 LastLoginAt = DateTimeOffset.UtcNow,
             };
-            await _repo.AddUserAsync(user, ct);
-            await _repo.SaveChangesAsync(ct);
+            await _repo.AddUserAsync(newUser, ct);
+            try
+            {
+                await _repo.SaveChangesAsync(ct);
+                user = newUser;
+            }
+            catch (DbUpdateException)
+            {
+                // A concurrent request inserted the same user; load what was actually persisted.
+                user = await _repo.GetUserByObjectIdAsync(entraObjectId, ct)
+                       ?? throw new InvalidOperationException($"Concurrent user creation failed for EntraObjectId '{entraObjectId}'.");
+            }
         }
         else
         {
