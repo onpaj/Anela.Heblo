@@ -18,6 +18,7 @@ import { useToast } from "../contexts/ToastContext";
 import PermissionPicker from "../components/access-management/PermissionPicker";
 import IncludedGroupsPicker from "../components/access-management/IncludedGroupsPicker";
 import MembersPicker from "../components/access-management/MembersPicker";
+import EntraMemberSearch from "../components/access-management/EntraMemberSearch";
 
 interface GroupDraft {
   name: string;
@@ -264,6 +265,15 @@ export default function GroupDetailPage() {
 
       <section>
         <h2 className="text-lg font-medium text-gray-900 mb-3">Members</h2>
+        {!isCreateMode && (
+          <EntraMemberSearch
+            groupId={id}
+            currentMemberIds={draft.memberUserIds}
+            onMemberAdded={(userId) =>
+              updateDraft({ memberUserIds: [...draft.memberUserIds, userId] })
+            }
+          />
+        )}
         <MembersPicker
           value={draft.memberUserIds}
           onChange={(memberUserIds) => updateDraft({ memberUserIds })}
