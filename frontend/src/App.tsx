@@ -36,6 +36,7 @@ import MeetingTaskDetailPage from "./components/pages/automation/MeetingTaskDeta
 import OrgChartPage from "./pages/OrgChartPage";
 import FeatureFlagsAdminPage from "./pages/FeatureFlagsAdminPage";
 import AccessManagementPage from "./pages/AccessManagementPage";
+import GroupDetailPage from "./pages/GroupDetailPage";
 import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClassificationPage";
 import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import StockOperationsPage from "./pages/StockOperationsPage";
@@ -491,6 +492,14 @@ function App() {
                           element={
                             <RequireAccess requiredRole="administration.read">
                               <AccessManagementPage />
+                            </RequireAccess>
+                          }
+                        />
+                        <Route
+                          path="/admin/access/groups/:id"
+                          element={
+                            <RequireAccess requiredRole="administration.read">
+                              <GroupDetailPage />
                             </RequireAccess>
                           }
                         />
