@@ -46,4 +46,11 @@ public sealed class Article
         Status = ArticleStatus.Failed;
         ErrorMessage = errorMessage.Length > 500 ? errorMessage[..500] : errorMessage;
     }
+
+    public void SubmitFeedback(int precisionScore, int styleScore, string? comment)
+    {
+        PrecisionScore = precisionScore;
+        StyleScore = styleScore;
+        FeedbackComment = comment;
+    }
 }
