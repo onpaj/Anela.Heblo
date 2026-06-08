@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { User, LogIn, LogOut, X, ShieldCheck } from "lucide-react";
+import { User, LogIn, LogOut, X, ShieldCheck, KeyRound, Users } from "lucide-react";
 import { useAuth } from "../../auth/useAuth";
 import { useMockAuth, shouldUseMockAuth } from "../../auth/mockAuth";
+import { usePermissionsContext } from "../../auth/PermissionsContext";
 
 interface UserProfileProps {
   compact?: boolean;
@@ -21,6 +22,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
   const [showModal, setShowModal] = useState(false);
   const userInfo = getUserInfo();
   const storedUserInfo = getStoredUserInfo();
+  const { permissions, groups, isSuperUser, isLoading: permissionsLoading } =
+    usePermissionsContext();
 
   const handleLogin = async () => {
     try {
@@ -164,6 +167,28 @@ const UserProfile: React.FC<UserProfileProps> = ({
                         className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary-blue-pale text-primary-blue"
                       >
                         {role}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Permissions */}
+              {!permissionsLoading && !isSuperUser && permissions.length > 0 && (
+                <div className="px-5 py-4 border-b border-gray-100">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <KeyRound className="h-4 w-4 text-emerald-600" />
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Oprávnění
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {permissions.map((perm) => (
+                      <span
+                        key={perm}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700"
+                      >
+                        {perm}
                       </span>
                     ))}
                   </div>
