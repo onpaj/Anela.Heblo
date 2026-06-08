@@ -51,8 +51,7 @@ import MarketingCalendarPage from "./components/marketing/pages/MarketingCalenda
 import PhotobankPage from "./components/marketing/photobank/pages/PhotobankPage";
 import PhotobankSettingsPage from "./components/marketing/photobank/pages/PhotobankSettingsPage";
 import AuthGuard from "./components/auth/AuthGuard";
-import { ACCESS_ROUTES } from "./auth/accessMatrix.generated";
-import { RequireAccess } from "./components/auth/RequireAccess";
+import RequireMenuPath from "./components/auth/RequireMenuPath";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
@@ -317,7 +316,7 @@ function App() {
   }, []);
 
   const guard = (path: string, element: React.ReactNode) => (
-    <RequireAccess requiredRole={ACCESS_ROUTES[path]}>{element}</RequireAccess>
+    <RequireMenuPath path={path}>{element}</RequireMenuPath>
   );
 
   if (loading) {
@@ -491,25 +490,25 @@ function App() {
                         <Route
                           path="/admin/access"
                           element={
-                            <RequireAccess requiredRole="administration.read">
+                            <RequireMenuPath path="/admin/access">
                               <AccessManagementPage />
-                            </RequireAccess>
+                            </RequireMenuPath>
                           }
                         />
                         <Route
                           path="/admin/access/groups/:id"
                           element={
-                            <RequireAccess requiredRole="administration.read">
+                            <RequireMenuPath path="/admin/access/groups/:id">
                               <GroupDetailPage />
-                            </RequireAccess>
+                            </RequireMenuPath>
                           }
                         />
                         <Route
                           path="/admin/access/users/:id"
                           element={
-                            <RequireAccess requiredRole="administration.read">
+                            <RequireMenuPath path="/admin/access/users/:id">
                               <UserDetailPage />
-                            </RequireAccess>
+                            </RequireMenuPath>
                           }
                         />
                       </Route>
