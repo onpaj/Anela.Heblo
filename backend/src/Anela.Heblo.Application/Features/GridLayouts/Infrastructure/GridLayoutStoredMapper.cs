@@ -10,6 +10,9 @@ internal static class GridLayoutStoredMapper
     public static List<GridColumnStateDto> ToDtoColumns(StoredGridLayout stored) =>
         stored.Columns.Select(c => new GridColumnStateDto
         {
-            Id = c.Id, Order = c.Order, Width = c.Width, Hidden = c.Hidden
+            Id = c.Id,
+            Order = c.Order,
+            Width = c.Width,
+            Hidden = c.Hidden
         }).ToList();
 }
