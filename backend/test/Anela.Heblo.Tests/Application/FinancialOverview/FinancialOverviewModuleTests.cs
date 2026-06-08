@@ -43,33 +43,33 @@ public class FinancialOverviewModuleTests
     }
 
     [Fact]
-    public void AddFinancialOverviewModule_CanOverridePlaceholderService_ForTesting()
+    public void AddFinancialOverviewModule_CanOverrideStockValueService_ForTesting()
     {
         // Arrange
         var services = new ServiceCollection();
+        services.AddSingleton(Mock.Of<IErpStockClient>());
+        services.AddSingleton(Mock.Of<IProductPriceErpClient>());
+        services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
         // Act - Register module first, then override
         services.AddFinancialOverviewModule(CreateMockConfiguration());
 
-        // Override default registration with placeholder for testing
-        var stockValueDescriptor = services.SingleOrDefault(s => s.ServiceType == typeof(IStockValueService));
+        var stockValueDescriptor = services.SingleOrDefault(
+            s => s.ServiceType == typeof(IStockValueService));
         if (stockValueDescriptor != null)
         {
             services.Remove(stockValueDescriptor);
         }
-        services.AddScoped<IStockValueService>(provider =>
-        {
-            var logger = provider.GetRequiredService<ILogger<PlaceholderStockValueService>>();
-            return new PlaceholderStockValueService(logger);
-        });
+
+        var stubStockValueService = Mock.Of<IStockValueService>();
+        services.AddScoped(_ => stubStockValueService);
 
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
-        var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
-        stockValueService.Should().NotBeNull();
-        stockValueService.Should().BeOfType<PlaceholderStockValueService>();
+        var resolved = serviceProvider.GetRequiredService<IStockValueService>();
+        resolved.Should().BeSameAs(stubStockValueService);
     }
 
     [Fact]
