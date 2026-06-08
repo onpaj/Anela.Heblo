@@ -630,7 +630,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {/* User Profile and Toggle button */}
             {!isCollapsed ? (
-              <div className="flex items-center justify-between h-16 py-2 border-t border-gray-100">
+              <div className="relative flex items-center justify-between h-16 py-2 border-t border-gray-100">
                 <div className="flex-1 min-w-0">
                   <UserProfile />
                 </div>
@@ -644,7 +644,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col items-center py-2 space-y-2 border-t border-gray-100">
+              <div className="relative flex flex-col items-center py-2 space-y-2 border-t border-gray-100">
                 <div className="w-full flex justify-center">
                   <UserProfile compact />
                 </div>
