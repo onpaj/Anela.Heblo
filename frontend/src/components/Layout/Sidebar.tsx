@@ -20,10 +20,9 @@ import {
   Megaphone,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
-import { useAuth } from "../../auth/useAuth";
-import { useMockAuth, shouldUseMockAuth } from "../../auth/mockAuth";
 import { useChangelogContext } from "../../contexts/ChangelogContext";
 import { ACCESS_ROUTES } from "../../auth/accessMatrix.generated";
+import { usePermissionsContext } from "../../auth/PermissionsContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -43,22 +42,20 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [activeItem, setActiveItem] = useState("dashboard");
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
 
-  // Use mock auth if enabled, otherwise use real auth
-  const realAuth = useAuth();
-  const mockAuth = useMockAuth();
-  const auth = shouldUseMockAuth() ? mockAuth : realAuth;
-  const { getUserInfo } = auth;
-  const userInfo = getUserInfo();
-
   // Changelog context
   const { openModal } = useChangelogContext();
 
-  // Helper function to check if user can see a route based on access matrix
-  const canSee = (path?: string): boolean => {
-    if (!path) return true; // section headers / items without a primary route
-    const required = ACCESS_ROUTES[path];
-    if (!required) return true; // base/un-gated pages (Dashboard, etc.)
-    return (userInfo?.roles ?? []).includes(required);
+  // Permissions come from the backend /me endpoint (DB-backed RBAC), not from
+  // the JWT roles claim. super_user grants everything.
+  const { hasPermission } = usePermissionsContext();
+
+  // Strict gate: a route is visible only when it's mapped in the access matrix
+  // and the user holds ALL required permissions. Routes absent from the matrix
+  // are hidden by default.
+  const canSeeKey = (key: string): boolean => {
+    const req = ACCESS_ROUTES[key];
+    if (!req) return false;
+    return req.permissions.every(p => hasPermission(p));
   };
 
   // Function to open Hangfire dashboard in new window
@@ -82,8 +79,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     window.open(`${window.location.origin}/terminal`, "_blank", "noopener,noreferrer");
   };
 
-  // Navigation sections - only implemented pages
-  const navigationSections = [
+  // Navigation sections - only implemented pages.
+  // Every sub-item declares a `key` that maps to ACCESS_ROUTES; sections with
+  // no visible sub-items are hidden entirely.
+  const allSections = [
     {
       id: "dashboard",
       name: "Dashboard",
@@ -101,6 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "meeting-tasks",
           name: "Porady",
           href: "/automation/meeting-tasks",
+          key: "/automation/meeting-tasks",
         },
         {
           id: "struktura",
@@ -108,32 +108,30 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "#",
           onClick: openOrgChart,
           isExternal: true,
+          key: "#org-chart",
         },
       ],
     },
-    // Finance section - visibility driven by access matrix
-    ...(canSee("/finance/overview")
-      ? [
-          {
-            id: "finance",
-            name: "Finance",
-            icon: DollarSign,
-            type: "section" as const,
-            items: [
-              {
-                id: "financni-prehled",
-                name: "Finanční přehled",
-                href: "/finance/overview",
-              },
-              {
-                id: "analyza-marzovosti",
-                name: "Analýza marže",
-                href: "/analytics/product-margin-summary",
-              },
-            ],
-          },
-        ]
-      : []),
+    {
+      id: "finance",
+      name: "Finance",
+      icon: DollarSign,
+      type: "section" as const,
+      items: [
+        {
+          id: "financni-prehled",
+          name: "Finanční přehled",
+          href: "/finance/overview",
+          key: "/finance/overview",
+        },
+        {
+          id: "analyza-marzovosti",
+          name: "Analýza marže",
+          href: "/analytics/product-margin-summary",
+          key: "/analytics/product-margin-summary",
+        },
+      ],
+    },
     {
       id: "zakaznicke",
       name: "Zákaznické",
@@ -144,14 +142,16 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "vydane-faktury",
           name: "Vydané faktury",
           href: "/customer/issued-invoices",
+          key: "/customer/issued-invoices",
         },
         {
           id: "prehled-bankovnich-vypisu",
           name: "Bankovní výpisy",
           href: "/customer/bank-statements-overview",
+          key: "/customer/bank-statements-overview",
         },
-        { id: "knowledge-base", name: "Poradenství (KB)", href: "/knowledge-base" },
-        { id: "smartsupp", name: "Smartsupp", href: "/customer/smartsupp" },
+        { id: "knowledge-base", name: "Poradenství (KB)", href: "/knowledge-base", key: "/knowledge-base" },
+        { id: "smartsupp", name: "Smartsupp", href: "/customer/smartsupp", key: "/customer/smartsupp" },
       ],
     },
     {
@@ -160,9 +160,9 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: Package,
       type: "section" as const,
       items: [
-        { id: "catalog", name: "Katalog", href: "/catalog" },
-        { id: "marze-produktu", name: "Marže", href: "/products/margins" },
-        { id: "journal", name: "Deník", href: "/journal" },
+        { id: "catalog", name: "Katalog", href: "/catalog", key: "/catalog" },
+        { id: "marze-produktu", name: "Marže", href: "/products/margins", key: "/products/margins" },
+        { id: "journal", name: "Deník", href: "/journal", key: "/journal" },
       ],
     },
     {
@@ -171,14 +171,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: Megaphone,
       type: "section" as const,
       items: [
-        { id: "marketing-calendar", name: "Kalendář", href: "/marketing/calendar" },
-        { id: "photobank", name: "Fotobanka", href: "/marketing/photobank" },
-        { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator" },
-        { id: "articles", name: "Generátor článků", href: "/articles" },
-
-        ...(canSee("/articles")
-          ? [{ id: "marketing-feedback", name: "Feedback", href: "/marketing/feedback" }]
-          : []),
+        { id: "marketing-calendar", name: "Kalendář", href: "/marketing/calendar", key: "/marketing/calendar" },
+        { id: "photobank", name: "Fotobanka", href: "/marketing/photobank", key: "/marketing/photobank" },
+        { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator", key: "/leaflet-generator" },
+        { id: "articles", name: "Generátor článků", href: "/articles", key: "/articles" },
+        { id: "marketing-feedback", name: "Feedback", href: "/marketing/feedback", key: "/marketing/feedback" },
       ],
     },
     {
@@ -191,16 +188,19 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "nakupni-objednavky",
           name: "Nákupní objednávky",
           href: "/purchase/orders",
+          key: "/purchase/orders",
         },
         {
           id: "analyza-skladu",
           name: "Zásoby materiálu",
           href: "/purchase/stock-analysis",
+          key: "/purchase/stock-analysis",
         },
         {
           id: "klasifikace-faktur",
           name: "Klasifikace faktur",
           href: "/purchase/invoice-classification",
+          key: "/purchase/invoice-classification",
         },
       ],
     },
@@ -214,41 +214,49 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "rizeni-zasob-vyroba",
           name: "Zásoby výrobků",
           href: "/manufacturing/stock-analysis",
+          key: "/manufacturing/stock-analysis",
         },
         {
           id: "zasoby-materialu",
           name: "Inventury materiálu",
           href: "/manufacturing/inventory",
+          key: "/manufacturing/inventory",
         },
         {
           id: "prehled-vyroby",
           name: "Souhrn výroby",
           href: "/manufacturing/output",
+          key: "/manufacturing/output",
         },
         {
           id: "kalkulator-davek",
           name: "Kalkulačka dávek",
           href: "/manufacturing/batch-calculator",
+          key: "/manufacturing/batch-calculator",
         },
         {
           id: "planovani-davek",
           name: "Plánování dávek",
           href: "/manufacturing/batch-planning",
+          key: "/manufacturing/batch-planning",
         },
         {
           id: "vyrobni-zakazky",
           name: "Výrobní zakázky",
           href: "/manufacturing/orders",
+          key: "/manufacturing/orders",
         },
         {
           id: "sklad-vyroby",
           name: "Sklad výroby",
           href: "/manufacturing/product-inventory",
+          key: "/manufacturing/product-inventory",
         },
         {
           id: "sarze",
           name: "Šarže",
           href: "/manufacturing/material-containers",
+          key: "/manufacturing/material-containers",
         },
       ],
     },
@@ -262,36 +270,43 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "prijem-boxu",
           name: "Příjem boxů",
           href: "/logistics/receive-boxes",
+          key: "/logistics/receive-boxes",
         },
         {
           id: "transportni-boxy",
           name: "Transportní boxy",
           href: "/logistics/transport-boxes",
+          key: "/logistics/transport-boxes",
         },
         {
           id: "zasoby",
           name: "Zásoby produktů",
           href: "/logistics/inventory",
+          key: "/logistics/inventory",
         },
         {
           id: "vypackovani-balicku",
           name: "Výroba dárkových balíčků",
           href: "/logistics/gift-package-manufacturing",
+          key: "/logistics/gift-package-manufacturing",
         },
         {
           id: "sledovani-materialu",
           name: "Sledování materiálů",
           href: "/logistics/packing-materials",
+          key: "/logistics/packing-materials",
         },
         {
           id: "tisk-expedice",
           name: "Tisk expedice",
           href: "/logistics/expedition-archive",
+          key: "/logistics/expedition-archive",
         },
         {
           id: "nastaveni-expedice",
           name: "Nastavení expedice",
           href: "/customer/expedition-settings",
+          key: "/customer/expedition-settings",
         },
         {
           id: "terminal",
@@ -299,6 +314,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "#",
           onClick: openTerminal,
           isExternal: true,
+          key: "#terminal",
         },
         {
           id: "baleni",
@@ -306,6 +322,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "#",
           onClick: openBaleni,
           isExternal: true,
+          key: "#baleni-external",
         },
       ],
     },
@@ -320,41 +337,63 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "background-tasks",
           name: "Background Tasky",
           href: "/automation/background-tasks",
+          key: "/automation/background-tasks",
         },
         {
           id: "stock-operations",
           name: "Naskladnění",
           href: "/stock-up-operations",
+          key: "/stock-up-operations",
         },
         {
           id: "recurring-jobs",
           name: "Recurring Jobs",
           href: "/recurring-jobs",
+          key: "/recurring-jobs",
         },
         {
           id: "hangfire",
           name: "Hangfire",
           href: "#",
           onClick: openHangfireDashboard,
+          key: "#hangfire",
         },
         {
           id: "data-quality",
           name: "Kvalita dat",
           href: "/automation/data-quality",
+          key: "/automation/data-quality",
         },
         {
           id: "feature-flags",
           name: "Feature Flags",
           href: "/admin/feature-flags",
+          key: "/admin/feature-flags",
         },
         {
           id: "access-management",
           name: "Access management",
           href: "/admin/access",
+          key: "/admin/access",
         },
       ],
     },
   ];
+
+  type RawSection = (typeof allSections)[number];
+
+  const canSeeItem = (item: { key: string }): boolean => canSeeKey(item.key);
+
+  const navigationSections: RawSection[] = [];
+  for (const section of allSections) {
+    if (section.type === "single") {
+      navigationSections.push(section);
+      continue;
+    }
+    const visibleItems = section.items.filter(canSeeItem);
+    if (visibleItems.length === 0) continue;
+    navigationSections.push({ ...section, items: visibleItems });
+  }
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections(
@@ -523,6 +562,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 return (
                                   <button
                                     key={subItem.id}
+                                    data-menu-key={subItem.key}
                                     onClick={() => {
                                       setActiveItem(subItem.id);
                                       (subItem as any).onClick();

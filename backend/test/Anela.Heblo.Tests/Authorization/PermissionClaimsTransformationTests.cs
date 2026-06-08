@@ -13,13 +13,40 @@ public class PermissionClaimsTransformationTests
         new(new ClaimsIdentity(claims, authenticationType: "Test"));
 
     [Fact]
-    public async Task Transform_SuperUserRoleInToken_AddsAllPermissions_NoResolverCall()
+    public async Task Transform_SuperUserWithObjectId_GrantsAllPermissions_AndRecordsLoginViaResolver()
     {
+        // Regression: super_users must still hit the resolver so LastLoginAt is recorded.
+        // The token role still drives the granted permissions (wildcard), but the resolver
+        // call is what materializes / updates the AppUser row on login.
+        const string oid = "oid-super";
         var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
+        resolver
+            .Setup(r => r.ResolveAsync(oid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, Array.Empty<string>()));
         var sut = new PermissionClaimsTransformation(resolver.Object);
         var principal = Principal(
-            new Claim(ClaimTypes.NameIdentifier, "oid-super"),
+            new Claim("oid", oid),
             new Claim(ClaimTypes.Role, AccessRoles.SuperUser));
+
+        var result = await sut.TransformAsync(principal);
+
+        foreach (var perm in AccessMatrix.AllRoleValues())
+            result.IsInRole(perm).Should().BeTrue($"super_user must grant {perm}");
+        result.IsInRole(AccessRoles.Base).Should().BeTrue();
+        resolver.Verify(
+            r => r.ResolveAsync(oid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        resolver.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Transform_SuperUserWithoutObjectId_StillGrantsAllPermissions()
+    {
+        // Defensive: if a super_user token somehow lacks both oid and NameIdentifier
+        // (shouldn't happen in production Entra or mock auth), break-glass grant still applies.
+        var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
+        var sut = new PermissionClaimsTransformation(resolver.Object);
+        var principal = Principal(new Claim(ClaimTypes.Role, AccessRoles.SuperUser));
 
         var result = await sut.TransformAsync(principal);
 
@@ -126,6 +153,49 @@ public class PermissionClaimsTransformationTests
         result.IsInRole("catalog.read").Should().BeTrue();
         resolver.Verify(
             r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        resolver.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Transform_PassesPreferredUsernameAndRawName_NotClaimTypesNameWhichAliasesUpn()
+    {
+        // Regression: Microsoft.Identity.Web's default NameClaimType for Web APIs is
+        // "preferred_username", which makes FindFirst(ClaimTypes.Name) silently return
+        // the UPN/email instead of the display name. Naively reading ClaimTypes.Name first
+        // caused the resolver to create AppUser rows with DisplayName=UPN and Email=null
+        // (then falling back to entraObjectId, producing rows like Email='3983f7e5-…').
+        const string oid = "11111111-2222-3333-4444-555555555555";
+        const string upn = "ondra@anela.cz";
+        const string displayName = "Ondrej Pajgrt";
+
+        var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
+        resolver
+            .Setup(r => r.ResolveAsync(oid, upn, displayName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, Array.Empty<string>()));
+
+        var sut = new PermissionClaimsTransformation(resolver.Object);
+        // Mimic Microsoft.Identity.Web Web API: NameClaimType = "preferred_username", so
+        // ClaimTypes.Name reads the UPN. The real display name is in the raw "name" claim.
+        var identity = new ClaimsIdentity(
+            claims: new[]
+            {
+                new Claim("oid", oid),
+                new Claim("preferred_username", upn),
+                new Claim("name", displayName),
+            },
+            authenticationType: "Test",
+            nameType: "preferred_username",
+            roleType: ClaimTypes.Role);
+        var principal = new ClaimsPrincipal(identity);
+
+        await sut.TransformAsync(principal);
+
+        // Strict mock: ResolveAsync MUST be called with the real UPN as email and the
+        // real display name as name — proves we read "preferred_username" / raw "name"
+        // and ignored the UPN-aliased ClaimTypes.Name.
+        resolver.Verify(
+            r => r.ResolveAsync(oid, upn, displayName, It.IsAny<CancellationToken>()),
             Times.Once);
         resolver.VerifyNoOtherCalls();
     }

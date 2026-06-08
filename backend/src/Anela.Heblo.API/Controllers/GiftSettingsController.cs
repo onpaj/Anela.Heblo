@@ -8,7 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.LogisticsRead)]
+[GateOn(Feature.Warehouse_Logistics)]
+[Authorize(Roles = AccessRoles.WarehouseLogisticsRead)]
 [ApiController]
 [Route("api/gift-settings")]
 public class GiftSettingsController : BaseApiController
@@ -28,7 +29,8 @@ public class GiftSettingsController : BaseApiController
     }
 
     [HttpPut]
-    [Authorize(Roles = AccessRoles.LogisticsWrite)]
+    [GateOn(Feature.Warehouse_Logistics)]
+    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
     public async Task<IActionResult> SetGiftSetting(
         [FromBody] SetGiftSettingCommand command,
         CancellationToken cancellationToken = default)

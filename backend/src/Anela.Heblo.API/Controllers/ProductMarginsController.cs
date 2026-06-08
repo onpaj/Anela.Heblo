@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.ProductMarginsRead)]
+[GateOn(Feature.Products_ProductMargins)]
+[Authorize(Roles = AccessRoles.ProductsProductMarginsRead)]
 [ApiController]
 [Route("api/[controller]")]
 public class ProductMarginsController : BaseApiController

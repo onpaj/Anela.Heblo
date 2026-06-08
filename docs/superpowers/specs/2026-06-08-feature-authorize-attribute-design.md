@@ -158,33 +158,6 @@ public class FeatureAuthorizeAttributeTests
 }
 ```
 
-## Edge cases in current controllers
-
-Three patterns exist today that don't fit the standard `[GateOn] + [Authorize(Roles=X)]` mold:
-
-**1. Bare `[Authorize]` + `[GateOn]` — 6 controllers**
-
-`DashboardController`, `FileStorageController`, `GridLayoutsController`, `UserManagementController`, `WeatherForecastController`, `ShoptetOrdersController` all carry a bare `[Authorize]` (any authenticated user) with a `[GateOn]` for documentation but no role check. This is an existing authorization gap — the feature tag is not enforced at runtime. Migration: replace both with `[FeatureAuthorize(Feature.X)]`, which adds the missing role enforcement as a side-effect.
-
-`FeatureFlagsController` is a partial case: it has `[Authorize]` at class level as a safety net (the only non-admin endpoint is `[AllowAnonymous]`), with `[Authorize(Roles = X)]` on the write methods. Migration: remove the bare class-level `[Authorize]`, keep `[GateOn]` on the class only temporarily until methods are swept, then the class-level `[GateOn]` is also removed (no class-level `[FeatureAuthorize]` needed since the GET is `[AllowAnonymous]` and the writes get their own `[FeatureAuthorize]`).
-
-**2. `[Authorize(Policy = "AuthenticatedUser")]` — 1 method**
-
-`AuthController.GetLastLogin` (method-level). Uses a custom policy, not a role. `[FeatureAuthorize]` sets `Roles`, not `Policy`. Keep `[Authorize(Policy = "AuthenticatedUser")]` unchanged; drop the method-level `[GateOn(Feature.Admin_Administration)]`. The test must not flag methods covered by a non-role `[Authorize]`.
-
-**3. `[Authorize(AuthenticationSchemes = "E2ETestCookies")]` — 2 methods**
-
-`E2ETestController`, two endpoints. Test-only controller that uses a custom authentication scheme. Keep `[Authorize(AuthenticationSchemes = ...)]` unchanged; drop `[GateOn]`. Same test carve-out as case 2.
-
-### Updated test scope for `EveryGatedEndpoint_HasFeatureAuthorize`
-
-A method is **exempt** from requiring `[FeatureAuthorize]` if:
-- it has `[AllowAnonymous]`, **or**
-- the effective `[Authorize]` specifies a `Policy` (not `Roles`), **or**
-- the effective `[Authorize]` specifies `AuthenticationSchemes` (not `Roles`)
-
-Everything else — including bare `[Authorize]` without roles — must resolve to a class- or method-level `[FeatureAuthorize]`.
-
 ## Files changed
 
 | File | Change |
@@ -192,9 +165,9 @@ Everything else — including bare `[Authorize]` without roles — must resolve 
 | `Domain/Features/Authorization/FeatureAuthorizeAttribute.cs` | New |
 | `Domain/Features/Authorization/GateOnAttribute.cs` | Deleted |
 | `Domain/Features/Authorization/AccessRoles.generated.cs` | Add `For(Feature, AccessLevel)` switch |
-| `tools/Anela.Heblo.AccessMatrixGen/Program.cs` | Emit `For` method alongside constants |
-| ~48 controllers in `API/Controllers/` | See edge cases above; majority: replace `[GateOn] + [Authorize(Roles=X)]` with `[FeatureAuthorize]` |
-| `Tests/Authorization/GateConsistencyTests.cs` | Delete `EveryAuthorizeRole_MatchesGateOn`; rewrite `EveryGatedEndpoint_HasGateOn` with policy/scheme carve-outs |
+| `tools/Anela.Heblo.AccessMatrixGen` | Emit `For` method alongside constants |
+| All ~40 controllers in `API/Controllers/` | Replace `[GateOn] + [Authorize]` with `[FeatureAuthorize]` |
+| `Tests/Authorization/GateConsistencyTests.cs` | Delete `EveryAuthorizeRole_MatchesGateOn`; rename and rewrite `EveryGatedEndpoint_HasGateOn` |
 | `Tests/Authorization/GateOnAttributeTests.cs` | Replace with `FeatureAuthorizeAttributeTests.cs` |
 
 ## Migration order

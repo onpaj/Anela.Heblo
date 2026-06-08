@@ -7,7 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.ExpeditionRead)]
+[GateOn(Feature.Warehouse_Expedition)]
+[Authorize(Roles = AccessRoles.WarehouseExpeditionRead)]
 [ApiController]
 [Route("api/carrier-cooling")]
 public class CarrierCoolingController : BaseApiController
@@ -28,7 +29,7 @@ public class CarrierCoolingController : BaseApiController
     }
 
     [HttpPut]
-    [Authorize(Roles = AccessRoles.ExpeditionWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseExpeditionWrite)]
     public async Task<ActionResult<SetCarrierCoolingResponse>> SetCooling(
         [FromBody] SetCarrierCoolingRequest request,
         CancellationToken cancellationToken = default)

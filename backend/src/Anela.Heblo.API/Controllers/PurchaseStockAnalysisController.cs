@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.PurchaseStockRead)]
+[GateOn(Feature.Purchase_PurchaseStock)]
+[Authorize(Roles = AccessRoles.PurchasePurchaseStockRead)]
 [ApiController]
 [Route("api/purchase-stock-analysis")]
 public class PurchaseStockAnalysisController : BaseApiController

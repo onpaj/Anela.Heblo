@@ -10,9 +10,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[GateOn(Feature.Customer_BankStatements)]
 [ApiController]
 [Route("api/bank-statements")]
-[Authorize(Roles = AccessRoles.BankStatementsRead)]
+[Authorize(Roles = AccessRoles.CustomerBankStatementsRead)]
 public class BankStatementsController : BaseApiController
 {
     private readonly IMediator _mediator;

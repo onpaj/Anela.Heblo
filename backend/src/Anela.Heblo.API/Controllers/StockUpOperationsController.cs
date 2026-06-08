@@ -10,7 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.StockUpRead)]
+[GateOn(Feature.Warehouse_StockUp)]
+[Authorize(Roles = AccessRoles.WarehouseStockUpRead)]
 [ApiController]
 [Route("api/[controller]")]
 public class StockUpOperationsController : ControllerBase
@@ -74,7 +75,7 @@ public class StockUpOperationsController : ControllerBase
     /// </summary>
     /// <param name="id">Operation ID to retry</param>
     [HttpPost("{id}/retry")]
-    [Authorize(Roles = AccessRoles.StockUpWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseStockUpWrite)]
     public async Task<ActionResult<RetryStockUpOperationResponse>> RetryOperation(int id)
     {
         var request = new RetryStockUpOperationRequest { OperationId = id };
@@ -93,7 +94,7 @@ public class StockUpOperationsController : ControllerBase
     /// </summary>
     /// <param name="id">Operation ID to accept</param>
     [HttpPost("{id}/accept")]
-    [Authorize(Roles = AccessRoles.StockUpWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseStockUpWrite)]
     public async Task<ActionResult<AcceptStockUpOperationResponse>> AcceptOperation(int id)
     {
         var request = new AcceptStockUpOperationRequest { OperationId = id };

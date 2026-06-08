@@ -8,31 +8,38 @@ public static class AuthorizationSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext db, CancellationToken ct)
     {
-        var validPermissions = AccessMatrix.AllRoleValues().ToHashSet();
+        var validPermissions = AccessMatrix.AllPermissionStrings().ToHashSet();
 
         var existing = await db.PermissionGroups
             .Include(g => g.Permissions)
             .ToListAsync(ct);
+        var existingByName = existing.ToDictionary(g => g.Name);
 
         foreach (var matrixGroup in AccessMatrix.Groups)
         {
-            if (existing.Any(g => g.Name == matrixGroup.Name))
-                continue;
-
-            var group = new PermissionGroup
+            if (!existingByName.TryGetValue(matrixGroup.Name, out var group))
             {
-                Id = Guid.NewGuid(),
-                Name = matrixGroup.Name,
-                Description = matrixGroup.Name,
-                CreatedAt = DateTimeOffset.UtcNow,
-                CreatedBy = "system",
-            };
-            foreach (var role in matrixGroup.Roles.Where(validPermissions.Contains))
-                group.Permissions.Add(new GroupPermission { GroupId = group.Id, PermissionValue = role });
-            db.PermissionGroups.Add(group);
+                group = new PermissionGroup
+                {
+                    Id = Guid.NewGuid(),
+                    Name = matrixGroup.Name,
+                    Description = matrixGroup.Name,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    CreatedBy = "system",
+                };
+                db.PermissionGroups.Add(group);
+            }
+
+            var desired = matrixGroup.Roles.Where(validPermissions.Contains).ToHashSet();
+            var current = group.Permissions.Select(p => p.PermissionValue).ToHashSet();
+
+            foreach (var add in desired.Except(current))
+                group.Permissions.Add(new GroupPermission { GroupId = group.Id, PermissionValue = add });
+
+            foreach (var remove in group.Permissions.Where(p => !desired.Contains(p.PermissionValue)).ToList())
+                group.Permissions.Remove(remove);
         }
 
-        // Global prune: drop any GroupPermission whose value left AccessMatrix entirely.
         var orphans = await db.GroupPermissions
             .Where(p => !validPermissions.Contains(p.PermissionValue))
             .ToListAsync(ct);

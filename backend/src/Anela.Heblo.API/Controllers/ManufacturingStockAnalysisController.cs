@@ -7,7 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.ManufactureStockRead)]
+[GateOn(Feature.Manufacture_ManufactureStock)]
+[Authorize(Roles = AccessRoles.ManufactureManufactureStockRead)]
 [ApiController]
 [Route("api/manufacturing-stock-analysis")]
 public class ManufacturingStockAnalysisController : BaseApiController

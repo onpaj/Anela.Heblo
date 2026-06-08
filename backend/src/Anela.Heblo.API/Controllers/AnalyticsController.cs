@@ -12,9 +12,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[GateOn(Feature.Finance_MarginAnalysis)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AccessRoles.MarginAnalysisRead)]
+[Authorize(Roles = AccessRoles.FinanceMarginAnalysisRead)]
 public class AnalyticsController : BaseApiController
 {
     private readonly IMediator _mediator;

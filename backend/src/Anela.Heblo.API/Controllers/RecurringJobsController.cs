@@ -13,9 +13,10 @@ namespace Anela.Heblo.API.Controllers;
 /// <summary>
 /// Controller for managing recurring background jobs
 /// </summary>
+[GateOn(Feature.Admin_Administration)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AccessRoles.AdministrationRead)]
+[Authorize(Roles = AccessRoles.AdminAdministrationRead)]
 public class RecurringJobsController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -47,7 +48,7 @@ public class RecurringJobsController : BaseApiController
     /// <param name="request">The status update request containing the new enabled state</param>
     /// <returns>Updated job information</returns>
     [HttpPut("{jobName}/status")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [Authorize(Roles = AccessRoles.AdminAdministrationWrite)]
     [ProducesResponseType(typeof(UpdateRecurringJobStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -74,7 +75,7 @@ public class RecurringJobsController : BaseApiController
     /// <param name="request">The CRON update request containing the new expression</param>
     /// <returns>Updated job information with new CRON expression</returns>
     [HttpPut("{jobName}/cron")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [Authorize(Roles = AccessRoles.AdminAdministrationWrite)]
     [ProducesResponseType(typeof(UpdateRecurringJobCronResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -101,7 +102,7 @@ public class RecurringJobsController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Background job ID if triggered successfully</returns>
     [HttpPost("{jobName}/trigger")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [Authorize(Roles = AccessRoles.AdminAdministrationWrite)]
     [ProducesResponseType(typeof(TriggerRecurringJobResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

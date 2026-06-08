@@ -11,7 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.LogisticsRead)]
+[GateOn(Feature.Warehouse_Logistics)]
+[Authorize(Roles = AccessRoles.WarehouseLogisticsRead)]
 [ApiController]
 [Route("api/logistics")]
 public class LogisticsController : BaseApiController
@@ -70,7 +71,7 @@ public class LogisticsController : BaseApiController
     /// Execute gift package manufacturing process
     /// </summary>
     [HttpPost("gift-packages/manufacture")]
-    [Authorize(Roles = AccessRoles.LogisticsWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
     public async Task<ActionResult<CreateGiftPackageManufactureResponse>> CreateGiftPackageManufacture(
         [FromBody] CreateGiftPackageManufactureRequest request,
         CancellationToken cancellationToken)
@@ -83,7 +84,7 @@ public class LogisticsController : BaseApiController
     /// Disassemble gift package back to individual components
     /// </summary>
     [HttpPost("gift-packages/disassemble")]
-    [Authorize(Roles = AccessRoles.LogisticsWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
     public async Task<ActionResult<DisassembleGiftPackageResponse>> DisassembleGiftPackage(
         [FromBody] DisassembleGiftPackageRequest request,
         CancellationToken cancellationToken)
@@ -96,7 +97,7 @@ public class LogisticsController : BaseApiController
     /// Queue gift package manufacturing process as background job
     /// </summary>
     [HttpPost("gift-packages/manufacture/enqueue")]
-    [Authorize(Roles = AccessRoles.LogisticsWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
     public async Task<ActionResult<EnqueueGiftPackageManufactureResponse>> EnqueueGiftPackageManufacture(
         [FromBody] EnqueueGiftPackageManufactureRequest request,
         CancellationToken cancellationToken)

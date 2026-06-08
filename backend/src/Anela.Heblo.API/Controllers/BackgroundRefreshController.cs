@@ -6,9 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[GateOn(Feature.Admin_Administration)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AccessRoles.AdministrationRead)]
+[Authorize(Roles = AccessRoles.AdminAdministrationRead)]
 public class BackgroundRefreshController : ControllerBase
 {
     private readonly ILogger<BackgroundRefreshController> _logger;
@@ -59,7 +60,7 @@ public class BackgroundRefreshController : ControllerBase
     }
 
     [HttpPost("tasks/{taskId}/force-refresh")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [Authorize(Roles = AccessRoles.AdminAdministrationWrite)]
     public async Task<ActionResult> ForceRefresh(string taskId, CancellationToken cancellationToken)
     {
         try
@@ -83,7 +84,7 @@ public class BackgroundRefreshController : ControllerBase
     }
 
     [HttpPost("tiers/{tier}/run")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [Authorize(Roles = AccessRoles.AdminAdministrationWrite)]
     public async Task<ActionResult> RunHydrationTier(int tier, CancellationToken cancellationToken)
     {
         var tasksInTier = _taskRegistry.GetRegisteredTasks()

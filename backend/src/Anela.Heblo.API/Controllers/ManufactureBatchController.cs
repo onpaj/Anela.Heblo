@@ -9,7 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.BatchPlanningRead)]
+[GateOn(Feature.Manufacture_BatchPlanning)]
+[Authorize(Roles = AccessRoles.ManufactureBatchPlanningRead)]
 [ApiController]
 [Route("api/manufacture-batch")]
 public class ManufactureBatchController : BaseApiController
@@ -33,7 +34,7 @@ public class ManufactureBatchController : BaseApiController
     }
 
     [HttpPost("calculate-by-size")]
-    [Authorize(Roles = AccessRoles.BatchPlanningWrite)]
+    [Authorize(Roles = AccessRoles.ManufactureBatchPlanningWrite)]
     public async Task<ActionResult<CalculatedBatchSizeResponse>> CalculateBatchBySize(
         [FromBody] CalculatedBatchSizeRequest request,
         CancellationToken cancellationToken = default)
@@ -44,7 +45,7 @@ public class ManufactureBatchController : BaseApiController
     }
 
     [HttpPost("calculate-by-ingredient")]
-    [Authorize(Roles = AccessRoles.BatchPlanningWrite)]
+    [Authorize(Roles = AccessRoles.ManufactureBatchPlanningWrite)]
     public async Task<ActionResult<CalculateBatchByIngredientResponse>> CalculateBatchByIngredient(
         [FromBody] CalculateBatchByIngredientRequest request,
         CancellationToken cancellationToken = default)
@@ -55,7 +56,7 @@ public class ManufactureBatchController : BaseApiController
     }
 
     [HttpPost("calculate-batch-plan")]
-    [Authorize(Roles = AccessRoles.BatchPlanningWrite)]
+    [Authorize(Roles = AccessRoles.ManufactureBatchPlanningWrite)]
     public async Task<ActionResult<CalculateBatchPlanResponse>> CalculateBatchPlan(
         [FromBody] CalculateBatchPlanRequest request,
         CancellationToken cancellationToken = default)

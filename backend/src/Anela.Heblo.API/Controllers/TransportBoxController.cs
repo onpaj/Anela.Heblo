@@ -17,7 +17,8 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.OpenOrResumeBoxByCode;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.LogisticsRead)]
+[GateOn(Feature.Warehouse_Logistics)]
+[Authorize(Roles = AccessRoles.WarehouseLogisticsRead)]
 [ApiController]
 [Route("api/transport-boxes")]
 public class TransportBoxController : BaseApiController
@@ -79,7 +80,7 @@ public class TransportBoxController : BaseApiController
     /// Change transport box state
     /// </summary>
     [HttpPut("{id:int}/state")]
-    [Authorize(Roles = AccessRoles.LogisticsWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
     public async Task<ActionResult<ChangeTransportBoxStateResponse>> ChangeTransportBoxState(
         int id,
         [FromBody] ChangeTransportBoxStateRequest request,
@@ -94,7 +95,7 @@ public class TransportBoxController : BaseApiController
     /// Create a new transport box in 'New' state
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = AccessRoles.LogisticsWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
     public async Task<ActionResult<CreateNewTransportBoxResponse>> CreateNewTransportBox(
         [FromBody] CreateNewTransportBoxRequest request,
         CancellationToken cancellationToken = default)
@@ -114,7 +115,7 @@ public class TransportBoxController : BaseApiController
     /// Add item to transport box (only allowed in 'Opened' state)
     /// </summary>
     [HttpPost("{id:int}/items")]
-    [Authorize(Roles = AccessRoles.LogisticsWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
     public async Task<ActionResult<AddItemToBoxResponse>> AddItemToBox(
         int id,
         [FromBody] AddItemToBoxRequest request,
@@ -135,7 +136,7 @@ public class TransportBoxController : BaseApiController
     /// Remove item from transport box (only allowed in 'Opened' state)
     /// </summary>
     [HttpDelete("{id:int}/items/{itemId:int}")]
-    [Authorize(Roles = AccessRoles.LogisticsWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
     public async Task<ActionResult<RemoveItemFromBoxResponse>> RemoveItemFromBox(
         int id,
         int itemId,
@@ -159,7 +160,7 @@ public class TransportBoxController : BaseApiController
     /// Update transport box description/note
     /// </summary>
     [HttpPut("{id:int}/description")]
-    [Authorize(Roles = AccessRoles.LogisticsWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
     public async Task<ActionResult<UpdateTransportBoxDescriptionResponse>> UpdateTransportBoxDescription(
         int id,
         [FromBody] UpdateTransportBoxDescriptionRequest request,
@@ -199,7 +200,7 @@ public class TransportBoxController : BaseApiController
     /// Open a transport box by code, or resume it if one is already Opened (terminal box-fill workflow)
     /// </summary>
     [HttpPost("open-by-code")]
-    [Authorize(Roles = AccessRoles.LogisticsWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
     public async Task<ActionResult<OpenOrResumeBoxByCodeResponse>> OpenOrResumeBoxByCode(
         [FromBody] OpenOrResumeBoxByCodeRequest request,
         CancellationToken cancellationToken = default)
