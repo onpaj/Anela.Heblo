@@ -129,4 +129,28 @@ public class PermissionClaimsTransformationTests
             Times.Once);
         resolver.VerifyNoOtherCalls();
     }
+
+    [Fact]
+    public async Task Transform_NoOidClaim_FallsBackToNameIdentifier()
+    {
+        // Mock auth scheme (used in dev/test/E2E) doesn't emit "oid" — only NameIdentifier.
+        // The fallback must still hand a non-null identifier to the resolver.
+        const string mockIdentifier = "mock-only-identifier";
+
+        var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
+        resolver
+            .Setup(r => r.ResolveAsync(mockIdentifier, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, Array.Empty<string>()));
+
+        var sut = new PermissionClaimsTransformation(resolver.Object);
+        var principal = Principal(new Claim(ClaimTypes.NameIdentifier, mockIdentifier));
+
+        var result = await sut.TransformAsync(principal);
+
+        result.IsInRole("catalog.read").Should().BeTrue();
+        resolver.Verify(
+            r => r.ResolveAsync(mockIdentifier, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        resolver.VerifyNoOtherCalls();
+    }
 }
