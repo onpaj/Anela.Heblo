@@ -33,6 +33,21 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         _memoryCache = memoryCache;
     }
 
+    private static (decimal income, decimal expenses) CalculatePeriodTotals(
+        IEnumerable<LedgerItem> debitItems,
+        IEnumerable<LedgerItem> creditItems)
+    {
+        var debit5 = debitItems.Where(i => i.DebitAccountNumber?.StartsWith("5") == true).Sum(i => i.Amount);
+        var credit5 = creditItems.Where(i => i.CreditAccountNumber?.StartsWith("5") == true).Sum(i => i.Amount);
+        var expenses = debit5 - credit5;
+
+        var credit6 = creditItems.Where(i => i.CreditAccountNumber?.StartsWith("6") == true).Sum(i => i.Amount);
+        var debit6 = debitItems.Where(i => i.DebitAccountNumber?.StartsWith("6") == true).Sum(i => i.Amount);
+        var income = credit6 - debit6;
+
+        return (income, expenses);
+    }
+
     public async Task<GetFinancialOverviewResponse> GetFinancialOverviewAsync(
         int months,
         bool includeStockData,
@@ -211,21 +226,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
             var stockChanges = await stockChangesTask;
 
             // Calculate financial data for this month
-            var debit5 = debitItems
-                .Where(item => item.DebitAccountNumber?.StartsWith("5") == true)
-                .Sum(item => item.Amount);
-            var credit5 = creditItems
-                .Where(item => item.CreditAccountNumber?.StartsWith("5") == true)
-                .Sum(item => item.Amount);
-            var expenses = debit5 - credit5;
-
-            var credit6 = creditItems
-                .Where(item => item.CreditAccountNumber?.StartsWith("6") == true)
-                .Sum(item => item.Amount);
-            var debit6 = debitItems
-                .Where(item => item.DebitAccountNumber?.StartsWith("6") == true)
-                .Sum(item => item.Amount);
-            var income = credit6 - debit6;
+            var (income, expenses) = CalculatePeriodTotals(debitItems, creditItems);
 
             // Cache the monthly financial data
             var monthlyData = new MonthlyFinancialData
@@ -295,13 +296,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         var stockChanges = await stockChangesTask;
 
         // Compute income/expenses for current month
-        var debit5 = debitItems.Where(i => i.DebitAccountNumber?.StartsWith("5") == true).Sum(i => i.Amount);
-        var credit5 = creditItems.Where(i => i.CreditAccountNumber?.StartsWith("5") == true).Sum(i => i.Amount);
-        var expenses = debit5 - credit5;
-
-        var credit6 = creditItems.Where(i => i.CreditAccountNumber?.StartsWith("6") == true).Sum(i => i.Amount);
-        var debit6 = debitItems.Where(i => i.DebitAccountNumber?.StartsWith("6") == true).Sum(i => i.Amount);
-        var income = credit6 - debit6;
+        var (income, expenses) = CalculatePeriodTotals(debitItems, creditItems);
         var financialBalance = income - expenses;
 
         var stockChange = stockChanges.FirstOrDefault();
@@ -497,23 +492,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
             var monthDebitItems = debitItems.Where(item => item.Date >= monthStart && item.Date <= monthEnd);
             var monthCreditItems = creditItems.Where(item => item.Date >= monthStart && item.Date <= monthEnd);
 
-            // Calculate expenses: debit(5) - credit(5)
-            var debit5 = monthDebitItems
-                .Where(item => item.DebitAccountNumber?.StartsWith("5") == true)
-                .Sum(item => item.Amount);
-            var credit5 = monthCreditItems
-                .Where(item => item.CreditAccountNumber?.StartsWith("5") == true)
-                .Sum(item => item.Amount);
-            var expenses = debit5 - credit5;
-
-            // Calculate income: credit(6) - debit(6)
-            var credit6 = monthCreditItems
-                .Where(item => item.CreditAccountNumber?.StartsWith("6") == true)
-                .Sum(item => item.Amount);
-            var debit6 = monthDebitItems
-                .Where(item => item.DebitAccountNumber?.StartsWith("6") == true)
-                .Sum(item => item.Amount);
-            var income = credit6 - debit6;
+            var (income, expenses) = CalculatePeriodTotals(monthDebitItems, monthCreditItems);
 
             monthlyData.Add(new MonthlyFinancialData
             {
