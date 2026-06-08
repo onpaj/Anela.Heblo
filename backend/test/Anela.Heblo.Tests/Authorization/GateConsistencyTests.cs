@@ -55,4 +55,28 @@ public class GateConsistencyTests
         }
         problems.Should().BeEmpty();
     }
+
+    [Fact]
+    public void EveryGatedEndpoint_HasGateOn()
+    {
+        var problems = new List<string>();
+        foreach (var ctl in AllControllers())
+        {
+            var classGate = ctl.GetCustomAttribute<GateOnAttribute>();
+            var classAuth = ctl.GetCustomAttributes<AuthorizeAttribute>().Any();
+            if (classAuth && classGate is null)
+                problems.Add($"{ctl.Name}: class has [Authorize] but no [GateOn]");
+
+            foreach (var method in ctl.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                var hasAuth = method.GetCustomAttributes<AuthorizeAttribute>().Any();
+                var allowAnon = method.GetCustomAttribute<AllowAnonymousAttribute>() is not null;
+                if (!hasAuth || allowAnon) continue;
+                var methodGate = method.GetCustomAttribute<GateOnAttribute>();
+                if (methodGate is null && classGate is null)
+                    problems.Add($"{ctl.Name}.{method.Name}: [Authorize] without [GateOn] (class or method)");
+            }
+        }
+        problems.Should().BeEmpty();
+    }
 }
