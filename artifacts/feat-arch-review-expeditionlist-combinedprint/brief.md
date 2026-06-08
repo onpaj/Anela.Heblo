@@ -2,34 +2,37 @@
 ExpeditionList
 
 ## Finding
-`CombinedPrintQueueSink` — a class that implements `IPrintQueueSink` and contains composite sink logic — is placed in the **API project** under `backend/src/Anela.Heblo.API/Features/ExpeditionList/CombinedPrintQueueSink.cs` (25 lines).
-
-The class has no HTTP/controller responsibility whatsoever: it wraps two `IPrintQueueSink` implementations and delegates `SendAsync` to both. It is registered in the DI container as the non-keyed `IPrintQueueSink` when `PrintSink = "Combined"` is configured.
+`CombinedPrintQueueSink` lives in `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Services/CombinedPrintQueueSink.cs` (lines 11–13) and resolves its two sinks via keyed-service attributes:
 
 ```csharp
-// API/Features/ExpeditionList/CombinedPrintQueueSink.cs
-internal sealed class CombinedPrintQueueSink : IPrintQueueSink
-{
-    public CombinedPrintQueueSink(
-        [FromKeyedServices("azure")] IPrintQueueSink azureSink,
-        [FromKeyedServices("cups")] IPrintQueueSink cupsSink) { ... }
-
-    public async Task SendAsync(IEnumerable<string> filePaths, ...) { ... }
-}
+[FromKeyedServices("azure")] IPrintQueueSink azureSink,
+[FromKeyedServices("cups")] IPrintQueueSink cupsSink
 ```
 
-Every other `IPrintQueueSink` implementation lives in the Application layer (`Services/FileSystemPrintQueueSink.cs`, adapters in `Persistence/` or adapter projects). Only controllers belong in the API project per `docs/architecture/development_guidelines.md`.
+The string keys `"azure"` and `"cups"` are composition-root decisions defined in `backend/src/Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs` (lines 411–419). Baking them into an Application-layer class means the Application layer is coupled to infrastructure keying conventions — if either key is renamed in the composition root, the class silently breaks at runtime with no compile-time warning.
 
 ## Why it matters
-The API layer is supposed to be a thin HTTP shell — controllers, middleware, auth filters. Placing business-logic adapters there:
-- Breaks Clean Architecture's dependency rule: the API project should depend on Application, not contain Application logic.
-- Makes the sink untestable without the full API assembly being loaded.
-- Sets a precedent that makes the API project a dumping ground for anything that touches DI.
-
-The parallel sink implementations (`FileSystemPrintQueueSink`, `AzureBlobPrintQueueSink`, `CupsPrintQueueSink`) all live in Application or adapter projects — this is the one outlier.
+Clean Architecture requires the Application layer to depend on abstractions only; knowing *how* adapters are keyed in the DI container is a composition-root (infrastructure) concern, not an application concern. This violates the inward dependency rule: Application → Domain only; the composition root owns adapter wiring.
 
 ## Suggested fix
-Move `CombinedPrintQueueSink` to `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Services/CombinedPrintQueueSink.cs` and update the `internal sealed` visibility to `internal` (same as today). The DI registration in the API project's `Program.cs` can still reference it via the Application assembly — or if registration logic needs to stay in the API layer, expose a factory method in `ExpeditionListModule`.
+Move `CombinedPrintQueueSink` to the composition root as an inline factory, or to the API layer, and strip the `[FromKeyedServices]` attributes from its constructor:
+
+```csharp
+// ServiceCollectionExtensions.AddPrintQueueSink, "Combined" case:
+case "Combined":
+    services.AddAzurePrintQueueSink(configuration);
+    services.AddKeyedScoped<IPrintQueueSink, AzureBlobPrintQueueSink>("azure");
+    services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
+    services.AddScoped<IPrintQueueSink>(provider =>
+    {
+        var azure = provider.GetRequiredKeyedService<IPrintQueueSink>("azure");
+        var cups  = provider.GetRequiredKeyedService<IPrintQueueSink>("cups");
+        return new CombinedPrintQueueSink(azure, cups);
+    });
+    break;
+```
+
+`CombinedPrintQueueSink` then takes two plain `IPrintQueueSink` constructor parameters and can live in the API layer (or be inlined entirely).
 
 ---
-_Filed by daily arch-review routine on 2026-06-03._
+_Filed by daily arch-review routine on 2026-06-06._

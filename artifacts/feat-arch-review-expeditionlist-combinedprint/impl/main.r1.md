@@ -1,55 +1,64 @@
-Committed. Here is the output summary:
+Now writing the output artifact.
 
 ---
 
-# Implementation: Relocate CombinedPrintQueueSink to Application Layer
+# Implementation: Decouple CombinedPrintQueueSink from DI Keying Conventions
 
 ## What was implemented
 
-`CombinedPrintQueueSink` was moved from the API project (`Anela.Heblo.API/Features/ExpeditionList/`) to the Application project (`Anela.Heblo.Application/Features/ExpeditionList/Services/`), restoring Clean Architecture compliance. No logic was changed — only the file location, namespace, and `using` statements moved.
+Moved `CombinedPrintQueueSink` from `Anela.Heblo.Application` to `Anela.Heblo.API`, stripped its `[FromKeyedServices]` attributes, and replaced the `"Combined"` DI registration with a factory delegate that resolves the two keyed sinks explicitly. This is a pure layering correction — the Application layer now has zero `Microsoft.Extensions.DependencyInjection` coupling; runtime behavior is identical.
 
 ## Files created/modified
 
-- `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Services/CombinedPrintQueueSink.cs` — new file, updated namespace to `Anela.Heblo.Application.Features.ExpeditionList.Services`
-- `backend/src/Anela.Heblo.API/Features/ExpeditionList/CombinedPrintQueueSink.cs` — deleted (directory also removed)
-- `backend/src/Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs` — removed dead `using Anela.Heblo.API.Features.ExpeditionList;`
-- `backend/src/Anela.Heblo.Application/AssemblyInfo.cs` — added `[assembly: InternalsVisibleTo("Anela.Heblo.API")]`
-- `backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj` — added `<InternalsVisibleTo Include="Anela.Heblo.API" />`
-- `backend/test/Anela.Heblo.Tests/Features/ExpeditionList/CombinedPrintQueueSinkTests.cs` — updated `using` to new namespace only
+- `backend/src/Anela.Heblo.API/Features/ExpeditionList/CombinedPrintQueueSink.cs` — **new**: `internal sealed` class, namespace `Anela.Heblo.API.Features.ExpeditionList`, plain constructor (no DI attributes)
+- `backend/src/Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs` — **modified**: added `using Anela.Heblo.API.Features.ExpeditionList;`; replaced `"Combined"` arm's `AddScoped<T,T>` with inline factory lambda using `GetRequiredKeyedService`
+- `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Services/CombinedPrintQueueSink.cs` — **deleted**
+- `backend/test/Anela.Heblo.Tests/Features/ExpeditionList/CombinedPrintQueueSinkTests.cs` — **modified**: swapped one `using` from Application namespace to API namespace (constructor call unchanged)
+- `backend/test/Anela.Heblo.Tests/API/CombinedPrintQueueSinkRegistrationTests.cs` — **new**: 4 DI-resolution tests (FR-5)
 
 ## Tests
 
-`CombinedPrintQueueSinkTests` — all 4 test cases pass:
-- `SendAsync_BothSucceed_CallsBothSinksWithSamePaths`
-- `SendAsync_AzureThrows_CupsNeverCalledAndExceptionPropagates`
-- `SendAsync_AzureSucceedsCupsThrows_ExceptionPropagates`
-- `SendAsync_SinglePassEnumerable_BothSinksReceiveAllPaths`
+- `CombinedPrintQueueSinkTests` (4 tests) — unit tests on the relocated class; all pass unchanged
+- `CombinedPrintQueueSinkRegistrationTests` (4 tests, new) — DI-resolution: verifies `Combined` resolves `CombinedPrintQueueSink`, keyed `"azure"`→`AzureBlobPrintQueueSink`, keyed `"cups"`→`CupsPrintQueueSink`, `FileSystem` still resolves `FileSystemPrintQueueSink`
+- `ExpeditionListServicePrintSinkTests` (2 tests) — regression guard; unchanged, pass
+
+**All 10 tests pass.**
 
 ## How to verify
 
 ```bash
-dotnet build Anela.Heblo.sln   # 0 errors
-dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~CombinedPrintQueueSink"   # 4/4 passed
-grep -r "IPrintQueueSink" backend/src/Anela.Heblo.API/   # only ServiceCollectionExtensions.cs
+# Architectural invariants
+grep -rn 'FromKeyedServices' backend/src/Anela.Heblo.Application/  # must return 0 matches
+
+# Targeted tests (4+4+2 = 10)
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~CombinedPrintQueueSink|FullyQualifiedName~ExpeditionListServicePrintSink"
+
+# Full build
+dotnet build backend/Anela.Heblo.sln
 ```
 
 ## Notes
 
-The arch-review amendment (FR-6) was required: `internal sealed` in Application is invisible to the API project without `InternalsVisibleTo`. Both `AssemblyInfo.cs` and `.csproj` were updated to mirror the existing pattern for `Anela.Heblo.Tests`.
+- The Task 4 implementer added `services.AddSingleton(TimeProvider.System)` to `BuildProvider` (not in the original template) because `AzureBlobPrintQueueSink` requires it at construction time — this was a correct adjustment.
+- The 38 failures in the full test suite are pre-existing Testcontainers/Docker failures (PostgreSQL integration tests) unrelated to this change.
+- `dotnet format --verify-no-changes` passed with zero diff.
 
 ## PR Summary
 
-Moves `CombinedPrintQueueSink` from the API project into `Anela.Heblo.Application/Features/ExpeditionList/Services/` — the correct layer for a pure Application-level composite adapter. The API project previously held the only `IPrintQueueSink` implementation not in its proper layer; after this change, the API project contains no sink implementations, only DI wiring.
+Moves `CombinedPrintQueueSink` from `Anela.Heblo.Application` to `Anela.Heblo.API` and replaces the `[FromKeyedServices]`-decorated constructor with a factory delegate at the composition root — correcting a Clean Architecture layering violation where Application code carried knowledge of DI key strings defined in the API's `ServiceCollectionExtensions`.
 
-The only non-obvious prerequisite: the class stays `internal sealed`, so `InternalsVisibleTo("Anela.Heblo.API")` was added to `AssemblyInfo.cs` and `Anela.Heblo.Application.csproj` to let the API's composition root register the type without widening visibility.
+The factory (`AddScoped<IPrintQueueSink>(provider => { ... })`) resolves the two keyed sinks (`"azure"`, `"cups"`) explicitly and constructs the composite; the Application layer no longer references `Microsoft.Extensions.DependencyInjection` for this class. Runtime behavior is identical — same sequential dispatch, same `.ToList()` materialization, same fail-fast semantics.
+
+Four commits: add API-layer class → wire factory → delete Application-layer copy → add DI-resolution regression test (FR-5).
 
 ### Changes
-- `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Services/CombinedPrintQueueSink.cs` — relocated file, namespace updated
-- `backend/src/Anela.Heblo.API/Features/ExpeditionList/CombinedPrintQueueSink.cs` — deleted
-- `backend/src/Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs` — removed dead `using`
-- `backend/src/Anela.Heblo.Application/AssemblyInfo.cs` — added `InternalsVisibleTo("Anela.Heblo.API")`
-- `backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj` — added `<InternalsVisibleTo Include="Anela.Heblo.API" />`
-- `backend/test/Anela.Heblo.Tests/Features/ExpeditionList/CombinedPrintQueueSinkTests.cs` — updated `using` to new namespace
+- `backend/src/Anela.Heblo.API/Features/ExpeditionList/CombinedPrintQueueSink.cs` — new home for the composite, no DI attributes
+- `backend/src/Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs` — "Combined" arm rewritten to factory delegate
+- `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Services/CombinedPrintQueueSink.cs` — deleted
+- `backend/test/Anela.Heblo.Tests/Features/ExpeditionList/CombinedPrintQueueSinkTests.cs` — using updated to new namespace
+- `backend/test/Anela.Heblo.Tests/API/CombinedPrintQueueSinkRegistrationTests.cs` — new DI-resolution regression test (4 assertions)
 
 ## Status
+
 DONE

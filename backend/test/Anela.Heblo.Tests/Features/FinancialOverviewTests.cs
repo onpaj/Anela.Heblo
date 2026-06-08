@@ -2,8 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.FinancialOverview.Model;
-using Anela.Heblo.Application.Features.FinancialOverview.Services;
 using Anela.Heblo.Domain.Accounting.Ledger;
+using Anela.Heblo.Domain.Features.FinancialOverview;
 using Anela.Heblo.Tests.Common;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -155,11 +155,10 @@ public class FinancialOverviewTests : IClassFixture<FinancialOverviewTestFactory
         content.Should().NotBeNull();
         content!.Data.Should().NotBeNull();
 
-        // Verify stock data is included (even if empty with placeholder service)
+        // Verify stock data is included (empty stub, but properties populated)
         if (content.Data.Any())
         {
             var monthData = content.Data.First();
-            // With placeholder service, stock changes will be null but properties should exist
             monthData.TotalStockValueChange.Should().NotBeNull();
             monthData.TotalBalance.Should().NotBeNull();
         }
@@ -187,19 +186,20 @@ public class FinancialOverviewTestFactory : HebloWebApplicationFactory
         }
         services.AddSingleton(MockLedgerService.Object);
 
-        // Override IStockValueService with placeholder for testing
-        var stockValueDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Anela.Heblo.Domain.Features.FinancialOverview.IStockValueService));
+        // Override IStockValueService with a stub returning no stock changes
+        var stockValueDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IStockValueService));
         if (stockValueDescriptor != null)
         {
             services.Remove(stockValueDescriptor);
         }
-        services.AddScoped<Anela.Heblo.Domain.Features.FinancialOverview.IStockValueService>(provider =>
-        {
-            var logger = provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<PlaceholderStockValueService>>();
-            return new PlaceholderStockValueService(logger);
-        });
 
-        // Background services are now handled by centralized refresh system
-        // No specific background service removal needed for testing
+        var stockValueMock = new Mock<IStockValueService>();
+        stockValueMock
+            .Setup(s => s.GetStockValueChangesAsync(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<MonthlyStockChange>());
+        services.AddSingleton(stockValueMock.Object);
     }
 }

@@ -24,6 +24,7 @@ using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.API.PDFPrints;
 using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.API.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
@@ -412,11 +413,16 @@ public static class ServiceCollectionExtensions
                 break;
             case "Combined":
                 // AddAzurePrintQueueSink registers a non-keyed IPrintQueueSink as a side effect;
-                // it is unused here — the last non-keyed registration (CombinedPrintQueueSink) wins.
+                // it is unused here — the last non-keyed registration (the factory below) wins.
                 services.AddAzurePrintQueueSink(configuration);
                 services.AddKeyedScoped<IPrintQueueSink, AzureBlobPrintQueueSink>("azure");
                 services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
-                services.AddScoped<IPrintQueueSink, CombinedPrintQueueSink>();
+                services.AddScoped<IPrintQueueSink>(provider =>
+                {
+                    var azure = provider.GetRequiredKeyedService<IPrintQueueSink>("azure");
+                    var cups = provider.GetRequiredKeyedService<IPrintQueueSink>("cups");
+                    return new Anela.Heblo.API.Features.ExpeditionList.CombinedPrintQueueSink(azure, cups);
+                });
                 break;
             default: // "FileSystem" or unset
                 services.AddScoped<IPrintQueueSink, FileSystemPrintQueueSink>();

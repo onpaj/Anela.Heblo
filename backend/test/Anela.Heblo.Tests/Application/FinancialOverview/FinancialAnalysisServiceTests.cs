@@ -171,6 +171,38 @@ public class FinancialAnalysisServiceTests
             Times.AtLeast(1));
     }
 
+    [Fact]
+    public async Task RefreshFinancialDataAsync_WhenLastRefreshWithinThrottleWindow_DoesNotInvokeDownstreamServices()
+    {
+        // Arrange: seed the last-refresh timestamp inside the 10-minute throttle window.
+        // The throttle check uses the cache key "financial_last_refresh" and skips the refresh
+        // when the timestamp is younger than 10 minutes.
+        _memoryCache.Set("financial_last_refresh", DateTime.UtcNow.AddMinutes(-1), TimeSpan.FromHours(24));
+
+        // Act
+        await _service.RefreshFinancialDataAsync(startDate: null, endDate: null);
+
+        // Assert: the throttle short-circuits before any downstream call.
+        _ledgerServiceMock.Verify(
+            x => x.GetLedgerItems(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never,
+            "throttle should prevent any ledger query when last refresh was less than 10 minutes ago");
+
+        _stockValueServiceMock.Verify(
+            x => x.GetStockValueChangesAsync(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never,
+            "throttle should prevent any stock-value query when last refresh was less than 10 minutes ago");
+    }
+
     private void SeedCacheForMonth(int year, int month)
     {
         var key = $"financial_monthly_data_{year}_{month}";
@@ -181,5 +213,71 @@ public class FinancialAnalysisServiceTests
             Income = 10000m,
             Expenses = 8000m
         }, TimeSpan.FromHours(1));
+    }
+
+    [Fact]
+    public async Task GetFinancialOverviewAsync_RealTime_ComputesIncomeAndExpensesByAccountPrefix_PreservingAllFr4Cases()
+    {
+        // Arrange — last completed month (includeCurrentMonth=false ends at last day of previous month)
+        var now = DateTime.UtcNow;
+        var lastMonthStart = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
+        var (debitItems, creditItems) = CreateFr4LedgerItems(lastMonthStart.AddDays(10));
+        SetupLedgerMockForDebitCredit(debitItems, creditItems);
+
+        // Act — empty cache routes to real-time path
+        var response = await _service.GetFinancialOverviewAsync(
+            months: 2,
+            includeStockData: false,
+            excludedDepartments: null,
+            includeCurrentMonth: false);
+
+        // Assert — expenses = debit5(100) - credit5(20) = 80; income = credit6(200) - debit6(50) = 150
+        var lastMonthData = response.Data
+            .FirstOrDefault(d => d.Year == lastMonthStart.Year && d.Month == lastMonthStart.Month);
+
+        lastMonthData.Should().NotBeNull("the response must include the last completed month");
+        lastMonthData!.Expenses.Should().Be(80m, "expenses = debit5(100) - credit5(20)");
+        lastMonthData!.Income.Should().Be(150m, "income = credit6(200) - debit6(50)");
+    }
+
+    private static (List<LedgerItem> debitItems, List<LedgerItem> creditItems) CreateFr4LedgerItems(DateTime midLastMonth) =>
+        (
+            new List<LedgerItem>
+            {
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = "501100", CreditAccountNumber = null!, Amount = 100m },
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = "601200", CreditAccountNumber = null!, Amount = 50m },
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = null!, Amount = 1000m },
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = "311000", CreditAccountNumber = null!, Amount = 999m },
+            },
+            new List<LedgerItem>
+            {
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = "501100", Amount = 20m },
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = "601200", Amount = 200m },
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = null!, Amount = 1000m },
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = "311000", Amount = 999m },
+            }
+        );
+
+    private void SetupLedgerMockForDebitCredit(List<LedgerItem> debitItems, List<LedgerItem> creditItems)
+    {
+        _ledgerServiceMock
+            .Setup(x => x.GetLedgerItems(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.Is<IEnumerable<string>?>(p => p != null),
+                It.Is<IEnumerable<string>?>(p => p == null),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(debitItems);
+
+        _ledgerServiceMock
+            .Setup(x => x.GetLedgerItems(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.Is<IEnumerable<string>?>(p => p == null),
+                It.Is<IEnumerable<string>?>(p => p != null),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(creditItems);
     }
 }
