@@ -562,6 +562,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 return (
                                   <button
                                     key={subItem.id}
+                                    data-menu-key={subItem.key}
                                     onClick={() => {
                                       setActiveItem(subItem.id);
                                       (subItem as any).onClick();
