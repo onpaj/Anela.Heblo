@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Warehouse_Expedition)]
+[GateOn(Feature.Warehouse_Logistics)]
 [Authorize(Roles = AccessRoles.WarehouseLogisticsRead)]
 [ApiController]
 [Route("api/gift-settings")]

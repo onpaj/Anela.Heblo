@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Manufacture_BatchPlanning)]
+[GateOn(Feature.Manufacture_MaterialContainers)]
 [Authorize(Roles = AccessRoles.ManufactureMaterialContainersRead)]
 [Route("api/lots")]
 [ApiController]
