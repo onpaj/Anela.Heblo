@@ -37,7 +37,7 @@ public class PermissionClaimsTransformationTests
             .Setup(r => r.ResolveAsync("oid-1", It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new EffectivePermissions(false, new[] { "heblo_user", "catalog.read" }, new[] { "G" }));
         var sut = new PermissionClaimsTransformation(resolver.Object);
-        var principal = Principal(new Claim(ClaimTypes.NameIdentifier, "oid-1"));
+        var principal = Principal(new Claim("oid", "oid-1"));
 
         var result = await sut.TransformAsync(principal);
 
@@ -54,7 +54,7 @@ public class PermissionClaimsTransformationTests
             .Setup(r => r.ResolveAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, Array.Empty<string>()));
         var sut = new PermissionClaimsTransformation(resolver.Object);
-        var principal = Principal(new Claim(ClaimTypes.NameIdentifier, "oid-1"));
+        var principal = Principal(new Claim("oid", "oid-1"));
 
         var once = await sut.TransformAsync(principal);
         var twice = await sut.TransformAsync(once);
