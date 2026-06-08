@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Customer_Smartsupp)]
 [ApiController]
 [Route("api/admin/smartsupp/webhooks")]
 [GateOn(Feature.Admin_Administration)]

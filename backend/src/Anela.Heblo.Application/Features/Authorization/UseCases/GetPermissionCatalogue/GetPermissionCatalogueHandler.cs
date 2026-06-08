@@ -13,9 +13,9 @@ public class GetPermissionCatalogueHandler
             Permissions = AccessMatrix.AllRoleValues().ToList(),
             Features = AccessMatrix.Features.Select(f => new CatalogueFeatureDto
             {
-                Key = f.Key,
+                Key = f.Key.ToString(),
                 Label = f.Label,
-                Section = f.Section,
+                Section = f.Key.ToString().Split('_')[0],
                 HasWrite = f.HasWrite,
                 HasAdmin = f.HasAdmin,
             }).ToList(),
