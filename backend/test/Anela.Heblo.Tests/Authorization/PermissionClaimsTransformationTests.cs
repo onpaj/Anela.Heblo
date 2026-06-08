@@ -102,4 +102,31 @@ public class PermissionClaimsTransformationTests
             Times.Once);
         resolver.VerifyNoOtherCalls();
     }
+
+    [Fact]
+    public async Task Transform_EntraToken_UsesObjectIdentifierUri_WhenMapInboundClaimsApplied()
+    {
+        // When MapInboundClaims is enabled in JwtBearerOptions, the JWT "oid" claim is rewritten
+        // to the URI "http://schemas.microsoft.com/identity/claims/objectidentifier".
+        // GetObjectId() reads either form; pin that behavior here.
+        const string realOid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+
+        var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
+        resolver
+            .Setup(r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, new[] { "G" }));
+
+        var sut = new PermissionClaimsTransformation(resolver.Object);
+        var principal = Principal(
+            new Claim("http://schemas.microsoft.com/identity/claims/objectidentifier", realOid),
+            new Claim(ClaimTypes.NameIdentifier, "sub-mapped-to-name-identifier"));
+
+        var result = await sut.TransformAsync(principal);
+
+        result.IsInRole("catalog.read").Should().BeTrue();
+        resolver.Verify(
+            r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        resolver.VerifyNoOtherCalls();
+    }
 }
