@@ -11,10 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Admin_FeatureFlags)]
 [ApiController]
 [Route("api/feature-flags")]
-[Authorize]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 public class FeatureFlagsController : BaseApiController
 {
@@ -29,14 +27,14 @@ public class FeatureFlagsController : BaseApiController
         => HandleResponse(await _mediator.Send(new EvaluateFlagsForClientRequest(), ct));
 
     [HttpGet("admin")]
-    [Authorize(Roles = AccessRoles.AdminFeatureFlagsWrite)]
+    [FeatureAuthorize(Feature.Admin_FeatureFlags, AccessLevel.Write)]
     [ProducesResponseType(typeof(ListFlagsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ListFlagsResponse>> GetAdmin(CancellationToken ct)
         => HandleResponse(await _mediator.Send(new ListFlagsRequest(), ct));
 
     [HttpPut("admin/{key}")]
-    [Authorize(Roles = AccessRoles.AdminFeatureFlagsWrite)]
+    [FeatureAuthorize(Feature.Admin_FeatureFlags, AccessLevel.Write)]
     [ProducesResponseType(typeof(UpsertFlagOverrideResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(UpsertFlagOverrideResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -58,7 +56,7 @@ public class FeatureFlagsController : BaseApiController
     }
 
     [HttpDelete("admin/{key}")]
-    [Authorize(Roles = AccessRoles.AdminFeatureFlagsWrite)]
+    [FeatureAuthorize(Feature.Admin_FeatureFlags, AccessLevel.Write)]
     [ProducesResponseType(typeof(ClearFlagOverrideResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ClearFlagOverrideResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

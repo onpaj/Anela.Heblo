@@ -1,15 +1,13 @@
 using Anela.Heblo.Application.Features.Purchase.UseCases.SearchSuppliers;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.API.Infrastructure;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Purchase_PurchaseOrders)]
-[Authorize(Roles = AccessRoles.PurchasePurchaseOrdersRead)]
+[FeatureAuthorize(Feature.Purchase_PurchaseOrders)]
 [ApiController]
 [Route("api/suppliers")]
 public class SuppliersController : ControllerBase

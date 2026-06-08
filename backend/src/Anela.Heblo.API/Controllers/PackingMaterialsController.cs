@@ -13,15 +13,13 @@ using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMa
 using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Warehouse_Logistics)]
-[Authorize(Roles = AccessRoles.WarehouseLogisticsRead)]
+[FeatureAuthorize(Feature.Warehouse_Logistics)]
 [ApiController]
 [Route("api/packing-materials")]
 public class PackingMaterialsController : BaseApiController
@@ -43,7 +41,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost]
-    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     public async Task<ActionResult<CreatePackingMaterialResponse>> CreatePackingMaterial(
         [FromBody] CreatePackingMaterialRequest request,
         CancellationToken cancellationToken = default)
@@ -61,7 +59,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     [ProducesResponseType(typeof(UpdatePackingMaterialResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -87,7 +85,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost("{id}/quantity")]
-    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     [ProducesResponseType(typeof(UpdatePackingMaterialQuantityResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -115,7 +113,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -131,7 +129,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost("process-daily-consumption")]
-    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     public async Task<ActionResult<ProcessDailyConsumptionResponse>> ProcessDailyConsumption(
         [FromBody] ProcessDailyConsumptionRequest request,
         CancellationToken cancellationToken = default)
@@ -210,7 +208,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost("{id}/allocations")]
-    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     [ProducesResponseType(typeof(CreateAllocationResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -237,7 +235,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPut("{id}/allocations/{allocationId}")]
-    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     [ProducesResponseType(typeof(UpdateAllocationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -262,7 +260,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpDelete("{id}/allocations/{allocationId}")]
-    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DeleteAllocationResponse>> DeleteAllocation(

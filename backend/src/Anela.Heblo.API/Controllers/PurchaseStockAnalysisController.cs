@@ -1,13 +1,11 @@
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Purchase_PurchaseStock)]
-[Authorize(Roles = AccessRoles.PurchasePurchaseStockRead)]
+[FeatureAuthorize(Feature.Purchase_PurchaseStock)]
 [ApiController]
 [Route("api/purchase-stock-analysis")]
 public class PurchaseStockAnalysisController : BaseApiController

@@ -1,5 +1,4 @@
 using Anela.Heblo.API.Infrastructure.Authentication;
-using Anela.Heblo.Domain.Features.Authorization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -128,7 +127,6 @@ public class E2ETestController : ControllerBase
     /// Test authentication status - used by E2E tests to verify session is working
     /// </summary>
     [HttpGet("auth-status")]
-    [GateOn(Feature.Admin_Administration)]
     [Authorize(AuthenticationSchemes = "E2ETestCookies")]
     public ActionResult<object> GetAuthStatus()
     {
@@ -167,7 +165,6 @@ public class E2ETestController : ControllerBase
     /// Serve E2E test version of the app with mock authentication
     /// </summary>
     [HttpGet("app")]
-    [GateOn(Feature.Admin_Administration)]
     [Authorize(AuthenticationSchemes = "E2ETestCookies")]
     public ActionResult GetE2EApp()
     {

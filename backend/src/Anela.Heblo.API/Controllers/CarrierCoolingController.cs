@@ -2,13 +2,11 @@ using Anela.Heblo.Application.Features.CarrierCooling.UseCases.GetCarrierCooling
 using Anela.Heblo.Application.Features.CarrierCooling.UseCases.SetCarrierCooling;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Warehouse_Expedition)]
-[Authorize(Roles = AccessRoles.WarehouseExpeditionRead)]
+[FeatureAuthorize(Feature.Warehouse_Expedition)]
 [ApiController]
 [Route("api/carrier-cooling")]
 public class CarrierCoolingController : BaseApiController
@@ -29,7 +27,7 @@ public class CarrierCoolingController : BaseApiController
     }
 
     [HttpPut]
-    [Authorize(Roles = AccessRoles.WarehouseExpeditionWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Expedition, AccessLevel.Write)]
     public async Task<ActionResult<SetCarrierCoolingResponse>> SetCooling(
         [FromBody] SetCarrierCoolingRequest request,
         CancellationToken cancellationToken = default)

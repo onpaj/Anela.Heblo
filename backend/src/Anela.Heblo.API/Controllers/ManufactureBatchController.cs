@@ -4,13 +4,11 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Manufacture_BatchPlanning)]
-[Authorize(Roles = AccessRoles.ManufactureBatchPlanningRead)]
+[FeatureAuthorize(Feature.Manufacture_BatchPlanning)]
 [ApiController]
 [Route("api/manufacture-batch")]
 public class ManufactureBatchController : BaseApiController
@@ -34,7 +32,7 @@ public class ManufactureBatchController : BaseApiController
     }
 
     [HttpPost("calculate-by-size")]
-    [Authorize(Roles = AccessRoles.ManufactureBatchPlanningWrite)]
+    [FeatureAuthorize(Feature.Manufacture_BatchPlanning, AccessLevel.Write)]
     public async Task<ActionResult<CalculatedBatchSizeResponse>> CalculateBatchBySize(
         [FromBody] CalculatedBatchSizeRequest request,
         CancellationToken cancellationToken = default)
@@ -45,7 +43,7 @@ public class ManufactureBatchController : BaseApiController
     }
 
     [HttpPost("calculate-by-ingredient")]
-    [Authorize(Roles = AccessRoles.ManufactureBatchPlanningWrite)]
+    [FeatureAuthorize(Feature.Manufacture_BatchPlanning, AccessLevel.Write)]
     public async Task<ActionResult<CalculateBatchByIngredientResponse>> CalculateBatchByIngredient(
         [FromBody] CalculateBatchByIngredientRequest request,
         CancellationToken cancellationToken = default)
@@ -56,7 +54,7 @@ public class ManufactureBatchController : BaseApiController
     }
 
     [HttpPost("calculate-batch-plan")]
-    [Authorize(Roles = AccessRoles.ManufactureBatchPlanningWrite)]
+    [FeatureAuthorize(Feature.Manufacture_BatchPlanning, AccessLevel.Write)]
     public async Task<ActionResult<CalculateBatchPlanResponse>> CalculateBatchPlan(
         [FromBody] CalculateBatchPlanRequest request,
         CancellationToken cancellationToken = default)

@@ -3,13 +3,11 @@ using Anela.Heblo.Application.Features.GiftSettings.UseCases.SetGiftSetting;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Warehouse_Logistics)]
-[Authorize(Roles = AccessRoles.WarehouseLogisticsRead)]
+[FeatureAuthorize(Feature.Warehouse_Logistics)]
 [ApiController]
 [Route("api/gift-settings")]
 public class GiftSettingsController : BaseApiController
@@ -29,8 +27,7 @@ public class GiftSettingsController : BaseApiController
     }
 
     [HttpPut]
-    [GateOn(Feature.Warehouse_Logistics)]
-    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     public async Task<IActionResult> SetGiftSetting(
         [FromBody] SetGiftSettingCommand command,
         CancellationToken cancellationToken = default)

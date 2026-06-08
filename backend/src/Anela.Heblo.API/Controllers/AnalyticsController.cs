@@ -7,15 +7,13 @@ using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalys
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSummary;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Finance_MarginAnalysis)]
+[FeatureAuthorize(Feature.Finance_MarginAnalysis)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AccessRoles.FinanceMarginAnalysisRead)]
 public class AnalyticsController : BaseApiController
 {
     private readonly IMediator _mediator;

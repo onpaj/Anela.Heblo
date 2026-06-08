@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.OrgChart.Contracts;
 using Anela.Heblo.Application.Features.OrgChart.UseCases.GetOrganizationStructure;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
@@ -10,10 +9,9 @@ namespace Anela.Heblo.API.Controllers;
 /// <summary>
 /// Controller for organizational chart operations
 /// </summary>
-[GateOn(Feature.Anela_OrgChart)]
+[FeatureAuthorize(Feature.Anela_OrgChart)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AccessRoles.AnelaOrgChartRead)]
 public class OrgChartController : ControllerBase
 {
     private readonly IMediator _mediator;

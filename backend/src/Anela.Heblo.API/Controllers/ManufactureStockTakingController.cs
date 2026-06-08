@@ -2,15 +2,13 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockTakingHistory;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Manufacture_MaterialInventory)]
+[FeatureAuthorize(Feature.Manufacture_MaterialInventory)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AccessRoles.ManufactureMaterialInventoryRead)]
 public class ManufactureStockTakingController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -27,7 +25,7 @@ public class ManufactureStockTakingController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Stock taking record</returns>
     [HttpPost("submit")]
-    [Authorize(Roles = AccessRoles.ManufactureMaterialInventoryWrite)]
+    [FeatureAuthorize(Feature.Manufacture_MaterialInventory, AccessLevel.Write)]
     public async Task<ActionResult<SubmitManufactureStockTakingResponse>> SubmitManufactureStockTaking(
         [FromBody] SubmitManufactureStockTakingRequest request,
         CancellationToken cancellationToken = default)

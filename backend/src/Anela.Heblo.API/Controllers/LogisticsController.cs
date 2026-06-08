@@ -6,13 +6,11 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetManufactureLog;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Warehouse_Logistics)]
-[Authorize(Roles = AccessRoles.WarehouseLogisticsRead)]
+[FeatureAuthorize(Feature.Warehouse_Logistics)]
 [ApiController]
 [Route("api/logistics")]
 public class LogisticsController : BaseApiController
@@ -71,7 +69,7 @@ public class LogisticsController : BaseApiController
     /// Execute gift package manufacturing process
     /// </summary>
     [HttpPost("gift-packages/manufacture")]
-    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     public async Task<ActionResult<CreateGiftPackageManufactureResponse>> CreateGiftPackageManufacture(
         [FromBody] CreateGiftPackageManufactureRequest request,
         CancellationToken cancellationToken)
@@ -84,7 +82,7 @@ public class LogisticsController : BaseApiController
     /// Disassemble gift package back to individual components
     /// </summary>
     [HttpPost("gift-packages/disassemble")]
-    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     public async Task<ActionResult<DisassembleGiftPackageResponse>> DisassembleGiftPackage(
         [FromBody] DisassembleGiftPackageRequest request,
         CancellationToken cancellationToken)
@@ -97,7 +95,7 @@ public class LogisticsController : BaseApiController
     /// Queue gift package manufacturing process as background job
     /// </summary>
     [HttpPost("gift-packages/manufacture/enqueue")]
-    [Authorize(Roles = AccessRoles.WarehouseLogisticsWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     public async Task<ActionResult<EnqueueGiftPackageManufactureResponse>> EnqueueGiftPackageManufacture(
         [FromBody] EnqueueGiftPackageManufactureRequest request,
         CancellationToken cancellationToken)

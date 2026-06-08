@@ -1,7 +1,6 @@
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
@@ -11,8 +10,7 @@ namespace Anela.Heblo.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
-[GateOn(Feature.Admin_Administration)]
+[FeatureAuthorize(Feature.Admin_Administration)]
 public class FileStorageController : BaseApiController
 {
     private readonly IMediator _mediator;

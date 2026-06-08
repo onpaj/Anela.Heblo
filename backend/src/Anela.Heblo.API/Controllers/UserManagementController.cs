@@ -2,14 +2,12 @@ using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
-[GateOn(Feature.Admin_Administration)]
+[FeatureAuthorize(Feature.Admin_Administration)]
 [ApiController]
 [Route("api/[controller]")]
 public class UserManagementController : BaseApiController

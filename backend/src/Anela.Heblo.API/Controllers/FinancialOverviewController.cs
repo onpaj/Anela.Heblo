@@ -2,15 +2,13 @@ using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.FinancialOverview.Model;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Finance_FinancialOverview)]
+[FeatureAuthorize(Feature.Finance_FinancialOverview)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AccessRoles.FinanceFinancialOverviewRead)]
 public class FinancialOverviewController : ControllerBase
 {
     private readonly IMediator _mediator;

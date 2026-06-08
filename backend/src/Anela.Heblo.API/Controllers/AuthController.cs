@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetMe;
-using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +15,6 @@ public class AuthController : BaseApiController
     /// <summary>Returns the current user's effective permissions for the frontend.
     /// Reachable by any authenticated user (incl. no-access/disabled) via the AuthenticatedUser policy.</summary>
     [HttpGet("me")]
-    [GateOn(Feature.Admin_Administration)]
     [Authorize(Policy = "AuthenticatedUser")]
     public async Task<ActionResult<GetMeResponse>> Me(CancellationToken ct)
     {

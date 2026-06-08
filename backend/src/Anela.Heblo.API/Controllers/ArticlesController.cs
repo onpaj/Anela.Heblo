@@ -8,13 +8,11 @@ using Anela.Heblo.Application.Features.Article.UseCases.SubmitFeedback;
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Marketing_Article)]
-[Authorize(Roles = AccessRoles.MarketingArticleRead)]
+[FeatureAuthorize(Feature.Marketing_Article)]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class ArticlesController : BaseApiController
@@ -27,7 +25,7 @@ public sealed class ArticlesController : BaseApiController
     }
 
     [HttpPost("generate")]
-    [Authorize(Roles = AccessRoles.MarketingArticleWrite)]
+    [FeatureAuthorize(Feature.Marketing_Article, AccessLevel.Write)]
     public async Task<ActionResult<GenerateArticleResponse>> Generate(
         [FromBody] GenerateArticleRequest request,
         CancellationToken ct = default)
@@ -84,7 +82,7 @@ public sealed class ArticlesController : BaseApiController
     }
 
     [HttpGet("feedback/list")]
-    [Authorize(Roles = AccessRoles.MarketingArticleWrite)]
+    [FeatureAuthorize(Feature.Marketing_Article, AccessLevel.Write)]
     public async Task<ActionResult<GetArticleFeedbackListResponse>> FeedbackList(
         [FromQuery] bool? hasFeedback = null,
         [FromQuery] string? requestedBy = null,
@@ -107,8 +105,7 @@ public sealed class ArticlesController : BaseApiController
     }
 
     [HttpPost("admin/backfill-requested-by")]
-    [GateOn(Feature.Admin_Administration)]
-    [Authorize(Roles = AccessRoles.AdminAdministrationWrite)]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult<BackfillArticleRequestedByResponse>> BackfillRequestedBy(
         [FromBody] BackfillArticleRequestedByCommand request,
         CancellationToken ct = default)

@@ -2,13 +2,11 @@ using Anela.Heblo.Application.Features.ShoptetOrders.UseCases.BlockOrderProcessi
 using Anela.Heblo.Application.Features.ShoptetOrders.UseCases.GetPackingOrder;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
-[GateOn(Feature.Warehouse_Expedition)]
+[FeatureAuthorize(Feature.Warehouse_Expedition)]
 [ApiController]
 [Route("api/shoptet-orders")]
 public class ShoptetOrdersController : BaseApiController

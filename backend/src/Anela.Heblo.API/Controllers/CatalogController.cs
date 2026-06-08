@@ -14,14 +14,12 @@ using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Catalog;
-using Microsoft.AspNetCore.Authorization;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.API.Infrastructure;
 
 namespace Anela.Heblo.API.Controllers;
 
-[GateOn(Feature.Products_Catalog)]
-[Authorize(Roles = AccessRoles.ProductsCatalogRead)]
+[FeatureAuthorize(Feature.Products_Catalog)]
 [ApiController]
 [Route("api/[controller]")]
 public class CatalogController : BaseApiController
@@ -57,7 +55,7 @@ public class CatalogController : BaseApiController
     }
 
     [HttpPut("{productCode}/composition/order")]
-    [Authorize(Roles = AccessRoles.ProductsCatalogWrite)]
+    [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
     public async Task<ActionResult<UpdateProductCompositionOrderResponse>> UpdateCompositionOrder(
         string productCode,
         [FromBody] UpdateProductCompositionOrderRequest request)
@@ -111,7 +109,7 @@ public class CatalogController : BaseApiController
     }
 
     [HttpPost("manufacture-difficulty")]
-    [Authorize(Roles = AccessRoles.ProductsCatalogWrite)]
+    [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
     [ProducesResponseType(typeof(CreateManufactureDifficultyResponse), 201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(409)]
@@ -132,7 +130,7 @@ public class CatalogController : BaseApiController
     }
 
     [HttpPut("manufacture-difficulty/{id}")]
-    [Authorize(Roles = AccessRoles.ProductsCatalogWrite)]
+    [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
     public async Task<ActionResult<UpdateManufactureDifficultyResponse>> UpdateManufactureDifficulty(
         int id,
         UpdateManufactureDifficultyRequest request)
@@ -149,7 +147,7 @@ public class CatalogController : BaseApiController
     }
 
     [HttpDelete("manufacture-difficulty/{id}")]
-    [Authorize(Roles = AccessRoles.ProductsCatalogWrite)]
+    [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
     public async Task<ActionResult<DeleteManufactureDifficultyResponse>> DeleteManufactureDifficulty(int id)
     {
         var request = new DeleteManufactureDifficultyRequest { Id = id };
@@ -174,7 +172,7 @@ public class CatalogController : BaseApiController
     }
 
     [HttpPost("recalculate-product-weight")]
-    [Authorize(Roles = AccessRoles.ProductsCatalogWrite)]
+    [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
     public async Task<ActionResult<RecalculateProductWeightResponse>> RecalculateProductWeight(
         [FromBody] RecalculateProductWeightRequest request)
     {
@@ -183,7 +181,7 @@ public class CatalogController : BaseApiController
     }
 
     [HttpPost("recalculate-product-weight/{productCode}")]
-    [Authorize(Roles = AccessRoles.ProductsCatalogWrite)]
+    [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
     public async Task<ActionResult<RecalculateProductWeightResponse>> RecalculateProductWeight(string productCode)
     {
         var request = new RecalculateProductWeightRequest { ProductCode = productCode };
