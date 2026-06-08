@@ -124,3 +124,7 @@ describe('Sidebar navigation', () => {
     }
   });
 });
+
+// TODO(authz): consider scraping App.tsx for <Route path="..."> to validate
+// every non-virtual MenuPath.Key resolves to a real React route. Manual review
+// suffices for now.
