@@ -171,6 +171,38 @@ public class FinancialAnalysisServiceTests
             Times.AtLeast(1));
     }
 
+    [Fact]
+    public async Task RefreshFinancialDataAsync_WhenLastRefreshWithinThrottleWindow_DoesNotInvokeDownstreamServices()
+    {
+        // Arrange: seed the last-refresh timestamp inside the 10-minute throttle window.
+        // The throttle check uses the cache key "financial_last_refresh" and skips the refresh
+        // when the timestamp is younger than 10 minutes.
+        _memoryCache.Set("financial_last_refresh", DateTime.UtcNow.AddMinutes(-1), TimeSpan.FromHours(24));
+
+        // Act
+        await _service.RefreshFinancialDataAsync(startDate: null, endDate: null);
+
+        // Assert: the throttle short-circuits before any downstream call.
+        _ledgerServiceMock.Verify(
+            x => x.GetLedgerItems(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never,
+            "throttle should prevent any ledger query when last refresh was less than 10 minutes ago");
+
+        _stockValueServiceMock.Verify(
+            x => x.GetStockValueChangesAsync(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never,
+            "throttle should prevent any stock-value query when last refresh was less than 10 minutes ago");
+    }
+
     private void SeedCacheForMonth(int year, int month)
     {
         var key = $"financial_monthly_data_{year}_{month}";
