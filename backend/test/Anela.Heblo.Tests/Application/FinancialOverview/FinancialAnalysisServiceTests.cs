@@ -186,43 +186,48 @@ public class FinancialAnalysisServiceTests
     [Fact]
     public async Task GetFinancialOverviewAsync_RealTime_ComputesIncomeAndExpensesByAccountPrefix_PreservingAllFr4Cases()
     {
-        // Arrange — pick the last completed month (the real-time path with includeCurrentMonth=false
-        // produces a window that ends on the last day of the previous month).
+        // Arrange — last completed month (includeCurrentMonth=false ends at last day of previous month)
         var now = DateTime.UtcNow;
         var lastMonthStart = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
-        var midLastMonth = lastMonthStart.AddDays(10);
+        var (debitItems, creditItems) = CreateFr4LedgerItems(lastMonthStart.AddDays(10));
+        SetupLedgerMockForDebitCredit(debitItems, creditItems);
 
-        // Debit-side items: the helper sums those whose DebitAccountNumber starts with "5"
-        // (positive contribution to expenses) or "6" (negative contribution to income).
-        var debitItems = new List<LedgerItem>
-        {
-            // Case: debit-5 → adds to expenses
-            new LedgerItem { Date = midLastMonth, DebitAccountNumber = "501100", CreditAccountNumber = null!, Amount = 100m },
-            // Case: debit-6 → subtracts from income
-            new LedgerItem { Date = midLastMonth, DebitAccountNumber = "601200", CreditAccountNumber = null!, Amount = 50m },
-            // Case: null DebitAccountNumber → must be ignored, must not throw
-            new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = null!, Amount = 1000m },
-            // Case: prefix other than "5"/"6" → must be ignored
-            new LedgerItem { Date = midLastMonth, DebitAccountNumber = "311000", CreditAccountNumber = null!, Amount = 999m },
-        };
+        // Act — empty cache routes to real-time path
+        var response = await _service.GetFinancialOverviewAsync(
+            months: 2,
+            includeStockData: false,
+            excludedDepartments: null,
+            includeCurrentMonth: false);
 
-        // Credit-side items: the helper sums those whose CreditAccountNumber starts with "5"
-        // (negative contribution to expenses) or "6" (positive contribution to income).
-        var creditItems = new List<LedgerItem>
-        {
-            // Case: credit-5 → subtracts from expenses
-            new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = "501100", Amount = 20m },
-            // Case: credit-6 → adds to income
-            new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = "601200", Amount = 200m },
-            // Case: null CreditAccountNumber → must be ignored, must not throw
-            new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = null!, Amount = 1000m },
-            // Case: prefix other than "5"/"6" → must be ignored
-            new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = "311000", Amount = 999m },
-        };
+        // Assert — expenses = debit5(100) - credit5(20) = 80; income = credit6(200) - debit6(50) = 150
+        var lastMonthData = response.Data
+            .FirstOrDefault(d => d.Year == lastMonthStart.Year && d.Month == lastMonthStart.Month);
 
-        // Override the default empty-list setup. The service calls ILedgerService twice:
-        // once with debitAccountPrefix != null (creditAccountPrefix == null), and
-        // once with creditAccountPrefix != null (debitAccountPrefix == null).
+        lastMonthData.Should().NotBeNull("the response must include the last completed month");
+        lastMonthData!.Expenses.Should().Be(80m, "expenses = debit5(100) - credit5(20)");
+        lastMonthData!.Income.Should().Be(150m, "income = credit6(200) - debit6(50)");
+    }
+
+    private static (List<LedgerItem> debitItems, List<LedgerItem> creditItems) CreateFr4LedgerItems(DateTime midLastMonth) =>
+        (
+            new List<LedgerItem>
+            {
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = "501100", CreditAccountNumber = null!, Amount = 100m },
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = "601200", CreditAccountNumber = null!, Amount = 50m },
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = null!, Amount = 1000m },
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = "311000", CreditAccountNumber = null!, Amount = 999m },
+            },
+            new List<LedgerItem>
+            {
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = "501100", Amount = 20m },
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = "601200", Amount = 200m },
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = null!, Amount = 1000m },
+                new LedgerItem { Date = midLastMonth, DebitAccountNumber = null!, CreditAccountNumber = "311000", Amount = 999m },
+            }
+        );
+
+    private void SetupLedgerMockForDebitCredit(List<LedgerItem> debitItems, List<LedgerItem> creditItems)
+    {
         _ledgerServiceMock
             .Setup(x => x.GetLedgerItems(
                 It.IsAny<DateTime>(),
@@ -242,24 +247,5 @@ public class FinancialAnalysisServiceTests
                 It.IsAny<string?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(creditItems);
-
-        // Act — route through GetFinancialOverviewRealTimeAsync. With excludedDepartments=null,
-        // includeCurrentMonth=false, and an empty cache (fresh test instance), the public method
-        // falls through to the real-time path and applies the helper per month.
-        var response = await _service.GetFinancialOverviewAsync(
-            months: 2,
-            includeStockData: false,
-            excludedDepartments: null,
-            includeCurrentMonth: false);
-
-        // Assert — the last completed month must contain the expected income/expenses.
-        // expenses = debit5(100) - credit5(20) = 80
-        // income   = credit6(200) - debit6(50) = 150
-        var lastMonthData = response.Data
-            .FirstOrDefault(d => d.Year == lastMonthStart.Year && d.Month == lastMonthStart.Month);
-
-        lastMonthData.Should().NotBeNull("the response must include the last completed month");
-        lastMonthData!.Expenses.Should().Be(80m, "expenses = debit5(100) - credit5(20)");
-        lastMonthData!.Income.Should().Be(150m, "income = credit6(200) - debit6(50)");
     }
 }
