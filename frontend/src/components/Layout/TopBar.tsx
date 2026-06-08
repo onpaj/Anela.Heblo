@@ -38,7 +38,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
         </div>
 
         {/* Right side - User Profile Menu */}
-        <div className="flex items-center">
+        <div className="relative flex items-center">
           <UserProfile menuPosition="below" />
         </div>
       </div>
