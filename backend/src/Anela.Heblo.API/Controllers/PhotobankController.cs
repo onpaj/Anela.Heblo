@@ -30,9 +30,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers
 {
+    [GateOn(Feature.Marketing_Photobank)]
     [ApiController]
     [Route("api/photobank")]
-    [Authorize(Roles = AccessRoles.PhotobankRead)]
+    [Authorize(Roles = AccessRoles.MarketingPhotobankRead)]
     public class PhotobankController : BaseApiController
     {
         private readonly IMediator _mediator;
@@ -85,7 +86,7 @@ namespace Anela.Heblo.API.Controllers
         /// Create a new tag. Requires super user role.
         /// </summary>
         [HttpPost("tags")]
-        [Authorize(Roles = AccessRoles.PhotobankAdmin)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankAdmin)]
         [ProducesResponseType(typeof(CreateTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -99,7 +100,7 @@ namespace Anela.Heblo.API.Controllers
         /// Delete a tag by ID. Requires super user role.
         /// </summary>
         [HttpDelete("tags/{id:int}")]
-        [Authorize(Roles = AccessRoles.PhotobankAdmin)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankAdmin)]
         [ProducesResponseType(typeof(DeleteTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -113,7 +114,7 @@ namespace Anela.Heblo.API.Controllers
         /// Add a manual tag to a photo. Requires administrator role.
         /// </summary>
         [HttpPost("photos/{id:int}/tags")]
-        [Authorize(Roles = AccessRoles.PhotobankWrite)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankWrite)]
         [ProducesResponseType(typeof(AddPhotoTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -131,7 +132,7 @@ namespace Anela.Heblo.API.Controllers
         /// Remove a tag from a photo. Requires administrator role.
         /// </summary>
         [HttpDelete("photos/{id:int}/tags/{tagId:int}")]
-        [Authorize(Roles = AccessRoles.PhotobankWrite)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankWrite)]
         [ProducesResponseType(typeof(RemovePhotoTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -151,7 +152,7 @@ namespace Anela.Heblo.API.Controllers
         /// Capped at 5 000 matching photos per call.
         /// </summary>
         [HttpPost("photos/bulk-tag")]
-        [Authorize(Roles = AccessRoles.PhotobankWrite)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankWrite)]
         [ProducesResponseType(typeof(BulkAddPhotoTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -175,7 +176,7 @@ namespace Anela.Heblo.API.Controllers
         /// in AlreadyTaggedCount and not modified.
         /// </summary>
         [HttpPost("photos/tag-by-ids")]
-        [Authorize(Roles = AccessRoles.PhotobankWrite)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankWrite)]
         [ProducesResponseType(typeof(BulkAddPhotoTagByIdsResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -197,7 +198,7 @@ namespace Anela.Heblo.API.Controllers
         /// Optionally clears existing AI tags before re-processing.
         /// </summary>
         [HttpPost("photos/auto-tag")]
-        [Authorize(Roles = AccessRoles.PhotobankWrite)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankWrite)]
         [ProducesResponseType(typeof(RetagPhotosResponse), StatusCodes.Status202Accepted)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -215,7 +216,7 @@ namespace Anela.Heblo.API.Controllers
         /// Get configured SharePoint index roots.
         /// </summary>
         [HttpGet("settings/roots")]
-        [Authorize(Roles = AccessRoles.PhotobankAdmin)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankAdmin)]
         [ProducesResponseType(typeof(GetRootsResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<GetRootsResponse>> GetRoots(CancellationToken cancellationToken = default)
@@ -228,7 +229,7 @@ namespace Anela.Heblo.API.Controllers
         /// Add a new SharePoint index root.
         /// </summary>
         [HttpPost("settings/roots")]
-        [Authorize(Roles = AccessRoles.PhotobankAdmin)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankAdmin)]
         [ProducesResponseType(typeof(AddRootResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<AddRootResponse>> AddRoot(
@@ -245,7 +246,7 @@ namespace Anela.Heblo.API.Controllers
         /// Delete a SharePoint index root.
         /// </summary>
         [HttpDelete("settings/roots/{id:int}")]
-        [Authorize(Roles = AccessRoles.PhotobankAdmin)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankAdmin)]
         [ProducesResponseType(typeof(DeleteRootResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -263,7 +264,7 @@ namespace Anela.Heblo.API.Controllers
         /// Get all tag rules.
         /// </summary>
         [HttpGet("settings/rules")]
-        [Authorize(Roles = AccessRoles.PhotobankAdmin)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankAdmin)]
         [ProducesResponseType(typeof(GetRulesResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<GetRulesResponse>> GetRules(CancellationToken cancellationToken = default)
@@ -276,7 +277,7 @@ namespace Anela.Heblo.API.Controllers
         /// Add a new tag rule.
         /// </summary>
         [HttpPost("settings/rules")]
-        [Authorize(Roles = AccessRoles.PhotobankAdmin)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankAdmin)]
         [ProducesResponseType(typeof(AddRuleResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<AddRuleResponse>> AddRule(
@@ -296,7 +297,7 @@ namespace Anela.Heblo.API.Controllers
         [ProducesResponseType(typeof(UpdateRuleResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Authorize(Roles = AccessRoles.PhotobankAdmin)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankAdmin)]
         public async Task<ActionResult<UpdateRuleResponse>> UpdateRule(
             int id,
             [FromBody] UpdateRuleRequest request,
@@ -318,7 +319,7 @@ namespace Anela.Heblo.API.Controllers
         /// Delete a tag rule.
         /// </summary>
         [HttpDelete("settings/rules/{id:int}")]
-        [Authorize(Roles = AccessRoles.PhotobankAdmin)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankAdmin)]
         [ProducesResponseType(typeof(DeleteRuleResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -335,7 +336,7 @@ namespace Anela.Heblo.API.Controllers
         /// Manual and AI tags are never touched.
         /// </summary>
         [HttpPost("settings/rules/reapply")]
-        [Authorize(Roles = AccessRoles.PhotobankAdmin)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankAdmin)]
         [ProducesResponseType(typeof(ReapplyRulesResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<ReapplyRulesResponse>> ReapplyRules(CancellationToken cancellationToken = default)
@@ -349,7 +350,7 @@ namespace Anela.Heblo.API.Controllers
         /// are removed and recomputed; all other rules' tags are left untouched.
         /// </summary>
         [HttpPost("settings/rules/{id:int}/reapply")]
-        [Authorize(Roles = AccessRoles.PhotobankAdmin)]
+        [Authorize(Roles = AccessRoles.MarketingPhotobankAdmin)]
         [ProducesResponseType(typeof(ReapplyRulesResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

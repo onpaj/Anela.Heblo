@@ -11,7 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.CatalogRead)]
+[GateOn(Feature.Products_Catalog)]
+[Authorize(Roles = AccessRoles.ProductsCatalogRead)]
 [ApiController]
 [Route("api/catalog-documents")]
 public class CatalogDocumentsController : BaseApiController
@@ -47,7 +48,7 @@ public class CatalogDocumentsController : BaseApiController
     }
 
     [HttpPost("materials/{productCode}")]
-    [Authorize(Roles = AccessRoles.CatalogWrite)]
+    [Authorize(Roles = AccessRoles.ProductsCatalogWrite)]
     [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB
     public async Task<ActionResult<UploadDocumentResponse>> UploadMaterialDocument(
         string productCode,
@@ -79,7 +80,7 @@ public class CatalogDocumentsController : BaseApiController
     }
 
     [HttpPost("pif/{productCode}")]
-    [Authorize(Roles = AccessRoles.CatalogWrite)]
+    [Authorize(Roles = AccessRoles.ProductsCatalogWrite)]
     [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB
     public async Task<ActionResult<UploadDocumentResponse>> UploadPifDocument(
         string productCode,

@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.ExpeditionRead)]
+[GateOn(Feature.Warehouse_Expedition)]
+[Authorize(Roles = AccessRoles.WarehouseExpeditionRead)]
 [ApiController]
 [Route("api/expedition-list")]
 public class ExpeditionListController : BaseApiController
@@ -19,7 +20,7 @@ public class ExpeditionListController : BaseApiController
     }
 
     [HttpPost("run-fix")]
-    [Authorize(Roles = AccessRoles.ExpeditionWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseExpeditionWrite)]
     public async Task<ActionResult<RunExpeditionListPrintFixResponse>> RunFix(CancellationToken cancellationToken)
     {
         var request = new RunExpeditionListPrintFixRequest();

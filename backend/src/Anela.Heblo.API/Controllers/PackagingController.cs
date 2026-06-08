@@ -10,7 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.PackagingRead)]
+[GateOn(Feature.Warehouse_Packaging)]
+[Authorize(Roles = AccessRoles.WarehousePackagingRead)]
 [ApiController]
 [Route("api/packaging")]
 public class PackagingController : BaseApiController
@@ -27,7 +28,7 @@ public class PackagingController : BaseApiController
     /// Ineligible orders return success: true with eligibility.isEligible: false.
     /// </summary>
     [HttpPost("orders/{orderCode}/scan")]
-    [Authorize(Roles = AccessRoles.PackagingWrite)]
+    [Authorize(Roles = AccessRoles.WarehousePackagingWrite)]
     public async Task<ActionResult<ScanPackingOrderResponse>> ScanOrder(
         [FromRoute] string orderCode,
         CancellationToken cancellationToken)
@@ -40,7 +41,7 @@ public class PackagingController : BaseApiController
     /// Resets an order shipment: deletes the existing shipment and creates a new one.
     /// </summary>
     [HttpPost("orders/{orderCode}/shipment/reset")]
-    [Authorize(Roles = AccessRoles.PackagingWrite)]
+    [Authorize(Roles = AccessRoles.WarehousePackagingWrite)]
     public async Task<ActionResult<ResetOrderShipmentResponse>> ResetShipment(
         [FromRoute] string orderCode,
         CancellationToken cancellationToken)
@@ -87,7 +88,7 @@ public class PackagingController : BaseApiController
     }
 
     [HttpDelete("packages/{id:int}")]
-    [Authorize(Roles = AccessRoles.PackagingWrite)]
+    [Authorize(Roles = AccessRoles.WarehousePackagingWrite)]
     public async Task<ActionResult<DeletePackageResponse>> DeletePackage(
         [FromRoute] int id,
         CancellationToken cancellationToken)

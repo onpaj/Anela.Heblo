@@ -14,9 +14,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[GateOn(Feature.Customer_Smartsupp)]
 [ApiController]
 [Route("api/smartsupp")]
-[Authorize(Roles = AccessRoles.SmartsuppRead)]
+[Authorize(Roles = AccessRoles.CustomerSmartsuppRead)]
 public class SmartsuppController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -129,7 +130,8 @@ public class SmartsuppController : BaseApiController
     }
 
     [HttpPost("admin/refresh-orphan-contacts")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [GateOn(Feature.Admin_Administration)]
+    [Authorize(Roles = AccessRoles.AdminAdministrationWrite)]
     [ProducesResponseType(typeof(RefreshOrphanContactsResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<RefreshOrphanContactsResponse>> RefreshOrphanContacts(
         CancellationToken cancellationToken = default)

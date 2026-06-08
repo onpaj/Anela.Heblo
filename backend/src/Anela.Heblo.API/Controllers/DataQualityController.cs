@@ -9,9 +9,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[GateOn(Feature.Admin_DataQuality)]
 [ApiController]
 [Route("api/data-quality")]
-[Authorize(Roles = AccessRoles.DataQualityRead)]
+[Authorize(Roles = AccessRoles.AdminDataQualityRead)]
 public class DataQualityController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -67,7 +68,7 @@ public class DataQualityController : BaseApiController
     /// Trigger a manual DQT run
     /// </summary>
     [HttpPost("runs")]
-    [Authorize(Roles = AccessRoles.DataQualityWrite)]
+    [Authorize(Roles = AccessRoles.AdminDataQualityWrite)]
     public async Task<ActionResult<RunDqtResponse>> RunDqt([FromBody] RunDqtRequest request)
     {
         var response = await _mediator.Send(request);

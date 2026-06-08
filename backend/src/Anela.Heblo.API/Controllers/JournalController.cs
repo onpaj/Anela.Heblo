@@ -8,9 +8,10 @@ using Anela.Heblo.Application.Features.Journal.Contracts;
 
 namespace Anela.Heblo.API.Controllers
 {
+    [GateOn(Feature.Products_Journal)]
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = AccessRoles.JournalRead)]
+    [Authorize(Roles = AccessRoles.ProductsJournalRead)]
     public class JournalController : BaseApiController
     {
         private readonly IMediator _mediator;
@@ -60,7 +61,7 @@ namespace Anela.Heblo.API.Controllers
         /// Create new journal entry
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = AccessRoles.JournalWrite)]
+        [Authorize(Roles = AccessRoles.ProductsJournalWrite)]
         [ProducesResponseType(typeof(CreateJournalEntryResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -80,7 +81,7 @@ namespace Anela.Heblo.API.Controllers
         /// Update existing journal entry
         /// </summary>
         [HttpPut("{id:int}")]
-        [Authorize(Roles = AccessRoles.JournalWrite)]
+        [Authorize(Roles = AccessRoles.ProductsJournalWrite)]
         [ProducesResponseType(typeof(UpdateJournalEntryResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -96,7 +97,7 @@ namespace Anela.Heblo.API.Controllers
         /// Delete journal entry (soft delete)
         /// </summary>
         [HttpDelete("{id:int}")]
-        [Authorize(Roles = AccessRoles.JournalWrite)]
+        [Authorize(Roles = AccessRoles.ProductsJournalWrite)]
         [ProducesResponseType(typeof(DeleteJournalEntryResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -124,7 +125,7 @@ namespace Anela.Heblo.API.Controllers
         /// Create new tag
         /// </summary>
         [HttpPost("tags")]
-        [Authorize(Roles = AccessRoles.JournalWrite)]
+        [Authorize(Roles = AccessRoles.ProductsJournalWrite)]
         [ProducesResponseType(typeof(CreateJournalTagResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<CreateJournalTagResponse>> CreateJournalTag([FromBody] CreateJournalTagRequest request)

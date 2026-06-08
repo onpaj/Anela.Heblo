@@ -8,7 +8,8 @@ using Anela.Heblo.API.Infrastructure;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.PurchaseOrdersRead)]
+[GateOn(Feature.Purchase_PurchaseOrders)]
+[Authorize(Roles = AccessRoles.PurchasePurchaseOrdersRead)]
 [ApiController]
 [Route("api/suppliers")]
 public class SuppliersController : ControllerBase

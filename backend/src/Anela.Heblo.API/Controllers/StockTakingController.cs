@@ -7,9 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[GateOn(Feature.Manufacture_MaterialInventory)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AccessRoles.MaterialInventoryRead)]
+[Authorize(Roles = AccessRoles.ManufactureMaterialInventoryRead)]
 public class StockTakingController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -26,7 +27,7 @@ public class StockTakingController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Stock taking record</returns>
     [HttpPost("submit")]
-    [Authorize(Roles = AccessRoles.MaterialInventoryWrite)]
+    [Authorize(Roles = AccessRoles.ManufactureMaterialInventoryWrite)]
     public async Task<ActionResult<SubmitStockTakingResponse>> SubmitStockTaking(
         [FromBody] SubmitStockTakingRequest request,
         CancellationToken cancellationToken = default)

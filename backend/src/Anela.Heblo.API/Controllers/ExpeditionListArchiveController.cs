@@ -9,7 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.ExpeditionRead)]
+[GateOn(Feature.Warehouse_Expedition)]
+[Authorize(Roles = AccessRoles.WarehouseExpeditionRead)]
 [ApiController]
 [Route("api/expedition-list-archive")]
 public class ExpeditionListArchiveController : BaseApiController
@@ -54,7 +55,7 @@ public class ExpeditionListArchiveController : BaseApiController
     }
 
     [HttpPost("reprint")]
-    [Authorize(Roles = AccessRoles.ExpeditionWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseExpeditionWrite)]
     public async Task<ActionResult<ReprintExpeditionListResponse>> Reprint([FromBody] ReprintExpeditionListRequest request)
     {
         var response = await _mediator.Send(request);

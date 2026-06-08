@@ -8,7 +8,8 @@ using System.Text.Json.Serialization;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.ExpeditionRead)]
+[GateOn(Feature.Warehouse_Expedition)]
+[Authorize(Roles = AccessRoles.WarehouseExpeditionRead)]
 [ApiController]
 [Route("api/shipment-labels")]
 public class ShipmentLabelsController : BaseApiController
@@ -25,7 +26,7 @@ public class ShipmentLabelsController : BaseApiController
     /// The Baleni kiosk uses these to print on a USB-connected Zebra printer.
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = AccessRoles.ExpeditionWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseExpeditionWrite)]
     public async Task<ActionResult<GetOrderShipmentLabelsResponse>> GetLabels(
         [FromBody] GetShipmentLabelsRequest body)
     {
@@ -41,7 +42,7 @@ public class ShipmentLabelsController : BaseApiController
     /// Creates a new shipment for an order via the Shoptet API and returns label data.
     /// </summary>
     [HttpPost("create")]
-    [Authorize(Roles = AccessRoles.ExpeditionWrite)]
+    [Authorize(Roles = AccessRoles.WarehouseExpeditionWrite)]
     public async Task<ActionResult<CreateOrderShipmentResponse>> CreateShipment(
         [FromBody] CreateShipmentRequest body,
         CancellationToken cancellationToken)

@@ -10,9 +10,10 @@ namespace Anela.Heblo.API.Controllers;
 /// <summary>
 /// Controller for organizational chart operations
 /// </summary>
+[GateOn(Feature.Anela_OrgChart)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AccessRoles.OrgChartRead)]
+[Authorize(Roles = AccessRoles.AnelaOrgChartRead)]
 public class OrgChartController : ControllerBase
 {
     private readonly IMediator _mediator;

@@ -7,7 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.ManufactureOutputRead)]
+[GateOn(Feature.Manufacture_ManufactureOutput)]
+[Authorize(Roles = AccessRoles.ManufactureManufactureOutputRead)]
 [ApiController]
 [Route("api/manufacture-output")]
 public class ManufactureOutputController : BaseApiController

@@ -10,9 +10,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[GateOn(Feature.Customer_Smartsupp)]
 [ApiController]
 [Route("api/admin/smartsupp/webhooks")]
-[Authorize(Roles = AccessRoles.AdministrationWrite)]
+[GateOn(Feature.Admin_Administration)]
+[Authorize(Roles = AccessRoles.AdminAdministrationWrite)]
 public class SmartsuppWebhookAuditController : BaseApiController
 {
     private readonly IMediator _mediator;

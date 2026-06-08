@@ -11,7 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.MaterialContainersRead)]
+[GateOn(Feature.Manufacture_MaterialContainers)]
+[Authorize(Roles = AccessRoles.ManufactureMaterialContainersRead)]
 [Route("api/material-containers")]
 [ApiController]
 public class MaterialContainersController : BaseApiController
@@ -56,7 +57,7 @@ public class MaterialContainersController : BaseApiController
     }
 
     [HttpPost]
-    [Authorize(Roles = AccessRoles.MaterialContainersWrite)]
+    [Authorize(Roles = AccessRoles.ManufactureMaterialContainersWrite)]
     public async Task<ActionResult<CreateMaterialContainersResponse>> Create(
         [FromBody] CreateMaterialContainersRequest request,
         CancellationToken cancellationToken)
@@ -66,7 +67,7 @@ public class MaterialContainersController : BaseApiController
     }
 
     [HttpPost("{id:int}/discard")]
-    [Authorize(Roles = AccessRoles.MaterialContainersWrite)]
+    [Authorize(Roles = AccessRoles.ManufactureMaterialContainersWrite)]
     public async Task<ActionResult<DiscardMaterialContainerResponse>> Discard(int id, CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(new DiscardMaterialContainerRequest { Id = id }, cancellationToken);
@@ -74,7 +75,7 @@ public class MaterialContainersController : BaseApiController
     }
 
     [HttpPost("print-labels")]
-    [Authorize(Roles = AccessRoles.MaterialContainersWrite)]
+    [Authorize(Roles = AccessRoles.ManufactureMaterialContainersWrite)]
     public async Task<ActionResult<PrintMaterialContainerLabelsResponse>> PrintLabels(
         [FromBody] PrintMaterialContainerLabelsRequest request, CancellationToken cancellationToken)
     {

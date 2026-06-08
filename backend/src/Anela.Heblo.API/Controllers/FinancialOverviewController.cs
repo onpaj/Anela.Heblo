@@ -7,9 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[GateOn(Feature.Finance_FinancialOverview)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AccessRoles.FinancialOverviewRead)]
+[Authorize(Roles = AccessRoles.FinanceFinancialOverviewRead)]
 public class FinancialOverviewController : ControllerBase
 {
     private readonly IMediator _mediator;

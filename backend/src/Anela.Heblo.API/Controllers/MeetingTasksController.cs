@@ -15,7 +15,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.MeetingsRead)]
+[GateOn(Feature.Anela_Meetings)]
+[Authorize(Roles = AccessRoles.AnelaMeetingsRead)]
 [ApiController]
 [Route("api/meeting-tasks")]
 public sealed class MeetingTasksController : BaseApiController
@@ -53,7 +54,7 @@ public sealed class MeetingTasksController : BaseApiController
     }
 
     [HttpPut("{transcriptId:guid}/tasks/{taskId:guid}")]
-    [Authorize(Roles = AccessRoles.MeetingsWrite)]
+    [Authorize(Roles = AccessRoles.AnelaMeetingsWrite)]
     public async Task<ActionResult<UpdateProposedTaskResponse>> UpdateTask(
         Guid transcriptId,
         Guid taskId,
@@ -67,7 +68,7 @@ public sealed class MeetingTasksController : BaseApiController
     }
 
     [HttpPut("{transcriptId:guid}/tasks/{taskId:guid}/status")]
-    [Authorize(Roles = AccessRoles.MeetingsWrite)]
+    [Authorize(Roles = AccessRoles.AnelaMeetingsWrite)]
     public async Task<ActionResult<UpdateProposedTaskStatusResponse>> UpdateTaskStatus(
         Guid transcriptId,
         Guid taskId,
@@ -81,7 +82,7 @@ public sealed class MeetingTasksController : BaseApiController
     }
 
     [HttpPost("{transcriptId:guid}/tasks")]
-    [Authorize(Roles = AccessRoles.MeetingsWrite)]
+    [Authorize(Roles = AccessRoles.AnelaMeetingsWrite)]
     public async Task<ActionResult<AddProposedTaskResponse>> AddTask(
         Guid transcriptId,
         [FromBody] AddProposedTaskRequest request,
@@ -93,7 +94,7 @@ public sealed class MeetingTasksController : BaseApiController
     }
 
     [HttpPost("{transcriptId:guid}/submit")]
-    [Authorize(Roles = AccessRoles.MeetingsWrite)]
+    [Authorize(Roles = AccessRoles.AnelaMeetingsWrite)]
     public async Task<ActionResult<SubmitToTodoResponse>> Submit(
         Guid transcriptId,
         CancellationToken ct = default)
@@ -103,7 +104,7 @@ public sealed class MeetingTasksController : BaseApiController
     }
 
     [HttpPost("{transcriptId:guid}/explain")]
-    [Authorize(Roles = AccessRoles.MeetingsWrite)]
+    [Authorize(Roles = AccessRoles.AnelaMeetingsWrite)]
     public async Task<ActionResult<ExplainSummaryResponse>> ExplainSummary(
         Guid transcriptId,
         [FromBody] ExplainSummaryRequest request,
@@ -115,7 +116,7 @@ public sealed class MeetingTasksController : BaseApiController
     }
 
     [HttpPut("{transcriptId:guid}/access")]
-    [Authorize(Roles = AccessRoles.MeetingsWrite)]
+    [Authorize(Roles = AccessRoles.AnelaMeetingsWrite)]
     public async Task<ActionResult<UpdateMeetingAccessResponse>> UpdateAccess(
         Guid transcriptId,
         [FromBody] UpdateMeetingAccessRequest request,
@@ -127,7 +128,7 @@ public sealed class MeetingTasksController : BaseApiController
     }
 
     [HttpPost("{transcriptId:guid}/reimport")]
-    [Authorize(Roles = AccessRoles.MeetingsWrite)]
+    [Authorize(Roles = AccessRoles.AnelaMeetingsWrite)]
     public async Task<ActionResult<ReimportMeetingTranscriptResponse>> Reimport(
         Guid transcriptId,
         CancellationToken ct = default)
