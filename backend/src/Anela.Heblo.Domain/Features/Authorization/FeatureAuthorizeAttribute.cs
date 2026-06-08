@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
+
 namespace Anela.Heblo.Domain.Features.Authorization;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
-public sealed class FeatureAuthorizeAttribute : Microsoft.AspNetCore.Authorization.AuthorizeAttribute
+public sealed class FeatureAuthorizeAttribute : AuthorizeAttribute
 {
     public Feature Feature { get; }
     public AccessLevel Level { get; }
