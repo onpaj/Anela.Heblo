@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.CloseConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetInfo;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.RefreshOrphanContacts;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.SendMessage;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetVisitorInfo;
@@ -124,6 +125,16 @@ public class SmartsuppController : BaseApiController
         var result = await _mediator.Send(
             new CloseConversationRequest { ConversationId = id },
             cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("admin/refresh-orphan-contacts")]
+    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [ProducesResponseType(typeof(RefreshOrphanContactsResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<RefreshOrphanContactsResponse>> RefreshOrphanContacts(
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new RefreshOrphanContactsRequest(), cancellationToken);
         return HandleResponse(result);
     }
 

@@ -3,9 +3,17 @@ using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Smartsupp;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Smartsupp;
+
+internal static class SmartsuppRepositoryTestFactory
+{
+    public static SmartsuppRepository New(ApplicationDbContext db, ISmartsuppApiClient? apiClient = null) =>
+        new(db, apiClient ?? Mock.Of<ISmartsuppApiClient>(), NullLogger<SmartsuppRepository>.Instance);
+}
 
 public class SmartsuppRepositoryUpdatedAtGuardTests
 {
@@ -37,7 +45,7 @@ public class SmartsuppRepositoryUpdatedAtGuardTests
         db.SmartsuppConversations.Add(existing);
         await db.SaveChangesAsync();
 
-        var repo = new SmartsuppRepository(db);
+        var repo = SmartsuppRepositoryTestFactory.New(db);
         var incoming = MakeConversation("c1", new DateTime(2026, 5, 13, 11, 0, 0, DateTimeKind.Unspecified), subject: "new");
 
         // Act
@@ -59,7 +67,7 @@ public class SmartsuppRepositoryUpdatedAtGuardTests
         db.SmartsuppConversations.Add(existing);
         await db.SaveChangesAsync();
 
-        var repo = new SmartsuppRepository(db);
+        var repo = SmartsuppRepositoryTestFactory.New(db);
         var staleIncoming = MakeConversation("c1", new DateTime(2026, 5, 13, 11, 0, 0, DateTimeKind.Unspecified), subject: "older");
 
         // Act — should be a no-op, must not throw
@@ -76,7 +84,7 @@ public class SmartsuppRepositoryUpdatedAtGuardTests
     {
         // Arrange
         await using var db = NewContext();
-        var repo = new SmartsuppRepository(db);
+        var repo = SmartsuppRepositoryTestFactory.New(db);
         var incoming = MakeConversation("c-new", new DateTime(2026, 5, 13, 10, 0, 0, DateTimeKind.Unspecified));
 
         // Act
@@ -117,7 +125,7 @@ public class SmartsuppRepositoryContactGuardTests
         db.SmartsuppContacts.Add(existing);
         await db.SaveChangesAsync();
 
-        var repo = new SmartsuppRepository(db);
+        var repo = SmartsuppRepositoryTestFactory.New(db);
         var incoming = MakeContact("ct1", new DateTime(2026, 5, 13, 11, 0, 0, DateTimeKind.Unspecified));
         incoming.Email = "updated@example.com";
 
@@ -138,7 +146,7 @@ public class SmartsuppRepositoryContactGuardTests
         db.SmartsuppContacts.Add(existing);
         await db.SaveChangesAsync();
 
-        var repo = new SmartsuppRepository(db);
+        var repo = SmartsuppRepositoryTestFactory.New(db);
         var stale = MakeContact("ct1", new DateTime(2026, 5, 13, 11, 0, 0, DateTimeKind.Unspecified));
         stale.Email = "stale@example.com";
 
@@ -153,7 +161,7 @@ public class SmartsuppRepositoryContactGuardTests
     public async Task UpsertContactAsync_InsertsNew_WhenIdNotPresent()
     {
         await using var db = NewContext();
-        var repo = new SmartsuppRepository(db);
+        var repo = SmartsuppRepositoryTestFactory.New(db);
         var incoming = MakeContact("ct-new", new DateTime(2026, 5, 13, 10, 0, 0, DateTimeKind.Unspecified));
 
         await repo.UpsertContactAsync(incoming, CancellationToken.None);
@@ -190,7 +198,7 @@ public class SmartsuppRepositoryMessageDeliveryTests
         db.SmartsuppMessages.Add(msg);
         await db.SaveChangesAsync();
 
-        var repo = new SmartsuppRepository(db);
+        var repo = SmartsuppRepositoryTestFactory.New(db);
         var deliveredAt = new DateTime(2026, 5, 13, 11, 0, 0, DateTimeKind.Unspecified);
         await repo.UpdateMessageDeliveryStatusAsync("m1", "delivered", deliveredAt, CancellationToken.None);
         await db.SaveChangesAsync();
@@ -204,7 +212,7 @@ public class SmartsuppRepositoryMessageDeliveryTests
     public async Task UpdateMessageDeliveryStatusAsync_DoesNotThrow_WhenMessageNotFound()
     {
         await using var db = NewContext();
-        var repo = new SmartsuppRepository(db);
+        var repo = SmartsuppRepositoryTestFactory.New(db);
 
         var act = async () => await repo.UpdateMessageDeliveryStatusAsync("nonexistent", "delivered", null, CancellationToken.None);
 
@@ -259,7 +267,7 @@ public class SmartsuppRepositoryDenormFieldTests
         db.SmartsuppConversations.Add(existing);
         await db.SaveChangesAsync();
 
-        var repo = new SmartsuppRepository(db);
+        var repo = SmartsuppRepositoryTestFactory.New(db);
         var incoming = MakeConversation("c1", contactName: null, contactEmail: null);
         incoming.UpdatedAt = new DateTime(2026, 5, 20, 12, 0, 0, DateTimeKind.Unspecified);
 
@@ -282,7 +290,7 @@ public class SmartsuppRepositoryDenormFieldTests
         db.SmartsuppContacts.Add(contact);
         await db.SaveChangesAsync();
 
-        var repo = new SmartsuppRepository(db);
+        var repo = SmartsuppRepositoryTestFactory.New(db);
         var incoming = MakeConversation("conv-1", contactName: null, contactEmail: null, contactId: "c-contact-1");
 
         // Act
@@ -305,7 +313,7 @@ public class SmartsuppRepositoryDenormFieldTests
         db.SmartsuppConversations.Add(conv);
         await db.SaveChangesAsync();
 
-        var repo = new SmartsuppRepository(db);
+        var repo = SmartsuppRepositoryTestFactory.New(db);
         var contact = MakeContact("c-backfill", name: "Marie Svobodová", email: "marie@x.cz");
 
         // Act
