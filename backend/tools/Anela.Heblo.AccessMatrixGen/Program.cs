@@ -79,6 +79,24 @@ foreach (var r in roles)
     };
     cs.AppendLine($"    public const string {PermissionString.ConstantSuffix(feature)}{levelSuffix} = \"{r.Value}\";");
 }
+cs.AppendLine();
+cs.AppendLine("    public static string For(Feature feature, AccessLevel level) => (feature, level) switch");
+cs.AppendLine("    {");
+foreach (var r in roles)
+{
+    if (!Enum.TryParse<Feature>(r.Feature, out var feature)) continue;
+    var levelName = r.Level switch
+    {
+        AccessLevel.Read  => "Read",
+        AccessLevel.Write => "Write",
+        AccessLevel.Admin => "Admin",
+        _ => throw new InvalidOperationException()
+    };
+    var suffix = $"{PermissionString.ConstantSuffix(feature)}{levelName}";
+    cs.AppendLine($"        (Feature.{r.Feature}, AccessLevel.{levelName}) => {suffix},");
+}
+cs.AppendLine("        _ => throw new ArgumentOutOfRangeException($\"Feature.{{feature}} does not support AccessLevel.{{level}}\")");
+cs.AppendLine("    };");
 cs.AppendLine("}");
 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(csPath)) ?? ".");
 File.WriteAllText(csPath, cs.ToString());
