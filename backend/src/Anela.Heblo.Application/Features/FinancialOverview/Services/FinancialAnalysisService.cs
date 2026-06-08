@@ -19,8 +19,6 @@ public class FinancialAnalysisService : IFinancialAnalysisService
     private const string STOCK_DATA_CACHE_KEY_PREFIX = "financial_stock_data_";
     private const string LAST_REFRESH_CACHE_KEY = "financial_last_refresh";
 
-    private readonly object _refreshLock = new();
-
     public FinancialAnalysisService(
         ILedgerService ledgerService,
         IStockValueService stockValueService,
@@ -106,14 +104,11 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         DateTime? endDate,
         CancellationToken cancellationToken = default)
     {
-        lock (_refreshLock)
+        var lastRefresh = _memoryCache.Get<DateTime?>(LAST_REFRESH_CACHE_KEY) ?? DateTime.MinValue;
+        if (DateTime.UtcNow - lastRefresh < TimeSpan.FromMinutes(10)) // Prevent too frequent refreshes
         {
-            var lastRefresh = _memoryCache.Get<DateTime?>(LAST_REFRESH_CACHE_KEY) ?? DateTime.MinValue;
-            if (DateTime.UtcNow - lastRefresh < TimeSpan.FromMinutes(10)) // Prevent too frequent refreshes
-            {
-                _logger.LogDebug("Skipping refresh, last refresh was too recent");
-                return;
-            }
+            _logger.LogDebug("Skipping refresh, last refresh was too recent");
+            return;
         }
 
         try
