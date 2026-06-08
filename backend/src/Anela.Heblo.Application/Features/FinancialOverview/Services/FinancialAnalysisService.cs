@@ -497,23 +497,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
             var monthDebitItems = debitItems.Where(item => item.Date >= monthStart && item.Date <= monthEnd);
             var monthCreditItems = creditItems.Where(item => item.Date >= monthStart && item.Date <= monthEnd);
 
-            // Calculate expenses: debit(5) - credit(5)
-            var debit5 = monthDebitItems
-                .Where(item => item.DebitAccountNumber?.StartsWith("5") == true)
-                .Sum(item => item.Amount);
-            var credit5 = monthCreditItems
-                .Where(item => item.CreditAccountNumber?.StartsWith("5") == true)
-                .Sum(item => item.Amount);
-            var expenses = debit5 - credit5;
-
-            // Calculate income: credit(6) - debit(6)
-            var credit6 = monthCreditItems
-                .Where(item => item.CreditAccountNumber?.StartsWith("6") == true)
-                .Sum(item => item.Amount);
-            var debit6 = monthDebitItems
-                .Where(item => item.DebitAccountNumber?.StartsWith("6") == true)
-                .Sum(item => item.Amount);
-            var income = credit6 - debit6;
+            var (income, expenses) = CalculatePeriodTotals(monthDebitItems, monthCreditItems);
 
             monthlyData.Add(new MonthlyFinancialData
             {
