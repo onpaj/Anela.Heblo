@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import UserProfile from "./UserProfile";
 
@@ -42,7 +42,7 @@ jest.mock("../../auth/PermissionsContext", () => ({
   usePermissionsContext: () => mockCtx,
 }));
 
-const openModal = async () => {
+const openPanel = async () => {
   render(<UserProfile />);
   await userEvent.click(screen.getByRole("button"));
 };
@@ -67,7 +67,7 @@ describe("UserProfile permissions display", () => {
       hasPermission: () => true,
     };
 
-    await openModal();
+    await openPanel();
 
     expect(screen.getByText("Oprávnění")).toBeInTheDocument();
     expect(screen.getByText("catalog.read")).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe("UserProfile permissions display", () => {
       hasPermission: () => true,
     };
 
-    await openModal();
+    await openPanel();
 
     expect(screen.getByText("Super User · vše povoleno")).toBeInTheDocument();
     expect(screen.queryByText("catalog.read")).not.toBeInTheDocument();
@@ -99,7 +99,7 @@ describe("UserProfile permissions display", () => {
       hasPermission: () => true,
     };
 
-    await openModal();
+    await openPanel();
 
     expect(screen.getByText("Skupiny")).toBeInTheDocument();
     expect(screen.getByText("Finance")).toBeInTheDocument();
@@ -115,7 +115,7 @@ describe("UserProfile permissions display", () => {
       hasPermission: () => true,
     };
 
-    await openModal();
+    await openPanel();
 
     expect(screen.queryByText("Skupiny")).not.toBeInTheDocument();
   });
@@ -129,7 +129,7 @@ describe("UserProfile permissions display", () => {
       hasPermission: () => true,
     };
 
-    await openModal();
+    await openPanel();
 
     expect(screen.queryByText("Oprávnění")).not.toBeInTheDocument();
     expect(screen.queryByText("Skupiny")).not.toBeInTheDocument();
@@ -144,8 +144,29 @@ describe("UserProfile permissions display", () => {
       hasPermission: () => false,
     };
 
-    await openModal();
+    await openPanel();
 
     expect(screen.queryByText("Oprávnění")).not.toBeInTheDocument();
+  });
+
+  it("closes the panel when the trigger is clicked a second time", async () => {
+    mockCtx = {
+      permissions: ["catalog.read"],
+      isSuperUser: false,
+      groups: [],
+      isLoading: false,
+      hasPermission: () => true,
+    };
+
+    render(<UserProfile />);
+    const button = screen.getByRole("button");
+
+    await userEvent.click(button);
+    expect(screen.getByText("Oprávnění")).toBeInTheDocument();
+
+    await userEvent.click(button);
+    await waitFor(() => {
+      expect(screen.queryByText("Oprávnění")).not.toBeInTheDocument();
+    });
   });
 });
