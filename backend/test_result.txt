@@ -1,0 +1,32 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Anela.Heblo.Xcc -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Anela.Heblo.Xcc/bin/Debug/net8.0/Anela.Heblo.Xcc.dll
+  Anela.Heblo.Persistence.Analytics -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Anela.Heblo.Persistence.Analytics/bin/Debug/net8.0/Anela.Heblo.Persistence.Analytics.dll
+  Anela.Heblo.Adapters.SendGrid -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.SendGrid/bin/Debug/net8.0/Anela.Heblo.Adapters.SendGrid.dll
+  Anela.Heblo.Domain -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Anela.Heblo.Domain/bin/Debug/net8.0/Anela.Heblo.Domain.dll
+  Anela.Heblo.Persistence -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Anela.Heblo.Persistence/bin/Debug/net8.0/Anela.Heblo.Persistence.dll
+  Anela.Heblo.Adapters.HomeAssistant -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.HomeAssistant/bin/Debug/net8.0/Anela.Heblo.Adapters.HomeAssistant.dll
+  Anela.Heblo.Adapters.OpenMeteo -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.OpenMeteo/bin/Debug/net8.0/Anela.Heblo.Adapters.OpenMeteo.dll
+  Anela.Heblo.Adapters.Smartsupp -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.Smartsupp/bin/Debug/net8.0/Anela.Heblo.Adapters.Smartsupp.dll
+  Anela.Heblo.Application -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Anela.Heblo.Application/bin/Debug/net8.0/Anela.Heblo.Application.dll
+  Anela.Heblo.Adapters.ShoptetApi -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/bin/Debug/net8.0/Anela.Heblo.Adapters.ShoptetApi.dll
+  Anela.Heblo.Adapters.Anthropic -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.Anthropic/bin/Debug/net8.0/Anela.Heblo.Adapters.Anthropic.dll
+  Anela.Heblo.Adapters.Shoptet -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/bin/Debug/net8.0/Anela.Heblo.Adapters.Shoptet.dll
+  Anela.Heblo.Adapters.MetaAds -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.MetaAds/bin/Debug/net8.0/Anela.Heblo.Adapters.MetaAds.dll
+  Anela.Heblo.Adapters.WebSearch -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.WebSearch/bin/Debug/net8.0/Anela.Heblo.Adapters.WebSearch.dll
+  Anela.Heblo.Adapters.Azure -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.Azure/bin/Debug/net8.0/Anela.Heblo.Adapters.Azure.dll
+  Anela.Heblo.Adapters.OpenAI -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.OpenAI/bin/Debug/net8.0/Anela.Heblo.Adapters.OpenAI.dll
+  Anela.Heblo.Adapters.Comgate -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.Comgate/bin/Debug/net8.0/Anela.Heblo.Adapters.Comgate.dll
+  Anela.Heblo.Adapters.GoogleAds -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/bin/Debug/net8.0/Anela.Heblo.Adapters.GoogleAds.dll
+  Anela.Heblo.Adapters.Flexi -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.Flexi/bin/Debug/net8.0/Anela.Heblo.Adapters.Flexi.dll
+  Anela.Heblo.Adapters.Cups -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.Cups/bin/Debug/net8.0/Anela.Heblo.Adapters.Cups.dll
+  Anela.Heblo.Adapters.Plaud -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Adapters/Anela.Heblo.Adapters.Plaud/bin/Debug/net8.0/Anela.Heblo.Adapters.Plaud.dll
+  Anela.Heblo.API -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/src/Anela.Heblo.API/bin/Debug/net8.0/Anela.Heblo.API.dll
+  Generating access matrix artifacts...
+  Wrote frontend/src/auth/accessMatrix.generated.ts and access-matrix.generated.json
+  Access matrix generation completed.
+  Anela.Heblo.Tests -> /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/test/Anela.Heblo.Tests/bin/Debug/net8.0/Anela.Heblo.Tests.dll
+Test run for /Users/pajgrtondrej/Work/GitHub/Anela.Heblo/.worktrees/feat-arch-review-financialoverview-income-exp/backend/test/Anela.Heblo.Tests/bin/Debug/net8.0/Anela.Heblo.Tests.dll (.NETCoreApp,Version=v8.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 43 ms - Anela.Heblo.Tests.dll (net8.0)
