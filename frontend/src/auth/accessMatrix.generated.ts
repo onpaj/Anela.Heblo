@@ -39,6 +39,8 @@ export const ACCESS_ROUTES: Record<string, MenuRequirement> = {
   "#org-chart": { permissions: ["anela.org_chart.read"] },
   "/automation/data-quality": { permissions: ["admin.data_quality.read"] },
   "/admin/access": { permissions: ["admin.administration.read"] },
+  "/admin/access/groups/:id": { permissions: ["admin.administration.read"] },
+  "/admin/access/users/:id": { permissions: ["admin.administration.read"] },
   "/automation/background-tasks": { permissions: ["admin.administration.read"] },
   "/recurring-jobs": { permissions: ["admin.administration.read"] },
   "#hangfire": { permissions: ["admin.administration.read"] },

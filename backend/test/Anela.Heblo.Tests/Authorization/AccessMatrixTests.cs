@@ -73,23 +73,23 @@ public class AccessMatrixConsistencyTests
         var problems = new List<string>();
 
         foreach (var menu in AccessMatrix.MenuPaths)
-        foreach (var req in menu.Requires)
-        {
-            if (!defs.TryGetValue(req.Feature, out var def))
+            foreach (var req in menu.Requires)
             {
-                problems.Add($"MenuPath '{menu.Key}' references unknown feature {req.Feature}");
-                continue;
+                if (!defs.TryGetValue(req.Feature, out var def))
+                {
+                    problems.Add($"MenuPath '{menu.Key}' references unknown feature {req.Feature}");
+                    continue;
+                }
+                var ok = req.Level switch
+                {
+                    AccessLevel.Read => true,
+                    AccessLevel.Write => def.HasWrite,
+                    AccessLevel.Admin => def.HasAdmin,
+                    _ => false,
+                };
+                if (!ok)
+                    problems.Add($"MenuPath '{menu.Key}' requires {req.Feature}.{req.Level} but feature does not support that level");
             }
-            var ok = req.Level switch
-            {
-                AccessLevel.Read => true,
-                AccessLevel.Write => def.HasWrite,
-                AccessLevel.Admin => def.HasAdmin,
-                _ => false,
-            };
-            if (!ok)
-                problems.Add($"MenuPath '{menu.Key}' requires {req.Feature}.{req.Level} but feature does not support that level");
-        }
         problems.Should().BeEmpty();
     }
 }

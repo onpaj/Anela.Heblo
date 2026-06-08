@@ -45,15 +45,17 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
         {
             OrderNumber = orderNumber,
             CreatedDate = DateTime.UtcNow,
-            CreatedByUser = currentUser.Name,
+            CreatedByUser = currentUser.GetDisplayName(),
             ResponsiblePerson = sourceOrder.ResponsiblePerson,
             PlannedDate = today,
             State = ManufactureOrderState.Draft,
             StateChangedAt = DateTime.UtcNow,
-            StateChangedByUser = currentUser.Name
+            StateChangedByUser = currentUser.GetDisplayName()
         };
 
-        var expirationDate = ManufactureOrderExtensions.GetDefaultExpiration(_timeProvider.GetUtcNow().DateTime, sourceOrder.SemiProduct.ExpirationMonths);
+        var expirationDate = sourceOrder.SemiProduct != null
+            ? ManufactureOrderExtensions.GetDefaultExpiration(_timeProvider.GetUtcNow().DateTime, sourceOrder.SemiProduct.ExpirationMonths)
+            : (DateOnly?)null;
         var lotNumber = ManufactureOrderExtensions.GetDefaultLot(_timeProvider.GetUtcNow().DateTime);
 
         // Duplicate the semi-product with updated lot number and expiration date
