@@ -301,13 +301,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         var stockChanges = await stockChangesTask;
 
         // Compute income/expenses for current month
-        var debit5 = debitItems.Where(i => i.DebitAccountNumber?.StartsWith("5") == true).Sum(i => i.Amount);
-        var credit5 = creditItems.Where(i => i.CreditAccountNumber?.StartsWith("5") == true).Sum(i => i.Amount);
-        var expenses = debit5 - credit5;
-
-        var credit6 = creditItems.Where(i => i.CreditAccountNumber?.StartsWith("6") == true).Sum(i => i.Amount);
-        var debit6 = debitItems.Where(i => i.DebitAccountNumber?.StartsWith("6") == true).Sum(i => i.Amount);
-        var income = credit6 - debit6;
+        var (income, expenses) = CalculatePeriodTotals(debitItems, creditItems);
         var financialBalance = income - expenses;
 
         var stockChange = stockChanges.FirstOrDefault();
