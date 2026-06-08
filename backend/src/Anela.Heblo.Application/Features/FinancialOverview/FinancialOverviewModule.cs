@@ -1,8 +1,6 @@
 using Anela.Heblo.Application.Features.FinancialOverview.Services;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Anela.Heblo.Domain.Features.FinancialOverview;
-using Anela.Heblo.Domain.Features.Catalog.Price;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 
@@ -15,14 +13,7 @@ public static class FinancialOverviewModule
         // Ensure memory cache is available for financial analysis caching
         services.AddMemoryCache();
 
-        // Register default implementation - tests can override this
-        services.AddScoped<IStockValueService>(provider =>
-        {
-            var stockClient = provider.GetRequiredService<IErpStockClient>();
-            var priceClient = provider.GetRequiredService<IProductPriceErpClient>();
-            var logger = provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<StockValueService>>();
-            return new StockValueService(stockClient, priceClient, logger);
-        });
+        services.AddScoped<IStockValueService, StockValueService>();
 
         // Register financial analysis service as scoped (uses IMemoryCache for caching)
         services.AddScoped<IFinancialAnalysisService, FinancialAnalysisService>();
