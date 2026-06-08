@@ -48,6 +48,16 @@ const openModal = async () => {
 };
 
 describe("UserProfile permissions display", () => {
+  beforeEach(() => {
+    mockCtx = {
+      permissions: [],
+      isSuperUser: false,
+      groups: [],
+      isLoading: false,
+      hasPermission: () => false,
+    };
+  });
+
   it("renders Permissions chips when user has DB permissions", async () => {
     mockCtx = {
       permissions: ["catalog.read", "journal.read"],
@@ -62,5 +72,21 @@ describe("UserProfile permissions display", () => {
     expect(screen.getByText("Oprávnění")).toBeInTheDocument();
     expect(screen.getByText("catalog.read")).toBeInTheDocument();
     expect(screen.getByText("journal.read")).toBeInTheDocument();
+  });
+
+  it("renders a single super-user badge when isSuperUser is true", async () => {
+    mockCtx = {
+      permissions: ["catalog.read", "journal.read", "finance.read"],
+      isSuperUser: true,
+      groups: [],
+      isLoading: false,
+      hasPermission: () => true,
+    };
+
+    await openModal();
+
+    expect(screen.getByText("Super User · vše povoleno")).toBeInTheDocument();
+    expect(screen.queryByText("catalog.read")).not.toBeInTheDocument();
+    expect(screen.queryByText("journal.read")).not.toBeInTheDocument();
   });
 });

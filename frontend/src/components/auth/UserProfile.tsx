@@ -174,7 +174,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
               )}
 
               {/* Permissions */}
-              {!permissionsLoading && !isSuperUser && permissions.length > 0 && (
+              {!permissionsLoading && (isSuperUser || permissions.length > 0) && (
                 <div className="px-5 py-4 border-b border-gray-100">
                   <div className="flex items-center space-x-2 mb-3">
                     <KeyRound className="h-4 w-4 text-emerald-600" />
@@ -183,14 +183,20 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {permissions.map((perm) => (
-                      <span
-                        key={perm}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700"
-                      >
-                        {perm}
+                    {isSuperUser ? (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                        Super User · vše povoleno
                       </span>
-                    ))}
+                    ) : (
+                      permissions.map((perm) => (
+                        <span
+                          key={perm}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700"
+                        >
+                          {perm}
+                        </span>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
