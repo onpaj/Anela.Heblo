@@ -136,7 +136,7 @@ public class FinancialOverviewModuleTests
     }
 
     [Fact]
-    public void AddFinancialOverviewModule_UsesFactoryPattern_AvoidsServiceProviderAntipattern()
+    public void AddFinancialOverviewModule_RegistersIStockValueService_WithoutBuildServiceProviderAntipattern()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -147,9 +147,8 @@ public class FinancialOverviewModuleTests
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
-        // Act & Assert - This test verifies that the factory pattern is used
-        // The fact that we can successfully register and resolve services without 
-        // calling BuildServiceProvider during registration proves the antipattern is avoided
+        // Act & Assert - Registering the module and resolving IStockValueService must not
+        // require BuildServiceProvider during registration (antipattern guard).
         var exception = Record.Exception(() =>
         {
             services.AddFinancialOverviewModule(CreateMockConfiguration());
