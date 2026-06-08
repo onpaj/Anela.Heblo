@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Anela.Heblo.Domain.Features.Authorization;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Identity.Web;
 
 namespace Anela.Heblo.API.Infrastructure.Authentication;
 
@@ -22,9 +23,13 @@ public class PermissionClaimsTransformation : IClaimsTransformation
         if (identity.HasClaim("authz_applied", "1"))
             return principal;
 
-        var objectId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                       ?? principal.FindFirst("oid")?.Value
-                       ?? principal.FindFirst("sub")?.Value;
+        // GetObjectId() reads both "oid" (raw) and "http://schemas.microsoft.com/identity/claims/objectidentifier"
+        // (the URI the JwtBearer handler renames "oid" to when MapInboundClaims is on).
+        // This is the tenant-wide Entra Object ID — same value Graph returns as /users/{id}.id,
+        // which is what EntraMemberSearch stores in AppUser.EntraObjectId.
+        // NameIdentifier fallback is for mock auth (and any other scheme without an oid claim).
+        var objectId = principal.GetObjectId()
+                       ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         IReadOnlyCollection<string> permissions;
         if (principal.IsInRole(AccessRoles.SuperUser))
