@@ -201,6 +201,28 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 </div>
               )}
 
+              {/* Groups */}
+              {!permissionsLoading && groups.length > 0 && (
+                <div className="px-5 py-4 border-b border-gray-100">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Users className="h-4 w-4 text-primary-blue" />
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Skupiny
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {groups.map((group) => (
+                      <span
+                        key={group}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary-blue-pale text-primary-blue"
+                      >
+                        {group}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Footer */}
               <div className="px-5 py-4">
                 <button
