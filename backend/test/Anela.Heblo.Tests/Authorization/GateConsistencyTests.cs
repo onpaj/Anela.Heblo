@@ -79,4 +79,25 @@ public class GateConsistencyTests
         }
         problems.Should().BeEmpty();
     }
+
+    [Fact]
+    public void EveryMenuPath_FeatureHasController()
+    {
+        var featuresWithControllers = AllControllers()
+            .SelectMany(c => new[] { c.GetCustomAttribute<GateOnAttribute>() }
+                .Concat(c.GetMethods().Select(m => m.GetCustomAttribute<GateOnAttribute>())))
+            .Where(g => g is not null)
+            .Select(g => g!.Feature)
+            .ToHashSet();
+
+        var problems = new List<string>();
+        foreach (var menu in AccessMatrix.MenuPaths)
+        {
+            if (menu.Key.StartsWith("#")) continue; // virtual external item, no controller
+            foreach (var req in menu.Requires)
+                if (!featuresWithControllers.Contains(req.Feature))
+                    problems.Add($"MenuPath '{menu.Key}' requires {req.Feature} but no controller is gated on it");
+        }
+        problems.Should().BeEmpty();
+    }
 }
