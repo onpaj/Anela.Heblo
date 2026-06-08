@@ -90,12 +90,12 @@ foreach (var r in roles)
         AccessLevel.Read  => "Read",
         AccessLevel.Write => "Write",
         AccessLevel.Admin => "Admin",
-        _ => throw new InvalidOperationException()
+        _ => throw new InvalidOperationException($"Unknown level {r.Level}")
     };
     var suffix = $"{PermissionString.ConstantSuffix(feature)}{levelName}";
     cs.AppendLine($"        (Feature.{r.Feature}, AccessLevel.{levelName}) => {suffix},");
 }
-cs.AppendLine("        _ => throw new ArgumentOutOfRangeException($\"Feature.{{feature}} does not support AccessLevel.{{level}}\")");
+cs.AppendLine("        _ => throw new ArgumentOutOfRangeException(nameof(feature), $\"Feature.{feature} does not support AccessLevel.{level}\")");
 cs.AppendLine("    };");
 cs.AppendLine("}");
 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(csPath)) ?? ".");

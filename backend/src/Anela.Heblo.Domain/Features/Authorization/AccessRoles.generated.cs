@@ -113,6 +113,6 @@ public static class AccessRoles
         (Feature.Admin_Administration, AccessLevel.Write) => AdminAdministrationWrite,
         (Feature.Admin_FeatureFlags, AccessLevel.Read) => AdminFeatureFlagsRead,
         (Feature.Admin_FeatureFlags, AccessLevel.Write) => AdminFeatureFlagsWrite,
-        _ => throw new ArgumentOutOfRangeException($"Feature.{{feature}} does not support AccessLevel.{{level}}")
+        _ => throw new ArgumentOutOfRangeException(nameof(feature), $"Feature.{feature} does not support AccessLevel.{level}")
     };
 }
