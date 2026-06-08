@@ -16,17 +16,20 @@ public static class AccessMatrix
         new AccessFeature("journal", "Žurnál", "Produkty", "/journal", HasWrite: true),
 
         // Zákaznické section
-        new AccessFeature("bank_statements", "Bankovní výpisy", "Zákaznické", "/customer/bank-statements-overview"),
+        new AccessFeature("bank_statements", "Bankovní výpisy", "Zákaznické", "/customer/bank-statements-overview",
+            AdditionalPaths: new[] { "/customer/issued-invoices" }),
         new AccessFeature("knowledge_base", "Znalostní báze", "Zákaznické", "/knowledge-base", HasWrite: true),
         new AccessFeature("smartsupp", "Smartsupp", "Zákaznické", "/customer/smartsupp"),
 
         // Nákup section
-        new AccessFeature("purchase_orders", "Nákupní objednávky", "Nákup", "/purchase/orders", HasWrite: true),
+        new AccessFeature("purchase_orders", "Nákupní objednávky", "Nákup", "/purchase/orders", HasWrite: true,
+            AdditionalPaths: new[] { "/purchase/invoice-classification" }),
         new AccessFeature("purchase_stock", "Analýza skladu (nákup)", "Nákup", "/purchase/stock-analysis"),
 
         // Výroba section
         new AccessFeature("manufacture_orders", "Výrobní objednávky", "Výroba", "/manufacturing/orders", HasWrite: true),
-        new AccessFeature("batch_planning", "Plánování šarží", "Výroba", "/manufacturing/batch-planning", HasWrite: true),
+        new AccessFeature("batch_planning", "Plánování šarží", "Výroba", "/manufacturing/batch-planning", HasWrite: true,
+            AdditionalPaths: new[] { "/manufacturing/batch-calculator" }),
         new AccessFeature("manufacture_output", "Výstup výroby", "Výroba", "/manufacturing/output"),
         new AccessFeature("manufacture_stock", "Analýza skladu (výroba)", "Výroba", "/manufacturing/stock-analysis"),
         new AccessFeature("material_inventory", "Inventura materiálu", "Výroba", "/manufacturing/inventory", HasWrite: true),
@@ -34,13 +37,17 @@ public static class AccessMatrix
         new AccessFeature("material_containers", "Kontejnery materiálu", "Výroba", "/manufacturing/material-containers", HasWrite: true),
 
         // Sklad section
-        new AccessFeature("logistics", "Logistika", "Sklad", "/logistics/inventory", HasWrite: true),
-        new AccessFeature("expedition", "Expedice", "Sklad", "/logistics/expedition-archive", HasWrite: true),
-        new AccessFeature("packaging", "Balení", "Baleni", "/baleni", HasWrite: true),
+        new AccessFeature("logistics", "Logistika", "Sklad", "/logistics/inventory", HasWrite: true,
+            AdditionalPaths: new[] { "/logistics/receive-boxes", "/logistics/transport-boxes", "/logistics/packing-materials" }),
+        new AccessFeature("expedition", "Expedice", "Sklad", "/logistics/expedition-archive", HasWrite: true,
+            AdditionalPaths: new[] { "/customer/expedition-settings" }),
+        new AccessFeature("packaging", "Balení", "Baleni", "/baleni", HasWrite: true,
+            AdditionalPaths: new[] { "/logistics/gift-package-manufacturing" }),
         new AccessFeature("stock_up", "Naskladnění", "Administrace", "/stock-up-operations", HasWrite: true),
 
         // Marketing section
-        new AccessFeature("article", "Články", "Marketing", "/articles", HasWrite: true),
+        new AccessFeature("article", "Články", "Marketing", "/articles", HasWrite: true,
+            AdditionalPaths: new[] { "/marketing/feedback" }),
         new AccessFeature("leaflet", "Generátor letáků", "Marketing", "/leaflet-generator", HasWrite: true),
         new AccessFeature("photobank", "Fotobanka", "Marketing", "/marketing/photobank", HasWrite: true, HasAdmin: true),
         new AccessFeature("marketing_calendar", "Marketingový kalendář", "Marketing", "/marketing/calendar", HasWrite: true),
@@ -51,7 +58,8 @@ public static class AccessMatrix
 
         // Administrace section
         new AccessFeature("data_quality", "Kvalita dat", "Administrace", "/automation/data-quality", HasWrite: true),
-        new AccessFeature("administration", "Administrace", "Administrace", null, HasWrite: true),
+        new AccessFeature("administration", "Administrace", "Administrace", "/admin/access", HasWrite: true,
+            AdditionalPaths: new[] { "/automation/background-tasks", "/recurring-jobs" }),
         new AccessFeature("feature_flags", "Feature příznaky", "Administrace", "/admin/feature-flags", HasWrite: true),
     };
 

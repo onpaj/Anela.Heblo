@@ -20,10 +20,9 @@ import {
   Megaphone,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
-import { useAuth } from "../../auth/useAuth";
-import { useMockAuth, shouldUseMockAuth } from "../../auth/mockAuth";
 import { useChangelogContext } from "../../contexts/ChangelogContext";
 import { ACCESS_ROUTES } from "../../auth/accessMatrix.generated";
+import { usePermissionsContext } from "../../auth/PermissionsContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -43,22 +42,20 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [activeItem, setActiveItem] = useState("dashboard");
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
 
-  // Use mock auth if enabled, otherwise use real auth
-  const realAuth = useAuth();
-  const mockAuth = useMockAuth();
-  const auth = shouldUseMockAuth() ? mockAuth : realAuth;
-  const { getUserInfo } = auth;
-  const userInfo = getUserInfo();
-
   // Changelog context
   const { openModal } = useChangelogContext();
 
-  // Helper function to check if user can see a route based on access matrix
-  const canSee = (path?: string): boolean => {
-    if (!path) return true; // section headers / items without a primary route
+  // Permissions come from the backend /me endpoint (DB-backed RBAC), not from
+  // the JWT roles claim. super_user grants everything.
+  const { hasPermission } = usePermissionsContext();
+
+  // Strict gate: a route is visible only when it's mapped in the access matrix
+  // and the user holds the required permission. Routes absent from the matrix
+  // are hidden by default; use `requiredRole` on a sub-item for external/onClick
+  // entries that don't have their own route.
+  const canSeeRoute = (path: string): boolean => {
     const required = ACCESS_ROUTES[path];
-    if (!required) return true; // base/un-gated pages (Dashboard, etc.)
-    return (userInfo?.roles ?? []).includes(required);
+    return required !== undefined && hasPermission(required);
   };
 
   // Function to open Hangfire dashboard in new window
@@ -82,8 +79,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     window.open(`${window.location.origin}/terminal`, "_blank", "noopener,noreferrer");
   };
 
-  // Navigation sections - only implemented pages
-  const navigationSections = [
+  // Navigation sections - only implemented pages.
+  // Sub-items with a real href are gated via ACCESS_ROUTES; external/onClick
+  // entries (href: "#") declare a `requiredRole` explicitly. Sections with no
+  // visible sub-items are hidden entirely.
+  const allSections = [
     {
       id: "dashboard",
       name: "Dashboard",
@@ -108,32 +108,28 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "#",
           onClick: openOrgChart,
           isExternal: true,
+          requiredRole: "org_chart.read",
         },
       ],
     },
-    // Finance section - visibility driven by access matrix
-    ...(canSee("/finance/overview")
-      ? [
-          {
-            id: "finance",
-            name: "Finance",
-            icon: DollarSign,
-            type: "section" as const,
-            items: [
-              {
-                id: "financni-prehled",
-                name: "Finanční přehled",
-                href: "/finance/overview",
-              },
-              {
-                id: "analyza-marzovosti",
-                name: "Analýza marže",
-                href: "/analytics/product-margin-summary",
-              },
-            ],
-          },
-        ]
-      : []),
+    {
+      id: "finance",
+      name: "Finance",
+      icon: DollarSign,
+      type: "section" as const,
+      items: [
+        {
+          id: "financni-prehled",
+          name: "Finanční přehled",
+          href: "/finance/overview",
+        },
+        {
+          id: "analyza-marzovosti",
+          name: "Analýza marže",
+          href: "/analytics/product-margin-summary",
+        },
+      ],
+    },
     {
       id: "zakaznicke",
       name: "Zákaznické",
@@ -175,10 +171,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         { id: "photobank", name: "Fotobanka", href: "/marketing/photobank" },
         { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator" },
         { id: "articles", name: "Generátor článků", href: "/articles" },
-
-        ...(canSee("/articles")
-          ? [{ id: "marketing-feedback", name: "Feedback", href: "/marketing/feedback" }]
-          : []),
+        { id: "marketing-feedback", name: "Feedback", href: "/marketing/feedback" },
       ],
     },
     {
@@ -299,6 +292,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "#",
           onClick: openTerminal,
           isExternal: true,
+          requiredRole: "logistics.read",
         },
         {
           id: "baleni",
@@ -306,6 +300,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "#",
           onClick: openBaleni,
           isExternal: true,
+          requiredRole: "packaging.read",
         },
       ],
     },
@@ -336,6 +331,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Hangfire",
           href: "#",
           onClick: openHangfireDashboard,
+          requiredRole: "administration.read",
         },
         {
           id: "data-quality",
@@ -355,6 +351,24 @@ const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
   ];
+
+  type RawSection = (typeof allSections)[number];
+
+  const canSeeItem = (item: { href: string; requiredRole?: string }): boolean => {
+    if (item.requiredRole) return hasPermission(item.requiredRole);
+    return canSeeRoute(item.href);
+  };
+
+  const navigationSections: RawSection[] = [];
+  for (const section of allSections) {
+    if (section.type === "single") {
+      navigationSections.push(section);
+      continue;
+    }
+    const visibleItems = section.items.filter(canSeeItem);
+    if (visibleItems.length === 0) continue;
+    navigationSections.push({ ...section, items: visibleItems });
+  }
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections(

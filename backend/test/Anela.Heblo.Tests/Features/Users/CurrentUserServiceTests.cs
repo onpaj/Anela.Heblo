@@ -120,30 +120,51 @@ public class CurrentUserServiceTests
     }
 
     [Fact]
-    public void GetCurrentUser_PrefersNameIdentifierOverSubAndOid()
+    public void GetCurrentUser_PrefersOidOverNameIdentifier_ToMatchClaimsTransformation()
     {
+        // Regression: CurrentUserService.Id must match PermissionClaimsTransformation's
+        // GetObjectId() lookup key. Otherwise GetMe (which uses this Id to query the
+        // permission resolver) finds a different AppUser than [Authorize] checks see,
+        // causing 403 responses even when GetMe shows the correct permissions.
+        // Entra tokens carry both "oid" (tenant-wide Object ID, used by EntraMemberSearch
+        // and PermissionClaimsTransformation) and a NameIdentifier mapped from "sub"
+        // (per-user-per-app pairwise pseudonymous ID). The two are different values.
         var principal = Authenticated(
-            new Claim(ClaimTypes.NameIdentifier, "name-id-123"),
-            new Claim("sub", "sub-456"),
-            new Claim("oid", "oid-789"));
+            new Claim(ClaimTypes.NameIdentifier, "sub-pairwise-pseudonym"),
+            new Claim("oid", "11111111-2222-3333-4444-555555555555"));
         var service = CreateService(principal);
 
         var user = service.GetCurrentUser();
 
-        Assert.Equal("name-id-123", user.Id);
+        Assert.Equal("11111111-2222-3333-4444-555555555555", user.Id);
     }
 
     [Fact]
-    public void GetCurrentUser_PrefersSubOverOid_WhenNameIdentifierAbsent()
+    public void GetCurrentUser_ReadsOidFromObjectIdentifierUri_WhenMapInboundClaimsApplied()
     {
+        // When MapInboundClaims is enabled in JwtBearerOptions, the JWT "oid" claim is
+        // rewritten to the URI "http://schemas.microsoft.com/identity/claims/objectidentifier".
+        // GetObjectId() reads either form; mirror that here.
         var principal = Authenticated(
-            new Claim("sub", "sub-456"),
-            new Claim("oid", "oid-789"));
+            new Claim("http://schemas.microsoft.com/identity/claims/objectidentifier",
+                "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"));
         var service = CreateService(principal);
 
         var user = service.GetCurrentUser();
 
-        Assert.Equal("sub-456", user.Id);
+        Assert.Equal("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", user.Id);
+    }
+
+    [Fact]
+    public void GetCurrentUser_FallsBackToNameIdentifier_WhenOidAbsent()
+    {
+        // Mock auth and some non-Entra schemes don't emit "oid"; NameIdentifier is the fallback.
+        var principal = Authenticated(new Claim(ClaimTypes.NameIdentifier, "name-id-only"));
+        var service = CreateService(principal);
+
+        var user = service.GetCurrentUser();
+
+        Assert.Equal("name-id-only", user.Id);
     }
 
     [Fact]
