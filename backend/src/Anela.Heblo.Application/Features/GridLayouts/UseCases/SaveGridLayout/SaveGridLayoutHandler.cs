@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Anela.Heblo.Application.Features.GridLayouts.Contracts;
 using Anela.Heblo.Application.Features.GridLayouts.Infrastructure;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.GridLayouts;
