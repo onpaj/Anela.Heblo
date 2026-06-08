@@ -37,7 +37,7 @@ public class PermissionClaimsTransformationTests
             .Setup(r => r.ResolveAsync("oid-1", It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new EffectivePermissions(false, new[] { "heblo_user", "catalog.read" }, new[] { "G" }));
         var sut = new PermissionClaimsTransformation(resolver.Object);
-        var principal = Principal(new Claim(ClaimTypes.NameIdentifier, "oid-1"));
+        var principal = Principal(new Claim("oid", "oid-1"));
 
         var result = await sut.TransformAsync(principal);
 
@@ -54,7 +54,7 @@ public class PermissionClaimsTransformationTests
             .Setup(r => r.ResolveAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, Array.Empty<string>()));
         var sut = new PermissionClaimsTransformation(resolver.Object);
-        var principal = Principal(new Claim(ClaimTypes.NameIdentifier, "oid-1"));
+        var principal = Principal(new Claim("oid", "oid-1"));
 
         var once = await sut.TransformAsync(principal);
         var twice = await sut.TransformAsync(once);
@@ -72,5 +72,85 @@ public class PermissionClaimsTransformationTests
         var result = await sut.TransformAsync(anon);
 
         result.Claims.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Transform_EntraToken_UsesOidClaim_NotNameIdentifier()
+    {
+        // Real Entra JWT: contains both "oid" (tenant-wide object ID, used by Graph)
+        // and a NameIdentifier mapped from "sub" (per-user-per-app pairwise pseudonymous ID).
+        // The resolver MUST be called with the oid, not the sub — otherwise the pre-created
+        // AppUser row (keyed by oid from EntraMemberSearch) is missed and a duplicate is JIT-created.
+        const string realOid = "11111111-2222-3333-4444-555555555555";
+        const string subValue = "sub-value-different-from-oid";
+
+        var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
+        resolver
+            .Setup(r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, new[] { "G" }));
+
+        var sut = new PermissionClaimsTransformation(resolver.Object);
+        var principal = Principal(
+            new Claim("oid", realOid),
+            new Claim(ClaimTypes.NameIdentifier, subValue));
+
+        var result = await sut.TransformAsync(principal);
+
+        result.IsInRole("catalog.read").Should().BeTrue();
+        resolver.Verify(
+            r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        resolver.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Transform_EntraToken_UsesObjectIdentifierUri_WhenMapInboundClaimsApplied()
+    {
+        // When MapInboundClaims is enabled in JwtBearerOptions, the JWT "oid" claim is rewritten
+        // to the URI "http://schemas.microsoft.com/identity/claims/objectidentifier".
+        // GetObjectId() reads either form; pin that behavior here.
+        const string realOid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+
+        var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
+        resolver
+            .Setup(r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, new[] { "G" }));
+
+        var sut = new PermissionClaimsTransformation(resolver.Object);
+        var principal = Principal(
+            new Claim("http://schemas.microsoft.com/identity/claims/objectidentifier", realOid),
+            new Claim(ClaimTypes.NameIdentifier, "sub-mapped-to-name-identifier"));
+
+        var result = await sut.TransformAsync(principal);
+
+        result.IsInRole("catalog.read").Should().BeTrue();
+        resolver.Verify(
+            r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        resolver.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Transform_NoOidClaim_FallsBackToNameIdentifier()
+    {
+        // Mock auth scheme (used in dev/test/E2E) doesn't emit "oid" — only NameIdentifier.
+        // The fallback must still hand a non-null identifier to the resolver.
+        const string mockIdentifier = "mock-only-identifier";
+
+        var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
+        resolver
+            .Setup(r => r.ResolveAsync(mockIdentifier, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, Array.Empty<string>()));
+
+        var sut = new PermissionClaimsTransformation(resolver.Object);
+        var principal = Principal(new Claim(ClaimTypes.NameIdentifier, mockIdentifier));
+
+        var result = await sut.TransformAsync(principal);
+
+        result.IsInRole("catalog.read").Should().BeTrue();
+        resolver.Verify(
+            r => r.ResolveAsync(mockIdentifier, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        resolver.VerifyNoOtherCalls();
     }
 }

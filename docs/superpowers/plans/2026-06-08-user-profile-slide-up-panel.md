@@ -1,3 +1,109 @@
+# User Profile Slide-Up Panel Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Replace the centered full-screen modal overlay in `UserProfile.tsx` with a panel that slides up from the sidebar's bottom user row, overlaying nav content, closing on click-outside or toggle.
+
+**Architecture:** The Sidebar's bottom section wrappers gain `relative` so the panel can position absolutely against the full row width. `UserProfile.tsx` drops the `fixed inset-0` overlay in favour of a Headless UI `Transition`-animated absolute panel. Click-outside is handled via `useRef` + `useEffect`. The `compact` prop controls panel width (full-row for expanded, fixed 240px for the 64px collapsed sidebar).
+
+**Tech Stack:** React 18, TypeScript, `@headlessui/react ^2.2.7` (`Transition`), Tailwind CSS, `react-scripts test` (Jest + @testing-library/react + @testing-library/user-event).
+
+---
+
+## File Structure
+
+- **Modify:** `frontend/src/components/layout/Sidebar.tsx` — add `relative` to both bottom section wrappers (expanded row + compact column) so the panel's `absolute` positioning is scoped to the full row width, not just UserProfile's container.
+- **Modify:** `frontend/src/components/auth/UserProfile.tsx` — replace modal with slide-up panel.
+- **Modify:** `frontend/src/components/auth/UserProfile.test.tsx` — rename `openModal` → `openPanel`, add toggle test.
+
+**Positioning note:** `UserProfile`'s own wrapper div must NOT carry `relative` — it holds `ref={panelRef}` for click-outside detection but must not be the positioning context. That role belongs to Sidebar's `relative` bottom section, so `inset-x-0` on the panel spans the full row (including the collapse-toggle button area).
+
+---
+
+## Task 1: Add `relative` to Sidebar bottom section wrappers
+
+**Files:**
+- Modify: `frontend/src/components/layout/Sidebar.tsx` (lines 633 and 647)
+
+No test needed — this is a pure CSS positioning change with no behaviour change.
+
+- [ ] **Step 1: Add `relative` to the expanded bottom row**
+
+In `frontend/src/components/layout/Sidebar.tsx`, find line 633 and add `relative` to the class list:
+
+```tsx
+// BEFORE (line 633):
+<div className="flex items-center justify-between h-16 py-2 border-t border-gray-100">
+
+// AFTER:
+<div className="relative flex items-center justify-between h-16 py-2 border-t border-gray-100">
+```
+
+- [ ] **Step 2: Add `relative` to the compact bottom column**
+
+On line 647, add `relative`:
+
+```tsx
+// BEFORE (line 647):
+<div className="flex flex-col items-center py-2 space-y-2 border-t border-gray-100">
+
+// AFTER:
+<div className="relative flex flex-col items-center py-2 space-y-2 border-t border-gray-100">
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add frontend/src/components/layout/Sidebar.tsx
+git commit -m "refactor(ui): add relative positioning to sidebar user profile row containers"
+```
+
+---
+
+## Task 2: Slide-up panel in UserProfile
+
+**Files:**
+- Modify: `frontend/src/components/auth/UserProfile.test.tsx`
+- Modify: `frontend/src/components/auth/UserProfile.tsx`
+
+- [ ] **Step 1: Write the failing toggle test**
+
+Append this test inside the existing `describe` block in `frontend/src/components/auth/UserProfile.test.tsx`:
+
+```tsx
+  it("closes the panel when the trigger is clicked a second time", async () => {
+    mockCtx = {
+      permissions: ["catalog.read"],
+      isSuperUser: false,
+      groups: [],
+      isLoading: false,
+      hasPermission: () => true,
+    };
+
+    render(<UserProfile />);
+    const button = screen.getByRole("button");
+
+    await userEvent.click(button);
+    expect(screen.getByText("Oprávnění")).toBeInTheDocument();
+
+    await userEvent.click(button);
+    expect(screen.queryByText("Oprávnění")).not.toBeInTheDocument();
+  });
+```
+
+- [ ] **Step 2: Run the test and confirm it FAILS**
+
+```bash
+cd frontend && npx react-scripts test src/components/auth/UserProfile.test.tsx --watchAll=false --forceExit 2>&1 | tail -20
+```
+
+Expected: 6 pass, 1 fail — the new test fails because `onClick={() => setShowModal(true)}` never closes the panel once open.
+
+- [ ] **Step 3: Rewrite UserProfile.tsx**
+
+Replace the entire contents of `frontend/src/components/auth/UserProfile.tsx` with:
+
+```tsx
 import React, { useState, useRef, useEffect } from "react";
 import { Transition } from "@headlessui/react";
 import { User, LogIn, LogOut, ShieldCheck, KeyRound, Users } from "lucide-react";
@@ -97,10 +203,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
     );
   }
 
-  const verticalClass = menuPosition === "below" ? "top-full" : "bottom-full";
   const panelPositionClass = compact
-    ? `absolute ${verticalClass} left-0 w-60`
-    : `absolute ${verticalClass} inset-x-0`;
+    ? "absolute bottom-full left-0 w-60"
+    : "absolute bottom-full inset-x-0";
 
   return (
     <div ref={panelRef}>
@@ -141,7 +246,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
         leaveTo="opacity-0 translate-y-2"
       >
         <div
-          className={`${panelPositionClass} z-10 ${menuPosition === "below" ? "rounded-b-xl" : "rounded-t-xl"} shadow-lg bg-white border border-gray-100 overflow-hidden`}
+          className={`${panelPositionClass} z-10 rounded-t-xl shadow-lg bg-white border border-gray-100 overflow-hidden`}
         >
           <div className="max-h-[80vh] overflow-y-auto">
             {/* User identity */}
@@ -255,3 +360,81 @@ const UserProfile: React.FC<UserProfileProps> = ({
 };
 
 export default UserProfile;
+```
+
+- [ ] **Step 4: Rename `openModal` → `openPanel` in the test helper**
+
+In `frontend/src/components/auth/UserProfile.test.tsx`, rename the helper and its call sites:
+
+```tsx
+// BEFORE (around line 45):
+const openModal = async () => {
+  render(<UserProfile />);
+  await userEvent.click(screen.getByRole("button"));
+};
+
+// AFTER:
+const openPanel = async () => {
+  render(<UserProfile />);
+  await userEvent.click(screen.getByRole("button"));
+};
+```
+
+Also update every call site: replace `await openModal()` with `await openPanel()` throughout the file (6 occurrences in the existing tests).
+
+- [ ] **Step 5: Run all UserProfile tests and confirm all 7 pass**
+
+```bash
+cd frontend && npx react-scripts test src/components/auth/UserProfile.test.tsx --watchAll=false --forceExit 2>&1 | tail -20
+```
+
+Expected: 7 tests passing.
+
+> **If the toggle test fails with the panel still in the DOM:** Headless UI's Transition may not fire `transitionend` in jsdom. Wrap the closing assertion with `waitFor`:
+> ```tsx
+> await userEvent.click(button);
+> await waitFor(() => {
+>   expect(screen.queryByText("Oprávnění")).not.toBeInTheDocument();
+> });
+> ```
+> Add `import { waitFor } from "@testing-library/react";` at the top of the test file.
+
+- [ ] **Step 6: Run the full frontend build to confirm no TypeScript errors**
+
+```bash
+cd frontend && CI=false npm run build 2>&1 | tail -20
+```
+
+Expected: build succeeds.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add frontend/src/components/auth/UserProfile.tsx frontend/src/components/auth/UserProfile.test.tsx
+git commit -m "feat(ui): replace user profile modal with slide-up panel"
+```
+
+---
+
+## Self-Review
+
+**Spec coverage:**
+
+| Spec requirement | Covered by |
+|---|---|
+| Remove `fixed inset-0` overlay | Task 2 Step 3 — new JSX has no fixed overlay |
+| `relative` on Sidebar bottom wrappers | Task 1 |
+| `Transition` slide-up animation | Task 2 Step 3 — enter/leave classes |
+| Close on toggle | Task 2 Step 3 — `setShowPanel((prev) => !prev)` |
+| Close on click-outside | Task 2 Step 3 — `useEffect` + `mousedown` |
+| `rounded-t-xl shadow-lg` panel shell | Task 2 Step 3 — panel div classes |
+| Compact mode `w-60` | Task 2 Step 3 — `panelPositionClass` |
+| Expanded mode `inset-x-0` | Task 2 Step 3 — `panelPositionClass` |
+| No X close button | Task 2 Step 3 — removed from JSX |
+| All existing content preserved | Task 2 Step 3 — sections unchanged |
+| Toggle test (TDD anchor) | Task 2 Steps 1–2 |
+| Test helper rename | Task 2 Step 4 |
+
+**Placeholder scan:** None found — all steps include full code.
+
+**Type consistency:** `showPanel` (boolean state), `panelRef` (RefObject<HTMLDivElement>), `panelPositionClass` (string) — consistent across all references in the implementation.
