@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.GridLayouts.Contracts;
+using Anela.Heblo.Application.Features.GridLayouts.Infrastructure;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.Users;
@@ -27,13 +28,8 @@ public class SaveGridLayoutHandler : IRequestHandler<SaveGridLayoutRequest, Save
         var userId = user.Id ?? user.Email
             ?? throw new InvalidOperationException("Authenticated user must have either Id or Email claim.");
 
-        var payload = new GridLayoutDto
-        {
-            GridKey = request.GridKey,
-            Columns = request.Columns
-        };
-
-        var json = JsonSerializer.Serialize(payload);
+        var stored = GridLayoutStoredMapper.ToStored(request.Columns);
+        var json = JsonSerializer.Serialize(stored);
 
         try
         {
