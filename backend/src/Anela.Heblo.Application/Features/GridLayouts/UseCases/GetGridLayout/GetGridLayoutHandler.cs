@@ -35,10 +35,10 @@ public class GetGridLayoutHandler : IRequestHandler<GetGridLayoutRequest, GetGri
                 return new GetGridLayoutResponse { Layout = null };
             }
 
-            GridLayoutDto? dto;
+            GridLayoutPersistencePayload? payload;
             try
             {
-                dto = JsonSerializer.Deserialize<GridLayoutDto>(entity.LayoutJson);
+                payload = JsonSerializer.Deserialize<GridLayoutPersistencePayload>(entity.LayoutJson);
             }
             catch (JsonException ex)
             {
@@ -48,13 +48,17 @@ public class GetGridLayoutHandler : IRequestHandler<GetGridLayoutRequest, GetGri
                 return new GetGridLayoutResponse { Layout = null };
             }
 
-            if (dto is null)
+            if (payload is null)
             {
                 return new GetGridLayoutResponse { Layout = null };
             }
 
-            dto.GridKey = entity.GridKey;
-            dto.LastModified = entity.LastModified;
+            var dto = new GridLayoutDto
+            {
+                Columns = payload.Columns ?? new List<GridColumnStateDto>(),
+                GridKey = entity.GridKey,
+                LastModified = entity.LastModified
+            };
 
             return new GetGridLayoutResponse { Layout = dto };
         }
