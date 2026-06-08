@@ -26,6 +26,8 @@ public class FeatureAuthorizeAttributeTests
     public void FeatureAuthorize_SetsWriteRole_WhenLevelIsWrite()
     {
         var attr = typeof(SampleWriteController).GetCustomAttribute<FeatureAuthorizeAttribute>()!;
+        attr.Feature.Should().Be(Feature.Products_Catalog);
+        attr.Level.Should().Be(AccessLevel.Write);
         attr.Roles.Should().Be(AccessRoles.ProductsCatalogWrite);
     }
 }

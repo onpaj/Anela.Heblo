@@ -16,6 +16,10 @@ public class GateConsistencyTests
     [Fact]
     public void EveryGatedEndpoint_HasFeatureAuthorize()
     {
+        // Exempt: policy-based or scheme-based auth (not role-based)
+        static bool IsNonRoleAuth(AuthorizeAttribute a) =>
+            !string.IsNullOrEmpty(a.Policy) || !string.IsNullOrEmpty(a.AuthenticationSchemes);
+
         var problems = new List<string>();
         foreach (var ctl in AllControllers())
         {
@@ -27,10 +31,6 @@ public class GateConsistencyTests
 
                 var authorizeAttrs = method.GetCustomAttributes<AuthorizeAttribute>().ToList();
                 if (authorizeAttrs.Count == 0 && !classHasFeatureAuth) continue; // not gated at all
-
-                // Exempt: policy-based or scheme-based auth (not role-based)
-                bool IsNonRoleAuth(AuthorizeAttribute a) =>
-                    !string.IsNullOrEmpty(a.Policy) || !string.IsNullOrEmpty(a.AuthenticationSchemes);
 
                 var hasFeatureAuth = method.GetCustomAttribute<FeatureAuthorizeAttribute>() is not null
                                      || classHasFeatureAuth;
