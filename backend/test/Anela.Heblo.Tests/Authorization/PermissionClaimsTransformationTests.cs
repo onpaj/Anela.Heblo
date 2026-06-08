@@ -73,4 +73,33 @@ public class PermissionClaimsTransformationTests
 
         result.Claims.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task Transform_EntraToken_UsesOidClaim_NotNameIdentifier()
+    {
+        // Real Entra JWT: contains both "oid" (tenant-wide object ID, used by Graph)
+        // and a NameIdentifier mapped from "sub" (per-user-per-app pairwise pseudonymous ID).
+        // The resolver MUST be called with the oid, not the sub — otherwise the pre-created
+        // AppUser row (keyed by oid from EntraMemberSearch) is missed and a duplicate is JIT-created.
+        const string realOid = "11111111-2222-3333-4444-555555555555";
+        const string subValue = "sub-value-different-from-oid";
+
+        var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
+        resolver
+            .Setup(r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, new[] { "G" }));
+
+        var sut = new PermissionClaimsTransformation(resolver.Object);
+        var principal = Principal(
+            new Claim("oid", realOid),
+            new Claim(ClaimTypes.NameIdentifier, subValue));
+
+        var result = await sut.TransformAsync(principal);
+
+        result.IsInRole("catalog.read").Should().BeTrue();
+        resolver.Verify(
+            r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        resolver.VerifyNoOtherCalls();
+    }
 }
