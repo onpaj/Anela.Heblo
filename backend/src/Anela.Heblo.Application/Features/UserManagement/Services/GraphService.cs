@@ -66,28 +66,13 @@ public class GraphService : IGraphService
             var scope = "https://graph.microsoft.com/.default";
             _logger.LogInformation("Attempting to acquire MS Graph token with application scope: {Scope}", scope);
 
-            string graphToken;
-            try
-            {
-                var tokenStart = DateTime.UtcNow;
-                graphToken = await _tokenAcquisition.GetAccessTokenForAppAsync(scope);
-                var tokenDuration = DateTime.UtcNow - tokenStart;
-                _logger.LogInformation("Successfully acquired MS Graph application token in {Duration}ms", tokenDuration.TotalMilliseconds);
+            var tokenStart = DateTime.UtcNow;
+            var graphToken = await _tokenAcquisition.GetAccessTokenForAppAsync(scope);
+            var tokenDuration = DateTime.UtcNow - tokenStart;
+            _logger.LogInformation("Successfully acquired MS Graph application token in {Duration}ms", tokenDuration.TotalMilliseconds);
 
-                // Log token length for troubleshooting (not the actual token)
-                _logger.LogDebug("Token acquired with length: {TokenLength} characters", graphToken?.Length ?? 0);
-            }
-            catch (MsalException msalEx)
-            {
-                _logger.LogError(msalEx, "Failed to acquire Graph API application token. MSAL Error: {ErrorCode} - {ErrorDescription}. GroupId: {GroupId}, Scope: {Scope}",
-                    msalEx.ErrorCode, msalEx.Message, groupId, scope);
-                return new List<UserDto>();
-            }
-            catch (Exception tokenEx)
-            {
-                _logger.LogError(tokenEx, "Unexpected error acquiring Graph API application token for groupId: {GroupId}, scope: {Scope}", groupId, scope);
-                return new List<UserDto>();
-            }
+            // Log token length for troubleshooting (not the actual token)
+            _logger.LogDebug("Token acquired with length: {TokenLength} characters", graphToken?.Length ?? 0);
 
             // Get group members from Microsoft Graph.
             // Matches the shared "MicrosoftGraph" named client used by Marketing/MeetingTasks/CatalogDocuments/KnowledgeBase/Photobank modules.
@@ -180,20 +165,26 @@ public class GraphService : IGraphService
             _logger.LogInformation("Successfully completed GetGroupMembersAsync for group {GroupId}. Final result count: {Count}", groupId, members.Count);
             return members;
         }
+        catch (MsalException msalEx)
+        {
+            _logger.LogError(msalEx, "Failed to acquire Graph API application token. MSAL Error: {ErrorCode} - {ErrorDescription}. GroupId: {GroupId}, Scope: {Scope}",
+                msalEx.ErrorCode, msalEx.Message, groupId, "https://graph.microsoft.com/.default");
+            throw;
+        }
         catch (Microsoft.Graph.Models.ODataErrors.ODataError odataEx)
         {
             _logger.LogError(odataEx, "Microsoft Graph OData error fetching group members for group {GroupId}. Error: {ErrorCode}", groupId, odataEx.Error?.Code);
-            return new List<UserDto>();
+            throw;
         }
         catch (UnauthorizedAccessException authEx)
         {
             _logger.LogError(authEx, "Unauthorized access when fetching group members for group {GroupId}. Check application permissions.", groupId);
-            return new List<UserDto>();
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error fetching group members for group {GroupId}", groupId);
-            return new List<UserDto>();
+            throw;
         }
     }
 

@@ -184,7 +184,7 @@ public class GraphServiceTests
     }
 
     [Fact]
-    public async Task GetGroupMembersAsync_TokenAcquisitionMsalException_ReturnsEmptyList_AndDoesNotInvokeFactory()
+    public async Task GetGroupMembersAsync_TokenAcquisitionMsalException_Throws()
     {
         // Arrange
         var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, SampleGraphResponse);
@@ -197,11 +197,8 @@ public class GraphServiceTests
                 It.IsAny<TokenAcquisitionOptions?>()))
             .ThrowsAsync(new MsalUiRequiredException("err", "msg"));
 
-        // Act
-        var result = await service.GetGroupMembersAsync("group-1");
-
-        // Assert
-        result.Should().BeEmpty();
+        // Act & Assert
+        await Assert.ThrowsAsync<MsalUiRequiredException>(() => service.GetGroupMembersAsync("group-1"));
         factoryMock.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
     }
 
@@ -220,17 +217,14 @@ public class GraphServiceTests
     }
 
     [Fact]
-    public async Task GetGroupMembersAsync_TransportThrows_ReturnsEmptyList()
+    public async Task GetGroupMembersAsync_TransportThrows_Throws()
     {
         // Arrange
         var throwingHandler = new ThrowingHttpMessageHandler(new HttpRequestException("boom"));
         var service = BuildService(throwingHandler, out _, out _, out _);
 
-        // Act
-        var result = await service.GetGroupMembersAsync("group-1");
-
-        // Assert
-        result.Should().BeEmpty();
+        // Act & Assert
+        await Assert.ThrowsAsync<HttpRequestException>(() => service.GetGroupMembersAsync("group-1"));
     }
 
     [Fact]
