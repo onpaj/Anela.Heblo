@@ -119,4 +119,33 @@ describe("UserProfile permissions display", () => {
 
     expect(screen.queryByText("Skupiny")).not.toBeInTheDocument();
   });
+
+  it("hides Permissions and Groups sections while loading", async () => {
+    mockCtx = {
+      permissions: ["catalog.read"],
+      isSuperUser: false,
+      groups: ["Finance"],
+      isLoading: true,
+      hasPermission: () => true,
+    };
+
+    await openModal();
+
+    expect(screen.queryByText("Oprávnění")).not.toBeInTheDocument();
+    expect(screen.queryByText("Skupiny")).not.toBeInTheDocument();
+  });
+
+  it("hides Permissions section when non-super-user has no permissions", async () => {
+    mockCtx = {
+      permissions: [],
+      isSuperUser: false,
+      groups: [],
+      isLoading: false,
+      hasPermission: () => false,
+    };
+
+    await openModal();
+
+    expect(screen.queryByText("Oprávnění")).not.toBeInTheDocument();
+  });
 });
