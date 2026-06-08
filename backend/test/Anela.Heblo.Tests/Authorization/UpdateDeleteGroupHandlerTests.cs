@@ -19,7 +19,7 @@ public class UpdateDeleteGroupHandlerTests
     private static async Task<PermissionGroup> SeedGroup(ApplicationDbContext db)
     {
         var g = new PermissionGroup { Id = Guid.NewGuid(), Name = "G", CreatedAt = DateTimeOffset.UtcNow };
-        g.Permissions.Add(new GroupPermission { GroupId = g.Id, PermissionValue = "catalog.read" });
+        g.Permissions.Add(new GroupPermission { GroupId = g.Id, PermissionValue = "products.catalog.read" });
         db.PermissionGroups.Add(g);
         await db.SaveChangesAsync();
         return g;
@@ -36,14 +36,14 @@ public class UpdateDeleteGroupHandlerTests
         {
             Id = g.Id,
             Name = "G2",
-            Permissions = new() { "journal.read" },
+            Permissions = new() { "products.journal.read" },
             ParentGroupIds = new()
         }, default);
 
         result.Success.Should().BeTrue();
         var reloaded = await db.PermissionGroups.Include(x => x.Permissions).SingleAsync();
         reloaded.Name.Should().Be("G2");
-        reloaded.Permissions.Select(p => p.PermissionValue).Should().BeEquivalentTo(new[] { "journal.read" });
+        reloaded.Permissions.Select(p => p.PermissionValue).Should().BeEquivalentTo(new[] { "products.journal.read" });
     }
 
     [Fact]
