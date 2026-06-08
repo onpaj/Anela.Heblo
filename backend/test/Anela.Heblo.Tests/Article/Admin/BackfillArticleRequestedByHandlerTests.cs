@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Article;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Identity.Client;
 using Moq;
 using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
 
@@ -179,5 +180,57 @@ public class BackfillArticleRequestedByHandlerTests
         response.Ambiguous.Should().Be(1);
         response.Unresolved.Should().Be(1);
         response.UnresolvedRows.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Handle_WhenResolverThrowsMsalException_ReturnsConfigurationError()
+    {
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new MsalUiRequiredException("err_code", "token failed"));
+
+        var response = await CreateHandler().Handle(
+            new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = false }, default);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.ConfigurationError);
+    }
+
+    [Fact]
+    public async Task Handle_WhenResolverThrowsODataError_ReturnsExternalServiceError()
+    {
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Microsoft.Graph.Models.ODataErrors.ODataError());
+
+        var response = await CreateHandler().Handle(
+            new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = false }, default);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.ExternalServiceError);
+    }
+
+    [Fact]
+    public async Task Handle_WhenResolverThrowsUnauthorizedAccess_ReturnsForbidden()
+    {
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new UnauthorizedAccessException("no access"));
+
+        var response = await CreateHandler().Handle(
+            new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = false }, default);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.Forbidden);
+    }
+
+    [Fact]
+    public async Task Handle_WhenResolverThrowsGenericException_ReturnsInternalServerError()
+    {
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("unexpected failure"));
+
+        var response = await CreateHandler().Handle(
+            new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = false }, default);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
     }
 }

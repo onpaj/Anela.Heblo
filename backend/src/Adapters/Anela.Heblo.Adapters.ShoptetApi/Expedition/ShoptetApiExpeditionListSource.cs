@@ -17,8 +17,6 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 
 public class ShoptetApiExpeditionListSource : IPickingListSource
 {
-    // ShoptetOrderClient is the only implementation of IEshopOrderClient — safe to cast
-    // within this adapter assembly to access expedition-specific methods not on the interface.
     private readonly ShoptetOrderClient _client;
     private readonly TimeProvider _timeProvider;
     private readonly ICatalogRepository _catalog;
@@ -31,7 +29,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     private const int CoolingAdditionalFieldIndex = 6;
 
     public ShoptetApiExpeditionListSource(
-        IEshopOrderClient client,
+        ShoptetOrderClient client,
         TimeProvider timeProvider,
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling,
@@ -39,7 +37,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         ILogger<ShoptetApiExpeditionListSource> logger,
         Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
     {
-        _client = (ShoptetOrderClient)client;
+        _client = client;
         _timeProvider = timeProvider;
         _catalog = catalog;
         _carrierCooling = carrierCooling;

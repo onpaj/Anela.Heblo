@@ -1,138 +1,146 @@
-I have enough grounding. Verified: spec aligns with reality — `CombinedPrintQueueSink.cs` only exists under API (not yet in Application), peer `FileSystemPrintQueueSink` is at the proposed target, `InternalsVisibleTo("Anela.Heblo.Tests")` is wired in `AssemblyInfo.cs:3` and `.csproj:46`, and `Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2` is already a direct Application dependency (so `[FromKeyedServices]` works without new package refs). One detail to flag: `ServiceCollectionExtensions.cs:27` already has `using Anela.Heblo.Application.Features.ExpeditionList.Services;` — so after relocation the `using Anela.Heblo.API.Features.ExpeditionList;` at line 24 becomes dead and must be removed.
-
-```markdown
-# Architecture Review: Relocate CombinedPrintQueueSink to Application Layer
+# Architecture Review: Decouple CombinedPrintQueueSink from DI Keying Conventions
 
 ## Skip Design: true
 
 ## Architectural Fit Assessment
 
-This change is a **pure structural correction** that restores Clean Architecture compliance for the print-sink slice. It is fully aligned with existing patterns — in fact, it eliminates the only deviation from them.
+The refactor is a **layering correction** that aligns the print-sink slice with the Clean Architecture rules documented in `docs/architecture/filesystem.md` and already followed by every other sink:
 
-**Existing convention (verified in repo):**
-- Pure Application-layer sinks (filesystem I/O, composition) live in `Anela.Heblo.Application/Features/ExpeditionList/Services/` (e.g. `FileSystemPrintQueueSink.cs`).
-- Infrastructure-bound sinks live in dedicated adapter projects: `Anela.Heblo.Adapters.Azure/Features/ExpeditionList/AzureBlobPrintQueueSink.cs`, `Anela.Heblo.Adapters.Cups/Features/ExpeditionList/CupsPrintQueueSink.cs`.
-- The `IPrintQueueSink` contract is owned by `Anela.Heblo.Application.Shared.Printing`.
-- The API project's role is HTTP shell + composition root (registration in `Extensions/ServiceCollectionExtensions.AddPrintQueueSink`).
+- `IPrintQueueSink` is the Application-layer contract (`Anela.Heblo.Application.Shared.Printing`).
+- `FileSystemPrintQueueSink` (a pure-app sink) lives in `Anela.Heblo.Application.Features.ExpeditionList.Services`.
+- Infrastructure-bound sinks live in adapter assemblies: `Anela.Heblo.Adapters.Azure/Features/ExpeditionList/AzureBlobPrintQueueSink.cs`, `Anela.Heblo.Adapters.Cups/Features/ExpeditionList/CupsPrintQueueSink.cs`.
+- Adapter wiring and sink selection are composition-root concerns owned by `Anela.Heblo.API/Extensions/ServiceCollectionExtensions.AddPrintQueueSink`.
 
-**The outlier:** `CombinedPrintQueueSink` — a composite that holds no infrastructure dependency, only Application abstractions and DI metadata — sits in the API project. It is the single sink implementation that violates the layering rule. Moving it removes that violation without touching any other slice.
+The current `CombinedPrintQueueSink` is the lone outlier: it sits in `Anela.Heblo.Application` *and* carries `[FromKeyedServices("azure"|"cups")]` attributes whose string keys are defined in `ServiceCollectionExtensions.cs:417–418`. Application code thus depends on a composition-root convention with no compile-time link — exactly the violation Clean Architecture forbids.
 
-**Integration points:**
-1. `Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs:420` — DI registration of the concrete type. The required `using Anela.Heblo.Application.Features.ExpeditionList.Services;` is **already present** at line 27 (it imports `FileSystemPrintQueueSink`), so no new `using` is needed; only the now-dead `using Anela.Heblo.API.Features.ExpeditionList;` at line 24 must be removed.
-2. `Anela.Heblo.Tests/Features/ExpeditionList/CombinedPrintQueueSinkTests.cs` — single `using` swap; `InternalsVisibleTo("Anela.Heblo.Tests")` is already configured on `Anela.Heblo.Application` via both `AssemblyInfo.cs:3` and `Anela.Heblo.Application.csproj:46`, so `internal sealed` visibility carries over cleanly.
+**Integration points (single PR, surgical):**
+1. `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Services/CombinedPrintQueueSink.cs` — delete after move.
+2. `backend/src/Anela.Heblo.API/Features/ExpeditionList/CombinedPrintQueueSink.cs` — new home (matches existing `Anela.Heblo.API/Features/Users/` vertical slice convention).
+3. `backend/src/Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs:413–420` — replace concrete-type registration with a factory delegate.
+4. `backend/test/Anela.Heblo.Tests/Features/ExpeditionList/CombinedPrintQueueSinkTests.cs` — swap the `using` to the new namespace; constructor call (`new CombinedPrintQueueSink(_azureSink.Object, _cupsSink.Object)`) already uses plain parameters and needs no change.
+5. New DI-resolution test (FR-5) added under `backend/test/Anela.Heblo.Tests/API/` or alongside the existing tests.
 
-No call site beyond DI exists; the type is only constructed by the container.
+`Anela.Heblo.API.csproj:13` already has `<InternalsVisibleTo Include="Anela.Heblo.Tests" />`, so `internal sealed` visibility carries cleanly into the tests project — no spec amendment needed for accessibility.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│ Anela.Heblo.API (HTTP shell + composition root)                │
-│                                                                │
-│   Extensions/ServiceCollectionExtensions.cs                    │
-│     AddPrintQueueSink(cfg)                                     │
-│       switch (cfg["ExpeditionList:PrintSink"])                 │
-│         "Combined" → registers CombinedPrintQueueSink ─────────┼──┐
-└────────────────────────────────────────────────────────────────┘  │
-                                                                    │
-┌────────────────────────────────────────────────────────────────┐  │
-│ Anela.Heblo.Application                                        │  │
-│                                                                │  │
-│   Shared/Printing/                                             │  │
-│     IPrintQueueSink                  ◄─── implemented by ──┐   │  │
-│                                                            │   │  │
-│   Features/ExpeditionList/Services/                        │   │  │
-│     FileSystemPrintQueueSink (existing)            ────────┤   │  │
-│     CombinedPrintQueueSink   (MOVED HERE)          ────────┼───┼──┘
-│       │                                                    │   │
-│       ├─ [FromKeyedServices("azure")] IPrintQueueSink ─────┤   │
-│       └─ [FromKeyedServices("cups")]  IPrintQueueSink ─────┤   │
-└────────────────────────────────────────────────────────────────┘  
-                                                            ▲  ▲
-            ┌───────────────────────────────────────────────┘  │
-            │                                                  │
-┌───────────┴────────────────┐    ┌────────────────────────────┴─┐
-│ Anela.Heblo.Adapters.Azure │    │ Anela.Heblo.Adapters.Cups    │
-│   AzureBlobPrintQueueSink  │    │   CupsPrintQueueSink         │
-└────────────────────────────┘    └──────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│ Anela.Heblo.API (HTTP shell + composition root)                     │
+│                                                                     │
+│   Extensions/ServiceCollectionExtensions.cs                         │
+│     AddPrintQueueSink(cfg)                                          │
+│       case "Combined":                                              │
+│         AddAzurePrintQueueSink(cfg)                                 │
+│         AddKeyedScoped<IPrintQueueSink,AzureBlobPrintQueueSink>(...)│
+│         AddKeyedScoped<IPrintQueueSink,CupsPrintQueueSink>(...)     │
+│         AddScoped<IPrintQueueSink>(sp => {                          │
+│            var azure = sp.GetRequiredKeyedService<...>("azure");    │
+│            var cups  = sp.GetRequiredKeyedService<...>("cups");     │
+│            return new CombinedPrintQueueSink(azure, cups);          │
+│         });                                                         │
+│                                                                     │
+│   Features/ExpeditionList/CombinedPrintQueueSink.cs   ◄── NEW HOME  │
+│      internal sealed class CombinedPrintQueueSink                   │
+│        ctor(IPrintQueueSink azureSink, IPrintQueueSink cupsSink)    │
+│        (no DI attributes; no Microsoft.Extensions.DependencyInjection│
+│         using directive)                                            │
+└─────────────────────────────────────────────────────────────────────┘
+                │ (project ref: API → Application)
+                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│ Anela.Heblo.Application                                             │
+│   Shared/Printing/IPrintQueueSink                  (unchanged)      │
+│   Features/ExpeditionList/Services/                                 │
+│     FileSystemPrintQueueSink                       (unchanged)      │
+│     CombinedPrintQueueSink                         ◄── DELETED      │
+└─────────────────────────────────────────────────────────────────────┘
+                ▲                              ▲
+                │                              │
+┌───────────────┴───────────────┐  ┌───────────┴──────────────────────┐
+│ Anela.Heblo.Adapters.Azure    │  │ Anela.Heblo.Adapters.Cups        │
+│   AzureBlobPrintQueueSink     │  │   CupsPrintQueueSink             │
+└───────────────────────────────┘  └──────────────────────────────────┘
 ```
 
 ### Key Design Decisions
 
-#### Decision 1: Target namespace
-
+#### Decision 1: Target location inside the API project
 **Options considered:**
-- `Anela.Heblo.Application.Features.ExpeditionList.Services` (peer of `FileSystemPrintQueueSink`).
-- `Anela.Heblo.Application.Features.ExpeditionList` (parent, one level up).
-- `Anela.Heblo.Application.Shared.Printing` (next to the interface).
+- `Anela.Heblo.API/Features/ExpeditionList/CombinedPrintQueueSink.cs` (vertical slice — mirrors existing `Anela.Heblo.API/Features/Users/`).
+- `Anela.Heblo.API/Extensions/CombinedPrintQueueSink.cs` (adjacent to its DI registration).
+- `Anela.Heblo.API/Printing/CombinedPrintQueueSink.cs` (new top-level folder).
 
-**Chosen approach:** `Anela.Heblo.Application.Features.ExpeditionList.Services`.
+**Chosen approach:** `Anela.Heblo.API/Features/ExpeditionList/CombinedPrintQueueSink.cs`, namespace `Anela.Heblo.API.Features.ExpeditionList`.
 
-**Rationale:** Mirrors `FileSystemPrintQueueSink` exactly — same folder, same namespace, same vertical slice. The composite is feature-specific (it expresses the ExpeditionList print strategy), not a cross-cutting primitive, so it belongs in the feature slice, not in `Shared/Printing`.
+**Rationale:** Matches the only existing precedent for feature folders inside the API project (`Anela.Heblo.API/Features/Users/`). The composite is feature-specific (ExpeditionList print fan-out), not a cross-cutting primitive. Keeping `Extensions/` reserved for `IServiceCollection`/`IApplicationBuilder` extension methods preserves its semantics, and avoiding a new top-level `Printing/` folder keeps the API project surface small.
 
-#### Decision 2: Keep `internal sealed` visibility
-
+#### Decision 2: Inline factory vs. private static helper method
 **Options considered:**
-- Keep `internal sealed` (current).
-- Promote to `public` to make registration cleaner.
+- Inline lambda inside the `"Combined"` switch arm.
+- Private static `CreateCombinedSink(IServiceProvider)` helper next to `AddPrintQueueSink`.
+
+**Chosen approach:** Inline lambda (exactly as the spec mandates in FR-3).
+
+**Rationale:** The factory is three statements long; extracting it adds indirection without removing duplication. Cohesion stays with the switch arm that owns the keying decision. If a third composite ever appears, refactor then.
+
+#### Decision 3: Keep `CombinedPrintQueueSink` `internal sealed`
+**Options considered:**
+- Promote to `public` for "registration simplicity".
+- Keep `internal sealed` and rely on `InternalsVisibleTo`.
 
 **Chosen approach:** Keep `internal sealed`.
 
-**Rationale:** Visibility broadening is explicitly out of scope per the spec. The DI registration in `ServiceCollectionExtensions.AddPrintQueueSink` lives in the same solution and can reference internals of `Anela.Heblo.Application` either via the existing project reference (concrete-type registration only requires the type to be accessible at the registration call site — and since the API project references Application, `internal` types of Application are **not** visible to API). **This is a real concern** — see the Risks section. Resolution: add `InternalsVisibleTo("Anela.Heblo.API")` to the Application project, **or** widen the class to `internal` → `public sealed` only in the unlikely event that approach 1 is unacceptable. The brief explicitly suggests keeping `internal`; the cleanest fix is therefore the `InternalsVisibleTo` grant.
+**Rationale:** The class is registered in the same assembly (`Anela.Heblo.API`) — internal access is sufficient. `Anela.Heblo.API.csproj` already exposes internals to `Anela.Heblo.Tests` for the FR-5 DI-resolution test. Promoting to public would broaden the API surface without need.
 
-#### Decision 3: Keep DI registration in API project
-
+#### Decision 4: Do not generalise into a `CompositeSink<T>`
 **Options considered:**
-- Move `AddPrintQueueSink` extension to Application (e.g., an `ExpeditionListModule`).
-- Leave it in `Anela.Heblo.API.Extensions.ServiceCollectionExtensions`.
+- Build a reusable composite wrapper.
+- Keep `CombinedPrintQueueSink` as a single-purpose class.
 
-**Chosen approach:** Leave it in API.
+**Chosen approach:** Single-purpose (spec marks generalisation as out of scope).
 
-**Rationale:** Out of scope per the brief ("Refactoring `AddPrintQueueSink` is not addressed here"). The composition root is the conventional home for sink-selection logic that mixes adapter packages (`AddAzurePrintQueueSink`, `AddCupsPrinting`) — moving it would force Application to take a dependency on adapter projects, inverting the layering. Status quo is correct.
+**Rationale:** YAGNI. Two consumers (Azure + CUPS) is below the threshold for an abstraction. The existing class already enforces the desired semantics (sequential, fail-fast, single materialisation via `.ToList()`); a generic wrapper would either dilute or duplicate that.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
-
 ```
 backend/src/
 ├── Anela.Heblo.API/
-│   ├── Extensions/ServiceCollectionExtensions.cs        ← edit (remove using, keep registration)
-│   └── Features/ExpeditionList/                         ← DELETE the file; remove the folder if empty
-│       └── CombinedPrintQueueSink.cs                    ← REMOVED
+│   ├── Extensions/ServiceCollectionExtensions.cs        ← edit "Combined" case (replace AddScoped<T,T> with factory)
+│   └── Features/ExpeditionList/                         ← NEW folder (mirror Features/Users/)
+│       └── CombinedPrintQueueSink.cs                    ← NEW FILE (relocated, stripped of [FromKeyedServices])
 └── Anela.Heblo.Application/
-    ├── AssemblyInfo.cs                                  ← ADD InternalsVisibleTo("Anela.Heblo.API") (see Risk #1)
     └── Features/ExpeditionList/Services/
-        ├── FileSystemPrintQueueSink.cs                  ← unchanged (reference template)
-        └── CombinedPrintQueueSink.cs                    ← NEW FILE (relocated)
+        ├── FileSystemPrintQueueSink.cs                  ← unchanged
+        └── CombinedPrintQueueSink.cs                    ← DELETE
 
 backend/test/Anela.Heblo.Tests/
 └── Features/ExpeditionList/
-    └── CombinedPrintQueueSinkTests.cs                   ← edit using only
+    ├── CombinedPrintQueueSinkTests.cs                   ← edit using (only); constructor call unchanged
+    └── CombinedPrintQueueSinkRegistrationTests.cs       ← NEW (FR-5; DI resolution test)
 ```
 
 ### Interfaces and Contracts
 
-No interface changes. The contract `IPrintQueueSink` in `Anela.Heblo.Application.Shared.Printing` is untouched. The class's public surface (constructor signature with two `[FromKeyedServices]` parameters and `SendAsync(IEnumerable<string>, CancellationToken)`) is byte-identical.
+**Public contracts — unchanged.** `IPrintQueueSink` and `AddPrintQueueSink(this IServiceCollection, IConfiguration)` keep their signatures.
 
-New file canonical form:
+**Relocated class canonical form:**
 
 ```csharp
 using Anela.Heblo.Application.Shared.Printing;
-using Microsoft.Extensions.DependencyInjection;
 
-namespace Anela.Heblo.Application.Features.ExpeditionList.Services;
+namespace Anela.Heblo.API.Features.ExpeditionList;
 
 internal sealed class CombinedPrintQueueSink : IPrintQueueSink
 {
     private readonly IPrintQueueSink _azureSink;
     private readonly IPrintQueueSink _cupsSink;
 
-    public CombinedPrintQueueSink(
-        [FromKeyedServices("azure")] IPrintQueueSink azureSink,
-        [FromKeyedServices("cups")] IPrintQueueSink cupsSink)
+    public CombinedPrintQueueSink(IPrintQueueSink azureSink, IPrintQueueSink cupsSink)
     {
         _azureSink = azureSink;
         _cupsSink = cupsSink;
@@ -147,54 +155,73 @@ internal sealed class CombinedPrintQueueSink : IPrintQueueSink
 }
 ```
 
+Note: the `using Microsoft.Extensions.DependencyInjection;` directive disappears (no symbol from that namespace remains in the file).
+
+**Edited "Combined" switch arm in `ServiceCollectionExtensions.cs:413–420`:**
+
+```csharp
+case "Combined":
+    // AddAzurePrintQueueSink registers a non-keyed IPrintQueueSink as a side effect;
+    // it is unused here — the factory below registers the resolved IPrintQueueSink last and wins.
+    services.AddAzurePrintQueueSink(configuration);
+    services.AddKeyedScoped<IPrintQueueSink, AzureBlobPrintQueueSink>("azure");
+    services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
+    services.AddScoped<IPrintQueueSink>(provider =>
+    {
+        var azure = provider.GetRequiredKeyedService<IPrintQueueSink>("azure");
+        var cups  = provider.GetRequiredKeyedService<IPrintQueueSink>("cups");
+        return new CombinedPrintQueueSink(azure, cups);
+    });
+    break;
+```
+
+Add a single `using Anela.Heblo.API.Features.ExpeditionList;` at the top of `ServiceCollectionExtensions.cs` (the existing `using Anela.Heblo.Application.Features.ExpeditionList.Services;` stays — it still resolves `FileSystemPrintQueueSink`).
+
 ### Data Flow
 
-Unchanged at runtime. For `ExpeditionList:PrintSink = "Combined"`:
+Unchanged at runtime. With `ExpeditionList:PrintSink=Combined`:
+1. Startup → `Program.cs:122` → `AddPrintQueueSink(builder.Configuration)`.
+2. The `"Combined"` arm registers keyed `"azure"` → `AzureBlobPrintQueueSink`, keyed `"cups"` → `CupsPrintQueueSink`, and a non-keyed `IPrintQueueSink` factory that constructs `CombinedPrintQueueSink` from the two keyed resolutions.
+3. At request time, `ExpeditionListService` is injected with the factory-produced `CombinedPrintQueueSink`. Constructor parameters are now plain `IPrintQueueSink` — no DI attribute lookup happens during instantiation.
+4. `SendAsync(paths)` materialises `paths` via `.ToList()`, awaits `_azureSink.SendAsync` then `_cupsSink.SendAsync` — fail-fast on Azure exception (verified by existing test `SendAsync_AzureThrows_CupsNeverCalledAndExceptionPropagates`).
 
-1. App startup → `Program.cs` → `AddPrintQueueSink(IConfiguration)`.
-2. The `"Combined"` branch registers: keyed `"azure"` → `AzureBlobPrintQueueSink`; keyed `"cups"` → `CupsPrintQueueSink`; non-keyed `IPrintQueueSink` → `CombinedPrintQueueSink`.
-3. At request time, an `IPrintQueueSink` consumer (e.g., `ExpeditionListService`) is injected with `CombinedPrintQueueSink`, whose constructor resolves the two keyed children.
-4. `SendAsync(paths)` materializes `paths` once via `.ToList()`, awaits `azureSink.SendAsync` then `cupsSink.SendAsync` — fail-fast on Azure, no try/catch around the second call.
-
-The IL emitted and the DI resolution graph are identical pre- and post-move.
+Identical DI resolution graph and identical IL inside `SendAsync` before and after.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| **API project cannot see `internal sealed` type in Application.** Today the class is `internal` in API itself, so DI registration compiles. After the move, `services.AddScoped<IPrintQueueSink, CombinedPrintQueueSink>()` in API will fail to compile because `CombinedPrintQueueSink` becomes `internal` to Application. | **High** — build break | Add `[assembly: InternalsVisibleTo("Anela.Heblo.API")]` to `backend/src/Anela.Heblo.Application/AssemblyInfo.cs` and add `<InternalsVisibleTo Include="Anela.Heblo.API" />` to `Anela.Heblo.Application.csproj` (mirrors the existing `Anela.Heblo.Tests` entry). This is the cleanest fix and preserves the spec's "stays `internal sealed`" constraint. **The spec misses this prerequisite — see Spec Amendment #1.** |
-| Stale dead `using Anela.Heblo.API.Features.ExpeditionList;` left at `ServiceCollectionExtensions.cs:24` after the move. | Low — `dotnet build` warning at most; `dotnet format` may auto-remove. | Explicitly delete line 24. No other type from that namespace is referenced (verified — the only inhabitant was `CombinedPrintQueueSink`). |
-| Empty folder `backend/src/Anela.Heblo.API/Features/ExpeditionList/` left behind. | Low — cosmetic only. | Delete the directory after the file removal (the spec mandates this in FR-1). |
-| Test assembly references the old namespace via more than the import (e.g., a `[assembly:]` attribute, snapshot, or generated file). | Low — none found by grep; only one `using` and the type name itself appear in the test file. | Single-namespace `using` swap is sufficient. Confirmed by `grep -rn CombinedPrintQueueSink backend/`. |
-| Behavioral drift introduced "incidentally" during the move (e.g., reordering of `await`, dropping `.ToList()`). | Medium — silent regression in print fan-out. | The four existing unit tests (`SendAsync_BothSucceed_*`, `_AzureThrows_*`, `_AzureSucceedsCupsThrows_*`, `_SinglePassEnumerable_*`) cover the exact contract; they remain unmodified and must pass post-move. Treat any test edit as a code smell. |
-| `ExpeditionListServicePrintSinkTests` (which exercises the registration path) regresses. | Low | Spec already lists it as a required gate (NFR-4). Re-run after the change. |
+| DI registration breaks silently if either string key (`"azure"`/`"cups"`) is later renamed in only one place. | Medium | After this change the keys exist in exactly one file (`ServiceCollectionExtensions.cs`) and in exactly one switch arm. Any rename is a same-file edit. Optional hardening: lift the keys to `private const string AzureSinkKey = "azure";` / `CupsSinkKey = "cups";` near `AddPrintQueueSink`. Treat as a follow-up, not a blocker — the spec doesn't require it. |
+| Behavioural drift introduced incidentally during the move (await ordering, `.ToList()` dropped, `CancellationToken` not threaded). | Medium | Existing four unit tests in `CombinedPrintQueueSinkTests.cs` lock the exact contract: `SendAsync_BothSucceed_CallsBothSinksWithSamePaths`, `SendAsync_AzureThrows_CupsNeverCalledAndExceptionPropagates`, `SendAsync_AzureSucceedsCupsThrows_ExceptionPropagates`, `SendAsync_SinglePassEnumerable_BothSinksReceiveAllPaths`. They must remain unmodified (only the `using` swaps) and must pass post-move. |
+| `ExpeditionListServicePrintSinkTests` regresses. | Low | Test depends only on `IPrintQueueSink` mock — unaffected by sink relocation. Re-run as part of FR-4 verification. |
+| `AddAzurePrintQueueSink(configuration)` side-effect (registers a non-keyed `AzureBlobPrintQueueSink` as `IPrintQueueSink`) interacts poorly with the new factory registration. | Low | The factory is the *last* non-keyed `IPrintQueueSink` registration in the `"Combined"` arm; standard ServiceCollection "last-wins" semantics give us the same behaviour as today. The existing inline comment at `ServiceCollectionExtensions.cs:414–415` already documents this; copy it forward verbatim. |
+| Empty folder `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Services/` remains after the move (it won't — `FileSystemPrintQueueSink.cs` still lives there). | None | n/a — verified the folder retains a peer file. |
+| FR-5 test for `Combined` configuration accidentally trips `AddCupsPrinting(configuration)` requirements (real CUPS endpoint, real config keys). | Medium | Build the test's `IConfiguration` in-memory with the minimal keys the Cups/Azure adapter registrations need to construct (not connect). If a sink's `Add…` extension performs eager validation at registration time, stub via `IConfigurationBuilder.AddInMemoryCollection(...)` rather than loading `appsettings.json`. Inspect `AddCupsPrinting` and `AddAzurePrintQueueSink` before writing the test to confirm what config they read. |
 
 ## Specification Amendments
 
-### Amendment 1 (REQUIRED): Add `InternalsVisibleTo("Anela.Heblo.API")` to Application
+### Amendment 1 (clarifying, REQUIRED): Pin the relocation target
 
-The spec implicitly assumes that `internal sealed CombinedPrintQueueSink` will be accessible from `Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs::AddPrintQueueSink` after the move. **It will not** — `internal` types in Application are invisible to API. Today this compiles only because the class lives in the API assembly.
+The spec offers `Anela.Heblo.API.Printing` *or* "adjacent to `ServiceCollectionExtensions`" as the destination. Pin it to `Anela.Heblo.API/Features/ExpeditionList/CombinedPrintQueueSink.cs` with namespace `Anela.Heblo.API.Features.ExpeditionList`. Reason: matches the only existing precedent (`Anela.Heblo.API/Features/Users/`) and keeps `Extensions/` reserved for extension-method classes.
 
-Add a new functional requirement:
+### Amendment 2 (clarifying): FR-5 test placement and `InternalsVisibleTo` note
 
-> **FR-6: Grant `InternalsVisibleTo` for API project.**
-> Add `[assembly: InternalsVisibleTo("Anela.Heblo.API")]` to `backend/src/Anela.Heblo.Application/AssemblyInfo.cs` and `<InternalsVisibleTo Include="Anela.Heblo.API" />` to the `<ItemGroup>` containing the existing `Anela.Heblo.Tests` entry in `Anela.Heblo.Application.csproj`.
->
-> **Acceptance criteria:**
-> - `Anela.Heblo.API` compiles after the relocation without changing the visibility of `CombinedPrintQueueSink`.
-> - The class remains `internal sealed`.
-> - Both `AssemblyInfo.cs` (for the source-level attribute) and the `.csproj` (for the MSBuild SDK form) are updated to mirror the existing pattern for `Anela.Heblo.Tests`.
+The spec mentions "use `InternalsVisibleTo` or a wrapper if the type is internal". Clarify: `Anela.Heblo.API.csproj:13` already declares `<InternalsVisibleTo Include="Anela.Heblo.Tests" />`, so no wrapper or new attribute is required. Place the new test at `backend/test/Anela.Heblo.Tests/API/CombinedPrintQueueSinkRegistrationTests.cs` (mirrors the existing `backend/test/Anela.Heblo.Tests/API/` directory).
 
-### Amendment 2 (clarifying, non-binding): FR-3 wording
+The test should assert:
+- `IPrintQueueSink` resolves to `CombinedPrintQueueSink` when `ExpeditionList:PrintSink=Combined`.
+- The keyed `"azure"` resolution is `AzureBlobPrintQueueSink`.
+- The keyed `"cups"` resolution is `CupsPrintQueueSink`.
+- Resolving `IPrintQueueSink` under `ExpeditionList:PrintSink=FileSystem` continues to yield `FileSystemPrintQueueSink` (regression guard).
 
-The spec says the `using Anela.Heblo.API.Features.ExpeditionList;` line "is removed if no other type from that namespace is referenced." This is verified — `grep` shows `CombinedPrintQueueSink` is the only inhabitant of that namespace and the only API reference to it is the DI registration. The conditional language can be hardened to **"must be removed"** since the prerequisite is satisfied.
+### Amendment 3 (clarifying, non-binding): Carry forward the existing comment
+
+Preserve the inline comment at `ServiceCollectionExtensions.cs:414–415` ("AddAzurePrintQueueSink registers a non-keyed IPrintQueueSink as a side effect; it is unused here — the last non-keyed registration wins") in the rewritten arm. Without it the next reader will wonder why a non-keyed Azure registration is present alongside the factory.
 
 ## Prerequisites
 
-Before opening the PR:
-
-1. **InternalsVisibleTo grant** (per Amendment 1) must be applied in the **same commit** as the file move, or the API project will not compile. This is the only non-trivial prerequisite.
-2. No migrations, no configuration changes, no infrastructure changes, no Azure Key Vault changes.
-3. No new NuGet packages (verified — `Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2` is already a direct dependency of `Anela.Heblo.Application` per `Anela.Heblo.Application.csproj:18`, so `[FromKeyedServices]` resolves without a new reference).
-4. Validation gates: `dotnet build`, `dotnet format` (zero changes), `dotnet test` (full `Anela.Heblo.Tests` suite — at minimum `CombinedPrintQueueSinkTests` and `ExpeditionListServicePrintSinkTests` must be green). No FE or E2E work in scope.
-```
+1. None at the project-reference or visibility level: `Anela.Heblo.API` already references `Anela.Heblo.Application` (so `IPrintQueueSink` is in scope), and `Anela.Heblo.API.csproj` already grants `InternalsVisibleTo("Anela.Heblo.Tests")` (so the new DI-resolution test can assert on the `internal` type).
+2. No new NuGet packages — the API project already depends on `Microsoft.Extensions.DependencyInjection.Abstractions` transitively.
+3. No configuration, migration, Azure Key Vault, environment-variable, or deployment changes.
+4. Validation gates before merge: `dotnet build`, `dotnet format` (zero diff), full `Anela.Heblo.Tests` suite — at minimum `CombinedPrintQueueSinkTests`, `ExpeditionListServicePrintSinkTests`, and the new `CombinedPrintQueueSinkRegistrationTests` must be green.
+5. Final grep gate (asserts the architectural invariant after the change): `grep -rn 'FromKeyedServices' backend/src/Anela.Heblo.Application/` must return zero matches; `grep -rn '"azure"\|"cups"' backend/src/Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs` must show those literals appearing *only* inside `AddPrintQueueSink`.
