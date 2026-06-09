@@ -30,7 +30,7 @@ public class PackageRepository : IPackageRepository
             q = q.Where(p => EF.Functions.ILike(p.CustomerName, $"%{EscapeLike(customerName)}%", "\\"));
         if (!string.IsNullOrWhiteSpace(packageNumber))
             q = q.Where(p => EF.Functions.ILike(p.PackageNumber, $"%{EscapeLike(packageNumber)}%", "\\"));
-        if (shippingProviderCodes is { Count: > 0 })
+        if (shippingProviderCodes != null)
             q = q.Where(p => shippingProviderCodes.Contains(p.ShippingProviderCode));
         if (fromDate.HasValue)
             q = q.Where(p => p.PackedAt >= new DateTimeOffset(DateTime.SpecifyKind(fromDate.Value, DateTimeKind.Utc)));
