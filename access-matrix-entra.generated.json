@@ -687,10 +687,22 @@
     {
       "name": "Vedouci_skladu",
       "roles": [
-        "warehouse.logistics.read",
-        "warehouse.logistics.write",
-        "warehouse.expedition.read",
+        "anela.meetings.read",
+        "anela.meetings.write",
+        "products.catalog.write",
+        "products.journal.read",
+        "products.journal.write",
         "warehouse.expedition.write",
+        "warehouse.logistics.write",
+        "warehouse.stock_up.write"
+      ]
+    },
+    {
+      "name": "Skladnik",
+      "roles": [
+        "products.catalog.read",
+        "warehouse.logistics.read",
+        "warehouse.expedition.read",
         "warehouse.packaging.read",
         "warehouse.packaging.write",
         "warehouse.stock_up.read",
@@ -698,19 +710,24 @@
       ]
     },
     {
-      "name": "Skladnik",
-      "roles": [
-        "warehouse.logistics.read",
-        "warehouse.expedition.read",
-        "warehouse.packaging.read",
-        "warehouse.packaging.write"
-      ]
-    },
-    {
       "name": "Poradenstvi",
       "roles": [
         "customer.knowledge_base.read",
         "customer.knowledge_base.write"
+      ]
+    },
+    {
+      "name": "AccessManager",
+      "roles": [
+        "admin.administration.read",
+        "admin.administration.write"
+      ]
+    },
+    {
+      "name": "Zamestnanec",
+      "roles": [
+        "anela.org_chart.read",
+        "products.catalog.read"
       ]
     }
   ]

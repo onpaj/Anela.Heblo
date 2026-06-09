@@ -11322,6 +11322,40 @@ export class ApiClient {
         return Promise.resolve<CloseConversationResponse>(null as any);
     }
 
+    smartsupp_RefreshOrphanContacts(): Promise<RefreshOrphanContactsResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/admin/refresh-orphan-contacts";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_RefreshOrphanContacts(_response);
+        });
+    }
+
+    protected processSmartsupp_RefreshOrphanContacts(response: Response): Promise<RefreshOrphanContactsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RefreshOrphanContactsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RefreshOrphanContactsResponse>(null as any);
+    }
+
     smartsuppWebhookAudit_List(from: Date | null | undefined, to: Date | null | undefined, eventName: string | null | undefined, signatureStatus: SmartsuppWebhookSignatureStatus | null | undefined, processingStatus: SmartsuppWebhookProcessingStatus | null | undefined, skip: number | undefined, take: number | undefined): Promise<ListWebhookAuditResponse> {
         let url_ = this.baseUrl + "/api/admin/smartsupp/webhooks?";
         if (from !== undefined && from !== null)
@@ -14474,7 +14508,6 @@ export interface IGetMeResponse extends IBaseResponse {
 export class GetPermissionCatalogueResponse extends BaseResponse implements IGetPermissionCatalogueResponse {
     permissions?: string[];
     features?: CatalogueFeatureDto[];
-    systemGroups?: CatalogueGroupDto[];
 
     constructor(data?: IGetPermissionCatalogueResponse) {
         super(data);
@@ -14492,11 +14525,6 @@ export class GetPermissionCatalogueResponse extends BaseResponse implements IGet
                 this.features = [] as any;
                 for (let item of _data["features"])
                     this.features!.push(CatalogueFeatureDto.fromJS(item));
-            }
-            if (Array.isArray(_data["systemGroups"])) {
-                this.systemGroups = [] as any;
-                for (let item of _data["systemGroups"])
-                    this.systemGroups!.push(CatalogueGroupDto.fromJS(item));
             }
         }
     }
@@ -14520,11 +14548,6 @@ export class GetPermissionCatalogueResponse extends BaseResponse implements IGet
             for (let item of this.features)
                 data["features"].push(item.toJSON());
         }
-        if (Array.isArray(this.systemGroups)) {
-            data["systemGroups"] = [];
-            for (let item of this.systemGroups)
-                data["systemGroups"].push(item.toJSON());
-        }
         super.toJSON(data);
         return data;
     }
@@ -14533,7 +14556,6 @@ export class GetPermissionCatalogueResponse extends BaseResponse implements IGet
 export interface IGetPermissionCatalogueResponse extends IBaseResponse {
     permissions?: string[];
     features?: CatalogueFeatureDto[];
-    systemGroups?: CatalogueGroupDto[];
 }
 
 export class CatalogueFeatureDto implements ICatalogueFeatureDto {
@@ -14586,54 +14608,6 @@ export interface ICatalogueFeatureDto {
     section?: string;
     hasWrite?: boolean;
     hasAdmin?: boolean;
-}
-
-export class CatalogueGroupDto implements ICatalogueGroupDto {
-    name?: string;
-    permissions?: string[];
-
-    constructor(data?: ICatalogueGroupDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.name = _data["name"];
-            if (Array.isArray(_data["permissions"])) {
-                this.permissions = [] as any;
-                for (let item of _data["permissions"])
-                    this.permissions!.push(item);
-            }
-        }
-    }
-
-    static fromJS(data: any): CatalogueGroupDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new CatalogueGroupDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["name"] = this.name;
-        if (Array.isArray(this.permissions)) {
-            data["permissions"] = [];
-            for (let item of this.permissions)
-                data["permissions"].push(item);
-        }
-        return data;
-    }
-}
-
-export interface ICatalogueGroupDto {
-    name?: string;
-    permissions?: string[];
 }
 
 export class GetGroupsResponse extends BaseResponse implements IGetGroupsResponse {
@@ -38078,6 +38052,63 @@ export class CloseConversationResponse extends BaseResponse implements ICloseCon
 }
 
 export interface ICloseConversationResponse extends IBaseResponse {
+}
+
+export class RefreshOrphanContactsResponse extends BaseResponse implements IRefreshOrphanContactsResponse {
+    scanned?: number;
+    updated?: number;
+    skippedNoContactId?: number;
+    failed?: number;
+    failedIds?: string[];
+
+    constructor(data?: IRefreshOrphanContactsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.scanned = _data["scanned"];
+            this.updated = _data["updated"];
+            this.skippedNoContactId = _data["skippedNoContactId"];
+            this.failed = _data["failed"];
+            if (Array.isArray(_data["failedIds"])) {
+                this.failedIds = [] as any;
+                for (let item of _data["failedIds"])
+                    this.failedIds!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): RefreshOrphanContactsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RefreshOrphanContactsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["scanned"] = this.scanned;
+        data["updated"] = this.updated;
+        data["skippedNoContactId"] = this.skippedNoContactId;
+        data["failed"] = this.failed;
+        if (Array.isArray(this.failedIds)) {
+            data["failedIds"] = [];
+            for (let item of this.failedIds)
+                data["failedIds"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRefreshOrphanContactsResponse extends IBaseResponse {
+    scanned?: number;
+    updated?: number;
+    skippedNoContactId?: number;
+    failed?: number;
+    failedIds?: string[];
 }
 
 export class ListWebhookAuditResponse extends BaseResponse implements IListWebhookAuditResponse {
