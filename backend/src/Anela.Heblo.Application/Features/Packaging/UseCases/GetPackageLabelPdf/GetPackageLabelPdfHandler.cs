@@ -39,7 +39,14 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         var label = labels.ElementAtOrDefault(index);
 
         if (label is null)
+        {
+            _logger.LogWarning(
+                "Label not found for order {OrderCode} package {PackageNumber} (index {Index}): " +
+                "live shipment fetch returned {LabelCount} label(s) [{PackageNames}]",
+                request.OrderCode, request.PackageNumber, index, labels.Count,
+                string.Join(", ", labels.Select(l => $"{l.PackageName}(url={(string.IsNullOrWhiteSpace(l.LabelUrl) ? "none" : "yes")})")));
             return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelNotFound);
+        }
 
         // Carrier label generation may be briefly async after shipment creation — poll until ready.
         for (var attempt = 0; attempt < LabelReadinessRetries && string.IsNullOrWhiteSpace(label.LabelUrl); attempt++)
@@ -52,6 +59,11 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
 
         if (label is null || string.IsNullOrWhiteSpace(label.LabelUrl))
         {
+            _logger.LogWarning(
+                "Label URL unavailable for order {OrderCode} package {PackageNumber} after {Retries} retries " +
+                "(label {Found}, LabelUrl empty)",
+                request.OrderCode, request.PackageNumber, LabelReadinessRetries,
+                label is null ? "missing" : "present");
             return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelNotFound);
         }
 
