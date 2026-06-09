@@ -1,11 +1,13 @@
 using Anela.Heblo.Application.Features.Authorization.UseCases.DeleteGroup;
 using Anela.Heblo.Application.Features.Authorization.UseCases.UpdateGroup;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Authorization.Entities;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Features.Authorization;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Authorization;
@@ -19,7 +21,7 @@ public class UpdateDeleteGroupHandlerTests
     private static async Task<PermissionGroup> SeedGroup(ApplicationDbContext db)
     {
         var g = new PermissionGroup { Id = Guid.NewGuid(), Name = "G", CreatedAt = DateTimeOffset.UtcNow };
-        g.Permissions.Add(new GroupPermission { GroupId = g.Id, PermissionValue = "catalog.read" });
+        g.Permissions.Add(new GroupPermission { GroupId = g.Id, PermissionValue = "products.catalog.read" });
         db.PermissionGroups.Add(g);
         await db.SaveChangesAsync();
         return g;
@@ -30,27 +32,27 @@ public class UpdateDeleteGroupHandlerTests
     {
         await using var db = NewDb();
         var g = await SeedGroup(db);
-        var handler = new UpdateGroupHandler(new AuthorizationRepository(db));
+        var handler = new UpdateGroupHandler(new AuthorizationRepository(db), Substitute.For<IPermissionResolver>());
 
         var result = await handler.Handle(new UpdateGroupRequest
         {
             Id = g.Id,
             Name = "G2",
-            Permissions = new() { "journal.read" },
+            Permissions = new() { "products.journal.read" },
             ParentGroupIds = new()
         }, default);
 
         result.Success.Should().BeTrue();
         var reloaded = await db.PermissionGroups.Include(x => x.Permissions).SingleAsync();
         reloaded.Name.Should().Be("G2");
-        reloaded.Permissions.Select(p => p.PermissionValue).Should().BeEquivalentTo(new[] { "journal.read" });
+        reloaded.Permissions.Select(p => p.PermissionValue).Should().BeEquivalentTo(new[] { "products.journal.read" });
     }
 
     [Fact]
     public async Task Update_NotFound_ReturnsNotFound()
     {
         await using var db = NewDb();
-        var handler = new UpdateGroupHandler(new AuthorizationRepository(db));
+        var handler = new UpdateGroupHandler(new AuthorizationRepository(db), Substitute.For<IPermissionResolver>());
 
         var result = await handler.Handle(new UpdateGroupRequest
         {

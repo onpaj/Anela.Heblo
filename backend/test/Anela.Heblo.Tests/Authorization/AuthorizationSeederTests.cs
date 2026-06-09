@@ -52,4 +52,52 @@ public class AuthorizationSeederTests
         (await db.GroupPermissions.AnyAsync(p => p.PermissionValue == "ghost.read"))
             .Should().BeFalse();
     }
+
+    [Fact]
+    public async Task Seed_PreservesPermissionsOfCustomGroups()
+    {
+        await using var db = NewDb();
+        await AuthorizationSeeder.SeedAsync(db, default);
+
+        var customGroupId = Guid.NewGuid();
+        db.PermissionGroups.Add(new PermissionGroup
+        {
+            Id = customGroupId,
+            Name = "CustomSales",
+            Description = "Custom group",
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = "test",
+        });
+        db.GroupPermissions.Add(new GroupPermission { GroupId = customGroupId, PermissionValue = "products.catalog.read" });
+        await db.SaveChangesAsync();
+
+        await AuthorizationSeeder.SeedAsync(db, default);
+
+        (await db.GroupPermissions.AnyAsync(p => p.GroupId == customGroupId && p.PermissionValue == "products.catalog.read"))
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Seed_DoesNotDeleteStalePermissionsFromCustomGroups()
+    {
+        await using var db = NewDb();
+        await AuthorizationSeeder.SeedAsync(db, default);
+
+        var customGroupId = Guid.NewGuid();
+        db.PermissionGroups.Add(new PermissionGroup
+        {
+            Id = customGroupId,
+            Name = "LegacyGroup",
+            Description = "Custom group with old-format permission from before rename migration",
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = "test",
+        });
+        db.GroupPermissions.Add(new GroupPermission { GroupId = customGroupId, PermissionValue = "catalog.read" });
+        await db.SaveChangesAsync();
+
+        await AuthorizationSeeder.SeedAsync(db, default);
+
+        (await db.GroupPermissions.AnyAsync(p => p.GroupId == customGroupId && p.PermissionValue == "catalog.read"))
+            .Should().BeTrue("seeder must not clean up permissions that belong to custom groups");
+    }
 }

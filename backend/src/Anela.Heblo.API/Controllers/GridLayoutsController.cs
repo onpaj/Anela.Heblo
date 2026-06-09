@@ -2,15 +2,15 @@ using Anela.Heblo.Application.Features.GridLayouts.Contracts;
 using Anela.Heblo.Application.Features.GridLayouts.UseCases.GetGridLayout;
 using Anela.Heblo.Application.Features.GridLayouts.UseCases.ResetGridLayout;
 using Anela.Heblo.Application.Features.GridLayouts.UseCases.SaveGridLayout;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[FeatureAuthorize(Feature.Admin_Administration)]
 public class GridLayoutsController : BaseApiController
 {
     private readonly IMediator _mediator;

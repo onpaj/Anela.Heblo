@@ -26,7 +26,7 @@ public class AuthorizationIntegrationTests : IClassFixture<HebloWebApplicationFa
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var me = await response.Content.ReadFromJsonAsync<GetMeResponse>();
         me!.IsSuperUser.Should().BeTrue();
-        me.Permissions.Should().Contain("catalog.read");
+        me.Permissions.Should().Contain("products.catalog.read");
         me.Permissions.Should().Contain(AccessRoles.Base);
     }
 

@@ -157,4 +157,30 @@ public class GetGridLayoutHandlerTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_LegacyJsonShape_DeserializesColumnsCorrectly()
+    {
+        _currentUserMock.Setup(x => x.GetCurrentUser()).Returns(new CurrentUser("user-1", "Test", "test@test.com", true));
+
+        // Legacy JSON shape that includes gridKey and lastModified (written by old handler)
+        var legacyJson = """{"gridKey":"test-grid","columns":[{"id":"col1","order":0,"width":120,"hidden":false}],"lastModified":null}""";
+
+        _repositoryMock.Setup(x => x.GetAsync("user-1", "test-grid", default)).ReturnsAsync(new GridLayout
+        {
+            UserId = "user-1",
+            GridKey = "test-grid",
+            LayoutJson = legacyJson,
+            LastModified = DateTime.UtcNow
+        });
+
+        var handler = CreateHandler();
+        var response = await handler.Handle(new GetGridLayoutRequest { GridKey = "test-grid" }, default);
+
+        Assert.NotNull(response.Layout);
+        Assert.Single(response.Layout!.Columns);
+        Assert.Equal("col1", response.Layout.Columns[0].Id);
+        Assert.Equal(120, response.Layout.Columns[0].Width);
+        Assert.Equal("test-grid", response.Layout.GridKey);
+    }
 }
