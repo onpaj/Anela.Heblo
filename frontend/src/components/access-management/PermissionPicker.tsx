@@ -16,7 +16,7 @@ export default function PermissionPicker({ value, onChange }: PermissionPickerPr
     for (const feature of catalogue.data?.features ?? []) {
       const addLevel = (level: string) => {
         const id = `${feature.key}.${level}`;
-        allItems.push({ id, label: `${feature.label ?? feature.key} — ${level}` });
+        allItems.push({ id, label: `${feature.label ?? feature.key} — ${level}`, sublabel: id });
         sectionMap[id] = feature.section ?? "";
       };
       addLevel("read");

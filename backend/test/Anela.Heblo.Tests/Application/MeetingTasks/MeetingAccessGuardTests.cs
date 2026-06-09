@@ -21,21 +21,21 @@ public class MeetingAccessGuardTests
     [Fact]
     public void IsManager_ReturnsTrue_WhenUserHasMeetingManagerRole()
     {
-        _userServiceMock.Setup(x => x.IsInRole(AuthorizationConstants.Roles.MeetingManager)).Returns(true);
+        _userServiceMock.Setup(x => x.IsInRole(AccessRoles.AnelaMeetingsWrite)).Returns(true);
         _guard.IsManager().Should().BeTrue();
     }
 
     [Fact]
     public void IsManager_ReturnsFalse_WhenUserLacksRole()
     {
-        _userServiceMock.Setup(x => x.IsInRole(AuthorizationConstants.Roles.MeetingManager)).Returns(false);
+        _userServiceMock.Setup(x => x.IsInRole(AccessRoles.AnelaMeetingsWrite)).Returns(false);
         _guard.IsManager().Should().BeFalse();
     }
 
     [Fact]
     public void CanAccess_ReturnsTrue_ForManagerRegardlessOfAccessLevel()
     {
-        _userServiceMock.Setup(x => x.IsInRole(AuthorizationConstants.Roles.MeetingManager)).Returns(true);
+        _userServiceMock.Setup(x => x.IsInRole(AccessRoles.AnelaMeetingsWrite)).Returns(true);
         _userServiceMock.Setup(x => x.GetCurrentUser()).Returns(new CurrentUser(null, "Manager", "manager@test.com", true));
         var privateTranscript = MakeTranscript(MeetingAccessLevel.Private);
         _guard.CanAccess(privateTranscript).Should().BeTrue();
@@ -84,7 +84,7 @@ public class MeetingAccessGuardTests
     [Fact]
     public void CanAccess_ReturnsFalse_WhenEmailIsNull()
     {
-        _userServiceMock.Setup(x => x.IsInRole(AuthorizationConstants.Roles.MeetingManager)).Returns(false);
+        _userServiceMock.Setup(x => x.IsInRole(AccessRoles.AnelaMeetingsWrite)).Returns(false);
         _userServiceMock.Setup(x => x.GetCurrentUser()).Returns(new CurrentUser(null, "Anonymous", null, false));
         var transcript = MakeTranscript(MeetingAccessLevel.Public);
         _guard.CanAccess(transcript).Should().BeFalse();
@@ -93,7 +93,7 @@ public class MeetingAccessGuardTests
     [Fact]
     public void CanAccess_ReturnsFalse_WhenEmailIsWhitespace()
     {
-        _userServiceMock.Setup(x => x.IsInRole(AuthorizationConstants.Roles.MeetingManager)).Returns(false);
+        _userServiceMock.Setup(x => x.IsInRole(AccessRoles.AnelaMeetingsWrite)).Returns(false);
         _userServiceMock.Setup(x => x.GetCurrentUser()).Returns(new CurrentUser(null, "User", "   ", false));
         var transcript = MakeTranscript(MeetingAccessLevel.Public);
         _guard.CanAccess(transcript).Should().BeFalse();
@@ -101,7 +101,7 @@ public class MeetingAccessGuardTests
 
     private void SetupNonManager(string email)
     {
-        _userServiceMock.Setup(x => x.IsInRole(AuthorizationConstants.Roles.MeetingManager)).Returns(false);
+        _userServiceMock.Setup(x => x.IsInRole(AccessRoles.AnelaMeetingsWrite)).Returns(false);
         _userServiceMock.Setup(x => x.GetCurrentUser()).Returns(new CurrentUser(null, "User", email, true));
     }
 

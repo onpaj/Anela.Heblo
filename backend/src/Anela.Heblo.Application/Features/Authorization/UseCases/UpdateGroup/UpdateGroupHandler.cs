@@ -8,7 +8,13 @@ namespace Anela.Heblo.Application.Features.Authorization.UseCases.UpdateGroup;
 public class UpdateGroupHandler : IRequestHandler<UpdateGroupRequest, UpdateGroupResponse>
 {
     private readonly IAuthorizationRepository _repo;
-    public UpdateGroupHandler(IAuthorizationRepository repo) => _repo = repo;
+    private readonly IPermissionResolver _resolver;
+
+    public UpdateGroupHandler(IAuthorizationRepository repo, IPermissionResolver resolver)
+    {
+        _repo = repo;
+        _resolver = resolver;
+    }
 
     public async Task<UpdateGroupResponse> Handle(UpdateGroupRequest request, CancellationToken ct)
     {
@@ -46,6 +52,11 @@ public class UpdateGroupHandler : IRequestHandler<UpdateGroupRequest, UpdateGrou
             group.Parents.Add(new GroupParent { GroupId = group.Id, ParentGroupId = parentId });
 
         await _repo.SaveChangesAsync(ct);
+
+        var members = await _repo.GetGroupMembersAsync(group.Id, ct);
+        foreach (var member in members)
+            _resolver.InvalidateCache(member.EntraObjectId);
+
         return new UpdateGroupResponse();
     }
 }
