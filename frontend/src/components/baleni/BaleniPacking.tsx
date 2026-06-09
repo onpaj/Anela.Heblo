@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { ScanLine, Loader2 } from 'lucide-react';
 import ScanInput from '../terminal/ScanInput';
 import { useScanPackingOrder } from '../../api/hooks/useScanPackingOrder';
@@ -10,6 +10,7 @@ import PackingOrderNotes from './PackingOrderNotes';
 import PackingItems from './PackingItems';
 import PackingShipmentCreator from './PackingShipmentCreator';
 import { useScreenView } from '../../telemetry/useScreenView';
+import { usePackingUser } from './packingUser/PackingUserContext';
 
 function CenteredMessage({ children }: { children: ReactNode }) {
   return (
@@ -64,10 +65,19 @@ function OrderBody({ order, shipment, isShowingDoneView, onDoneStateChange }: Or
 
 function BaleniPacking() {
   useScreenView('Baleni', 'BaleniPacking');
+  const { current, openPicker } = usePackingUser();
   const scanMutation = useScanPackingOrder();
   const [isShowingDoneView, setIsShowingDoneView] = useState(false);
 
+  useEffect(() => {
+    if (!current) openPicker();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleScan = (value: string) => {
+    if (!current) {
+      openPicker();
+      return;
+    }
     scanMutation.mutate(value);
   };
 
@@ -116,6 +126,11 @@ function BaleniPacking() {
     <div className="flex flex-col gap-4" data-testid="baleni-packing">
       <div className="flex justify-end">
         <div className="w-72 shrink-0">
+          {!current && (
+            <p className="text-sm text-center text-amber-600">
+              Nejprve vyberte baliče
+            </p>
+          )}
           <ScanInput
             label="Sken čísla objednávky"
             placeholder="Naskenujte objednávku…"
