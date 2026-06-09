@@ -238,4 +238,29 @@ describe('PackingLabelPrinter', () => {
     expect(screen.getByTestId('done-view')).toBeInTheDocument();
     expect(mockComplete).not.toHaveBeenCalled();
   });
+
+  it('does NOT fire completion a second time when the user reprints a pendingCompletion shipment', () => {
+    const shipment = { ...makeShipment([pkg1, pkg2]), pendingCompletion: true };
+    render(<PackingLabelPrinter order={makeOrder('250001')} shipment={shipment} />);
+
+    // First pass: acknowledge both labels → done, completion fired once
+    fireAck(0);
+    fireEvent.click(screen.getByTestId('print-next-label-button'));
+    fireAck(1);
+    expect(mockComplete).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+
+    // Operator hits reprint — completedRef.current remains true
+    fireEvent.click(screen.getByTestId('reprint'));
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+
+    // Second pass: acknowledge both labels again → done view reappears
+    fireAck(2); // call index 2: label[0] reprinted
+    fireEvent.click(screen.getByTestId('print-next-label-button'));
+    fireAck(3); // call index 3: label[1] reprinted
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+
+    // completedRef guard prevents a second completion call
+    expect(mockComplete).toHaveBeenCalledTimes(1);
+  });
 });
