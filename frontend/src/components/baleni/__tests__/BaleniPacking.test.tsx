@@ -176,7 +176,7 @@ describe('BaleniPacking', () => {
     const input = screen.getByRole('textbox') as HTMLInputElement;
     fireEvent.change(input, { target: { value: '250001' } });
     fireEvent.submit(input.closest('form')!);
-    expect(mutate).toHaveBeenLastCalledWith('250001');
+    expect(mutate).toHaveBeenLastCalledWith({ orderCode: '250001', numberOfPackages: 1 });
   });
 
   it('calls mutate again when the same code is scanned twice', () => {

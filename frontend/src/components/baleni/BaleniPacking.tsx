@@ -67,8 +67,8 @@ function BaleniPacking() {
   const scanMutation = useScanPackingOrder();
   const [isShowingDoneView, setIsShowingDoneView] = useState(false);
 
-  const handleScan = (value: string) => {
-    scanMutation.mutate(value);
+  const handleScan = (value: string, numberOfPackages = 1) => {
+    scanMutation.mutate({ orderCode: value, numberOfPackages });
   };
 
   const renderBody = () => {

@@ -52,6 +52,7 @@ export interface ScanShipment {
   shipmentGuid: string;
   packages: ScanShipmentPackage[];
   alreadyExisted: boolean;
+  pendingCompletion?: boolean;
 }
 
 export interface ScanPackingOrderResult {
@@ -68,11 +69,18 @@ const SCAN_ERROR_MESSAGES: Partial<Record<string, string>> = {
 
 const GENERIC_SCAN_ERROR = 'Chyba při skenování objednávky.';
 
-const scanPackingOrder = async (orderCode: string): Promise<ScanPackingOrderResult> => {
+export type ScanPackingOrderVariables = {
+  orderCode: string;
+  numberOfPackages?: number;
+};
+
+const scanPackingOrder = async ({
+  orderCode,
+  numberOfPackages = 1,
+}: ScanPackingOrderVariables): Promise<ScanPackingOrderResult> => {
   const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const response = await apiClient.http.fetch(
-    `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/scan`,
+    `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/scan?numberOfPackages=${numberOfPackages}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' } }
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,6 +98,6 @@ const scanPackingOrder = async (orderCode: string): Promise<ScanPackingOrderResu
 };
 
 export const useScanPackingOrder = () =>
-  useMutation<ScanPackingOrderResult, Error, string>({
+  useMutation<ScanPackingOrderResult, Error, ScanPackingOrderVariables>({
     mutationFn: scanPackingOrder,
   });
