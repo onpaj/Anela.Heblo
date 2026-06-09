@@ -50,23 +50,6 @@ public class AccessMatrixConsistencyTests
     }
 
     [Fact]
-    public void EveryGroupRole_ExistsInMatrix()
-    {
-        var known = AccessMatrix.AllRoleValues().ToHashSet();
-        foreach (var group in AccessMatrix.Groups)
-            foreach (var role in group.Roles)
-                known.Should().Contain(role, $"group {group.Name} references unknown role {role}");
-    }
-
-    [Fact]
-    public void EveryRole_IsBundledInAtLeastOneGroup()
-    {
-        var bundled = AccessMatrix.Groups.SelectMany(g => g.Roles).ToHashSet();
-        foreach (var role in AccessMatrix.AllRoleValues())
-            bundled.Should().Contain(role, $"role {role} is not assigned to any group (would be unreachable)");
-    }
-
-    [Fact]
     public void EveryMenuPath_PermissionsResolveToKnownRoles()
     {
         var defs = AccessMatrix.Features.ToDictionary(f => f.Key);

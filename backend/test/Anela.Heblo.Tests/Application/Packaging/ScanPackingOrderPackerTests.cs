@@ -67,6 +67,7 @@ public class ScanPackingOrderPackerTests
             Email = "pepa@x.cz",
             Source = AppUserSource.Local,
             CreatedAt = DateTimeOffset.UtcNow,
+            CanPack = true,
         };
 
         _orderClient.Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))

@@ -15,6 +15,7 @@ public class ScanOrderBody
     public Guid? PackingUserId { get; set; }
 }
 
+
 [FeatureAuthorize(Feature.Warehouse_Packaging)]
 [ApiController]
 [Route("api/packaging")]

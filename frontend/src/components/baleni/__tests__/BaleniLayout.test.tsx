@@ -8,6 +8,10 @@ jest.mock('../../auth/UserProfile', () => ({
   default: () => <div data-testid="user-profile" />,
 }));
 
+jest.mock('../packingUser/PackingUserPicker', () => ({
+  PackingUserPicker: () => null,
+}));
+
 const renderWithRouter = (initialPath: string) =>
   render(
     <MemoryRouter initialEntries={[initialPath]}>

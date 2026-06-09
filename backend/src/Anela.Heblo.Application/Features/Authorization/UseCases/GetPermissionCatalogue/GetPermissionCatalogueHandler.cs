@@ -19,11 +19,6 @@ public class GetPermissionCatalogueHandler
                 HasWrite = f.HasWrite,
                 HasAdmin = f.HasAdmin,
             }).ToList(),
-            SystemGroups = AccessMatrix.Groups.Select(g => new CatalogueGroupDto
-            {
-                Name = g.Name,
-                Permissions = g.Roles.ToList(),
-            }).ToList(),
         };
         return Task.FromResult(response);
     }

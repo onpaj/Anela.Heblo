@@ -444,10 +444,10 @@ function App() {
                         <Route path="/catalog" element={guard("/catalog", <CatalogList />)} />
                         <Route path="/purchase/orders" element={guard("/purchase/orders", <PurchaseOrderList />)} />
                         <Route path="/purchase/stock-analysis" element={guard("/purchase/stock-analysis", <PurchaseStockAnalysis />)} />
-                        <Route path="/purchase/invoice-classification" element={<InvoiceClassificationPage />} />
+                        <Route path="/purchase/invoice-classification" element={guard("/purchase/invoice-classification", <InvoiceClassificationPage />)} />
                         <Route path="/manufacturing/stock-analysis" element={guard("/manufacturing/stock-analysis", <ManufacturingStockAnalysis />)} />
                         <Route path="/manufacturing/output" element={guard("/manufacturing/output", <ManufactureOutput />)} />
-                        <Route path="/manufacturing/batch-calculator" element={<ManufactureBatchCalculator />} />
+                        <Route path="/manufacturing/batch-calculator" element={guard("/manufacturing/batch-calculator", <ManufactureBatchCalculator />)} />
                         <Route path="/manufacturing/batch-planning" element={guard("/manufacturing/batch-planning", <BatchPlanningCalculator />)} />
                         <Route path="/manufacturing/orders" element={guard("/manufacturing/orders", <ManufactureOrderList />)} />
                         <Route path="/manufacturing/orders/:id" element={<ManufactureOrderDetail />} />
@@ -463,27 +463,27 @@ function App() {
                         <Route path="/manufacturing/inventory" element={guard("/manufacturing/inventory", <ManufactureInventoryList />)} />
                         <Route path="/manufacturing/product-inventory" element={guard("/manufacturing/product-inventory", <ManufacturedInventoryPage />)} />
                         <Route path="/manufacturing/material-containers" element={guard("/manufacturing/material-containers", <MaterialContainerList />)} />
-                        <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
-                        <Route path="/logistics/receive-boxes" element={<TransportBoxReceivePage />} />
-                        <Route path="/logistics/gift-package-manufacturing" element={<GiftPackageManufacturing />} />
+                        <Route path="/logistics/transport-boxes" element={guard("/logistics/transport-boxes", <TransportBoxList />)} />
+                        <Route path="/logistics/receive-boxes" element={guard("/logistics/receive-boxes", <TransportBoxReceivePage />)} />
+                        <Route path="/logistics/gift-package-manufacturing" element={guard("/logistics/gift-package-manufacturing", <GiftPackageManufacturing />)} />
                         <Route path="/logistics/warehouse-statistics" element={<WarehouseStatistics />} />
-                        <Route path="/logistics/packing-materials" element={<PackingMaterialsPage />} />
+                        <Route path="/logistics/packing-materials" element={guard("/logistics/packing-materials", <PackingMaterialsPage />)} />
                         <Route path="/logistics/expedition-archive" element={guard("/logistics/expedition-archive", <ExpeditionListArchivePage />)} />
                         <Route path="/automation/invoice-import-statistics" element={<InvoiceImportStatistics />} />
-                        <Route path="/automation/background-tasks" element={<BackgroundTasks />} />
+                        <Route path="/automation/background-tasks" element={guard("/automation/background-tasks", <BackgroundTasks />)} />
                         <Route path="/automation/meeting-tasks" element={guard("/automation/meeting-tasks", <MeetingTasksPage />)} />
                         <Route path="/automation/meeting-tasks/:id" element={<MeetingTaskDetailPage />} />
-                        <Route path="/customer/issued-invoices" element={<IssuedInvoicesPage />} />
+                        <Route path="/customer/issued-invoices" element={guard("/customer/issued-invoices", <IssuedInvoicesPage />)} />
                         <Route path="/customer/bank-statements-overview" element={guard("/customer/bank-statements-overview", <BankStatementsOverviewPage />)} />
                         <Route path="/customer/smartsupp" element={guard("/customer/smartsupp", <SmartsuppChatsPage />)} />
-                        <Route path="/customer/expedition-settings" element={<ExpeditionSettingsPage />} />
+                        <Route path="/customer/expedition-settings" element={guard("/customer/expedition-settings", <ExpeditionSettingsPage />)} />
                         <Route path="/customer/cooling" element={<Navigate to="/customer/expedition-settings?tab=cooling" replace />} />
                         <Route path="/orgchart" element={<OrgChartPage />} />
                         <Route path="/stock-up-operations" element={guard("/stock-up-operations", <StockOperationsPage />)} />
-                        <Route path="/recurring-jobs" element={<RecurringJobsPage />} />
+                        <Route path="/recurring-jobs" element={guard("/recurring-jobs", <RecurringJobsPage />)} />
                         <Route path="/knowledge-base" element={guard("/knowledge-base", <KnowledgeBasePage />)} />
                         <Route path="/knowledge-base/feedback" element={<KnowledgeBaseFeedbackPage />} />
-                        <Route path="/marketing/feedback" element={<MarketingFeedbackPage />} />
+                        <Route path="/marketing/feedback" element={guard("/marketing/feedback", <MarketingFeedbackPage />)} />
                         <Route path="/articles" element={guard("/articles", <ArticlesPage />)} />
                         <Route path="/automation/data-quality" element={guard("/automation/data-quality", <DataQualityPage />)} />
                         <Route path="/admin/feature-flags" element={guard("/admin/feature-flags", <FeatureFlagsAdminPage />)} />
