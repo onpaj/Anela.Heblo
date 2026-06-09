@@ -1,9 +1,10 @@
+import { MarketingActionType } from '../../../api/generated/api-client';
 import type { EventInput } from '@fullcalendar/core';
 
 export interface CalendarEvent {
   id: number;
   title: string;
-  actionType: string;
+  actionType: MarketingActionType;
   dateFrom: string; // YYYY-MM-DD
   dateTo: string;   // YYYY-MM-DD, inclusive
   associatedProducts: string[];
