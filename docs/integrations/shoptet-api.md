@@ -1235,3 +1235,17 @@ in_transit → (cancellation may be rejected by carrier with 422)
 - A `404` from cancel-request is treated as success — the shipment is already gone, no further action needed.
 
 `ShoptetShipmentClient.CancelShipmentAsync` returns silently on `404` and throws `HttpRequestException` on any other non-2xx status.
+
+---
+
+## Multi-package shipments (`POST /api/shipments`)
+
+The packaging scan can request **N parcels** for one order. We send the `data.packages`
+array with N entries (same width/height/depth; weight = order weight ÷ N, floored at
+`MinPackageWeightGrams`). Shoptet returns one shipment GUID with N distinct package names;
+`GET /api/shipments?orderCode={code}` then lists all N packages, each with its own label
+URL / tracking number once ready.
+
+**To verify on staging before relying on it:** create a multi-package shipment for a test
+order, confirm Shoptet returns N distinct package names and N printable labels, and that the
+order can still be marked packed (status 52) afterwards.
