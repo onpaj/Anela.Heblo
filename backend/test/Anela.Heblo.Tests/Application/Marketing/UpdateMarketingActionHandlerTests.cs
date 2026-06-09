@@ -329,7 +329,7 @@ public class UpdateMarketingActionHandlerTests
         request.FolderLinks = new List<MarketingFolderLinkRequest>
         {
             new() { FolderKey = "old-key", FolderType = MarketingFolderType.General },
-            new() { FolderKey = "new-key", FolderType = MarketingFolderType.Project },
+            new() { FolderKey = "new-key", FolderType = MarketingFolderType.Seasonal },
         };
 
         var result = await BuildHandler().Handle(request, CancellationToken.None);
@@ -342,7 +342,7 @@ public class UpdateMarketingActionHandlerTests
                 a.ProductAssociations.Any(p => p.ProductCodePrefix == "NEW-PROD") &&
                 a.FolderLinks.Count == 2 &&
                 a.FolderLinks.Any(f => f.FolderKey == "old-key" && f.FolderType == MarketingFolderType.General) &&
-                a.FolderLinks.Any(f => f.FolderKey == "new-key" && f.FolderType == MarketingFolderType.Project)),
+                a.FolderLinks.Any(f => f.FolderKey == "new-key" && f.FolderType == MarketingFolderType.Seasonal)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }
