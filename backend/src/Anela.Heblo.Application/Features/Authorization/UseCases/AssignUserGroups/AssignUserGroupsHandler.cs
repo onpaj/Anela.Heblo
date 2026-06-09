@@ -31,7 +31,8 @@ public class AssignUserGroupsHandler : IRequestHandler<AssignUserGroupsRequest, 
 
         await _repo.SetUserGroupsAsync(request.UserId, request.GroupIds, ct);
         await _repo.SaveChangesAsync(ct);
-        _resolver.InvalidateCache(user.EntraObjectId);
+        if (user.EntraObjectId is not null)
+            _resolver.InvalidateCache(user.EntraObjectId);
         return new AssignUserGroupsResponse();
     }
 }
