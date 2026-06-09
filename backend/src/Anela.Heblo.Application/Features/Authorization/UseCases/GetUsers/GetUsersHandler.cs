@@ -21,6 +21,8 @@ public class GetUsersHandler : IRequestHandler<GetUsersRequest, GetUsersResponse
                 Email = u.Email,
                 DisplayName = u.DisplayName,
                 IsActive = u.IsActive,
+                Source = u.Source.ToString(),
+                CanPack = u.CanPack,
                 LastLoginAt = u.LastLoginAt,
                 GroupIds = u.UserGroups.Select(ug => ug.GroupId).ToList(),
             }).OrderBy(u => u.DisplayName).ToList(),
