@@ -47,7 +47,7 @@ public class DeleteMarketingActionHandlerTests
         _repository.Setup(x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildExistingAction());
         _repository.Setup(x => x.DeleteSoftAsync(
-                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _outlookSync.Setup(x => x.DeleteEventAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -74,8 +74,8 @@ public class DeleteMarketingActionHandlerTests
 
         _repository
             .Setup(x => x.DeleteSoftAsync(
-                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback<int, string, string, CancellationToken>((_, _, _, _) => callOrder.Add("db"))
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Callback<int, string, string, DateTime, CancellationToken>((_, _, _, _, _) => callOrder.Add("db"))
             .Returns(Task.CompletedTask);
 
         await BuildHandler().Handle(BuildRequest(), CancellationToken.None);
@@ -94,7 +94,7 @@ public class DeleteMarketingActionHandlerTests
 
         result.Success.Should().BeTrue();
         _repository.Verify(x => x.DeleteSoftAsync(
-            7, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+            7, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class DeleteMarketingActionHandlerTests
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.MarketingCalendarAccessDenied);
         _repository.Verify(x => x.DeleteSoftAsync(
-            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -125,7 +125,7 @@ public class DeleteMarketingActionHandlerTests
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.MarketingCalendarSyncFailed);
         _repository.Verify(x => x.DeleteSoftAsync(
-            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -143,7 +143,7 @@ public class DeleteMarketingActionHandlerTests
             x => x.DeleteEventAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _repository.Verify(x => x.DeleteSoftAsync(
-            7, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+            7, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public class DeleteMarketingActionHandlerTests
             x => x.DeleteEventAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _repository.Verify(x => x.DeleteSoftAsync(
-            7, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+            7, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class DeleteMarketingActionHandlerTests
     {
         _repository
             .Setup(x => x.DeleteSoftAsync(
-                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("DB unavailable"));
 
         var result = await BuildHandler().Handle(BuildRequest(), CancellationToken.None);
@@ -249,5 +249,29 @@ public class DeleteMarketingActionHandlerTests
         _outlookSync.Verify(
             x => x.DeleteEventAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_PassesCapturedNow_ToDeleteSoftAsync()
+    {
+        // Arrange
+        DateTime? observed = null;
+        _repository
+            .Setup(x => x.DeleteSoftAsync(
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Callback<int, string, string, DateTime, CancellationToken>((_, _, _, utcNow, _) => observed = utcNow)
+            .Returns(Task.CompletedTask);
+
+        var before = DateTime.UtcNow;
+
+        // Act
+        await BuildHandler().Handle(BuildRequest(), CancellationToken.None);
+
+        var after = DateTime.UtcNow;
+
+        // Assert — handler must capture a UTC instant once and forward it
+        observed.Should().NotBeNull();
+        observed!.Value.Kind.Should().Be(DateTimeKind.Utc);
+        observed!.Value.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
     }
 }

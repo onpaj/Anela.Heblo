@@ -24,12 +24,12 @@ namespace Anela.Heblo.Persistence.Marketing
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
         }
 
-        public async Task DeleteSoftAsync(int id, string userId, string username, CancellationToken cancellationToken = default)
+        public async Task DeleteSoftAsync(int id, string userId, string username, DateTime utcNow, CancellationToken cancellationToken = default)
         {
             var entity = await GetByIdAsync(id, cancellationToken);
             if (entity != null)
             {
-                entity.SoftDelete(userId, username);
+                entity.SoftDelete(userId, username, utcNow);
                 await UpdateAsync(entity, cancellationToken);
                 await SaveChangesAsync(cancellationToken);
             }

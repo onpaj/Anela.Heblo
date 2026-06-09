@@ -44,6 +44,8 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
                     new Dictionary<string, string> { { "resource", "marketing_action" } });
             }
 
+            var now = DateTime.UtcNow;
+
             var action = await _repository.GetByIdAsync(request.Id, cancellationToken);
             if (action == null)
             {
@@ -75,7 +77,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
             try
             {
                 await _repository.DeleteSoftAsync(
-                    request.Id, currentUser.Id, currentUser.Name ?? "Unknown User", cancellationToken);
+                    request.Id, currentUser.Id, currentUser.Name ?? "Unknown User", now, cancellationToken);
             }
             catch (Exception ex)
             {

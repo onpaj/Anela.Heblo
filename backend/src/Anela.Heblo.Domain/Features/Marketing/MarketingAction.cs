@@ -126,13 +126,13 @@ namespace Anela.Heblo.Domain.Features.Marketing
             });
         }
 
-        public void SoftDelete(string userId, string username)
+        public void SoftDelete(string userId, string username, DateTime utcNow)
         {
             IsDeleted = true;
-            DeletedAt = DateTime.UtcNow;
+            DeletedAt = utcNow;
             DeletedByUserId = userId;
             DeletedByUsername = username;
-            ModifiedAt = DateTime.UtcNow;
+            ModifiedAt = utcNow;
             ModifiedByUserId = userId;
             ModifiedByUsername = username;
         }
