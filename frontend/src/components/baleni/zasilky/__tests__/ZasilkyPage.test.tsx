@@ -30,7 +30,7 @@ const samplePackage: PackageDto = {
   id: 1,
   orderCode: "ORD-1",
   customerName: "Alice",
-  packageNumber: "PKG-1",
+  packageNumber: "1",
   trackingNumber: "TRK-1",
   shippingProviderCode: "PPL",
   packedAt: "2026-05-25T10:00:00Z",
@@ -81,7 +81,7 @@ describe("ZasilkyPage", () => {
     render(<ZasilkyPage />);
     expect(screen.getByText("ORD-1")).toBeInTheDocument();
     expect(screen.getByText("Alice")).toBeInTheDocument();
-    expect(screen.getByText("PKG-1")).toBeInTheDocument();
+    expect(screen.getByText("TRK-1")).toBeInTheDocument();
   });
 
   it("calls printLabelPdf when reprint button is clicked", () => {
@@ -94,7 +94,7 @@ describe("ZasilkyPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Tisk/ }));
     expect(mockPrintLabelPdf).toHaveBeenCalledWith(
       "ORD-1",
-      expect.objectContaining({ packageName: "PKG-1" }),
+      expect.objectContaining({ packageNumber: 1 }),
       expect.any(Function),
     );
   });
@@ -138,7 +138,7 @@ describe("ZasilkyPage", () => {
     render(<ZasilkyPage />);
     fireEvent.click(screen.getAllByRole("button", { name: /Smazat/ })[0]);
     fireEvent.click(screen.getAllByRole("button", { name: /Smazat/ })[1]);
-    await waitFor(() => expect(mockShowSuccess).toHaveBeenCalledWith("Smazáno", expect.stringContaining("PKG-1")));
+    await waitFor(() => expect(mockShowSuccess).toHaveBeenCalledWith("Smazáno", expect.stringContaining("Zásilka 1")));
   });
 
   it("shows error toast when delete mutation throws", async () => {

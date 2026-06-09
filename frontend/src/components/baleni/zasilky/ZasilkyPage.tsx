@@ -68,7 +68,7 @@ export function ZasilkyPage() {
 
   const handleReprint = useCallback(
     (pkg: PackageDto) => {
-      printLabelPdf(pkg.orderCode, { packageName: pkg.packageNumber }, () => {
+      printLabelPdf(pkg.orderCode, { packageNumber: Number(pkg.packageNumber) }, () => {
         showSuccess("Tisk", `Štítek balíku ${pkg.packageNumber} odeslán na tiskárnu.`);
       });
     },

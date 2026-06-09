@@ -14,6 +14,7 @@ public class GetPackageLabelPdfHandlerTests
 {
     private const string OrderCode = "0001234";
     private const string PackageName = "PKG-1";
+    private const int PackageNumber = 1;
     private const string LabelUrl = "https://cdn.carrier.test/labels/PKG-1.pdf";
 
     private readonly Mock<IShipmentClient> _shipmentClient = new();
@@ -33,7 +34,7 @@ public class GetPackageLabelPdfHandlerTests
     private static GetPackageLabelPdfRequest Request() => new()
     {
         OrderCode = OrderCode,
-        PackageName = PackageName,
+        PackageNumber = PackageNumber,
     };
 
     private void SetupShipmentLabels(params ShipmentLabel[] labels)
@@ -67,17 +68,20 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_PackageNameDoesNotMatch_ReturnsPackageLabelNotFound()
+    public async Task Handle_PackageNumberOutOfRange_ReturnsPackageLabelNotFound()
     {
+        // Only one label exists, but package number 2 (index 1) is requested.
         SetupShipmentLabels(new ShipmentLabel
         {
             ShipmentGuid = Guid.NewGuid(),
             OrderCode = OrderCode,
-            PackageName = "DIFFERENT-PKG",
+            PackageName = PackageName,
             LabelUrl = LabelUrl,
         });
 
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+        var response = await CreateHandler().Handle(
+            new GetPackageLabelPdfRequest { OrderCode = OrderCode, PackageNumber = 2 },
+            CancellationToken.None);
 
         response.ErrorCode.Should().Be(ErrorCodes.PackageLabelNotFound);
     }
@@ -159,7 +163,7 @@ public class GetPackageLabelPdfHandlerTests
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
         response.Success.Should().BeTrue();
-        response.FileName.Should().Be($"{OrderCode}-{PackageName}.pdf");
+        response.FileName.Should().Be($"{OrderCode}-{PackageNumber}.pdf");
     }
 
     [Fact]
@@ -185,7 +189,7 @@ public class GetPackageLabelPdfHandlerTests
         response.Success.Should().BeTrue();
         response.ErrorCode.Should().BeNull();
         response.ContentType.Should().Be("application/pdf");
-        response.FileName.Should().Be($"{OrderCode}-{PackageName}.pdf");
+        response.FileName.Should().Be($"{OrderCode}-{PackageNumber}.pdf");
         response.Content.Should().NotBeNull();
 
         using var ms = new MemoryStream();

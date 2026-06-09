@@ -58,7 +58,7 @@ function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabe
 
   useEffect(() => {
     if (labels.length > 0 && printedCount === 0) {
-      printLabelPdf(order.code, labels[0], () =>
+      printLabelPdf(order.code, { packageNumber: 1 }, () =>
         setAcknowledgedCount((c) => c + 1)
       );
       setPrintedCount(1);
@@ -95,7 +95,7 @@ function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabe
       data-testid="print-next-label-button"
       className="rounded-lg bg-brand-600 px-6 py-4 text-lg font-semibold text-white shadow active:scale-95"
       onClick={() => {
-        printLabelPdf(order.code, labels[printedCount], () =>
+        printLabelPdf(order.code, { packageNumber: printedCount + 1 }, () =>
           setAcknowledgedCount((c) => c + 1)
         );
         setPrintedCount((c) => c + 1);

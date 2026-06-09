@@ -60,9 +60,22 @@ public class PackageRepository : IPackageRepository
     public Task<Package?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         _db.Packages.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
-    public async Task AddAsync(Package package, CancellationToken cancellationToken = default)
+    public async Task ReplacePackagesForOrderAsync(
+        string orderCode,
+        IReadOnlyCollection<Package> packages,
+        CancellationToken cancellationToken = default)
     {
-        await _db.Packages.AddAsync(package, cancellationToken);
+        var existing = await _db.Packages
+            .Where(p => p.OrderCode == orderCode)
+            .ToListAsync(cancellationToken);
+
+        if (existing.Count > 0)
+            _db.Packages.RemoveRange(existing);
+
+        await _db.Packages.AddRangeAsync(packages, cancellationToken);
+
+        // Single save: EF orders deletes before inserts, so replacing rows that share
+        // the (OrderCode, PackageNumber) unique key never trips a transient collision.
         await _db.SaveChangesAsync(cancellationToken);
     }
 

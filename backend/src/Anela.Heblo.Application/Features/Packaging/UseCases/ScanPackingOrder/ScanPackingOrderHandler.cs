@@ -1,3 +1,4 @@
+using System.Globalization;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
@@ -216,33 +217,41 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         IReadOnlyList<ShipmentLabel> labels,
         CancellationToken cancellationToken)
     {
+        if (labels.Count == 0)
+            return;
+
         var now = DateTimeOffset.UtcNow;
         var packedBy = _currentUserService.GetCurrentUser().Email;
 
-        foreach (var label in labels)
+        // Carrier package names are not unique per package (custom-packaging shipments
+        // report the same "Vlastní balení" name for every package), so a 1-based index
+        // within the order is used as the unique PackageNumber. The carrier's real
+        // identifier is preserved in TrackingNumber.
+        var packages = labels
+            .Select((label, index) => new Package
+            {
+                OrderCode = orderCode,
+                CustomerName = customerName,
+                PackageNumber = (index + 1).ToString(CultureInfo.InvariantCulture),
+                TrackingNumber = label.TrackingNumber,
+                ShippingProviderCode = carrierCode,
+                ShippingProviderName = null,
+                ShipmentGuid = shipmentGuid,
+                PackedAt = now,
+                PackedBy = packedBy,
+                CreatedAt = now,
+            })
+            .ToList();
+
+        try
         {
-            try
-            {
-                await _packageRepository.AddAsync(new Package
-                {
-                    OrderCode = orderCode,
-                    CustomerName = customerName,
-                    PackageNumber = label.PackageName,
-                    TrackingNumber = label.TrackingNumber,
-                    ShippingProviderCode = carrierCode,
-                    ShippingProviderName = null,
-                    ShipmentGuid = shipmentGuid,
-                    PackedAt = now,
-                    PackedBy = packedBy,
-                    CreatedAt = now,
-                }, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "Failed to persist Package row for order {OrderCode} package {PackageName}",
-                    orderCode, label.PackageName);
-            }
+            await _packageRepository.ReplacePackagesForOrderAsync(orderCode, packages, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Failed to persist {PackageCount} Package row(s) for order {OrderCode}",
+                packages.Count, orderCode);
         }
     }
 }

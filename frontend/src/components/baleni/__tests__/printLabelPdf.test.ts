@@ -1,6 +1,6 @@
 import { printLabelPdf } from '../printLabelPdf';
+import type { PrintLabelOptions } from '../printLabelPdf';
 import { getAuthenticatedApiClient } from '../../../api/client';
-import type { ShipmentLabelDto } from '../../../api/generated/api-client';
 
 jest.mock('../../../api/client', () => ({
   getAuthenticatedApiClient: jest.fn(),
@@ -8,18 +8,14 @@ jest.mock('../../../api/client', () => ({
 
 const flushAsync = () => new Promise(resolve => setTimeout(resolve, 0));
 
-const labelWithPackage: ShipmentLabelDto = {
-  shipmentGuid: 'abc-guid-123',
-  packageName: 'Zásilka 1',
-  labelUrl: 'https://carrier.example.com/label.pdf',
-} as ShipmentLabelDto;
+const labelWithPackage: PrintLabelOptions = {
+  packageNumber: 1,
+};
 
-const labelWithoutPackage: ShipmentLabelDto = {
-  shipmentGuid: 'abc-guid-123',
-} as ShipmentLabelDto;
+const labelWithoutPackage: PrintLabelOptions = {};
 
 const expectedProxyUrl =
-  'http://api.test/api/packaging/orders/250001/packages/Z%C3%A1silka%201/label.pdf';
+  'http://api.test/api/packaging/orders/250001/packages/1/label.pdf';
 
 let originalOpen: typeof window.open;
 let fetchMock: jest.Mock;
@@ -43,7 +39,7 @@ afterEach(() => {
 });
 
 describe('printLabelPdf', () => {
-  it('fetches the backend proxy URL built from orderCode + packageName (same origin)', async () => {
+  it('fetches the backend proxy URL built from orderCode + packageNumber (same origin)', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
       blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
@@ -142,7 +138,7 @@ describe('printLabelPdf', () => {
     appendChildSpy.mockRestore();
   });
 
-  it('is a no-op when packageName is missing', async () => {
+  it('is a no-op when packageNumber is missing', async () => {
     const appendChildSpy = jest.spyOn(document.body, 'appendChild');
 
     printLabelPdf('250001', labelWithoutPackage);
@@ -155,7 +151,7 @@ describe('printLabelPdf', () => {
     appendChildSpy.mockRestore();
   });
 
-  it('does not invoke onAfterPrint when packageName is missing (no-op)', async () => {
+  it('does not invoke onAfterPrint when packageNumber is missing (no-op)', async () => {
     const onAfterPrint = jest.fn();
 
     printLabelPdf('250001', labelWithoutPackage, onAfterPrint);

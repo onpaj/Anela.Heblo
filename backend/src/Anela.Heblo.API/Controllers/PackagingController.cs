@@ -56,14 +56,14 @@ public class PackagingController : BaseApiController
     /// Streams the carrier-issued label PDF for a single package through our own origin.
     /// The same-origin proxy lets the SPA silent-print the label without CORS errors.
     /// </summary>
-    [HttpGet("orders/{orderCode}/packages/{packageName}/label.pdf")]
+    [HttpGet("orders/{orderCode}/packages/{packageNumber:int}/label.pdf")]
     public async Task<ActionResult> GetPackageLabelPdf(
         [FromRoute] string orderCode,
-        [FromRoute] string packageName,
+        [FromRoute] int packageNumber,
         CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(
-            new GetPackageLabelPdfRequest { OrderCode = orderCode, PackageName = packageName },
+            new GetPackageLabelPdfRequest { OrderCode = orderCode, PackageNumber = packageNumber },
             cancellationToken);
 
         if (!response.Success || response.Content is null)

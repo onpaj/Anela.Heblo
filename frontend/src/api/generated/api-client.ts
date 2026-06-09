@@ -8352,11 +8352,15 @@ export class ApiClient {
         return Promise.resolve<OrgChartResponse>(null as any);
     }
 
-    packaging_ScanOrder(orderCode: string): Promise<ScanPackingOrderResponse> {
-        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/scan";
+    packaging_ScanOrder(orderCode: string, numberOfPackages: number | undefined): Promise<ScanPackingOrderResponse> {
+        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/scan?";
         if (orderCode === undefined || orderCode === null)
             throw new Error("The parameter 'orderCode' must be defined.");
         url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
+        if (numberOfPackages === null)
+            throw new Error("The parameter 'numberOfPackages' cannot be null.");
+        else if (numberOfPackages !== undefined)
+            url_ += "numberOfPackages=" + encodeURIComponent("" + numberOfPackages) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -8426,14 +8430,14 @@ export class ApiClient {
         return Promise.resolve<ResetOrderShipmentResponse>(null as any);
     }
 
-    packaging_GetPackageLabelPdf(orderCode: string, packageName: string): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/packages/{packageName}/label.pdf";
+    packaging_GetPackageLabelPdf(orderCode: string, packageNumber: number): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/packages/{packageNumber}/label.pdf";
         if (orderCode === undefined || orderCode === null)
             throw new Error("The parameter 'orderCode' must be defined.");
         url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
-        if (packageName === undefined || packageName === null)
-            throw new Error("The parameter 'packageName' must be defined.");
-        url_ = url_.replace("{packageName}", encodeURIComponent("" + packageName));
+        if (packageNumber === undefined || packageNumber === null)
+            throw new Error("The parameter 'packageNumber' must be defined.");
+        url_ = url_.replace("{packageNumber}", encodeURIComponent("" + packageNumber));
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -8567,6 +8571,43 @@ export class ApiClient {
             });
         }
         return Promise.resolve<DeletePackageResponse>(null as any);
+    }
+
+    packaging_CompletePacking(orderCode: string): Promise<CompletePackingOrderResponse> {
+        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/packing/complete";
+        if (orderCode === undefined || orderCode === null)
+            throw new Error("The parameter 'orderCode' must be defined.");
+        url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_CompletePacking(_response);
+        });
+    }
+
+    protected processPackaging_CompletePacking(response: Response): Promise<CompletePackingOrderResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CompletePackingOrderResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CompletePackingOrderResponse>(null as any);
     }
 
     packingMaterials_GetPackingMaterials(): Promise<GetPackingMaterialsListResponse> {
@@ -11322,6 +11363,40 @@ export class ApiClient {
         return Promise.resolve<CloseConversationResponse>(null as any);
     }
 
+    smartsupp_RefreshOrphanContacts(): Promise<RefreshOrphanContactsResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/admin/refresh-orphan-contacts";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_RefreshOrphanContacts(_response);
+        });
+    }
+
+    protected processSmartsupp_RefreshOrphanContacts(response: Response): Promise<RefreshOrphanContactsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RefreshOrphanContactsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RefreshOrphanContactsResponse>(null as any);
+    }
+
     smartsuppWebhookAudit_List(from: Date | null | undefined, to: Date | null | undefined, eventName: string | null | undefined, signatureStatus: SmartsuppWebhookSignatureStatus | null | undefined, processingStatus: SmartsuppWebhookProcessingStatus | null | undefined, skip: number | undefined, take: number | undefined): Promise<ListWebhookAuditResponse> {
         let url_ = this.baseUrl + "/api/admin/smartsupp/webhooks?";
         if (from !== undefined && from !== null)
@@ -12843,6 +12918,8 @@ export enum ErrorCodes {
     PackageLabelNotFound = "PackageLabelNotFound",
     PackageLabelDownloadFailed = "PackageLabelDownloadFailed",
     PackageNotFound = "PackageNotFound",
+    InvalidPackageCount = "InvalidPackageCount",
+    PackingCompletionFailed = "PackingCompletionFailed",
     CatalogDocumentInvalidTypeCode = "CatalogDocumentInvalidTypeCode",
     CatalogDocumentLotRequired = "CatalogDocumentLotRequired",
     CatalogDocumentFolderNotFound = "CatalogDocumentFolderNotFound",
@@ -31820,6 +31897,7 @@ export class ScanShipmentData implements IScanShipmentData {
     shipmentGuid?: string;
     packages?: ScanShipmentPackage[];
     alreadyExisted?: boolean;
+    pendingCompletion?: boolean;
 
     constructor(data?: IScanShipmentData) {
         if (data) {
@@ -31839,6 +31917,7 @@ export class ScanShipmentData implements IScanShipmentData {
                     this.packages!.push(ScanShipmentPackage.fromJS(item));
             }
             this.alreadyExisted = _data["alreadyExisted"];
+            this.pendingCompletion = _data["pendingCompletion"];
         }
     }
 
@@ -31858,6 +31937,7 @@ export class ScanShipmentData implements IScanShipmentData {
                 data["packages"].push(item.toJSON());
         }
         data["alreadyExisted"] = this.alreadyExisted;
+        data["pendingCompletion"] = this.pendingCompletion;
         return data;
     }
 }
@@ -31866,6 +31946,7 @@ export interface IScanShipmentData {
     shipmentGuid?: string;
     packages?: ScanShipmentPackage[];
     alreadyExisted?: boolean;
+    pendingCompletion?: boolean;
 }
 
 export class ScanShipmentPackage implements IScanShipmentPackage {
@@ -32193,6 +32274,39 @@ export class DeletePackageResponse extends BaseResponse implements IDeletePackag
 
 export interface IDeletePackageResponse extends IBaseResponse {
     deleted?: boolean;
+}
+
+export class CompletePackingOrderResponse extends BaseResponse implements ICompletePackingOrderResponse {
+    completed?: boolean;
+
+    constructor(data?: ICompletePackingOrderResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.completed = _data["completed"];
+        }
+    }
+
+    static override fromJS(data: any): CompletePackingOrderResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CompletePackingOrderResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["completed"] = this.completed;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICompletePackingOrderResponse extends IBaseResponse {
+    completed?: boolean;
 }
 
 export class GetPackingMaterialsListResponse extends BaseResponse implements IGetPackingMaterialsListResponse {
@@ -38078,6 +38192,63 @@ export class CloseConversationResponse extends BaseResponse implements ICloseCon
 }
 
 export interface ICloseConversationResponse extends IBaseResponse {
+}
+
+export class RefreshOrphanContactsResponse extends BaseResponse implements IRefreshOrphanContactsResponse {
+    scanned?: number;
+    updated?: number;
+    skippedNoContactId?: number;
+    failed?: number;
+    failedIds?: string[];
+
+    constructor(data?: IRefreshOrphanContactsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.scanned = _data["scanned"];
+            this.updated = _data["updated"];
+            this.skippedNoContactId = _data["skippedNoContactId"];
+            this.failed = _data["failed"];
+            if (Array.isArray(_data["failedIds"])) {
+                this.failedIds = [] as any;
+                for (let item of _data["failedIds"])
+                    this.failedIds!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): RefreshOrphanContactsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RefreshOrphanContactsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["scanned"] = this.scanned;
+        data["updated"] = this.updated;
+        data["skippedNoContactId"] = this.skippedNoContactId;
+        data["failed"] = this.failed;
+        if (Array.isArray(this.failedIds)) {
+            data["failedIds"] = [];
+            for (let item of this.failedIds)
+                data["failedIds"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRefreshOrphanContactsResponse extends IBaseResponse {
+    scanned?: number;
+    updated?: number;
+    skippedNoContactId?: number;
+    failed?: number;
+    failedIds?: string[];
 }
 
 export class ListWebhookAuditResponse extends BaseResponse implements IListWebhookAuditResponse {

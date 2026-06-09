@@ -47,12 +47,7 @@ const pkg1 = { name: 'PKG-1', trackingNumber: null, labelUrl: 'https://x.com/1.p
 const pkg2 = { name: 'PKG-2', trackingNumber: null, labelUrl: 'https://x.com/2.pdf', labelZpl: null };
 const pkg3 = { name: 'PKG-3', trackingNumber: null, labelUrl: 'https://x.com/3.pdf', labelZpl: null };
 
-const expectedLabel = (shipmentGuid: string, packageName: string, labelUrl: string) => ({
-  shipmentGuid,
-  packageName,
-  labelUrl,
-  labelZpl: undefined,
-});
+const expectedLabel = (packageNumber: number) => ({ packageNumber });
 
 function fireAck(callIndex: number): void {
   const cb = mockPrintLabelPdf.mock.calls[callIndex][2];
@@ -84,7 +79,7 @@ describe('PackingLabelPrinter', () => {
     expect(mockPrintLabelPdf).toHaveBeenCalledTimes(1);
     expect(mockPrintLabelPdf).toHaveBeenCalledWith(
       '250001',
-      expectedLabel('guid-1', 'PKG-1', 'https://x.com/1.pdf'),
+      expectedLabel(1),
       expect.any(Function)
     );
   });
@@ -125,7 +120,7 @@ describe('PackingLabelPrinter', () => {
     expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(
       2,
       '250001',
-      expectedLabel('guid-1', 'PKG-2', 'https://x.com/2.pdf'),
+      expectedLabel(2),
       expect.any(Function)
     );
 
@@ -154,7 +149,7 @@ describe('PackingLabelPrinter', () => {
     expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(
       2,
       '250001',
-      expectedLabel('guid-1', 'PKG-2', 'https://x.com/2.pdf'),
+      expectedLabel(2),
       expect.any(Function)
     );
     expect(screen.getByTestId('print-next-label-button')).toHaveTextContent('Vytisknout štítek 3/3');
@@ -165,7 +160,7 @@ describe('PackingLabelPrinter', () => {
     expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(
       3,
       '250001',
-      expectedLabel('guid-1', 'PKG-3', 'https://x.com/3.pdf'),
+      expectedLabel(3),
       expect.any(Function)
     );
 
@@ -193,7 +188,7 @@ describe('PackingLabelPrinter', () => {
     expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(
       2,
       '250001',
-      expectedLabel('guid-1', 'PKG-1', 'https://x.com/1.pdf'),
+      expectedLabel(1),
       expect.any(Function)
     );
     expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
@@ -214,7 +209,7 @@ describe('PackingLabelPrinter', () => {
     expect(mockPrintLabelPdf).toHaveBeenCalledTimes(2);
     expect(mockPrintLabelPdf).toHaveBeenLastCalledWith(
       '250002',
-      expectedLabel('guid-1', 'PKG-1', 'https://x.com/1.pdf'),
+      expectedLabel(1),
       expect.any(Function)
     );
     expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
@@ -229,7 +224,7 @@ describe('PackingLabelPrinter', () => {
     fireAck(1); // last label acknowledged → done
 
     expect(mockComplete).toHaveBeenCalledTimes(1);
-    expect(mockComplete).toHaveBeenCalledWith('250001');
+    expect(mockComplete).toHaveBeenCalledWith('250001', expect.objectContaining({ onError: expect.any(Function) }));
   });
 
   it('does NOT fire completion for a single-package (pendingCompletion absent) shipment', () => {

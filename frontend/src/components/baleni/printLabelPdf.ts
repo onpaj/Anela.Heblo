@@ -5,9 +5,9 @@ interface ApiClientWithInternals {
   http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
 }
 
-const buildProxyUrl = (orderCode: string, packageName: string): string => {
+const buildProxyUrl = (orderCode: string, packageNumber: number): string => {
   const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
-  return `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/packages/${encodeURIComponent(packageName)}/label.pdf`;
+  return `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/packages/${packageNumber}/label.pdf`;
 };
 
 const openInNewTab = (url: string): void => {
@@ -66,7 +66,8 @@ const silentPrintViaBlob = async (url: string, onAfterPrint?: () => void): Promi
 };
 
 export interface PrintLabelOptions {
-  packageName?: string;
+  /** 1-based position of the package within the order's shipment labels. */
+  packageNumber?: number;
 }
 
 export const printLabelPdf = (
@@ -74,8 +75,8 @@ export const printLabelPdf = (
   label: PrintLabelOptions,
   onAfterPrint?: () => void,
 ): void => {
-  if (!label.packageName) return;
-  const proxyUrl = buildProxyUrl(orderCode, label.packageName);
+  if (!label.packageNumber || !Number.isFinite(label.packageNumber)) return;
+  const proxyUrl = buildProxyUrl(orderCode, label.packageNumber);
 
   void silentPrintViaBlob(proxyUrl, onAfterPrint).then((printed) => {
     if (!printed) {
