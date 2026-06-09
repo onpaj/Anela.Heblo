@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { ScanLine, Loader2 } from 'lucide-react';
+import { ScanLine, Loader2, PackagePlus } from 'lucide-react';
 import ScanInput from '../terminal/ScanInput';
 import { useScanPackingOrder } from '../../api/hooks/useScanPackingOrder';
 import type { PackingOrder, ScanShipment } from '../../api/hooks/useScanPackingOrder';
@@ -9,6 +9,7 @@ import PackingStateWarning from './PackingStateWarning';
 import PackingOrderNotes from './PackingOrderNotes';
 import PackingItems from './PackingItems';
 import PackingShipmentCreator from './PackingShipmentCreator';
+import MultiPackageModal from './MultiPackageModal';
 import { useScreenView } from '../../telemetry/useScreenView';
 
 function CenteredMessage({ children }: { children: ReactNode }) {
@@ -66,9 +67,15 @@ function BaleniPacking() {
   useScreenView('Baleni', 'BaleniPacking');
   const scanMutation = useScanPackingOrder();
   const [isShowingDoneView, setIsShowingDoneView] = useState(false);
+  const [isMultiModalOpen, setIsMultiModalOpen] = useState(false);
 
   const handleScan = (value: string, numberOfPackages = 1) => {
     scanMutation.mutate({ orderCode: value, numberOfPackages });
+  };
+
+  const handleMultiConfirm = (orderCode: string, numberOfPackages: number) => {
+    setIsMultiModalOpen(false);
+    handleScan(orderCode, numberOfPackages);
   };
 
   const renderBody = () => {
@@ -114,7 +121,17 @@ function BaleniPacking() {
 
   return (
     <div className="flex flex-col gap-4" data-testid="baleni-packing">
-      <div className="flex justify-end">
+      <div className="flex items-end justify-end gap-2">
+        <button
+          type="button"
+          data-testid="multi-package-button"
+          aria-label="Více balíků"
+          onClick={() => setIsMultiModalOpen(true)}
+          className="flex h-14 items-center gap-2 rounded-xl border-2 border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-slate shadow active:scale-95"
+        >
+          <PackagePlus className="h-5 w-5" />
+          Více balíků
+        </button>
         <div className="w-72 shrink-0">
           <ScanInput
             label="Sken čísla objednávky"
@@ -122,11 +139,17 @@ function BaleniPacking() {
             onScan={handleScan}
             loading={scanMutation.isPending}
             autoFocusOnMount
-            refocusOnBlur
+            refocusOnBlur={!isMultiModalOpen}
             allowKeyboardToggle
           />
         </div>
       </div>
+      {isMultiModalOpen && (
+        <MultiPackageModal
+          onConfirm={handleMultiConfirm}
+          onClose={() => setIsMultiModalOpen(false)}
+        />
+      )}
       {renderBody()}
     </div>
   );

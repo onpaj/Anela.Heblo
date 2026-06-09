@@ -15,6 +15,15 @@ jest.mock('../PackingShipmentCreator', () => ({
   ),
 }));
 
+jest.mock('../MultiPackageModal', () => ({
+  __esModule: true,
+  default: ({ onConfirm }: { onConfirm: (code: string, count: number) => void }) => (
+    <button data-testid="mock-modal-confirm" onClick={() => onConfirm('250001', 3)}>
+      confirm
+    </button>
+  ),
+}));
+
 const mockHook = useScanPackingOrder as jest.Mock;
 
 const idleMutation = {
@@ -220,6 +229,19 @@ describe('BaleniPacking', () => {
       'data-order-code',
       '250001'
     );
+  });
+
+  it('opens the multi-package modal and scans with the chosen count', () => {
+    const mutate = jest.fn();
+    mockHook.mockReturnValue({ ...idleMutation, mutate });
+
+    render(<BaleniPacking />);
+    expect(screen.queryByTestId('mock-modal-confirm')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('multi-package-button'));
+    fireEvent.click(screen.getByTestId('mock-modal-confirm'));
+
+    expect(mutate).toHaveBeenLastCalledWith({ orderCode: '250001', numberOfPackages: 3 });
   });
 
   it('mounts PackingShipmentCreator even when order is not eligible (so a review of an already-packed order can be shown)', () => {
