@@ -10,7 +10,8 @@ namespace Anela.Heblo.Tests.Features.Packaging;
 public class GetPackagesHandlerTests
 {
     private static Package MakePackage(int id, string orderCode = "ORD1", string customer = "Alice",
-        string packageNumber = "PKG-1", DateTimeOffset? packedAt = null, string providerCode = "6")
+        string packageNumber = "PKG-1", DateTimeOffset? packedAt = null, string providerCode = "6",
+        string? providerName = null)
         => new()
         {
             Id = id,
@@ -18,6 +19,7 @@ public class GetPackagesHandlerTests
             CustomerName = customer,
             PackageNumber = packageNumber,
             ShippingProviderCode = providerCode,
+            ShippingProviderName = providerName,
             ShipmentGuid = Guid.NewGuid(),
             PackedAt = packedAt ?? new DateTimeOffset(2026, 5, 25, 10, 0, 0, TimeSpan.Zero),
             CreatedAt = DateTimeOffset.UtcNow,
@@ -128,16 +130,16 @@ public class GetPackagesHandlerTests
     }
 
     [Fact]
-    public async Task Handle_LeavesProviderNameNull_WhenCarrierUnresolved()
+    public async Task Handle_FallsBackToStoredProviderName_WhenCarrierUnresolved()
     {
-        // Arrange — unknown code, catalog returns null (default mock behavior)
-        var sut = MakeSut(out _, out _, (new List<Package> { MakePackage(1, providerCode: "999") }, 1));
+        // Arrange — unknown code, catalog returns null; stored name should be preserved
+        var sut = MakeSut(out _, out _, (new List<Package> { MakePackage(1, providerCode: "999", providerName: "Legacy PPL") }, 1));
 
         // Act
         var response = await sut.Handle(new GetPackagesRequest(), CancellationToken.None);
 
         // Assert
-        response.Items[0].ShippingProviderName.Should().BeNull();
+        response.Items[0].ShippingProviderName.Should().Be("Legacy PPL");
     }
 
     [Fact]
