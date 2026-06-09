@@ -63,7 +63,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
     /// 🔒 PERFORMANCE FIX: Simplified top products generation using calculation results
     /// No longer requires full product list in memory
     /// </summary>
-    private List<TopProductDto> GenerateTopProducts(MarginCalculationResult calculationResult, ProductGroupingMode groupingMode, string? sortBy, bool sortDescending, string marginLevel)
+    private List<TopProductDto> GenerateTopProducts(MarginCalculationResult calculationResult, ProductGroupingMode groupingMode, string? sortBy, bool sortDescending, MarginLevel marginLevel)
     {
         var topProductsWithData = calculationResult.GroupTotals
             .Select(kvp =>
@@ -214,7 +214,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
     /// <summary>
     /// Calculates total margin for a group of products based on selected margin level
     /// </summary>
-    private decimal CalculateTotalMarginForLevel(List<AnalyticsProduct> products, string marginLevel)
+    private decimal CalculateTotalMarginForLevel(List<AnalyticsProduct> products, MarginLevel marginLevel)
     {
         return products.Sum(p =>
             (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)
