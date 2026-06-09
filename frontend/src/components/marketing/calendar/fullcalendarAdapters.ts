@@ -20,15 +20,6 @@ export const ACTION_TYPE_COLORS: Record<string, { bg: string; text: string }> = 
   Meeting:     { bg: '#14b8a6', text: '#ffffff' }, // Teal Category
 };
 
-export const ACTION_TYPE_TO_INT: Record<string, number> = {
-  SocialMedia: 0,
-  Blog:        1,
-  Newsletter:  2,
-  PR:          3,
-  Event:       4,
-  Meeting:     99,
-};
-
 export function formatDateStr(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
