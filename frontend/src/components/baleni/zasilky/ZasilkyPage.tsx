@@ -21,7 +21,7 @@ export function ZasilkyPage() {
     orderCode: "",
     customerName: "",
     packageNumber: "",
-    shippingProviderCode: "",
+    carrier: "",
     fromDate: "",
     toDate: "",
   });
@@ -35,7 +35,7 @@ export function ZasilkyPage() {
       orderCode: filters.orderCode || undefined,
       customerName: filters.customerName || undefined,
       packageNumber: filters.packageNumber || undefined,
-      shippingProviderCode: filters.shippingProviderCode || undefined,
+      carrier: filters.carrier || undefined,
       fromDate: filters.fromDate || undefined,
       toDate: filters.toDate || undefined,
       pageNumber,
