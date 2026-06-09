@@ -51,5 +51,65 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             // Assert
             action.FolderLinks.Should().BeEmpty();
         }
+
+        [Fact]
+        public void ReplaceFolderLinks_TrimsWhitespaceFromFolderKey()
+        {
+            // Arrange
+            var action = CreateAction();
+
+            // Act
+            action.ReplaceFolderLinks(
+                new[] { ("  key-1  ", MarketingFolderType.General) },
+                UtcNow);
+
+            // Assert
+            action.FolderLinks.Single().FolderKey.Should().Be("key-1");
+        }
+
+        [Fact]
+        public void ReplaceFolderLinks_DeduplicatesByCompositeKey_WhenSameKeyAndType()
+        {
+            // Arrange
+            var action = CreateAction();
+
+            // Act
+            action.ReplaceFolderLinks(
+                new[]
+                {
+                    ("key-1", MarketingFolderType.General),
+                    ("key-1", MarketingFolderType.General),
+                    (" key-1 ", MarketingFolderType.General),
+                },
+                UtcNow);
+
+            // Assert
+            action.FolderLinks.Should().HaveCount(1);
+        }
+
+        [Fact]
+        public void ReplaceFolderLinks_KeepsBothEntries_WhenSameKeyButDifferentType()
+        {
+            // Arrange
+            var action = CreateAction();
+
+            // Act
+            action.ReplaceFolderLinks(
+                new[]
+                {
+                    ("key-1", MarketingFolderType.General),
+                    ("key-1", MarketingFolderType.Campaign),
+                },
+                UtcNow);
+
+            // Assert
+            action.FolderLinks.Should().HaveCount(2);
+            action.FolderLinks.Select(f => f.FolderType)
+                .Should().BeEquivalentTo(new[]
+                {
+                    MarketingFolderType.General,
+                    MarketingFolderType.Campaign,
+                });
+        }
     }
 }
