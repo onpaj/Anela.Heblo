@@ -25,6 +25,12 @@ public class AuthorizationRepository : IAuthorizationRepository
     public async Task<List<AppUser>> GetAllUsersAsync(CancellationToken ct = default) =>
         await _db.AppUsers.AsNoTracking().Include(u => u.UserGroups).ToListAsync(ct);
 
+    public async Task<List<AppUser>> GetActivePackingUsersAsync(CancellationToken ct = default) =>
+        await _db.AppUsers.AsNoTracking()
+            .Where(u => u.IsActive && u.CanPack)
+            .OrderBy(u => u.DisplayName)
+            .ToListAsync(ct);
+
     public async Task<List<PermissionGroup>> GetAllGroupsAsync(CancellationToken ct = default) =>
         await _db.PermissionGroups.AsNoTracking()
             .Include(g => g.Permissions).Include(g => g.Parents).Include(g => g.UserGroups)
