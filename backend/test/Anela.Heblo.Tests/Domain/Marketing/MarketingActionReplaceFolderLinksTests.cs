@@ -135,5 +135,68 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             act.Should().Throw<ArgumentException>()
                 .Which.ParamName.Should().Be("links");
         }
+
+        [Fact]
+        public void ReplaceFolderLinks_ReplacesEntireSet_OnDeltaInput()
+        {
+            // Arrange
+            var action = CreateAction();
+            action.LinkToFolder("KEEP", MarketingFolderType.General);
+            action.LinkToFolder("REMOVE", MarketingFolderType.General);
+
+            // Act
+            action.ReplaceFolderLinks(
+                new[]
+                {
+                    ("KEEP", MarketingFolderType.General),
+                    ("ADD", MarketingFolderType.Campaign),
+                },
+                UtcNow);
+
+            // Assert
+            action.FolderLinks
+                .Select(f => (f.FolderKey, f.FolderType))
+                .Should().BeEquivalentTo(new[]
+                {
+                    ("KEEP", MarketingFolderType.General),
+                    ("ADD", MarketingFolderType.Campaign),
+                });
+        }
+
+        [Fact]
+        public void ReplaceFolderLinks_UsesProvidedUtcNowOnAllNewRows()
+        {
+            // Arrange
+            var action = CreateAction();
+            var moment = new DateTime(2026, 12, 31, 23, 59, 59, DateTimeKind.Utc);
+
+            // Act
+            action.ReplaceFolderLinks(
+                new[]
+                {
+                    ("a", MarketingFolderType.General),
+                    ("b", MarketingFolderType.Campaign),
+                },
+                moment);
+
+            // Assert
+            action.FolderLinks.Should().OnlyContain(f => f.CreatedAt == moment);
+        }
+
+        [Fact]
+        public void ReplaceFolderLinks_SetsMarketingActionIdOnNewRows()
+        {
+            // Arrange
+            var action = CreateAction();
+            action.Id = 99;
+
+            // Act
+            action.ReplaceFolderLinks(
+                new[] { ("a", MarketingFolderType.General) },
+                UtcNow);
+
+            // Assert
+            action.FolderLinks.Single().MarketingActionId.Should().Be(99);
+        }
     }
 }
