@@ -78,7 +78,7 @@ function BaleniPacking() {
       openPicker();
       return;
     }
-    scanMutation.mutate(value);
+    scanMutation.mutate({ orderCode: value, packingUserId: current.id });
   };
 
   const renderBody = () => {

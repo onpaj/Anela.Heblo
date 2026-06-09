@@ -68,12 +68,18 @@ const SCAN_ERROR_MESSAGES: Partial<Record<string, string>> = {
 
 const GENERIC_SCAN_ERROR = 'Chyba při skenování objednávky.';
 
-const scanPackingOrder = async (orderCode: string): Promise<ScanPackingOrderResult> => {
+const scanPackingOrder = async (
+  orderCode: string,
+  packingUserId: string | null,
+): Promise<ScanPackingOrderResult> => {
   const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const response = await apiClient.http.fetch(
     `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/scan`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packingUserId }),
+    },
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = (await response.json()) as any;
@@ -90,6 +96,6 @@ const scanPackingOrder = async (orderCode: string): Promise<ScanPackingOrderResu
 };
 
 export const useScanPackingOrder = () =>
-  useMutation<ScanPackingOrderResult, Error, string>({
-    mutationFn: scanPackingOrder,
+  useMutation<ScanPackingOrderResult, Error, { orderCode: string; packingUserId: string | null }>({
+    mutationFn: ({ orderCode, packingUserId }) => scanPackingOrder(orderCode, packingUserId),
   });
