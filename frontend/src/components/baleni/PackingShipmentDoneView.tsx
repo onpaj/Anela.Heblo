@@ -23,7 +23,9 @@ function buildAddressLines(order: PackingOrder): AddressLines | null {
 
 function PackingShipmentDoneView({ order, shipment, onReprint }: PackingShipmentDoneViewProps) {
   const addressLines = buildAddressLines(order);
-  const trackingSummary = shipment.packages.map((p) => p.trackingNumber ?? p.name).join(', ');
+  const trackingSummary = shipment.packages
+    .map((p, index) => p.trackingNumber ?? `Balík ${index + 1}`)
+    .join(', ');
 
   return (
     <div

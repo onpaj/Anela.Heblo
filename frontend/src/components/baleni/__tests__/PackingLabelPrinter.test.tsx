@@ -80,6 +80,7 @@ describe('PackingLabelPrinter', () => {
     expect(mockPrintLabelPdf).toHaveBeenCalledWith(
       '250001',
       expectedLabel(1),
+      expect.any(Function),
       expect.any(Function)
     );
   });
@@ -121,6 +122,7 @@ describe('PackingLabelPrinter', () => {
       2,
       '250001',
       expectedLabel(2),
+      expect.any(Function),
       expect.any(Function)
     );
 
@@ -150,6 +152,7 @@ describe('PackingLabelPrinter', () => {
       2,
       '250001',
       expectedLabel(2),
+      expect.any(Function),
       expect.any(Function)
     );
     expect(screen.getByTestId('print-next-label-button')).toHaveTextContent('Vytisknout štítek 3/3');
@@ -161,6 +164,7 @@ describe('PackingLabelPrinter', () => {
       3,
       '250001',
       expectedLabel(3),
+      expect.any(Function),
       expect.any(Function)
     );
 
@@ -189,6 +193,7 @@ describe('PackingLabelPrinter', () => {
       2,
       '250001',
       expectedLabel(1),
+      expect.any(Function),
       expect.any(Function)
     );
     expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
@@ -210,6 +215,7 @@ describe('PackingLabelPrinter', () => {
     expect(mockPrintLabelPdf).toHaveBeenLastCalledWith(
       '250002',
       expectedLabel(1),
+      expect.any(Function),
       expect.any(Function)
     );
     expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();

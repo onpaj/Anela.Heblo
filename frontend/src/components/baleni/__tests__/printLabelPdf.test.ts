@@ -104,36 +104,32 @@ describe('printLabelPdf', () => {
     jest.restoreAllMocks();
   });
 
-  it('falls back to window.open with the proxy URL when fetch throws', async () => {
+  it('does NOT navigate to the proxy URL when fetch throws (no unauthenticated 401 tab)', async () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
     const appendChildSpy = jest.spyOn(document.body, 'appendChild');
+    const onError = jest.fn();
 
-    printLabelPdf('250001', labelWithPackage);
+    printLabelPdf('250001', labelWithPackage, undefined, onError);
     await flushAsync();
 
     expect(appendChildSpy).not.toHaveBeenCalled();
-    expect(window.open).toHaveBeenCalledWith(
-      expectedProxyUrl,
-      '_blank',
-      'noopener,noreferrer',
-    );
+    expect(window.open).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(undefined);
 
     appendChildSpy.mockRestore();
   });
 
-  it('falls back to window.open when fetch returns non-ok', async () => {
+  it('reports the status via onError when fetch returns non-ok (no window.open)', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 404 });
     const appendChildSpy = jest.spyOn(document.body, 'appendChild');
+    const onError = jest.fn();
 
-    printLabelPdf('250001', labelWithPackage);
+    printLabelPdf('250001', labelWithPackage, undefined, onError);
     await flushAsync();
 
     expect(appendChildSpy).not.toHaveBeenCalled();
-    expect(window.open).toHaveBeenCalledWith(
-      expectedProxyUrl,
-      '_blank',
-      'noopener,noreferrer',
-    );
+    expect(window.open).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(404);
 
     appendChildSpy.mockRestore();
   });
@@ -205,34 +201,30 @@ describe('printLabelPdf', () => {
     jest.restoreAllMocks();
   });
 
-  it('invokes onAfterPrint immediately when fetch fails (fallback path)', async () => {
+  it('invokes onError (not onAfterPrint) when fetch fails', async () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
     const onAfterPrint = jest.fn();
+    const onError = jest.fn();
 
-    printLabelPdf('250001', labelWithPackage, onAfterPrint);
+    printLabelPdf('250001', labelWithPackage, onAfterPrint, onError);
     await flushAsync();
 
-    expect(window.open).toHaveBeenCalledWith(
-      expectedProxyUrl,
-      '_blank',
-      'noopener,noreferrer',
-    );
-    expect(onAfterPrint).toHaveBeenCalledTimes(1);
+    expect(window.open).not.toHaveBeenCalled();
+    expect(onAfterPrint).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(undefined);
   });
 
-  it('invokes onAfterPrint immediately when fetch returns non-ok (fallback path)', async () => {
+  it('invokes onError with the status (not onAfterPrint) when fetch returns non-ok', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 404 });
     const onAfterPrint = jest.fn();
+    const onError = jest.fn();
 
-    printLabelPdf('250001', labelWithPackage, onAfterPrint);
+    printLabelPdf('250001', labelWithPackage, onAfterPrint, onError);
     await flushAsync();
 
-    expect(window.open).toHaveBeenCalledWith(
-      expectedProxyUrl,
-      '_blank',
-      'noopener,noreferrer',
-    );
-    expect(onAfterPrint).toHaveBeenCalledTimes(1);
+    expect(window.open).not.toHaveBeenCalled();
+    expect(onAfterPrint).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(404);
   });
 
   it('invokes onAfterPrint via the 60s safety net when afterprint never fires, and only once even if afterprint fires later', async () => {
@@ -318,26 +310,25 @@ describe('printLabelPdf', () => {
     jest.restoreAllMocks();
   });
 
-  it('falls back to window.open and fires onAfterPrint when post-fetch processing throws', async () => {
+  it('invokes onError with the status when post-fetch processing throws (no window.open)', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
+      status: 200,
       blob: async () => {
         throw new Error('blob extraction failed');
       },
     });
     const appendChildSpy = jest.spyOn(document.body, 'appendChild');
     const onAfterPrint = jest.fn();
+    const onError = jest.fn();
 
-    printLabelPdf('250001', labelWithPackage, onAfterPrint);
+    printLabelPdf('250001', labelWithPackage, onAfterPrint, onError);
     await flushAsync();
 
     expect(appendChildSpy).not.toHaveBeenCalled();
-    expect(window.open).toHaveBeenCalledWith(
-      expectedProxyUrl,
-      '_blank',
-      'noopener,noreferrer',
-    );
-    expect(onAfterPrint).toHaveBeenCalledTimes(1);
+    expect(window.open).not.toHaveBeenCalled();
+    expect(onAfterPrint).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(200);
 
     appendChildSpy.mockRestore();
   });

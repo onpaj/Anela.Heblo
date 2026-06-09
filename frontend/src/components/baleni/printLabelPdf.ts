@@ -10,19 +10,22 @@ const buildProxyUrl = (orderCode: string, packageNumber: number): string => {
   return `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/packages/${packageNumber}/label.pdf`;
 };
 
-const openInNewTab = (url: string): void => {
-  window.open(url, '_blank', 'noopener,noreferrer');
-};
+export interface PrintAttemptResult {
+  /** True once the label PDF was fetched and handed to the print iframe. */
+  printed: boolean;
+  /** HTTP status of the label fetch when it completed (absent on network errors). */
+  status?: number;
+}
 
-const silentPrintViaBlob = async (url: string, onAfterPrint?: () => void): Promise<boolean> => {
+const silentPrintViaBlob = async (url: string, onAfterPrint?: () => void): Promise<PrintAttemptResult> => {
   const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
   let response: Response;
   try {
     response = await apiClient.http.fetch(url);
   } catch {
-    return false;
+    return { printed: false };
   }
-  if (!response.ok) return false;
+  if (!response.ok) return { printed: false, status: response.status };
 
   try {
     const blob = await response.blob();
@@ -59,9 +62,9 @@ const silentPrintViaBlob = async (url: string, onAfterPrint?: () => void): Promi
       }, 60_000);
     };
     document.body.appendChild(iframe);
-    return true;
+    return { printed: true, status: response.status };
   } catch {
-    return false;
+    return { printed: false, status: response.status };
   }
 };
 
@@ -74,14 +77,18 @@ export const printLabelPdf = (
   orderCode: string,
   label: PrintLabelOptions,
   onAfterPrint?: () => void,
+  onError?: (status?: number) => void,
 ): void => {
   if (!label.packageNumber || !Number.isFinite(label.packageNumber)) return;
   const proxyUrl = buildProxyUrl(orderCode, label.packageNumber);
 
-  void silentPrintViaBlob(proxyUrl, onAfterPrint).then((printed) => {
-    if (!printed) {
-      openInNewTab(proxyUrl);
-      onAfterPrint?.();
+  void silentPrintViaBlob(proxyUrl, onAfterPrint).then((result) => {
+    if (!result.printed) {
+      // The label could not be fetched (e.g. 404 = carrier label not generated yet).
+      // Do NOT fall back to window.open(proxyUrl): a bare navigation can't carry the
+      // bearer token, so it would 401 and mask the real reason. Surface the status
+      // instead, and don't fire onAfterPrint (which callers treat as success).
+      onError?.(result.status);
     }
   });
 };

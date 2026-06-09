@@ -67,11 +67,23 @@ export function ZasilkyPage() {
 
   const handleReprint = useCallback(
     (pkg: PackageDto) => {
-      printLabelPdf(pkg.orderCode, { packageNumber: Number(pkg.packageNumber) }, () => {
-        showSuccess("Tisk", `Štítek balíku ${pkg.packageNumber} odeslán na tiskárnu.`);
-      });
+      printLabelPdf(
+        pkg.orderCode,
+        { packageNumber: Number(pkg.packageNumber) },
+        () => {
+          showSuccess("Tisk", `Štítek balíku ${pkg.packageNumber} odeslán na tiskárnu.`);
+        },
+        (status) => {
+          showError(
+            "Tisk",
+            status === 404
+              ? `Štítek balíku ${pkg.packageNumber} zatím nebyl u dopravce vygenerován.`
+              : `Štítek balíku ${pkg.packageNumber} se nepodařilo načíst${status ? ` (chyba ${status})` : ""}.`,
+          );
+        },
+      );
     },
-    [showSuccess],
+    [showSuccess, showError],
   );
 
   const confirmDelete = useCallback(async () => {

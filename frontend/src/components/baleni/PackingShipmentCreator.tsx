@@ -127,7 +127,7 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange }: Pack
               Použít existující zásilku
               {scanShipment && (
                 <span className="block text-sm font-normal text-neutral-gray">
-                  {scanShipment.packages.map((p) => p.trackingNumber ?? p.name).join(', ')}
+                  {scanShipment.packages.map((p, index) => p.trackingNumber ?? `Balík ${index + 1}`).join(', ')}
                 </span>
               )}
             </button>

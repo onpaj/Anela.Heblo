@@ -99,6 +99,7 @@ describe("ZasilkyPage", () => {
       "ORD-1",
       expect.objectContaining({ packageNumber: 1 }),
       expect.any(Function),
+      expect.any(Function),
     );
   });
 

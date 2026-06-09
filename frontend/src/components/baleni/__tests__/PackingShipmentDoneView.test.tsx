@@ -99,19 +99,19 @@ describe('PackingShipmentDoneView', () => {
     expect(onReprint).toHaveBeenCalledTimes(1);
   });
 
-  it('falls back to package name when trackingNumber is null', () => {
+  it('falls back to the package number when trackingNumber is null', () => {
     render(
       <PackingShipmentDoneView
         order={makeOrder()}
         shipment={makeShipment({
           packages: [
-            { name: 'PKG-A', trackingNumber: null, labelUrl: null, labelZpl: null },
-            { name: 'PKG-B', trackingNumber: 'TR-B', labelUrl: null, labelZpl: null },
+            { name: 'Vlastní balení', trackingNumber: null, labelUrl: null, labelZpl: null },
+            { name: 'Vlastní balení', trackingNumber: 'TR-B', labelUrl: null, labelZpl: null },
           ],
         })}
         onReprint={() => {}}
       />
     );
-    expect(screen.getByText('PKG-A, TR-B')).toBeInTheDocument();
+    expect(screen.getByText('Balík 1, TR-B')).toBeInTheDocument();
   });
 });
