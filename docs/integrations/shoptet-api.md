@@ -145,9 +145,12 @@ Defined in `PrintPickingListOptions` and `ShoptetApiExpeditionListSource`:
 | ID | Name |
 |---|---|
 | -2 | Vyřizuje se (Processing) — source state for picking list |
-| 26 | Balí se (Packing) — PACK seed state; `PrintPickingListOptions.DesiredStateId` |
+| 26 | Balí se (Packing) — PACK seed state; `PrintPickingListOptions.DesiredStateId`. **Only orders in this state are eligible for packing** (`ScanPackingOrder` returns `isEligible: false` otherwise). |
+| 52 | Zabaleno (Packed) — order moves here after `MarkAsPacked` (single-package scan or `CompletePacking`). Confirmed live 2026-06-09. |
 | 70 | Předáno přepravci (Handed to carrier) — EXP seed state |
 | 73 | Oprava-robot — Fix source state (`FixSourceStateId`) |
+
+> **Reset a test order to packable:** `PATCH /api/orders/{code}/status` with `{"data":{"statusId":26}}` puts it back into "Balí se" so the packing flow can be re-run. Confirmed live 2026-06-09 on order 126000035.
 
 > **Note:** Status 55 ("K Expedici") referenced in `ShoptetApiExpeditionListSource.DesiredStateId` does **not exist** in the store (confirmed via `GET /api/eshop?include=orderStatuses`). Seeding EXP-category orders uses status 70 instead.
 > Custom status IDs for the hydration test are configurable: `Shoptet:StatusId:EXP` and `Shoptet:StatusId:PACK` in user secrets.
@@ -981,6 +984,7 @@ When Shoptet returns an error (non-2xx or populated `errors[]`):
 - `labelZpl` — Raw Zebra ZPL string for direct USB printing, may be `null`.
 - An order may have multiple shipments, each with multiple packages. All are returned; the kiosk prints each.
 - If both `labelUrl` and `labelZpl` are `null` for all packages, labels have not been generated yet.
+- **Generation latency is significant — confirmed minutes, not seconds (live, 2026-06-09).** A `POST /api/shipments` returns a shipment in `requested` state with `labelUrl: null` and `trackingNumber: null`; both populate (status → `created`) only once Balikobot/the carrier finalizes. For order 126000035 ("PPL na výdejní místo") this took **several minutes**. Implication: the `GetPackageLabelPdf` readiness poll (5×1s) will almost always 404 if a print is attempted immediately after scanning — the label must be re-fetched/reprinted once ready (from Zásilky), or the print retried.
 
 ### 11.6 Authentication
 
