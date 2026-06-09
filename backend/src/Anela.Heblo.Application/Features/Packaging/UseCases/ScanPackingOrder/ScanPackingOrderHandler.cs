@@ -39,6 +39,10 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
 
     public async Task<ScanPackingOrderResponse> Handle(ScanPackingOrderRequest request, CancellationToken ct)
     {
+        const int maxPackages = 10;
+        if (request.NumberOfPackages < 1 || request.NumberOfPackages > maxPackages)
+            return new ScanPackingOrderResponse(ErrorCodes.InvalidPackageCount);
+
         var order = await _orderClient.GetPackingOrderAsync(request.OrderCode, ct);
         if (order is null)
             return new ScanPackingOrderResponse(ErrorCodes.ShoptetOrderNotFound);
@@ -108,7 +112,8 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         if (totalWeightGrams == 0)
             return new ScanPackingOrderResponse(ErrorCodes.ShipmentOrderWeightUnavailable);
 
-        var weightGrams = Math.Max(totalWeightGrams, _shipmentSettings.MinPackageWeightGrams);
+        var n = request.NumberOfPackages;
+        var perPackageWeightGrams = Math.Max(totalWeightGrams / n, _shipmentSettings.MinPackageWeightGrams);
 
         var options = await _shipmentClient.GetShippingOptionsAsync(request.OrderCode, ct);
         if (options.Count == 0)
@@ -118,12 +123,13 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         {
             OrderCode = request.OrderCode,
             CarrierCode = options[0].CarrierCode,
+            PackageCount = n,
             Package = new ShipmentPackage
             {
                 WidthMm = _shipmentSettings.DefaultPackageWidthMm,
                 HeightMm = _shipmentSettings.DefaultPackageHeightMm,
                 DepthMm = _shipmentSettings.DefaultPackageDepthMm,
-                WeightGrams = weightGrams,
+                WeightGrams = perPackageWeightGrams,
             },
         };
 
@@ -158,12 +164,18 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             newLabels,
             ct);
 
-        await TryMarkAsPackedAsync(request.OrderCode, ct);
+        var pendingCompletion = n >= 2;
+        if (!pendingCompletion)
+        {
+            await TryMarkAsPackedAsync(request.OrderCode, ct);
+        }
+
         return new ScanPackingOrderResponse(orderData, new ScanShipmentData
         {
             ShipmentGuid = createdShipment.ShipmentGuid,
             Packages = packages,
             AlreadyExisted = false,
+            PendingCompletion = pendingCompletion,
         });
     }
 

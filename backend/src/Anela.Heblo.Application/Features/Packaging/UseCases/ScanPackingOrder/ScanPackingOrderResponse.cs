@@ -55,6 +55,7 @@ public class ScanShipmentData
     public Guid ShipmentGuid { get; set; }
     public List<ScanShipmentPackage> Packages { get; set; } = [];
     public bool AlreadyExisted { get; set; }
+    public bool PendingCompletion { get; set; }
 }
 
 public class ScanShipmentPackage

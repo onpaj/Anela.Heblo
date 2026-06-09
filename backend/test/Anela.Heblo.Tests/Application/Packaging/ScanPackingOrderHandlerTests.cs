@@ -459,4 +459,136 @@ public class ScanPackingOrderHandlerTests
         typeof(PackingOrderItem).GetProperty("WeightGrams").Should().NotBeNull(
             "PackingOrderItem is the internal Application contract and ScanPackingOrderHandler.cs:102 reads WeightGrams.");
     }
+
+    // Multi-package: out-of-range count is rejected before any work
+    [Fact]
+    public async Task Handle_NumberOfPackagesAboveMax_ReturnsInvalidPackageCount()
+    {
+        var response = await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234", NumberOfPackages = 11 },
+            CancellationToken.None);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.InvalidPackageCount);
+        _orderClient.Verify(
+            c => c.GetPackingOrderAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    // Multi-package: creates N packages, splits weight evenly, does NOT mark packed
+    [Fact]
+    public async Task Handle_MultiPackage_CreatesNPackages_SplitsWeight_AndDefersMarkAsPacked()
+    {
+        var shipmentGuid = Guid.NewGuid();
+        CreateShipmentCommand? captured = null;
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EligibleOrder(("P001", 1, 900)));
+
+        _shipmentClient
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([])
+            .ReturnsAsync(new List<ShipmentLabel>
+            {
+                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://c/1.pdf" },
+                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P2", LabelUrl = "https://c/2.pdf" },
+                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P3", LabelUrl = "https://c/3.pdf" },
+            });
+
+        _shipmentClient
+            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "1", Name = "PPL" }]);
+
+        _shipmentClient
+            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .Callback<CreateShipmentCommand, CancellationToken>((cmd, _) => captured = cmd)
+            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
+
+        var response = await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234", NumberOfPackages = 3 },
+            CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        captured.Should().NotBeNull();
+        captured!.PackageCount.Should().Be(3);
+        captured.Package.WeightGrams.Should().Be(300); // 900 / 3
+        response.Shipment!.PendingCompletion.Should().BeTrue();
+        response.Shipment.Packages.Should().HaveCount(3);
+
+        _eshopOrderClient.Verify(
+            c => c.MarkAsPackedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    // Multi-package: per-package weight is floored at MinPackageWeightGrams
+    [Fact]
+    public async Task Handle_MultiPackage_FloorsPerPackageWeightAtMinimum()
+    {
+        var shipmentGuid = Guid.NewGuid();
+        CreateShipmentCommand? captured = null;
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EligibleOrder(("P001", 1, 120))); // 120 / 3 = 40 < min 100
+
+        _shipmentClient
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([])
+            .ReturnsAsync(new List<ShipmentLabel>
+            {
+                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1" },
+            });
+
+        _shipmentClient
+            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "1", Name = "PPL" }]);
+
+        _shipmentClient
+            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .Callback<CreateShipmentCommand, CancellationToken>((cmd, _) => captured = cmd)
+            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
+
+        await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234", NumberOfPackages = 3 },
+            CancellationToken.None);
+
+        captured!.Package.WeightGrams.Should().Be(100);
+    }
+
+    // Single package (default): still marks packed, PendingCompletion = false
+    [Fact]
+    public async Task Handle_SinglePackage_MarksPacked_AndPendingCompletionFalse()
+    {
+        var shipmentGuid = Guid.NewGuid();
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
+
+        _shipmentClient
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([])
+            .ReturnsAsync(new List<ShipmentLabel>
+            {
+                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://c/1.pdf" },
+            });
+
+        _shipmentClient
+            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "1", Name = "PPL" }]);
+
+        _shipmentClient
+            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
+
+        var response = await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234", NumberOfPackages = 1 },
+            CancellationToken.None);
+
+        response.Shipment!.PendingCompletion.Should().BeFalse();
+        _eshopOrderClient.Verify(
+            c => c.MarkAsPackedAsync("0001234", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }
