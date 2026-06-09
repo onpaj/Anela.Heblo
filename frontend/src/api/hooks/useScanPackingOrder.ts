@@ -64,6 +64,7 @@ const SCAN_ERROR_MESSAGES: Partial<Record<string, string>> = {
   ShipmentCarrierNotResolved: 'Dopravce se nepodařilo určit pro tuto objednávku.',
   ShipmentCreationFailed: 'Shoptet nemohl vytvořit zásilku — zkuste znovu.',
   ShipmentOrderWeightUnavailable: 'Nelze zjistit hmotnost objednávky.',
+  PackingUserNotEligible: 'Vybraný balič není aktivní nebo nemá oprávnění balit. Vyberte baliče znovu.',
 };
 
 const GENERIC_SCAN_ERROR = 'Chyba při skenování objednávky.';
