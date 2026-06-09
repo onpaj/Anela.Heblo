@@ -154,6 +154,13 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             }).ToList()
             : [new ScanShipmentPackage { Name = "PKG-1" }];
 
+        if (request.PackingUserId is { } requestedPackerId)
+        {
+            var packer = await _authRepo.GetUserByIdAsync(requestedPackerId, ct);
+            if (packer is null || !packer.IsActive || !packer.CanPack)
+                return new ScanPackingOrderResponse(ErrorCodes.PackingUserNotEligible);
+        }
+
         await PersistPackagesAsync(
             request.OrderCode,
             orderData.CustomerName,
