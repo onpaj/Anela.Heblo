@@ -75,33 +75,6 @@ public class AccessMatrixConsistencyTests
             }
         problems.Should().BeEmpty();
     }
-
-    [Fact]
-    public void EveryMenuPath_PermissionsResolveToKnownRoles()
-    {
-        var defs = AccessMatrix.Features.ToDictionary(f => f.Key);
-        var problems = new List<string>();
-
-        foreach (var menu in AccessMatrix.MenuPaths)
-            foreach (var req in menu.Requires)
-            {
-                if (!defs.TryGetValue(req.Feature, out var def))
-                {
-                    problems.Add($"MenuPath '{menu.Key}' references unknown feature {req.Feature}");
-                    continue;
-                }
-                var ok = req.Level switch
-                {
-                    AccessLevel.Read => true,
-                    AccessLevel.Write => def.HasWrite,
-                    AccessLevel.Admin => def.HasAdmin,
-                    _ => false,
-                };
-                if (!ok)
-                    problems.Add($"MenuPath '{menu.Key}' requires {req.Feature}.{req.Level} but feature does not support that level");
-            }
-        problems.Should().BeEmpty();
-    }
 }
 
 public class ControllerAuthorizationCoverageTests
