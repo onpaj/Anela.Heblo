@@ -8611,6 +8611,40 @@ export class ApiClient {
         return Promise.resolve<GetPackagesResponse>(null as any);
     }
 
+    packaging_GetPackingUsers(): Promise<GetPackingUsersResponse> {
+        let url_ = this.baseUrl + "/api/packaging/packing-users";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_GetPackingUsers(_response);
+        });
+    }
+
+    protected processPackaging_GetPackingUsers(response: Response): Promise<GetPackingUsersResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPackingUsersResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPackingUsersResponse>(null as any);
+    }
+
     packaging_DeletePackage(id: number): Promise<DeletePackageResponse> {
         let url_ = this.baseUrl + "/api/packaging/packages/{id}";
         if (id === undefined || id === null)
@@ -32417,6 +32451,87 @@ export interface IPackageDto {
     shippingProviderName?: string | undefined;
     packedAt?: Date;
     packedBy?: string | undefined;
+}
+
+export class GetPackingUsersResponse extends BaseResponse implements IGetPackingUsersResponse {
+    users?: PackingUserDto[];
+
+    constructor(data?: IGetPackingUsersResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["users"])) {
+                this.users = [] as any;
+                for (let item of _data["users"])
+                    this.users!.push(PackingUserDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetPackingUsersResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPackingUsersResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.users)) {
+            data["users"] = [];
+            for (let item of this.users)
+                data["users"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPackingUsersResponse extends IBaseResponse {
+    users?: PackingUserDto[];
+}
+
+export class PackingUserDto implements IPackingUserDto {
+    id?: string;
+    displayName?: string;
+
+    constructor(data?: IPackingUserDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.displayName = _data["displayName"];
+        }
+    }
+
+    static fromJS(data: any): PackingUserDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackingUserDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["displayName"] = this.displayName;
+        return data;
+    }
+}
+
+export interface IPackingUserDto {
+    id?: string;
+    displayName?: string;
 }
 
 export class DeletePackageResponse extends BaseResponse implements IDeletePackageResponse {
