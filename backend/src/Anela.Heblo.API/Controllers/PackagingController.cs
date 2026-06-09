@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder;
 using Anela.Heblo.Application.Features.Packaging.UseCases.DeletePackage;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
@@ -96,6 +97,21 @@ public class PackagingController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(new DeletePackageRequest { Id = id }, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Marks the order as packed after all multi-package labels have been printed.
+    /// </summary>
+    [HttpPost("orders/{orderCode}/packing/complete")]
+    [Authorize(Roles = AccessRoles.PackagingWrite)]
+    public async Task<ActionResult<CompletePackingOrderResponse>> CompletePacking(
+        [FromRoute] string orderCode,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(
+            new CompletePackingOrderRequest { OrderCode = orderCode },
+            cancellationToken);
         return HandleResponse(response);
     }
 }
