@@ -46,7 +46,11 @@ function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabe
   useEffect(() => {
     if (isDone && shipment.pendingCompletion && !completedRef.current) {
       completedRef.current = true;
-      completeMutation.mutate(order.code);
+      completeMutation.mutate(order.code, {
+        onError: () => {
+          completedRef.current = false;
+        },
+      });
     }
     // completeMutation identity is not stable across renders; the ref guards double-fire.
     // eslint-disable-next-line react-hooks/exhaustive-deps
