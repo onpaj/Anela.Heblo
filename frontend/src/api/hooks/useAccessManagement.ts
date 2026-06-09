@@ -13,6 +13,8 @@ import type {
   GetEntraAccessUsersResponse,
   AddGroupMemberResponse,
   GetUserEffectivePermissionsResponse,
+  CreateLocalUserResponse,
+  SetUserCanPackResponse,
 } from "../generated/api-client";
 import {
   CreateGroupRequest,
@@ -20,6 +22,8 @@ import {
   AssignUserGroupsRequest,
   SetUserActiveRequest,
   AddGroupMemberRequest,
+  CreateLocalUserRequest,
+  SetUserCanPackRequest,
 } from "../generated/api-client";
 
 const keys = {
@@ -203,4 +207,30 @@ export const useAddGroupMember = () => {
   });
 };
 
-export type { CreateGroupRequest, UpdateGroupRequest, AssignUserGroupsRequest, SetUserActiveRequest, AddGroupMemberRequest };
+export const useSetUserCanPack = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, canPack }: { id: string; canPack: boolean }): Promise<SetUserCanPackResponse> => {
+      const client = getAuthenticatedApiClient();
+      return client.authorization_SetCanPack(id, new SetUserCanPackRequest({ userId: id, canPack }));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.users });
+    },
+  });
+};
+
+export const useCreateLocalUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (displayName: string): Promise<CreateLocalUserResponse> => {
+      const client = getAuthenticatedApiClient();
+      return client.authorization_CreateLocalUser(new CreateLocalUserRequest({ displayName }));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.users });
+    },
+  });
+};
+
+export type { CreateGroupRequest, UpdateGroupRequest, AssignUserGroupsRequest, SetUserActiveRequest, AddGroupMemberRequest, CreateLocalUserRequest, SetUserCanPackRequest };
