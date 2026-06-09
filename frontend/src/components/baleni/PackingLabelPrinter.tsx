@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { printLabelPdf } from './printLabelPdf';
 import type { PackingOrder, ScanShipment } from '../../api/hooks/useScanPackingOrder';
 import type { ShipmentLabelDto } from '../../api/generated/api-client';
 import PackingShipmentDoneView from './PackingShipmentDoneView';
+import { useCompletePackingOrder } from '../../api/hooks/useCompletePackingOrder';
 
 interface PackingLabelPrinterProps {
   order: PackingOrder;
@@ -26,17 +27,30 @@ function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabe
   const [printedCount, setPrintedCount] = useState(0);
   const [acknowledgedCount, setAcknowledgedCount] = useState(0);
 
+  const completeMutation = useCompletePackingOrder();
+  const completedRef = useRef(false);
+
   const labels = useMemo(() => toLabels(shipment), [shipment]);
   const isDone = labels.length > 0 && acknowledgedCount >= labels.length;
 
   useEffect(() => {
     setPrintedCount(0);
     setAcknowledgedCount(0);
+    completedRef.current = false;
   }, [order.code]);
 
   useEffect(() => {
     onDoneStateChange?.(isDone);
   }, [isDone, onDoneStateChange]);
+
+  useEffect(() => {
+    if (isDone && shipment.pendingCompletion && !completedRef.current) {
+      completedRef.current = true;
+      completeMutation.mutate(order.code);
+    }
+    // completeMutation identity is not stable across renders; the ref guards double-fire.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDone, shipment.pendingCompletion, order.code]);
 
   useEffect(() => {
     if (labels.length > 0 && printedCount === 0) {

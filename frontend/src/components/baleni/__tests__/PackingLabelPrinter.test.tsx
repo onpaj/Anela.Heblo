@@ -8,6 +8,11 @@ jest.mock('../printLabelPdf', () => ({
   printLabelPdf: jest.fn(),
 }));
 
+const mockComplete = jest.fn();
+jest.mock('../../../api/hooks/useCompletePackingOrder', () => ({
+  useCompletePackingOrder: () => ({ mutate: mockComplete }),
+}));
+
 jest.mock('../PackingShipmentDoneView', () => ({
   __esModule: true,
   default: ({ onReprint }: { onReprint: () => void }) => (
@@ -59,6 +64,7 @@ function fireAck(callIndex: number): void {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockComplete.mockClear();
 });
 
 describe('PackingLabelPrinter', () => {
@@ -212,5 +218,24 @@ describe('PackingLabelPrinter', () => {
       expect.any(Function)
     );
     expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+  });
+
+  it('fires completion once when done and shipment is pendingCompletion', () => {
+    const shipment = { ...makeShipment([pkg1, pkg2]), pendingCompletion: true };
+    render(<PackingLabelPrinter order={makeOrder('250001')} shipment={shipment} />);
+
+    fireAck(0); // first label acknowledged
+    fireEvent.click(screen.getByTestId('print-next-label-button'));
+    fireAck(1); // last label acknowledged → done
+
+    expect(mockComplete).toHaveBeenCalledTimes(1);
+    expect(mockComplete).toHaveBeenCalledWith('250001');
+  });
+
+  it('does NOT fire completion for a single-package (pendingCompletion absent) shipment', () => {
+    render(<PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />);
+    fireAck(0);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+    expect(mockComplete).not.toHaveBeenCalled();
   });
 });
