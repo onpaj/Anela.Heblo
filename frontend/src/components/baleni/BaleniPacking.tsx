@@ -135,7 +135,7 @@ function BaleniPacking() {
             label="Sken čísla objednávky"
             placeholder="Naskenujte objednávku…"
             onScan={handleScan}
-            loading={scanMutation.isPending}
+            loading={scanMutation.isPending || !current}
             autoFocusOnMount
             refocusOnBlur
             allowKeyboardToggle
