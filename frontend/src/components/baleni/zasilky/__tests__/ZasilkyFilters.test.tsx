@@ -60,7 +60,7 @@ describe("ZasilkyFilters", () => {
 
     const input = screen.getByPlaceholderText("Číslo balíku");
     fireEvent.change(input, { target: { value: "PKG-99" } });
-    fireEvent.submit(input.closest("form")!);
+    fireEvent.submit(screen.getByRole("form", { name: "Filtry zásilek" }));
 
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith(

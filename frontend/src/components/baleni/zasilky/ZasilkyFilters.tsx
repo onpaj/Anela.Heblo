@@ -30,7 +30,7 @@ export function ZasilkyFilters({ value, onChange }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form aria-label="Filtry zásilek" onSubmit={handleSubmit}>
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3 p-4 pb-3 bg-slate-50 border-b">
         <input
           className="px-3 py-2 border rounded"
