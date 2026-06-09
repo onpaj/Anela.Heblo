@@ -188,7 +188,7 @@ describe('BaleniPacking', () => {
     renderWithProvider();
     const input = screen.getByRole('textbox') as HTMLInputElement;
     fireEvent.change(input, { target: { value: '250001' } });
-    fireEvent.submit(input.closest('form')!);
+    fireEvent.submit(screen.getByRole('form', { name: 'Sken čísla objednávky' }));
     expect(mutate).toHaveBeenLastCalledWith({ orderCode: '250001', packingUserId: 'test-user' });
   });
 
@@ -197,12 +197,13 @@ describe('BaleniPacking', () => {
     mockHook.mockReturnValue({ ...idleMutation, mutate });
 
     renderWithProvider();
+    const form = screen.getByRole('form', { name: 'Sken čísla objednávky' });
     const input = screen.getByRole('textbox') as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: '250001' } });
-    fireEvent.submit(input.closest('form')!);
+    fireEvent.submit(form);
     fireEvent.change(input, { target: { value: '250001' } });
-    fireEvent.submit(input.closest('form')!);
+    fireEvent.submit(form);
 
     expect(mutate).toHaveBeenCalledTimes(2);
   });
