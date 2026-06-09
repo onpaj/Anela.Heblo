@@ -11,6 +11,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+public class ScanOrderBody
+{
+    public Guid? PackingUserId { get; set; }
+}
+
 [Authorize(Roles = AccessRoles.PackagingRead)]
 [ApiController]
 [Route("api/packaging")]
@@ -31,9 +36,12 @@ public class PackagingController : BaseApiController
     [Authorize(Roles = AccessRoles.PackagingWrite)]
     public async Task<ActionResult<ScanPackingOrderResponse>> ScanOrder(
         [FromRoute] string orderCode,
+        [FromBody] ScanOrderBody? body,
         CancellationToken cancellationToken)
     {
-        var response = await _mediator.Send(new ScanPackingOrderRequest { OrderCode = orderCode }, cancellationToken);
+        var response = await _mediator.Send(
+            new ScanPackingOrderRequest { OrderCode = orderCode, PackingUserId = body?.PackingUserId },
+            cancellationToken);
         return HandleResponse(response);
     }
 

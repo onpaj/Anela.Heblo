@@ -8431,16 +8431,20 @@ export class ApiClient {
         return Promise.resolve<OrgChartResponse>(null as any);
     }
 
-    packaging_ScanOrder(orderCode: string): Promise<ScanPackingOrderResponse> {
+    packaging_ScanOrder(orderCode: string, body: ScanOrderBody | undefined): Promise<ScanPackingOrderResponse> {
         let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/scan";
         if (orderCode === undefined || orderCode === null)
             throw new Error("The parameter 'orderCode' must be defined.");
         url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(body);
+
         let options_: RequestInit = {
+            body: content_,
             method: "POST",
             headers: {
+                "Content-Type": "application/json",
                 "Accept": "application/json"
             }
         };
@@ -32207,6 +32211,42 @@ export interface IScanShipmentPackage {
     labelZpl?: string | undefined;
 }
 
+export class ScanOrderBody implements IScanOrderBody {
+    packingUserId?: string | undefined;
+
+    constructor(data?: IScanOrderBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.packingUserId = _data["packingUserId"];
+        }
+    }
+
+    static fromJS(data: any): ScanOrderBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new ScanOrderBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["packingUserId"] = this.packingUserId;
+        return data;
+    }
+}
+
+export interface IScanOrderBody {
+    packingUserId?: string | undefined;
+}
+
 export class ResetOrderShipmentResponse extends BaseResponse implements IResetOrderShipmentResponse {
     shipment?: ResetShipmentData | undefined;
 
@@ -32395,6 +32435,7 @@ export class PackageDto implements IPackageDto {
     shippingProviderName?: string | undefined;
     packedAt?: Date;
     packedBy?: string | undefined;
+    packedByUserId?: string | undefined;
 
     constructor(data?: IPackageDto) {
         if (data) {
@@ -32416,6 +32457,7 @@ export class PackageDto implements IPackageDto {
             this.shippingProviderName = _data["shippingProviderName"];
             this.packedAt = _data["packedAt"] ? new Date(_data["packedAt"].toString()) : <any>undefined;
             this.packedBy = _data["packedBy"];
+            this.packedByUserId = _data["packedByUserId"];
         }
     }
 
@@ -32437,6 +32479,7 @@ export class PackageDto implements IPackageDto {
         data["shippingProviderName"] = this.shippingProviderName;
         data["packedAt"] = this.packedAt ? this.packedAt.toISOString() : <any>undefined;
         data["packedBy"] = this.packedBy;
+        data["packedByUserId"] = this.packedByUserId;
         return data;
     }
 }
@@ -32451,6 +32494,7 @@ export interface IPackageDto {
     shippingProviderName?: string | undefined;
     packedAt?: Date;
     packedBy?: string | undefined;
+    packedByUserId?: string | undefined;
 }
 
 export class GetPackingUsersResponse extends BaseResponse implements IGetPackingUsersResponse {
