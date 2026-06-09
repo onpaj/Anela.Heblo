@@ -8553,7 +8553,7 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
-    packaging_GetPackages(orderCode: string | null | undefined, customerName: string | null | undefined, packageNumber: string | null | undefined, shippingProviderCode: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPackagesResponse> {
+    packaging_GetPackages(orderCode: string | null | undefined, customerName: string | null | undefined, packageNumber: string | null | undefined, carrier: Carriers | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPackagesResponse> {
         let url_ = this.baseUrl + "/api/packaging/packages?";
         if (orderCode !== undefined && orderCode !== null)
             url_ += "OrderCode=" + encodeURIComponent("" + orderCode) + "&";
@@ -8561,8 +8561,8 @@ export class ApiClient {
             url_ += "CustomerName=" + encodeURIComponent("" + customerName) + "&";
         if (packageNumber !== undefined && packageNumber !== null)
             url_ += "PackageNumber=" + encodeURIComponent("" + packageNumber) + "&";
-        if (shippingProviderCode !== undefined && shippingProviderCode !== null)
-            url_ += "ShippingProviderCode=" + encodeURIComponent("" + shippingProviderCode) + "&";
+        if (carrier !== undefined && carrier !== null)
+            url_ += "Carrier=" + encodeURIComponent("" + carrier) + "&";
         if (fromDate !== undefined && fromDate !== null)
             url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
         if (toDate !== undefined && toDate !== null)
@@ -12752,8 +12752,6 @@ export class TopProductDto implements ITopProductDto {
     m2Percentage?: number;
     sellingPrice?: number;
     purchasePrice?: number;
-    productCode?: string;
-    productName?: string;
 
     constructor(data?: ITopProductDto) {
         if (data) {
@@ -12779,8 +12777,6 @@ export class TopProductDto implements ITopProductDto {
             this.m2Percentage = _data["m2Percentage"];
             this.sellingPrice = _data["sellingPrice"];
             this.purchasePrice = _data["purchasePrice"];
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
         }
     }
 
@@ -12806,8 +12802,6 @@ export class TopProductDto implements ITopProductDto {
         data["m2Percentage"] = this.m2Percentage;
         data["sellingPrice"] = this.sellingPrice;
         data["purchasePrice"] = this.purchasePrice;
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
         return data;
     }
 }
@@ -12826,8 +12820,6 @@ export interface ITopProductDto {
     m2Percentage?: number;
     sellingPrice?: number;
     purchasePrice?: number;
-    productCode?: string;
-    productName?: string;
 }
 
 export enum ProductGroupingMode {
@@ -12994,6 +12986,7 @@ export enum ErrorCodes {
     PackageLabelNotFound = "PackageLabelNotFound",
     PackageLabelDownloadFailed = "PackageLabelDownloadFailed",
     PackageNotFound = "PackageNotFound",
+    PackingUserNotEligible = "PackingUserNotEligible",
     CatalogDocumentInvalidTypeCode = "CatalogDocumentInvalidTypeCode",
     CatalogDocumentLotRequired = "CatalogDocumentLotRequired",
     CatalogDocumentFolderNotFound = "CatalogDocumentFolderNotFound",
