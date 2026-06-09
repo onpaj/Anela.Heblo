@@ -50,5 +50,19 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             // Assert
             action.ProductAssociations.Should().BeEmpty();
         }
+
+        [Fact]
+        public void ReplaceProductAssociations_NormalizesAndDeduplicates_AcrossCaseAndWhitespace()
+        {
+            // Arrange
+            var action = CreateAction();
+
+            // Act
+            action.ReplaceProductAssociations(new[] { "abc", "ABC", " abc " }, UtcNow);
+
+            // Assert
+            action.ProductAssociations.Should().HaveCount(1);
+            action.ProductAssociations.Single().ProductCodePrefix.Should().Be("ABC");
+        }
     }
 }
