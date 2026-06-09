@@ -30,9 +30,12 @@ public class PackagingController : BaseApiController
     [Authorize(Roles = AccessRoles.PackagingWrite)]
     public async Task<ActionResult<ScanPackingOrderResponse>> ScanOrder(
         [FromRoute] string orderCode,
-        CancellationToken cancellationToken)
+        [FromQuery] int numberOfPackages = 1,
+        CancellationToken cancellationToken = default)
     {
-        var response = await _mediator.Send(new ScanPackingOrderRequest { OrderCode = orderCode }, cancellationToken);
+        var response = await _mediator.Send(
+            new ScanPackingOrderRequest { OrderCode = orderCode, NumberOfPackages = numberOfPackages },
+            cancellationToken);
         return HandleResponse(response);
     }
 
