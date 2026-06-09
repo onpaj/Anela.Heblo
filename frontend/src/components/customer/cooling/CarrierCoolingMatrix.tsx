@@ -9,6 +9,13 @@ import {
 } from '../../../api/hooks/useCarrierCooling';
 import { CARRIER_LABELS } from '../../../constants/carrierLabels';
 
+interface CarrierCoolingMatrixProps {
+  groups: CarrierGroupDto[];
+  onSetCooling: (request: SetCarrierCoolingRequest) => void;
+  isSaving: boolean;
+  savingRow: { carrier: Carriers; deliveryHandling: DeliveryHandling } | null;
+}
+
 const HANDLING_LABELS: Record<DeliveryHandling, string> = {
   NaRuky: 'Do ruky',
   Box: 'Box',
