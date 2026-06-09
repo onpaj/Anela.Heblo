@@ -83,6 +83,23 @@ public class GraphService : IGraphService
         return (members, totalMembers);
     }
 
+    private async Task<string> AcquireGraphTokenAsync(string groupId, CancellationToken cancellationToken)
+    {
+        // Acquire Graph API token using application permissions (not user context)
+        var scope = "https://graph.microsoft.com/.default";
+        _logger.LogInformation("Attempting to acquire MS Graph token with application scope: {Scope}", scope);
+
+        var tokenStart = DateTime.UtcNow;
+        var graphToken = await _tokenAcquisition.GetAccessTokenForAppAsync(scope);
+        var tokenDuration = DateTime.UtcNow - tokenStart;
+        _logger.LogInformation("Successfully acquired MS Graph application token in {Duration}ms", tokenDuration.TotalMilliseconds);
+
+        // Log token length for troubleshooting (not the actual token)
+        _logger.LogDebug("Token acquired with length: {TokenLength} characters", graphToken?.Length ?? 0);
+
+        return graphToken;
+    }
+
     public async Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Starting GetGroupMembersAsync for groupId: {GroupId}", groupId);
@@ -108,17 +125,7 @@ public class GraphService : IGraphService
 
             _logger.LogInformation("GroupId validation passed. GroupId: {GroupId}", groupId);
 
-            // Acquire Graph API token using application permissions (not user context)
-            var scope = "https://graph.microsoft.com/.default";
-            _logger.LogInformation("Attempting to acquire MS Graph token with application scope: {Scope}", scope);
-
-            var tokenStart = DateTime.UtcNow;
-            var graphToken = await _tokenAcquisition.GetAccessTokenForAppAsync(scope);
-            var tokenDuration = DateTime.UtcNow - tokenStart;
-            _logger.LogInformation("Successfully acquired MS Graph application token in {Duration}ms", tokenDuration.TotalMilliseconds);
-
-            // Log token length for troubleshooting (not the actual token)
-            _logger.LogDebug("Token acquired with length: {TokenLength} characters", graphToken?.Length ?? 0);
+            var graphToken = await AcquireGraphTokenAsync(groupId, cancellationToken);
 
             // Get group members from Microsoft Graph.
             // Matches the shared "MicrosoftGraph" named client used by Marketing/MeetingTasks/CatalogDocuments/KnowledgeBase/Photobank modules.
