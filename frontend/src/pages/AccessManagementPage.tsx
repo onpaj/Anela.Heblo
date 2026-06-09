@@ -98,7 +98,21 @@ export default function AccessManagementPage() {
 
       {tab === "users" && (
         <div className="space-y-3">
-          <div className="mb-4 flex items-center gap-2">
+          {setCanPack.isError && (
+            <p className="mb-2 text-sm text-red-600">Failed to update packing permission. Please try again.</p>
+          )}
+          <form
+            className="mb-4 flex items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const name = newLocalName.trim();
+              if (name) {
+                createLocalUser.mutate(name, {
+                  onSuccess: () => setNewLocalName(""),
+                });
+              }
+            }}
+          >
             <input
               value={newLocalName}
               onChange={(e) => setNewLocalName(e.target.value)}
@@ -106,19 +120,16 @@ export default function AccessManagementPage() {
               className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
             />
             <button
-              onClick={() => {
-                const name = newLocalName.trim();
-                if (name) {
-                  createLocalUser.mutate(name);
-                  setNewLocalName("");
-                }
-              }}
+              type="submit"
               disabled={createLocalUser.isPending}
               className="rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
             >
               Create local operator
             </button>
-          </div>
+          </form>
+          {createLocalUser.isError && (
+            <p className="mt-1 text-sm text-red-600">Failed to create operator. Please try again.</p>
+          )}
           {users.isLoading && <div className="text-gray-500">Loading users…</div>}
           {users.data?.users?.map((u) => (
             <div
@@ -142,7 +153,7 @@ export default function AccessManagementPage() {
                 )}
                 <button
                   onClick={() => u.id && setCanPack.mutate({ id: u.id, canPack: !u.canPack })}
-                  disabled={setCanPack.isPending}
+                  disabled={setCanPack.isPending && setCanPack.variables?.id === u.id}
                   className={`text-sm ${u.canPack ? "text-indigo-600" : "text-gray-500"} hover:underline`}
                   aria-label={`Toggle can pack ${u.displayName}`}
                 >
