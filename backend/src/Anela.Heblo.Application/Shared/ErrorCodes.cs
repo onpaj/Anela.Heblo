@@ -375,6 +375,8 @@ public enum ErrorCodes
     InvalidPackageCount = 3007,
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     PackingCompletionFailed = 3008,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    PackingUserNotEligible = 3009,
 
     // CatalogDocuments module errors (31XX)
     [HttpStatusCode(HttpStatusCode.BadRequest)]

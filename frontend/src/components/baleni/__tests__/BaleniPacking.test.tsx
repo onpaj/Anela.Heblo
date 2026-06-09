@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import BaleniPacking from '../BaleniPacking';
 import { useScanPackingOrder } from '../../../api/hooks/useScanPackingOrder';
+import { PackingUserProvider } from '../packingUser/PackingUserContext';
 
 jest.mock('../../../api/hooks/useScanPackingOrder', () => ({
   ...jest.requireActual('../../../api/hooks/useScanPackingOrder'),
@@ -26,6 +27,13 @@ jest.mock('../MultiPackageModal', () => ({
 
 const mockHook = useScanPackingOrder as jest.Mock;
 
+const renderWithProvider = () =>
+  render(
+    <PackingUserProvider>
+      <BaleniPacking />
+    </PackingUserProvider>
+  );
+
 const idleMutation = {
   mutate: jest.fn(),
   isPending: false,
@@ -39,16 +47,21 @@ beforeEach(() => {
   jest.useFakeTimers();
   mockHook.mockReset();
   mockHook.mockReturnValue({ ...idleMutation });
+  localStorage.setItem(
+    'heblo.baleni.packingUser',
+    JSON.stringify({ id: 'test-user', displayName: 'Test Balič' })
+  );
 });
 
 afterEach(() => {
   jest.runOnlyPendingTimers();
   jest.useRealTimers();
+  localStorage.clear();
 });
 
 describe('BaleniPacking', () => {
   it('shows the empty state before any scan', () => {
-    render(<BaleniPacking />);
+    renderWithProvider();
     expect(screen.getByText('Naskenujte číslo objednávky')).toBeInTheDocument();
   });
 
@@ -72,7 +85,7 @@ describe('BaleniPacking', () => {
       },
     });
 
-    render(<BaleniPacking />);
+    renderWithProvider();
     expect(screen.getByText('Objednávka 250001')).toBeInTheDocument();
     expect(screen.getByText('Krém')).toBeInTheDocument();
   });
@@ -97,7 +110,7 @@ describe('BaleniPacking', () => {
       },
     });
 
-    render(<BaleniPacking />);
+    renderWithProvider();
     expect(screen.getByText('Zabalit jako dárek')).toBeInTheDocument();
     expect(screen.getByText('Stálý zákazník')).toBeInTheDocument();
     expect(screen.getByText('Chlazení L2')).toBeInTheDocument();
@@ -127,7 +140,7 @@ describe('BaleniPacking', () => {
       },
     });
 
-    render(<BaleniPacking />);
+    renderWithProvider();
     expect(screen.getByTestId('packing-state-warning')).toBeInTheDocument();
   });
 
@@ -151,7 +164,7 @@ describe('BaleniPacking', () => {
       },
     });
 
-    render(<BaleniPacking />);
+    renderWithProvider();
     expect(screen.queryByTestId('packing-state-warning')).not.toBeInTheDocument();
   });
 
@@ -162,7 +175,7 @@ describe('BaleniPacking', () => {
       error: new Error('Objednávka nebyla nalezena.'),
     });
 
-    render(<BaleniPacking />);
+    renderWithProvider();
     expect(screen.getByText('Objednávka nenalezena')).toBeInTheDocument();
   });
 
@@ -173,7 +186,7 @@ describe('BaleniPacking', () => {
       error: new Error('network down'),
     });
 
-    render(<BaleniPacking />);
+    renderWithProvider();
     expect(screen.getByText('Nepodařilo se načíst objednávku')).toBeInTheDocument();
   });
 
@@ -181,24 +194,25 @@ describe('BaleniPacking', () => {
     const mutate = jest.fn();
     mockHook.mockReturnValue({ ...idleMutation, mutate });
 
-    render(<BaleniPacking />);
+    renderWithProvider();
     const input = screen.getByRole('textbox') as HTMLInputElement;
     fireEvent.change(input, { target: { value: '250001' } });
-    fireEvent.submit(input.closest('form')!);
-    expect(mutate).toHaveBeenLastCalledWith({ orderCode: '250001', numberOfPackages: 1 });
+    fireEvent.submit(screen.getByRole('form', { name: 'Sken čísla objednávky' }));
+    expect(mutate).toHaveBeenLastCalledWith({ orderCode: '250001', numberOfPackages: 1, packingUserId: 'test-user' });
   });
 
   it('calls mutate again when the same code is scanned twice', () => {
     const mutate = jest.fn();
     mockHook.mockReturnValue({ ...idleMutation, mutate });
 
-    render(<BaleniPacking />);
+    renderWithProvider();
+    const form = screen.getByRole('form', { name: 'Sken čísla objednávky' });
     const input = screen.getByRole('textbox') as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: '250001' } });
-    fireEvent.submit(input.closest('form')!);
+    fireEvent.submit(form);
     fireEvent.change(input, { target: { value: '250001' } });
-    fireEvent.submit(input.closest('form')!);
+    fireEvent.submit(form);
 
     expect(mutate).toHaveBeenCalledTimes(2);
   });
@@ -223,7 +237,7 @@ describe('BaleniPacking', () => {
       },
     });
 
-    render(<BaleniPacking />);
+    renderWithProvider();
     expect(screen.getByTestId('packing-shipment-creator')).toBeInTheDocument();
     expect(screen.getByTestId('packing-shipment-creator')).toHaveAttribute(
       'data-order-code',
@@ -235,13 +249,13 @@ describe('BaleniPacking', () => {
     const mutate = jest.fn();
     mockHook.mockReturnValue({ ...idleMutation, mutate });
 
-    render(<BaleniPacking />);
+    renderWithProvider();
     expect(screen.queryByTestId('mock-modal-confirm')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('multi-package-button'));
     fireEvent.click(screen.getByTestId('mock-modal-confirm'));
 
-    expect(mutate).toHaveBeenLastCalledWith({ orderCode: '250001', numberOfPackages: 3 });
+    expect(mutate).toHaveBeenLastCalledWith({ orderCode: '250001', numberOfPackages: 3, packingUserId: 'test-user' });
   });
 
   it('mounts PackingShipmentCreator even when order is not eligible (so a review of an already-packed order can be shown)', () => {
@@ -268,7 +282,7 @@ describe('BaleniPacking', () => {
       },
     });
 
-    render(<BaleniPacking />);
+    renderWithProvider();
     expect(screen.getByTestId('packing-shipment-creator')).toBeInTheDocument();
   });
 });

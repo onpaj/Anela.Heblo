@@ -7,6 +7,8 @@ import {
   useCatalogue,
   useDeleteGroup,
   useSetUserActive,
+  useSetUserCanPack,
+  useCreateLocalUser,
 } from "../api/hooks/useAccessManagement";
 import { SetUserActiveRequest } from "../api/generated/api-client";
 
@@ -18,6 +20,9 @@ export default function AccessManagementPage() {
   const catalogue = useCatalogue();
   const deleteGroup = useDeleteGroup();
   const setActive = useSetUserActive();
+  const setCanPack = useSetUserCanPack();
+  const createLocalUser = useCreateLocalUser();
+  const [newLocalName, setNewLocalName] = useState("");
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -93,6 +98,38 @@ export default function AccessManagementPage() {
 
       {tab === "users" && (
         <div className="space-y-3">
+          {setCanPack.isError && (
+            <p className="mb-2 text-sm text-red-600">Failed to update packing permission. Please try again.</p>
+          )}
+          <form
+            className="mb-4 flex items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const name = newLocalName.trim();
+              if (name) {
+                createLocalUser.mutate(name, {
+                  onSuccess: () => setNewLocalName(""),
+                });
+              }
+            }}
+          >
+            <input
+              value={newLocalName}
+              onChange={(e) => setNewLocalName(e.target.value)}
+              placeholder="New local operator name"
+              className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+            <button
+              type="submit"
+              disabled={createLocalUser.isPending}
+              className="rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              Create local operator
+            </button>
+          </form>
+          {createLocalUser.isError && (
+            <p className="mt-1 text-sm text-red-600">Failed to create operator. Please try again.</p>
+          )}
           {users.isLoading && <div className="text-gray-500">Loading users…</div>}
           {users.data?.users?.map((u) => (
             <div
@@ -111,6 +148,17 @@ export default function AccessManagementPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2 ml-4">
+                {u.source === "Local" && (
+                  <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Local</span>
+                )}
+                <button
+                  onClick={() => u.id && setCanPack.mutate({ id: u.id, canPack: !u.canPack })}
+                  disabled={setCanPack.isPending && setCanPack.variables?.id === u.id}
+                  className={`text-sm ${u.canPack ? "text-indigo-600" : "text-gray-500"} hover:underline`}
+                  aria-label={`Toggle can pack ${u.displayName}`}
+                >
+                  {u.canPack ? "Packer ✓" : "Make packer"}
+                </button>
                 <button
                   onClick={() => u.id && navigate(`/admin/access/users/${u.id}`)}
                   className="p-2 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-gray-50"

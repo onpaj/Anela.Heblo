@@ -11,13 +11,14 @@ export type PackageDto = {
   shippingProviderName?: string;
   packedAt: string;
   packedBy?: string;
+  packedByUserId?: string;
 };
 
 export type GetPackagesRequest = {
   orderCode?: string;
   customerName?: string;
   packageNumber?: string;
-  shippingProviderCode?: string;
+  carrier?: string;
   fromDate?: string;
   toDate?: string;
   pageNumber: number;
@@ -51,8 +52,7 @@ export const usePackagesQuery = (request: GetPackagesRequest) =>
         params.append("CustomerName", request.customerName);
       if (request.packageNumber)
         params.append("PackageNumber", request.packageNumber);
-      if (request.shippingProviderCode)
-        params.append("ShippingProviderCode", request.shippingProviderCode);
+      if (request.carrier) params.append("Carrier", request.carrier);
       if (request.fromDate) params.append("FromDate", request.fromDate);
       if (request.toDate) params.append("ToDate", request.toDate);
       if (request.pageNumber)

@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Packaging;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
@@ -18,6 +19,7 @@ public class ScanPackingOrderHandlerTests
     private readonly Mock<IEshopOrderClient> _eshopOrderClient = new();
     private readonly Mock<IPackageRepository> _packageRepository = new();
     private readonly Mock<ICurrentUserService> _currentUserService = new();
+    private readonly Mock<IAuthorizationRepository> _authRepo = new();
 
     private static readonly ShipmentLabelsSettings DefaultLabelSettings = new()
     {
@@ -38,7 +40,8 @@ public class ScanPackingOrderHandlerTests
             Options.Create(labelSettings ?? DefaultLabelSettings),
             new Mock<ILogger<ScanPackingOrderHandler>>().Object,
             _packageRepository.Object,
-            _currentUserService.Object);
+            _currentUserService.Object,
+            _authRepo.Object);
     }
 
     private static PackingOrder EligibleOrder(params (string name, int qty, int weightGrams)[] items) =>

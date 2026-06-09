@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { ScanLine, Loader2, PackagePlus } from 'lucide-react';
 import ScanInput from '../terminal/ScanInput';
 import { useScanPackingOrder } from '../../api/hooks/useScanPackingOrder';
@@ -11,6 +11,7 @@ import PackingItems from './PackingItems';
 import PackingShipmentCreator from './PackingShipmentCreator';
 import MultiPackageModal from './MultiPackageModal';
 import { useScreenView } from '../../telemetry/useScreenView';
+import { usePackingUser } from './packingUser/PackingUserContext';
 
 function CenteredMessage({ children }: { children: ReactNode }) {
   return (
@@ -65,12 +66,21 @@ function OrderBody({ order, shipment, isShowingDoneView, onDoneStateChange }: Or
 
 function BaleniPacking() {
   useScreenView('Baleni', 'BaleniPacking');
+  const { current, openPicker } = usePackingUser();
   const scanMutation = useScanPackingOrder();
   const [isShowingDoneView, setIsShowingDoneView] = useState(false);
   const [isMultiModalOpen, setIsMultiModalOpen] = useState(false);
 
+  useEffect(() => {
+    if (!current) openPicker();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleScan = (value: string, numberOfPackages = 1) => {
-    scanMutation.mutate({ orderCode: value, numberOfPackages });
+    if (!current) {
+      openPicker();
+      return;
+    }
+    scanMutation.mutate({ orderCode: value, numberOfPackages, packingUserId: current.id });
   };
 
   const handleMultiConfirm = (orderCode: string, numberOfPackages: number) => {
@@ -133,11 +143,16 @@ function BaleniPacking() {
           Více balíků
         </button>
         <div className="w-72 shrink-0">
+          {!current && (
+            <p className="text-sm text-center text-amber-600">
+              Nejprve vyberte baliče
+            </p>
+          )}
           <ScanInput
             label="Sken čísla objednávky"
             placeholder="Naskenujte objednávku…"
             onScan={handleScan}
-            loading={scanMutation.isPending}
+            loading={scanMutation.isPending || !current}
             autoFocusOnMount
             refocusOnBlur={!isMultiModalOpen}
             allowKeyboardToggle

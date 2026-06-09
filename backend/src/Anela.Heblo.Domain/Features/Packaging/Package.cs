@@ -12,5 +12,6 @@ public class Package
     public Guid ShipmentGuid { get; set; }
     public DateTimeOffset PackedAt { get; set; }
     public string? PackedBy { get; set; }
+    public Guid? PackedByUserId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }

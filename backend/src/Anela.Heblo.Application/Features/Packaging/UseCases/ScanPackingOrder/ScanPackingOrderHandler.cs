@@ -2,6 +2,7 @@ using System.Globalization;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Packaging;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -19,6 +20,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
     private readonly ILogger<ScanPackingOrderHandler> _logger;
     private readonly IPackageRepository _packageRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IAuthorizationRepository _authRepo;
 
     public ScanPackingOrderHandler(
         IShipmentClient shipmentClient,
@@ -27,7 +29,8 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         IOptions<ShipmentLabelsSettings> shipmentSettings,
         ILogger<ScanPackingOrderHandler> logger,
         IPackageRepository packageRepository,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IAuthorizationRepository authRepo)
     {
         _shipmentClient = shipmentClient;
         _orderClient = orderClient;
@@ -36,6 +39,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         _logger = logger;
         _packageRepository = packageRepository;
         _currentUserService = currentUserService;
+        _authRepo = authRepo;
     }
 
     public async Task<ScanPackingOrderResponse> Handle(ScanPackingOrderRequest request, CancellationToken ct)
@@ -157,12 +161,21 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             }).ToList()
             : [new ScanShipmentPackage { Name = "PKG-1" }];
 
+        if (request.PackingUserId is { } requestedPackerId)
+        {
+            var packer = await _authRepo.GetUserByIdAsync(requestedPackerId, ct);
+            if (packer is null || !packer.IsActive || !packer.CanPack)
+                return new ScanPackingOrderResponse(ErrorCodes.PackingUserNotEligible);
+        }
+
         await PersistPackagesAsync(
             request.OrderCode,
             orderData.CustomerName,
             command.CarrierCode,
+            options[0].Name,
             createdShipment.ShipmentGuid,
             newLabels,
+            request.PackingUserId,
             ct);
 
         var pendingCompletion = n >= 2;
@@ -209,19 +222,32 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         }
     }
 
+    private async Task<(Guid? userId, string? name)> ResolvePackerAsync(Guid? packingUserId, CancellationToken ct)
+    {
+        if (packingUserId is { } id)
+        {
+            var user = await _authRepo.GetUserByIdAsync(id, ct);
+            if (user is not null)
+                return (user.Id, user.DisplayName);
+        }
+        return (null, _currentUserService.GetCurrentUser().Email);
+    }
+
     private async Task PersistPackagesAsync(
         string orderCode,
         string customerName,
         string carrierCode,
+        string carrierName,
         Guid shipmentGuid,
         IReadOnlyList<ShipmentLabel> labels,
+        Guid? packingUserId,
         CancellationToken cancellationToken)
     {
         if (labels.Count == 0)
             return;
 
         var now = DateTimeOffset.UtcNow;
-        var packedBy = _currentUserService.GetCurrentUser().Email;
+        var (packedByUserId, packedBy) = await ResolvePackerAsync(packingUserId, cancellationToken);
 
         // Carrier package names are not unique per package (custom-packaging shipments
         // report the same "Vlastní balení" name for every package), so a 1-based index
@@ -235,10 +261,11 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
                 PackageNumber = (index + 1).ToString(CultureInfo.InvariantCulture),
                 TrackingNumber = label.TrackingNumber,
                 ShippingProviderCode = carrierCode,
-                ShippingProviderName = null,
+                ShippingProviderName = carrierName,
                 ShipmentGuid = shipmentGuid,
                 PackedAt = now,
                 PackedBy = packedBy,
+                PackedByUserId = packedByUserId,
                 CreatedAt = now,
             })
             .ToList();

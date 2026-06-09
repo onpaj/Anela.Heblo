@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Authorization.UseCases.GetPackingUsers;
 using Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder;
 using Anela.Heblo.Application.Features.Packaging.UseCases.DeletePackage;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
@@ -9,6 +10,11 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
+
+public class ScanOrderBody
+{
+    public Guid? PackingUserId { get; set; }
+}
 
 [FeatureAuthorize(Feature.Warehouse_Packaging)]
 [ApiController]
@@ -31,10 +37,16 @@ public class PackagingController : BaseApiController
     public async Task<ActionResult<ScanPackingOrderResponse>> ScanOrder(
         [FromRoute] string orderCode,
         [FromQuery] int numberOfPackages = 1,
+        [FromBody] ScanOrderBody? body = null,
         CancellationToken cancellationToken = default)
     {
         var response = await _mediator.Send(
-            new ScanPackingOrderRequest { OrderCode = orderCode, NumberOfPackages = numberOfPackages },
+            new ScanPackingOrderRequest
+            {
+                OrderCode = orderCode,
+                NumberOfPackages = numberOfPackages,
+                PackingUserId = body?.PackingUserId,
+            },
             cancellationToken);
         return HandleResponse(response);
     }
@@ -86,6 +98,14 @@ public class PackagingController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>Active operators eligible for packing (admin-curated, CanPack = true).</summary>
+    [HttpGet("packing-users")]
+    public async Task<ActionResult<GetPackingUsersResponse>> GetPackingUsers(CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(new GetPackingUsersRequest(), cancellationToken);
         return HandleResponse(response);
     }
 

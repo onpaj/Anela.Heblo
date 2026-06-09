@@ -65,6 +65,7 @@ const SCAN_ERROR_MESSAGES: Partial<Record<string, string>> = {
   ShipmentCarrierNotResolved: 'Dopravce se nepodařilo určit pro tuto objednávku.',
   ShipmentCreationFailed: 'Shoptet nemohl vytvořit zásilku — zkuste znovu.',
   ShipmentOrderWeightUnavailable: 'Nelze zjistit hmotnost objednávky.',
+  PackingUserNotEligible: 'Vybraný balič není aktivní nebo nemá oprávnění balit. Vyberte baliče znovu.',
 };
 
 const GENERIC_SCAN_ERROR = 'Chyba při skenování objednávky.';
@@ -72,16 +73,22 @@ const GENERIC_SCAN_ERROR = 'Chyba při skenování objednávky.';
 export type ScanPackingOrderVariables = {
   orderCode: string;
   numberOfPackages?: number;
+  packingUserId?: string | null;
 };
 
 const scanPackingOrder = async ({
   orderCode,
   numberOfPackages = 1,
+  packingUserId = null,
 }: ScanPackingOrderVariables): Promise<ScanPackingOrderResult> => {
   const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
   const response = await apiClient.http.fetch(
     `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/scan?numberOfPackages=${numberOfPackages}`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packingUserId }),
+    },
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = (await response.json()) as any;
