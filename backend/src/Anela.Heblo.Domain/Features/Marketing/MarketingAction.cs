@@ -160,6 +160,48 @@ namespace Anela.Heblo.Domain.Features.Marketing
             }
         }
 
+        /// <summary>
+        /// Atomically replaces the full set of folder links.
+        /// A <c>null</c> sequence is treated as empty (clears all links).
+        /// <paramref name="links"/> folderKey is trimmed before dedup.
+        /// Deduplicates by the composite key (<c>folderKey</c>, <c>folderType</c>) —
+        /// this is stricter than <see cref="LinkToFolder"/>, which dedupes by
+        /// <c>folderKey</c> alone. The asymmetry is intentional; new code should
+        /// use this method when replacing the full set.
+        /// Throws <see cref="ArgumentException"/> if any entry's
+        /// folderKey is null, empty, or whitespace.
+        /// </summary>
+        public void ReplaceFolderLinks(
+            IEnumerable<(string folderKey, MarketingFolderType folderType)>? links,
+            DateTime utcNow)
+        {
+            var normalized = new List<(string folderKey, MarketingFolderType folderType)>();
+            if (links != null)
+            {
+                foreach (var (rawKey, type) in links)
+                {
+                    if (string.IsNullOrWhiteSpace(rawKey))
+                        throw new ArgumentException("Folder key cannot be empty", nameof(links));
+
+                    var key = rawKey.Trim();
+                    if (!normalized.Any(n => n.folderKey == key && n.folderType == type))
+                        normalized.Add((key, type));
+                }
+            }
+
+            FolderLinks.Clear();
+            foreach (var (key, type) in normalized)
+            {
+                FolderLinks.Add(new MarketingActionFolderLink
+                {
+                    MarketingActionId = Id,
+                    FolderKey = key,
+                    FolderType = type,
+                    CreatedAt = utcNow,
+                });
+            }
+        }
+
         public void SoftDelete(string userId, string username)
         {
             IsDeleted = true;
