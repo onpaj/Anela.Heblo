@@ -16,6 +16,15 @@ interface Props {
   onChange: (value: FilterValues) => void;
 }
 
+const EMPTY_FILTERS: FilterValues = {
+  orderCode: "",
+  customerName: "",
+  packageNumber: "",
+  carrier: "",
+  fromDate: "",
+  toDate: "",
+};
+
 export function ZasilkyFilters({ value, onChange }: Props) {
   const [local, setLocal] = useState<FilterValues>(value);
 
@@ -29,9 +38,14 @@ export function ZasilkyFilters({ value, onChange }: Props) {
     onChange(local);
   };
 
+  const handleClear = () => {
+    setLocal(EMPTY_FILTERS);
+    onChange(EMPTY_FILTERS);
+  };
+
   return (
     <form aria-label="Filtry zásilek" onSubmit={handleSubmit}>
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 p-4 pb-3 bg-slate-50 border-b">
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-3 p-4 bg-slate-50 border-b">
         <input
           className="px-3 py-2 border rounded"
           placeholder="Objednávka"
@@ -76,12 +90,21 @@ export function ZasilkyFilters({ value, onChange }: Props) {
           value={local.toDate}
           onChange={update("toDate")}
         />
-        <button
-          type="submit"
-          className="col-span-2 md:col-span-6 px-6 py-2 rounded bg-blue-600 text-white font-medium hover:bg-blue-700 active:bg-blue-800"
-        >
-          Hledat
-        </button>
+        <div className="col-span-2 md:col-span-1 flex md:flex-col gap-2">
+          <button
+            type="submit"
+            className="flex-1 px-4 py-2 rounded bg-blue-600 text-white font-medium hover:bg-blue-700 active:bg-blue-800"
+          >
+            Hledat
+          </button>
+          <button
+            type="button"
+            onClick={handleClear}
+            className="flex-1 px-4 py-2 rounded border border-slate-300 bg-white text-slate-700 font-medium hover:bg-slate-50 active:bg-slate-100"
+          >
+            Vymazat
+          </button>
+        </div>
       </div>
     </form>
   );
