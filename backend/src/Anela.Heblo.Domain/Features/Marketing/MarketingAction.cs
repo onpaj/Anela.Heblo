@@ -126,6 +126,40 @@ namespace Anela.Heblo.Domain.Features.Marketing
             });
         }
 
+        /// <summary>
+        /// Atomically replaces the full set of product associations.
+        /// A <c>null</c> sequence is treated as empty (clears all associations).
+        /// Each entry is trimmed and upper-cased (invariant) before dedup.
+        /// Throws <see cref="ArgumentException"/> if any entry is null, empty, or whitespace.
+        /// </summary>
+        public void ReplaceProductAssociations(IEnumerable<string>? productCodes, DateTime utcNow)
+        {
+            var normalized = new List<string>();
+            if (productCodes != null)
+            {
+                foreach (var raw in productCodes)
+                {
+                    if (string.IsNullOrWhiteSpace(raw))
+                        throw new ArgumentException("Product code cannot be empty", nameof(productCodes));
+
+                    var code = raw.Trim().ToUpperInvariant();
+                    if (!normalized.Contains(code))
+                        normalized.Add(code);
+                }
+            }
+
+            ProductAssociations.Clear();
+            foreach (var code in normalized)
+            {
+                ProductAssociations.Add(new MarketingActionProduct
+                {
+                    MarketingActionId = Id,
+                    ProductCodePrefix = code,
+                    CreatedAt = utcNow,
+                });
+            }
+        }
+
         public void SoftDelete(string userId, string username)
         {
             IsDeleted = true;
