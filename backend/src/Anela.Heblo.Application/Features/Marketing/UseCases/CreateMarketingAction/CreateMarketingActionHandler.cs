@@ -62,7 +62,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAct
 
             if (request.FolderLinks?.Any() == true)
                 foreach (var link in request.FolderLinks)
-                    action.LinkToFolder(link.FolderKey.Trim(), link.FolderType);
+                    action.LinkToFolder(link.FolderKey.Trim(), link.FolderType, now);
 
             string? outlookEventId = null;
 

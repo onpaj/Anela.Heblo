@@ -106,7 +106,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAct
             {
                 foreach (var link in request.FolderLinks)
                 {
-                    action.LinkToFolder(link.FolderKey.Trim(), link.FolderType);
+                    action.LinkToFolder(link.FolderKey.Trim(), link.FolderType, now);
                 }
             }
 

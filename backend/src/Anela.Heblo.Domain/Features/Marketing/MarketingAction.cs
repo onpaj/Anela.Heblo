@@ -109,7 +109,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
             });
         }
 
-        public void LinkToFolder(string folderKey, MarketingFolderType folderType)
+        public void LinkToFolder(string folderKey, MarketingFolderType folderType, DateTime utcNow)
         {
             if (string.IsNullOrWhiteSpace(folderKey))
                 throw new ArgumentException("Folder key cannot be empty", nameof(folderKey));
@@ -122,7 +122,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
                 MarketingActionId = Id,
                 FolderKey = folderKey.Trim(),
                 FolderType = folderType,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = utcNow,
             });
         }
 
