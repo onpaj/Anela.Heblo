@@ -97,7 +97,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAct
             {
                 foreach (var product in request.AssociatedProducts.Distinct())
                 {
-                    action.AssociateWithProduct(product);
+                    action.AssociateWithProduct(product, now);
                 }
             }
 

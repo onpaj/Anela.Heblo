@@ -91,7 +91,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
         private MarketingAction() { }
 
         // Domain methods
-        public void AssociateWithProduct(string productCode)
+        public void AssociateWithProduct(string productCode, DateTime utcNow)
         {
             if (string.IsNullOrWhiteSpace(productCode))
                 throw new ArgumentException("Product code cannot be empty", nameof(productCode));
@@ -105,7 +105,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
             {
                 MarketingActionId = Id,
                 ProductCodePrefix = normalized,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = utcNow,
             });
         }
 

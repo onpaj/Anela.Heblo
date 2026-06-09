@@ -58,7 +58,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAct
 
             if (request.AssociatedProducts?.Any() == true)
                 foreach (var product in request.AssociatedProducts.Distinct())
-                    action.AssociateWithProduct(product);
+                    action.AssociateWithProduct(product, now);
 
             if (request.FolderLinks?.Any() == true)
                 foreach (var link in request.FolderLinks)
