@@ -7,20 +7,7 @@ import {
   DeliveryHandling,
   SetCarrierCoolingRequest,
 } from '../../../api/hooks/useCarrierCooling';
-
-interface CarrierCoolingMatrixProps {
-  groups: CarrierGroupDto[];
-  onSetCooling: (request: SetCarrierCoolingRequest) => void;
-  isSaving: boolean;
-  savingRow: { carrier: Carriers; deliveryHandling: DeliveryHandling } | null;
-}
-
-const CARRIER_LABELS: Record<Carriers, string> = {
-  Zasilkovna: 'Zásilkovna',
-  PPL: 'PPL',
-  GLS: 'GLS',
-  Osobak: 'Osobní odběr',
-};
+import { CARRIER_LABELS } from '../../../constants/carrierLabels';
 
 const HANDLING_LABELS: Record<DeliveryHandling, string> = {
   NaRuky: 'Do ruky',
