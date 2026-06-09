@@ -103,7 +103,7 @@ public class PackagingController : BaseApiController
     /// Marks the order as packed after all multi-package labels have been printed.
     /// </summary>
     [HttpPost("orders/{orderCode}/packing/complete")]
-    [Authorize(Roles = AccessRoles.PackagingWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
     public async Task<ActionResult<CompletePackingOrderResponse>> CompletePacking(
         [FromRoute] string orderCode,
         CancellationToken cancellationToken)
