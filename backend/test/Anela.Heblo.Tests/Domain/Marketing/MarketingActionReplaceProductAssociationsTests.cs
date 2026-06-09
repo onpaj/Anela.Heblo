@@ -82,5 +82,50 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             act.Should().Throw<ArgumentException>()
                 .Which.ParamName.Should().Be("productCodes");
         }
+
+        [Fact]
+        public void ReplaceProductAssociations_ReplacesEntireSet_OnDeltaInput()
+        {
+            // Arrange
+            var action = CreateAction();
+            action.AssociateWithProduct("KEEP");
+            action.AssociateWithProduct("REMOVE");
+
+            // Act — KEEP stays (re-supplied), REMOVE goes away, ADD is new
+            action.ReplaceProductAssociations(new[] { "KEEP", "ADD" }, UtcNow);
+
+            // Assert
+            action.ProductAssociations
+                .Select(p => p.ProductCodePrefix)
+                .Should().BeEquivalentTo(new[] { "KEEP", "ADD" });
+        }
+
+        [Fact]
+        public void ReplaceProductAssociations_UsesProvidedUtcNowOnAllNewRows()
+        {
+            // Arrange
+            var action = CreateAction();
+            var moment = new DateTime(2026, 12, 31, 23, 59, 59, DateTimeKind.Utc);
+
+            // Act
+            action.ReplaceProductAssociations(new[] { "A", "B" }, moment);
+
+            // Assert
+            action.ProductAssociations.Should().OnlyContain(p => p.CreatedAt == moment);
+        }
+
+        [Fact]
+        public void ReplaceProductAssociations_SetsMarketingActionIdOnNewRows()
+        {
+            // Arrange
+            var action = CreateAction();
+            action.Id = 99;
+
+            // Act
+            action.ReplaceProductAssociations(new[] { "A" }, UtcNow);
+
+            // Assert
+            action.ProductAssociations.Single().MarketingActionId.Should().Be(99);
+        }
     }
 }
