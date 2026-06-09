@@ -8,7 +8,9 @@ using Anela.Heblo.Application.Features.Authorization.UseCases.GetPermissionCatal
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetUserEffectivePermissions;
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetEntraAccessUsers;
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetUsers;
+using Anela.Heblo.Application.Features.Authorization.UseCases.CreateLocalUser;
 using Anela.Heblo.Application.Features.Authorization.UseCases.SetUserActive;
+using Anela.Heblo.Application.Features.Authorization.UseCases.SetUserCanPack;
 using Anela.Heblo.Application.Features.Authorization.UseCases.UpdateGroup;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
@@ -86,6 +88,19 @@ public class AuthorizationController : BaseApiController
     [HttpPut("users/{id:guid}/active")]
     [Authorize(Roles = AccessRoles.AdministrationWrite)]
     public async Task<ActionResult<SetUserActiveResponse>> SetActive([FromRoute] Guid id, [FromBody] SetUserActiveRequest request, CancellationToken ct)
+    {
+        request.UserId = id;
+        return HandleResponse(await _mediator.Send(request, ct));
+    }
+
+    [HttpPost("users/local")]
+    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    public async Task<ActionResult<CreateLocalUserResponse>> CreateLocalUser([FromBody] CreateLocalUserRequest request, CancellationToken ct)
+        => HandleResponse(await _mediator.Send(request, ct));
+
+    [HttpPut("users/{id:guid}/can-pack")]
+    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    public async Task<ActionResult<SetUserCanPackResponse>> SetCanPack([FromRoute] Guid id, [FromBody] SetUserCanPackRequest request, CancellationToken ct)
     {
         request.UserId = id;
         return HandleResponse(await _mediator.Send(request, ct));
