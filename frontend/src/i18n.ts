@@ -285,6 +285,7 @@ const resources = {
         PackageLabelNotFound: "Štítek pro tento balík nebyl nalezen.",
         PackageLabelDownloadFailed: "Stažení PDF štítku od dopravce se nezdařilo.",
         PackageNotFound: "Zásilka nebyla nalezena.",
+        PackingUserNotEligible: "Zvolený pracovník není oprávněn k balení objednávek.",
 
         // CatalogDocuments module errors
         CatalogDocumentInvalidTypeCode: "Neplatný kód typu dokumentu katalogu.",
