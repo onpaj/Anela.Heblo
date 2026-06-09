@@ -37,5 +37,19 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             // Assert
             action.FolderLinks.Should().BeEmpty();
         }
+
+        [Fact]
+        public void ReplaceFolderLinks_ClearsExisting_WhenInputIsNull()
+        {
+            // Arrange
+            var action = CreateAction();
+            action.LinkToFolder("key-1", MarketingFolderType.General);
+
+            // Act
+            action.ReplaceFolderLinks(null, UtcNow);
+
+            // Assert
+            action.FolderLinks.Should().BeEmpty();
+        }
     }
 }
