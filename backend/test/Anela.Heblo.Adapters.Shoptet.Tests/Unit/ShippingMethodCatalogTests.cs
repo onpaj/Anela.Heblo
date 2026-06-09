@@ -54,4 +54,39 @@ public class ShippingMethodCatalogTests
         result.Should().Contain((Carriers.PPL, DeliveryHandling.Box));
         result.Should().Contain((Carriers.GLS, DeliveryHandling.Box));
     }
+
+    [Fact]
+    public void GetShippingCodesForCarrier_Ppl_ReturnsAllPplShippingIds()
+    {
+        var result = _sut.GetShippingCodesForCarrier(Carriers.PPL);
+
+        result.Should().BeEquivalentTo(new[] { "6", "80", "86", "358", "361", "379" });
+    }
+
+    [Fact]
+    public void GetShippingCodesForCarrier_Osobak_ReturnsSingleId()
+    {
+        var result = _sut.GetShippingCodesForCarrier(Carriers.Osobak);
+
+        result.Should().BeEquivalentTo(new[] { "4" });
+    }
+
+    [Theory]
+    [InlineData("21", Carriers.Zasilkovna)]
+    [InlineData("6", Carriers.PPL)]
+    [InlineData("97", Carriers.GLS)]
+    [InlineData("4", Carriers.Osobak)]
+    public void ResolveCarrier_KnownId_ReturnsCarrier(string code, Carriers expected)
+    {
+        _sut.ResolveCarrier(code).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("999")]
+    [InlineData("abc")]
+    [InlineData("")]
+    public void ResolveCarrier_UnknownOrNonNumeric_ReturnsNull(string code)
+    {
+        _sut.ResolveCarrier(code).Should().BeNull();
+    }
 }
