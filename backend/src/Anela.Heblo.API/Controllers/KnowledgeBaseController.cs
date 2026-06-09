@@ -10,12 +10,11 @@ using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Shared.Rag;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.KnowledgeBaseRead)]
+[FeatureAuthorize(Feature.Customer_KnowledgeBase)]
 [ApiController]
 [Route("api/[controller]")]
 public class KnowledgeBaseController : BaseApiController
@@ -84,7 +83,7 @@ public class KnowledgeBaseController : BaseApiController
     }
 
     [HttpDelete("documents/{id:guid}")]
-    [Authorize(Roles = AccessRoles.KnowledgeBaseWrite)]
+    [FeatureAuthorize(Feature.Customer_KnowledgeBase, AccessLevel.Write)]
     public async Task<ActionResult<DeleteDocumentResponse>> DeleteDocument(Guid id, CancellationToken ct)
     {
         var result = await _mediator.Send(new DeleteDocumentRequest { DocumentId = id }, ct);
@@ -92,7 +91,7 @@ public class KnowledgeBaseController : BaseApiController
     }
 
     [HttpGet("feedback/list")]
-    [Authorize(Roles = AccessRoles.KnowledgeBaseWrite)]
+    [FeatureAuthorize(Feature.Customer_KnowledgeBase, AccessLevel.Write)]
     public async Task<ActionResult<GetFeedbackListResponse>> GetFeedbackList(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
@@ -124,7 +123,7 @@ public class KnowledgeBaseController : BaseApiController
     }
 
     [HttpPost("documents/upload")]
-    [Authorize(Roles = AccessRoles.KnowledgeBaseWrite)]
+    [FeatureAuthorize(Feature.Customer_KnowledgeBase, AccessLevel.Write)]
     public async Task<ActionResult<UploadDocumentResponse>> UploadDocument(
         IFormFile file,
         [FromForm] string documentType = "KnowledgeBase",

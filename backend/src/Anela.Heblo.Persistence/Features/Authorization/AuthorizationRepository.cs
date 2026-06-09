@@ -61,6 +61,11 @@ public class AuthorizationRepository : IAuthorizationRepository
             _db.UserGroups.Add(new UserGroup { UserId = userId, GroupId = gid });
     }
 
+    public async Task<List<AppUser>> GetGroupMembersAsync(Guid groupId, CancellationToken ct = default) =>
+        await _db.AppUsers.AsNoTracking()
+            .Where(u => _db.UserGroups.Any(ug => ug.UserId == u.Id && ug.GroupId == groupId))
+            .ToListAsync(ct);
+
     public async Task<(List<GroupPermission> Permissions, List<GroupParent> Parents)> GetGroupGraphAsync(CancellationToken ct = default)
     {
         var perms = await _db.GroupPermissions.AsNoTracking().ToListAsync(ct);
