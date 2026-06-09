@@ -143,7 +143,7 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                 {
                     Text = request.NewNote.Trim(),
                     CreatedAt = DateTime.UtcNow,
-                    CreatedByUser = currentUser.Name
+                    CreatedByUser = currentUser.GetDisplayName()
                 });
             }
 

@@ -107,7 +107,7 @@
     <Target Name="GenerateAccessMatrix" BeforeTargets="Build" Condition="'$(Configuration)' == 'Debug'">
         <Message Text="Generating access matrix artifacts..." Importance="high" />
 
-        <Exec Command="dotnet run --project $(MSBuildThisFileDirectory)../../tools/Anela.Heblo.AccessMatrixGen"
+        <Exec Command="dotnet run --project $(MSBuildThisFileDirectory)../../tools/Anela.Heblo.AccessMatrixGen -- &quot;$(MSBuildThisFileDirectory)../../../frontend/src/auth/accessMatrix.generated.ts&quot; &quot;$(MSBuildThisFileDirectory)../../../access-matrix.generated.json&quot; &quot;$(MSBuildThisFileDirectory)../Anela.Heblo.Domain/Features/Authorization/AccessRoles.generated.cs&quot;"
               ContinueOnError="true"
               WorkingDirectory="$(MSBuildThisFileDirectory)../../.." />
 

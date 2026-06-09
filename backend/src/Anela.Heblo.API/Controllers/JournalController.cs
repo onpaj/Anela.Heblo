@@ -1,16 +1,15 @@
 using System.Threading.Tasks;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Anela.Heblo.Application.Features.Journal.Contracts;
 
 namespace Anela.Heblo.API.Controllers
 {
+    [FeatureAuthorize(Feature.Products_Journal)]
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = AccessRoles.JournalRead)]
     public class JournalController : BaseApiController
     {
         private readonly IMediator _mediator;
@@ -60,7 +59,7 @@ namespace Anela.Heblo.API.Controllers
         /// Create new journal entry
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = AccessRoles.JournalWrite)]
+        [FeatureAuthorize(Feature.Products_Journal, AccessLevel.Write)]
         [ProducesResponseType(typeof(CreateJournalEntryResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -80,7 +79,7 @@ namespace Anela.Heblo.API.Controllers
         /// Update existing journal entry
         /// </summary>
         [HttpPut("{id:int}")]
-        [Authorize(Roles = AccessRoles.JournalWrite)]
+        [FeatureAuthorize(Feature.Products_Journal, AccessLevel.Write)]
         [ProducesResponseType(typeof(UpdateJournalEntryResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -96,7 +95,7 @@ namespace Anela.Heblo.API.Controllers
         /// Delete journal entry (soft delete)
         /// </summary>
         [HttpDelete("{id:int}")]
-        [Authorize(Roles = AccessRoles.JournalWrite)]
+        [FeatureAuthorize(Feature.Products_Journal, AccessLevel.Write)]
         [ProducesResponseType(typeof(DeleteJournalEntryResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -124,7 +123,7 @@ namespace Anela.Heblo.API.Controllers
         /// Create new tag
         /// </summary>
         [HttpPost("tags")]
-        [Authorize(Roles = AccessRoles.JournalWrite)]
+        [FeatureAuthorize(Feature.Products_Journal, AccessLevel.Write)]
         [ProducesResponseType(typeof(CreateJournalTagResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<CreateJournalTagResponse>> CreateJournalTag([FromBody] CreateJournalTagRequest request)

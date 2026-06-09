@@ -5,12 +5,11 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.RetryStockUpOperation;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.StockUpRead)]
+[FeatureAuthorize(Feature.Warehouse_StockUp)]
 [ApiController]
 [Route("api/[controller]")]
 public class StockUpOperationsController : ControllerBase
@@ -74,7 +73,7 @@ public class StockUpOperationsController : ControllerBase
     /// </summary>
     /// <param name="id">Operation ID to retry</param>
     [HttpPost("{id}/retry")]
-    [Authorize(Roles = AccessRoles.StockUpWrite)]
+    [FeatureAuthorize(Feature.Warehouse_StockUp, AccessLevel.Write)]
     public async Task<ActionResult<RetryStockUpOperationResponse>> RetryOperation(int id)
     {
         var request = new RetryStockUpOperationRequest { OperationId = id };
@@ -93,7 +92,7 @@ public class StockUpOperationsController : ControllerBase
     /// </summary>
     /// <param name="id">Operation ID to accept</param>
     [HttpPost("{id}/accept")]
-    [Authorize(Roles = AccessRoles.StockUpWrite)]
+    [FeatureAuthorize(Feature.Warehouse_StockUp, AccessLevel.Write)]
     public async Task<ActionResult<AcceptStockUpOperationResponse>> AcceptOperation(int id)
     {
         var request = new AcceptStockUpOperationRequest { OperationId = id };
