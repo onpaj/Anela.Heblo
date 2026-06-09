@@ -111,5 +111,29 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                     MarketingFolderType.Campaign,
                 });
         }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public void ReplaceFolderLinks_Throws_WhenAnyFolderKeyIsNullEmptyOrWhitespace(string? badKey)
+        {
+            // Arrange
+            var action = CreateAction();
+
+            // Act
+            Action act = () =>
+                action.ReplaceFolderLinks(
+                    new[]
+                    {
+                        ("good", MarketingFolderType.General),
+                        (badKey!, MarketingFolderType.General),
+                    },
+                    UtcNow);
+
+            // Assert
+            act.Should().Throw<ArgumentException>()
+                .Which.ParamName.Should().Be("links");
+        }
     }
 }
