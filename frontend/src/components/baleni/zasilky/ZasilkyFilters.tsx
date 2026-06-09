@@ -7,8 +7,7 @@ export interface FilterValues {
   customerName: string;
   packageNumber: string;
   carrier: string;
-  fromDate: string;
-  toDate: string;
+  date: string;
 }
 
 interface Props {
@@ -21,8 +20,7 @@ const EMPTY_FILTERS: FilterValues = {
   customerName: "",
   packageNumber: "",
   carrier: "",
-  fromDate: "",
-  toDate: "",
+  date: "",
 };
 
 export function ZasilkyFilters({ value, onChange }: Props) {
@@ -45,7 +43,7 @@ export function ZasilkyFilters({ value, onChange }: Props) {
 
   return (
     <form aria-label="Filtry zásilek" onSubmit={handleSubmit}>
-      <div className="grid grid-cols-2 md:grid-cols-7 gap-3 p-4 bg-slate-50 border-b">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 p-4 bg-slate-50 border-b">
         <input
           className="px-3 py-2 border rounded"
           placeholder="Objednávka"
@@ -81,16 +79,10 @@ export function ZasilkyFilters({ value, onChange }: Props) {
         <input
           type="date"
           className="px-3 py-2 border rounded"
-          value={local.fromDate}
-          onChange={update("fromDate")}
+          value={local.date}
+          onChange={update("date")}
         />
-        <input
-          type="date"
-          className="px-3 py-2 border rounded"
-          value={local.toDate}
-          onChange={update("toDate")}
-        />
-        <div className="col-span-2 md:col-span-1 flex md:flex-col gap-2">
+        <div className="col-span-2 md:col-span-1 flex gap-2">
           <button
             type="submit"
             className="flex-1 px-4 py-2 rounded bg-blue-600 text-white font-medium hover:bg-blue-700 active:bg-blue-800"

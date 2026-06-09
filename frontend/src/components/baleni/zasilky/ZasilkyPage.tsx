@@ -22,8 +22,7 @@ export function ZasilkyPage() {
     customerName: "",
     packageNumber: "",
     carrier: "",
-    fromDate: "",
-    toDate: "",
+    date: "",
   });
   const [pageNumber, setPageNumber] = useState(1);
   const [sortBy, setSortBy] = useState<ZasilkySortBy>("PackedAt");
@@ -36,8 +35,8 @@ export function ZasilkyPage() {
       customerName: filters.customerName || undefined,
       packageNumber: filters.packageNumber || undefined,
       carrier: filters.carrier || undefined,
-      fromDate: filters.fromDate || undefined,
-      toDate: filters.toDate || undefined,
+      fromDate: filters.date || undefined,
+      toDate: filters.date || undefined,
       pageNumber,
       pageSize: PAGE_SIZE,
       sortBy,
