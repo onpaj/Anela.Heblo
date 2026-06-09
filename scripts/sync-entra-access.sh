@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MANIFEST="${MANIFEST:-access-matrix.generated.json}"
+MANIFEST="${MANIFEST:-access-matrix-entra.generated.json}"
 # Space-separated parallel lists — APP_IDS[i] pairs with SP_OBJECT_IDS[i].
 APP_IDS="${APP_IDS:?set APP_IDS (space-separated app/client ids)}"
 SP_OBJECT_IDS="${SP_OBJECT_IDS:?set SP_OBJECT_IDS (space-separated enterprise app object ids, same order)}"

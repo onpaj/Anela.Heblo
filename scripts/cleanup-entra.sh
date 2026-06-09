@@ -15,7 +15,7 @@
 # Prerequisites: az CLI logged in with sufficient privileges (Application Administrator + Group Administrator).
 set -euo pipefail
 
-MANIFEST="${MANIFEST:-access-matrix.generated.json}"
+MANIFEST="${MANIFEST:-access-matrix-entra.generated.json}"
 APP_IDS="${APP_IDS:?set APP_IDS as space-separated app/client ids (Heblo_Blazor Heblo_Service)}"
 MODE="${1:---dry-run}"
 
