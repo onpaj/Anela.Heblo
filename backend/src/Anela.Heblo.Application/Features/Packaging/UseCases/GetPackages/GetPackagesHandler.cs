@@ -37,6 +37,7 @@ public class GetPackagesHandler : IRequestHandler<GetPackagesRequest, GetPackage
                 ShippingProviderName = p.ShippingProviderName,
                 PackedAt = p.PackedAt,
                 PackedBy = p.PackedBy,
+                PackedByUserId = p.PackedByUserId,
             }).ToList(),
             TotalCount = total,
             PageNumber = request.PageNumber,

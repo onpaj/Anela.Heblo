@@ -36,6 +36,8 @@ jest.mock("../../api/hooks/useAccessManagement", () => ({
   useCatalogue: () => ({ data: { permissions: ["catalog.read"] } }),
   useDeleteGroup: () => ({ mutate: jest.fn(), isPending: false }),
   useSetUserActive: () => ({ mutate: jest.fn(), isPending: false }),
+  useSetUserCanPack: () => ({ mutate: jest.fn(), isPending: false }),
+  useCreateLocalUser: () => ({ mutate: jest.fn(), isPending: false }),
 }));
 
 jest.mock("react-router-dom", () => ({
