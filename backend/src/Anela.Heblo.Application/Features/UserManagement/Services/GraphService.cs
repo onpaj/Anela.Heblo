@@ -62,8 +62,8 @@ public class GraphService : IGraphService
 
             // Discrimination rule: an entry is a user if:
             // (@odata.type exists AND Contains("user", OrdinalIgnoreCase)) OR (userPrincipalName property exists)
-            if (memberElement.TryGetProperty("@odata.type", out var odataType) &&
-                odataType.GetString()?.Contains("user", StringComparison.OrdinalIgnoreCase) == true ||
+            if ((memberElement.TryGetProperty("@odata.type", out var odataType) &&
+                 odataType.GetString()?.Contains("user", StringComparison.OrdinalIgnoreCase) == true) ||
                 memberElement.TryGetProperty("userPrincipalName", out _))
             {
                 var id = memberElement.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty;
