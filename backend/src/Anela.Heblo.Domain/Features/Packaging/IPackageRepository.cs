@@ -6,7 +6,7 @@ public interface IPackageRepository
         string? orderCode,
         string? customerName,
         string? packageNumber,
-        string? shippingProviderCode,
+        IReadOnlyList<string>? shippingProviderCodes,
         DateTime? fromDate,
         DateTime? toDate,
         int pageNumber,

@@ -32,7 +32,8 @@ const samplePackage: PackageDto = {
   customerName: "Alice",
   packageNumber: "PKG-1",
   trackingNumber: "TRK-1",
-  shippingProviderCode: "PPL",
+  shippingProviderCode: "6",
+  shippingProviderName: "PPL",
   packedAt: "2026-05-25T10:00:00Z",
 };
 
@@ -82,6 +83,8 @@ describe("ZasilkyPage", () => {
     expect(screen.getByText("ORD-1")).toBeInTheDocument();
     expect(screen.getByText("Alice")).toBeInTheDocument();
     expect(screen.getByText("PKG-1")).toBeInTheDocument();
+    const table = screen.getByRole("table");
+    expect(table).toHaveTextContent("PPL");
   });
 
   it("calls printLabelPdf when reprint button is clicked", () => {
