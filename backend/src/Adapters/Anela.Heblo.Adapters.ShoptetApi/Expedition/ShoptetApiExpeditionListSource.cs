@@ -25,9 +25,6 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     private readonly ILogger<ShoptetApiExpeditionListSource> _logger;
     private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
 
-    private const string CoolingMarkerValue = "CHLAZENE";
-    private const int CoolingAdditionalFieldIndex = 6;
-
     public ShoptetApiExpeditionListSource(
         ShoptetOrderClient client,
         TimeProvider timeProvider,
@@ -93,6 +90,8 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         // Load gift setting once for the entire run
         var giftSetting = await _giftSettings.GetAsync(cancellationToken);
 
+        var processor = new PickingListBatchProcessor(_catalog, _client, _generateDocument, _logger);
+
         foreach (var (method, orders) in ordersByMethod)
         {
             var sorted = orders;
@@ -121,78 +120,6 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             var currentItemCount = 0;
             var batchIndex = 0;
 
-            async Task FlushBatchAsync(List<ExpeditionOrder> batch)
-            {
-                // Enrich with stock counts, warehouse positions, and cooling from catalog.
-                // Positions are only applied where the Shoptet API left them blank (set components).
-                var productCodes = batch.SelectMany(o => o.Items).Select(i => i.ProductCode).Distinct();
-                var stockByCode = new Dictionary<string, decimal>();
-                var locationByCode = new Dictionary<string, string>();
-                var coolingByCode = new Dictionary<string, Cooling>();
-                var priceByCode = new Dictionary<string, decimal>();
-                foreach (var productCode in productCodes)
-                {
-                    var entry = await _catalog.GetByIdAsync(productCode, cancellationToken);
-                    if (entry != null)
-                    {
-                        stockByCode[productCode] = entry.Stock.Eshop;
-                        if (!string.IsNullOrEmpty(entry.Location))
-                            locationByCode[productCode] = entry.Location;
-                        coolingByCode[productCode] = entry.Properties.Cooling;
-                        if (entry.PriceWithVat is > 0)
-                            priceByCode[productCode] = entry.PriceWithVat.Value;
-                    }
-                }
-                ApplyEnrichment(
-                    batch.SelectMany(o => o.Items),
-                    stockByCode,
-                    locationByCode,
-                    coolingByCode,
-                    priceByCode);
-
-                var fileName = $"{timestamp}_{method.Name}_{batchIndex}.pdf";
-                var listId = Path.GetFileNameWithoutExtension(fileName);
-
-                var data = new ExpeditionProtocolData
-                {
-                    CarrierDisplayName = carrierDisplayName,
-                    ListId = listId,
-                    Orders = batch,
-                };
-
-                var pdfBytes = _generateDocument(data);
-                var filePath = Path.Combine(Path.GetTempPath(), fileName);
-                await File.WriteAllBytesAsync(filePath, pdfBytes, cancellationToken);
-                exportedFiles.Add(filePath);
-
-                foreach (var order in batch)
-                {
-                    if (!order.IsCooled)
-                        continue;
-
-                    try
-                    {
-                        await _client.SetAdditionalFieldAsync(
-                            order.Code,
-                            CoolingAdditionalFieldIndex,
-                            CoolingMarkerValue,
-                            cancellationToken);
-                    }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
-                    {
-                        _logger.LogWarning(
-                            ex,
-                            "Failed to set Shoptet additionalField[{Index}]={Value} for order {OrderCode}; PDF print continues.",
-                            CoolingAdditionalFieldIndex,
-                            CoolingMarkerValue,
-                            order.Code);
-                    }
-                }
-
-                if (onBatchFilesReady != null)
-                    await onBatchFilesReady(new List<string> { filePath });
-            }
-
             foreach (var order in allExpeditionOrders)
             {
                 var orderItemCount = order.Items.Count;
@@ -200,7 +127,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                 if ((currentItemCount + orderItemCount > maxItems || currentBatch.Count >= maxOrders) && currentBatch.Count > 0)
                 {
                     // Flush current batch before starting a new one
-                    await FlushBatchAsync(currentBatch);
+                    var overflowPath = await processor.FlushAsync(
+                        currentBatch, method, batchIndex, timestamp, onBatchFilesReady, cancellationToken);
+                    exportedFiles.Add(overflowPath);
                     batchIndex++;
                     currentBatch = new List<ExpeditionOrder>();
                     currentItemCount = 0;
@@ -213,7 +142,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             // Flush any remaining orders
             if (currentBatch.Count > 0)
             {
-                await FlushBatchAsync(currentBatch);
+                var finalPath = await processor.FlushAsync(
+                    currentBatch, method, batchIndex, timestamp, onBatchFilesReady, cancellationToken);
+                exportedFiles.Add(finalPath);
             }
         }
 
