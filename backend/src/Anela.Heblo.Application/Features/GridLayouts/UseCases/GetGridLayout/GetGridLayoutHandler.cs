@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.GridLayouts.Contracts;
+using Anela.Heblo.Application.Features.GridLayouts.Infrastructure;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -35,10 +36,10 @@ public class GetGridLayoutHandler : IRequestHandler<GetGridLayoutRequest, GetGri
                 return new GetGridLayoutResponse { Layout = null };
             }
 
-            GridLayoutPersistencePayload? payload;
+            StoredGridLayout? stored;
             try
             {
-                payload = JsonSerializer.Deserialize<GridLayoutPersistencePayload>(entity.LayoutJson);
+                stored = JsonSerializer.Deserialize<StoredGridLayout>(entity.LayoutJson);
             }
             catch (JsonException ex)
             {
@@ -48,15 +49,15 @@ public class GetGridLayoutHandler : IRequestHandler<GetGridLayoutRequest, GetGri
                 return new GetGridLayoutResponse { Layout = null };
             }
 
-            if (payload is null)
+            if (stored is null)
             {
                 return new GetGridLayoutResponse { Layout = null };
             }
 
             var dto = new GridLayoutDto
             {
-                Columns = payload.Columns ?? new List<GridColumnStateDto>(),
                 GridKey = entity.GridKey,
+                Columns = GridLayoutStoredMapper.ToDtoColumns(stored),
                 LastModified = entity.LastModified
             };
 

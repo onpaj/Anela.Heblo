@@ -11,6 +11,7 @@ export type PackageDto = {
   shippingProviderName?: string;
   packedAt: string;
   packedBy?: string;
+  packedByUserId?: string;
 };
 
 export type GetPackagesRequest = {

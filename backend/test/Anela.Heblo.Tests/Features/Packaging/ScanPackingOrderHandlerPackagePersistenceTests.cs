@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Packaging;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
@@ -51,6 +52,7 @@ public class ScanPackingOrderHandlerPackagePersistenceTests
             DefaultPackageHeightMm = 200,
             DefaultPackageDepthMm = 150,
         });
+        var authRepo = new Mock<IAuthorizationRepository>();
         return new ScanPackingOrderHandler(
             shipmentClient.Object,
             orderClient.Object,
@@ -58,7 +60,8 @@ public class ScanPackingOrderHandlerPackagePersistenceTests
             shipmentSettings,
             NullLogger<ScanPackingOrderHandler>.Instance,
             packageRepo.Object,
-            currentUser.Object);
+            currentUser.Object,
+            authRepo.Object);
     }
 
     private static PackingOrder MakeOrder(int statusId = 26, bool isEligible = true) => new()
