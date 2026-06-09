@@ -36,5 +36,19 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             // Assert
             action.ProductAssociations.Should().BeEmpty();
         }
+
+        [Fact]
+        public void ReplaceProductAssociations_ClearsExisting_WhenInputIsNull()
+        {
+            // Arrange
+            var action = CreateAction();
+            action.AssociateWithProduct("ABC");
+
+            // Act
+            action.ReplaceProductAssociations(null, UtcNow);
+
+            // Assert
+            action.ProductAssociations.Should().BeEmpty();
+        }
     }
 }
