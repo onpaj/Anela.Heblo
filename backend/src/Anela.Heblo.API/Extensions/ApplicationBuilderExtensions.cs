@@ -321,8 +321,6 @@ public static class ApplicationBuilderExtensions
             {
                 logger.LogInformation("Non-relational database provider — skipping migrations.");
             }
-
-            await Anela.Heblo.Persistence.Features.Authorization.AuthorizationSeeder.SeedAsync(db, default);
         }
         catch (Exception ex)
         {

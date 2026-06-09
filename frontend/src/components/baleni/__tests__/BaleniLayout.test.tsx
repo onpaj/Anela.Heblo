@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import BaleniLayout from '../BaleniLayout';
 
 jest.mock('../../auth/UserProfile', () => ({
@@ -9,21 +8,21 @@ jest.mock('../../auth/UserProfile', () => ({
   default: () => <div data-testid="user-profile" />,
 }));
 
-const renderWithRouter = (initialPath: string) => {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[initialPath]}>
-        <Routes>
-          <Route path="/baleni/*" element={<BaleniLayout />}>
-            <Route index element={<div>Home content</div>} />
-            <Route path="baleni" element={<div>Balení content</div>} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>,
+jest.mock('../packingUser/PackingUserPicker', () => ({
+  PackingUserPicker: () => null,
+}));
+
+const renderWithRouter = (initialPath: string) =>
+  render(
+    <MemoryRouter initialEntries={[initialPath]}>
+      <Routes>
+        <Route path="/baleni/*" element={<BaleniLayout />}>
+          <Route index element={<div>Home content</div>} />
+          <Route path="baleni" element={<div>Balení content</div>} />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
   );
-};
 
 // The manifest <link> lives in document.head, outside the render tree, so
 // Testing Library queries cannot reach it — direct DOM access is required here.

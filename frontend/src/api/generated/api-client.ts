@@ -14669,7 +14669,6 @@ export interface IGetMeResponse extends IBaseResponse {
 export class GetPermissionCatalogueResponse extends BaseResponse implements IGetPermissionCatalogueResponse {
     permissions?: string[];
     features?: CatalogueFeatureDto[];
-    systemGroups?: CatalogueGroupDto[];
 
     constructor(data?: IGetPermissionCatalogueResponse) {
         super(data);
@@ -14687,11 +14686,6 @@ export class GetPermissionCatalogueResponse extends BaseResponse implements IGet
                 this.features = [] as any;
                 for (let item of _data["features"])
                     this.features!.push(CatalogueFeatureDto.fromJS(item));
-            }
-            if (Array.isArray(_data["systemGroups"])) {
-                this.systemGroups = [] as any;
-                for (let item of _data["systemGroups"])
-                    this.systemGroups!.push(CatalogueGroupDto.fromJS(item));
             }
         }
     }
@@ -14715,11 +14709,6 @@ export class GetPermissionCatalogueResponse extends BaseResponse implements IGet
             for (let item of this.features)
                 data["features"].push(item.toJSON());
         }
-        if (Array.isArray(this.systemGroups)) {
-            data["systemGroups"] = [];
-            for (let item of this.systemGroups)
-                data["systemGroups"].push(item.toJSON());
-        }
         super.toJSON(data);
         return data;
     }
@@ -14728,7 +14717,6 @@ export class GetPermissionCatalogueResponse extends BaseResponse implements IGet
 export interface IGetPermissionCatalogueResponse extends IBaseResponse {
     permissions?: string[];
     features?: CatalogueFeatureDto[];
-    systemGroups?: CatalogueGroupDto[];
 }
 
 export class CatalogueFeatureDto implements ICatalogueFeatureDto {
@@ -14781,54 +14769,6 @@ export interface ICatalogueFeatureDto {
     section?: string;
     hasWrite?: boolean;
     hasAdmin?: boolean;
-}
-
-export class CatalogueGroupDto implements ICatalogueGroupDto {
-    name?: string;
-    permissions?: string[];
-
-    constructor(data?: ICatalogueGroupDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.name = _data["name"];
-            if (Array.isArray(_data["permissions"])) {
-                this.permissions = [] as any;
-                for (let item of _data["permissions"])
-                    this.permissions!.push(item);
-            }
-        }
-    }
-
-    static fromJS(data: any): CatalogueGroupDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new CatalogueGroupDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["name"] = this.name;
-        if (Array.isArray(this.permissions)) {
-            data["permissions"] = [];
-            for (let item of this.permissions)
-                data["permissions"].push(item);
-        }
-        return data;
-    }
-}
-
-export interface ICatalogueGroupDto {
-    name?: string;
-    permissions?: string[];
 }
 
 export class GetGroupsResponse extends BaseResponse implements IGetGroupsResponse {

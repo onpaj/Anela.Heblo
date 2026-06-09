@@ -6,7 +6,6 @@ public class GetPermissionCatalogueResponse : BaseResponse
 {
     public List<string> Permissions { get; set; } = new();
     public List<CatalogueFeatureDto> Features { get; set; } = new();
-    public List<CatalogueGroupDto> SystemGroups { get; set; } = new();
 }
 
 public class CatalogueFeatureDto
@@ -16,10 +15,4 @@ public class CatalogueFeatureDto
     public string Section { get; set; } = null!;
     public bool HasWrite { get; set; }
     public bool HasAdmin { get; set; }
-}
-
-public class CatalogueGroupDto
-{
-    public string Name { get; set; } = null!;
-    public List<string> Permissions { get; set; } = new();
 }

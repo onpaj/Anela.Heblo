@@ -30,7 +30,6 @@ jest.mock("../../api/hooks/useAccessManagement", () => ({
       features: [
         { key: "catalog", label: "Katalog", section: "Data", hasWrite: true, hasAdmin: false },
       ],
-      systemGroups: [],
     },
     isLoading: false,
   }),
