@@ -10,6 +10,7 @@ public class CreateShipmentCommand
 {
     public string OrderCode { get; set; } = null!;
     public string CarrierCode { get; set; } = null!;
+    public int PackageCount { get; set; } = 1;
     public ShipmentPackage Package { get; set; } = null!;
 }
 
