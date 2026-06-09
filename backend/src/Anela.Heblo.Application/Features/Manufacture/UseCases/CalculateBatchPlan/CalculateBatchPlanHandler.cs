@@ -15,17 +15,20 @@ public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanReque
     private readonly IManufactureCatalogSource _catalogSource;
     private readonly IManufactureClient _manufactureClient;
     private readonly ITimePeriodResolver _timePeriodResolver;
+    private readonly TimeProvider _timeProvider;
 
     public CalculateBatchPlanHandler(
         IBatchPlanningService batchPlanningService,
         IManufactureCatalogSource catalogSource,
         IManufactureClient manufactureClient,
-        ITimePeriodResolver timePeriodResolver)
+        ITimePeriodResolver timePeriodResolver,
+        TimeProvider timeProvider)
     {
         _batchPlanningService = batchPlanningService;
         _catalogSource = catalogSource;
         _manufactureClient = manufactureClient;
         _timePeriodResolver = timePeriodResolver;
+        _timeProvider = timeProvider;
     }
 
     public async Task<CalculateBatchPlanResponse> Handle(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
@@ -55,7 +58,7 @@ public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanReque
             return _timePeriodResolver.Resolve(request.TimePeriod.Value, request.FromDate, request.ToDate);
         }
 
-        var endDate = request.ToDate ?? DateTime.Now;
+        var endDate = request.ToDate ?? _timeProvider.GetUtcNow().DateTime;
         var startDate = request.FromDate ?? endDate.AddDays(-DefaultFallbackDays);
         return new[] { new DateRange(startDate, endDate) };
     }

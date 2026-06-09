@@ -1,6 +1,9 @@
 using Anela.Heblo.Application.Features.UserManagement.Services;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Client;
 
 namespace Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 
@@ -17,10 +20,10 @@ public class GetGroupMembersHandler : IRequestHandler<GetGroupMembersRequest, Ge
 
     public async Task<GetGroupMembersResponse> Handle(GetGroupMembersRequest request, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Handling GetGroupMembers request for group {GroupId}", request.GroupId);
+
         try
         {
-            _logger.LogInformation("Handling GetGroupMembers request for group {GroupId}", request.GroupId);
-
             var members = await _graphService.GetGroupMembersAsync(request.GroupId, cancellationToken);
 
             return new GetGroupMembersResponse
@@ -29,15 +32,48 @@ public class GetGroupMembersHandler : IRequestHandler<GetGroupMembersRequest, Ge
                 Members = members
             };
         }
-        catch (Exception ex)
+        catch (MsalException ex)
         {
-            _logger.LogError(ex, "Error handling GetGroupMembers request for group {GroupId}", request.GroupId);
+            _logger.LogError(ex, "Failed to handle GetGroupMembers for {GroupId}", request.GroupId);
 
             return new GetGroupMembersResponse
             {
                 Success = false,
-                ErrorCode = Anela.Heblo.Application.Shared.ErrorCodes.InternalServerError,
-                Members = new List<Anela.Heblo.Application.Features.UserManagement.Contracts.UserDto>()
+                ErrorCode = ErrorCodes.ConfigurationError,
+                Members = new List<UserDto>()
+            };
+        }
+        catch (Microsoft.Graph.Models.ODataErrors.ODataError ex)
+        {
+            _logger.LogError(ex, "Failed to handle GetGroupMembers for {GroupId}", request.GroupId);
+
+            return new GetGroupMembersResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.ExternalServiceError,
+                Members = new List<UserDto>()
+            };
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogError(ex, "Failed to handle GetGroupMembers for {GroupId}", request.GroupId);
+
+            return new GetGroupMembersResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.Forbidden,
+                Members = new List<UserDto>()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to handle GetGroupMembers for {GroupId}", request.GroupId);
+
+            return new GetGroupMembersResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.InternalServerError,
+                Members = new List<UserDto>()
             };
         }
     }

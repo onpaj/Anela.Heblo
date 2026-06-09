@@ -11,15 +11,14 @@ using Anela.Heblo.Application.Features.Leaflet.UseCases.UploadLeaflet;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[FeatureAuthorize(Feature.Marketing_Leaflet)]
 [ApiController]
 [Route("api/leaflet")]
-[Authorize(Roles = AccessRoles.LeafletRead)]
 public class LeafletController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -30,7 +29,7 @@ public class LeafletController : BaseApiController
     }
 
     [HttpPost("generate")]
-    [Authorize(Roles = AccessRoles.LeafletWrite)]
+    [FeatureAuthorize(Feature.Marketing_Leaflet, AccessLevel.Write)]
     [ProducesResponseType(typeof(GenerateLeafletResponse), 200)]
     [ProducesResponseType(typeof(ProblemDetails), 400)]
     [ProducesResponseType(typeof(ProblemDetails), 422)]
@@ -106,7 +105,7 @@ public class LeafletController : BaseApiController
     }
 
     [HttpDelete("documents/{id:guid}")]
-    [Authorize(Roles = AccessRoles.LeafletWrite)]
+    [FeatureAuthorize(Feature.Marketing_Leaflet, AccessLevel.Write)]
     public async Task<ActionResult<DeleteLeafletDocumentResponse>> DeleteDocument(Guid id, CancellationToken ct)
     {
         var result = await _mediator.Send(new DeleteLeafletDocumentRequest { DocumentId = id }, ct);
@@ -114,7 +113,7 @@ public class LeafletController : BaseApiController
     }
 
     [HttpPost("documents/upload")]
-    [Authorize(Roles = AccessRoles.LeafletWrite)]
+    [FeatureAuthorize(Feature.Marketing_Leaflet, AccessLevel.Write)]
     public async Task<ActionResult<UploadLeafletResponse>> UploadDocument(
         IFormFile file,
         CancellationToken ct = default)
@@ -145,7 +144,7 @@ public class LeafletController : BaseApiController
     }
 
     [HttpGet("feedback/list")]
-    [Authorize(Roles = AccessRoles.LeafletWrite)]
+    [FeatureAuthorize(Feature.Marketing_Leaflet, AccessLevel.Write)]
     public async Task<ActionResult<GetLeafletFeedbackListResponse>> GetFeedbackList(
         [FromQuery] bool? hasFeedback = null,
         [FromQuery] string? userId = null,

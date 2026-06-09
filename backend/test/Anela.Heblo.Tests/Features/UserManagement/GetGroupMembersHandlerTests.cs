@@ -1,9 +1,11 @@
 using Xunit;
 using Moq;
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Client;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
+using Anela.Heblo.Application.Shared;
 
 namespace Anela.Heblo.Tests.Features.UserManagement;
 
@@ -62,7 +64,7 @@ public class GetGroupMembersHandlerTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.NotNull(result.ErrorCode);
+        Assert.Equal(ErrorCodes.InternalServerError, result.ErrorCode);
         Assert.Empty(result.Members);
     }
 
@@ -85,5 +87,81 @@ public class GetGroupMembersHandlerTests
         Assert.True(result.Success);
         Assert.Empty(result.Members);
         _mockGraphService.Verify(x => x.GetGroupMembersAsync(groupId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenGraphServiceThrowsMsalException_ReturnsConfigurationError()
+    {
+        // Arrange
+        var groupId = "test-group-id";
+        var request = new GetGroupMembersRequest { GroupId = groupId };
+        _mockGraphService
+            .Setup(x => x.GetGroupMembersAsync(groupId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new MsalUiRequiredException("error_code", "Token acquisition failed"));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.ConfigurationError, result.ErrorCode);
+        Assert.Empty(result.Members);
+    }
+
+    [Fact]
+    public async Task Handle_WhenGraphServiceThrowsODataError_ReturnsExternalServiceError()
+    {
+        // Arrange
+        var groupId = "test-group-id";
+        var request = new GetGroupMembersRequest { GroupId = groupId };
+        _mockGraphService
+            .Setup(x => x.GetGroupMembersAsync(groupId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Microsoft.Graph.Models.ODataErrors.ODataError());
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.ExternalServiceError, result.ErrorCode);
+        Assert.Empty(result.Members);
+    }
+
+    [Fact]
+    public async Task Handle_WhenGraphServiceThrowsUnauthorizedAccessException_ReturnsForbidden()
+    {
+        // Arrange
+        var groupId = "test-group-id";
+        var request = new GetGroupMembersRequest { GroupId = groupId };
+        _mockGraphService
+            .Setup(x => x.GetGroupMembersAsync(groupId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new UnauthorizedAccessException("Access denied"));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.Forbidden, result.ErrorCode);
+        Assert.Empty(result.Members);
+    }
+
+    [Fact]
+    public async Task Handle_WhenGroupIsEmpty_ReturnsSuccessWithEmptyMembers()
+    {
+        // Arrange
+        var groupId = "test-group-id";
+        var request = new GetGroupMembersRequest { GroupId = groupId };
+        _mockGraphService
+            .Setup(x => x.GetGroupMembersAsync(groupId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<UserDto>());
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Empty(result.Members);
+        Assert.Null(result.ErrorCode);
     }
 }

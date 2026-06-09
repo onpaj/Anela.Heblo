@@ -22,7 +22,7 @@ public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticatio
     {
         var identityClaims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, "mock-user-id"),
+            new Claim(ClaimTypes.NameIdentifier, "00000000-0000-0000-0000-000000000000"),
             new Claim(ClaimTypes.Name, "Mock User"),
             new Claim(ClaimTypes.Email, "mock@anela-heblo.com"),
             new Claim("preferred_username", "mock@anela-heblo.com"),

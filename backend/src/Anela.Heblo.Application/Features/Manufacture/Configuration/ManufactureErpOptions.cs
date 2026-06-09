@@ -10,4 +10,11 @@ public class ManufactureErpOptions
     /// Defaults to 60 seconds. Set to 0 to disable the application-level timeout.
     /// </summary>
     public int ErpTimeoutSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// Entra ID group identifier consumed by GetManufactureSettings to gate
+    /// "responsible person" workflows on the frontend. Bound from configuration
+    /// key "ManufactureErp:ManufactureGroupId" (env var "ManufactureErp__ManufactureGroupId").
+    /// </summary>
+    public string? ManufactureGroupId { get; set; }
 }

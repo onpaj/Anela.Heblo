@@ -33,12 +33,12 @@ public class CreateGroupHandlerTests
         {
             Name = "Custom",
             Description = "desc",
-            Permissions = new() { "catalog.read", "journal.read" },
+            Permissions = new() { "products.catalog.read", "products.journal.read" },
         }, default);
 
         result.Success.Should().BeTrue();
         var saved = await db.PermissionGroups.Include(g => g.Permissions).SingleAsync();
-        saved.Permissions.Select(p => p.PermissionValue).Should().BeEquivalentTo(new[] { "catalog.read", "journal.read" });
+        saved.Permissions.Select(p => p.PermissionValue).Should().BeEquivalentTo(new[] { "products.catalog.read", "products.journal.read" });
     }
 
     [Fact]

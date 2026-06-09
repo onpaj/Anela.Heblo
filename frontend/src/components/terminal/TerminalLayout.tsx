@@ -22,7 +22,7 @@ const TerminalLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background-gray">
-      <header className="h-14 sticky top-0 z-10 bg-white border-b border-border-light flex items-center px-4 gap-3">
+      <header className="relative h-14 sticky top-0 z-10 bg-white border-b border-border-light flex items-center px-4 gap-3">
         {!isHome && (
           <button
             onClick={() => navigate(-1)}

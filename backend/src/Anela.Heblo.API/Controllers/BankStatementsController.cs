@@ -5,14 +5,13 @@ using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementList;
 using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[FeatureAuthorize(Feature.Customer_BankStatements)]
 [ApiController]
 [Route("api/bank-statements")]
-[Authorize(Roles = AccessRoles.BankStatementsRead)]
 public class BankStatementsController : BaseApiController
 {
     private readonly IMediator _mediator;

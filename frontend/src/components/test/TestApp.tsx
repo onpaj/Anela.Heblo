@@ -7,6 +7,7 @@ import Layout from "../Layout/Layout";
 import Dashboard from "../pages/Dashboard";
 import AuthGuard from "../auth/AuthGuard";
 import { ChangelogProvider } from "../../contexts/ChangelogContext";
+import { PermissionsProvider } from "../../auth/PermissionsContext";
 import "../../i18n";
 
 // Test version of App component with mocked configuration
@@ -55,9 +56,11 @@ function TestApp() {
           <MsalProvider instance={msalInstance}>
             <Router>
               <AuthGuard>
-                <Layout>
-                  <Dashboard />
-                </Layout>
+                <PermissionsProvider isAuthenticated={true}>
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                </PermissionsProvider>
               </AuthGuard>
             </Router>
           </MsalProvider>

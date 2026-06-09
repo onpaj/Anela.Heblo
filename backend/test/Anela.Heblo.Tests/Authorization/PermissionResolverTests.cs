@@ -36,7 +36,7 @@ public class PermissionResolverTests
     {
         await using var db = NewDb();
         var group = new PermissionGroup { Id = Guid.NewGuid(), Name = "G", CreatedAt = DateTimeOffset.UtcNow };
-        group.Permissions.Add(new GroupPermission { GroupId = group.Id, PermissionValue = "catalog.read" });
+        group.Permissions.Add(new GroupPermission { GroupId = group.Id, PermissionValue = "products.catalog.read" });
         db.PermissionGroups.Add(group);
         var user = new AppUser { Id = Guid.NewGuid(), EntraObjectId = "oid-2", Email = "x", DisplayName = "X", IsActive = true, CreatedAt = DateTimeOffset.UtcNow };
         user.UserGroups.Add(new UserGroup { UserId = user.Id, GroupId = group.Id });
@@ -45,7 +45,7 @@ public class PermissionResolverTests
 
         var result = await NewResolver(db).ResolveAsync("oid-2", "x", "X");
 
-        result.Permissions.Should().BeEquivalentTo(new[] { "heblo_user", "catalog.read" });
+        result.Permissions.Should().BeEquivalentTo(new[] { "heblo_user", "products.catalog.read" });
         result.Groups.Should().BeEquivalentTo(new[] { "G" });
     }
 

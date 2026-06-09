@@ -1,20 +1,22 @@
+using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using MediatR;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureSettings;
 
 public class GetManufactureSettingsHandler
     : IRequestHandler<GetManufactureSettingsRequest, GetManufactureSettingsResponse>
 {
-    private readonly IConfiguration _configuration;
+    private readonly ManufactureErpOptions _options;
     private readonly ILogger<GetManufactureSettingsHandler> _logger;
 
     public GetManufactureSettingsHandler(
-        IConfiguration configuration,
+        IOptions<ManufactureErpOptions> options,
         ILogger<GetManufactureSettingsHandler> logger)
     {
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(options);
+        _options = options.Value;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -22,11 +24,9 @@ public class GetManufactureSettingsHandler
         GetManufactureSettingsRequest request,
         CancellationToken cancellationToken)
     {
-        var groupId = _configuration[ManufactureConfigurationKeys.GroupId];
-        if (string.IsNullOrEmpty(groupId))
-        {
-            groupId = null;
-        }
+        var groupId = string.IsNullOrWhiteSpace(_options.ManufactureGroupId)
+            ? null
+            : _options.ManufactureGroupId;
 
         _logger.LogDebug("GetManufactureSettings resolved ManufactureGroupId hasValue={HasValue}", groupId is not null);
 
