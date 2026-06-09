@@ -32,13 +32,13 @@ public class GetMeHandlerTests
         currentUser.Setup(c => c.IsInRole(AccessRoles.SuperUser)).Returns(false);
         var resolver = new Mock<IPermissionResolver>();
         resolver.Setup(r => r.ResolveAsync("oid-1", "a@x.cz", "Al", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EffectivePermissions(false, new[] { "heblo_user", "catalog.read" }, new[] { "Marketer" }));
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "heblo_user", "products.catalog.read" }, new[] { "Marketer" }));
 
         var handler = new GetMeHandler(currentUser.Object, resolver.Object);
         var result = await handler.Handle(new GetMeRequest(), default);
 
         result.IsSuperUser.Should().BeFalse();
-        result.Permissions.Should().BeEquivalentTo(new[] { "heblo_user", "catalog.read" });
+        result.Permissions.Should().BeEquivalentTo(new[] { "heblo_user", "products.catalog.read" });
         result.Groups.Should().BeEquivalentTo(new[] { "Marketer" });
         result.Email.Should().Be("a@x.cz");
     }

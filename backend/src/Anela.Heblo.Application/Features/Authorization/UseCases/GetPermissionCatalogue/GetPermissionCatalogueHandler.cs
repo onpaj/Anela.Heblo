@@ -13,7 +13,7 @@ public class GetPermissionCatalogueHandler
             Permissions = AccessMatrix.AllRoleValues().ToList(),
             Features = AccessMatrix.Features.Select(f => new CatalogueFeatureDto
             {
-                Key = f.Key.ToString(),
+                Key = PermissionString.Format(f.Key, AccessLevel.Read)[..^".read".Length],
                 Label = f.Label,
                 Section = f.Key.ToString().Split('_')[0],
                 HasWrite = f.HasWrite,

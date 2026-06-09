@@ -1,11 +1,13 @@
 using Anela.Heblo.Application.Features.Authorization.UseCases.DeleteGroup;
 using Anela.Heblo.Application.Features.Authorization.UseCases.UpdateGroup;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Authorization.Entities;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Features.Authorization;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Authorization;
@@ -30,7 +32,7 @@ public class UpdateDeleteGroupHandlerTests
     {
         await using var db = NewDb();
         var g = await SeedGroup(db);
-        var handler = new UpdateGroupHandler(new AuthorizationRepository(db));
+        var handler = new UpdateGroupHandler(new AuthorizationRepository(db), Substitute.For<IPermissionResolver>());
 
         var result = await handler.Handle(new UpdateGroupRequest
         {
@@ -50,7 +52,7 @@ public class UpdateDeleteGroupHandlerTests
     public async Task Update_NotFound_ReturnsNotFound()
     {
         await using var db = NewDb();
-        var handler = new UpdateGroupHandler(new AuthorizationRepository(db));
+        var handler = new UpdateGroupHandler(new AuthorizationRepository(db), Substitute.For<IPermissionResolver>());
 
         var result = await handler.Handle(new UpdateGroupRequest
         {

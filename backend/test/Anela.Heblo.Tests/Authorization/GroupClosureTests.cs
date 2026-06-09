@@ -17,18 +17,18 @@ public class GroupClosureTests
     [Fact]
     public void Resolve_UnionsDirectGroupPermissions()
     {
-        var perms = new[] { Perm(A, "catalog.read"), Perm(B, "journal.read") };
+        var perms = new[] { Perm(A, "products.catalog.read"), Perm(B, "products.journal.read") };
         var result = GroupClosure.Resolve(new[] { A }, perms, Array.Empty<GroupParent>());
-        result.Should().BeEquivalentTo(new[] { "catalog.read" });
+        result.Should().BeEquivalentTo(new[] { "products.catalog.read" });
     }
 
     [Fact]
     public void Resolve_IncludesParentPermissions()
     {
-        var perms = new[] { Perm(A, "catalog.read"), Perm(B, "journal.read") };
+        var perms = new[] { Perm(A, "products.catalog.read"), Perm(B, "products.journal.read") };
         var parents = new[] { Parent(A, B) }; // A inherits B
         var result = GroupClosure.Resolve(new[] { A }, perms, parents);
-        result.Should().BeEquivalentTo(new[] { "catalog.read", "journal.read" });
+        result.Should().BeEquivalentTo(new[] { "products.catalog.read", "products.journal.read" });
     }
 
     [Fact]

@@ -22,7 +22,7 @@ public class PermissionClaimsTransformationTests
         var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
         resolver
             .Setup(r => r.ResolveAsync(oid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, Array.Empty<string>()));
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "products.catalog.read" }, Array.Empty<string>()));
         var sut = new PermissionClaimsTransformation(resolver.Object);
         var principal = Principal(
             new Claim("oid", oid),
@@ -62,15 +62,15 @@ public class PermissionClaimsTransformationTests
         var resolver = new Mock<IPermissionResolver>();
         resolver
             .Setup(r => r.ResolveAsync("oid-1", It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EffectivePermissions(false, new[] { "heblo_user", "catalog.read" }, new[] { "G" }));
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "heblo_user", "products.catalog.read" }, new[] { "G" }));
         var sut = new PermissionClaimsTransformation(resolver.Object);
         var principal = Principal(new Claim("oid", "oid-1"));
 
         var result = await sut.TransformAsync(principal);
 
-        result.IsInRole("catalog.read").Should().BeTrue();
+        result.IsInRole("products.catalog.read").Should().BeTrue();
         result.IsInRole("heblo_user").Should().BeTrue();
-        result.IsInRole("journal.read").Should().BeFalse();
+        result.IsInRole("products.journal.read").Should().BeFalse();
     }
 
     [Fact]
@@ -79,14 +79,14 @@ public class PermissionClaimsTransformationTests
         var resolver = new Mock<IPermissionResolver>();
         resolver
             .Setup(r => r.ResolveAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, Array.Empty<string>()));
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "products.catalog.read" }, Array.Empty<string>()));
         var sut = new PermissionClaimsTransformation(resolver.Object);
         var principal = Principal(new Claim("oid", "oid-1"));
 
         var once = await sut.TransformAsync(principal);
         var twice = await sut.TransformAsync(once);
 
-        twice.Claims.Count(c => c.Type == ClaimTypes.Role && c.Value == "catalog.read").Should().Be(1);
+        twice.Claims.Count(c => c.Type == ClaimTypes.Role && c.Value == "products.catalog.read").Should().Be(1);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public class PermissionClaimsTransformationTests
         var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
         resolver
             .Setup(r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, new[] { "G" }));
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "products.catalog.read" }, new[] { "G" }));
 
         var sut = new PermissionClaimsTransformation(resolver.Object);
         var principal = Principal(
@@ -123,7 +123,7 @@ public class PermissionClaimsTransformationTests
 
         var result = await sut.TransformAsync(principal);
 
-        result.IsInRole("catalog.read").Should().BeTrue();
+        result.IsInRole("products.catalog.read").Should().BeTrue();
         resolver.Verify(
             r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -141,7 +141,7 @@ public class PermissionClaimsTransformationTests
         var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
         resolver
             .Setup(r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, new[] { "G" }));
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "products.catalog.read" }, new[] { "G" }));
 
         var sut = new PermissionClaimsTransformation(resolver.Object);
         var principal = Principal(
@@ -150,7 +150,7 @@ public class PermissionClaimsTransformationTests
 
         var result = await sut.TransformAsync(principal);
 
-        result.IsInRole("catalog.read").Should().BeTrue();
+        result.IsInRole("products.catalog.read").Should().BeTrue();
         resolver.Verify(
             r => r.ResolveAsync(realOid, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -172,7 +172,7 @@ public class PermissionClaimsTransformationTests
         var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
         resolver
             .Setup(r => r.ResolveAsync(oid, upn, displayName, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, Array.Empty<string>()));
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "products.catalog.read" }, Array.Empty<string>()));
 
         var sut = new PermissionClaimsTransformation(resolver.Object);
         // Mimic Microsoft.Identity.Web Web API: NameClaimType = "preferred_username", so
@@ -210,14 +210,14 @@ public class PermissionClaimsTransformationTests
         var resolver = new Mock<IPermissionResolver>(MockBehavior.Strict);
         resolver
             .Setup(r => r.ResolveAsync(mockIdentifier, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EffectivePermissions(false, new[] { "catalog.read" }, Array.Empty<string>()));
+            .ReturnsAsync(new EffectivePermissions(false, new[] { "products.catalog.read" }, Array.Empty<string>()));
 
         var sut = new PermissionClaimsTransformation(resolver.Object);
         var principal = Principal(new Claim(ClaimTypes.NameIdentifier, mockIdentifier));
 
         var result = await sut.TransformAsync(principal);
 
-        result.IsInRole("catalog.read").Should().BeTrue();
+        result.IsInRole("products.catalog.read").Should().BeTrue();
         resolver.Verify(
             r => r.ResolveAsync(mockIdentifier, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
             Times.Once);

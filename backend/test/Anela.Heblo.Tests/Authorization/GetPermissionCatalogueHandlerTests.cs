@@ -16,6 +16,6 @@ public class GetPermissionCatalogueHandlerTests
         result.Success.Should().BeTrue();
         result.Permissions.Should().BeEquivalentTo(AccessMatrix.AllRoleValues());
         result.SystemGroups.Select(g => g.Name).Should().BeEquivalentTo(AccessMatrix.Groups.Select(g => g.Name));
-        result.Features.Should().Contain(f => f.Key == "Products_Catalog" && f.HasWrite);
+        result.Features.Should().Contain(f => f.Key == "products.catalog" && f.HasWrite);
     }
 }

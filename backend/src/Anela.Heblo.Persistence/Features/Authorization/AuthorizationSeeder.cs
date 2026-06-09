@@ -40,8 +40,14 @@ public static class AuthorizationSeeder
                 group.Permissions.Remove(remove);
         }
 
+        var seededGroupIds = AccessMatrix.Groups
+            .Select(g => g.Name)
+            .Where(existingByName.ContainsKey)
+            .Select(name => existingByName[name].Id)
+            .ToHashSet();
+
         var orphans = await db.GroupPermissions
-            .Where(p => !validPermissions.Contains(p.PermissionValue))
+            .Where(p => seededGroupIds.Contains(p.GroupId) && !validPermissions.Contains(p.PermissionValue))
             .ToListAsync(ct);
         db.GroupPermissions.RemoveRange(orphans);
 
