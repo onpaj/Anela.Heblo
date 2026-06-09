@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { Carriers } from "../../../api/generated/api-client";
+import { CARRIER_LABELS } from "../../../constants/carrierLabels";
 
 export interface FilterValues {
   orderCode: string;
   customerName: string;
   packageNumber: string;
-  shippingProviderCode: string;
+  carrier: string;
   fromDate: string;
   toDate: string;
 }
@@ -19,7 +21,7 @@ export function ZasilkyFilters({ value, onChange }: Props) {
 
   const update =
     (k: keyof FilterValues) =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setLocal((prev) => ({ ...prev, [k]: e.target.value }));
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,12 +50,20 @@ export function ZasilkyFilters({ value, onChange }: Props) {
           value={local.packageNumber}
           onChange={update("packageNumber")}
         />
-        <input
-          className="px-3 py-2 border rounded"
-          placeholder="Dopravce (kód)"
-          value={local.shippingProviderCode}
-          onChange={update("shippingProviderCode")}
-        />
+        <select
+          className="px-3 py-2 border rounded bg-white"
+          value={local.carrier}
+          onChange={update("carrier")}
+        >
+          <option value="">Všichni dopravci</option>
+          {(Object.entries(CARRIER_LABELS) as [Carriers, string][]).map(
+            ([code, label]) => (
+              <option key={code} value={code}>
+                {label}
+              </option>
+            ),
+          )}
+        </select>
         <input
           type="date"
           className="px-3 py-2 border rounded"
