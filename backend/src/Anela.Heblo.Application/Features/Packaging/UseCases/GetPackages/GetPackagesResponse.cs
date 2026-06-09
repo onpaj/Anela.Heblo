@@ -24,4 +24,5 @@ public class PackageDto
     public string? ShippingProviderName { get; set; }
     public DateTimeOffset PackedAt { get; set; }
     public string? PackedBy { get; set; }
+    public Guid? PackedByUserId { get; set; }
 }

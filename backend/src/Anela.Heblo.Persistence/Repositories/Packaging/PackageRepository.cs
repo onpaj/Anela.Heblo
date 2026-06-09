@@ -13,7 +13,7 @@ public class PackageRepository : IPackageRepository
         string? orderCode,
         string? customerName,
         string? packageNumber,
-        string? shippingProviderCode,
+        IReadOnlyList<string>? shippingProviderCodes,
         DateTime? fromDate,
         DateTime? toDate,
         int pageNumber,
@@ -30,8 +30,8 @@ public class PackageRepository : IPackageRepository
             q = q.Where(p => EF.Functions.ILike(p.CustomerName, $"%{EscapeLike(customerName)}%", "\\"));
         if (!string.IsNullOrWhiteSpace(packageNumber))
             q = q.Where(p => EF.Functions.ILike(p.PackageNumber, $"%{EscapeLike(packageNumber)}%", "\\"));
-        if (!string.IsNullOrWhiteSpace(shippingProviderCode))
-            q = q.Where(p => p.ShippingProviderCode == shippingProviderCode);
+        if (shippingProviderCodes != null)
+            q = q.Where(p => shippingProviderCodes.Contains(p.ShippingProviderCode));
         if (fromDate.HasValue)
             q = q.Where(p => p.PackedAt >= new DateTimeOffset(DateTime.SpecifyKind(fromDate.Value, DateTimeKind.Utc)));
         if (toDate.HasValue)

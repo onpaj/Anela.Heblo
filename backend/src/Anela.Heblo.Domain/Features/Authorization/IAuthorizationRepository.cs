@@ -10,6 +10,7 @@ public interface IAuthorizationRepository
     Task<AppUser> AddUserAsync(AppUser user, CancellationToken ct = default);
     Task<AppUser?> GetUserByIdAsync(Guid id, CancellationToken ct = default);
     Task<List<AppUser>> GetAllUsersAsync(CancellationToken ct = default);
+    Task<List<AppUser>> GetActivePackingUsersAsync(CancellationToken ct = default);
 
     // Groups
     Task<List<PermissionGroup>> GetAllGroupsAsync(CancellationToken ct = default);

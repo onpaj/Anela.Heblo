@@ -1180,6 +1180,85 @@ export class ApiClient {
         return Promise.resolve<SetUserActiveResponse>(null as any);
     }
 
+    authorization_CreateLocalUser(request: CreateLocalUserRequest): Promise<CreateLocalUserResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/users/local";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_CreateLocalUser(_response);
+        });
+    }
+
+    protected processAuthorization_CreateLocalUser(response: Response): Promise<CreateLocalUserResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateLocalUserResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateLocalUserResponse>(null as any);
+    }
+
+    authorization_SetCanPack(id: string, request: SetUserCanPackRequest): Promise<SetUserCanPackResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/users/{id}/can-pack";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_SetCanPack(_response);
+        });
+    }
+
+    protected processAuthorization_SetCanPack(response: Response): Promise<SetUserCanPackResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SetUserCanPackResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SetUserCanPackResponse>(null as any);
+    }
+
     backgroundRefresh_GetRegisteredTasks(): Promise<RefreshTaskDto[]> {
         let url_ = this.baseUrl + "/api/BackgroundRefresh/tasks";
         url_ = url_.replace(/[?&]$/, "");
@@ -8352,16 +8431,20 @@ export class ApiClient {
         return Promise.resolve<OrgChartResponse>(null as any);
     }
 
-    packaging_ScanOrder(orderCode: string): Promise<ScanPackingOrderResponse> {
+    packaging_ScanOrder(orderCode: string, body: ScanOrderBody | undefined): Promise<ScanPackingOrderResponse> {
         let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/scan";
         if (orderCode === undefined || orderCode === null)
             throw new Error("The parameter 'orderCode' must be defined.");
         url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(body);
+
         let options_: RequestInit = {
+            body: content_,
             method: "POST",
             headers: {
+                "Content-Type": "application/json",
                 "Accept": "application/json"
             }
         };
@@ -8530,6 +8613,40 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetPackagesResponse>(null as any);
+    }
+
+    packaging_GetPackingUsers(): Promise<GetPackingUsersResponse> {
+        let url_ = this.baseUrl + "/api/packaging/packing-users";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_GetPackingUsers(_response);
+        });
+    }
+
+    protected processPackaging_GetPackingUsers(response: Response): Promise<GetPackingUsersResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPackingUsersResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPackingUsersResponse>(null as any);
     }
 
     packaging_DeletePackage(id: number): Promise<DeletePackageResponse> {
@@ -11320,6 +11437,40 @@ export class ApiClient {
             });
         }
         return Promise.resolve<CloseConversationResponse>(null as any);
+    }
+
+    smartsupp_RefreshOrphanContacts(): Promise<RefreshOrphanContactsResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/admin/refresh-orphan-contacts";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_RefreshOrphanContacts(_response);
+        });
+    }
+
+    protected processSmartsupp_RefreshOrphanContacts(response: Response): Promise<RefreshOrphanContactsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RefreshOrphanContactsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RefreshOrphanContactsResponse>(null as any);
     }
 
     smartsuppWebhookAudit_List(from: Date | null | undefined, to: Date | null | undefined, eventName: string | null | undefined, signatureStatus: SmartsuppWebhookSignatureStatus | null | undefined, processingStatus: SmartsuppWebhookProcessingStatus | null | undefined, skip: number | undefined, take: number | undefined): Promise<ListWebhookAuditResponse> {
@@ -15088,10 +15239,12 @@ export interface IAddGroupMemberResponse extends IBaseResponse {
 
 export class AppUserDto implements IAppUserDto {
     id?: string;
-    entraObjectId?: string;
+    entraObjectId?: string | undefined;
     email?: string;
     displayName?: string;
     isActive?: boolean;
+    source?: string;
+    canPack?: boolean;
     lastLoginAt?: Date | undefined;
     groupIds?: string[];
 
@@ -15111,6 +15264,8 @@ export class AppUserDto implements IAppUserDto {
             this.email = _data["email"];
             this.displayName = _data["displayName"];
             this.isActive = _data["isActive"];
+            this.source = _data["source"];
+            this.canPack = _data["canPack"];
             this.lastLoginAt = _data["lastLoginAt"] ? new Date(_data["lastLoginAt"].toString()) : <any>undefined;
             if (Array.isArray(_data["groupIds"])) {
                 this.groupIds = [] as any;
@@ -15134,6 +15289,8 @@ export class AppUserDto implements IAppUserDto {
         data["email"] = this.email;
         data["displayName"] = this.displayName;
         data["isActive"] = this.isActive;
+        data["source"] = this.source;
+        data["canPack"] = this.canPack;
         data["lastLoginAt"] = this.lastLoginAt ? this.lastLoginAt.toISOString() : <any>undefined;
         if (Array.isArray(this.groupIds)) {
             data["groupIds"] = [];
@@ -15146,10 +15303,12 @@ export class AppUserDto implements IAppUserDto {
 
 export interface IAppUserDto {
     id?: string;
-    entraObjectId?: string;
+    entraObjectId?: string | undefined;
     email?: string;
     displayName?: string;
     isActive?: boolean;
+    source?: string;
+    canPack?: boolean;
     lastLoginAt?: Date | undefined;
     groupIds?: string[];
 }
@@ -15509,6 +15668,142 @@ export class SetUserActiveRequest implements ISetUserActiveRequest {
 export interface ISetUserActiveRequest {
     userId?: string;
     isActive?: boolean;
+}
+
+export class CreateLocalUserResponse extends BaseResponse implements ICreateLocalUserResponse {
+    user?: AppUserDto | undefined;
+
+    constructor(data?: ICreateLocalUserResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.user = _data["user"] ? AppUserDto.fromJS(_data["user"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): CreateLocalUserResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateLocalUserResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["user"] = this.user ? this.user.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateLocalUserResponse extends IBaseResponse {
+    user?: AppUserDto | undefined;
+}
+
+export class CreateLocalUserRequest implements ICreateLocalUserRequest {
+    displayName?: string;
+
+    constructor(data?: ICreateLocalUserRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.displayName = _data["displayName"];
+        }
+    }
+
+    static fromJS(data: any): CreateLocalUserRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateLocalUserRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["displayName"] = this.displayName;
+        return data;
+    }
+}
+
+export interface ICreateLocalUserRequest {
+    displayName?: string;
+}
+
+export class SetUserCanPackResponse extends BaseResponse implements ISetUserCanPackResponse {
+
+    constructor(data?: ISetUserCanPackResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): SetUserCanPackResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetUserCanPackResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISetUserCanPackResponse extends IBaseResponse {
+}
+
+export class SetUserCanPackRequest implements ISetUserCanPackRequest {
+    userId?: string;
+    canPack?: boolean;
+
+    constructor(data?: ISetUserCanPackRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.userId = _data["userId"];
+            this.canPack = _data["canPack"];
+        }
+    }
+
+    static fromJS(data: any): SetUserCanPackRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetUserCanPackRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["userId"] = this.userId;
+        data["canPack"] = this.canPack;
+        return data;
+    }
+}
+
+export interface ISetUserCanPackRequest {
+    userId?: string;
+    canPack?: boolean;
 }
 
 export class RefreshTaskDto implements IRefreshTaskDto {
@@ -31916,6 +32211,42 @@ export interface IScanShipmentPackage {
     labelZpl?: string | undefined;
 }
 
+export class ScanOrderBody implements IScanOrderBody {
+    packingUserId?: string | undefined;
+
+    constructor(data?: IScanOrderBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.packingUserId = _data["packingUserId"];
+        }
+    }
+
+    static fromJS(data: any): ScanOrderBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new ScanOrderBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["packingUserId"] = this.packingUserId;
+        return data;
+    }
+}
+
+export interface IScanOrderBody {
+    packingUserId?: string | undefined;
+}
+
 export class ResetOrderShipmentResponse extends BaseResponse implements IResetOrderShipmentResponse {
     shipment?: ResetShipmentData | undefined;
 
@@ -32104,6 +32435,7 @@ export class PackageDto implements IPackageDto {
     shippingProviderName?: string | undefined;
     packedAt?: Date;
     packedBy?: string | undefined;
+    packedByUserId?: string | undefined;
 
     constructor(data?: IPackageDto) {
         if (data) {
@@ -32125,6 +32457,7 @@ export class PackageDto implements IPackageDto {
             this.shippingProviderName = _data["shippingProviderName"];
             this.packedAt = _data["packedAt"] ? new Date(_data["packedAt"].toString()) : <any>undefined;
             this.packedBy = _data["packedBy"];
+            this.packedByUserId = _data["packedByUserId"];
         }
     }
 
@@ -32146,6 +32479,7 @@ export class PackageDto implements IPackageDto {
         data["shippingProviderName"] = this.shippingProviderName;
         data["packedAt"] = this.packedAt ? this.packedAt.toISOString() : <any>undefined;
         data["packedBy"] = this.packedBy;
+        data["packedByUserId"] = this.packedByUserId;
         return data;
     }
 }
@@ -32160,6 +32494,88 @@ export interface IPackageDto {
     shippingProviderName?: string | undefined;
     packedAt?: Date;
     packedBy?: string | undefined;
+    packedByUserId?: string | undefined;
+}
+
+export class GetPackingUsersResponse extends BaseResponse implements IGetPackingUsersResponse {
+    users?: PackingUserDto[];
+
+    constructor(data?: IGetPackingUsersResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["users"])) {
+                this.users = [] as any;
+                for (let item of _data["users"])
+                    this.users!.push(PackingUserDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetPackingUsersResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPackingUsersResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.users)) {
+            data["users"] = [];
+            for (let item of this.users)
+                data["users"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPackingUsersResponse extends IBaseResponse {
+    users?: PackingUserDto[];
+}
+
+export class PackingUserDto implements IPackingUserDto {
+    id?: string;
+    displayName?: string;
+
+    constructor(data?: IPackingUserDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.displayName = _data["displayName"];
+        }
+    }
+
+    static fromJS(data: any): PackingUserDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackingUserDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["displayName"] = this.displayName;
+        return data;
+    }
+}
+
+export interface IPackingUserDto {
+    id?: string;
+    displayName?: string;
 }
 
 export class DeletePackageResponse extends BaseResponse implements IDeletePackageResponse {
@@ -38078,6 +38494,63 @@ export class CloseConversationResponse extends BaseResponse implements ICloseCon
 }
 
 export interface ICloseConversationResponse extends IBaseResponse {
+}
+
+export class RefreshOrphanContactsResponse extends BaseResponse implements IRefreshOrphanContactsResponse {
+    scanned?: number;
+    updated?: number;
+    skippedNoContactId?: number;
+    failed?: number;
+    failedIds?: string[];
+
+    constructor(data?: IRefreshOrphanContactsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.scanned = _data["scanned"];
+            this.updated = _data["updated"];
+            this.skippedNoContactId = _data["skippedNoContactId"];
+            this.failed = _data["failed"];
+            if (Array.isArray(_data["failedIds"])) {
+                this.failedIds = [] as any;
+                for (let item of _data["failedIds"])
+                    this.failedIds!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): RefreshOrphanContactsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RefreshOrphanContactsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["scanned"] = this.scanned;
+        data["updated"] = this.updated;
+        data["skippedNoContactId"] = this.skippedNoContactId;
+        data["failed"] = this.failed;
+        if (Array.isArray(this.failedIds)) {
+            data["failedIds"] = [];
+            for (let item of this.failedIds)
+                data["failedIds"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRefreshOrphanContactsResponse extends IBaseResponse {
+    scanned?: number;
+    updated?: number;
+    skippedNoContactId?: number;
+    failed?: number;
+    failedIds?: string[];
 }
 
 export class ListWebhookAuditResponse extends BaseResponse implements IListWebhookAuditResponse {

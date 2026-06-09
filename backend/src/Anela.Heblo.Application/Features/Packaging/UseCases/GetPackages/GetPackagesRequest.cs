@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Logistics;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
@@ -7,7 +8,7 @@ public class GetPackagesRequest : IRequest<GetPackagesResponse>
     public string? OrderCode { get; set; }
     public string? CustomerName { get; set; }
     public string? PackageNumber { get; set; }
-    public string? ShippingProviderCode { get; set; }
+    public Carriers? Carrier { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
     public int PageNumber { get; set; } = 1;
