@@ -21,11 +21,9 @@ export function PackingUserPicker() {
       <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-neutral-slate">Kdo balí?</h2>
-          {current && (
-            <button onClick={closePicker} aria-label="Zavřít" className="p-2 text-neutral-gray hover:text-neutral-slate">
-              <X className="h-5 w-5" />
-            </button>
-          )}
+          <button onClick={closePicker} aria-label="Zavřít" className="p-2 text-neutral-gray hover:text-neutral-slate">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {(users?.length ?? 0) > 8 && (
