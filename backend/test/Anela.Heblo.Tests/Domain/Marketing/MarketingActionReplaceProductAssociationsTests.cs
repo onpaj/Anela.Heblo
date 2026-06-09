@@ -64,5 +64,23 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             action.ProductAssociations.Should().HaveCount(1);
             action.ProductAssociations.Single().ProductCodePrefix.Should().Be("ABC");
         }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public void ReplaceProductAssociations_Throws_WhenSequenceContainsNullEmptyOrWhitespace(string? badEntry)
+        {
+            // Arrange
+            var action = CreateAction();
+
+            // Act
+            Action act = () =>
+                action.ReplaceProductAssociations(new[] { "GOOD", badEntry! }, UtcNow);
+
+            // Assert
+            act.Should().Throw<ArgumentException>()
+                .Which.ParamName.Should().Be("productCodes");
+        }
     }
 }
