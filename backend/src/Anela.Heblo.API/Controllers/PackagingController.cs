@@ -4,9 +4,7 @@ using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
-using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
@@ -16,7 +14,7 @@ public class ScanOrderBody
     public Guid? PackingUserId { get; set; }
 }
 
-[Authorize(Roles = AccessRoles.PackagingRead)]
+[FeatureAuthorize(Feature.Warehouse_Packaging)]
 [ApiController]
 [Route("api/packaging")]
 public class PackagingController : BaseApiController
@@ -33,7 +31,7 @@ public class PackagingController : BaseApiController
     /// Ineligible orders return success: true with eligibility.isEligible: false.
     /// </summary>
     [HttpPost("orders/{orderCode}/scan")]
-    [Authorize(Roles = AccessRoles.PackagingWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
     public async Task<ActionResult<ScanPackingOrderResponse>> ScanOrder(
         [FromRoute] string orderCode,
         [FromBody] ScanOrderBody? body,
@@ -49,7 +47,7 @@ public class PackagingController : BaseApiController
     /// Resets an order shipment: deletes the existing shipment and creates a new one.
     /// </summary>
     [HttpPost("orders/{orderCode}/shipment/reset")]
-    [Authorize(Roles = AccessRoles.PackagingWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
     public async Task<ActionResult<ResetOrderShipmentResponse>> ResetShipment(
         [FromRoute] string orderCode,
         CancellationToken cancellationToken)
@@ -104,7 +102,7 @@ public class PackagingController : BaseApiController
     }
 
     [HttpDelete("packages/{id:int}")]
-    [Authorize(Roles = AccessRoles.PackagingWrite)]
+    [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
     public async Task<ActionResult<DeletePackageResponse>> DeletePackage(
         [FromRoute] int id,
         CancellationToken cancellationToken)

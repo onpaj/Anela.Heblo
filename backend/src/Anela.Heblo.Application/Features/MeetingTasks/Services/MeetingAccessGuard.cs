@@ -2,6 +2,7 @@ using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.Users;
 
+
 namespace Anela.Heblo.Application.Features.MeetingTasks.Services;
 
 public class MeetingAccessGuard : IMeetingAccessGuard
@@ -13,7 +14,7 @@ public class MeetingAccessGuard : IMeetingAccessGuard
         _currentUserService = currentUserService;
     }
 
-    public bool IsManager() => _currentUserService.IsInRole(AuthorizationConstants.Roles.MeetingManager);
+    public bool IsManager() => _currentUserService.IsInRole(AccessRoles.AnelaMeetingsWrite);
 
     public bool CanAccess(MeetingTranscript transcript)
     {

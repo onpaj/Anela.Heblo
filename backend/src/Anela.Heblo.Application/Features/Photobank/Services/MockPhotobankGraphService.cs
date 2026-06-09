@@ -45,6 +45,6 @@ public class MockPhotobankGraphService : IPhotobankGraphService
             new MemoryStream(MinimalPng),
             "image/png",
             MinimalPng.Length);
-        return Task.FromResult(result);
+        return Task.FromResult<GraphThumbnail?>(result);
     }
 }
