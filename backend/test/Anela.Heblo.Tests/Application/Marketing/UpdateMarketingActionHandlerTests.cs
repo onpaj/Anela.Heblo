@@ -40,6 +40,14 @@ public class UpdateMarketingActionHandlerTests
         return action;
     }
 
+    private static MarketingAction BuildExistingActionWithCollections()
+    {
+        var action = BuildExistingAction();
+        action.AssociateWithProduct("OLD-PROD");
+        action.LinkToFolder("old-key", MarketingFolderType.General);
+        return action;
+    }
+
     private static UpdateMarketingActionRequest BuildRequest(int id = 42) => new()
     {
         Id = id,
@@ -286,5 +294,26 @@ public class UpdateMarketingActionHandlerTests
         _outlookSync.Verify(
             x => x.UpdateEventAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ClearsCollections_WhenRequestListsAreNull()
+    {
+        _repository
+            .Setup(x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildExistingActionWithCollections());
+
+        var request = BuildRequest();
+        request.AssociatedProducts = null;
+        request.FolderLinks = null;
+
+        var result = await BuildHandler().Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        _repository.Verify(x => x.UpdateAsync(
+            It.Is<MarketingAction>(a =>
+                a.ProductAssociations.Count == 0 &&
+                a.FolderLinks.Count == 0),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }
