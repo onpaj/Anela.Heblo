@@ -93,12 +93,12 @@ public class AuthorizationController : BaseApiController
     }
 
     [HttpPost("users/local")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult<CreateLocalUserResponse>> CreateLocalUser([FromBody] CreateLocalUserRequest request, CancellationToken ct)
         => HandleResponse(await _mediator.Send(request, ct));
 
     [HttpPut("users/{id:guid}/can-pack")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult<SetUserCanPackResponse>> SetCanPack([FromRoute] Guid id, [FromBody] SetUserCanPackRequest request, CancellationToken ct)
     {
         request.UserId = id;
