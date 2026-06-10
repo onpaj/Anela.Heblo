@@ -13,19 +13,14 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GetPackageLabelPdfHandler> _logger;
 
-    private const int LabelReadinessRetries = 5;
-    private readonly TimeSpan _labelReadinessDelay;
-
     public GetPackageLabelPdfHandler(
         IShipmentClient shipmentClient,
         IHttpClientFactory httpClientFactory,
-        ILogger<GetPackageLabelPdfHandler> logger,
-        TimeSpan? labelReadinessDelay = null)
+        ILogger<GetPackageLabelPdfHandler> logger)
     {
         _shipmentClient = shipmentClient;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _labelReadinessDelay = labelReadinessDelay ?? TimeSpan.FromSeconds(1);
     }
 
     public async Task<GetPackageLabelPdfResponse> Handle(GetPackageLabelPdfRequest request, CancellationToken ct)
@@ -48,22 +43,11 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
             return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelNotFound);
         }
 
-        // Carrier label generation may be briefly async after shipment creation — poll until ready.
-        for (var attempt = 0; attempt < LabelReadinessRetries && string.IsNullOrWhiteSpace(label.LabelUrl); attempt++)
-        {
-            await Task.Delay(_labelReadinessDelay, ct);
-            labels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
-            label = labels.ElementAtOrDefault(index);
-            if (label is null) break;
-        }
-
-        if (label is null || string.IsNullOrWhiteSpace(label.LabelUrl))
+        if (string.IsNullOrWhiteSpace(label.LabelUrl))
         {
             _logger.LogWarning(
-                "Label URL unavailable for order {OrderCode} package {PackageNumber} after {Retries} retries " +
-                "(label {Found}, LabelUrl empty)",
-                request.OrderCode, request.PackageNumber, LabelReadinessRetries,
-                label is null ? "missing" : "present");
+                "Label URL unavailable for order {OrderCode} package {PackageNumber} (single-shot check, LabelUrl empty)",
+                request.OrderCode, request.PackageNumber);
             return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelNotFound);
         }
 
