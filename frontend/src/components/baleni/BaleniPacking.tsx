@@ -32,9 +32,10 @@ interface OrderBodyProps {
   shipment: ScanShipment | null;
   isShowingDoneView: boolean;
   onDoneStateChange: (isDone: boolean) => void;
+  onPrintModalOpenChange: (isOpen: boolean) => void;
 }
 
-function OrderBody({ order, shipment, isShowingDoneView, onDoneStateChange }: OrderBodyProps) {
+function OrderBody({ order, shipment, isShowingDoneView, onDoneStateChange, onPrintModalOpenChange }: OrderBodyProps) {
   return (
     <>
       <PackingStateWarning order={order} />
@@ -51,6 +52,7 @@ function OrderBody({ order, shipment, isShowingDoneView, onDoneStateChange }: Or
         order={order}
         scanShipment={shipment}
         onDoneStateChange={onDoneStateChange}
+        onPrintModalOpenChange={onPrintModalOpenChange}
       />
       {!isShowingDoneView && (
         <>
@@ -70,6 +72,7 @@ function BaleniPacking() {
   const scanMutation = useScanPackingOrder();
   const [isShowingDoneView, setIsShowingDoneView] = useState(false);
   const [isMultiModalOpen, setIsMultiModalOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   useEffect(() => {
     if (!current) openPicker();
@@ -117,6 +120,7 @@ function BaleniPacking() {
           shipment={scanMutation.data.shipment}
           isShowingDoneView={isShowingDoneView}
           onDoneStateChange={setIsShowingDoneView}
+          onPrintModalOpenChange={setIsPrintModalOpen}
         />
       );
     }
@@ -154,7 +158,7 @@ function BaleniPacking() {
             onScan={handleScan}
             loading={scanMutation.isPending || !current}
             autoFocusOnMount
-            refocusOnBlur={!isMultiModalOpen}
+            refocusOnBlur={!isMultiModalOpen && !isPrintModalOpen}
             allowKeyboardToggle
           />
         </div>

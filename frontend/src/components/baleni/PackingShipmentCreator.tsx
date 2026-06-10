@@ -9,9 +9,10 @@ interface PackingShipmentCreatorProps {
   order: PackingOrder;
   scanShipment: ScanShipment | null;
   onDoneStateChange?: (isDone: boolean) => void;
+  onPrintModalOpenChange?: (isOpen: boolean) => void;
 }
 
-function PackingShipmentCreator({ order, scanShipment, onDoneStateChange }: PackingShipmentCreatorProps) {
+function PackingShipmentCreator({ order, scanShipment, onDoneStateChange, onPrintModalOpenChange }: PackingShipmentCreatorProps) {
   const [showDialog, setShowDialog] = useState(false);
   const [shipmentForPrint, setShipmentForPrint] = useState<ScanShipment | null>(null);
   const [printerIsDone, setPrinterIsDone] = useState(false);
@@ -38,6 +39,11 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange }: Pack
   useEffect(() => {
     onDoneStateChange?.(isShowingDoneView);
   }, [isShowingDoneView, onDoneStateChange]);
+
+  const isPrintModalOpen = shipmentForPrint?.pendingCompletion === true;
+  useEffect(() => {
+    onPrintModalOpenChange?.(isPrintModalOpen);
+  }, [isPrintModalOpen, onPrintModalOpenChange]);
 
   function handleReprint() {
     setShowDialog(false);
