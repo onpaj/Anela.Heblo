@@ -31,6 +31,12 @@ public interface IPackageRepository
     /// </summary>
     Task SetTrackingNumberAsync(int id, string trackingNumber, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Sets <paramref name="trackingNumber"/> on every package row for the given order
+    /// whose <see cref="Package.TrackingNumber"/> is currently null. No-ops if there are none.
+    /// </summary>
+    Task SetTrackingNumberByOrderCodeAsync(string orderCode, string trackingNumber, CancellationToken cancellationToken = default);
+
     Task<(int TotalDistinctOrders, IReadOnlyList<PackerPackingSummary> ByPacker)>
         GetPackedTodayByPackerAsync(DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct = default);
 }

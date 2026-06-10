@@ -95,6 +95,24 @@ public class PackageRepository : IPackageRepository
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task SetTrackingNumberByOrderCodeAsync(
+        string orderCode,
+        string trackingNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var packages = await _db.Packages
+            .Where(p => p.OrderCode == orderCode && p.TrackingNumber == null)
+            .ToListAsync(cancellationToken);
+
+        if (packages.Count == 0)
+            return;
+
+        foreach (var package in packages)
+            package.TrackingNumber = trackingNumber;
+
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<(int TotalDistinctOrders, IReadOnlyList<PackerPackingSummary> ByPacker)>
         GetPackedTodayByPackerAsync(DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct = default)
     {
