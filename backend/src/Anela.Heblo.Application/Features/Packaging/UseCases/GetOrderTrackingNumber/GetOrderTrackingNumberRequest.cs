@@ -4,5 +4,5 @@ namespace Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNu
 
 public class GetOrderTrackingNumberRequest : IRequest<GetOrderTrackingNumberResponse>
 {
-    public string OrderCode { get; set; } = null!;
+    public required string OrderCode { get; init; }
 }
