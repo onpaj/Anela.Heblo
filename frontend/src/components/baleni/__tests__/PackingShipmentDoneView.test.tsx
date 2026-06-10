@@ -129,11 +129,22 @@ describe('PackingShipmentDoneView', () => {
   });
 
   it('falls back to the package summary when resolvedTrackingNumber is null or empty', () => {
-    render(
+    const { unmount } = render(
       <PackingShipmentDoneView
         order={makeOrder()}
         shipment={makeShipment()}
         resolvedTrackingNumber={null}
+        onReprint={() => {}}
+      />
+    );
+    expect(screen.getByText('TR-1, TR-2')).toBeInTheDocument();
+    unmount();
+
+    render(
+      <PackingShipmentDoneView
+        order={makeOrder()}
+        shipment={makeShipment()}
+        resolvedTrackingNumber=""
         onReprint={() => {}}
       />
     );
