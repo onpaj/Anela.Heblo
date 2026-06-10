@@ -30,4 +30,7 @@ public interface IPackageRepository
     /// No-ops silently if the row no longer exists.
     /// </summary>
     Task SetTrackingNumberAsync(int id, string trackingNumber, CancellationToken cancellationToken = default);
+
+    Task<(int TotalDistinctOrders, IReadOnlyList<PackerPackingSummary> ByPacker)>
+        GetPackedTodayByPackerAsync(DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct = default);
 }
