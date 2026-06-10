@@ -23,7 +23,7 @@ using Anela.Heblo.Adapters.Cups;
 using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.API.PDFPrints;
 using Anela.Heblo.Application.Features.BackgroundJobs.Services;
-using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Adapters.FileSystem;
 using Anela.Heblo.API.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Shared.Printing;
@@ -425,7 +425,7 @@ public static class ServiceCollectionExtensions
                 });
                 break;
             default: // "FileSystem" or unset
-                services.AddScoped<IPrintQueueSink, FileSystemPrintQueueSink>();
+                services.AddFileSystemPrintQueueSink();
                 break;
         }
 
