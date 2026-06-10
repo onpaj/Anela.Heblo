@@ -191,9 +191,10 @@ export const useUpdateUser = () => {
       const client = getAuthenticatedApiClient();
       return client.authorization_UpdateUser(id, request);
     },
+    // Profile fields (display name, email, can-pack) don't affect effective
+    // permissions, so only the users list needs refreshing.
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keys.users });
-      queryClient.invalidateQueries({ queryKey: keys.userPermissionsPrefix, exact: false });
     },
   });
 };

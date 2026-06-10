@@ -57,26 +57,31 @@ export default function UserDetailPage() {
       toast.showError("Save failed", "Display name is required");
       return;
     }
-    try {
-      await Promise.all([
-        updateUser.mutateAsync({
-          id,
-          request: new UpdateUserRequest({
-            userId: id,
-            displayName: draft.displayName.trim(),
-            email: draft.email.trim(),
-            canPack: draft.canPack,
-          }),
+    const [profileResult, groupResult] = await Promise.allSettled([
+      updateUser.mutateAsync({
+        id,
+        request: new UpdateUserRequest({
+          userId: id,
+          displayName: draft.displayName.trim(),
+          email: draft.email.trim(),
+          canPack: draft.canPack,
         }),
-        assignUserGroups.mutateAsync({
-          id,
-          request: new AssignUserGroupsRequest({ userId: id, groupIds: draft.groupIds }),
-        }),
-      ]);
-      toast.showSuccess("Saved", "User updated successfully");
-    } catch {
-      toast.showError("Save failed", "An error occurred while saving changes");
+      }),
+      assignUserGroups.mutateAsync({
+        id,
+        request: new AssignUserGroupsRequest({ userId: id, groupIds: draft.groupIds }),
+      }),
+    ]);
+
+    const profileFailed = profileResult.status === "rejected";
+    const groupFailed = groupResult.status === "rejected";
+    if (profileFailed || groupFailed) {
+      const part =
+        profileFailed && groupFailed ? "changes" : profileFailed ? "profile" : "group assignment";
+      toast.showError("Save failed", `Could not save ${part}. Please try again.`);
+      return;
     }
+    toast.showSuccess("Saved", "User updated successfully");
   };
 
   const onToggleActive = async () => {
@@ -150,7 +155,7 @@ export default function UserDetailPage() {
               type="text"
               value={draft.displayName}
               onChange={(e) => updateDraft({ displayName: e.target.value })}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </label>
           <label className="block">
@@ -159,7 +164,7 @@ export default function UserDetailPage() {
               type="email"
               value={draft.email}
               onChange={(e) => updateDraft({ email: e.target.value })}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </label>
         </div>
@@ -169,7 +174,7 @@ export default function UserDetailPage() {
             type="checkbox"
             checked={draft.canPack}
             onChange={(e) => updateDraft({ canPack: e.target.checked })}
-            className="rounded border-gray-300"
+            className="rounded border-gray-300 accent-indigo-600"
           />
           <span className="text-sm text-gray-700">Can pack</span>
         </label>
