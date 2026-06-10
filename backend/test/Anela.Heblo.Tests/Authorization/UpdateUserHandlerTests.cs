@@ -106,4 +106,30 @@ public class UpdateUserHandlerTests
 
         resolverMock.Verify(r => r.InvalidateCache(user.EntraObjectId!), Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_DoesNotInvalidateCache_WhenLocalUser()
+    {
+        await using var db = NewDb();
+        var user = new AppUser
+        {
+            Id = Guid.NewGuid(),
+            EntraObjectId = null,          // Local operator
+            Email = "op@x.cz",
+            DisplayName = "Operator",
+            IsActive = true,
+            CanPack = false,
+            Source = AppUserSource.Local,
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+        db.AppUsers.Add(user);
+        await db.SaveChangesAsync();
+
+        var resolverMock = new Mock<IPermissionResolver>();
+        var handler = new UpdateUserHandler(new AuthorizationRepository(db), resolverMock.Object);
+
+        await handler.Handle(new UpdateUserRequest { UserId = user.Id, DisplayName = "Op" }, default);
+
+        resolverMock.Verify(r => r.InvalidateCache(It.IsAny<string>()), Times.Never);
+    }
 }
