@@ -524,6 +524,45 @@ public class ScanPackingOrderHandlerTests
             Times.Never);
     }
 
+    // Multi-package: Shoptet returns fewer labels than requested → response still has N packages
+    [Fact]
+    public async Task Handle_MultiPackage_ShoptetReturnsFewerLabelsThanRequested_ResponseHasNPackages()
+    {
+        var shipmentGuid = Guid.NewGuid();
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EligibleOrder(("P001", 1, 900)));
+
+        _shipmentClient
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([])
+            .ReturnsAsync(new List<ShipmentLabel>
+            {
+                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://c/1.pdf" },
+            }); // only 1 label ready, even though 3 were requested
+
+        _shipmentClient
+            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "1", Name = "PPL" }]);
+
+        _shipmentClient
+            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
+
+        var response = await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234", NumberOfPackages = 3 },
+            CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        response.Shipment!.Packages.Should().HaveCount(3);
+        response.Shipment.Packages[0].LabelUrl.Should().Be("https://c/1.pdf");
+        response.Shipment.Packages[1].Name.Should().Be("PKG-2");
+        response.Shipment.Packages[1].LabelUrl.Should().BeNull();
+        response.Shipment.Packages[2].Name.Should().Be("PKG-3");
+        response.Shipment.Packages[2].LabelUrl.Should().BeNull();
+    }
+
     // Multi-package: per-package weight is floored at MinPackageWeightGrams
     [Fact]
     public async Task Handle_MultiPackage_FloorsPerPackageWeightAtMinimum()
