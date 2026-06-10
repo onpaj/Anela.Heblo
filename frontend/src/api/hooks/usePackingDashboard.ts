@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../client";
+import { getApiBaseUrl, getAuthenticatedFetch } from "../client";
 
 export type PackerStatsDto = {
   packerId?: string;
@@ -21,14 +21,10 @@ export const usePackingDashboard = () =>
   useQuery({
     queryKey: packingDashboardKeys.all,
     queryFn: async (): Promise<GetPackingDashboardResponse> => {
-      const apiClient = getAuthenticatedApiClient() as any;
-      const fullUrl = `${apiClient.baseUrl}/api/packaging/dashboard`;
-
-      const response = await apiClient.http.fetch(fullUrl, {
+      const url = `${getApiBaseUrl()}/api/packaging/dashboard`;
+      const response = await getAuthenticatedFetch()(url, {
         method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
+        headers: { Accept: "application/json" },
       });
 
       if (!response.ok) {

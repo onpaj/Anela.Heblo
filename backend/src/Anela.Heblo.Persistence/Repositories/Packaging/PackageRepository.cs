@@ -72,28 +72,28 @@ public class PackageRepository : IPackageRepository
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<(int TotalDistinctOrders, IReadOnlyList<(Guid? PackedByUserId, string? PackedBy, int DistinctOrderCount)> ByPacker)>
+    public async Task<(int TotalDistinctOrders, IReadOnlyList<PackerPackingSummary> ByPacker)>
         GetPackedTodayByPackerAsync(DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct = default)
     {
-        // Npgsql requires UTC offset (0) when writing to timestamptz columns.
+        // Npgsql requires UTC-zero DateTimeOffset values for timestamptz comparisons.
         var from = fromUtc.ToUniversalTime();
         var to = toUtc.ToUniversalTime();
 
-        var rows = await _db.Packages
+        // SELECT DISTINCT (packer, orderCode) triples — far fewer rows than loading all packages.
+        var pairs = await _db.Packages
             .AsNoTracking()
             .Where(p => p.PackedAt >= from && p.PackedAt < to)
+            .Select(p => new { p.PackedByUserId, p.PackedBy, p.OrderCode })
+            .Distinct()
             .ToListAsync(ct);
 
-        var byPacker = rows
+        var byPacker = pairs
             .GroupBy(p => new { p.PackedByUserId, p.PackedBy })
-            .Select(g => (
-                PackedByUserId: g.Key.PackedByUserId,
-                PackedBy: g.Key.PackedBy,
-                DistinctOrderCount: g.Select(p => p.OrderCode).Distinct().Count()))
+            .Select(g => new PackerPackingSummary(g.Key.PackedByUserId, g.Key.PackedBy, g.Count()))
             .OrderByDescending(x => x.DistinctOrderCount)
             .ToList();
 
-        var total = rows.Select(p => p.OrderCode).Distinct().Count();
+        var total = pairs.Select(p => p.OrderCode).Distinct().Count();
 
         return (total, byPacker);
     }

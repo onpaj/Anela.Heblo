@@ -34,7 +34,7 @@ public class GetPackingDashboardHandlerTests
     private static GetPackingDashboardHandler MakeSut(
         out Mock<IPackageRepository> repo,
         out Mock<IPackingOrderClient> packingClient,
-        (int TotalDistinctOrders, IReadOnlyList<(Guid? PackedByUserId, string? PackedBy, int DistinctOrderCount)> ByPacker) repoResult,
+        (int TotalDistinctOrders, IReadOnlyList<PackerPackingSummary> ByPacker) repoResult,
         int shoptetCount = 5)
     {
         repo = new Mock<IPackageRepository>();
@@ -58,10 +58,10 @@ public class GetPackingDashboardHandlerTests
     {
         // Arrange
         var packerId = Guid.NewGuid();
-        var byPacker = new List<(Guid? PackedByUserId, string? PackedBy, int DistinctOrderCount)>
+        var byPacker = new List<PackerPackingSummary>
         {
-            (packerId, "Alice", 4),
-            (null, "Bob", 2),
+            new(packerId, "Alice", 4),
+            new(null, "Bob", 2),
         };
         var sut = MakeSut(out _, out _, (6, byPacker), shoptetCount: 3);
 
@@ -84,7 +84,7 @@ public class GetPackingDashboardHandlerTests
     public async Task Handle_PassesTodayWindowToRepository_InPragueTime()
     {
         // Arrange — today in Prague is 2026-06-10, offset +02:00
-        var sut = MakeSut(out var repo, out _, (0, Array.Empty<(Guid?, string?, int)>()), shoptetCount: 0);
+        var sut = MakeSut(out var repo, out _, (0, Array.Empty<PackerPackingSummary>()), shoptetCount: 0);
         var expectedStart = new DateTimeOffset(2026, 6, 10, 0, 0, 0, TimeSpan.FromHours(2));
         var expectedEnd = new DateTimeOffset(2026, 6, 11, 0, 0, 0, TimeSpan.FromHours(2));
 
@@ -99,7 +99,7 @@ public class GetPackingDashboardHandlerTests
     public async Task Handle_SetsOrdersBeingPackedCountToNull_WhenShoptetThrows()
     {
         // Arrange
-        var sut = MakeSut(out _, out var packingClient, (2, Array.Empty<(Guid?, string?, int)>()));
+        var sut = MakeSut(out _, out var packingClient, (2, Array.Empty<PackerPackingSummary>()));
         packingClient.Setup(c => c.GetOrdersBeingPackedCountAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Shoptet unreachable"));
 
@@ -116,10 +116,7 @@ public class GetPackingDashboardHandlerTests
     public async Task Handle_ShowsUnknownPackerName_WhenPackedByIsNull()
     {
         // Arrange
-        var byPacker = new List<(Guid? PackedByUserId, string? PackedBy, int DistinctOrderCount)>
-        {
-            (null, null, 1),
-        };
+        var byPacker = new List<PackerPackingSummary> { new(null, null, 1) };
         var sut = MakeSut(out _, out _, (1, byPacker));
 
         // Act
