@@ -18,4 +18,7 @@ public interface IPackageRepository
     Task<Package?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task AddAsync(Package package, CancellationToken cancellationToken = default);
     Task DeleteAsync(Package package, CancellationToken cancellationToken = default);
+
+    Task<(int TotalDistinctOrders, IReadOnlyList<(Guid? PackedByUserId, string? PackedBy, int DistinctOrderCount)> ByPacker)>
+        GetPackedTodayByPackerAsync(DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct = default);
 }

@@ -12,6 +12,11 @@ public interface IPackingOrderClient
     /// Returns the packing view of the order, or null if no order exists for the code.
     /// </summary>
     Task<PackingOrder?> GetPackingOrderAsync(string code, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the total count of orders currently in the configured packing state ("Balí se").
+    /// </summary>
+    Task<int> GetOrdersBeingPackedCountAsync(CancellationToken ct = default);
 }
 
 /// <summary>Packing view of an eshop order. Internal contract — not an API DTO.</summary>
