@@ -1180,6 +1180,47 @@ export class ApiClient {
         return Promise.resolve<SetUserActiveResponse>(null as any);
     }
 
+    authorization_UpdateUser(id: string, request: UpdateUserRequest): Promise<UpdateUserResponse> {
+        let url_ = this.baseUrl + "/api/admin/authorization/users/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAuthorization_UpdateUser(_response);
+        });
+    }
+
+    protected processAuthorization_UpdateUser(response: Response): Promise<UpdateUserResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateUserResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateUserResponse>(null as any);
+    }
+
     authorization_CreateLocalUser(request: CreateLocalUserRequest): Promise<CreateLocalUserResponse> {
         let url_ = this.baseUrl + "/api/admin/authorization/users/local";
         url_ = url_.replace(/[?&]$/, "");
@@ -8553,7 +8594,41 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
-    packaging_GetPackages(orderCode: string | null | undefined, customerName: string | null | undefined, packageNumber: string | null | undefined, shippingProviderCode: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPackagesResponse> {
+    packaging_GetDashboard(): Promise<GetPackingDashboardResponse> {
+        let url_ = this.baseUrl + "/api/packaging/dashboard";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_GetDashboard(_response);
+        });
+    }
+
+    protected processPackaging_GetDashboard(response: Response): Promise<GetPackingDashboardResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPackingDashboardResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPackingDashboardResponse>(null as any);
+    }
+
+    packaging_GetPackages(orderCode: string | null | undefined, customerName: string | null | undefined, packageNumber: string | null | undefined, carrier: Carriers | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPackagesResponse> {
         let url_ = this.baseUrl + "/api/packaging/packages?";
         if (orderCode !== undefined && orderCode !== null)
             url_ += "OrderCode=" + encodeURIComponent("" + orderCode) + "&";
@@ -8561,8 +8636,8 @@ export class ApiClient {
             url_ += "CustomerName=" + encodeURIComponent("" + customerName) + "&";
         if (packageNumber !== undefined && packageNumber !== null)
             url_ += "PackageNumber=" + encodeURIComponent("" + packageNumber) + "&";
-        if (shippingProviderCode !== undefined && shippingProviderCode !== null)
-            url_ += "ShippingProviderCode=" + encodeURIComponent("" + shippingProviderCode) + "&";
+        if (carrier !== undefined && carrier !== null)
+            url_ += "Carrier=" + encodeURIComponent("" + carrier) + "&";
         if (fromDate !== undefined && fromDate !== null)
             url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
         if (toDate !== undefined && toDate !== null)
@@ -12994,6 +13069,7 @@ export enum ErrorCodes {
     PackageLabelNotFound = "PackageLabelNotFound",
     PackageLabelDownloadFailed = "PackageLabelDownloadFailed",
     PackageNotFound = "PackageNotFound",
+    PackingUserNotEligible = "PackingUserNotEligible",
     CatalogDocumentInvalidTypeCode = "CatalogDocumentInvalidTypeCode",
     CatalogDocumentLotRequired = "CatalogDocumentLotRequired",
     CatalogDocumentFolderNotFound = "CatalogDocumentFolderNotFound",
@@ -15608,6 +15684,81 @@ export class SetUserActiveRequest implements ISetUserActiveRequest {
 export interface ISetUserActiveRequest {
     userId?: string;
     isActive?: boolean;
+}
+
+export class UpdateUserResponse extends BaseResponse implements IUpdateUserResponse {
+
+    constructor(data?: IUpdateUserResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): UpdateUserResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateUserResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateUserResponse extends IBaseResponse {
+}
+
+export class UpdateUserRequest implements IUpdateUserRequest {
+    userId?: string;
+    displayName?: string;
+    email?: string | undefined;
+    canPack?: boolean;
+
+    constructor(data?: IUpdateUserRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.userId = _data["userId"];
+            this.displayName = _data["displayName"];
+            this.email = _data["email"];
+            this.canPack = _data["canPack"];
+        }
+    }
+
+    static fromJS(data: any): UpdateUserRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateUserRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["userId"] = this.userId;
+        data["displayName"] = this.displayName;
+        data["email"] = this.email;
+        data["canPack"] = this.canPack;
+        return data;
+    }
+}
+
+export interface IUpdateUserRequest {
+    userId?: string;
+    displayName?: string;
+    email?: string | undefined;
+    canPack?: boolean;
 }
 
 export class CreateLocalUserResponse extends BaseResponse implements ICreateLocalUserResponse {
@@ -32310,6 +32461,99 @@ export interface IResetShipmentPackage {
     name?: string;
     labelUrl?: string | undefined;
     labelZpl?: string | undefined;
+}
+
+export class GetPackingDashboardResponse extends BaseResponse implements IGetPackingDashboardResponse {
+    ordersBeingPackedCount?: number | undefined;
+    totalOrdersPackedToday?: number;
+    packedByPacker?: PackerStatsDto[];
+
+    constructor(data?: IGetPackingDashboardResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.ordersBeingPackedCount = _data["ordersBeingPackedCount"];
+            this.totalOrdersPackedToday = _data["totalOrdersPackedToday"];
+            if (Array.isArray(_data["packedByPacker"])) {
+                this.packedByPacker = [] as any;
+                for (let item of _data["packedByPacker"])
+                    this.packedByPacker!.push(PackerStatsDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetPackingDashboardResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPackingDashboardResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["ordersBeingPackedCount"] = this.ordersBeingPackedCount;
+        data["totalOrdersPackedToday"] = this.totalOrdersPackedToday;
+        if (Array.isArray(this.packedByPacker)) {
+            data["packedByPacker"] = [];
+            for (let item of this.packedByPacker)
+                data["packedByPacker"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPackingDashboardResponse extends IBaseResponse {
+    ordersBeingPackedCount?: number | undefined;
+    totalOrdersPackedToday?: number;
+    packedByPacker?: PackerStatsDto[];
+}
+
+export class PackerStatsDto implements IPackerStatsDto {
+    packerId?: string | undefined;
+    packerName?: string;
+    orderCount?: number;
+
+    constructor(data?: IPackerStatsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.packerId = _data["packerId"];
+            this.packerName = _data["packerName"];
+            this.orderCount = _data["orderCount"];
+        }
+    }
+
+    static fromJS(data: any): PackerStatsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackerStatsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["packerId"] = this.packerId;
+        data["packerName"] = this.packerName;
+        data["orderCount"] = this.orderCount;
+        return data;
+    }
+}
+
+export interface IPackerStatsDto {
+    packerId?: string | undefined;
+    packerName?: string;
+    orderCount?: number;
 }
 
 export class GetPackagesResponse extends BaseResponse implements IGetPackagesResponse {
