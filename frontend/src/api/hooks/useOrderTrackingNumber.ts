@@ -7,7 +7,7 @@ interface ApiClientWithInternals {
 }
 
 const fetchOrderTrackingNumber = async (orderCode: string): Promise<string | null> => {
-  const apiClient = (await getAuthenticatedApiClient(false)) as unknown as ApiClientWithInternals;
+  const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
   const response = await apiClient.http.fetch(
     `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/tracking-number`,
   );
