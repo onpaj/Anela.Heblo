@@ -291,6 +291,10 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
 
         "Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder.CompletePackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IEshopOrderClient",
+
+        // GetPackingDashboardHandler fetches the orders-being-packed count via IPackingOrderClient.
+        // Same pattern as ScanPackingOrderHandler / ResetOrderShipmentHandler above.
+        "Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard.GetPackingDashboardHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
     };
 
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
