@@ -3,6 +3,7 @@ import { printLabelPdf } from './printLabelPdf';
 import type { PackingOrder, ScanShipment } from '../../api/hooks/useScanPackingOrder';
 import type { ShipmentLabelDto } from '../../api/generated/api-client';
 import PackingShipmentDoneView from './PackingShipmentDoneView';
+import { useOrderTrackingNumber } from '../../api/hooks/useOrderTrackingNumber';
 
 interface PackingLabelPrinterProps {
   order: PackingOrder;
@@ -28,6 +29,8 @@ function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabe
 
   const labels = useMemo(() => toLabels(shipment), [shipment]);
   const isDone = labels.length > 0 && acknowledgedCount >= labels.length;
+
+  const trackingQuery = useOrderTrackingNumber(order.code, isDone);
 
   useEffect(() => {
     setPrintedCount(0);
@@ -61,6 +64,7 @@ function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabe
       <PackingShipmentDoneView
         order={order}
         shipment={shipment}
+        resolvedTrackingNumber={trackingQuery.data ?? null}
         onReprint={handleReprint}
       />
     );
