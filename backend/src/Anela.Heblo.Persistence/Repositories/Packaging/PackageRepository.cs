@@ -72,6 +72,29 @@ public class PackageRepository : IPackageRepository
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<List<Package>> GetWithNullTrackingNumberAsync(
+        int daysBack,
+        CancellationToken cancellationToken = default)
+    {
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-daysBack);
+        return await _db.Packages
+            .AsNoTracking()
+            .Where(p => p.TrackingNumber == null && p.CreatedAt >= cutoff)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task SetTrackingNumberAsync(
+        int id,
+        string trackingNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var package = await _db.Packages.FindAsync([id], cancellationToken);
+        if (package is null)
+            return;
+        package.TrackingNumber = trackingNumber;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
     private static string EscapeLike(string value) =>
         value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 }
