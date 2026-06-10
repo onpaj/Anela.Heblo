@@ -16,6 +16,7 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange, onPrin
   const [showDialog, setShowDialog] = useState(false);
   const [shipmentForPrint, setShipmentForPrint] = useState<ScanShipment | null>(null);
   const [printerIsDone, setPrinterIsDone] = useState(false);
+  const [completedMultiShipment, setCompletedMultiShipment] = useState<ScanShipment | null>(null);
   const resetMutation = useResetOrderShipment();
 
   const isEligible = order.eligibility.isEligible;
@@ -27,6 +28,7 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange, onPrin
     setPrinterIsDone(false);
     setShowDialog(false);
     setShipmentForPrint(null);
+    setCompletedMultiShipment(null);
     if (!scanShipment) return;
     if (!isEligible) return;
     if (scanShipment.alreadyExisted) {
@@ -71,7 +73,11 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange, onPrin
         <PackingLabelPrintModal
           order={order}
           shipment={shipmentForPrint}
-          onComplete={() => setPrinterIsDone(true)}
+          onComplete={() => {
+            setCompletedMultiShipment(shipmentForPrint);
+            setShipmentForPrint(null);
+            setPrinterIsDone(true);
+          }}
           onCancel={() => setShipmentForPrint(null)}
         />
       );
@@ -81,6 +87,20 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange, onPrin
         order={order}
         shipment={shipmentForPrint}
         onDoneStateChange={setPrinterIsDone}
+      />
+    );
+  }
+
+  if (printerIsDone && completedMultiShipment) {
+    return (
+      <PackingShipmentDoneView
+        order={order}
+        shipment={completedMultiShipment}
+        onReprint={() => {
+          setCompletedMultiShipment(null);
+          setPrinterIsDone(false);
+          setShipmentForPrint(completedMultiShipment);
+        }}
       />
     );
   }
