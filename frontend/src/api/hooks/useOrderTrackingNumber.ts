@@ -7,15 +7,19 @@ interface ApiClientWithInternals {
 }
 
 const fetchOrderTrackingNumber = async (orderCode: string): Promise<string | null> => {
-  const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
-  const response = await apiClient.http.fetch(
-    `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/tracking-number`,
-  );
-  if (!response.ok) return null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = (await response.json()) as any;
-  if (!data.success) return null;
-  return (data.trackingNumber as string | null) ?? null;
+  try {
+    const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
+    const response = await apiClient.http.fetch(
+      `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/tracking-number`,
+    );
+    if (!response.ok) return null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (await response.json()) as any;
+    if (!data.success) return null;
+    return (data.trackingNumber as string | null) ?? null;
+  } catch {
+    return null;
+  }
 };
 
 export const useOrderTrackingNumber = (orderCode: string, enabled: boolean) =>
@@ -24,4 +28,5 @@ export const useOrderTrackingNumber = (orderCode: string, enabled: boolean) =>
     queryFn: () => fetchOrderTrackingNumber(orderCode),
     enabled,
     staleTime: 0,
+    retry: false,
   });
