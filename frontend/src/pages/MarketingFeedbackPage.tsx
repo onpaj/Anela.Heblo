@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
-import { useKnowledgeBaseUploadPermission } from '../api/hooks/useKnowledgeBase';
-import { useMarketingWriterPermission } from '../api/hooks/useMarketingWriterPermission';
+import { usePermissionsContext } from '../auth/PermissionsContext';
 import { useKbFeedbackAdapter } from '../components/feedback/adapters/useKbFeedbackAdapter';
 import { useLeafletFeedbackAdapter } from '../components/feedback/adapters/useLeafletFeedbackAdapter';
 import { useArticleFeedbackAdapter } from '../components/feedback/adapters/useArticleFeedbackAdapter';
@@ -44,8 +43,9 @@ const SECONDARY_LABELS: Record<FeatureTab, string> = {
 };
 
 const MarketingFeedbackPage: React.FC = () => {
-  const hasKb = useKnowledgeBaseUploadPermission();
-  const hasGenAi = useMarketingWriterPermission();
+  const { hasPermission } = usePermissionsContext();
+  const hasKb = hasPermission('customer.knowledge_base.write');
+  const hasGenAi = hasPermission('marketing.article.write');
 
   const [activeTab, setActiveTab] = useState<FeatureTab>('kb');
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);

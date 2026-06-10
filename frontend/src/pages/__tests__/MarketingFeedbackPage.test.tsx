@@ -1,15 +1,21 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import MarketingFeedbackPage from '../MarketingFeedbackPage';
-import * as kbHooks from '../../api/hooks/useKnowledgeBase';
-import * as marketingWriterHooks from '../../api/hooks/useMarketingWriterPermission';
 import * as kbAdapter from '../../components/feedback/adapters/useKbFeedbackAdapter';
 import * as leafletAdapter from '../../components/feedback/adapters/useLeafletFeedbackAdapter';
 import * as articleAdapter from '../../components/feedback/adapters/useArticleFeedbackAdapter';
 import type { FeedbackDetail, GenericFeedbackStats } from '../../components/feedback/types';
 
-jest.mock('../../api/hooks/useKnowledgeBase');
-jest.mock('../../api/hooks/useMarketingWriterPermission');
+let mockHasPermission: (perm: string) => boolean = () => false;
+jest.mock('../../auth/PermissionsContext', () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+    hasPermission: (p: string) => mockHasPermission(p),
+  }),
+}));
 jest.mock('../../components/feedback/adapters/useKbFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useLeafletFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useArticleFeedbackAdapter');
@@ -42,8 +48,9 @@ function setupMocks({
   hasKb = true,
   hasGenAi = false,
 }: { hasKb?: boolean; hasGenAi?: boolean } = {}) {
-  jest.spyOn(kbHooks, 'useKnowledgeBaseUploadPermission').mockReturnValue(hasKb);
-  jest.spyOn(marketingWriterHooks, 'useMarketingWriterPermission').mockReturnValue(hasGenAi);
+  mockHasPermission = (p) =>
+    (hasKb && p === 'customer.knowledge_base.write') ||
+    (hasGenAi && p === 'marketing.article.write');
 
   jest.spyOn(kbAdapter, 'useKbFeedbackAdapter').mockReturnValue({
     ...emptyAdapterResult,
@@ -56,7 +63,10 @@ function setupMocks({
   jest.spyOn(articleAdapter, 'useArticleFeedbackAdapter').mockReturnValue(emptyAdapterResult);
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockHasPermission = () => false;
+});
 
 test('renders three tab buttons', () => {
   setupMocks();
