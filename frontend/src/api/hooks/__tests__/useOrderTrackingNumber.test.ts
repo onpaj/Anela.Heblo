@@ -56,6 +56,19 @@ describe('useOrderTrackingNumber', () => {
     expect(result.current.data).toBeNull();
   });
 
+  it('returns null when the HTTP response is not ok', async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
+
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useOrderTrackingNumber('ORD-1', true), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toBeNull();
+  });
+
   it('does not fetch when disabled', () => {
     const { wrapper } = createQueryClientWrapper();
     renderHook(() => useOrderTrackingNumber('ORD-1', false), { wrapper });

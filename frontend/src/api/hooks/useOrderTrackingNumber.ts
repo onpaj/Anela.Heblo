@@ -11,6 +11,7 @@ const fetchOrderTrackingNumber = async (orderCode: string): Promise<string | nul
   const response = await apiClient.http.fetch(
     `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/tracking-number`,
   );
+  if (!response.ok) return null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = (await response.json()) as any;
   if (!data.success) return null;
