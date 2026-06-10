@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useResetOrderShipment } from '../../api/hooks/useResetOrderShipment';
 import type { PackingOrder, ScanShipment } from '../../api/hooks/useScanPackingOrder';
+import PackingLabelPrintModal from './PackingLabelPrintModal';
 import PackingLabelPrinter from './PackingLabelPrinter';
 import PackingShipmentDoneView from './PackingShipmentDoneView';
 
@@ -59,6 +60,16 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange }: Pack
   }
 
   if (shipmentForPrint) {
+    if (shipmentForPrint.pendingCompletion) {
+      return (
+        <PackingLabelPrintModal
+          order={order}
+          shipment={shipmentForPrint}
+          onComplete={() => setPrinterIsDone(true)}
+          onCancel={() => setShipmentForPrint(null)}
+        />
+      );
+    }
     return (
       <PackingLabelPrinter
         order={order}

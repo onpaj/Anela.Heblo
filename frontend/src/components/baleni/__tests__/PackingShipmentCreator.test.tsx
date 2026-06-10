@@ -12,6 +12,16 @@ jest.mock('../PackingLabelPrinter', () => ({
   ),
 }));
 
+jest.mock('../PackingLabelPrintModal', () => ({
+  __esModule: true,
+  default: ({ onComplete, onCancel }: { onComplete: () => void; onCancel: () => void }) => (
+    <div data-testid="label-print-modal">
+      <button onClick={onComplete}>complete</button>
+      <button onClick={onCancel}>cancel</button>
+    </div>
+  ),
+}));
+
 const mockResetMutate = jest.fn();
 let mockResetState = {
   mutate: mockResetMutate,
@@ -57,6 +67,16 @@ const existingShipment: ScanShipment = {
     labelZpl: null,
   }],
   alreadyExisted: true,
+};
+
+const multiPackageShipment: ScanShipment = {
+  shipmentGuid: 'guid-multi',
+  packages: [
+    { name: 'PKG-1', trackingNumber: null, labelUrl: null, labelZpl: null },
+    { name: 'PKG-2', trackingNumber: null, labelUrl: null, labelZpl: null },
+  ],
+  alreadyExisted: false,
+  pendingCompletion: true,
 };
 
 describe('PackingShipmentCreator', () => {
@@ -114,5 +134,31 @@ describe('PackingShipmentCreator', () => {
     render(<PackingShipmentCreator order={someOrder} scanShipment={existingShipment} />);
     expect(screen.getByTestId('shipment-error-banner')).toBeInTheDocument();
     expect(screen.getByText(/Shoptet nemohl vytvořit novou zásilku/i)).toBeInTheDocument();
+  });
+
+  it('shows PackingLabelPrintModal for new multi-package shipment (pendingCompletion)', () => {
+    render(<PackingShipmentCreator order={someOrder} scanShipment={multiPackageShipment} />);
+    expect(screen.getByTestId('label-print-modal')).toBeInTheDocument();
+    expect(screen.queryByTestId('label-printer')).not.toBeInTheDocument();
+  });
+
+  it('onComplete from print modal sets done state', () => {
+    const onDoneStateChange = jest.fn();
+    render(
+      <PackingShipmentCreator
+        order={someOrder}
+        scanShipment={multiPackageShipment}
+        onDoneStateChange={onDoneStateChange}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /complete/i }));
+    expect(onDoneStateChange).toHaveBeenCalledWith(true);
+  });
+
+  it('onCancel from print modal hides modal', () => {
+    render(<PackingShipmentCreator order={someOrder} scanShipment={multiPackageShipment} />);
+    expect(screen.getByTestId('label-print-modal')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    expect(screen.queryByTestId('label-print-modal')).not.toBeInTheDocument();
   });
 });
