@@ -42,7 +42,6 @@ public class PostgresExceptionTranslator
 
         return new GridLayoutPersistenceException(
             $"GridLayout persistence error during {operation}: {exception.Message}",
-            sqlState,
             exception);
     }
 

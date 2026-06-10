@@ -63,7 +63,6 @@ public class GetGridLayoutHandlerTests
             .Setup(x => x.GetAsync("user-1", "test-grid", default))
             .ThrowsAsync(new GridLayoutPersistenceException(
                 "GridLayout persistence error during GetAsync: relation \"GridLayouts\" does not exist",
-                sqlState: "42P01",
                 new InvalidOperationException("simulated underlying driver exception")));
 
         var handler = CreateHandler();

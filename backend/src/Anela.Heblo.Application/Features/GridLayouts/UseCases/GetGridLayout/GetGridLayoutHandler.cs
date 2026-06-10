@@ -66,8 +66,8 @@ public class GetGridLayoutHandler : IRequestHandler<GetGridLayoutRequest, GetGri
         catch (GridLayoutPersistenceException ex)
         {
             _logger.LogError(ex,
-                "Database error reading GridLayout for user={UserId} gridKey={GridKey} SqlState={SqlState}",
-                userId, request.GridKey, ex.SqlState);
+                "Database error reading GridLayout for user={UserId} gridKey={GridKey}",
+                userId, request.GridKey);
             return new GetGridLayoutResponse { Layout = null };
         }
     }
