@@ -1,4 +1,10 @@
-import { printLabelPdf } from '../printLabelPdf';
+import {
+  printLabelPdf,
+  fetchAndPrintLabel,
+  printLabelWithReadiness,
+  READINESS_BACKOFF_MS,
+  READINESS_TIMEOUT_MS,
+} from '../printLabelPdf';
 import type { PrintLabelOptions } from '../printLabelPdf';
 import { getAuthenticatedApiClient } from '../../../api/client';
 
@@ -119,8 +125,8 @@ describe('printLabelPdf', () => {
     appendChildSpy.mockRestore();
   });
 
-  it('reports the status via onError when fetch returns non-ok (no window.open)', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 404 });
+  it('reports the status via onError when fetch returns a non-retryable error (no window.open)', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500 });
     const appendChildSpy = jest.spyOn(document.body, 'appendChild');
     const onError = jest.fn();
 
@@ -129,7 +135,7 @@ describe('printLabelPdf', () => {
 
     expect(appendChildSpy).not.toHaveBeenCalled();
     expect(window.open).not.toHaveBeenCalled();
-    expect(onError).toHaveBeenCalledWith(404);
+    expect(onError).toHaveBeenCalledWith(500);
 
     appendChildSpy.mockRestore();
   });
@@ -214,8 +220,8 @@ describe('printLabelPdf', () => {
     expect(onError).toHaveBeenCalledWith(undefined);
   });
 
-  it('invokes onError with the status (not onAfterPrint) when fetch returns non-ok', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 404 });
+  it('invokes onError with the status (not onAfterPrint) when fetch returns a non-retryable error', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500 });
     const onAfterPrint = jest.fn();
     const onError = jest.fn();
 
@@ -224,7 +230,7 @@ describe('printLabelPdf', () => {
 
     expect(window.open).not.toHaveBeenCalled();
     expect(onAfterPrint).not.toHaveBeenCalled();
-    expect(onError).toHaveBeenCalledWith(404);
+    expect(onError).toHaveBeenCalledWith(500);
   });
 
   it('invokes onAfterPrint via the 60s safety net when afterprint never fires, and only once even if afterprint fires later', async () => {
@@ -331,5 +337,294 @@ describe('printLabelPdf', () => {
     expect(onError).toHaveBeenCalledWith(200);
 
     appendChildSpy.mockRestore();
+  });
+
+  it('retries on 404 then calls onError with undefined once READINESS_TIMEOUT_MS is exceeded', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404 });
+    jest.useFakeTimers();
+    const onError = jest.fn();
+
+    printLabelPdf('250001', labelWithPackage, undefined, onError);
+
+    // Pump the retry loop past the timeout by alternating microtask flushes and timer advances
+    for (let i = 0; i < 15; i++) {
+      await Promise.resolve();
+      jest.advanceTimersByTime(READINESS_BACKOFF_MS[READINESS_BACKOFF_MS.length - 1] + 1);
+    }
+    await Promise.resolve();
+
+    expect(onError).toHaveBeenCalledWith(undefined);
+
+    jest.useRealTimers();
+  });
+});
+
+describe('fetchAndPrintLabel', () => {
+  it('returns printed: true and wires onAfterPrint when fetch succeeds', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+    });
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+
+    const onAfterPrint = jest.fn();
+    const result = await fetchAndPrintLabel('250001', 1, onAfterPrint);
+
+    expect(result).toEqual({ printed: true, status: 200 });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://api.test/api/packaging/orders/250001/packages/1/label.pdf',
+    );
+
+    jest.restoreAllMocks();
+  });
+
+  it('returns printed: false with status when fetch returns non-ok', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404 });
+
+    const result = await fetchAndPrintLabel('250001', 2);
+
+    expect(result).toEqual({ printed: false, status: 404 });
+  });
+
+  it('returns printed: false without status when fetch throws', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+
+    const result = await fetchAndPrintLabel('250001', 1);
+
+    expect(result).toEqual({ printed: false });
+  });
+
+  it('builds the proxy URL from orderCode and packageNumber', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+    });
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+
+    await fetchAndPrintLabel('ORD/2025/99', 3);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://api.test/api/packaging/orders/ORD%2F2025%2F99/packages/3/label.pdf',
+    );
+
+    jest.restoreAllMocks();
+  });
+});
+
+describe('printLabelWithReadiness', () => {
+  /**
+   * Pump the event loop one "retry step":
+   *  - flush microtasks (the fetch promise chain resolves)
+   *  - advance fake timers by `delayMs` (fires the backoff setTimeout)
+   *  - flush microtasks again (the await-on-timer continuation runs)
+   */
+  const pumpStep = async (delayMs: number) => {
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+    jest.advanceTimersByTime(delayMs);
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+  };
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  it('returns printed: true immediately when label is ready on the first attempt', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+    });
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+
+    const result = await printLabelWithReadiness('250001', 1);
+
+    expect(result).toEqual({ printed: true, status: 200 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries on 404 and returns printed: true when label becomes ready on second attempt', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+      });
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+
+    const onWaiting = jest.fn();
+    const promise = printLabelWithReadiness('250001', 1, { onWaiting });
+
+    await pumpStep(READINESS_BACKOFF_MS[0] + 1);
+
+    const result = await promise;
+
+    expect(result).toEqual({ printed: true, status: 200 });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(onWaiting).toHaveBeenCalledWith(0);
+  });
+
+  it('calls onWaiting with increasing attempt indices on each 404', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValue({
+        ok: true,
+        blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+      });
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+
+    const onWaiting = jest.fn();
+    const promise = printLabelWithReadiness('250001', 1, { onWaiting });
+
+    // 3 retry steps, then the 4th attempt succeeds
+    for (let i = 0; i < 3; i++) {
+      await pumpStep(READINESS_BACKOFF_MS[Math.min(i, READINESS_BACKOFF_MS.length - 1)] + 1);
+    }
+    await promise;
+
+    expect(onWaiting).toHaveBeenCalledTimes(3);
+    expect(onWaiting).toHaveBeenNthCalledWith(1, 0);
+    expect(onWaiting).toHaveBeenNthCalledWith(2, 1);
+    expect(onWaiting).toHaveBeenNthCalledWith(3, 2);
+  });
+
+  it('uses the last backoff value (10000ms) once attempts exceed READINESS_BACKOFF_MS length', async () => {
+    // 6 failures then success
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValue({
+        ok: true,
+        blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+      });
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+
+    const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
+    const promise = printLabelWithReadiness('250001', 1);
+
+    for (let i = 0; i < 6; i++) {
+      await pumpStep(READINESS_BACKOFF_MS[Math.min(i, READINESS_BACKOFF_MS.length - 1)] + 1);
+    }
+    await promise;
+
+    // Backoff delays used (only the ones >= 1000ms to exclude the iframe 60s timer)
+    const backoffDelays = setTimeoutSpy.mock.calls
+      .map(([, delay]) => delay)
+      .filter((d) => typeof d === 'number' && d >= 1000 && d < 60_000);
+    // 5th and 6th backoffs (indices 4 and 5) should both be the max value
+    expect(backoffDelays[4]).toBe(READINESS_BACKOFF_MS[READINESS_BACKOFF_MS.length - 1]);
+    expect(backoffDelays[5]).toBe(READINESS_BACKOFF_MS[READINESS_BACKOFF_MS.length - 1]);
+  });
+
+  it('returns timedOut: true when READINESS_TIMEOUT_MS is exceeded', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404 });
+
+    const promise = printLabelWithReadiness('250001', 1);
+
+    // Pump enough steps to exceed 30s total
+    for (let i = 0; i < 10; i++) {
+      await pumpStep(READINESS_BACKOFF_MS[Math.min(i, READINESS_BACKOFF_MS.length - 1)] + 1);
+    }
+
+    const result = await promise;
+
+    expect(result).toEqual({ printed: false, timedOut: true });
+  });
+
+  it('returns printed: false (no timedOut) when aborted via AbortSignal before first attempt', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404 });
+
+    const controller = new AbortController();
+    controller.abort();
+
+    const result = await printLabelWithReadiness('250001', 1, { signal: controller.signal });
+
+    expect(result).toEqual({ printed: false });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('returns printed: false when aborted during backoff wait', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404 });
+
+    const controller = new AbortController();
+    const onWaiting = jest.fn().mockImplementation(() => {
+      controller.abort();
+    });
+
+    const promise = printLabelWithReadiness('250001', 1, {
+      signal: controller.signal,
+      onWaiting,
+    });
+
+    // First 404 → onWaiting fires → abort → backoff timer fires → abort check returns
+    await pumpStep(READINESS_BACKOFF_MS[0] + 1);
+
+    const result = await promise;
+
+    expect(result).toEqual({ printed: false });
+    expect(onWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry on non-404 status and returns printed: false with status', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 503 });
+
+    const onWaiting = jest.fn();
+    const result = await printLabelWithReadiness('250001', 1, { onWaiting });
+
+    expect(result).toEqual({ printed: false, status: 503 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onWaiting).not.toHaveBeenCalled();
+  });
+
+  it('does not retry on network error (no status) and returns printed: false', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Network error'));
+
+    const onWaiting = jest.fn();
+    const result = await printLabelWithReadiness('250001', 1, { onWaiting });
+
+    expect(result).toEqual({ printed: false });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onWaiting).not.toHaveBeenCalled();
+  });
+
+  it('passes onAfterPrint through to silentPrintViaBlob on successful attempt', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+    });
+    const createElementSpy = jest.spyOn(document, 'createElement');
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+
+    const onAfterPrint = jest.fn();
+    await printLabelWithReadiness('250001', 1, { onAfterPrint });
+
+    const iframe = createElementSpy.mock.results[createElementSpy.mock.results.length - 1]
+      .value as HTMLIFrameElement;
+
+    const addEventListener = jest.fn();
+    Object.defineProperty(iframe, 'contentWindow', {
+      value: { print: jest.fn(), addEventListener, removeEventListener: jest.fn() },
+      configurable: true,
+    });
+
+    iframe.onload!(new Event('load'));
+
+    const handler = addEventListener.mock.calls[0][1] as () => void;
+    handler();
+
+    expect(onAfterPrint).toHaveBeenCalledTimes(1);
   });
 });
