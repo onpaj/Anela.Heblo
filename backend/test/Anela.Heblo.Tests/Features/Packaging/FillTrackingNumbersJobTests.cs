@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.Packaging.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Packaging;
-using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -51,7 +50,7 @@ public class FillTrackingNumbersJobTests
         await sut.ExecuteAsync();
 
         repo.Verify(r => r.GetWithNullTrackingNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
-        client.Verify(c => c.GetLabelsByOrderCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        client.Verify(c => c.GetLatestActiveTrackingNumberAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -63,29 +62,21 @@ public class FillTrackingNumbersJobTests
 
         await sut.ExecuteAsync();
 
-        client.Verify(c => c.GetLabelsByOrderCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        client.Verify(c => c.GetLatestActiveTrackingNumberAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         repo.Verify(r => r.SetTrackingNumberAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task ExecuteAsync_UpdatesTrackingNumber_WhenShoptetReturnsIt()
+    public async Task ExecuteAsync_UpdatesTrackingNumber_WhenLatestActiveShipmentHasTracking()
     {
         var (sut, repo, client, _) = MakeSut();
-        var package = SamplePackage(id: 5, orderCode: "ORD-42", packageNumber: "PKG-1");
+        var package = SamplePackage(id: 5, orderCode: "ORD-42");
 
         repo.Setup(r => r.GetWithNullTrackingNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([package]);
 
-        client.Setup(c => c.GetLabelsByOrderCodeAsync("ORD-42", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([
-                new ShipmentLabel
-                {
-                    OrderCode = "ORD-42",
-                    PackageName = "PKG-1",
-                    ShipmentGuid = package.ShipmentGuid,
-                    TrackingNumber = "70603624124",
-                }
-            ]);
+        client.Setup(c => c.GetLatestActiveTrackingNumberAsync("ORD-42", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("70603624124");
 
         await sut.ExecuteAsync();
 
@@ -93,18 +84,16 @@ public class FillTrackingNumbersJobTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_SkipsPackage_WhenShoptetStillReturnsNullTracking()
+    public async Task ExecuteAsync_SkipsPackage_WhenNoActiveShipmentHasTrackingYet()
     {
         var (sut, repo, client, _) = MakeSut();
-        var package = SamplePackage(id: 3, orderCode: "ORD-5", packageNumber: "PKG-A");
+        var package = SamplePackage(id: 3, orderCode: "ORD-5");
 
         repo.Setup(r => r.GetWithNullTrackingNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([package]);
 
-        client.Setup(c => c.GetLabelsByOrderCodeAsync("ORD-5", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([
-                new ShipmentLabel { OrderCode = "ORD-5", PackageName = "PKG-A", TrackingNumber = null }
-            ]);
+        client.Setup(c => c.GetLatestActiveTrackingNumberAsync("ORD-5", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
 
         await sut.ExecuteAsync();
 
@@ -112,45 +101,40 @@ public class FillTrackingNumbersJobTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_MakesOneShoptetCallPerOrder_WhenOrderHasMultipleNullPackages()
+    public async Task ExecuteAsync_AppliesTrackingToAllOrderPackages_AndCallsShoptetOncePerOrder()
     {
         var (sut, repo, client, _) = MakeSut();
-        var pkg1 = SamplePackage(id: 1, orderCode: "ORD-10", packageNumber: "PKG-A");
-        var pkg2 = SamplePackage(id: 2, orderCode: "ORD-10", packageNumber: "PKG-B");
+        var pkg1 = SamplePackage(id: 1, orderCode: "ORD-10", packageNumber: "Vlastní balení");
+        var pkg2 = SamplePackage(id: 2, orderCode: "ORD-10", packageNumber: "Vlastní balení");
 
         repo.Setup(r => r.GetWithNullTrackingNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([pkg1, pkg2]);
 
-        client.Setup(c => c.GetLabelsByOrderCodeAsync("ORD-10", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([
-                new ShipmentLabel { OrderCode = "ORD-10", PackageName = "PKG-A", TrackingNumber = "TRK-A" },
-                new ShipmentLabel { OrderCode = "ORD-10", PackageName = "PKG-B", TrackingNumber = "TRK-B" },
-            ]);
+        client.Setup(c => c.GetLatestActiveTrackingNumberAsync("ORD-10", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("TRK-LATEST");
 
         await sut.ExecuteAsync();
 
-        client.Verify(c => c.GetLabelsByOrderCodeAsync("ORD-10", It.IsAny<CancellationToken>()), Times.Once);
-        repo.Verify(r => r.SetTrackingNumberAsync(1, "TRK-A", It.IsAny<CancellationToken>()), Times.Once);
-        repo.Verify(r => r.SetTrackingNumberAsync(2, "TRK-B", It.IsAny<CancellationToken>()), Times.Once);
+        client.Verify(c => c.GetLatestActiveTrackingNumberAsync("ORD-10", It.IsAny<CancellationToken>()), Times.Once);
+        repo.Verify(r => r.SetTrackingNumberAsync(1, "TRK-LATEST", It.IsAny<CancellationToken>()), Times.Once);
+        repo.Verify(r => r.SetTrackingNumberAsync(2, "TRK-LATEST", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task ExecuteAsync_ContinuesProcessing_WhenShoptetThrowsForOneOrder()
     {
         var (sut, repo, client, _) = MakeSut();
-        var pkg1 = SamplePackage(id: 1, orderCode: "ORD-FAIL", packageNumber: "PKG-1");
-        var pkg2 = SamplePackage(id: 2, orderCode: "ORD-OK", packageNumber: "PKG-2");
+        var pkg1 = SamplePackage(id: 1, orderCode: "ORD-FAIL");
+        var pkg2 = SamplePackage(id: 2, orderCode: "ORD-OK");
 
         repo.Setup(r => r.GetWithNullTrackingNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([pkg1, pkg2]);
 
-        client.Setup(c => c.GetLabelsByOrderCodeAsync("ORD-FAIL", It.IsAny<CancellationToken>()))
+        client.Setup(c => c.GetLatestActiveTrackingNumberAsync("ORD-FAIL", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Shoptet 500"));
 
-        client.Setup(c => c.GetLabelsByOrderCodeAsync("ORD-OK", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([
-                new ShipmentLabel { OrderCode = "ORD-OK", PackageName = "PKG-2", TrackingNumber = "TRK-OK" }
-            ]);
+        client.Setup(c => c.GetLatestActiveTrackingNumberAsync("ORD-OK", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("TRK-OK");
 
         await sut.ExecuteAsync();
 

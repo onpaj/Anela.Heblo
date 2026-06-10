@@ -57,29 +57,26 @@ public sealed class FillTrackingNumbersJob : IRecurringJob
         foreach (var group in byOrder)
         {
             var orderCode = group.Key;
-            IReadOnlyList<ShipmentLabel> labels;
+            string? trackingNumber;
 
             try
             {
-                labels = await _client.GetLabelsByOrderCodeAsync(orderCode, cancellationToken);
+                trackingNumber = await _client.GetLatestActiveTrackingNumberAsync(orderCode, cancellationToken);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex,
-                    "FillTrackingNumbers: failed to fetch labels for order {OrderCode}. Will retry next run.",
+                    "FillTrackingNumbers: failed to fetch shipments for order {OrderCode}. Will retry next run.",
                     orderCode);
                 continue;
             }
 
-            var labelByPackageName = labels
-                .Where(l => l.TrackingNumber is not null)
-                .ToDictionary(l => l.PackageName, l => l.TrackingNumber!);
+            // No active shipment has a tracking number yet — leave the rows alone and retry next run.
+            if (string.IsNullOrEmpty(trackingNumber))
+                continue;
 
             foreach (var package in group)
             {
-                if (!labelByPackageName.TryGetValue(package.PackageNumber, out var trackingNumber))
-                    continue;
-
                 await _repo.SetTrackingNumberAsync(package.Id, trackingNumber, cancellationToken);
                 updated++;
 
