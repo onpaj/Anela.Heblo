@@ -238,6 +238,7 @@ describe('PackingLabelPrinter', () => {
     );
     fireAck(0);
 
+    expect(mockUseOrderTrackingNumber).toHaveBeenCalledWith('250001', true);
     expect(screen.getByTestId('done-view')).toBeInTheDocument();
     expect(screen.getByTestId('done-tracking')).toHaveTextContent('2421907688');
   });
