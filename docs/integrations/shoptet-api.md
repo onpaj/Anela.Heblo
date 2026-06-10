@@ -1185,6 +1185,16 @@ After a successful `201` response, the shipment is in `requested` status. The la
 
 **Observed latency:** The test store has no Balikobot configured so label-ready latency was not directly measured. For the PPL carrier via Balikobot the expected flow is synchronous within the carrier call — label should be available within a few seconds of the `POST` completing. The `checkUrls` field (when non-null) provides a polling URL for async carriers.
 
+#### Multi-package carrier constraints (confirmed live 2026-06-10)
+
+**PPL "výdejní místo" (parcel box) does not support multi-package shipments.** Sending `packages: [{...}, {...}]` (2 items) succeeds with HTTP 201, but Balikobot/PPL silently creates only **1 package** — the returned label shows `1/1` and `GET /api/shipments?orderCode=...` returns a single package entry. No error is returned.
+
+Implication: if the operator selects "Více balíků" for a PPL parcel-box order, the backend produces N=2 `ScanShipmentPackage` entries (second one with `LabelUrl = null`), `pendingCompletion = true`, and the `PackingLabelPrintModal` opens for a 2-label sequence. Label 1 prints successfully after backoff. Label 2 never gets a URL — `printLabelWithReadiness` times out (30 s), operator sees the timeout screen, must cancel. Order stays unpacked.
+
+**Workaround (operator):** Do not use "Více balíků" for PPL výdejní místo. Use the standard single-scan flow.
+
+**Follow-up required:** Add a check after `CreateShipmentAsync` — compare the actual package count returned by `GET /api/shipments?orderCode=...` against the requested `n`. If fewer packages were created, surface a warning to the operator (e.g. "Dopravce vytvořil pouze X/N balíků").
+
 #### Test store limitation
 
 The staging store (780175 / `api.myshoptet.com` with token `Shoptet:ApiToken`) has **no Balikobot carriers configured** (`GET /api/shipments/carriers` returns `[]`). All `POST /api/shipments` calls in the test store will return `errorCode: invalid-request-data, instance: integration-call`. Integration tests for shipment creation must run against the production store or a store with Balikobot configured.
