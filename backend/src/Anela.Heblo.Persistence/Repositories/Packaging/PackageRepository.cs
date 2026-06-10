@@ -72,6 +72,32 @@ public class PackageRepository : IPackageRepository
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<(int TotalDistinctOrders, IReadOnlyList<PackerPackingSummary> ByPacker)>
+        GetPackedTodayByPackerAsync(DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct = default)
+    {
+        // Npgsql requires UTC-zero DateTimeOffset values for timestamptz comparisons.
+        var from = fromUtc.ToUniversalTime();
+        var to = toUtc.ToUniversalTime();
+
+        // SELECT DISTINCT (packer, orderCode) triples — far fewer rows than loading all packages.
+        var pairs = await _db.Packages
+            .AsNoTracking()
+            .Where(p => p.PackedAt >= from && p.PackedAt < to)
+            .Select(p => new { p.PackedByUserId, p.PackedBy, p.OrderCode })
+            .Distinct()
+            .ToListAsync(ct);
+
+        var byPacker = pairs
+            .GroupBy(p => new { p.PackedByUserId, p.PackedBy })
+            .Select(g => new PackerPackingSummary(g.Key.PackedByUserId, g.Key.PackedBy, g.Count()))
+            .OrderByDescending(x => x.DistinctOrderCount)
+            .ToList();
+
+        var total = pairs.Select(p => p.OrderCode).Distinct().Count();
+
+        return (total, byPacker);
+    }
+
     private static string EscapeLike(string value) =>
         value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 }
