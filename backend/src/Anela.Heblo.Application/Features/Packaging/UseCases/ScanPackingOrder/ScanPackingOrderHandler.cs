@@ -104,6 +104,8 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
 
         if (existingShipment is not null)
         {
+            await BackfillExistingShipmentPackagesAsync(
+                request.OrderCode, orderData.CustomerName, existingLabels, request.PackingUserId, ct);
             await TryMarkAsPackedAsync(request.OrderCode, ct);
             return new ScanPackingOrderResponse(orderData, existingShipment);
         }
@@ -218,6 +220,55 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
                 return (user.Id, user.DisplayName);
         }
         return (null, _currentUserService.GetCurrentUser().Email);
+    }
+
+    /// <summary>
+    /// Backfills Package rows for an order whose Shoptet shipment already exists (reprint path).
+    /// Idempotent and best-effort: never throws, so a reprint always returns the existing shipment.
+    /// </summary>
+    private async Task BackfillExistingShipmentPackagesAsync(
+        string orderCode,
+        string customerName,
+        IReadOnlyList<ShipmentLabel> existingLabels,
+        Guid? packingUserId,
+        CancellationToken cancellationToken)
+    {
+        if (existingLabels.Count == 0)
+            return;
+
+        try
+        {
+            var options = await _shipmentClient.GetShippingOptionsAsync(orderCode, cancellationToken);
+            var carrierCode = options.Count > 0 ? options[0].CarrierCode : string.Empty;
+            var carrierName = options.Count > 0 ? options[0].Name : null;
+
+            var now = DateTimeOffset.UtcNow;
+            var (packedByUserId, packedBy) = await ResolvePackerAsync(packingUserId, cancellationToken);
+
+            var packages = existingLabels
+                .Select(label => new Package
+                {
+                    OrderCode = orderCode,
+                    CustomerName = customerName,
+                    PackageNumber = label.PackageName,
+                    TrackingNumber = label.TrackingNumber,
+                    ShippingProviderCode = carrierCode,
+                    ShippingProviderName = carrierName,
+                    ShipmentGuid = label.ShipmentGuid,
+                    PackedAt = now,
+                    PackedBy = packedBy,
+                    PackedByUserId = packedByUserId,
+                    CreatedAt = now,
+                })
+                .ToList();
+
+            await _packageRepository.AddMissingAsync(packages, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Failed to backfill Package rows for existing shipment of order {OrderCode}", orderCode);
+        }
     }
 
     private async Task PersistPackagesAsync(
