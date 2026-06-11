@@ -19,6 +19,8 @@ public static class AccessRoles
     public const string CustomerSmartsuppRead = "customer.smartsupp.read";
     public const string PurchasePurchaseOrdersRead = "purchase.purchase_orders.read";
     public const string PurchasePurchaseOrdersWrite = "purchase.purchase_orders.write";
+    public const string PurchaseInvoiceClassificationRead = "purchase.invoice_classification.read";
+    public const string PurchaseInvoiceClassificationWrite = "purchase.invoice_classification.write";
     public const string PurchasePurchaseStockRead = "purchase.purchase_stock.read";
     public const string ManufactureManufactureOrdersRead = "manufacture.manufacture_orders.read";
     public const string ManufactureManufactureOrdersWrite = "manufacture.manufacture_orders.write";
@@ -76,6 +78,8 @@ public static class AccessRoles
         (Feature.Customer_Smartsupp, AccessLevel.Read) => CustomerSmartsuppRead,
         (Feature.Purchase_PurchaseOrders, AccessLevel.Read) => PurchasePurchaseOrdersRead,
         (Feature.Purchase_PurchaseOrders, AccessLevel.Write) => PurchasePurchaseOrdersWrite,
+        (Feature.Purchase_InvoiceClassification, AccessLevel.Read) => PurchaseInvoiceClassificationRead,
+        (Feature.Purchase_InvoiceClassification, AccessLevel.Write) => PurchaseInvoiceClassificationWrite,
         (Feature.Purchase_PurchaseStock, AccessLevel.Read) => PurchasePurchaseStockRead,
         (Feature.Manufacture_ManufactureOrders, AccessLevel.Read) => ManufactureManufactureOrdersRead,
         (Feature.Manufacture_ManufactureOrders, AccessLevel.Write) => ManufactureManufactureOrdersWrite,
