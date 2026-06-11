@@ -78,4 +78,30 @@ public class ProcessDailyConsumptionHandlerTests
             s => s.ProcessDailyConsumptionAsync(TestDate, It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsSuccessWithZeroCount_WhenNoInvoicesFound()
+    {
+        // Arrange
+        var (sut, service, _) = MakeSut();
+        service
+            .Setup(s => s.ProcessDailyConsumptionAsync(TestDate, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessDailyConsumptionResult(WasRun: true, MaterialsProcessed: 0));
+
+        var request = new ProcessDailyConsumptionRequest { ProcessingDate = TestDate };
+
+        // Act
+        var response = await sut.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.MaterialsProcessed.Should().Be(0);
+        response.ProcessedDate.Should().Be(TestDate);
+        response.Message.Should().Contain("No invoices");
+        response.Message.Should().Contain(TestDate.ToString());
+
+        service.Verify(
+            s => s.ProcessDailyConsumptionAsync(TestDate, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }
