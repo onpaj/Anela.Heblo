@@ -5,9 +5,10 @@ import TransferList, { TransferItem } from "./TransferList";
 interface PermissionPickerProps {
   value: string[];
   onChange: (permissions: string[]) => void;
+  fillHeight?: boolean;
 }
 
-export default function PermissionPicker({ value, onChange }: PermissionPickerProps) {
+export default function PermissionPicker({ value, onChange, fillHeight }: PermissionPickerProps) {
   const catalogue = useCatalogue();
 
   const { items, sectionByPermission } = useMemo(() => {
@@ -35,6 +36,9 @@ export default function PermissionPicker({ value, onChange }: PermissionPickerPr
       onChange={onChange}
       groupBy={(item) => sectionByPermission[item.id] ?? ""}
       labels={{ available: "Available permissions", assigned: "Assigned permissions" }}
+      fillHeight={fillHeight}
+      searchable
+      searchPlaceholder="Search permissions…"
     />
   );
 }
