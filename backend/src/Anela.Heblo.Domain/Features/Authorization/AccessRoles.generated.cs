@@ -58,6 +58,8 @@ public static class AccessRoles
     public const string AdminAdministrationWrite = "admin.administration.write";
     public const string AdminFeatureFlagsRead = "admin.feature_flags.read";
     public const string AdminFeatureFlagsWrite = "admin.feature_flags.write";
+    public const string JobsTriggerRead = "jobs.trigger.read";
+    public const string JobsDisableRead = "jobs.disable.read";
 
     public static string For(Feature feature, AccessLevel level) => (feature, level) switch
     {
@@ -113,6 +115,8 @@ public static class AccessRoles
         (Feature.Admin_Administration, AccessLevel.Write) => AdminAdministrationWrite,
         (Feature.Admin_FeatureFlags, AccessLevel.Read) => AdminFeatureFlagsRead,
         (Feature.Admin_FeatureFlags, AccessLevel.Write) => AdminFeatureFlagsWrite,
+        (Feature.Jobs_Trigger, AccessLevel.Read) => JobsTriggerRead,
+        (Feature.Jobs_Disable, AccessLevel.Read) => JobsDisableRead,
         _ => throw new ArgumentOutOfRangeException(nameof(feature), $"Feature.{feature} does not support AccessLevel.{level}")
     };
 }

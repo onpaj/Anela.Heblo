@@ -3,8 +3,6 @@ using Anela.Heblo.Domain.Features.BackgroundJobs;
 using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using NCrontab.Advanced;
-using NCrontab.Advanced.Exceptions;
 
 namespace Anela.Heblo.Application.Features.BackgroundJobs.UseCases.GetRecurringJobsList;
 
@@ -38,45 +36,10 @@ public class GetRecurringJobsListHandler : IRequestHandler<GetRecurringJobsListR
 
         var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
 
-        TimeZoneInfo? tz = null;
-        try
-        {
-            tz = TimeZoneInfo.FindSystemTimeZoneById(RecurringJobMetadata.DefaultTimeZoneId);
-        }
-        catch (TimeZoneNotFoundException ex)
-        {
-            _logger.LogWarning(ex, "Timezone '{TimeZoneId}' not found on host, NextRunAt will be null for all jobs",
-                RecurringJobMetadata.DefaultTimeZoneId);
-        }
-
         foreach (var dto in jobDtos)
         {
-            if (!dto.IsEnabled)
-            {
-                dto.NextRunAt = null;
-                continue;
-            }
-
-            if (tz is null)
-            {
-                dto.NextRunAt = null;
-                continue;
-            }
-
-            try
-            {
-                var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(utcNow, tz);
-                var nextLocal = CrontabSchedule.Parse(dto.CronExpression).GetNextOccurrence(nowLocal);
-                var nextUtc = TimeZoneInfo.ConvertTimeToUtc(
-                    DateTime.SpecifyKind(nextLocal, DateTimeKind.Unspecified), tz);
-                dto.NextRunAt = DateTime.SpecifyKind(nextUtc, DateTimeKind.Utc);
-            }
-            catch (CrontabException ex)
-            {
-                _logger.LogWarning(ex, "Invalid CRON expression '{CronExpression}' for job '{JobName}', NextRunAt will be null",
-                    dto.CronExpression, dto.JobName);
-                dto.NextRunAt = null;
-            }
+            dto.NextRunAt = RecurringJobNextRunCalculator.Calculate(
+                dto.CronExpression, dto.IsEnabled, utcNow, _logger, dto.JobName);
         }
 
         _logger.LogInformation("Retrieved {Count} recurring jobs", jobDtos.Count);
