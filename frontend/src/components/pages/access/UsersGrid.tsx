@@ -292,7 +292,7 @@ const UsersGrid: React.FC = () => {
                             request: new SetUserActiveRequest({ userId: u.id, isActive: !u.isActive }),
                           })
                         }
-                        disabled={setActive.isPending}
+                        disabled={setActive.isPending && setActive.variables?.id === u.id}
                         className={`text-sm ${u.isActive ? "text-red-600" : "text-green-600"} hover:underline`}
                         aria-label={`Toggle active ${u.displayName}`}
                       >

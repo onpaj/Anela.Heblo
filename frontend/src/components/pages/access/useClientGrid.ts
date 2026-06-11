@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type SortValue = string | number | undefined | null;
 
@@ -34,6 +34,10 @@ export function useClientGrid<T>(
   const [sortDescending, setSortDescending] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(options.defaultPageSize ?? DEFAULT_PAGE_SIZE);
+
+  useEffect(() => {
+    setPageNumber(1);
+  }, [items]);
 
   const sorted = useMemo(() => {
     if (!sortBy) return items;
