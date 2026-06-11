@@ -18,6 +18,8 @@ jest.mock("../../api/hooks/useExpeditionList", () => ({
 
 jest.mock("../../api/hooks/useRecurringJobs", () => ({
   useTriggerRecurringJobMutation: jest.fn(),
+  useRecurringJobsQuery: jest.fn(),
+  useUpdateRecurringJobStatusMutation: jest.fn(),
 }));
 
 jest.mock("../../api/client", () => ({
@@ -36,7 +38,11 @@ const {
 
 const { useRunExpeditionListPrintFix } = require("../../api/hooks/useExpeditionList");
 
-const { useTriggerRecurringJobMutation } = require("../../api/hooks/useRecurringJobs");
+const {
+  useTriggerRecurringJobMutation,
+  useRecurringJobsQuery,
+  useUpdateRecurringJobStatusMutation,
+} = require("../../api/hooks/useRecurringJobs");
 
 const mockDatesData = {
   data: { dates: ["2024-12-10", "2024-12-09"], totalCount: 2, page: 1, pageSize: 20 },
@@ -84,6 +90,19 @@ describe("ExpeditionListArchivePage – refresh button", () => {
       isPending: false,
     });
     (useTriggerRecurringJobMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue(undefined),
+      isPending: false,
+    });
+    (useRecurringJobsQuery as jest.Mock).mockReturnValue({
+      data: [
+        {
+          jobName: "print-picking-list",
+          isEnabled: true,
+          nextRunAt: new Date("2024-12-11T08:00:00Z"),
+        },
+      ],
+    });
+    (useUpdateRecurringJobStatusMutation as jest.Mock).mockReturnValue({
       mutateAsync: jest.fn().mockResolvedValue(undefined),
       isPending: false,
     });
@@ -139,5 +158,84 @@ describe("ExpeditionListArchivePage – refresh button", () => {
     fireEvent.click(button);
 
     await waitFor(() => expect(button).not.toBeDisabled());
+  });
+});
+
+describe("ExpeditionListArchivePage – auto-print toggle", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    (useExpeditionDates as jest.Mock).mockReturnValue(mockDatesData);
+    (useExpeditionListsByDate as jest.Mock).mockReturnValue(mockItemsData);
+    (useReprintExpeditionList as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue({ success: true }),
+      isPending: false,
+    });
+    (useRunExpeditionListPrintFix as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue({ totalCount: 5 }),
+      isPending: false,
+    });
+    (useTriggerRecurringJobMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue(undefined),
+      isPending: false,
+    });
+    (useUpdateRecurringJobStatusMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue(undefined),
+      isPending: false,
+    });
+  });
+
+  const getToggle = () =>
+    screen.getByRole("switch", { name: /automatický tisk/i });
+
+  it("reflects the enabled state of the print job", () => {
+    (useRecurringJobsQuery as jest.Mock).mockReturnValue({
+      data: [{ jobName: "print-picking-list", isEnabled: true, nextRunAt: new Date("2024-12-11T08:00:00Z") }],
+    });
+
+    renderPage(createQueryClient());
+
+    expect(getToggle()).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("reflects the disabled state of the print job", () => {
+    (useRecurringJobsQuery as jest.Mock).mockReturnValue({
+      data: [{ jobName: "print-picking-list", isEnabled: false, nextRunAt: null }],
+    });
+
+    renderPage(createQueryClient());
+
+    expect(getToggle()).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("calls the status mutation with the negated value when toggled", async () => {
+    const mutateAsync = jest.fn().mockResolvedValue(undefined);
+    (useRecurringJobsQuery as jest.Mock).mockReturnValue({
+      data: [{ jobName: "print-picking-list", isEnabled: true, nextRunAt: new Date("2024-12-11T08:00:00Z") }],
+    });
+    (useUpdateRecurringJobStatusMutation as jest.Mock).mockReturnValue({
+      mutateAsync,
+      isPending: false,
+    });
+
+    renderPage(createQueryClient());
+
+    fireEvent.click(getToggle());
+
+    await waitFor(() =>
+      expect(mutateAsync).toHaveBeenCalledWith({
+        jobName: "print-picking-list",
+        isEnabled: false,
+      })
+    );
+  });
+
+  it("renders an em dash for next run when the job is missing", () => {
+    (useRecurringJobsQuery as jest.Mock).mockReturnValue({ data: [] });
+
+    renderPage(createQueryClient());
+
+    expect(screen.getByText(/Další běh: –/)).toBeInTheDocument();
+    expect(getToggle()).toBeDisabled();
   });
 });
