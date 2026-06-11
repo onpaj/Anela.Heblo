@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Invoices.Contracts;
+using Anela.Heblo.Persistence.Invoices;
 using Anela.Heblo.Application.Features.Invoices.UseCases.GetIssuedInvoicesList;
 using Anela.Heblo.Xcc.Persistance;
 using Anela.Heblo.Domain.Features.Invoices;

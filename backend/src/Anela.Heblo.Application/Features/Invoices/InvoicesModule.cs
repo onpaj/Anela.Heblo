@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
+using Anela.Heblo.Persistence.Invoices;
 using Anela.Heblo.Application.Features.Invoices.Services;
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Domain.Features.Analytics;

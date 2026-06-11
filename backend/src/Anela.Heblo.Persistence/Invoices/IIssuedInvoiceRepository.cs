@@ -1,7 +1,7 @@
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Xcc.Persistance;
 
-namespace Anela.Heblo.Application.Features.Invoices.Contracts;
+namespace Anela.Heblo.Persistence.Invoices;
 
 /// <summary>
 /// Repository interface for IssuedInvoice entity
