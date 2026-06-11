@@ -29,7 +29,10 @@ public sealed class GetArticleFeedbackListHandler
         var pageSize = AllowedPageSizes.Contains(request.PageSize) ? request.PageSize : 20;
         var sortBy = AllowedSortColumns.Contains(request.SortBy) ? request.SortBy : "CreatedAt";
 
-        var pagedTask = _repository.GetFeedbackPagedAsync(
+        // Queries run sequentially: they share the scoped DbContext, which EF Core
+        // forbids issuing concurrent operations on (a Task.WhenAll here throws
+        // "A second operation was started on this context instance").
+        var (items, totalCount) = await _repository.GetFeedbackPagedAsync(
             request.HasFeedback,
             request.RequestedBy,
             sortBy,
@@ -37,12 +40,8 @@ public sealed class GetArticleFeedbackListHandler
             page,
             pageSize,
             ct);
-        var statsTask = _repository.GetFeedbackStatsAsync(ct);
 
-        await Task.WhenAll(pagedTask, statsTask);
-
-        var (items, totalCount) = pagedTask.Result;
-        var stats = statsTask.Result;
+        var stats = await _repository.GetFeedbackStatsAsync(ct);
 
         var userNames = await _userDisplayNameResolver.ResolveAsync(
             items.Select(a => a.RequestedBy).Where(id => id is not null)!,
