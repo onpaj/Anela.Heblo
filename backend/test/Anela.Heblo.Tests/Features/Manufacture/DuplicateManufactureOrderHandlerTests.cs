@@ -116,4 +116,81 @@ public class DuplicateManufactureOrderHandlerTests
             x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_DuplicatesAllFields_WhenSourceHasSemiProductAndProducts()
+    {
+        // Arrange
+        var sourceOrder = BuildSourceOrder(includeSemiProduct: true);
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(SourceOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sourceOrder);
+        _repositoryMock
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GeneratedOrderNumber);
+
+        ManufactureOrder? captured = null;
+        _repositoryMock
+            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .Callback<ManufactureOrder, CancellationToken>((order, _) => captured = order)
+            .ReturnsAsync((ManufactureOrder order, CancellationToken _) =>
+            {
+                order.Id = PersistedOrderId;
+                return order;
+            });
+
+        var request = new DuplicateManufactureOrderRequest { SourceOrderId = SourceOrderId };
+
+        var expectedLot = ManufactureOrderExtensions.GetDefaultLot(FixedNow.UtcDateTime);
+        var expectedExpiration = ManufactureOrderExtensions.GetDefaultExpiration(
+            FixedNow.UtcDateTime,
+            sourceOrder.SemiProduct!.ExpirationMonths);
+        var expectedPlannedDate = DateOnly.FromDateTime(FixedNow.UtcDateTime);
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert response
+        response.Should().NotBeNull();
+        response.ErrorCode.Should().BeNull();
+        response.Id.Should().Be(PersistedOrderId);
+        response.OrderNumber.Should().Be(GeneratedOrderNumber);
+
+        // Assert captured order
+        captured.Should().NotBeNull();
+        captured!.OrderNumber.Should().Be(GeneratedOrderNumber);
+        captured.State.Should().Be(ManufactureOrderState.Draft);
+        captured.CreatedByUser.Should().Be(DisplayName);
+        captured.StateChangedByUser.Should().Be(DisplayName);
+        captured.ResponsiblePerson.Should().Be(ResponsiblePerson);
+        captured.PlannedDate.Should().Be(expectedPlannedDate);
+
+        // Assert duplicated semi-product
+        captured.SemiProduct.Should().NotBeNull();
+        captured.SemiProduct!.ProductCode.Should().Be(sourceOrder.SemiProduct.ProductCode);
+        captured.SemiProduct.ProductName.Should().Be(sourceOrder.SemiProduct.ProductName);
+        captured.SemiProduct.PlannedQuantity.Should().Be(sourceOrder.SemiProduct.PlannedQuantity);
+        captured.SemiProduct.ActualQuantity.Should().Be(sourceOrder.SemiProduct.PlannedQuantity);
+        captured.SemiProduct.BatchMultiplier.Should().Be(sourceOrder.SemiProduct.BatchMultiplier);
+        captured.SemiProduct.ExpirationMonths.Should().Be(sourceOrder.SemiProduct.ExpirationMonths);
+        captured.SemiProduct.LotNumber.Should().Be(expectedLot);
+        captured.SemiProduct.ExpirationDate.Should().Be(expectedExpiration);
+
+        // Assert duplicated products (collection-shaped, order-preserving)
+        captured.Products.Should().HaveCount(sourceOrder.Products.Count);
+        for (var i = 0; i < sourceOrder.Products.Count; i++)
+        {
+            var src = sourceOrder.Products[i];
+            var dup = captured.Products[i];
+
+            dup.ProductCode.Should().Be(src.ProductCode);
+            dup.ProductName.Should().Be(src.ProductName);
+            dup.SemiProductCode.Should().Be(src.SemiProductCode);
+            dup.PlannedQuantity.Should().Be(src.PlannedQuantity);
+            dup.ActualQuantity.Should().Be(src.PlannedQuantity);
+            dup.LotNumber.Should().Be(expectedLot);
+            dup.ExpirationDate.Should().Be(expectedExpiration);
+        }
+    }
 }
