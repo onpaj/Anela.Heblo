@@ -4,6 +4,7 @@ import type { PackingOrder, ScanShipment } from '../../api/hooks/useScanPackingO
 import type { ShipmentLabelDto } from '../../api/generated/api-client';
 import PackingShipmentDoneView from './PackingShipmentDoneView';
 import { useCompletePackingOrder } from '../../api/hooks/useCompletePackingOrder';
+import { useOrderTrackingNumber } from '../../api/hooks/useOrderTrackingNumber';
 
 interface PackingLabelPrinterProps {
   order: PackingOrder;
@@ -27,12 +28,22 @@ function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabe
   const [printedCount, setPrintedCount] = useState(0);
   const [acknowledgedCount, setAcknowledgedCount] = useState(0);
   const [printError, setPrintError] = useState<{ packageNumber: number; status?: number } | null>(null);
+  const [reprintGeneration, setReprintGeneration] = useState(0);
+
+  // Tracks which "print context" we've already auto-printed for. A state guard
+  // (printedCount === 0) can't prevent the double-print because React StrictMode
+  // double-invokes effects synchronously in development, before the state update
+  // commits — so both invocations see the stale value. A ref is written
+  // synchronously and survives that double-invoke, firing the print exactly once.
+  const autoPrintedContextRef = useRef<string | null>(null);
 
   const completeMutation = useCompletePackingOrder();
   const completedRef = useRef(false);
 
   const labels = useMemo(() => toLabels(shipment), [shipment]);
   const isDone = labels.length > 0 && acknowledgedCount >= labels.length;
+
+  const trackingQuery = useOrderTrackingNumber(order.code, isDone);
 
   // Print a package, clearing the error on success and recording it on failure.
   // A failed fetch (e.g. 404 = carrier label not generated) must NOT advance the
@@ -52,10 +63,9 @@ function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabe
     [order.code],
   );
 
+  // Reset the completion guard only when the order changes — NOT on reprint, so a
+  // reprinted pendingCompletion order never re-fires the mark-as-packed mutation.
   useEffect(() => {
-    setPrintedCount(0);
-    setAcknowledgedCount(0);
-    setPrintError(null);
     completedRef.current = false;
   }, [order.code]);
 
@@ -77,16 +87,25 @@ function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabe
   }, [isDone, shipment.pendingCompletion, order.code]);
 
   useEffect(() => {
-    if (labels.length > 0 && printedCount === 0) {
-      printPackage(1);
-      setPrintedCount(1);
-    }
-  }, [labels, printedCount, printPackage]);
+    if (labels.length === 0) return;
+
+    // A new order or a reprint click starts a fresh print context. Re-runs within
+    // the same context (StrictMode double-invoke, unrelated re-renders) are ignored.
+    const printContext = `${order.code}|${reprintGeneration}`;
+    if (autoPrintedContextRef.current === printContext) return;
+    autoPrintedContextRef.current = printContext;
+
+    setPrintedCount(1);
+    setAcknowledgedCount(0);
+    setPrintError(null);
+    printPackage(1);
+  }, [labels, order.code, reprintGeneration, printPackage]);
 
   function handleReprint() {
     setPrintedCount(0);
     setAcknowledgedCount(0);
     setPrintError(null);
+    setReprintGeneration((g) => g + 1);
   }
 
   if (labels.length === 0) {
@@ -98,6 +117,7 @@ function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabe
       <PackingShipmentDoneView
         order={order}
         shipment={shipment}
+        resolvedTrackingNumber={trackingQuery.data ?? null}
         onReprint={handleReprint}
       />
     );

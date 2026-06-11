@@ -1,8 +1,10 @@
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.GridLayouts;
+using Anela.Heblo.Persistence.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 
 namespace Anela.Heblo.Tests.Persistence.GridLayouts;
@@ -43,7 +45,8 @@ public class GridLayoutRepositoryTranslationTests
         var npgsqlEx = new NpgsqlException("connection terminated");
         context.ThrowOnSaveChanges = npgsqlEx;
 
-        var repository = new GridLayoutRepository(context, TimeProvider.System);
+        var translator = new PostgresExceptionTranslator(NullLogger<PostgresExceptionTranslator>.Instance);
+        var repository = new GridLayoutRepository(context, TimeProvider.System, translator);
 
         // Act
         Func<Task> act = () => repository.UpsertAsync("user-1", "grid-1", "{}", CancellationToken.None);
@@ -62,7 +65,8 @@ public class GridLayoutRepositoryTranslationTests
         var dbUpdateEx = new DbUpdateException("An error occurred while saving.", npgsqlInner);
         context.ThrowOnSaveChanges = dbUpdateEx;
 
-        var repository = new GridLayoutRepository(context, TimeProvider.System);
+        var translator = new PostgresExceptionTranslator(NullLogger<PostgresExceptionTranslator>.Instance);
+        var repository = new GridLayoutRepository(context, TimeProvider.System, translator);
 
         // Act
         Func<Task> act = () => repository.UpsertAsync("user-1", "grid-1", "{}", CancellationToken.None);
@@ -80,7 +84,8 @@ public class GridLayoutRepositoryTranslationTests
         var unrelatedEx = new InvalidOperationException("unrelated failure");
         context.ThrowOnSaveChanges = unrelatedEx;
 
-        var repository = new GridLayoutRepository(context, TimeProvider.System);
+        var translator = new PostgresExceptionTranslator(NullLogger<PostgresExceptionTranslator>.Instance);
+        var repository = new GridLayoutRepository(context, TimeProvider.System, translator);
 
         // Act
         Func<Task> act = () => repository.UpsertAsync("user-1", "grid-1", "{}", CancellationToken.None);
@@ -107,7 +112,8 @@ public class GridLayoutRepositoryTranslationTests
         var npgsqlEx = new NpgsqlException("connection terminated");
         context.ThrowOnSaveChanges = npgsqlEx;
 
-        var repository = new GridLayoutRepository(context, TimeProvider.System);
+        var translator = new PostgresExceptionTranslator(NullLogger<PostgresExceptionTranslator>.Instance);
+        var repository = new GridLayoutRepository(context, TimeProvider.System, translator);
 
         // Act
         Func<Task> act = () => repository.DeleteAsync("user-1", "grid-1", CancellationToken.None);

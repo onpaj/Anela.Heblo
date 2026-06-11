@@ -18,8 +18,9 @@ const renderHome = () => {
 };
 
 describe('BaleniHome', () => {
-  it('renders heading', () => {
+  it('renders section headings', () => {
     renderHome();
+    expect(screen.getByText('Přehled')).toBeInTheDocument();
     expect(screen.getByText('Navigace')).toBeInTheDocument();
   });
 

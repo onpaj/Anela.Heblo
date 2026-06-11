@@ -82,9 +82,25 @@ describe("ZasilkyPage", () => {
     render(<ZasilkyPage />);
     expect(screen.getByText("ORD-1")).toBeInTheDocument();
     expect(screen.getByText("Alice")).toBeInTheDocument();
-    expect(screen.getByText("TRK-1")).toBeInTheDocument();
+    expect(screen.getAllByText("TRK-1").length).toBeGreaterThanOrEqual(1);
     const table = screen.getByRole("table");
     expect(table).toHaveTextContent("PPL");
+  });
+
+  it("falls back to packageNumber in Balík column when trackingNumber is absent", () => {
+    const packageWithoutTracking: PackageDto = {
+      ...samplePackage,
+      trackingNumber: undefined,
+      packageNumber: "Vlastní balení",
+    };
+    mockUsePackagesQuery.mockReturnValue({
+      data: { items: [packageWithoutTracking], totalCount: 1, pageNumber: 1, pageSize: 20 },
+      isLoading: false,
+      isError: false,
+    });
+    render(<ZasilkyPage />);
+    const cells = screen.getAllByText("Vlastní balení");
+    expect(cells.length).toBeGreaterThanOrEqual(1);
   });
 
   it("calls printLabelPdf when reprint button is clicked", () => {

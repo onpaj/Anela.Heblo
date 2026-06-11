@@ -136,6 +136,21 @@ Source of truth: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/ShoptetAp
 | 489 | `GLS_PARCELSHOP` | GLS | 8 |
 | 4 | `OSOBAK` | Osobak | 1 |
 
+**2025+ carrier scheme** (added when PPL/Zásilkovna/GLS introduced new "box & výdejní místa / do ruky" methods on anela.cz; GUIDs `*-11f1-9239-bc241122355e`). These coexist with the legacy methods above — both still receive orders during the transition. GUIDs discovered via `GET /api/eshop?include=shippingMethods` (production anela.cz, `retail` group); numeric IDs supplied from Shoptet admin (not returned by the REST API).
+
+| ID | Constant Name | Carrier | DisplayName | GUID |
+|---|---|---|---|---|
+| 490 | `PPL_BOX` | PPL | PPL přímo do PPL boxu | `6fc70492-6341-11f1-9239-bc241122355e` |
+| 496 | `PPL_VYDEJNI_MISTA` | PPL | PPL výdejní místa a Alzaboxy | `8e6313c7-6342-11f1-9239-bc241122355e` |
+| 493 | `PPL_DO_RUKY_NEW` | PPL | PPL do ruky | `53f8a8a5-6342-11f1-9239-bc241122355e` |
+| 502 | `ZASILKOVNA_BOXY_VYDEJNI` | Zásilkovna | Zásilkovna boxy a výdejní místa | `68201aa2-6343-11f1-9239-bc241122355e` |
+| 505 | `ZASILKOVNA_DO_RUKY_NEW` | Zásilkovna | Zásilkovna do ruky | `b1915a68-6343-11f1-9239-bc241122355e` |
+| 511 | `GLS_BOXY_VYDEJNI` | GLS | GLS boxy a výdejní místa | `8448f4b6-6344-11f1-9239-bc241122355e` |
+| 508 | `GLS_DO_RUKY_NEW` | GLS | GLS do ruky | `53db451b-6344-11f1-9239-bc241122355e` |
+
+> `ResolveDeliveryHandling` classifies these by `Name`: `*_DO_RUKY*` → `NaRuky`; names containing `BOX` or `VYDEJNI` → `Box`. The legacy `7878c138-…` method (`ZASILKOVNA_ZPOINT`, id 15) was renamed in Shoptet to "Zásilkovna – Výdejní místa a Z-boxy" — `DisplayName` updated to match.
+> ⚠️ The ID↔method pairing within each carrier was assigned from the order the methods appear in the `retail` response; confirm against Shoptet admin before relying on the picking-list filter.
+
 **Important:** These are Shoptet admin-internal numeric IDs used in URL filter params (`?f[shippingId]=21`), not the `shippingGuid` used in the REST API order creation body. When seeding test orders via `POST /api/orders`, use the corresponding `shippingGuid` from `GET /api/eshop?include=shippingMethods` that maps to the desired shipping ID.
 
 #### Order Statuses (known values from code)
@@ -985,6 +1000,18 @@ When Shoptet returns an error (non-2xx or populated `errors[]`):
 - An order may have multiple shipments, each with multiple packages. All are returned; the kiosk prints each.
 - If both `labelUrl` and `labelZpl` are `null` for all packages, labels have not been generated yet.
 - **Generation latency is significant — confirmed minutes, not seconds (live, 2026-06-09).** A `POST /api/shipments` returns a shipment in `requested` state with `labelUrl: null` and `trackingNumber: null`; both populate (status → `created`) only once Balikobot/the carrier finalizes. For order 126000035 ("PPL na výdejní místo") this took **several minutes**. Implication: the `GetPackageLabelPdf` readiness poll (5×1s) will almost always 404 if a print is attempted immediately after scanning — the label must be re-fetched/reprinted once ready (from Zásilky), or the print retried.
+
+### 11.5.1 Package `name` is NOT a stable match key — and shipments accumulate per order
+
+> **Verified 2026-06-10 against the live test store (780175), order `126000035`.** A GET returned **12 shipments** for the single order.
+
+Hard-won findings from the FillTrackingNumbers backfill job — read before matching packages to DB rows:
+
+- **`packages[].name` is non-unique within an order.** Every package across all 12 shipments was named `"Vlastní balení"` ("custom packaging" — the packaging type, not an identifier). Building a `Dictionary` keyed by `name` will throw a duplicate-key exception the moment two non-dead packages share a name.
+- **`packages[].name` is NOT stable across label generation.** Immediately after `POST /api/shipments` (status `requested`, label not yet ready) the package name is a placeholder sequence (`"1"`, `"2"`, …). Once the carrier label generates, Shoptet **renames** the package to the packaging type (`"Vlastní balení"`). So a name persisted at scan time will not match the name read back later. **Never match a persisted package to a live label by name.**
+- **Shipments accumulate; `ResetOrderShipmentHandler` orphans the DB `ShipmentGuid`.** Each pack/reset cancels the old shipment (status → `canceled`/`deleted`) and creates a brand-new one. The Heblo `Package` row is **not** updated on reset, so its `ShipmentGuid` points at a now-cancelled shipment that still carries an (invalid) tracking number. The live, deliverable tracking number lives on a different, newer shipment.
+- **Latest active shipment = the last non-dead shipment in the response.** Shoptet returns shipments **oldest-first** (the `guid` is UUIDv7, time-ordered). "Active" = status not in `{canceled, cancel_requested, deleted, request_failed}`. To resolve the current tracking number for an order, take the **last** active shipment and read its package tracking number — ignore the persisted `ShipmentGuid` and all package names. Implemented as `IShipmentClient.GetLatestActiveTrackingNumberAsync` and used by `FillTrackingNumbersJob`.
+- Each Heblo-created shipment has **exactly one package** (`ScanPackingOrderHandler`/`ResetOrderShipmentHandler` always send a single `packages[]` entry), so an order's single tracking number maps to its single `Package` row.
 
 ### 11.6 Authentication
 

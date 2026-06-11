@@ -21,8 +21,10 @@ export const createMockApiClient = (baseUrl = 'http://localhost:5000') => {
  */
 export const mockAuthenticatedApiClient = (mockClient: any) => {
     const { getAuthenticatedApiClient } = require('./client');
-    // Mock as function that returns a Promise (works with await)
-    (getAuthenticatedApiClient as jest.Mock).mockReturnValue(Promise.resolve(mockClient));
+    // Mock as function that returns the client directly (synchronous, matches actual signature).
+    // Callers that still use `await getAuthenticatedApiClient()` are unaffected — awaiting a
+    // non-Promise value is a no-op in JavaScript.
+    (getAuthenticatedApiClient as jest.Mock).mockReturnValue(mockClient);
 };
 
 /**
