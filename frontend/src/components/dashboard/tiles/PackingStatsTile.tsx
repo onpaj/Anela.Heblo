@@ -9,6 +9,7 @@ interface PackerStat {
 
 interface PackingStatsData {
   ordersBeingPackedCount: number | null;
+  ordersBeingPackedCountLastSync: string | null;
   totalOrdersPackedToday: number;
   packedByPacker: PackerStat[];
 }
@@ -53,6 +54,11 @@ export const PackingStatsTile: React.FC<PackingStatsTileProps> = ({ data }) => {
           <p className="text-2xl font-bold text-primary-blue">
             {stats.ordersBeingPackedCount ?? '—'}
           </p>
+          {stats.ordersBeingPackedCountLastSync && (
+            <p className="text-xs text-neutral-gray mt-1">
+              sync {new Date(stats.ordersBeingPackedCountLastSync).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )}
         </div>
         <div className="bg-secondary-blue-pale rounded-lg p-3 text-center">
           <p className="text-xs text-neutral-gray mb-1">Zabaleno dnes</p>

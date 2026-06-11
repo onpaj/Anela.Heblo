@@ -5,6 +5,7 @@ namespace Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboar
 public class GetPackingDashboardResponse : BaseResponse
 {
     public int? OrdersBeingPackedCount { get; set; }
+    public DateTimeOffset? OrdersBeingPackedCountLastSync { get; set; }
     public int TotalOrdersPackedToday { get; set; }
     public List<PackerStatsDto> PackedByPacker { get; set; } = new();
 

@@ -46,9 +46,11 @@ public class PackingStatsTile : ITile
             var (total, byPacker) = await _repo.GetPackedTodayByPackerAsync(start, end, cancellationToken);
 
             int? ordersBeingPackedCount = null;
+            DateTimeOffset? ordersBeingPackedCountLastSync = null;
             try
             {
                 ordersBeingPackedCount = await _packingOrderClient.GetOrdersBeingPackedCountAsync(cancellationToken);
+                ordersBeingPackedCountLastSync = now;
             }
             catch (Exception ex)
             {
@@ -70,6 +72,7 @@ public class PackingStatsTile : ITile
                 data = new
                 {
                     ordersBeingPackedCount,
+                    ordersBeingPackedCountLastSync,
                     totalOrdersPackedToday = total,
                     packedByPacker = packers,
                 },
