@@ -43,7 +43,7 @@ public class ProcessDailyConsumptionHandlerTests
         response.Success.Should().BeFalse();
         response.MaterialsProcessed.Should().Be(0);
         response.ProcessedDate.Should().Be(TestDate);
-        response.Message.Should().Contain("already processed");
+        response.Message.Should().Contain("was already processed");
         response.Message.Should().Contain(TestDate.ToString());
 
         service.Verify(
