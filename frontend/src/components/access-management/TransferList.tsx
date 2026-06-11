@@ -28,6 +28,8 @@ interface TransferListProps {
   fillHeight?: boolean;
   searchable?: boolean;
   searchPlaceholder?: string;
+  highlightedIds?: string[];
+  highlightLabel?: string;
 }
 
 function matchesQuery(item: TransferItem, query: string): boolean {
@@ -41,6 +43,8 @@ interface ItemRowProps {
   item: TransferItem;
   direction: "assign" | "remove";
   onMove: () => void;
+  highlighted?: boolean;
+  highlightLabel?: string;
 }
 
 function buildGroups(
@@ -56,23 +60,37 @@ function buildGroups(
   return map;
 }
 
-function ItemRow({ item, direction, onMove }: ItemRowProps) {
+function ItemRow({
+  item,
+  direction,
+  onMove,
+  highlighted,
+  highlightLabel,
+}: ItemRowProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: item.id });
   const style = transform
     ? { transform: CSS.Transform.toString(transform) }
     : undefined;
+  const rowColors = highlighted
+    ? "border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
+    : "border-gray-200 bg-white hover:bg-gray-50";
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center justify-between px-3 py-2 rounded border border-gray-200 bg-white hover:bg-gray-50 cursor-grab${isDragging ? " opacity-50" : ""}`}
+      className={`flex items-center justify-between px-3 py-2 rounded border ${rowColors} cursor-grab${isDragging ? " opacity-50" : ""}`}
       {...attributes}
       {...listeners}
     >
       <div className="flex flex-col min-w-0 flex-1">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-sm text-gray-900 truncate">{item.label}</span>
+          {highlighted && highlightLabel && (
+            <span className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">
+              {highlightLabel}
+            </span>
+          )}
           {item.badge && (
             <span className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
               {item.badge}
@@ -165,7 +183,10 @@ function TransferList({
   fillHeight,
   searchable,
   searchPlaceholder = "Search…",
+  highlightedIds,
+  highlightLabel,
 }: TransferListProps) {
+  const highlighted = new Set(highlightedIds);
   // A small activation distance keeps the per-row +/− button clicks from being
   // swallowed by the drag sensor — a plain click no longer starts a drag.
   const sensors = useSensors(
@@ -243,6 +264,8 @@ function TransferList({
                           item={item}
                           direction="assign"
                           onMove={() => handleAssign(item.id)}
+                          highlighted={highlighted.has(item.id)}
+                          highlightLabel={highlightLabel}
                         />
                       ))}
                     </div>
@@ -254,6 +277,8 @@ function TransferList({
                     item={item}
                     direction="assign"
                     onMove={() => handleAssign(item.id)}
+                    highlighted={highlighted.has(item.id)}
+                    highlightLabel={highlightLabel}
                   />
                 ))}
           </DropZone>
@@ -272,6 +297,8 @@ function TransferList({
                 item={item}
                 direction="remove"
                 onMove={() => handleRemove(item.id)}
+                highlighted={highlighted.has(item.id)}
+                highlightLabel={highlightLabel}
               />
             ))}
           </DropZone>

@@ -6,9 +6,10 @@ interface PermissionPickerProps {
   value: string[];
   onChange: (permissions: string[]) => void;
   fillHeight?: boolean;
+  inheritedIds?: Set<string>;
 }
 
-export default function PermissionPicker({ value, onChange, fillHeight }: PermissionPickerProps) {
+export default function PermissionPicker({ value, onChange, fillHeight, inheritedIds }: PermissionPickerProps) {
   const catalogue = useCatalogue();
 
   const { items, sectionByPermission } = useMemo(() => {
@@ -39,6 +40,8 @@ export default function PermissionPicker({ value, onChange, fillHeight }: Permis
       fillHeight={fillHeight}
       searchable
       searchPlaceholder="Search permissions…"
+      highlightedIds={inheritedIds ? Array.from(inheritedIds) : undefined}
+      highlightLabel="inherited"
     />
   );
 }
