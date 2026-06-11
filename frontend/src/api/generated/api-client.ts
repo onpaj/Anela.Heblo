@@ -13015,6 +13015,7 @@ export enum ErrorCodes {
     Unauthorized = "Unauthorized",
     Forbidden = "Forbidden",
     TokenExpired = "TokenExpired",
+    InsufficientPermissions = "InsufficientPermissions",
     Exception = "Exception",
     PurchaseOrderNotFound = "PurchaseOrderNotFound",
     SupplierNotFound = "SupplierNotFound",
@@ -32586,6 +32587,7 @@ export interface IGetOrderTrackingNumberResponse extends IBaseResponse {
 
 export class GetPackingDashboardResponse extends BaseResponse implements IGetPackingDashboardResponse {
     ordersBeingPackedCount?: number | undefined;
+    ordersBeingPackedCountLastSync?: Date | undefined;
     totalOrdersPackedToday?: number;
     packedByPacker?: PackerStatsDto[];
 
@@ -32597,6 +32599,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
         super.init(_data);
         if (_data) {
             this.ordersBeingPackedCount = _data["ordersBeingPackedCount"];
+            this.ordersBeingPackedCountLastSync = _data["ordersBeingPackedCountLastSync"] ? new Date(_data["ordersBeingPackedCountLastSync"].toString()) : <any>undefined;
             this.totalOrdersPackedToday = _data["totalOrdersPackedToday"];
             if (Array.isArray(_data["packedByPacker"])) {
                 this.packedByPacker = [] as any;
@@ -32616,6 +32619,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["ordersBeingPackedCount"] = this.ordersBeingPackedCount;
+        data["ordersBeingPackedCountLastSync"] = this.ordersBeingPackedCountLastSync ? this.ordersBeingPackedCountLastSync.toISOString() : <any>undefined;
         data["totalOrdersPackedToday"] = this.totalOrdersPackedToday;
         if (Array.isArray(this.packedByPacker)) {
             data["packedByPacker"] = [];
@@ -32629,6 +32633,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
 
 export interface IGetPackingDashboardResponse extends IBaseResponse {
     ordersBeingPackedCount?: number | undefined;
+    ordersBeingPackedCountLastSync?: Date | undefined;
     totalOrdersPackedToday?: number;
     packedByPacker?: PackerStatsDto[];
 }

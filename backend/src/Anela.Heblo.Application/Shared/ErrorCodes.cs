@@ -41,6 +41,8 @@ public enum ErrorCodes
     Forbidden = 0014,
     [HttpStatusCode(HttpStatusCode.Unauthorized)]
     TokenExpired = 0015,
+    [HttpStatusCode(HttpStatusCode.Forbidden)]
+    InsufficientPermissions = 0016,
     [HttpStatusCode(HttpStatusCode.InternalServerError)]
     Exception = 0099,
 

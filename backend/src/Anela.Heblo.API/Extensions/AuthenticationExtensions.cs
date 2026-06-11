@@ -2,6 +2,7 @@ using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Domain.Features.Configuration;
@@ -113,5 +114,9 @@ public static class AuthenticationExtensions
         });
 
         services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, PermissionClaimsTransformation>();
+
+        // Replace the bare 403 from the authorization middleware with a structured body naming the
+        // missing permission(s). Covers both mock and real auth — both call this method.
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, PermissionAuthorizationResultHandler>();
     }
 }
