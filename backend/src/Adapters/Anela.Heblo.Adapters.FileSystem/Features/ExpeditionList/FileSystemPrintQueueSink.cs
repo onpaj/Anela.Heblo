@@ -1,8 +1,9 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Shared.Printing;
 
-namespace Anela.Heblo.Application.Features.ExpeditionList.Services;
+namespace Anela.Heblo.Adapters.FileSystem.Features.ExpeditionList;
 
 public class FileSystemPrintQueueSink : IPrintQueueSink
 {
