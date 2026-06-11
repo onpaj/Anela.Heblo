@@ -128,7 +128,7 @@ public class PackageRepository : IPackageRepository
         CancellationToken cancellationToken = default)
     {
         var packages = await _db.Packages
-            .Where(p => p.OrderCode == orderCode)
+            .Where(p => p.OrderCode == orderCode && p.TrackingNumber == null)
             .ToListAsync(cancellationToken);
 
         if (packages.Count == 0)

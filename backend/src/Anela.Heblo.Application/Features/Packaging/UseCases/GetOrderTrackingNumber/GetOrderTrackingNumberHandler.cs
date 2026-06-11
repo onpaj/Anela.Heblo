@@ -41,7 +41,15 @@ public class GetOrderTrackingNumberHandler
 
         if (!string.IsNullOrEmpty(trackingNumber))
         {
-            await _packageRepository.SetTrackingNumberByOrderCodeAsync(request.OrderCode, trackingNumber, cancellationToken);
+            try
+            {
+                await _packageRepository.SetTrackingNumberByOrderCodeAsync(request.OrderCode, trackingNumber, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "GetOrderTrackingNumber: failed to backfill tracking number for order {OrderCode}.", request.OrderCode);
+            }
         }
 
         return new GetOrderTrackingNumberResponse { TrackingNumber = trackingNumber };

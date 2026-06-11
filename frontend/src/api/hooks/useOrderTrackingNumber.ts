@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 interface ApiClientWithInternals {
   baseUrl: string;
@@ -24,7 +24,7 @@ const fetchOrderTrackingNumber = async (orderCode: string): Promise<string | nul
 
 export const useOrderTrackingNumber = (orderCode: string, enabled: boolean) =>
   useQuery<string | null>({
-    queryKey: ['order-tracking-number', orderCode],
+    queryKey: [...QUERY_KEYS.orderTrackingNumber, orderCode],
     queryFn: () => fetchOrderTrackingNumber(orderCode),
     enabled,
     staleTime: 0,
