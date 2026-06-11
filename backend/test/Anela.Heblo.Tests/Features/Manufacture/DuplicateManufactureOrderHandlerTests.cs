@@ -193,4 +193,61 @@ public class DuplicateManufactureOrderHandlerTests
             dup.ExpirationDate.Should().Be(expectedExpiration);
         }
     }
+
+    [Fact]
+    public async Task Handle_OmitsSemiProductAndLeavesProductExpirationNull_WhenSourceHasNoSemiProduct()
+    {
+        // Arrange
+        var sourceOrder = BuildSourceOrder(includeSemiProduct: false);
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(SourceOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sourceOrder);
+        _repositoryMock
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GeneratedOrderNumber);
+
+        ManufactureOrder? captured = null;
+        _repositoryMock
+            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .Callback<ManufactureOrder, CancellationToken>((order, _) => captured = order)
+            .ReturnsAsync((ManufactureOrder order, CancellationToken _) =>
+            {
+                order.Id = PersistedOrderId;
+                return order;
+            });
+
+        var request = new DuplicateManufactureOrderRequest { SourceOrderId = SourceOrderId };
+
+        var expectedLot = ManufactureOrderExtensions.GetDefaultLot(FixedNow.UtcDateTime);
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert response
+        response.Should().NotBeNull();
+        response.ErrorCode.Should().BeNull();
+        response.Id.Should().Be(PersistedOrderId);
+        response.OrderNumber.Should().Be(GeneratedOrderNumber);
+
+        // Assert captured order — no semi-product attached
+        captured.Should().NotBeNull();
+        captured!.SemiProduct.Should().BeNull();
+
+        // Assert products are duplicated and their expiration is null
+        captured.Products.Should().HaveCount(sourceOrder.Products.Count);
+        for (var i = 0; i < sourceOrder.Products.Count; i++)
+        {
+            var src = sourceOrder.Products[i];
+            var dup = captured.Products[i];
+
+            dup.ProductCode.Should().Be(src.ProductCode);
+            dup.ProductName.Should().Be(src.ProductName);
+            dup.SemiProductCode.Should().Be(src.SemiProductCode);
+            dup.PlannedQuantity.Should().Be(src.PlannedQuantity);
+            dup.ActualQuantity.Should().Be(src.PlannedQuantity);
+            dup.LotNumber.Should().Be(expectedLot);
+            dup.ExpirationDate.Should().BeNull();
+        }
+    }
 }
