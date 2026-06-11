@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.GridLayouts.Contracts;
 using Anela.Heblo.Application.Features.GridLayouts.Infrastructure;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -68,7 +69,7 @@ public class GetGridLayoutHandler : IRequestHandler<GetGridLayoutRequest, GetGri
             _logger.LogError(ex,
                 "Database error reading GridLayout for user={UserId} gridKey={GridKey}",
                 userId, request.GridKey);
-            return new GetGridLayoutResponse { Layout = null };
+            return new GetGridLayoutResponse(ErrorCodes.DatabaseError);
         }
     }
 }
