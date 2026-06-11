@@ -35,9 +35,11 @@ public class GetPackingDashboardHandler : IRequestHandler<GetPackingDashboardReq
         var (total, byPacker) = await _repo.GetPackedTodayByPackerAsync(start, end, cancellationToken);
 
         int? ordersBeingPackedCount = null;
+        DateTimeOffset? ordersBeingPackedCountLastSync = null;
         try
         {
             ordersBeingPackedCount = await _packingOrderClient.GetOrdersBeingPackedCountAsync(cancellationToken);
+            ordersBeingPackedCountLastSync = now;
         }
         catch (Exception ex)
         {
@@ -47,6 +49,7 @@ public class GetPackingDashboardHandler : IRequestHandler<GetPackingDashboardReq
         return new GetPackingDashboardResponse
         {
             OrdersBeingPackedCount = ordersBeingPackedCount,
+            OrdersBeingPackedCountLastSync = ordersBeingPackedCountLastSync,
             TotalOrdersPackedToday = total,
             PackedByPacker = byPacker
                 .Select(p => new PackerStatsDto

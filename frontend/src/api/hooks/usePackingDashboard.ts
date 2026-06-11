@@ -9,6 +9,7 @@ export type PackerStatsDto = {
 
 export type GetPackingDashboardResponse = {
   ordersBeingPackedCount: number | null;
+  ordersBeingPackedCountLastSync: string | null;
   totalOrdersPackedToday: number;
   packedByPacker: PackerStatsDto[];
 };

@@ -36,17 +36,25 @@ const TILES: BaleniTile[] = [
   },
 ];
 
-const StatCard: React.FC<{ label: string; value: React.ReactNode; loading: boolean }> = ({
-  label,
-  value,
-  loading,
-}) => (
+const StatCard: React.FC<{
+  label: string;
+  value: React.ReactNode;
+  loading: boolean;
+  syncTime?: string | null;
+}> = ({ label, value, loading, syncTime }) => (
   <div className="bg-white border border-border-light rounded-xl p-6 shadow-soft">
     <p className="text-sm text-neutral-gray mb-2">{label}</p>
     {loading ? (
       <div className="h-10 w-24 bg-secondary-blue-pale rounded animate-pulse" />
     ) : (
-      <p className="text-4xl font-bold text-primary-blue">{value}</p>
+      <>
+        <p className="text-4xl font-bold text-primary-blue">{value}</p>
+        {syncTime && (
+          <p className="text-xs text-neutral-gray mt-2">
+            sync {new Date(syncTime).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        )}
+      </>
     )}
   </div>
 );
@@ -64,6 +72,7 @@ const BaleniHome: React.FC = () => {
             label="Balí se (Shoptet)"
             value={data?.ordersBeingPackedCount ?? '—'}
             loading={isLoading}
+            syncTime={data?.ordersBeingPackedCountLastSync}
           />
           <StatCard
             label="Zabaleno dnes"
