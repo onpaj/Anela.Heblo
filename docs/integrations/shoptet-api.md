@@ -997,6 +997,18 @@ When Shoptet returns an error (non-2xx or populated `errors[]`):
 - An order may have multiple shipments, each with multiple packages. All are returned; the kiosk prints each.
 - If both `labelUrl` and `labelZpl` are `null` for all packages, labels have not been generated yet.
 
+### 11.5.1 Package `name` is NOT a stable match key — and shipments accumulate per order
+
+> **Verified 2026-06-10 against the live test store (780175), order `126000035`.** A GET returned **12 shipments** for the single order.
+
+Hard-won findings from the FillTrackingNumbers backfill job — read before matching packages to DB rows:
+
+- **`packages[].name` is non-unique within an order.** Every package across all 12 shipments was named `"Vlastní balení"` ("custom packaging" — the packaging type, not an identifier). Building a `Dictionary` keyed by `name` will throw a duplicate-key exception the moment two non-dead packages share a name.
+- **`packages[].name` is NOT stable across label generation.** Immediately after `POST /api/shipments` (status `requested`, label not yet ready) the package name is a placeholder sequence (`"1"`, `"2"`, …). Once the carrier label generates, Shoptet **renames** the package to the packaging type (`"Vlastní balení"`). So a name persisted at scan time will not match the name read back later. **Never match a persisted package to a live label by name.**
+- **Shipments accumulate; `ResetOrderShipmentHandler` orphans the DB `ShipmentGuid`.** Each pack/reset cancels the old shipment (status → `canceled`/`deleted`) and creates a brand-new one. The Heblo `Package` row is **not** updated on reset, so its `ShipmentGuid` points at a now-cancelled shipment that still carries an (invalid) tracking number. The live, deliverable tracking number lives on a different, newer shipment.
+- **Latest active shipment = the last non-dead shipment in the response.** Shoptet returns shipments **oldest-first** (the `guid` is UUIDv7, time-ordered). "Active" = status not in `{canceled, cancel_requested, deleted, request_failed}`. To resolve the current tracking number for an order, take the **last** active shipment and read its package tracking number — ignore the persisted `ShipmentGuid` and all package names. Implemented as `IShipmentClient.GetLatestActiveTrackingNumberAsync` and used by `FillTrackingNumbersJob`.
+- Each Heblo-created shipment has **exactly one package** (`ScanPackingOrderHandler`/`ResetOrderShipmentHandler` always send a single `packages[]` entry), so an order's single tracking number maps to its single `Package` row.
+
 ### 11.6 Authentication
 
 Same host (`https://api.myshoptet.com`) and `Shoptet-Private-API-Token` header as all other Shoptet endpoints. `ShoptetApiSettings.BaseUrl` and `ShoptetApiSettings.ApiToken` are reused — no new configuration keys.

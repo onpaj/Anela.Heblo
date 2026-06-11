@@ -57,7 +57,7 @@ export function ZasilkyTable({
           <tr key={p.id} className="border-t hover:bg-slate-50">
             <td className="px-4 py-3 font-mono">{p.orderCode}</td>
             <td className="px-4 py-3">{p.customerName}</td>
-            <td className="px-4 py-3">{p.packageNumber}</td>
+            <td className="px-4 py-3">{p.trackingNumber ?? p.packageNumber}</td>
             <td className="px-4 py-3 font-mono text-sm">{p.trackingNumber ?? "—"}</td>
             <td className="px-4 py-3">{p.shippingProviderName ?? p.shippingProviderCode}</td>
             <td className="px-4 py-3">{new Date(p.packedAt).toLocaleString("cs-CZ")}</td>
