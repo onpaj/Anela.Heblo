@@ -139,6 +139,7 @@ public class GetUserEffectivePermissionsHandlerTests
             CancellationToken.None);
 
         response.Success.Should().BeTrue();
+        response.ErrorCode.Should().BeNull();
         response.Permissions.Should().Equal(AccessRoles.Base, "permX");
         response.Permissions.Count(p => p == AccessRoles.Base).Should().Be(1);
     }
