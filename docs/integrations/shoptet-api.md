@@ -136,6 +136,21 @@ Source of truth: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/ShoptetAp
 | 489 | `GLS_PARCELSHOP` | GLS | 8 |
 | 4 | `OSOBAK` | Osobak | 1 |
 
+**2025+ carrier scheme** (added when PPL/Zásilkovna/GLS introduced new "box & výdejní místa / do ruky" methods on anela.cz; GUIDs `*-11f1-9239-bc241122355e`). These coexist with the legacy methods above — both still receive orders during the transition. GUIDs discovered via `GET /api/eshop?include=shippingMethods` (production anela.cz, `retail` group); numeric IDs supplied from Shoptet admin (not returned by the REST API).
+
+| ID | Constant Name | Carrier | DisplayName | GUID |
+|---|---|---|---|---|
+| 490 | `PPL_BOX` | PPL | PPL přímo do PPL boxu | `6fc70492-6341-11f1-9239-bc241122355e` |
+| 496 | `PPL_VYDEJNI_MISTA` | PPL | PPL výdejní místa a Alzaboxy | `8e6313c7-6342-11f1-9239-bc241122355e` |
+| 493 | `PPL_DO_RUKY_NEW` | PPL | PPL do ruky | `53f8a8a5-6342-11f1-9239-bc241122355e` |
+| 502 | `ZASILKOVNA_BOXY_VYDEJNI` | Zásilkovna | Zásilkovna boxy a výdejní místa | `68201aa2-6343-11f1-9239-bc241122355e` |
+| 505 | `ZASILKOVNA_DO_RUKY_NEW` | Zásilkovna | Zásilkovna do ruky | `b1915a68-6343-11f1-9239-bc241122355e` |
+| 511 | `GLS_BOXY_VYDEJNI` | GLS | GLS boxy a výdejní místa | `8448f4b6-6344-11f1-9239-bc241122355e` |
+| 508 | `GLS_DO_RUKY_NEW` | GLS | GLS do ruky | `53db451b-6344-11f1-9239-bc241122355e` |
+
+> `ResolveDeliveryHandling` classifies these by `Name`: `*_DO_RUKY*` → `NaRuky`; names containing `BOX` or `VYDEJNI` → `Box`. The legacy `7878c138-…` method (`ZASILKOVNA_ZPOINT`, id 15) was renamed in Shoptet to "Zásilkovna – Výdejní místa a Z-boxy" — `DisplayName` updated to match.
+> ⚠️ The ID↔method pairing within each carrier was assigned from the order the methods appear in the `retail` response; confirm against Shoptet admin before relying on the picking-list filter.
+
 **Important:** These are Shoptet admin-internal numeric IDs used in URL filter params (`?f[shippingId]=21`), not the `shippingGuid` used in the REST API order creation body. When seeding test orders via `POST /api/orders`, use the corresponding `shippingGuid` from `GET /api/eshop?include=shippingMethods` that maps to the desired shipping ID.
 
 #### Order Statuses (known values from code)

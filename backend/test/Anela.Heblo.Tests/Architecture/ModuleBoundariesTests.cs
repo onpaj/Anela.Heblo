@@ -289,6 +289,9 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrder",
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
+
+        // GetPackingDashboardHandler injects IPackingOrderClient to read packing-queue counts.
+        "Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard.GetPackingDashboardHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
     };
 
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
