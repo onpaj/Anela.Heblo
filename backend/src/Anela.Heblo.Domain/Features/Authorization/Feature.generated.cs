@@ -36,4 +36,6 @@ public enum Feature
     Admin_DataQuality,
     Admin_Administration,
     Admin_FeatureFlags,
+    Jobs_Trigger,
+    Jobs_Disable,
 }

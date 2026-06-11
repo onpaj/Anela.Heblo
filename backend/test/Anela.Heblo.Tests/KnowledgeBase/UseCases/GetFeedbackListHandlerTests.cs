@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetFeedbackList;
+using Anela.Heblo.Application.Shared.Users;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Moq;
 using Xunit;
@@ -8,6 +9,14 @@ namespace Anela.Heblo.Tests.KnowledgeBase.UseCases;
 public class GetFeedbackListHandlerTests
 {
     private readonly Mock<IKnowledgeBaseRepository> _repository = new();
+    private readonly Mock<IUserDisplayNameResolver> _userDisplayNameResolver = new();
+
+    public GetFeedbackListHandlerTests()
+    {
+        _userDisplayNameResolver
+            .Setup(r => r.ResolveAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyDictionary<string, string?>)new Dictionary<string, string?>());
+    }
 
     private static KnowledgeBaseQuestionLog MakeLog(
         bool hasFeedback = false,
@@ -63,7 +72,7 @@ public class GetFeedbackListHandlerTests
         var log = MakeLog(hasFeedback: true);
         SetupRepository([log]);
 
-        var handler = new GetFeedbackListHandler(_repository.Object);
+        var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);
         var result = await handler.Handle(new GetFeedbackListRequest(), default);
 
         Assert.True(result.Success);
@@ -93,7 +102,7 @@ public class GetFeedbackListHandlerTests
         };
         SetupRepository([], stats: stats);
 
-        var handler = new GetFeedbackListHandler(_repository.Object);
+        var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);
         var result = await handler.Handle(new GetFeedbackListRequest(), default);
 
         Assert.Equal(42, result.Stats.TotalQuestions);
@@ -108,7 +117,7 @@ public class GetFeedbackListHandlerTests
         var logs = Enumerable.Range(1, 10).Select(_ => MakeLog()).ToList();
         SetupRepository(logs, totalCount: 35);
 
-        var handler = new GetFeedbackListHandler(_repository.Object);
+        var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);
         var result = await handler.Handle(
             new GetFeedbackListRequest { PageNumber = 2, PageSize = 10 },
             default);
@@ -129,7 +138,7 @@ public class GetFeedbackListHandlerTests
     {
         SetupRepository([]);
 
-        var handler = new GetFeedbackListHandler(_repository.Object);
+        var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);
         var result = await handler.Handle(
             new GetFeedbackListRequest { PageSize = requested },
             default);
@@ -145,7 +154,7 @@ public class GetFeedbackListHandlerTests
     {
         SetupRepository([]);
 
-        var handler = new GetFeedbackListHandler(_repository.Object);
+        var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);
         var result = await handler.Handle(
             new GetFeedbackListRequest { PageNumber = requested },
             default);
@@ -178,7 +187,7 @@ public class GetFeedbackListHandlerTests
             .Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(DefaultStats());
 
-        var handler = new GetFeedbackListHandler(_repository.Object);
+        var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);
         await handler.Handle(new GetFeedbackListRequest { SortBy = requested }, default);
 
         Assert.Equal(expected, capturedSortBy);
@@ -218,7 +227,7 @@ public class GetFeedbackListHandlerTests
             .Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(DefaultStats());
 
-        var handler = new GetFeedbackListHandler(_repository.Object);
+        var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);
         await handler.Handle(new GetFeedbackListRequest
         {
             HasFeedback = true,
@@ -242,7 +251,7 @@ public class GetFeedbackListHandlerTests
     {
         SetupRepository([], totalCount: 25);
 
-        var handler = new GetFeedbackListHandler(_repository.Object);
+        var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);
         var result = await handler.Handle(
             new GetFeedbackListRequest { PageSize = 10 },
             default);
@@ -251,12 +260,43 @@ public class GetFeedbackListHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ResolvesUserNameFromResolver()
+    {
+        var log = MakeLog(hasFeedback: true); // UserId = "user-1"
+        SetupRepository([log]);
+        _userDisplayNameResolver
+            .Setup(r => r.ResolveAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyDictionary<string, string?>)new Dictionary<string, string?>
+            {
+                ["user-1"] = "Alice Example",
+            });
+
+        var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);
+        var result = await handler.Handle(new GetFeedbackListRequest(), default);
+
+        Assert.Equal("Alice Example", result.Logs[0].UserName);
+        Assert.Equal("user-1", result.Logs[0].UserId);
+    }
+
+    [Fact]
+    public async Task Handle_UserNameNull_WhenUserNotResolved()
+    {
+        var log = MakeLog(hasFeedback: true); // UserId = "user-1", resolver returns empty by default
+        SetupRepository([log]);
+
+        var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);
+        var result = await handler.Handle(new GetFeedbackListRequest(), default);
+
+        Assert.Null(result.Logs[0].UserName);
+    }
+
+    [Fact]
     public async Task Handle_LogWithoutFeedbackHasHasFeedbackFalse()
     {
         var log = MakeLog(hasFeedback: false);
         SetupRepository([log]);
 
-        var handler = new GetFeedbackListHandler(_repository.Object);
+        var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);
         var result = await handler.Handle(new GetFeedbackListRequest(), default);
 
         Assert.False(result.Logs[0].HasFeedback);

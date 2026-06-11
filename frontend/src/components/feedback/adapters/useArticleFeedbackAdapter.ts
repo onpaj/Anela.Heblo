@@ -18,6 +18,7 @@ export function useArticleFeedbackAdapter(params: GenericFeedbackParams) {
     secondaryText: article.topic,
     createdAt: article.createdAt ?? '',
     userId: article.requestedBy,
+    userName: article.userName ?? undefined,
     precisionScore: article.precisionScore,
     styleScore: article.styleScore,
     hasFeedback: article.hasComment,

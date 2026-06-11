@@ -20,7 +20,9 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
     location.pathname === "/customer/smartsupp";
 
   // Pages that manage their own internal scroll — no padding wrapper, main is overflow-hidden
-  const isFullHeightPage = location.pathname === "/customer/smartsupp";
+  const isFullHeightPage =
+    location.pathname === "/customer/smartsupp" ||
+    location.pathname.startsWith("/admin/access/groups/");
 
   return (
     <div className="h-[calc(100vh-2rem)] md:h-[calc(100vh-1.5rem)] bg-gray-50 flex flex-col overflow-hidden">

@@ -14,6 +14,7 @@ const mockLog = {
   durationMs: 1200,
   createdAt: '2026-01-15T10:30:00Z',
   userId: 'user@anela.cz',
+  userName: 'User Example',
   precisionScore: 4,
   styleScore: 3,
   feedbackComment: 'Výborná odpověď.',
@@ -64,6 +65,11 @@ test('maps truncated answer to secondaryText', () => {
 test('maps userId', () => {
   const { result } = renderHook(() => useKbFeedbackAdapter(params));
   expect(result.current.rows[0].userId).toBe('user@anela.cz');
+});
+
+test('maps userName', () => {
+  const { result } = renderHook(() => useKbFeedbackAdapter(params));
+  expect(result.current.rows[0].userName).toBe('User Example');
 });
 
 test('maps totalQuestions to totalItems in stats', () => {

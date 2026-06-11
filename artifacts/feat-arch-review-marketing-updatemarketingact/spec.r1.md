@@ -1,108 +1,160 @@
-# Specification: Marketing Module — Consistent DB Save Error Handling for Update and Delete Handlers
+# Specification: Encapsulate Collection Replacement in MarketingAction Domain Entity
 
 ## Summary
-The `UpdateMarketingActionHandler` and `DeleteMarketingActionHandler` lack the compensation/error-handling pattern that `CreateMarketingActionHandler` already implements around the DB save call. When Outlook is updated successfully but the subsequent DB save fails, the exception propagates unhandled — surfacing as HTTP 500 instead of the module's structured `ErrorCodes.DatabaseError` response — and Outlook silently diverges from the database. This spec defines a consistent guarded-save + structured-error pattern across all three handlers.
+Refactor `UpdateMarketingActionHandler` to stop directly mutating EF Core navigation collections on the `MarketingAction` aggregate. Introduce domain-owned `ReplaceProductAssociations` and `ReplaceFolderLinks` methods on `MarketingAction` so the Application layer is decoupled from EF change-tracker behaviour and the entity retains full control over its invariants.
 
 ## Background
-The Marketing module uses MediatR handlers that synchronize a marketing action between the local database and an Outlook calendar event. The Outlook write is performed first; the DB write is performed second. If the DB write fails after a successful Outlook write, the two systems diverge.
+The current `UpdateMarketingActionHandler` (lines 95–110 of `backend/src/Anela.Heblo.Application/Features/Marketing/UseCases/UpdateMarketingAction/UpdateMarketingActionHandler.cs`) leaks persistence concerns into the Application layer:
 
-`CreateMarketingActionHandler` (lines 87–112) already documents the intended pattern: a try/catch around the DB save that (a) logs the inconsistency, (b) attempts a compensating Outlook delete, and (c) returns `ErrorCodes.DatabaseError` so the caller receives a structured failure rather than an unhandled exception.
+- It calls `action.ProductAssociations.Clear()` and `action.FolderLinks.Clear()` directly on `virtual ICollection<>` navigation properties.
+- It then re-populates them via the encapsulated domain methods `AssociateWithProduct` and `LinkToFolder`.
 
-`UpdateMarketingActionHandler` (lines 112–113) and `DeleteMarketingActionHandler` (lines 75–76) skip this pattern entirely. The result:
+The `MarketingAction` aggregate exposes encapsulated *add* methods (with deduplication guards) but no equivalent *replace* or *clear* operations. The handler compensates by reaching into the raw collection, which:
 
-- **Inconsistent error surface**: every other handler in the module returns a typed response with an error code; these two leak raw 500s.
-- **Silent divergence**: on transient DB errors (deadlock, connection drop, timeout), Outlook reflects the new state while the database keeps the old. Users see the team calendar move but the app shows no change.
-- **Maintainer confusion**: the Create handler establishes the convention; the other two violate it without explanation.
+1. Breaks aggregate encapsulation — removal-side invariants cannot be enforced or evolved (e.g. future audit logging, minimum-association guards).
+2. Implicitly couples the Application layer to EF Core change-tracking. The same code would silently no-op against an in-memory or non-EF repository.
+3. Violates SRP — collection-state mutation is a domain concern, not a handler concern.
 
-A full transactional rollback of an Outlook update is not feasible (it would require recording the original Outlook field values and re-issuing a PATCH); the practical minimum is to **detect, log, and report** the inconsistency through the existing response-object pattern.
+This refactor was identified by the daily architecture-review routine on 2026-06-07.
 
 ## Functional Requirements
 
-### FR-1: Guard the DB save in `UpdateMarketingActionHandler`
-Wrap the `UpdateAsync` + `SaveChangesAsync` calls in `UpdateMarketingActionHandler` (around lines 112–113) in a try/catch that mirrors the pattern in `CreateMarketingActionHandler`. On exception:
-1. Log an error at `LogError` level that includes the exception, the `MarketingAction` ID, the `OutlookEventId`, and an explicit message stating that Outlook and the database may now be out of sync.
-2. Return `new UpdateMarketingActionResponse(ErrorCodes.DatabaseError)` so the caller receives a structured failure response rather than a 500.
-3. Do **not** attempt to revert the Outlook event (out of scope — see Out of Scope).
+### FR-1: Add `ReplaceProductAssociations` to `MarketingAction`
+The `MarketingAction` domain entity must expose a method that atomically replaces the full set of product associations with a new set.
+
+**Signature (illustrative):**
+```csharp
+public void ReplaceProductAssociations(IEnumerable<string> productCodes, DateTime utcNow)
+```
+
+**Behaviour:**
+- Accepts a sequence of raw product-code prefixes plus a `utcNow` timestamp supplied by the caller (no `DateTime.UtcNow` inside the domain).
+- Normalises each code with `Trim()` and `ToUpperInvariant()` (matching the existing `AssociateWithProduct` normalisation).
+- Deduplicates the normalised codes.
+- Clears the existing `ProductAssociations` collection and repopulates it with new `MarketingActionProduct` entries (`MarketingActionId`, `ProductCodePrefix`, `CreatedAt = utcNow`).
+- A `null` sequence is treated as an empty sequence (i.e. clears all associations).
+- An empty input set leaves the collection empty.
 
 **Acceptance criteria:**
-- A unit test that forces `SaveChangesAsync` to throw (e.g. via mocked repository) on update returns an `UpdateMarketingActionResponse` with `ErrorCode == ErrorCodes.DatabaseError` and does **not** throw.
-- The same test asserts that an error-level log entry is emitted containing the action ID and the Outlook event ID.
-- An existing happy-path unit test for `UpdateMarketingActionHandler` continues to pass without modification.
-- The exception is no longer propagated to MediatR; the API integration test for a failing update returns the structured error envelope, not HTTP 500.
+- Calling `ReplaceProductAssociations` with `["abc", "ABC", " abc "]` results in exactly one association with `ProductCodePrefix = "ABC"`.
+- Calling with `null` or `[]` empties the collection.
+- Existing associations not present in the new set are removed.
+- New associations carry the supplied `utcNow` value as `CreatedAt`.
+- Unit test covers: empty input, null input, duplicate input, mixed-case input, whitespace input, and a delta scenario (some kept, some added, some removed).
 
-### FR-2: Guard the DB save in `DeleteMarketingActionHandler`
-Wrap the `_repository.DeleteSoftAsync` call in `DeleteMarketingActionHandler` (around lines 75–76) — which internally performs `SaveChangesAsync` — in the same try/catch pattern. On exception:
-1. Log an error including the exception, the action ID, and the (now-deleted) Outlook event ID, with an explicit message stating the Outlook event has already been removed while the DB row remains.
-2. Return the delete handler's typed response with `ErrorCodes.DatabaseError` (use whichever response class the handler currently constructs for success; if none exists for the error case, follow the same shape as the other handlers in the module).
-3. Do **not** attempt to recreate the Outlook event (out of scope).
+### FR-2: Add `ReplaceFolderLinks` to `MarketingAction`
+The `MarketingAction` domain entity must expose a method that atomically replaces the full set of folder links.
 
-**Acceptance criteria:**
-- A unit test that forces `DeleteSoftAsync` to throw returns the typed response with `ErrorCode == ErrorCodes.DatabaseError` and does not throw.
-- The test asserts an error-level log entry referencing the action ID and the deleted Outlook event ID.
-- The existing happy-path delete unit test continues to pass.
-- API integration test for a failing delete returns the structured error envelope, not HTTP 500.
+**Signature (illustrative):**
+```csharp
+public void ReplaceFolderLinks(
+    IEnumerable<(string folderKey, MarketingFolderType folderType)> links,
+    DateTime utcNow)
+```
 
-### FR-3: Consistent log message format across handlers
-All three handlers (Create, Update, Delete) must emit the post-DB-failure log message with:
-- A clear statement of which operation failed (create/update/delete).
-- The `MarketingAction.Id` (where available — on create it may be the in-memory value).
-- The `OutlookEventId`.
-- An explicit "Outlook and DB may be out of sync" / "Outlook event already deleted" phrase so the message is greppable for ops.
-
-**Acceptance criteria:**
-- A grep for "out of sync" / "may now be out of sync" / "already deleted" returns at least one match per handler.
-- Log messages use structured logging placeholders (`{ActionId}`, `{EventId}`), not string interpolation.
-
-### FR-4: Preserve existing Create handler behavior
-No functional change to `CreateMarketingActionHandler`. Its compensating-Outlook-delete behavior is the reference implementation and must continue to work. If a minor refactor (e.g. extracting a shared helper) is proposed during implementation, it must keep the Create handler's compensation path intact.
+**Behaviour:**
+- Accepts a sequence of `(folderKey, folderType)` pairs plus a `utcNow` timestamp.
+- Normalises `folderKey` with `Trim()` (matching the existing `LinkToFolder` normalisation).
+- Deduplicates by the composite key `(folderKey, folderType)`.
+- Clears existing `FolderLinks` and repopulates with new `MarketingActionFolderLink` entries (`MarketingActionId`, `FolderKey`, `FolderType`, `CreatedAt = utcNow`).
+- A `null` sequence is treated as an empty sequence.
+- Rejects entries where `folderKey` is null, empty, or whitespace by throwing the same exception type the existing `LinkToFolder` uses for invalid input (or, if `LinkToFolder` silently accepts, match that behaviour — see Open Questions).
 
 **Acceptance criteria:**
-- Existing `CreateMarketingActionHandler` unit tests pass without modification.
+- Calling `ReplaceFolderLinks` with two pairs differing only in `folderType` keeps both.
+- Calling with `null` or `[]` empties the collection.
+- Whitespace in `folderKey` is trimmed before persistence.
+- Unit test covers: empty input, null input, duplicate input (same key+type), distinct-type-same-key input, whitespace input, and a delta scenario.
+
+### FR-3: Refactor `UpdateMarketingActionHandler` to Use New Methods
+The handler must stop touching `action.ProductAssociations` and `action.FolderLinks` directly and instead delegate to the new domain methods.
+
+**Behaviour:**
+- Replace lines 95–110 of `UpdateMarketingActionHandler.cs` so the handler:
+  - Calls `action.ReplaceProductAssociations(request.AssociatedProducts ?? Enumerable.Empty<string>(), utcNow)`.
+  - Calls `action.ReplaceFolderLinks(request.FolderLinks?.Select(l => (l.FolderKey, l.FolderType)) ?? Enumerable.Empty<(string, MarketingFolderType)>(), utcNow)`.
+- `utcNow` must be obtained from the existing `IDateTimeProvider` / time abstraction already used in this handler (or, if none is currently injected, fall through to `DateTime.UtcNow` at the call site — see Open Questions).
+- No `.Clear()` call on EF navigation properties remains anywhere in the Application layer for this aggregate.
+
+**Acceptance criteria:**
+- `UpdateMarketingActionHandler.cs` contains no direct collection mutation (`Clear`, `Add`, `Remove`) against `MarketingAction` navigation properties.
+- Existing integration test(s) for `UpdateMarketingAction` continue to pass without modification (the externally observable behaviour is identical).
+- A new integration test verifies that an update which removes all product associations actually clears them in the database.
+- A new integration test verifies that an update which changes folder-link composition (mix of added, removed, retained) results in the expected final state.
+
+### FR-4: Preserve Backwards-Compatible External Behaviour
+The end-to-end semantics of `UpdateMarketingActionCommand` must not change for any caller.
+
+**Acceptance criteria:**
+- A request with `AssociatedProducts = null` clears all product associations (matches current behaviour — the existing handler only re-adds when `request.AssociatedProducts?.Any() == true`, but `Clear()` always runs).
+- A request with `FolderLinks = null` clears all folder links (same reasoning).
+- A request with the same sets as currently persisted is a no-op from the caller's perspective (final state matches input).
+- All existing unit and integration tests for the Marketing module continue to pass with no test modifications other than additions.
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
-No measurable performance impact expected. The change adds only a try/catch wrapper; the catch path executes only on failure (already a rare, slow path involving I/O).
+- No regression in handler throughput. The replacement is bounded by the input list size, identical to the prior implementation.
+- No additional database round trips: the replace methods operate on in-memory tracked collections; EF Core change tracking continues to emit the same `DELETE`/`INSERT` SQL as before.
 
 ### NFR-2: Security
-No new attack surface. Log messages must not include sensitive marketing-action payload fields (description, customer data); they must only include identifiers (`ActionId`, `OutlookEventId`).
+- No new attack surface. Input validation (trimming, case normalisation, dedup) remains where it was, but is now enforced uniformly inside the domain entity.
 
-### NFR-3: Observability
-The error logs must be sufficient for an on-call engineer to identify drift between Outlook and the DB without needing additional instrumentation. Specifically: given the log entry, an operator must be able to (a) locate the `MarketingAction` row by ID and (b) locate the Outlook event by `OutlookEventId`.
+### NFR-3: Maintainability
+- After the refactor, the Application layer must contain zero direct mutations of `MarketingAction`'s navigation collections.
+- The domain entity becomes the single source of truth for both *adding* and *replacing* product associations and folder links.
 
-### NFR-4: Consistency / Maintainability
-After this change, all three handlers in the Marketing module must follow the same guarded-save shape, so a future developer adding a fourth handler can copy any of them as a template.
+### NFR-4: Testability
+- The new domain methods must be unit-testable without EF Core, an in-memory database, or any infrastructure dependency. Pure POCO construction + method call + collection assertion.
 
 ## Data Model
-No schema changes. The change is purely behavioral in three handler classes.
+No schema changes. Affected types (existing):
 
-Entities involved (unchanged):
-- `MarketingAction` — local DB entity with `Id`, `OutlookEventId`, and other fields.
-- Outlook calendar event — external, referenced by `OutlookEventId`.
+- `MarketingAction` (aggregate root) — gains two methods, no new state.
+- `MarketingActionProduct` (child entity) — unchanged.
+- `MarketingActionFolderLink` (child entity) — unchanged.
+- `MarketingFolderType` (enum) — unchanged.
+
+Existing relationships:
+- `MarketingAction 1..* MarketingActionProduct` via `ProductAssociations` navigation collection.
+- `MarketingAction 1..* MarketingActionFolderLink` via `FolderLinks` navigation collection.
 
 ## API / Interface Design
-No public API contract changes. The affected MediatR responses are:
-- `UpdateMarketingActionResponse(ErrorCodes errorCode)` — already supports an error-code constructor (verified by Create handler precedent); the Update path will now use it on DB failure instead of leaking an exception.
-- Delete handler response — same pattern; uses whichever response shape the handler already defines.
 
-Externally observable change: API endpoints for update and delete will return a structured `{ success: false, errorCode: "DatabaseError" }` envelope on DB save failure instead of HTTP 500. This is a **behavior fix**, not a breaking change — callers that relied on 500 to detect failure should already be checking the response envelope per module convention.
+### Public command / endpoint
+`UpdateMarketingActionCommand` request DTO and endpoint contract are unchanged. No OpenAPI regeneration required for the FE.
+
+### Domain entity surface (new)
+```csharp
+public class MarketingAction
+{
+    // existing members unchanged
+
+    public void ReplaceProductAssociations(
+        IEnumerable<string>? productCodes,
+        DateTime utcNow);
+
+    public void ReplaceFolderLinks(
+        IEnumerable<(string folderKey, MarketingFolderType folderType)>? links,
+        DateTime utcNow);
+}
+```
+
+### Handler surface (refactored)
+`UpdateMarketingActionHandler.Handle` keeps its current signature, dependencies, and return type. Internal block at lines 95–110 collapses to two delegated calls.
 
 ## Dependencies
-- Existing `ErrorCodes` enum/constant in the Marketing module — must contain `DatabaseError` (already used by Create handler).
-- Existing repository interface (`UpdateAsync`, `SaveChangesAsync`, `DeleteSoftAsync`).
-- Existing `ILogger<T>` injected into each handler.
-- MediatR pipeline — no changes.
-
-No new packages, no new services, no infrastructure changes.
+- **Entity Framework Core** — continues to handle change tracking of the cleared/repopulated collections (no change to EF configuration).
+- **Time abstraction** — the handler must supply a `DateTime` to the domain methods. Use whatever abstraction the surrounding code already uses; if none is present in this handler, accept `DateTime.UtcNow` at the call site (see Open Questions).
+- No new NuGet packages, no new infrastructure.
 
 ## Out of Scope
-- **Reverting / compensating Outlook updates** on DB failure in the Update handler. A true compensation would require capturing the pre-update Outlook field values and re-issuing a PATCH; this adds substantial complexity and is not required by this fix. The minimum viable behavior is "log + report".
-- **Recreating Outlook events** on DB failure in the Delete handler. Same reasoning.
-- **Introducing a distributed transaction / outbox pattern** between Outlook and the database. A proper two-phase or outbox-based solution is the long-term answer to this class of bug but is a separate, much larger initiative.
-- **Reordering Outlook and DB writes** (e.g. DB first, Outlook second). This would shift the inconsistency window but not eliminate it, and it changes the user-visible behavior of all three handlers — out of scope here.
-- **Adding retry logic** for transient DB errors. Could be added later via EF Core's retry-on-failure execution strategy; not in this fix.
-- **Extracting a shared base class or helper** for the guarded-save pattern. Allowed if trivially clean, but not required; three near-identical try/catch blocks are acceptable given the small surface area.
-- Changes to `CreateMarketingActionHandler` beyond what is needed to keep tests passing.
+- Renaming or restructuring `AssociateWithProduct` / `LinkToFolder` — they remain as-is for callers that need to add a single item.
+- Introducing a generic "child collection replace" pattern across other aggregates (e.g. orders, manufacturing) — this spec covers only `MarketingAction`.
+- Adding audit logging, soft-delete, or domain events for association removal — flagged as future opportunities only.
+- Changes to the `UpdateMarketingActionCommand` request shape or the corresponding FE client.
+- Database schema changes or EF migrations.
+- Replacing EF Core change tracking with explicit repository-managed deletes.
 
 ## Open Questions
 None.

@@ -13,6 +13,7 @@ import {
 const recurringJobsKeys = {
   all: [...QUERY_KEYS.recurringJobs] as const,
   list: () => [...recurringJobsKeys.all, 'list'] as const,
+  detail: (jobName: string) => [...recurringJobsKeys.all, 'detail', jobName] as const,
 };
 
 /**
@@ -26,6 +27,25 @@ export const useRecurringJobsQuery = () => {
       const client = getAuthenticatedApiClient();
       const response = await client.recurringJobs_GetRecurringJobs();
       return response.jobs || [];
+    },
+  });
+};
+
+/**
+ * Hook to fetch a single recurring job by name.
+ * Readable by holders of the job trigger/disable permission (not only admins), so it can
+ * back shortcut controls outside the recurring-jobs admin page. Pass `enabled: false` when
+ * the current user lacks any of those permissions to avoid a 403 request.
+ * Uses generated API client method: recurringJobs_GetRecurringJob
+ */
+export const useRecurringJobQuery = (jobName: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: recurringJobsKeys.detail(jobName),
+    enabled,
+    queryFn: async (): Promise<RecurringJobDto | null> => {
+      const client = getAuthenticatedApiClient();
+      const response = await client.recurringJobs_GetRecurringJob(jobName);
+      return response.job ?? null;
     },
   });
 };
@@ -49,9 +69,10 @@ export const useUpdateRecurringJobStatusMutation = () => {
       const request = new UpdateJobStatusRequestBody({ isEnabled });
       return await client.recurringJobs_UpdateJobStatus(jobName, request);
     },
-    onSuccess: () => {
-      // Invalidate and refetch recurring jobs list after successful update
+    onSuccess: (_data, variables) => {
+      // Invalidate both the list and the affected single-job detail after a successful update
       queryClient.invalidateQueries({ queryKey: recurringJobsKeys.list() });
+      queryClient.invalidateQueries({ queryKey: recurringJobsKeys.detail(variables.jobName) });
     },
   });
 };

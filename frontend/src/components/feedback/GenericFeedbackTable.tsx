@@ -60,6 +60,9 @@ const GenericFeedbackTable: React.FC<Props> = ({
               <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wide text-xs">
                 {primaryLabel}
               </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wide text-xs whitespace-nowrap">
+                Uživatel
+              </th>
               <th className="px-4 py-3 text-center font-medium text-gray-500 uppercase tracking-wide text-xs whitespace-nowrap">
                 Přesnost
               </th>
@@ -83,6 +86,9 @@ const GenericFeedbackTable: React.FC<Props> = ({
                 </td>
                 <td className="px-4 py-3 text-gray-900 max-w-xs">
                   <span className="line-clamp-2">{row.primaryText}</span>
+                </td>
+                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                  {row.userName ?? row.userId ?? '–'}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <ScoreCell score={row.precisionScore} />

@@ -12,6 +12,7 @@ using Anela.Heblo.Application.Features.Authorization.UseCases.CreateLocalUser;
 using Anela.Heblo.Application.Features.Authorization.UseCases.SetUserActive;
 using Anela.Heblo.Application.Features.Authorization.UseCases.SetUserCanPack;
 using Anela.Heblo.Application.Features.Authorization.UseCases.UpdateGroup;
+using Anela.Heblo.Application.Features.Authorization.UseCases.UpdateUser;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -87,6 +88,14 @@ public class AuthorizationController : BaseApiController
     [HttpPut("users/{id:guid}/active")]
     [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult<SetUserActiveResponse>> SetActive([FromRoute] Guid id, [FromBody] SetUserActiveRequest request, CancellationToken ct)
+    {
+        request.UserId = id;
+        return HandleResponse(await _mediator.Send(request, ct));
+    }
+
+    [HttpPut("users/{id:guid}")]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
+    public async Task<ActionResult<UpdateUserResponse>> UpdateUser([FromRoute] Guid id, [FromBody] UpdateUserRequest request, CancellationToken ct)
     {
         request.UserId = id;
         return HandleResponse(await _mediator.Send(request, ct));
