@@ -11,9 +11,12 @@ using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetClassif
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetInvoiceDetails;
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetClassificationRuleTypes;
 using Anela.Heblo.Application.Features.InvoiceClassification.Contracts;
+using Anela.Heblo.API.Infrastructure;
+using Anela.Heblo.Domain.Features.Authorization;
 
 namespace Anela.Heblo.API.Controllers;
 
+[FeatureAuthorize(Feature.Purchase_InvoiceClassification)]
 [ApiController]
 [Route("api/[controller]")]
 public class InvoiceClassificationController : ControllerBase
