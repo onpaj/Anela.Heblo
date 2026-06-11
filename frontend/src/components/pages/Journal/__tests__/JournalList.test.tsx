@@ -681,11 +681,9 @@ describe("JournalList", () => {
     fireEvent.keyDown(document.body, { key: "Escape", code: "Escape" });
 
     // Allow any pending state updates / effects to flush.
-    await waitFor(() => {
-      // With unchanged source, refetch IS called (test is red/failing before the source fix).
-      // After Task 5 source fix, refetch is NOT called (test turns green).
-      expect(entriesRefetch).not.toHaveBeenCalled();
-      expect(searchRefetch).not.toHaveBeenCalled();
-    });
+    // With unchanged source, refetch IS called (test is red/failing before the source fix).
+    // After Task 5 source fix, refetch is NOT called (test turns green).
+    await waitFor(() => expect(entriesRefetch).not.toHaveBeenCalled());
+    expect(searchRefetch).not.toHaveBeenCalled();
   });
 });
