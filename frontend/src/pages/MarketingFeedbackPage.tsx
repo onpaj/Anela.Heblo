@@ -45,7 +45,7 @@ const SECONDARY_LABELS: Record<FeatureTab, string> = {
 const MarketingFeedbackPage: React.FC = () => {
   const { hasPermission } = usePermissionsContext();
   const hasKb = hasPermission('customer.knowledge_base.write');
-  const hasGenAi = hasPermission('marketing.article.write');
+  const hasGenAi = hasPermission('marketing.article.write') || hasPermission('marketing.leaflet.write');
 
   const [activeTab, setActiveTab] = useState<FeatureTab>('kb');
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);

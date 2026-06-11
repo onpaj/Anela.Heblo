@@ -47,10 +47,12 @@ const leafletRow: FeedbackDetail = {
 function setupMocks({
   hasKb = true,
   hasGenAi = false,
-}: { hasKb?: boolean; hasGenAi?: boolean } = {}) {
+  hasLeaflet = false,
+}: { hasKb?: boolean; hasGenAi?: boolean; hasLeaflet?: boolean } = {}) {
   mockHasPermission = (p) =>
     (hasKb && p === 'customer.knowledge_base.write') ||
-    (hasGenAi && p === 'marketing.article.write');
+    (hasGenAi && p === 'marketing.article.write') ||
+    (hasLeaflet && p === 'marketing.leaflet.write');
 
   jest.spyOn(kbAdapter, 'useKbFeedbackAdapter').mockReturnValue({
     ...emptyAdapterResult,
@@ -107,6 +109,13 @@ test('allows access when user has only GenAI role', () => {
   expect(screen.getByRole('button', { name: /letáky/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /články/i })).toBeInTheDocument();
   expect(screen.queryByText('Přístup odepřen.')).not.toBeInTheDocument();
+});
+
+test('allows access when user has only marketing.leaflet.write', () => {
+  setupMocks({ hasKb: false, hasGenAi: false, hasLeaflet: true });
+  render(<MarketingFeedbackPage />);
+  expect(screen.queryByText('Přístup odepřen.')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /letáky/i })).toBeInTheDocument();
 });
 
 test('shows access denied when user has no roles', () => {
