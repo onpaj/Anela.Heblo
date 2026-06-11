@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Xcc.Persistance;
 
@@ -48,7 +47,7 @@ public interface IIssuedInvoiceRepository : IRepository<IssuedInvoice, string>
     /// <summary>
     /// Gets paginated and filtered list of issued invoices with sorting
     /// </summary>
-    Task<Anela.Heblo.Application.Shared.PaginatedResult<IssuedInvoice>> GetPaginatedAsync(IssuedInvoiceFilters filters, CancellationToken cancellationToken = default);
+    Task<PaginatedResult<IssuedInvoice>> GetPaginatedAsync(IssuedInvoiceFilters filters, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets invoice headers for a specific date
