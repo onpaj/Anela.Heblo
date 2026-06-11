@@ -17,6 +17,13 @@ public interface IPackageRepository
 
     Task<Package?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task AddAsync(Package package, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Inserts the given packages, skipping any whose (OrderCode, PackageNumber) already exists.
+    /// Idempotent: safe to call on a reprint that already has rows.
+    /// </summary>
+    Task AddMissingAsync(IReadOnlyList<Package> packages, CancellationToken cancellationToken = default);
+
     Task DeleteAsync(Package package, CancellationToken cancellationToken = default);
 
     /// <summary>
