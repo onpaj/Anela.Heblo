@@ -25,6 +25,8 @@ public class GridLayoutsController : BaseApiController
     {
         var request = new GetGridLayoutRequest { GridKey = gridKey };
         var response = await _mediator.Send(request);
+        if (!response.Success)
+            return StatusCode(500, response);
         return Ok(response.Layout);
     }
 
