@@ -77,4 +77,47 @@ public class InvoicesModuleTests
         Assert.Equal(TestShoptetCode, opts.ShoptetCode);
         Assert.Equal(TestErpCode, opts.ErpCode);
     }
+
+    [Fact]
+    public void AddInvoicesModule_ThrowsOptionsValidationException_WhenProductMappingSectionMissing()
+    {
+        // Arrange — empty configuration: no ProductMapping section at all
+        var configuration = new ConfigurationBuilder().Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddInvoicesModule(configuration);
+        var provider = services.BuildServiceProvider();
+
+        // Act + Assert — resolving .Value fires DataAnnotation validation
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => provider.GetRequiredService<IOptions<ProductMappingOptions>>().Value);
+
+        Assert.Contains(nameof(ProductMappingOptions.ShoptetCode), string.Join("|", ex.Failures));
+        Assert.Contains(nameof(ProductMappingOptions.ErpCode), string.Join("|", ex.Failures));
+    }
+
+    [Fact]
+    public void AddInvoicesModule_ThrowsOptionsValidationException_WhenShoptetCodeEmpty()
+    {
+        // Arrange — ProductMapping section present, ShoptetCode is empty string
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ProductMapping:ShoptetCode"] = "",
+                ["ProductMapping:ErpCode"] = "SLU000001",
+            })
+            .Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddInvoicesModule(configuration);
+        var provider = services.BuildServiceProvider();
+
+        // Act + Assert
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => provider.GetRequiredService<IOptions<ProductMappingOptions>>().Value);
+
+        Assert.Contains(nameof(ProductMappingOptions.ShoptetCode), string.Join("|", ex.Failures));
+    }
 }
