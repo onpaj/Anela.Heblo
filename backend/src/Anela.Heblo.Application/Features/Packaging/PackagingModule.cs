@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumber;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
 using Anela.Heblo.Application.Features.Packaging.Validators;
@@ -26,6 +27,11 @@ public static class PackagingModule
         services.AddScoped<
             IPipelineBehavior<GetPackagesRequest, GetPackagesResponse>,
             ValidationBehavior<GetPackagesRequest, GetPackagesResponse>>();
+
+        services.AddScoped<IValidator<GetOrderTrackingNumberRequest>, GetOrderTrackingNumberRequestValidator>();
+        services.AddScoped<
+            IPipelineBehavior<GetOrderTrackingNumberRequest, GetOrderTrackingNumberResponse>,
+            ValidationBehavior<GetOrderTrackingNumberRequest, GetOrderTrackingNumberResponse>>();
 
         return services;
     }

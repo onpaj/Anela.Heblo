@@ -114,4 +114,40 @@ describe('PackingShipmentDoneView', () => {
     );
     expect(screen.getByText('PKG-A, TR-B')).toBeInTheDocument();
   });
+
+  it('shows resolvedTrackingNumber when provided, overriding the package summary', () => {
+    render(
+      <PackingShipmentDoneView
+        order={makeOrder()}
+        shipment={makeShipment()}
+        resolvedTrackingNumber="2421907688"
+        onReprint={() => {}}
+      />
+    );
+    expect(screen.getByText('2421907688')).toBeInTheDocument();
+    expect(screen.queryByText('TR-1, TR-2')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the package summary when resolvedTrackingNumber is null or empty', () => {
+    const { unmount } = render(
+      <PackingShipmentDoneView
+        order={makeOrder()}
+        shipment={makeShipment()}
+        resolvedTrackingNumber={null}
+        onReprint={() => {}}
+      />
+    );
+    expect(screen.getByText('TR-1, TR-2')).toBeInTheDocument();
+    unmount();
+
+    render(
+      <PackingShipmentDoneView
+        order={makeOrder()}
+        shipment={makeShipment()}
+        resolvedTrackingNumber=""
+        onReprint={() => {}}
+      />
+    );
+    expect(screen.getByText('TR-1, TR-2')).toBeInTheDocument();
+  });
 });
