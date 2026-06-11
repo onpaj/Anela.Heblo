@@ -50,4 +50,32 @@ public class ProcessDailyConsumptionHandlerTests
             s => s.ProcessDailyConsumptionAsync(TestDate, It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsSuccess_WhenMaterialsUpdated()
+    {
+        // Arrange
+        const int materialsUpdated = 5;
+        var (sut, service, _) = MakeSut();
+        service
+            .Setup(s => s.ProcessDailyConsumptionAsync(TestDate, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessDailyConsumptionResult(WasRun: true, MaterialsProcessed: materialsUpdated));
+
+        var request = new ProcessDailyConsumptionRequest { ProcessingDate = TestDate };
+
+        // Act
+        var response = await sut.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.MaterialsProcessed.Should().Be(materialsUpdated);
+        response.ProcessedDate.Should().Be(TestDate);
+        response.Message.Should().Contain(TestDate.ToString());
+        response.Message.Should().Contain(materialsUpdated.ToString());
+        response.Message.Should().Contain("materials updated");
+
+        service.Verify(
+            s => s.ProcessDailyConsumptionAsync(TestDate, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }
