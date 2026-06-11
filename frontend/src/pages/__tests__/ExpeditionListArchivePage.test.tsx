@@ -183,6 +183,9 @@ describe("ExpeditionListArchivePage – auto-print toggle", () => {
       mutateAsync: jest.fn().mockResolvedValue(undefined),
       isPending: false,
     });
+    (useRecurringJobsQuery as jest.Mock).mockReturnValue({
+      data: [{ jobName: "print-picking-list", isEnabled: true, nextRunAt: new Date("2024-12-11T08:00:00Z") }],
+    });
   });
 
   const getToggle = () =>
