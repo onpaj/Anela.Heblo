@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   useUsers,
   useAssignUserGroups,
@@ -10,6 +10,11 @@ import {
 import { AssignUserGroupsRequest, SetUserActiveRequest, UpdateUserRequest } from "../api/generated/api-client";
 import { useToast } from "../contexts/ToastContext";
 import GroupsPicker from "../components/access-management/GroupsPicker";
+import UnsavedChangesDialog from "../components/dialogs/UnsavedChangesDialog";
+import {
+  draftsEqual,
+  useUnsavedChangesDialog,
+} from "../hooks/useUnsavedChangesDialog";
 
 interface UserDraft {
   displayName: string;
@@ -20,7 +25,6 @@ interface UserDraft {
 
 export default function UserDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const toast = useToast();
 
   const usersQuery = useUsers();
@@ -30,6 +34,7 @@ export default function UserDetailPage() {
   const updateUser = useUpdateUser();
 
   const [draft, setDraft] = useState<UserDraft | null>(null);
+  const [original, setOriginal] = useState<UserDraft | null>(null);
   const initialized = useRef(false);
 
   const user = usersQuery.data?.users?.find((u) => u.id === id);
@@ -45,17 +50,18 @@ export default function UserDetailPage() {
       groupIds: user.groupIds ?? [],
     };
     setDraft(d);
+    setOriginal(d);
     initialized.current = true;
   }, [user]);
 
   const updateDraft = (patch: Partial<UserDraft>) =>
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
 
-  const onSave = async () => {
-    if (!draft) return;
+  const onSave = async (): Promise<boolean> => {
+    if (!draft) return false;
     if (!draft.displayName.trim()) {
       toast.showError("Save failed", "Display name is required");
-      return;
+      return false;
     }
     const [profileResult, groupResult] = await Promise.allSettled([
       updateUser.mutateAsync({
@@ -79,10 +85,18 @@ export default function UserDetailPage() {
       const part =
         profileFailed && groupFailed ? "changes" : profileFailed ? "profile" : "group assignment";
       toast.showError("Save failed", `Could not save ${part}. Please try again.`);
-      return;
+      return false;
     }
     toast.showSuccess("Saved", "User updated successfully");
+    setOriginal(draft);
+    return true;
   };
+
+  const isDirty = !draftsEqual(draft, original);
+  const { dialogProps, requestNavigation } = useUnsavedChangesDialog(
+    isDirty,
+    onSave,
+  );
 
   const onToggleActive = async () => {
     if (!user?.id) return;
@@ -126,7 +140,7 @@ export default function UserDetailPage() {
       <div className="flex items-center gap-4">
         <button
           type="button"
-          onClick={() => navigate("/admin/access")}
+          onClick={() => requestNavigation("/admin/access/users")}
           className="text-gray-500 hover:text-gray-700 text-sm"
         >
           ← Access management
@@ -223,13 +237,15 @@ export default function UserDetailPage() {
         </button>
         <button
           type="button"
-          onClick={() => navigate("/admin/access")}
+          onClick={() => requestNavigation("/admin/access/users")}
           disabled={isSaving}
           className="px-5 py-2 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
         >
           Cancel
         </button>
       </div>
+
+      <UnsavedChangesDialog {...dialogProps} />
     </div>
   );
 }

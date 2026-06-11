@@ -19,6 +19,11 @@ import PermissionPicker from "../components/access-management/PermissionPicker";
 import IncludedGroupsPicker from "../components/access-management/IncludedGroupsPicker";
 import MembersPicker from "../components/access-management/MembersPicker";
 import EntraMemberSearch from "../components/access-management/EntraMemberSearch";
+import UnsavedChangesDialog from "../components/dialogs/UnsavedChangesDialog";
+import {
+  draftsEqual,
+  useUnsavedChangesDialog,
+} from "../hooks/useUnsavedChangesDialog";
 
 interface GroupDraft {
   name: string;
@@ -133,11 +138,11 @@ export default function GroupDetailPage() {
   const updateDraft = (patch: Partial<GroupDraft>) =>
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
 
-  const onSave = async () => {
-    if (!draft) return;
+  const onSave = async (): Promise<boolean> => {
+    if (!draft) return false;
     if (!draft.name.trim()) {
       toast.showError("Validation error", "Group name is required");
-      return;
+      return false;
     }
 
     try {
@@ -151,8 +156,9 @@ export default function GroupDetailPage() {
           }),
         );
         toast.showSuccess("Group created", "The new group has been saved");
+        setOriginal(draft);
         navigate(`/admin/access/groups/${result.id}`);
-        return;
+        return true;
       }
 
       await updateGroup.mutateAsync({
@@ -184,6 +190,7 @@ export default function GroupDetailPage() {
 
       toast.showSuccess("Saved", "Group updated successfully");
       setOriginal(draft);
+      return true;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("AuthorizationGroupCycleDetected")) {
@@ -197,10 +204,17 @@ export default function GroupDetailPage() {
           "An error occurred while saving changes",
         );
       }
+      return false;
     }
   };
 
-  const onCancel = () => navigate("/admin/access");
+  const isDirty = !draftsEqual(draft, original);
+  const { dialogProps, requestNavigation } = useUnsavedChangesDialog(
+    isDirty,
+    onSave,
+  );
+
+  const onCancel = () => requestNavigation("/admin/access/groups");
 
   const isSaving =
     updateGroup.isPending ||
@@ -354,6 +368,8 @@ export default function GroupDetailPage() {
           </section>
         )}
       </div>
+
+      <UnsavedChangesDialog {...dialogProps} />
     </div>
   );
 }
