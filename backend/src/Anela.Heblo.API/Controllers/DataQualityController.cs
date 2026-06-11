@@ -2,15 +2,15 @@ using Anela.Heblo.Application.Features.DataQuality.UseCases.GetDqtRunDetail;
 using Anela.Heblo.Application.Features.DataQuality.UseCases.GetDqtRuns;
 using Anela.Heblo.Application.Features.DataQuality.UseCases.RunDqt;
 using Anela.Heblo.Domain.Features.DataQuality;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[FeatureAuthorize(Feature.Admin_DataQuality)]
 [ApiController]
 [Route("api/data-quality")]
-[Authorize]
 public class DataQualityController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -66,6 +66,7 @@ public class DataQualityController : BaseApiController
     /// Trigger a manual DQT run
     /// </summary>
     [HttpPost("runs")]
+    [FeatureAuthorize(Feature.Admin_DataQuality, AccessLevel.Write)]
     public async Task<ActionResult<RunDqtResponse>> RunDqt([FromBody] RunDqtRequest request)
     {
         var response = await _mediator.Send(request);

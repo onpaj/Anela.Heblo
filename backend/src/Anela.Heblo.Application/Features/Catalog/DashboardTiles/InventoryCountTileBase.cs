@@ -29,7 +29,6 @@ public abstract class InventoryCountTileBase : ITile
     public TileCategory Category => TileCategory.Warehouse;
     public bool DefaultEnabled => true;
     public bool AutoShow => true;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)

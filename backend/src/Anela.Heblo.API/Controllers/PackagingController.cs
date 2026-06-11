@@ -1,15 +1,24 @@
+using Anela.Heblo.Application.Features.Authorization.UseCases.GetPackingUsers;
 using Anela.Heblo.Application.Features.Packaging.UseCases.DeletePackage;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumber;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+public class ScanOrderBody
+{
+    public Guid? PackingUserId { get; set; }
+}
+
+
+[FeatureAuthorize(Feature.Warehouse_Packaging)]
 [ApiController]
 [Route("api/packaging")]
 public class PackagingController : BaseApiController
@@ -26,11 +35,15 @@ public class PackagingController : BaseApiController
     /// Ineligible orders return success: true with eligibility.isEligible: false.
     /// </summary>
     [HttpPost("orders/{orderCode}/scan")]
+    [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
     public async Task<ActionResult<ScanPackingOrderResponse>> ScanOrder(
         [FromRoute] string orderCode,
+        [FromBody] ScanOrderBody? body,
         CancellationToken cancellationToken)
     {
-        var response = await _mediator.Send(new ScanPackingOrderRequest { OrderCode = orderCode }, cancellationToken);
+        var response = await _mediator.Send(
+            new ScanPackingOrderRequest { OrderCode = orderCode, PackingUserId = body?.PackingUserId },
+            cancellationToken);
         return HandleResponse(response);
     }
 
@@ -38,6 +51,7 @@ public class PackagingController : BaseApiController
     /// Resets an order shipment: deletes the existing shipment and creates a new one.
     /// </summary>
     [HttpPost("orders/{orderCode}/shipment/reset")]
+    [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
     public async Task<ActionResult<ResetOrderShipmentResponse>> ResetShipment(
         [FromRoute] string orderCode,
         CancellationToken cancellationToken)
@@ -74,6 +88,30 @@ public class PackagingController : BaseApiController
         return File(response.Content, response.ContentType, response.FileName);
     }
 
+    /// <summary>
+    /// Returns the tracking number of the latest active (non-cancelled) shipment for the order,
+    /// backfilling it onto the order's package rows. Used by the kiosk confirmation screen once
+    /// the label has printed (tracking is guaranteed assigned by then). Returns trackingNumber: null
+    /// when no active shipment has one yet — callers fall back to the package name.
+    /// </summary>
+    [HttpGet("orders/{orderCode}/tracking-number")]
+    public async Task<ActionResult<GetOrderTrackingNumberResponse>> GetOrderTrackingNumber(
+        [FromRoute] string orderCode,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(
+            new GetOrderTrackingNumberRequest { OrderCode = orderCode },
+            cancellationToken);
+        return HandleResponse(response);
+    }
+
+    [HttpGet("dashboard")]
+    public async Task<ActionResult<GetPackingDashboardResponse>> GetDashboard(CancellationToken ct)
+    {
+        var response = await _mediator.Send(new GetPackingDashboardRequest(), ct);
+        return HandleResponse(response);
+    }
+
     [HttpGet("packages")]
     public async Task<ActionResult<GetPackagesResponse>> GetPackages(
         [FromQuery] GetPackagesRequest request,
@@ -83,7 +121,16 @@ public class PackagingController : BaseApiController
         return HandleResponse(response);
     }
 
+    /// <summary>Active operators eligible for packing (admin-curated, CanPack = true).</summary>
+    [HttpGet("packing-users")]
+    public async Task<ActionResult<GetPackingUsersResponse>> GetPackingUsers(CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(new GetPackingUsersRequest(), cancellationToken);
+        return HandleResponse(response);
+    }
+
     [HttpDelete("packages/{id:int}")]
+    [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
     public async Task<ActionResult<DeletePackageResponse>> DeletePackage(
         [FromRoute] int id,
         CancellationToken cancellationToken)

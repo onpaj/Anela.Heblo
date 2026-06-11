@@ -2,29 +2,64 @@
 Marketing
 
 ## Finding
-`UpdateMarketingActionRequest.FolderLinks` is typed as `List<CreateMarketingActionRequest.CreateFolderLinkRequest>?`, directly referencing a nested class from a sibling contract:
 
-`backend/src/Anela.Heblo.Application/Features/Marketing/Contracts/UpdateMarketingActionRequest.cs:30`
+`UpdateMarketingActionHandler` clears the entity's navigation collections directly (bypassing the domain entity's encapsulation) before re-adding items via the encapsulated domain methods.
+
+File: `backend/src/Anela.Heblo.Application/Features/Marketing/UseCases/UpdateMarketingAction/UpdateMarketingActionHandler.cs`
+
 ```csharp
-public List<CreateMarketingActionRequest.CreateFolderLinkRequest>? FolderLinks { get; set; }
+// Lines 95–110
+action.ProductAssociations.Clear();          // reaches into EF collection directly
+if (request.AssociatedProducts?.Any() == true)
+    foreach (var product in request.AssociatedProducts.Distinct())
+        action.AssociateWithProduct(product);   // adds via domain method
+
+action.FolderLinks.Clear();                 // reaches into EF collection directly
+if (request.FolderLinks?.Any() == true)
+    foreach (var link in request.FolderLinks)
+        action.LinkToFolder(link.FolderKey.Trim(), link.FolderType);  // adds via domain method
 ```
 
-The two request types are independent use-case contracts (Create and Update), but the Update DTO has an implicit compile-time dependency on the Create DTO's nested class.
+The `MarketingAction` entity provides `AssociateWithProduct` and `LinkToFolder` as encapsulated add methods with deduplication guards, but has no `ReplaceProducts` / `ClearProducts` / `ReplaceLinks` domain methods. The handler compensates by calling `.Clear()` on the raw `ICollection<>` navigation properties before re-adding — leaking persistence concerns into the Application layer.
 
 ## Why it matters
-Any change to `CreateFolderLinkRequest` (e.g., adding a creation-only field) silently propagates to the Update contract. The coupling is invisible without reading both files — a future developer could break the Update contract while editing the Create one. This is an Interface Segregation violation: the Update contract carries a type it doesn't own.
+
+- **Broken encapsulation**: the entity controls *adding* associations but not *clearing* them. Any invariant the entity would want to enforce on removal (e.g. audit log, minimum-association guard) cannot be expressed.
+- **EF coupling in Application layer**: `.Clear()` on an EF `virtual ICollection<>` works only because EF tracks the change via its change tracker. The Application-layer handler is now implicitly relying on EF behaviour — it would silently fail with a different persistence implementation.
+- **SOLID — Single Responsibility**: mutation of collection state is a domain concern; the handler should not need to know how to replace the list.
 
 ## Suggested fix
-Extract `CreateFolderLinkRequest` to a standalone class in the Contracts folder (e.g., `MarketingFolderLinkRequest.cs`) and reference it from both `CreateMarketingActionRequest` and `UpdateMarketingActionRequest`.
+
+Add replace methods to `MarketingAction` in the domain entity:
 
 ```csharp
-// New file: Contracts/MarketingFolderLinkRequest.cs
-public class MarketingFolderLinkRequest
+public void ReplaceProductAssociations(IEnumerable<string> productCodes, DateTime utcNow)
 {
-    [Required][MaxLength(100)] public string FolderKey { get; set; } = null!;
-    [Required] public MarketingFolderType FolderType { get; set; }
+    ProductAssociations.Clear();
+    foreach (var code in productCodes.Select(c => c.Trim().ToUpperInvariant()).Distinct())
+        ProductAssociations.Add(new MarketingActionProduct
+        {
+            MarketingActionId = Id,
+            ProductCodePrefix = code,
+            CreatedAt = utcNow,
+        });
+}
+
+public void ReplaceFolderLinks(IEnumerable<(string key, MarketingFolderType type)> links)
+{
+    FolderLinks.Clear();
+    foreach (var (key, type) in links)
+        FolderLinks.Add(new MarketingActionFolderLink
+        {
+            MarketingActionId = Id,
+            FolderKey = key.Trim(),
+            FolderType = type,
+            CreatedAt = utcNow,
+        });
 }
 ```
 
+The handler then calls `action.ReplaceProductAssociations(...)` and `action.ReplaceFolderLinks(...)` — no direct collection mutation in Application layer.
+
 ---
-_Filed by daily arch-review routine on 2026-05-17._
+_Filed by daily arch-review routine on 2026-06-07._

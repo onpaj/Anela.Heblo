@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAction;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Tests.Domain.Marketing;
 using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -23,18 +24,20 @@ public class DeleteMarketingActionHandlerTests
     private static readonly CurrentUser AuthenticatedUser =
         new("user-1", "Test User", "test@example.com", IsAuthenticated: true);
 
-    private static MarketingAction BuildExistingAction(string? outlookEventId = "event-abc") =>
-        new()
-        {
-            Id = 7,
-            Title = "To Delete",
-            ActionType = MarketingActionType.Blog,
-            StartDate = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc),
-            CreatedAt = DateTime.UtcNow.AddDays(-1),
-            ModifiedAt = DateTime.UtcNow.AddDays(-1),
-            CreatedByUserId = "user-1",
-            OutlookEventId = outlookEventId,
-        };
+    private static MarketingAction BuildExistingAction(string? outlookEventId = "event-abc")
+    {
+        var action = new MarketingActionTestBuilder()
+            .WithId(7)
+            .WithTitle("To Delete")
+            .WithActionType(MarketingActionType.Blog)
+            .WithStartDate(new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc))
+            .WithCreatedAt(DateTime.UtcNow.AddDays(-1))
+            .WithModifiedAt(DateTime.UtcNow.AddDays(-1))
+            .WithCreatedBy("user-1")
+            .WithOutlookEventId(outlookEventId)
+            .Build();
+        return action;
+    }
 
     private static DeleteMarketingActionRequest BuildRequest(int id = 7) => new() { Id = id };
 
@@ -167,6 +170,31 @@ public class DeleteMarketingActionHandlerTests
 
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.MarketingActionNotFound);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsDatabaseError_WhenDbDeleteFails()
+    {
+        _repository
+            .Setup(x => x.DeleteSoftAsync(
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("DB unavailable"));
+
+        var result = await BuildHandler().Handle(BuildRequest(), CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.DatabaseError);
+        _outlookSync.Verify(
+            x => x.DeleteEventAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _logger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("already deleted")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

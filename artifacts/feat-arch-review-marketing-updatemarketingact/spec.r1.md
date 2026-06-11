@@ -1,120 +1,160 @@
-# Specification: Extract Shared MarketingFolderLinkRequest DTO
+# Specification: Encapsulate Collection Replacement in MarketingAction Domain Entity
 
 ## Summary
-Refactor the marketing action contracts to eliminate an Interface Segregation violation where `UpdateMarketingActionRequest` depends on a nested type owned by `CreateMarketingActionRequest`. Extract `CreateFolderLinkRequest` into a standalone, shared contract class (`MarketingFolderLinkRequest`) referenced by both Create and Update DTOs.
+Refactor `UpdateMarketingActionHandler` to stop directly mutating EF Core navigation collections on the `MarketingAction` aggregate. Introduce domain-owned `ReplaceProductAssociations` and `ReplaceFolderLinks` methods on `MarketingAction` so the Application layer is decoupled from EF change-tracker behaviour and the entity retains full control over its invariants.
 
 ## Background
-The marketing module exposes two independent use-case contracts: `CreateMarketingActionRequest` and `UpdateMarketingActionRequest`. Today, the Update contract reuses the Create contract's nested `CreateFolderLinkRequest` class:
+The current `UpdateMarketingActionHandler` (lines 95–110 of `backend/src/Anela.Heblo.Application/Features/Marketing/UseCases/UpdateMarketingAction/UpdateMarketingActionHandler.cs`) leaks persistence concerns into the Application layer:
 
-```csharp
-// UpdateMarketingActionRequest.cs:30
-public List<CreateMarketingActionRequest.CreateFolderLinkRequest>? FolderLinks { get; set; }
-```
+- It calls `action.ProductAssociations.Clear()` and `action.FolderLinks.Clear()` directly on `virtual ICollection<>` navigation properties.
+- It then re-populates them via the encapsulated domain methods `AssociateWithProduct` and `LinkToFolder`.
 
-This creates an invisible, compile-time coupling between two contracts that should evolve independently. A creation-only field added to `CreateFolderLinkRequest` (for example, an initial-state flag or owner-on-create attribute) would silently leak into the Update API surface. The naming is also misleading: a request to update something carries a type prefixed `Create…`.
+The `MarketingAction` aggregate exposes encapsulated *add* methods (with deduplication guards) but no equivalent *replace* or *clear* operations. The handler compensates by reaching into the raw collection, which:
 
-Both contracts already share the same shape for folder links — a `FolderKey` string and a `FolderType` enum — so a shared DTO is the natural model. This refactor closes the ISP violation, removes the confusing naming, and creates one obvious place to evolve the folder-link contract going forward.
+1. Breaks aggregate encapsulation — removal-side invariants cannot be enforced or evolved (e.g. future audit logging, minimum-association guards).
+2. Implicitly couples the Application layer to EF Core change-tracking. The same code would silently no-op against an in-memory or non-EF repository.
+3. Violates SRP — collection-state mutation is a domain concern, not a handler concern.
 
-Per the project rule in `CLAUDE.md` and `docs/architecture/development_guidelines.md`, all request/response DTOs are classes (never C# records) because the OpenAPI client generator mishandles record parameter order. The new shared class must follow this convention.
+This refactor was identified by the daily architecture-review routine on 2026-06-07.
 
 ## Functional Requirements
 
-### FR-1: Introduce shared `MarketingFolderLinkRequest` contract
-Create a new public class `MarketingFolderLinkRequest` in `backend/src/Anela.Heblo.Application/Features/Marketing/Contracts/`, in its own file `MarketingFolderLinkRequest.cs`. The class must carry the exact same properties and validation attributes that `CreateMarketingActionRequest.CreateFolderLinkRequest` carries today, with no additions or removals.
+### FR-1: Add `ReplaceProductAssociations` to `MarketingAction`
+The `MarketingAction` domain entity must expose a method that atomically replaces the full set of product associations with a new set.
+
+**Signature (illustrative):**
+```csharp
+public void ReplaceProductAssociations(IEnumerable<string> productCodes, DateTime utcNow)
+```
+
+**Behaviour:**
+- Accepts a sequence of raw product-code prefixes plus a `utcNow` timestamp supplied by the caller (no `DateTime.UtcNow` inside the domain).
+- Normalises each code with `Trim()` and `ToUpperInvariant()` (matching the existing `AssociateWithProduct` normalisation).
+- Deduplicates the normalised codes.
+- Clears the existing `ProductAssociations` collection and repopulates it with new `MarketingActionProduct` entries (`MarketingActionId`, `ProductCodePrefix`, `CreatedAt = utcNow`).
+- A `null` sequence is treated as an empty sequence (i.e. clears all associations).
+- An empty input set leaves the collection empty.
 
 **Acceptance criteria:**
-- File `backend/src/Anela.Heblo.Application/Features/Marketing/Contracts/MarketingFolderLinkRequest.cs` exists.
-- The type is a plain `class` (not a `record`), in namespace `Anela.Heblo.Application.Features.Marketing.Contracts`.
-- It declares `public string FolderKey { get; set; } = null!;` decorated with `[Required]` and `[MaxLength(100)]`, matching the original property exactly.
-- It declares `public MarketingFolderType FolderType { get; set; }` decorated with `[Required]`, matching the original property exactly.
-- No additional members are introduced beyond what existed on the nested class.
+- Calling `ReplaceProductAssociations` with `["abc", "ABC", " abc "]` results in exactly one association with `ProductCodePrefix = "ABC"`.
+- Calling with `null` or `[]` empties the collection.
+- Existing associations not present in the new set are removed.
+- New associations carry the supplied `utcNow` value as `CreatedAt`.
+- Unit test covers: empty input, null input, duplicate input, mixed-case input, whitespace input, and a delta scenario (some kept, some added, some removed).
 
-### FR-2: Update `CreateMarketingActionRequest` to use the shared DTO
-Remove the nested `CreateFolderLinkRequest` declaration from `CreateMarketingActionRequest` and retype the `FolderLinks` collection to reference the new shared class.
+### FR-2: Add `ReplaceFolderLinks` to `MarketingAction`
+The `MarketingAction` domain entity must expose a method that atomically replaces the full set of folder links.
 
-**Acceptance criteria:**
-- The nested class `CreateFolderLinkRequest` no longer exists inside `CreateMarketingActionRequest`.
-- `CreateMarketingActionRequest.FolderLinks` is typed as `List<MarketingFolderLinkRequest>?` (or `List<MarketingFolderLinkRequest>` if the original was non-nullable — preserve original nullability and any validation attributes).
-- All existing validation attributes on `FolderLinks` (e.g. `[Required]`, `[MinLength]`) remain unchanged.
+**Signature (illustrative):**
+```csharp
+public void ReplaceFolderLinks(
+    IEnumerable<(string folderKey, MarketingFolderType folderType)> links,
+    DateTime utcNow)
+```
 
-### FR-3: Update `UpdateMarketingActionRequest` to use the shared DTO
-Retype `UpdateMarketingActionRequest.FolderLinks` to reference the new shared class.
-
-**Acceptance criteria:**
-- `UpdateMarketingActionRequest.FolderLinks` is typed as `List<MarketingFolderLinkRequest>?`, preserving the original nullability and attribute set.
-- The file no longer references `CreateMarketingActionRequest.CreateFolderLinkRequest`.
-
-### FR-4: Update all consumers of the old nested type
-Locate every call site, handler, mapper, validator, and test that references `CreateMarketingActionRequest.CreateFolderLinkRequest` and migrate it to `MarketingFolderLinkRequest`. Typical locations include the Create handler, the Update handler, AutoMapper / manual mapping profiles, FluentValidation validators (if any), and unit/integration tests under `backend/test/`.
-
-**Acceptance criteria:**
-- A repository-wide search for `CreateFolderLinkRequest` returns zero matches after the change.
-- A repository-wide search for `CreateMarketingActionRequest.CreateFolderLinkRequest` returns zero matches after the change.
-- Handlers and mappers compile against `MarketingFolderLinkRequest` with no behavioral changes.
-
-### FR-5: Regenerate OpenAPI / TypeScript clients and propagate the rename to the frontend
-The OpenAPI TypeScript client is auto-generated on build (`docs/development/api-client-generation.md`). After the backend rename, the generated client will expose the shared type under the new name. Any frontend code currently importing or using the old `CreateFolderLinkRequest` type must be updated to import `MarketingFolderLinkRequest`.
+**Behaviour:**
+- Accepts a sequence of `(folderKey, folderType)` pairs plus a `utcNow` timestamp.
+- Normalises `folderKey` with `Trim()` (matching the existing `LinkToFolder` normalisation).
+- Deduplicates by the composite key `(folderKey, folderType)`.
+- Clears existing `FolderLinks` and repopulates with new `MarketingActionFolderLink` entries (`MarketingActionId`, `FolderKey`, `FolderType`, `CreatedAt = utcNow`).
+- A `null` sequence is treated as an empty sequence.
+- Rejects entries where `folderKey` is null, empty, or whitespace by throwing the same exception type the existing `LinkToFolder` uses for invalid input (or, if `LinkToFolder` silently accepts, match that behaviour — see Open Questions).
 
 **Acceptance criteria:**
-- `npm run build` regenerates the TypeScript client and emits no type errors.
-- A repository-wide search under `frontend/src/` for `CreateFolderLinkRequest` returns zero matches.
-- `npm run lint` passes.
-- Frontend marketing-action create and edit screens still compile and continue to send `folderLinks` in the same JSON shape as before.
+- Calling `ReplaceFolderLinks` with two pairs differing only in `folderType` keeps both.
+- Calling with `null` or `[]` empties the collection.
+- Whitespace in `folderKey` is trimmed before persistence.
+- Unit test covers: empty input, null input, duplicate input (same key+type), distinct-type-same-key input, whitespace input, and a delta scenario.
 
-### FR-6: Preserve serialized JSON wire format
-The on-the-wire JSON for both create and update requests must remain byte-for-byte compatible with the current contract. Property names, casing, ordering hints, and nested object shape stay identical; only the .NET type name changes.
+### FR-3: Refactor `UpdateMarketingActionHandler` to Use New Methods
+The handler must stop touching `action.ProductAssociations` and `action.FolderLinks` directly and instead delegate to the new domain methods.
+
+**Behaviour:**
+- Replace lines 95–110 of `UpdateMarketingActionHandler.cs` so the handler:
+  - Calls `action.ReplaceProductAssociations(request.AssociatedProducts ?? Enumerable.Empty<string>(), utcNow)`.
+  - Calls `action.ReplaceFolderLinks(request.FolderLinks?.Select(l => (l.FolderKey, l.FolderType)) ?? Enumerable.Empty<(string, MarketingFolderType)>(), utcNow)`.
+- `utcNow` must be obtained from the existing `IDateTimeProvider` / time abstraction already used in this handler (or, if none is currently injected, fall through to `DateTime.UtcNow` at the call site — see Open Questions).
+- No `.Clear()` call on EF navigation properties remains anywhere in the Application layer for this aggregate.
 
 **Acceptance criteria:**
-- A request body that successfully created or updated a marketing action before the refactor succeeds after the refactor with no payload changes.
-- The OpenAPI schema diff shows the folder-link object schema as a `$ref` to a renamed component, with identical properties, types, and required flags. No property is added, removed, or renamed.
+- `UpdateMarketingActionHandler.cs` contains no direct collection mutation (`Clear`, `Add`, `Remove`) against `MarketingAction` navigation properties.
+- Existing integration test(s) for `UpdateMarketingAction` continue to pass without modification (the externally observable behaviour is identical).
+- A new integration test verifies that an update which removes all product associations actually clears them in the database.
+- A new integration test verifies that an update which changes folder-link composition (mix of added, removed, retained) results in the expected final state.
+
+### FR-4: Preserve Backwards-Compatible External Behaviour
+The end-to-end semantics of `UpdateMarketingActionCommand` must not change for any caller.
+
+**Acceptance criteria:**
+- A request with `AssociatedProducts = null` clears all product associations (matches current behaviour — the existing handler only re-adds when `request.AssociatedProducts?.Any() == true`, but `Clear()` always runs).
+- A request with `FolderLinks = null` clears all folder links (same reasoning).
+- A request with the same sets as currently persisted is a no-op from the caller's perspective (final state matches input).
+- All existing unit and integration tests for the Marketing module continue to pass with no test modifications other than additions.
 
 ## Non-Functional Requirements
 
-### NFR-1: Behavior preservation
-The refactor is type-only. Validation behavior, handler logic, persistence, and any side effects must be unchanged. No new feature is introduced; no existing feature is altered.
+### NFR-1: Performance
+- No regression in handler throughput. The replacement is bounded by the input list size, identical to the prior implementation.
+- No additional database round trips: the replace methods operate on in-memory tracked collections; EF Core change tracking continues to emit the same `DELETE`/`INSERT` SQL as before.
 
-### NFR-2: Build and lint cleanliness
-After the change:
-- `dotnet build` succeeds with zero new warnings.
-- `dotnet format` reports no diffs.
-- `npm run build` succeeds.
-- `npm run lint` succeeds.
+### NFR-2: Security
+- No new attack surface. Input validation (trimming, case normalisation, dedup) remains where it was, but is now enforced uniformly inside the domain entity.
 
-### NFR-3: Test coverage
-All existing unit and integration tests for marketing action Create and Update flows must continue to pass without behavioral edits. Tests that referenced the old nested type are mechanically updated to the new type with no assertion changes. If existing coverage does not exercise the `FolderLinks` field on both Create and Update, add at least one round-trip test per use case that constructs a request with a populated `FolderLinks` list and asserts the handler accepts it — sufficient to keep total touched-code coverage at or above the project's 80% baseline.
+### NFR-3: Maintainability
+- After the refactor, the Application layer must contain zero direct mutations of `MarketingAction`'s navigation collections.
+- The domain entity becomes the single source of truth for both *adding* and *replacing* product associations and folder links.
 
-### NFR-4: Backwards-compatible naming
-The new class is named `MarketingFolderLinkRequest` (module-prefixed, suffix `Request`) to match the existing naming convention in the Marketing Contracts folder and to make the shared nature obvious. This naming is binding.
+### NFR-4: Testability
+- The new domain methods must be unit-testable without EF Core, an in-memory database, or any infrastructure dependency. Pure POCO construction + method call + collection assertion.
 
 ## Data Model
-No database schema, entity, or domain-model change. The change is confined to the application-layer contract DTOs.
+No schema changes. Affected types (existing):
 
-Shape of the shared contract (unchanged from today's nested type):
+- `MarketingAction` (aggregate root) — gains two methods, no new state.
+- `MarketingActionProduct` (child entity) — unchanged.
+- `MarketingActionFolderLink` (child entity) — unchanged.
+- `MarketingFolderType` (enum) — unchanged.
 
-| Property     | Type                   | Required | Constraints       |
-|--------------|------------------------|----------|-------------------|
-| `FolderKey`  | `string`               | yes      | `MaxLength(100)`  |
-| `FolderType` | `MarketingFolderType`  | yes      | enum value        |
+Existing relationships:
+- `MarketingAction 1..* MarketingActionProduct` via `ProductAssociations` navigation collection.
+- `MarketingAction 1..* MarketingActionFolderLink` via `FolderLinks` navigation collection.
 
 ## API / Interface Design
-- **Endpoints affected:** the existing Create and Update marketing-action endpoints (whichever controller actions bind `CreateMarketingActionRequest` and `UpdateMarketingActionRequest`). URLs, HTTP methods, request paths, and response shapes are unchanged.
-- **OpenAPI schema:** the component currently emitted for the nested type is renamed to `MarketingFolderLinkRequest`. Both `CreateMarketingActionRequest.folderLinks` and `UpdateMarketingActionRequest.folderLinks` reference this component via `$ref`.
-- **Generated TypeScript client:** the corresponding interface in the generated client is renamed accordingly. Frontend imports update mechanically.
-- **No UI flow changes.**
+
+### Public command / endpoint
+`UpdateMarketingActionCommand` request DTO and endpoint contract are unchanged. No OpenAPI regeneration required for the FE.
+
+### Domain entity surface (new)
+```csharp
+public class MarketingAction
+{
+    // existing members unchanged
+
+    public void ReplaceProductAssociations(
+        IEnumerable<string>? productCodes,
+        DateTime utcNow);
+
+    public void ReplaceFolderLinks(
+        IEnumerable<(string folderKey, MarketingFolderType folderType)>? links,
+        DateTime utcNow);
+}
+```
+
+### Handler surface (refactored)
+`UpdateMarketingActionHandler.Handle` keeps its current signature, dependencies, and return type. Internal block at lines 95–110 collapses to two delegated calls.
 
 ## Dependencies
-- .NET 8 backend project `Anela.Heblo.Application`.
-- OpenAPI / NSwag (or equivalent) client generator wired into the build per `docs/development/api-client-generation.md`.
-- Existing marketing module handlers, mappers, validators, and tests.
-- Frontend marketing-action screens that consume the generated client.
+- **Entity Framework Core** — continues to handle change tracking of the cleared/repopulated collections (no change to EF configuration).
+- **Time abstraction** — the handler must supply a `DateTime` to the domain methods. Use whatever abstraction the surrounding code already uses; if none is present in this handler, accept `DateTime.UtcNow` at the call site (see Open Questions).
+- No new NuGet packages, no new infrastructure.
 
 ## Out of Scope
-- Any change to `MarketingFolderType` (the enum stays as-is).
-- Any change to validation rules, field constraints, or business logic for folder links.
-- Splitting any other shared-nested-type couplings in other modules. This spec covers only the `CreateFolderLinkRequest` case identified in the brief.
-- Database schema changes, migrations, or domain entity changes.
-- API versioning or deprecation flow — the wire format is unchanged, so no version bump is needed.
-- Renaming any other DTO inside the marketing contracts folder.
+- Renaming or restructuring `AssociateWithProduct` / `LinkToFolder` — they remain as-is for callers that need to add a single item.
+- Introducing a generic "child collection replace" pattern across other aggregates (e.g. orders, manufacturing) — this spec covers only `MarketingAction`.
+- Adding audit logging, soft-delete, or domain events for association removal — flagged as future opportunities only.
+- Changes to the `UpdateMarketingActionCommand` request shape or the corresponding FE client.
+- Database schema changes or EF migrations.
+- Replacing EF Core change tracking with explicit repository-managed deletes.
 
 ## Open Questions
 None.

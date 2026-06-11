@@ -1,8 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import {
+  getAuthenticatedApiClient,
+  QUERY_KEYS,
+} from '../client';
 import {
   ArticleStatus,
   GenerateArticleRequest,
+  SubmitArticleFeedbackRequest,
 } from '../generated/api-client';
 
 // ---- Types ----
@@ -166,19 +170,15 @@ export const useGetArticleQuery = (id: string | null) => {
         generatedAt: response.generatedAt?.toISOString() ?? null,
         useKnowledgeBase: response.useKnowledgeBase ?? false,
         useWebSearch: response.useWebSearch ?? false,
-        sources: (response.sources ?? []).map((s) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const raw = s as any;
-          return {
-            title: s.title ?? '',
-            url: s.url ?? null,
-            type: s.type ?? '',
-            knowledgeBaseChunkId: (raw.knowledgeBaseChunkId as string | null) ?? null,
-            confidence: (raw.confidence as number | null) ?? null,
-            excerpt: (raw.excerpt as string | null) ?? null,
-            validationNote: (raw.validationNote as string | null) ?? null,
-          };
-        }),
+        sources: (response.sources ?? []).map((s) => ({
+          title: s.title ?? '',
+          url: s.url ?? null,
+          type: s.type ?? '',
+          knowledgeBaseChunkId: s.knowledgeBaseChunkId ?? null,
+          confidence: s.confidence ?? null,
+          excerpt: s.excerpt ?? null,
+          validationNote: s.validationNote ?? null,
+        })),
         precisionScore: response.precisionScore ?? null,
         styleScore: response.styleScore ?? null,
         feedbackComment: response.feedbackComment ?? null,
@@ -214,35 +214,28 @@ export const useSubmitArticleFeedbackMutation = (articleId: string) => {
 
   return useMutation({
     mutationFn: async (payload: SubmitArticleFeedbackPayload): Promise<SubmitArticleFeedbackResult> => {
-      const apiClient = getAuthenticatedApiClient();
-      // TODO(arch-review 2026-05-25): Uses private apiClient internals (baseUrl/http) via `as any` — same fragility as the hooks refactored in this PR. Keep raw fetch only for 409 branch; revisit when generated client exposes typed-mutation 409 handling.
-      const fullUrl = `${(apiClient as any).baseUrl}/api/articles/${articleId}/feedback`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          articleId,
-          precisionScore: payload.precisionScore,
-          styleScore: payload.styleScore,
-          comment: payload.comment,
-        }),
+      const client = getAuthenticatedApiClient();
+      const request = new SubmitArticleFeedbackRequest({
+        articleId,
+        precisionScore: payload.precisionScore,
+        styleScore: payload.styleScore,
+        comment: payload.comment,
       });
 
-      if (response.status === 409) {
-        return { alreadySubmitted: true };
+      try {
+        const response = await client.articles_SubmitFeedback(articleId, request);
+        return {
+          precisionScore: response.precisionScore ?? null,
+          styleScore: response.styleScore ?? null,
+          feedbackComment: response.feedbackComment ?? null,
+        };
+      } catch (e: unknown) {
+        const err = e as { status?: number };
+        if (err.status === 409) {
+          return { alreadySubmitted: true };
+        }
+        throw e;
       }
-
-      if (!response.ok) {
-        throw new Error(`Submit article feedback failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return {
-        precisionScore: data.precisionScore ?? null,
-        styleScore: data.styleScore ?? null,
-        feedbackComment: data.feedbackComment ?? null,
-      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: articleKeys.detail(articleId) });

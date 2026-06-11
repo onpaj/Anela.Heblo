@@ -3,13 +3,13 @@ using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.DeleteLot;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetLot;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.ListLots;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.UpdateLot;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[FeatureAuthorize(Feature.Manufacture_MaterialContainers)]
 [Route("api/lots")]
 [ApiController]
 public class LotsController : BaseApiController
@@ -50,6 +50,7 @@ public class LotsController : BaseApiController
     }
 
     [HttpPost]
+    [FeatureAuthorize(Feature.Manufacture_MaterialContainers, AccessLevel.Write)]
     public async Task<ActionResult<CreateLotResponse>> CreateLot(
         [FromBody] CreateLotRequest request,
         CancellationToken cancellationToken)
@@ -59,6 +60,7 @@ public class LotsController : BaseApiController
     }
 
     [HttpPut("{id:int}")]
+    [FeatureAuthorize(Feature.Manufacture_MaterialContainers, AccessLevel.Write)]
     public async Task<ActionResult<UpdateLotResponse>> UpdateLot(
         int id,
         [FromBody] UpdateLotRequest request,
@@ -76,6 +78,7 @@ public class LotsController : BaseApiController
     }
 
     [HttpDelete("{id:int}")]
+    [FeatureAuthorize(Feature.Manufacture_MaterialContainers, AccessLevel.Write)]
     public async Task<ActionResult<DeleteLotResponse>> DeleteLot(int id, CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(new DeleteLotRequest { Id = id }, cancellationToken);

@@ -1,8 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMsal } from '@azure/msal-react';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
-import { shouldUseMockAuth } from '../../config/runtimeConfig';
-import { mockAuthService } from '../../auth/mockAuth';
 
 // ---- Types ----
 
@@ -155,28 +152,6 @@ export interface GetFeedbackListResponse {
   totalPages: number;
   stats: FeedbackStatsDto;
 }
-
-// ---- Permission hooks ----
-
-/**
- * Returns true when the current MSAL account has the super_user role.
- * Controls visibility of the Upload tab and delete buttons.
- */
-export const useKnowledgeBaseUploadPermission = (): boolean => {
-  const { accounts } = useMsal();
-
-  // In mock auth mode, MSAL has no accounts — read roles from mockAuthService instead
-  if (shouldUseMockAuth()) {
-    const user = mockAuthService.getUser();
-    return !!(Array.isArray(user?.roles) && user?.roles.includes('super_user'));
-  }
-
-  const account = accounts[0];
-  if (!account) return false;
-  const claims = account.idTokenClaims as Record<string, unknown> | undefined;
-  const roles = claims?.['roles'];
-  return Array.isArray(roles) && roles.includes('super_user');
-};
 
 // ---- Query key factory ----
 
@@ -452,7 +427,7 @@ export const useUploadKnowledgeBaseDocumentMutation = () => {
 
 /**
  * Fetch paginated, filtered, sorted feedback logs for the Feedback Browser.
- * Only accessible to super_user role.
+ * Gated in the UI by the customer.knowledge_base.write permission.
  */
 export const useKnowledgeBaseFeedbackListQuery = (params: GetFeedbackListParams = {}) => {
   return useQuery({

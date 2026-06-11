@@ -1,4 +1,6 @@
 using Anela.Heblo.Application.Features.FeatureFlags.Infrastructure;
+using Anela.Heblo.Domain.Features.FeatureFlags;
+using Anela.Heblo.Persistence.FeatureFlags;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,6 +22,9 @@ public static class FeatureFlagsModule
         // Re-created per scope to allow future per-request EvaluationContext injection.
         services.AddScoped<IFeatureClient>(_ => Api.Instance.GetClient());
         services.AddScoped<IFeatureFlagChecker, FeatureFlagChecker>();
+
+        // Repository (implementation lives in the Persistence layer)
+        services.AddScoped<IFeatureFlagOverrideRepository, FeatureFlagOverrideRepository>();
         return services;
     }
 

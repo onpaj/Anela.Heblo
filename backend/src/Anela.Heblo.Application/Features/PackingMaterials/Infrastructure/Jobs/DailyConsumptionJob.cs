@@ -16,7 +16,7 @@ public class DailyConsumptionJob : IRecurringJob
         JobName = "daily-consumption-calculation",
         DisplayName = "Daily Consumption Calculation",
         Description = "Calculates daily consumption of packing materials",
-        CronExpression = "0 3 * * *", // Daily at 3:00 AM
+        CronExpression = "0 6 * * *", // Daily at 6:00 AM — after invoice imports (04:00 EUR / 04:15 CZK) so yesterday's invoices are available
         DefaultIsEnabled = true
     };
 

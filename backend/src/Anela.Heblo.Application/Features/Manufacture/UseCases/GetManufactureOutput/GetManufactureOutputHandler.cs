@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -9,18 +10,18 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOu
 public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputRequest, GetManufactureOutputResponse>
 {
     private readonly IManufactureHistoryClient _manufactureHistoryClient;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
     private readonly ILogger<GetManufactureOutputHandler> _logger;
     private readonly TimeProvider _timeProvider;
 
     public GetManufactureOutputHandler(
         IManufactureHistoryClient manufactureHistoryClient,
-        ICatalogRepository catalogRepository,
+        IManufactureCatalogSource catalogSource,
         ILogger<GetManufactureOutputHandler> logger,
         TimeProvider timeProvider)
     {
         _manufactureHistoryClient = manufactureHistoryClient;
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
         _logger = logger;
         _timeProvider = timeProvider;
     }
@@ -46,7 +47,7 @@ public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputR
         }
 
         // Get catalog items to get product names and difficulty
-        var catalogItems = await _catalogRepository.GetAllAsync(cancellationToken);
+        var catalogItems = await _catalogSource.GetAllAsync(cancellationToken);
         var catalogDict = catalogItems
             .Where(w => w.ManufactureDifficulty.HasValue)
             .ToDictionary(c => c.ProductCode, c => c);

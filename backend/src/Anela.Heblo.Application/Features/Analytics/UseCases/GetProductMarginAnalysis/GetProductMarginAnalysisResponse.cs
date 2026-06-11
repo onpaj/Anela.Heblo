@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Shared;
 
 namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
@@ -13,14 +14,5 @@ public class GetProductMarginAnalysisResponse : BaseResponse
     public int TotalUnitsSold { get; set; }
     public DateTime AnalysisPeriodStart { get; set; }
     public DateTime AnalysisPeriodEnd { get; set; }
-    public List<MonthlyMarginBreakdown> MonthlyBreakdown { get; set; } = new();
-
-    public class MonthlyMarginBreakdown
-    {
-        public DateTime Month { get; set; }
-        public decimal MarginAmount { get; set; }
-        public decimal Revenue { get; set; }
-        public decimal Cost { get; set; }
-        public int UnitsSold { get; set; }
-    }
+    public List<MonthlyMarginBreakdownDto> MonthlyBreakdown { get; set; } = new();
 }

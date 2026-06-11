@@ -4,8 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
+using Anela.Heblo.Persistence.Features.Analytics;
 using Anela.Heblo.Domain.Features.Analytics;
 using FluentAssertions;
 using Moq;
@@ -44,7 +43,7 @@ public class AnalyticsRepositoryTests
                 It.IsAny<CancellationToken>()))
             .Returns(ToAsyncEnumerable(products));
 
-        var repository = new AnalyticsRepository(productSourceMock.Object, null!);
+        var repository = new AnalyticsRepository(productSourceMock.Object, null!, null!);
 
         var fromDate = new DateTime(2024, 1, 1);
         var toDate = new DateTime(2024, 12, 31);

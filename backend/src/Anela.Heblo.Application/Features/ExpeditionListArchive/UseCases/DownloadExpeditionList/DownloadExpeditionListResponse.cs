@@ -7,8 +7,7 @@ public class DownloadExpeditionListResponse : BaseResponse
     public Stream? Stream { get; set; }
     public string ContentType { get; set; } = "application/pdf";
     public string FileName { get; set; } = string.Empty;
-    public string? ErrorMessage { get; set; }
 
-    public static DownloadExpeditionListResponse Fail(string message) =>
-        new() { Success = false, ErrorMessage = message };
+    public static DownloadExpeditionListResponse Fail() =>
+        new() { Success = false, ErrorCode = ErrorCodes.InvalidBlobPath };
 }

@@ -143,7 +143,7 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                 {
                     Text = request.NewNote.Trim(),
                     CreatedAt = DateTime.UtcNow,
-                    CreatedByUser = currentUser.Name
+                    CreatedByUser = currentUser.GetDisplayName()
                 });
             }
 
@@ -171,6 +171,7 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             CreatedByUser = order.CreatedByUser,
             ResponsiblePerson = order.ResponsiblePerson,
             PlannedDate = order.PlannedDate,
+            ManufactureType = order.ManufactureType,
             State = order.State.ToString(),
             StateChangedAt = order.StateChangedAt,
             StateChangedByUser = order.StateChangedByUser,

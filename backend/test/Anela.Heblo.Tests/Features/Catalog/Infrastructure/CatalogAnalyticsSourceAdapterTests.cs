@@ -251,7 +251,7 @@ public sealed class CatalogAnalyticsSourceAdapterTests
     }
 
     [Fact]
-    public async Task GetProductAnalysisDataAsync_PreservesUnfilteredSalesHistory()
+    public async Task GetProductAnalysisDataAsync_FiltersSalesHistoryByPeriod()
     {
         // Arrange
         var product = CreateCatalogAggregate("PROD001", "Test", ProductType.Product);
@@ -276,11 +276,10 @@ public sealed class CatalogAnalyticsSourceAdapterTests
 
         // Assert
         result.Should().NotBeNull();
-        result!.SalesHistory.Should().HaveCount(3); // All 3 records, not filtered by period
-        result.SalesHistory.Should().Satisfy(
-            s => s.Date == new DateTime(2023, 6, 15),
-            s => s.Date == new DateTime(2024, 6, 15),
-            s => s.Date == new DateTime(2025, 6, 15));
+        result!.SalesHistory.Should().HaveCount(1);
+        result.SalesHistory[0].Date.Should().Be(new DateTime(2024, 6, 15));
+        result.SalesHistory[0].AmountB2B.Should().Be(10);
+        result.SalesHistory[0].AmountB2C.Should().Be(8);
     }
 
     [Fact]
@@ -328,5 +327,44 @@ public sealed class CatalogAnalyticsSourceAdapterTests
         result.M0Amount.Should().Be(20m);
         result.M1Amount.Should().Be(25m);
         result.M2Amount.Should().Be(30m);
+    }
+
+    [Fact]
+    public async Task GetProductAnalysisDataAsync_ExcludesSalesOutsidePeriodEvenWhenCallerPassesUnfilteredAggregate()
+    {
+        // Arrange — aggregate contains sales BEFORE, INSIDE, and AFTER the requested period.
+        // The adapter is responsible for date-bounding SalesHistory regardless of whether the
+        // caller pre-filters. This pins the helper as the single source of the period filter.
+        var product = CreateCatalogAggregate("PROD001", "Test", ProductType.Product);
+        product.SalesHistory = new List<CatalogSaleRecord>
+        {
+            new CatalogSaleRecord { Date = new DateTime(2023, 12, 31), AmountB2B = 1, AmountB2C = 1, SumB2B = 10, SumB2C = 10 },
+            new CatalogSaleRecord { Date = new DateTime(2024, 1, 1), AmountB2B = 2, AmountB2C = 2, SumB2B = 20, SumB2C = 20 },
+            new CatalogSaleRecord { Date = new DateTime(2024, 6, 15), AmountB2B = 3, AmountB2C = 3, SumB2B = 30, SumB2C = 30 },
+            new CatalogSaleRecord { Date = new DateTime(2024, 12, 31), AmountB2B = 4, AmountB2C = 4, SumB2B = 40, SumB2C = 40 },
+            new CatalogSaleRecord { Date = new DateTime(2025, 1, 1), AmountB2B = 5, AmountB2C = 5, SumB2B = 50, SumB2C = 50 }
+        };
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock
+            .Setup(r => r.GetByIdAsync("PROD001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        var adapter = new CatalogAnalyticsSourceAdapter(repoMock.Object);
+        var fromDate = new DateTime(2024, 1, 1);
+        var toDate = new DateTime(2024, 12, 31);
+
+        // Act
+        var result = await adapter.GetProductAnalysisDataAsync("PROD001", fromDate, toDate);
+
+        // Assert — boundary-inclusive: 2024-01-01, 2024-06-15, 2024-12-31 are in; the other two are out.
+        result.Should().NotBeNull();
+        result!.SalesHistory.Should().HaveCount(3);
+        result.SalesHistory.Select(s => s.Date).Should().BeEquivalentTo(new[]
+        {
+            new DateTime(2024, 1, 1),
+            new DateTime(2024, 6, 15),
+            new DateTime(2024, 12, 31)
+        });
     }
 }

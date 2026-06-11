@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workbookId": {
+      "type": "string",
+      "metadata": {
+        "description": "Stable GUID resource name for the workbook. Keep constant so re-deploys update in place."
+      }
+    },
+    "workbookDisplayName": {
+      "type": "string",
+      "defaultValue": "App Usage Analytics",
+      "metadata": {
+        "description": "Display name shown in the Application Insights Workbooks gallery."
+      }
+    },
+    "appInsightsId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource id of the Application Insights component the workbook is scoped to (aiHeblo)."
+      }
+    },
+    "serializedData": {
+      "type": "string",
+      "metadata": {
+        "description": "The workbook content (usage-analytics-workbook.content.json) serialized as a string."
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "microsoft.insights/workbooks",
+      "apiVersion": "2022-04-01",
+      "name": "[parameters('workbookId')]",
+      "location": "[resourceGroup().location]",
+      "kind": "shared",
+      "properties": {
+        "displayName": "[parameters('workbookDisplayName')]",
+        "serializedData": "[parameters('serializedData')]",
+        "version": "1.0",
+        "sourceId": "[parameters('appInsightsId')]",
+        "category": "workbook"
+      }
+    }
+  ],
+  "outputs": {
+    "workbookResourceId": {
+      "type": "string",
+      "value": "[resourceId('microsoft.insights/workbooks', parameters('workbookId'))]"
+    }
+  }
+}

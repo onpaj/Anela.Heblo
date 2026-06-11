@@ -25,8 +25,8 @@ using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Dashboard;
 using Anela.Heblo.Domain.Features.Purchase;
-using Anela.Heblo.Xcc.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Persistence;
@@ -151,10 +151,17 @@ public class ApplicationDbContext : DbContext
 
     // Inventory module
     public DbSet<Lot> Lots { get; set; } = null!;
-    public DbSet<Ean> Eans { get; set; } = null!;
+    public DbSet<MaterialContainer> MaterialContainers { get; set; } = null!;
 
     // Feature Flags module
     public DbSet<FeatureFlagOverride> FeatureFlagOverrides { get; set; } = null!;
+
+    // Authorization (in-app permissions)
+    public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.AppUser> AppUsers { get; set; } = null!;
+    public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.PermissionGroup> PermissionGroups { get; set; } = null!;
+    public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.GroupPermission> GroupPermissions { get; set; } = null!;
+    public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.GroupParent> GroupParents { get; set; } = null!;
+    public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.UserGroup> UserGroups { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

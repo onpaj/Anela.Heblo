@@ -137,4 +137,24 @@ public class InMemoryPurchaseOrderRepository : EmptyRepository<PurchaseOrder, in
 
         return await Task.FromResult(orders);
     }
+
+    public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var exists = _orders.ContainsKey(id);
+        return await Task.FromResult(exists);
+    }
+
+    public async Task<IReadOnlyList<PurchaseOrderHistory>> GetHistoryAsync(int orderId, CancellationToken cancellationToken = default)
+    {
+        // In-memory implementation returns empty list since history is not tracked
+        return await Task.FromResult(new List<PurchaseOrderHistory>().AsReadOnly());
+    }
+
+    public async Task<PurchaseOrderLine?> GetLineByIdAsync(int lineId, CancellationToken cancellationToken = default)
+    {
+        var line = _orders.Values
+            .SelectMany(o => o.Lines)
+            .FirstOrDefault(l => l.Id == lineId);
+        return await Task.FromResult(line);
+    }
 }

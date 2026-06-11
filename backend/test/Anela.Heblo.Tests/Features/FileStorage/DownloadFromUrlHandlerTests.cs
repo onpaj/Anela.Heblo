@@ -8,7 +8,6 @@ using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

@@ -7,7 +7,6 @@ import {
   useKnowledgeBaseSearchMutation,
   useKnowledgeBaseAskMutation,
   useDeleteKnowledgeBaseDocumentMutation,
-  useKnowledgeBaseUploadPermission,
   useUploadKnowledgeBaseDocumentMutation,
 } from '../useKnowledgeBase';
 import * as clientModule from '../../client';
@@ -16,23 +15,6 @@ jest.mock('../../client', () => ({
   getAuthenticatedApiClient: jest.fn(),
   QUERY_KEYS: {
     knowledgeBase: ['knowledge-base'],
-  },
-}));
-
-const mockUseMsal = jest.fn();
-jest.mock('@azure/msal-react', () => ({
-  useMsal: () => mockUseMsal(),
-}));
-
-const mockShouldUseMockAuth = jest.fn();
-jest.mock('../../../config/runtimeConfig', () => ({
-  shouldUseMockAuth: () => mockShouldUseMockAuth(),
-}));
-
-const mockGetUser = jest.fn();
-jest.mock('../../../auth/mockAuth', () => ({
-  mockAuthService: {
-    getUser: () => mockGetUser(),
   },
 }));
 
@@ -67,12 +49,6 @@ describe('useKnowledgeBase hooks', () => {
       baseUrl: 'http://localhost:5001',
       http: mockHttp,
     } as any);
-  });
-
-  beforeEach(() => {
-    mockUseMsal.mockReturnValue({ accounts: [], instance: {} as any, inProgress: 'none' as any });
-    mockShouldUseMockAuth.mockReturnValue(false);
-    mockGetUser.mockReturnValue(null);
   });
 
   describe('useKnowledgeBaseDocumentsQuery', () => {
@@ -253,58 +229,6 @@ describe('useKnowledgeBase hooks', () => {
         'http://localhost:5001/api/knowledgebase/documents/doc-abc-123',
         expect.objectContaining({ method: 'DELETE' }),
       );
-    });
-  });
-
-  describe('useKnowledgeBaseUploadPermission', () => {
-    it('returns true when super_user role is present', () => {
-      mockUseMsal.mockReturnValue({
-        accounts: [{ idTokenClaims: { roles: ['heblo_user', 'super_user'] } }],
-      });
-      const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
-        wrapper: createWrapper,
-      });
-      expect(result.current).toBe(true);
-    });
-
-    it('returns false when role is absent', () => {
-      mockUseMsal.mockReturnValue({
-        accounts: [{ idTokenClaims: { roles: ['heblo_user'] } }],
-      });
-      const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
-        wrapper: createWrapper,
-      });
-      expect(result.current).toBe(false);
-    });
-
-    it('returns false when no account is signed in', () => {
-      mockUseMsal.mockReturnValue({ accounts: [] });
-      const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
-        wrapper: createWrapper,
-      });
-      expect(result.current).toBe(false);
-    });
-  });
-
-  describe('useKnowledgeBaseUploadPermission (mock auth mode)', () => {
-    beforeEach(() => {
-      mockShouldUseMockAuth.mockReturnValue(true);
-    });
-
-    it('returns true when mock user has super_user role', () => {
-      mockGetUser.mockReturnValue({ roles: ['finance_reader', 'super_user'] });
-      const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
-        wrapper: createWrapper,
-      });
-      expect(result.current).toBe(true);
-    });
-
-    it('returns false when mock user lacks super_user role', () => {
-      mockGetUser.mockReturnValue({ roles: ['finance_reader'] });
-      const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
-        wrapper: createWrapper,
-      });
-      expect(result.current).toBe(false);
     });
   });
 

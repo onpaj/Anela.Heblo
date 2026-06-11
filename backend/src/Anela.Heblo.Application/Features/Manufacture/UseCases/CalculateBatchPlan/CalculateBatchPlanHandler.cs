@@ -1,29 +1,40 @@
+using Anela.Heblo.Application.Common.TimePeriods;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
-using Anela.Heblo.Xcc;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
 
 public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanRequest, CalculateBatchPlanResponse>
 {
-    private readonly IBatchPlanningService _batchPlanningService;
-    private readonly ICatalogRepository _catalogRepository;
-    private readonly IManufactureClient _manufactureClient
-        ;
+    private const int DefaultFallbackDays = 30;
 
-    public CalculateBatchPlanHandler(IBatchPlanningService batchPlanningService, ICatalogRepository catalogRepository, IManufactureClient manufactureClient)
+    private readonly IBatchPlanningService _batchPlanningService;
+    private readonly IManufactureCatalogSource _catalogSource;
+    private readonly IManufactureClient _manufactureClient;
+    private readonly ITimePeriodResolver _timePeriodResolver;
+    private readonly TimeProvider _timeProvider;
+
+    public CalculateBatchPlanHandler(
+        IBatchPlanningService batchPlanningService,
+        IManufactureCatalogSource catalogSource,
+        IManufactureClient manufactureClient,
+        ITimePeriodResolver timePeriodResolver,
+        TimeProvider timeProvider)
     {
         _batchPlanningService = batchPlanningService;
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
         _manufactureClient = manufactureClient;
+        _timePeriodResolver = timePeriodResolver;
+        _timeProvider = timeProvider;
     }
 
     public async Task<CalculateBatchPlanResponse> Handle(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
     {
         // Can calculate even for product
-        var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+        var product = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
         if (product?.Type == ProductType.Product)
         {
             var manufactureTemplate = await _manufactureClient.GetManufactureTemplateAsync(request.ProductCode, cancellationToken);
@@ -36,6 +47,19 @@ public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanReque
             }
         }
 
-        return await _batchPlanningService.CalculateBatchPlan(request, cancellationToken);
+        var salesRanges = ResolveSalesRanges(request);
+        return await _batchPlanningService.CalculateBatchPlan(request, salesRanges, cancellationToken);
+    }
+
+    private IReadOnlyList<DateRange> ResolveSalesRanges(CalculateBatchPlanRequest request)
+    {
+        if (request.TimePeriod.HasValue)
+        {
+            return _timePeriodResolver.Resolve(request.TimePeriod.Value, request.FromDate, request.ToDate);
+        }
+
+        var endDate = request.ToDate ?? _timeProvider.GetUtcNow().DateTime;
+        var startDate = request.FromDate ?? endDate.AddDays(-DefaultFallbackDays);
+        return new[] { new DateRange(startDate, endDate) };
     }
 }

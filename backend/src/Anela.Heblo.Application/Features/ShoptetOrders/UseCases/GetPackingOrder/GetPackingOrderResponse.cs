@@ -22,5 +22,8 @@ public class GetPackingOrderResponse : BaseResponse
     public PackingEligibility Eligibility { get; set; } = new();
     public string? CustomerNote { get; set; }
     public string? EshopNote { get; set; }
-    public List<PackingOrderItem> Items { get; set; } = new();
+    public string? ShippingStreet { get; set; }
+    public string? ShippingCity { get; set; }
+    public string? ShippingZip { get; set; }
+    public List<PackingOrderItemDto> Items { get; set; } = new();
 }

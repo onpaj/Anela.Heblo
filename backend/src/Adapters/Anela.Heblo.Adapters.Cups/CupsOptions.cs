@@ -6,6 +6,7 @@ public class CupsOptions
 
     public string ServerUrl { get; set; } = string.Empty;    // e.g. "http://cups.internal:631"
     public string PrinterName { get; set; } = string.Empty;  // fallback printer name
+    public string LabelPrinterName { get; set; } = string.Empty; // raw ZPL queue (Zebra)
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
 }

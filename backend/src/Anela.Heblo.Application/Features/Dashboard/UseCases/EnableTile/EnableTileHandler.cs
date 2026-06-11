@@ -1,55 +1,49 @@
-using Anela.Heblo.Xcc.Domain;
-using Anela.Heblo.Xcc.Services.Dashboard;
+using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Dashboard;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Dashboard.UseCases.EnableTile;
 
-public class EnableTileHandler : IRequestHandler<EnableTileRequest, EnableTileResponse>
+internal sealed class EnableTileHandler : IRequestHandler<EnableTileRequest, EnableTileResponse>
 {
-    private readonly IDashboardService _dashboardService;
-    private readonly TimeProvider _timeProvider;
+    private readonly IUserDashboardSettingsMutator _mutator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public EnableTileHandler(
-        IDashboardService dashboardService,
-        TimeProvider timeProvider)
+    public EnableTileHandler(IUserDashboardSettingsMutator mutator, ICurrentUserService currentUserService)
     {
-        _dashboardService = dashboardService;
-        _timeProvider = timeProvider;
+        _mutator = mutator;
+        _currentUserService = currentUserService;
     }
 
     public async Task<EnableTileResponse> Handle(EnableTileRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(request.TileId))
         {
-            return new EnableTileResponse(Anela.Heblo.Application.Shared.ErrorCodes.RequiredFieldMissing);
+            return new EnableTileResponse(ErrorCodes.RequiredFieldMissing);
         }
 
-        var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
-        var settings = await _dashboardService.GetUserSettingsAsync(userId);
+        var currentUser = _currentUserService.GetCurrentUser();
+        var userId = currentUser.Id;
 
-        var existingTile = settings.Tiles.FirstOrDefault(t => t.TileId == request.TileId);
-        if (existingTile != null)
-        {
-            existingTile.IsVisible = true;
-            existingTile.LastModified = _timeProvider.GetUtcNow().DateTime;
-        }
-        else
-        {
-            // Add new tile with next display order
-            var maxOrder = settings.Tiles.Any() ? settings.Tiles.Max(t => t.DisplayOrder) : -1;
-            settings.Tiles.Add(new UserDashboardTile
+        await _mutator.MutateAsync(
+            userId,
+            request.TileId,
+            onTileFound: static (_, tile) => tile.IsVisible = true,
+            onTileMissing: (settings, resolvedUserId) =>
             {
-                UserId = userId,
-                TileId = request.TileId,
-                IsVisible = true,
-                DisplayOrder = maxOrder + 1,
-                LastModified = _timeProvider.GetUtcNow().DateTime,
-                DashboardSettings = settings
-            });
-        }
-
-        settings.LastModified = _timeProvider.GetUtcNow().DateTime;
-        await _dashboardService.SaveUserSettingsAsync(userId, settings);
+                var maxOrder = settings.Tiles.Any() ? settings.Tiles.Max(t => t.DisplayOrder) : -1;
+                return new UserDashboardTile
+                {
+                    UserId = resolvedUserId,
+                    TileId = request.TileId,
+                    IsVisible = true,
+                    DisplayOrder = maxOrder + 1,
+                    DashboardSettings = settings
+                };
+            },
+            cancellationToken);
 
         return new EnableTileResponse();
     }

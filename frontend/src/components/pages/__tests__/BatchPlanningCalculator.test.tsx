@@ -204,6 +204,30 @@ describe("BatchPlanningCalculator", () => {
       expect(screen.getByTestId("catalog-autocomplete")).toBeInTheDocument();
       expect(screen.getByTestId("semiproduct-input")).toBeInTheDocument();
     });
+
+    it("should render period dropdown with Q9M selected by default", () => {
+      const Wrapper = createWrapper();
+      render(
+        <Wrapper>
+          <BatchPlanningCalculator />
+        </Wrapper>
+      );
+
+      // Period dropdown replaces the four quick-range buttons
+      const periodSelect = screen.getByLabelText(/Časové období/i);
+      expect(periodSelect).toBeInTheDocument();
+
+      // All six options are present
+      expect(screen.getByRole("option", { name: "Minulý kvartal" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Budoucí kvartal" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Y2Y (12 měsíců)" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Předchozí sezona" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "9M" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Vlastní období" })).toBeInTheDocument();
+
+      // Q9M is selected by default
+      expect(periodSelect).toHaveValue("Q9M");
+    });
   });
 
   describe("Successful Response Handling", () => {

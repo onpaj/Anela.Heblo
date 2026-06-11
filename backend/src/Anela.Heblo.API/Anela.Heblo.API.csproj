@@ -67,6 +67,7 @@
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.WebSearch\Anela.Heblo.Adapters.WebSearch.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Azure\Anela.Heblo.Adapters.Azure.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Cups\Anela.Heblo.Adapters.Cups.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.FileSystem\Anela.Heblo.Adapters.FileSystem.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.SendGrid\Anela.Heblo.Adapters.SendGrid.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.HomeAssistant\Anela.Heblo.Adapters.HomeAssistant.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Plaud\Anela.Heblo.Adapters.Plaud.csproj" />
@@ -101,6 +102,17 @@
     <!-- Disabled automatic PostBuild event due to file conflicts -->
     <Target Name="GenerateFrontendClient" AfterTargets="Build" Condition="false">
         <Message Text="Automatic client generation is disabled due to build conflicts. Use 'dotnet msbuild -t:GenerateFrontendClientManual' instead." Importance="high" />
+    </Target>
+
+    <!-- Generate access matrix TypeScript artifacts during Debug builds -->
+    <Target Name="GenerateAccessMatrix" BeforeTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+        <Message Text="Generating access matrix artifacts..." Importance="high" />
+
+        <Exec Command="dotnet run --project $(MSBuildThisFileDirectory)../../tools/Anela.Heblo.AccessMatrixGen -- &quot;$(MSBuildThisFileDirectory)../../../frontend/src/auth/accessMatrix.generated.ts&quot; &quot;$(MSBuildThisFileDirectory)../../../access-matrix.generated.json&quot; &quot;$(MSBuildThisFileDirectory)../Anela.Heblo.Domain/Features/Authorization/AccessRoles.generated.cs&quot;"
+              ContinueOnError="true"
+              WorkingDirectory="$(MSBuildThisFileDirectory)../../.." />
+
+        <Message Text="Access matrix generation completed." Importance="high" />
     </Target>
 
 </Project>

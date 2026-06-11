@@ -1,5 +1,7 @@
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Anela.Heblo.Persistence.Smartsupp;
 
@@ -8,10 +10,17 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
     private const int MaxOtherConversations = 20;
 
     private readonly ApplicationDbContext _db;
+    private readonly ISmartsuppApiClient _apiClient;
+    private readonly ILogger<SmartsuppRepository> _logger;
 
-    public SmartsuppRepository(ApplicationDbContext db)
+    public SmartsuppRepository(
+        ApplicationDbContext db,
+        ISmartsuppApiClient apiClient,
+        ILogger<SmartsuppRepository> logger)
     {
         _db = db;
+        _apiClient = apiClient;
+        _logger = logger;
     }
 
     public async Task<(List<SmartsuppConversation> Items, int Total)> ListConversationsAsync(
@@ -87,7 +96,16 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
                 .FirstOrDefaultAsync(c => c.Id == conversation.ContactId, cancellationToken);
 
             if (linkedContact is null)
-                conversation.ContactId = null;
+            {
+                // Smartsupp webhooks reference contacts by id without inlining the name/email
+                // and we cannot rely on a contact.* event arriving — pull the record via REST so
+                // the FK link survives and the conversation row carries the display name.
+                linkedContact = await TryFetchAndStageContactAsync(
+                    conversation.ContactId, conversation.SyncedAt, cancellationToken);
+
+                if (linkedContact is null)
+                    conversation.ContactId = null;
+            }
         }
 
         conversation.ContactName ??= linkedContact?.Name;
@@ -246,6 +264,60 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         }
     }
 
+    public async Task<List<string>> ListOrphanContactConversationIdsAsync(
+        CancellationToken cancellationToken) =>
+        await _db.SmartsuppConversations
+            .AsNoTracking()
+            .Where(c => c.ContactName == null && c.ContactEmail == null)
+            .Select(c => c.Id)
+            .ToListAsync(cancellationToken);
+
+    private async Task<SmartsuppContact?> TryFetchAndStageContactAsync(
+        string contactId,
+        DateTime syncedAt,
+        CancellationToken cancellationToken)
+    {
+        SmartsuppContactData? data;
+        try
+        {
+            data = await _apiClient.GetContactAsync(contactId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Fail open: webhook still saves the conversation without the contact link.
+            // The orphan backfill job can pick it up later when Smartsupp REST is healthy.
+            _logger.LogWarning(ex,
+                "smartsupp: failed to fetch contact {ContactId} while upserting conversation; continuing without link",
+                contactId);
+            return null;
+        }
+
+        if (data is null)
+            return null;
+
+        var contact = MapContactDataToEntity(data, syncedAt);
+        await UpsertContactAsync(contact, cancellationToken);
+        return contact;
+    }
+
+    private static SmartsuppContact MapContactDataToEntity(SmartsuppContactData data, DateTime syncedAt) =>
+        new()
+        {
+            Id = data.Id,
+            Email = data.Email,
+            Name = data.Name,
+            Phone = data.Phone,
+            Note = data.Note,
+            BannedAt = data.BannedAt,
+            BannedBy = data.BannedBy,
+            GdprApproved = data.GdprApproved,
+            TagsJson = data.TagsJson,
+            PropertiesJson = data.PropertiesJson,
+            CreatedAt = DateTime.SpecifyKind(data.CreatedAt, DateTimeKind.Unspecified),
+            UpdatedAt = DateTime.SpecifyKind(data.UpdatedAt, DateTimeKind.Unspecified),
+            SyncedAt = DateTime.SpecifyKind(syncedAt, DateTimeKind.Unspecified),
+        };
+
     public async Task UpdateVisitorCacheAsync(
         string conversationId,
         string? userAgent,
@@ -273,4 +345,8 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
         await _db.SaveChangesAsync(cancellationToken);
+
+    // Clears all staged EF changes before a retry. Safe because HandleAsync is idempotent —
+    // all repository calls re-read from the DB before staging new state.
+    public void DiscardChanges() => _db.ChangeTracker.Clear();
 }

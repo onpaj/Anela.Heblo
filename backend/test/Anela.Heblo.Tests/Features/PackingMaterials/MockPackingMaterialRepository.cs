@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Anela.Heblo.Domain.Features.PackingMaterials;
+using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 
 namespace Anela.Heblo.Tests.Features.PackingMaterials;
 
@@ -174,5 +175,62 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
     {
         AddedDailyRuns.Add(run);
         return Task.CompletedTask;
+    }
+
+    public Task<(IReadOnlyList<MaterialConsumptionHistoryRecord> Items, int TotalCount)> GetConsumptionHistoryAsync(
+        MaterialConsumptionHistoryFilter filter,
+        int skip,
+        int take,
+        bool ascending,
+        CancellationToken cancellationToken = default)
+    {
+        var records = ConsumptionRowsByDate.Values.SelectMany(v => v).Select(c => new MaterialConsumptionHistoryRecord
+        {
+            RecordType = HistoryRecordType.Consumption,
+            PackingMaterialId = c.PackingMaterialId,
+            Date = c.Date,
+            CreatedAt = c.CreatedAt,
+            ConsumptionType = c.ConsumptionType,
+            InvoiceId = c.InvoiceId,
+            ProductCode = c.ProductCode,
+            ProductQuantity = c.ProductQuantity,
+            Amount = c.Amount,
+        }).ToList();
+
+        var consumptionOnlyFilter = filter.ConsumptionType.HasValue
+            || !string.IsNullOrWhiteSpace(filter.ProductCode)
+            || !string.IsNullOrWhiteSpace(filter.InvoiceId);
+
+        if (!consumptionOnlyFilter)
+        {
+            records.AddRange(RecentLogsByMaterial.Values.SelectMany(v => v).Select(l => new MaterialConsumptionHistoryRecord
+            {
+                RecordType = HistoryRecordType.QuantityChange,
+                PackingMaterialId = l.PackingMaterialId,
+                Date = l.Date,
+                CreatedAt = l.CreatedAt,
+                OldQuantity = l.OldQuantity,
+                NewQuantity = l.NewQuantity,
+                ChangeAmount = l.NewQuantity - l.OldQuantity,
+                LogType = l.LogType,
+                UserId = l.UserId,
+            }));
+        }
+
+        IEnumerable<MaterialConsumptionHistoryRecord> query = records;
+        if (filter.DateFrom.HasValue) query = query.Where(r => r.Date >= filter.DateFrom.Value);
+        if (filter.DateTo.HasValue) query = query.Where(r => r.Date <= filter.DateTo.Value);
+        if (filter.PackingMaterialId.HasValue) query = query.Where(r => r.PackingMaterialId == filter.PackingMaterialId.Value);
+        if (filter.ConsumptionType.HasValue) query = query.Where(r => r.ConsumptionType == filter.ConsumptionType.Value);
+        if (!string.IsNullOrWhiteSpace(filter.ProductCode)) query = query.Where(r => r.ProductCode == filter.ProductCode);
+        if (!string.IsNullOrWhiteSpace(filter.InvoiceId)) query = query.Where(r => r.InvoiceId == filter.InvoiceId);
+
+        var filtered = query.ToList();
+        var ordered = ascending
+            ? filtered.OrderBy(r => r.Date).ThenBy(r => r.CreatedAt)
+            : filtered.OrderByDescending(r => r.Date).ThenByDescending(r => r.CreatedAt);
+
+        var paged = ordered.Skip(skip).Take(take).ToList();
+        return Task.FromResult<(IReadOnlyList<MaterialConsumptionHistoryRecord> Items, int TotalCount)>((paged, filtered.Count));
     }
 }

@@ -6,7 +6,7 @@ const emptyFilters = {
   orderCode: "",
   customerName: "",
   packageNumber: "",
-  shippingProviderCode: "",
+  carrier: "",
   fromDate: "",
   toDate: "",
 };
@@ -18,7 +18,10 @@ describe("ZasilkyFilters", () => {
     expect(screen.getByPlaceholderText("Objednávka")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Zákazník")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Číslo balíku")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Dopravce (kód)")).toBeInTheDocument();
+    expect(screen.getByRole("combobox")).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Všichni dopravci" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Zásilkovna" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Osobní odběr" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Hledat" })).toBeInTheDocument();
   });
 
@@ -57,7 +60,7 @@ describe("ZasilkyFilters", () => {
 
     const input = screen.getByPlaceholderText("Číslo balíku");
     fireEvent.change(input, { target: { value: "PKG-99" } });
-    fireEvent.submit(input.closest("form")!);
+    fireEvent.submit(screen.getByRole("form", { name: "Filtry zásilek" }));
 
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith(
@@ -72,14 +75,14 @@ describe("ZasilkyFilters", () => {
     fireEvent.change(screen.getByPlaceholderText("Objednávka"), { target: { value: "O1" } });
     fireEvent.change(screen.getByPlaceholderText("Zákazník"), { target: { value: "Bob" } });
     fireEvent.change(screen.getByPlaceholderText("Číslo balíku"), { target: { value: "P1" } });
-    fireEvent.change(screen.getByPlaceholderText("Dopravce (kód)"), { target: { value: "PPL" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "PPL" } });
     fireEvent.click(screen.getByRole("button", { name: "Hledat" }));
 
     expect(onChange).toHaveBeenCalledWith({
       orderCode: "O1",
       customerName: "Bob",
       packageNumber: "P1",
-      shippingProviderCode: "PPL",
+      carrier: "PPL",
       fromDate: "",
       toDate: "",
     });

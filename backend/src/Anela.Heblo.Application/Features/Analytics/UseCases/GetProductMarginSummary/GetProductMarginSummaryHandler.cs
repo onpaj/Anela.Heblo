@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Domain.Features.Analytics;
 using MediatR;
@@ -217,24 +216,9 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
     /// </summary>
     private decimal CalculateTotalMarginForLevel(List<AnalyticsProduct> products, string marginLevel)
     {
-        var totalMargin = 0m;
-
-        foreach (var product in products)
-        {
-            var totalSales = product.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C);
-
-            var marginPerUnit = marginLevel.ToUpperInvariant() switch
-            {
-                "M0" => product.M0Amount,
-                "M1" => product.M1Amount,
-                "M2" => product.M2Amount,
-                _ => product.M2Amount // Default to M2 (highest level now)
-            };
-
-            totalMargin += (decimal)totalSales * marginPerUnit;
-        }
-
-        return totalMargin;
+        return products.Sum(p =>
+            (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)
+            * _marginCalculator.GetMarginAmountForLevel(p, marginLevel));
     }
 
 }

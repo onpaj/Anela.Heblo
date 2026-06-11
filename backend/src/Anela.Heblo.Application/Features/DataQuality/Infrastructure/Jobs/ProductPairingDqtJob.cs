@@ -47,6 +47,7 @@ public class ProductPairingDqtJob : IRecurringJob
 
         var run = DqtRun.Start(DqtTestType.ProductPairing, today, today, DqtTriggerType.Scheduled);
         await _repository.AddAsync(run, cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
 
         await _jobRunner.RunAsync(run.Id, cancellationToken);
     }

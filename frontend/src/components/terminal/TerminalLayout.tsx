@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import UserProfile from '../auth/UserProfile';
+import { ScanProvider } from './shell/ScanProvider';
+import { FlashOverlay } from './shell/FlashOverlay';
 
 const TERMINAL_ROOT = '/terminal';
 
@@ -20,10 +22,10 @@ const TerminalLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background-gray">
-      <header className="h-14 sticky top-0 z-10 bg-white border-b border-border-light flex items-center px-4 gap-3">
+      <header className="relative h-14 sticky top-0 z-10 bg-white border-b border-border-light flex items-center px-4 gap-3">
         {!isHome && (
           <button
-            onClick={() => navigate(TERMINAL_ROOT)}
+            onClick={() => navigate(-1)}
             aria-label="Zpět"
             className="p-2 -ml-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale transition-colors"
           >
@@ -36,11 +38,12 @@ const TerminalLayout: React.FC = () => {
         <UserProfile compact={true} />
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-md mx-auto w-full">
+      <ScanProvider>
+        <main className="flex-1 min-h-0 overflow-hidden">
           <Outlet />
-        </div>
-      </main>
+        </main>
+        <FlashOverlay />
+      </ScanProvider>
     </div>
   );
 };

@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAction;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Tests.Domain.Marketing;
 using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -23,19 +24,29 @@ public class UpdateMarketingActionHandlerTests
     private static readonly CurrentUser AuthenticatedUser =
         new("user-1", "Test User", "test@example.com", IsAuthenticated: true);
 
-    private static MarketingAction BuildExistingAction(string? outlookEventId = "existing-event-id") =>
-        new()
-        {
-            Id = 42,
-            Title = "Old Title",
-            ActionType = MarketingActionType.Blog,
-            StartDate = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc),
-            CreatedAt = DateTime.UtcNow.AddDays(-1),
-            ModifiedAt = DateTime.UtcNow.AddDays(-1),
-            CreatedByUserId = "user-1",
-            OutlookEventId = outlookEventId,
-            OutlookSyncStatus = outlookEventId != null ? MarketingSyncStatus.Synced : MarketingSyncStatus.NotSynced,
-        };
+    private static MarketingAction BuildExistingAction(string? outlookEventId = "existing-event-id")
+    {
+        var action = new MarketingActionTestBuilder()
+            .WithId(42)
+            .WithTitle("Old Title")
+            .WithActionType(MarketingActionType.Blog)
+            .WithStartDate(new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc))
+            .WithCreatedAt(DateTime.UtcNow.AddDays(-1))
+            .WithModifiedAt(DateTime.UtcNow.AddDays(-1))
+            .WithCreatedBy("user-1")
+            .WithOutlookEventId(outlookEventId)
+            .WithOutlookSyncStatus(outlookEventId != null ? MarketingSyncStatus.Synced : MarketingSyncStatus.NotSynced)
+            .Build();
+        return action;
+    }
+
+    private static MarketingAction BuildExistingActionWithCollections()
+    {
+        var action = BuildExistingAction();
+        action.AssociateWithProduct("OLD-PROD");
+        action.LinkToFolder("old-key", MarketingFolderType.General);
+        return action;
+    }
 
     private static UpdateMarketingActionRequest BuildRequest(int id = 42) => new()
     {
@@ -202,6 +213,33 @@ public class UpdateMarketingActionHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ReturnsDatabaseError_WhenDbSaveFails()
+    {
+        _repository
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("DB unavailable"));
+
+        var result = await BuildHandler().Handle(BuildRequest(), CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.DatabaseError);
+        _outlookSync.Verify(
+            x => x.UpdateEventAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _outlookSync.Verify(
+            x => x.DeleteEventAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _logger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("may now be out of sync")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_HonorsRuntimePushEnabledFlip_TrueToFalse()
     {
         _repository
@@ -256,5 +294,55 @@ public class UpdateMarketingActionHandlerTests
         _outlookSync.Verify(
             x => x.UpdateEventAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ClearsCollections_WhenRequestListsAreNull()
+    {
+        _repository
+            .Setup(x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildExistingActionWithCollections());
+
+        var request = BuildRequest();
+        request.AssociatedProducts = null;
+        request.FolderLinks = null;
+
+        var result = await BuildHandler().Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        _repository.Verify(x => x.UpdateAsync(
+            It.Is<MarketingAction>(a =>
+                a.ProductAssociations.Count == 0 &&
+                a.FolderLinks.Count == 0),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ReplacesCollections_OnDeltaInput()
+    {
+        _repository
+            .Setup(x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildExistingActionWithCollections());
+
+        var request = BuildRequest();
+        request.AssociatedProducts = new List<string> { "OLD-PROD", "NEW-PROD" };
+        request.FolderLinks = new List<MarketingFolderLinkRequest>
+        {
+            new() { FolderKey = "old-key", FolderType = MarketingFolderType.General },
+            new() { FolderKey = "new-key", FolderType = MarketingFolderType.Seasonal },
+        };
+
+        var result = await BuildHandler().Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        _repository.Verify(x => x.UpdateAsync(
+            It.Is<MarketingAction>(a =>
+                a.ProductAssociations.Count == 2 &&
+                a.ProductAssociations.Any(p => p.ProductCodePrefix == "OLD-PROD") &&
+                a.ProductAssociations.Any(p => p.ProductCodePrefix == "NEW-PROD") &&
+                a.FolderLinks.Count == 2 &&
+                a.FolderLinks.Any(f => f.FolderKey == "old-key" && f.FolderType == MarketingFolderType.General) &&
+                a.FolderLinks.Any(f => f.FolderKey == "new-key" && f.FolderType == MarketingFolderType.Seasonal)),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

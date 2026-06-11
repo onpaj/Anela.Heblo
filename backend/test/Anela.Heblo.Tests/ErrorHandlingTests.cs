@@ -94,6 +94,7 @@ public class ErrorHandlingTests
         var range29xxErrors = errorCodes.Where(code => code >= 2900 && code < 3000).ToList(); // 29XX range (WeatherForecast + ShipmentLabels)
         var packagingErrors = errorCodes.Where(code => code >= 3000 && code < 3100).ToList(); // 30XX range (Packaging)
         var catalogDocumentsErrors = errorCodes.Where(code => code >= 3100 && code < 3200).ToList(); // 31XX range (CatalogDocuments)
+        var authorizationErrors = errorCodes.Where(code => code >= 3200 && code < 3300).ToList(); // 32XX range (Authorization)
         var externalServiceErrors = errorCodes.Where(code => code >= 9000 && code < 9100).ToList(); // 90XX range
 
         // Ensure we have some errors in the expected categories
@@ -118,6 +119,7 @@ public class ErrorHandlingTests
         Assert.True(range29xxErrors.Count > 0, "Should have errors in 29XX range");
         Assert.True(packagingErrors.Count > 0, "Should have packaging errors in 30XX range");
         Assert.True(catalogDocumentsErrors.Count > 0, "Should have CatalogDocuments errors in 31XX range");
+        Assert.True(authorizationErrors.Count > 0, "Should have Authorization errors in 32XX range");
         Assert.True(externalServiceErrors.Count > 0, "Should have external service errors in 90XX range");
 
         // Ensure all error codes fall into defined module ranges
@@ -126,7 +128,7 @@ public class ErrorHandlingTests
                               configErrors.Count + journalErrors.Count + analyticsErrors.Count +
                               fileStorageErrors.Count + backgroundJobsErrors.Count + knowledgeBaseErrors.Count +
                               shoptetOrdersErrors.Count + dataQualityErrors.Count + marketingErrors.Count +
-                              articleErrors.Count + leafletErrors.Count + photobankErrors.Count + smartsuppErrors.Count + inventoryErrors.Count + range29xxErrors.Count + packagingErrors.Count + catalogDocumentsErrors.Count + externalServiceErrors.Count;
+                              articleErrors.Count + leafletErrors.Count + photobankErrors.Count + smartsuppErrors.Count + inventoryErrors.Count + range29xxErrors.Count + packagingErrors.Count + catalogDocumentsErrors.Count + authorizationErrors.Count + externalServiceErrors.Count;
 
         Assert.Equal(errorCodes.Count, categorizedCount);
     }

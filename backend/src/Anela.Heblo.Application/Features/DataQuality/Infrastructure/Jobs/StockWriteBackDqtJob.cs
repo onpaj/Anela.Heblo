@@ -47,6 +47,7 @@ public class StockWriteBackDqtJob : IRecurringJob
 
         var run = DqtRun.Start(DqtTestType.StockWriteBackReconciliation, yesterday, yesterday, DqtTriggerType.Scheduled);
         await _repository.AddAsync(run, cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
 
         await _jobRunner.RunAsync(run.Id, cancellationToken);
     }

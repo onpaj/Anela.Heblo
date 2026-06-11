@@ -10,7 +10,7 @@ import { ManufactureOrderState, ProductType } from "../../../api/generated/api-c
 import { GetManufactureOrdersRequest } from "../../../api/hooks/useManufactureOrders";
 import CatalogAutocomplete from "../../common/CatalogAutocomplete";
 import ResponsiblePersonCombobox from "../../common/ResponsiblePersonCombobox";
-import { useConfigurationQuery } from "../../../api/hooks/useConfiguration";
+import { useManufactureSettingsQuery } from "../../../api/hooks/useManufactureSettings";
 
 interface ManufactureOrderFiltersProps {
   onFiltersChange: (filters: GetManufactureOrdersRequest) => void;
@@ -22,8 +22,8 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
   onApplyFilters,
 }) => {
   const { t } = useTranslation();
-  const { data: appConfig } = useConfigurationQuery();
-  const manufactureGroupId = appConfig?.manufactureGroupId ?? "";
+  const { data: manufactureSettings } = useManufactureSettingsQuery();
+  const manufactureGroupId = manufactureSettings?.manufactureGroupId ?? "";
 
   // Helper function to get translated state label
   const getStateLabel = (state: ManufactureOrderState): string => {

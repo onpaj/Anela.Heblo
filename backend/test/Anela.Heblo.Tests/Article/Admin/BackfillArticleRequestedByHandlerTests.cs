@@ -1,10 +1,10 @@
 using Anela.Heblo.Application.Features.Article.Admin;
-using Anela.Heblo.Application.Features.UserManagement.Contracts;
-using Anela.Heblo.Application.Features.UserManagement.Services;
+using Anela.Heblo.Application.Features.Article.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Article;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Identity.Client;
 using Moq;
 using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
 
@@ -15,16 +15,16 @@ public class BackfillArticleRequestedByHandlerTests
     private const string GroupId = "marketing-group-id";
 
     private readonly Mock<IArticleAdminRepository> _repository = new();
-    private readonly Mock<IGraphService> _graph = new();
+    private readonly Mock<IArticleUserResolver> _userResolver = new();
 
     private BackfillArticleRequestedByHandler CreateHandler() =>
-        new(_repository.Object, _graph.Object, NullLogger<BackfillArticleRequestedByHandler>.Instance);
+        new(_repository.Object, _userResolver.Object, NullLogger<BackfillArticleRequestedByHandler>.Instance);
 
     private static DomainArticle Row(string requestedBy)
         => new() { Id = Guid.NewGuid(), Topic = "Topic", RequestedBy = requestedBy };
 
-    private static UserDto Member(string id, string displayName)
-        => new() { Id = id, DisplayName = displayName, Email = $"{displayName}@example.com" };
+    private static ArticleUserMatch Member(string id, string displayName)
+        => new(id, displayName);
 
     [Fact]
     public async Task Handle_MissingGroupId_ReturnsValidationError()
@@ -43,8 +43,8 @@ public class BackfillArticleRequestedByHandlerTests
         var alreadyMigrated = Row(Guid.NewGuid().ToString());
         _repository.Setup(r => r.ListWithRequestedByAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<DomainArticle> { alreadyMigrated });
-        _graph.Setup(g => g.GetGroupMembersAsync(GroupId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<UserDto>());
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ArticleUserMatch>());
 
         var response = await CreateHandler().Handle(
             new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = true }, default);
@@ -61,8 +61,8 @@ public class BackfillArticleRequestedByHandlerTests
         var alreadyMigrated = Row("john@example.com");
         _repository.Setup(r => r.ListWithRequestedByAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<DomainArticle> { alreadyMigrated });
-        _graph.Setup(g => g.GetGroupMembersAsync(GroupId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<UserDto>());
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ArticleUserMatch>());
 
         var response = await CreateHandler().Handle(
             new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = true }, default);
@@ -77,8 +77,8 @@ public class BackfillArticleRequestedByHandlerTests
         var row = Row("Jan Novák");
         _repository.Setup(r => r.ListWithRequestedByAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<DomainArticle> { row });
-        _graph.Setup(g => g.GetGroupMembersAsync(GroupId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<UserDto> { Member("jan-oid", "Jan Novák") });
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ArticleUserMatch> { Member("jan-oid", "Jan Novák") });
 
         var response = await CreateHandler().Handle(
             new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = false }, default);
@@ -95,8 +95,8 @@ public class BackfillArticleRequestedByHandlerTests
         var row = Row("Jan Novák");
         _repository.Setup(r => r.ListWithRequestedByAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<DomainArticle> { row });
-        _graph.Setup(g => g.GetGroupMembersAsync(GroupId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<UserDto>
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ArticleUserMatch>
             {
                 Member("jan-oid-a", "Jan Novák"),
                 Member("jan-oid-b", "Jan Novák"),
@@ -119,8 +119,8 @@ public class BackfillArticleRequestedByHandlerTests
         var row = Row("Ghost User");
         _repository.Setup(r => r.ListWithRequestedByAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<DomainArticle> { row });
-        _graph.Setup(g => g.GetGroupMembersAsync(GroupId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<UserDto> { Member("someone-oid", "Someone Else") });
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ArticleUserMatch> { Member("someone-oid", "Someone Else") });
 
         var response = await CreateHandler().Handle(
             new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = false }, default);
@@ -137,8 +137,8 @@ public class BackfillArticleRequestedByHandlerTests
         var row = Row("Jan Novák");
         _repository.Setup(r => r.ListWithRequestedByAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<DomainArticle> { row });
-        _graph.Setup(g => g.GetGroupMembersAsync(GroupId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<UserDto> { Member("jan-oid", "Jan Novák") });
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ArticleUserMatch> { Member("jan-oid", "Jan Novák") });
 
         var response = await CreateHandler().Handle(
             new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = true }, default);
@@ -163,8 +163,8 @@ public class BackfillArticleRequestedByHandlerTests
         };
         _repository.Setup(r => r.ListWithRequestedByAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(rows);
-        _graph.Setup(g => g.GetGroupMembersAsync(GroupId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<UserDto>
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ArticleUserMatch>
             {
                 Member("jan-oid", "Jan Novák"),
                 Member("petra-oid-1", "Petra Dvořáková"),
@@ -180,5 +180,57 @@ public class BackfillArticleRequestedByHandlerTests
         response.Ambiguous.Should().Be(1);
         response.Unresolved.Should().Be(1);
         response.UnresolvedRows.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Handle_WhenResolverThrowsMsalException_ReturnsConfigurationError()
+    {
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new MsalUiRequiredException("err_code", "token failed"));
+
+        var response = await CreateHandler().Handle(
+            new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = false }, default);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.ConfigurationError);
+    }
+
+    [Fact]
+    public async Task Handle_WhenResolverThrowsODataError_ReturnsExternalServiceError()
+    {
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Microsoft.Graph.Models.ODataErrors.ODataError());
+
+        var response = await CreateHandler().Handle(
+            new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = false }, default);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.ExternalServiceError);
+    }
+
+    [Fact]
+    public async Task Handle_WhenResolverThrowsUnauthorizedAccess_ReturnsForbidden()
+    {
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new UnauthorizedAccessException("no access"));
+
+        var response = await CreateHandler().Handle(
+            new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = false }, default);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.Forbidden);
+    }
+
+    [Fact]
+    public async Task Handle_WhenResolverThrowsGenericException_ReturnsInternalServerError()
+    {
+        _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("unexpected failure"));
+
+        var response = await CreateHandler().Handle(
+            new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = false }, default);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
     }
 }

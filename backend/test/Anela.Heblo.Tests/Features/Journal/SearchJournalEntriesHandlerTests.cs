@@ -53,7 +53,18 @@ public class SearchJournalEntriesHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.SearchEntriesAsync(It.IsAny<JournalSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.SearchEntriesAsync(
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IReadOnlyCollection<int>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResult);
 
         // Act
@@ -66,8 +77,16 @@ public class SearchJournalEntriesHandlerTests
         result.Entries.First().AssociatedProducts.Should().Contain("TON002");
 
         _repositoryMock.Verify(x => x.SearchEntriesAsync(
-            It.Is<JournalSearchCriteria>(r =>
-                r.ProductCodePrefix == "TON002"),
+            It.IsAny<string?>(),
+            It.IsAny<DateTime?>(),
+            It.IsAny<DateTime?>(),
+            It.Is<string?>(p => p == "TON002"),
+            It.IsAny<IReadOnlyCollection<int>?>(),
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -124,7 +143,18 @@ public class SearchJournalEntriesHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.SearchEntriesAsync(It.IsAny<JournalSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.SearchEntriesAsync(
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IReadOnlyCollection<int>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResult);
 
         // Act
@@ -169,7 +199,18 @@ public class SearchJournalEntriesHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.SearchEntriesAsync(It.IsAny<JournalSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.SearchEntriesAsync(
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IReadOnlyCollection<int>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResult<JournalEntry>
             {
                 Items = new List<JournalEntry> { entry },
@@ -215,7 +256,18 @@ public class SearchJournalEntriesHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.SearchEntriesAsync(It.IsAny<JournalSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.SearchEntriesAsync(
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IReadOnlyCollection<int>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResult<JournalEntry>
             {
                 Items = new List<JournalEntry> { entry },
@@ -258,7 +310,18 @@ public class SearchJournalEntriesHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.SearchEntriesAsync(It.IsAny<JournalSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.SearchEntriesAsync(
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IReadOnlyCollection<int>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResult<JournalEntry>
             {
                 Items = new List<JournalEntry> { entry },

@@ -194,58 +194,84 @@ const response = await (apiClient as any).http.fetch(url, {method: 'GET'});
 
 // This calls: http://localhost:3000/api/catalog (WRONG!)
 // Should call: http://localhost:5001/api/catalog
+// Also wrong: uses private fields of the generated client — breaks silently on NSwag regeneration
 ```
 
 ### The Solution
 
-Always construct absolute URLs using the API client's `baseUrl`.
+Always use the configured API client through our helper functions.
 
-**✅ CORRECT - Absolute URL with baseUrl:**
+**✅ CORRECT — for standard hooks (the default pattern):**
 ```typescript
-const relativeUrl = `/api/catalog`;
-const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-const response = await (apiClient as any).http.fetch(fullUrl, {method: 'GET'});
+import { getAuthenticatedApiClient } from './client';
 
-// This calls: http://localhost:5001/api/catalog (CORRECT!)
+const client = getAuthenticatedApiClient();
+const result = await client.catalog_GetList({ searchTerm: '', pageNumber: 1, pageSize: 20 });
 ```
 
-**✅ CORRECT - Alternative pattern (custom API client):**
+> **❌ AVOID**: `(apiClient as any).baseUrl` and `(apiClient as any).http.fetch`
+> These reach into private fields of the NSwag-generated class. If NSwag renames those fields,
+> the code breaks at runtime with no compile-time warning.
+> Use `getApiBaseUrl()` and `getAuthenticatedFetch()` from `./client` instead.
+
+**✅ CORRECT — for endpoints whose business outcomes are surfaced as HTTP status codes (e.g. 409 Conflict):**
+
+The preferred pattern is to model the business outcome in the OpenAPI contract and let the generated client surface it as a typed, non-throwing branch. Annotate the controller action with both the success and the business-outcome status — both pointing at the same response DTO — so that the NSwag template override (when active) emits a typed `else if (status === 4xx)` branch. Until the template is activated, use a hook-level `try/catch` to handle the typed exception:
+
+```csharp
+[ProducesResponseType(typeof(SubmitArticleFeedbackResponse), StatusCodes.Status200OK)]
+[ProducesResponseType(typeof(SubmitArticleFeedbackResponse), StatusCodes.Status409Conflict)]
+[HttpPost("{id:guid}/feedback")]
+public async Task<ActionResult<SubmitArticleFeedbackResponse>> SubmitFeedback(...) { ... }
+```
+
+Then call the typed method and discriminate on the exception status or the existing `BaseResponse.success` + `errorCode` envelope:
+
 ```typescript
-// Create custom API client class with makeRequest method
-class CustomApiClient {
-  private baseUrl: string;
+import { getAuthenticatedApiClient } from './client';
+import { SubmitArticleFeedbackRequest } from './generated/api-client';
 
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
+const client = getAuthenticatedApiClient();
+const request = new SubmitArticleFeedbackRequest({ articleId, precisionScore, styleScore, comment });
+
+try {
+  const response = await client.articles_SubmitFeedback(articleId, request);
+  return { precisionScore: response.precisionScore, styleScore: response.styleScore };
+} catch (e: unknown) {
+  const err = e as { status?: number };
+  if (err.status === 409) {
+    // 409 path — already submitted
+    return { alreadySubmitted: true };
   }
-
-  async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${url}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.statusText}`);
-    }
-
-    return response.json();
-  }
+  throw e;
 }
+```
 
-// Usage
-const client = new CustomApiClient('http://localhost:5001');
-const data = await client.makeRequest('/api/catalog', {method: 'GET'});
+See `useSubmitArticleFeedbackMutation` in `frontend/src/api/hooks/useArticles.ts` for the canonical example, and `backend/src/Anela.Heblo.API/nswag-templates/README.md` for the template-override status.
+
+**Escape hatch — `getApiBaseUrl()` + `getAuthenticatedFetch()`.**
+
+Reach for these helpers only when an endpoint's business outcome cannot yet be expressed through the generated client — for example, an `If-Match`-based update returning HTTP 412 Precondition Failed before the controller has been annotated with `[ProducesResponseType(StatusCodes.Status412PreconditionFailed)]`. The helpers attach auth headers, do not throw on non-2xx, and do not trigger the global error toast — leaving status-code branching entirely to the caller:
+
+```typescript
+import { getApiBaseUrl, getAuthenticatedFetch } from './client';
+
+const url = `${getApiBaseUrl()}/api/resources/${id}`;
+const response = await getAuthenticatedFetch()(url, {
+  method: 'PUT',
+  headers: { 'If-Match': etag, 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+});
+if (response.status === 412) return { precondition: 'stale' };
+if (!response.ok) throw new Error(`HTTP ${response.status}`);
+return response.json();
 ```
 
 ### Enforcement Rules
 
 1. **NEVER use relative URLs** directly in `fetch` calls within API hooks
-2. **ALWAYS use `getAuthenticatedApiClient()`** to get the configured client
-3. **ALWAYS construct absolute URLs** with `baseUrl` when making custom requests
+2. **ALWAYS use `getAuthenticatedApiClient()`** for standard typed calls, or `getApiBaseUrl()` + `getAuthenticatedFetch()` when you need to branch on HTTP status codes
+3. **NEVER use `(apiClient as any)`** to access private fields — use public helper functions instead
 4. **Verify base URL configuration** in environment-specific settings
 
 ### Base URL Configuration
@@ -429,10 +455,10 @@ dotnet msbuild backend/src/Anela.Heblo.API -t:GenerateFrontendClientManual
 const response = await fetch('/api/catalog');
 
 // After (CORRECT)
-const client = await getAuthenticatedApiClient();
-const relativeUrl = '/api/catalog';
-const fullUrl = `${(client as any).baseUrl}${relativeUrl}`;
-const response = await fetch(fullUrl);
+import { getApiBaseUrl, getAuthenticatedFetch } from './client';
+
+const url = `${getApiBaseUrl()}/api/catalog`;
+const response = await getAuthenticatedFetch()(url, { method: 'GET' });
 ```
 
 ### Build Performance

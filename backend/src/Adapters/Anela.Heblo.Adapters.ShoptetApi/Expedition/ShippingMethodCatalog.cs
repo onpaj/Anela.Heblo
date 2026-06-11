@@ -15,4 +15,22 @@ public class ShippingMethodCatalog : IShippingMethodCatalog
             .ToList()
             .AsReadOnly();
     }
+
+    public IReadOnlyList<string> GetShippingCodesForCarrier(Carriers carrier)
+    {
+        return ShippingMethodRegistry.ShippingList
+            .Where(m => m.Carrier == carrier)
+            .Select(m => m.Id.ToString())
+            .ToList()
+            .AsReadOnly();
+    }
+
+    public Carriers? ResolveCarrier(string shippingProviderCode)
+    {
+        if (!int.TryParse(shippingProviderCode, out var id))
+            return null;
+
+        return ShippingMethodRegistry.ShippingList
+            .FirstOrDefault(m => m.Id == id)?.Carrier;
+    }
 }

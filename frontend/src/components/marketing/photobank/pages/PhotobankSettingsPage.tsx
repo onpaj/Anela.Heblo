@@ -1,17 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useMsal } from '@azure/msal-react';
+import { usePermissionsContext } from '../../../../auth/PermissionsContext';
 import IndexRootsTab from '../settings/IndexRootsTab';
 import TagRulesTab from '../settings/TagRulesTab';
 import TagsTab from '../settings/TagsTab';
 import { useScreenView } from '../../../../telemetry/useScreenView';
 
-const ADMIN_ROLE = 'super_user';
-
 const PhotobankSettingsPage = () => {
-  const { accounts } = useMsal();
-  const isAdmin =
-    (accounts[0]?.idTokenClaims as any)?.roles?.includes(ADMIN_ROLE) ?? false;
+  const { hasPermission } = usePermissionsContext();
+  const isAdmin = hasPermission('marketing.photobank.admin');
 
   const [activeTab, setActiveTab] = useState<'roots' | 'rules' | 'tags'>('roots');
 

@@ -173,11 +173,17 @@ Při získávání výpisů z Comgate se filtrují pouze výpisy pro správný b
 
 ### Query API: GET /api/bank-statements
 
-**Query parametry (BankStatementImportQueryDto)**:
+**Query parametry (GetBankStatementListRequest)**:
 - **Id**: Filtrace podle ID záznamu
-- **StatementDate**: Filtrace podle data výpisu  
+- **TransferId**: Filtrace podle ID transferu
+- **Account**: Filtrace podle účtu
+- **StatementDate**: Filtrace podle data výpisu
 - **ImportDate**: Filtrace podle data importu
-- Standardní ABP parametry pro stránkování a řazení
+- **DateFrom**: Spodní hranice rozsahu data
+- **DateTo**: Horní hranice rozsahu data
+- **ErrorsOnly**: Filtrace pouze chybných záznamů
+- **Skip**, **Take**: Stránkování (default `Skip = 0`, `Take = 10`)
+- **OrderBy**, **Ascending**: Řazení (default `OrderBy = "ImportDate"`, `Ascending = false`)
 
 **Výstup**: Stránkovaný seznam BankStatementImportDto
 

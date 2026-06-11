@@ -29,11 +29,49 @@ public static class TileRegistryExtensions
     public static void InitializeTileRegistry(this IHost app)
     {
         var registry = app.Services.GetRequiredService<ITileRegistry>();
+        var types = RegisteredTileTypes.Distinct().ToList();
 
-        foreach (var tileType in RegisteredTileTypes.Distinct())
+        ValidateTileTypes(types);
+
+        foreach (var tileType in types)
         {
             var genericMethod = RegisterTileMethod.MakeGenericMethod(tileType);
             genericMethod.Invoke(registry, null);
         }
+    }
+
+    public static void ValidateTileTypes(IReadOnlyList<Type> tileTypes)
+    {
+        var errors = new List<string>();
+        var seen = new Dictionary<string, Type>(StringComparer.Ordinal);
+
+        foreach (var tileType in tileTypes)
+        {
+            string tileId;
+            try
+            {
+                tileId = tileType.GetTileId();
+            }
+            catch (InvalidOperationException ex)
+            {
+                errors.Add(ex.Message);
+                continue;
+            }
+
+            if (seen.TryGetValue(tileId, out var existing))
+            {
+                errors.Add(
+                    $"Duplicate tile ID '{tileId}': " +
+                    $"'{existing.FullName}' and '{tileType.FullName}' share the same ID.");
+            }
+            else
+            {
+                seen[tileId] = tileType;
+            }
+        }
+
+        if (errors.Count > 0)
+            throw new InvalidOperationException(
+                "Tile registry validation failed:\n" + string.Join("\n", errors));
     }
 }

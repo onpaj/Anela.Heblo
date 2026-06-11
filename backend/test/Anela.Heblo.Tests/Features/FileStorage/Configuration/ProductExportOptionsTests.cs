@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Application.Features.FileStorage;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 

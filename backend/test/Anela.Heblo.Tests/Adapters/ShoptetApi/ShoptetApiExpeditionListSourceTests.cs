@@ -8,9 +8,11 @@ using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
-using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using Moq;
 using QuestPDF.Infrastructure;
 
@@ -38,7 +40,7 @@ public class ShoptetApiExpeditionListSourceTests
     {
         var msgHandler = new FakeDelegatingHandler(handler);
         var http = new HttpClient(msgHandler) { BaseAddress = new Uri("https://fake.shoptet.cz") };
-        return new ShoptetOrderClient(http);
+        return new ShoptetOrderClient(http, Options.Create(new ShoptetOrdersSettings()));
     }
 
     private static HttpResponseMessage Json(object obj, HttpStatusCode status = HttpStatusCode.OK)
@@ -856,6 +858,44 @@ public class ShoptetApiExpeditionListSourceTests
         result.Should().Be(Cooling.None);
     }
 
+    // ─── ResolveCarrierCoolingText ────────────────────────────────────────────────
+
+    [Fact]
+    public void ResolveCarrierCoolingText_ReturnsNull_WhenGuidNotInRegistry()
+    {
+        var matrix = new Dictionary<(Carriers, DeliveryHandling), string?>
+        {
+            [(Carriers.PPL, DeliveryHandling.NaRuky)] = "MRAZ",
+        };
+
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCoolingText("unknown-guid", matrix);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ResolveCarrierCoolingText_ReturnsNull_WhenMatrixHasNoEntryForCarrierHandling()
+    {
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCoolingText(
+            PplDoRukyGuid,
+            new Dictionary<(Carriers, DeliveryHandling), string?>());
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ResolveCarrierCoolingText_ReturnsText_WhenMatrixHasEntry()
+    {
+        var matrix = new Dictionary<(Carriers, DeliveryHandling), string?>
+        {
+            [(Carriers.PPL, DeliveryHandling.NaRuky)] = "MRAZ",
+        };
+
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCoolingText(PplDoRukyGuid, matrix);
+
+        result.Should().Be("MRAZ");
+    }
+
     // ─── CreatePickingList — carrier cooling integration ──────────────────────────
 
     [Fact]
@@ -964,7 +1004,7 @@ public class ShoptetApiExpeditionListSourceTests
 
     [Theory]
     [InlineData("ZASILKOVNA_DO_RUKY", "Zásilkovna (do ruky)")]
-    [InlineData("ZASILKOVNA_ZPOINT", "Zásilkovna Z-Point")]
+    [InlineData("ZASILKOVNA_ZPOINT", "Zásilkovna – Výdejní místa a Z-boxy")]
     [InlineData("ZASILKOVNA_DO_RUKY_SK", "Zásilkovna (do ruky) SK")]
     [InlineData("ZASILKOVNA_DO_RUKY_CHLAZENY", "Zásilkovna chlazený balík (do ruky)")]
     [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY", "Zásilkovna Z-Point chlazený balík")]
@@ -981,6 +1021,14 @@ public class ShoptetApiExpeditionListSourceTests
     [InlineData("GLS_EXPORT", "GLS Export")]
     [InlineData("GLS_PARCELSHOP", "GLS ParcelShop")]
     [InlineData("OSOBAK", "Osobní odběr")]
+    // 2025+ carrier scheme (box & výdejní místa / do ruky).
+    [InlineData("PPL_BOX", "PPL přímo do PPL boxu")]
+    [InlineData("PPL_VYDEJNI_MISTA", "PPL výdejní místa a Alzaboxy")]
+    [InlineData("PPL_DO_RUKY_NEW", "PPL do ruky")]
+    [InlineData("ZASILKOVNA_BOXY_VYDEJNI", "Zásilkovna boxy a výdejní místa")]
+    [InlineData("ZASILKOVNA_DO_RUKY_NEW", "Zásilkovna do ruky")]
+    [InlineData("GLS_BOXY_VYDEJNI", "GLS boxy a výdejní místa")]
+    [InlineData("GLS_DO_RUKY_NEW", "GLS do ruky")]
     public void ShippingMethod_DisplayName_IsSetForAllRegisteredMethods(string methodName, string expectedDisplayName)
     {
         var method = ShippingMethodRegistry.ShippingList
@@ -1015,7 +1063,7 @@ public class ShoptetApiExpeditionListSourceTests
         await source.CreatePickingList(DefaultRequest(), null);
 
         capturedData.Should().ContainSingle()
-            .Which.CarrierDisplayName.Should().Be("Zásilkovna Z-Point");
+            .Which.CarrierDisplayName.Should().Be("Zásilkovna – Výdejní místa a Z-boxy");
     }
 
     // ─── ResolveGiftBadge ─────────────────────────────────────────────────────────

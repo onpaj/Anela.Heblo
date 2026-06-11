@@ -1,4 +1,5 @@
-using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Application.Features.Logistics.Contracts;
+using Anela.Heblo.Application.Features.Logistics.Contracts.Models;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Microsoft.Extensions.Logging;
 
@@ -8,16 +9,16 @@ public class TransportBoxCompletionService : ITransportBoxCompletionService
 {
     private readonly ILogger<TransportBoxCompletionService> _logger;
     private readonly ITransportBoxRepository _transportBoxRepository;
-    private readonly IStockUpOperationRepository _stockUpOperationRepository;
+    private readonly ILogisticsStockOperationQueryService _stockOperationQueryService;
 
     public TransportBoxCompletionService(
         ILogger<TransportBoxCompletionService> logger,
         ITransportBoxRepository transportBoxRepository,
-        IStockUpOperationRepository stockUpOperationRepository)
+        ILogisticsStockOperationQueryService stockOperationQueryService)
     {
         _logger = logger;
         _transportBoxRepository = transportBoxRepository;
-        _stockUpOperationRepository = stockUpOperationRepository;
+        _stockOperationQueryService = stockOperationQueryService;
     }
 
     public async Task CompleteReceivedBoxesAsync(CancellationToken cancellationToken = default)
@@ -76,9 +77,8 @@ public class TransportBoxCompletionService : ITransportBoxCompletionService
     {
         _logger.LogDebug("Processing box {BoxId} ({BoxCode})", box.Id, box.Code);
 
-        // Get all stock-up operations for this box
-        var operations = await _stockUpOperationRepository.GetBySourceAsync(
-            StockUpSourceType.TransportBox,
+        var operations = await _stockOperationQueryService.GetOperationsBySourceAsync(
+            LogisticsStockOperationSource.TransportBox,
             box.Id,
             cancellationToken);
 
@@ -96,12 +96,11 @@ public class TransportBoxCompletionService : ITransportBoxCompletionService
             return BoxProcessingResult.Failed;
         }
 
-        // Check operation states
-        var allCompleted = operations.All(op => op.State == StockUpOperationState.Completed);
-        var anyFailed = operations.Any(op => op.State == StockUpOperationState.Failed);
+        var allCompleted = operations.All(op => op.State == LogisticsStockOperationState.Completed);
+        var anyFailed = operations.Any(op => op.State == LogisticsStockOperationState.Failed);
         var pendingOrSubmitted = operations.Any(op =>
-            op.State == StockUpOperationState.Pending ||
-            op.State == StockUpOperationState.Submitted);
+            op.State == LogisticsStockOperationState.Pending ||
+            op.State == LogisticsStockOperationState.Submitted);
 
         if (allCompleted)
         {
@@ -119,7 +118,7 @@ public class TransportBoxCompletionService : ITransportBoxCompletionService
         if (anyFailed)
         {
             var failedOps = operations
-                .Where(op => op.State == StockUpOperationState.Failed)
+                .Where(op => op.State == LogisticsStockOperationState.Failed)
                 .ToList();
 
             var errorMessage = $"{failedOps.Count} stock-up operation(s) failed. " +
@@ -142,13 +141,12 @@ public class TransportBoxCompletionService : ITransportBoxCompletionService
                 "Box {BoxId} ({BoxCode}) still has {Count} operations in progress, skipping",
                 box.Id, box.Code,
                 operations.Count(op =>
-                    op.State == StockUpOperationState.Pending ||
-                    op.State == StockUpOperationState.Submitted));
+                    op.State == LogisticsStockOperationState.Pending ||
+                    op.State == LogisticsStockOperationState.Submitted));
 
             return BoxProcessingResult.Skipped;
         }
 
-        // Should not reach here
         _logger.LogWarning("Box {BoxId} ({BoxCode}) in unexpected state, skipping",
             box.Id, box.Code);
         return BoxProcessingResult.Skipped;
@@ -158,6 +156,6 @@ public class TransportBoxCompletionService : ITransportBoxCompletionService
     {
         Completed,
         Failed,
-        Skipped
+        Skipped,
     }
 }

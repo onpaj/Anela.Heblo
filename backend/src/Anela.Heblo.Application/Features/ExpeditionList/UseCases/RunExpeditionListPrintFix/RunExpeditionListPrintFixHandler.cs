@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
-using Anela.Heblo.Domain.Features.Logistics.Picking;
 using MediatR;
 using Microsoft.Extensions.Options;
 
@@ -22,9 +22,9 @@ public class RunExpeditionListPrintFixHandler : IRequestHandler<RunExpeditionLis
         RunExpeditionListPrintFixRequest request,
         CancellationToken cancellationToken)
     {
-        var printRequest = new PrintPickingListRequest
+        var printRequest = new ExpeditionPickingRequest
         {
-            Carriers = PrintPickingListRequest.DefaultCarriers,
+            Carriers = ExpeditionPickingRequest.DefaultCarriers,
             SourceStateId = _options.Value.FixSourceStateId,
             DesiredStateId = _options.Value.DesiredStateId,
             ChangeOrderState = _options.Value.ChangeOrderStateByDefault,
@@ -37,7 +37,6 @@ public class RunExpeditionListPrintFixHandler : IRequestHandler<RunExpeditionLis
 
         return new RunExpeditionListPrintFixResponse
         {
-            Success = true,
             TotalCount = result.TotalCount,
         };
     }

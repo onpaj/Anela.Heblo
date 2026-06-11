@@ -105,13 +105,13 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
                 services.Remove(d);
             services.AddScoped<IOneDriveService, MockOneDriveService>();
 
-            // Replace EanCodeGenerator with a no-op mock in tests.
-            // EanCodeGenerator depends on NpgsqlDataSource (raw ADO.NET) which is not registered
+            // Replace MaterialContainerCodeGenerator with a no-op mock in tests.
+            // MaterialContainerCodeGenerator depends on NpgsqlDataSource (raw ADO.NET) which is not registered
             // when UseInMemoryDatabase=true — the real data source is only created for non-InMemory runs.
-            var eanCodeGeneratorDescriptors = services.Where(s => s.ServiceType == typeof(IEanCodeGenerator)).ToList();
-            foreach (var d in eanCodeGeneratorDescriptors)
+            var codeGeneratorDescriptors = services.Where(s => s.ServiceType == typeof(IMaterialContainerCodeGenerator)).ToList();
+            foreach (var d in codeGeneratorDescriptors)
                 services.Remove(d);
-            services.AddScoped<IEanCodeGenerator, MockEanCodeGenerator>();
+            services.AddScoped<IMaterialContainerCodeGenerator, MockMaterialContainerCodeGenerator>();
 
             // Apply any additional service configuration from derived classes
             ConfigureTestServices(services);
@@ -212,11 +212,11 @@ public class MockBackgroundJobClient : IBackgroundJobClient
 }
 
 /// <summary>
-/// No-op implementation of IEanCodeGenerator for test environments.
-/// EanCodeGenerator depends on NpgsqlDataSource which is not registered when
+/// No-op implementation of IMaterialContainerCodeGenerator for test environments.
+/// MaterialContainerCodeGenerator depends on NpgsqlDataSource which is not registered when
 /// UseInMemoryDatabase=true — the real data source is only built for non-InMemory runs.
 /// </summary>
-public class MockEanCodeGenerator : IEanCodeGenerator
+public class MockMaterialContainerCodeGenerator : IMaterialContainerCodeGenerator
 {
     public Task<IReadOnlyList<string>> GenerateAsync(int count, CancellationToken ct)
     {
@@ -226,3 +226,4 @@ public class MockEanCodeGenerator : IEanCodeGenerator
         return Task.FromResult<IReadOnlyList<string>>(codes);
     }
 }
+

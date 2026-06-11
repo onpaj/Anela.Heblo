@@ -5,4 +5,5 @@ public class DashboardOptions
     public const string SectionName = "Dashboard";
 
     public int MaxConcurrentTileLoads { get; set; } = 4;
+    public int UserLockSlidingExpirationMinutes { get; set; } = 10;
 }

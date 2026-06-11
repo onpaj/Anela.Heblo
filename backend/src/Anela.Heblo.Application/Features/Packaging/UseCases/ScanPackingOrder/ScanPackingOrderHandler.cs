@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Packaging;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -15,29 +16,29 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
     private readonly IPackingOrderClient _orderClient;
     private readonly IEshopOrderClient _eshopOrderClient;
     private readonly ShipmentLabelsSettings _shipmentSettings;
-    private readonly ShoptetOrdersSettings _orderSettings;
     private readonly ILogger<ScanPackingOrderHandler> _logger;
     private readonly IPackageRepository _packageRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IAuthorizationRepository _authRepo;
 
     public ScanPackingOrderHandler(
         IShipmentClient shipmentClient,
         IPackingOrderClient orderClient,
         IEshopOrderClient eshopOrderClient,
         IOptions<ShipmentLabelsSettings> shipmentSettings,
-        IOptions<ShoptetOrdersSettings> orderSettings,
         ILogger<ScanPackingOrderHandler> logger,
         IPackageRepository packageRepository,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IAuthorizationRepository authRepo)
     {
         _shipmentClient = shipmentClient;
         _orderClient = orderClient;
         _eshopOrderClient = eshopOrderClient;
         _shipmentSettings = shipmentSettings.Value;
-        _orderSettings = orderSettings.Value;
         _logger = logger;
         _packageRepository = packageRepository;
         _currentUserService = currentUserService;
+        _authRepo = authRepo;
     }
 
     public async Task<ScanPackingOrderResponse> Handle(ScanPackingOrderRequest request, CancellationToken ct)
@@ -46,7 +47,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         if (order is null)
             return new ScanPackingOrderResponse(ErrorCodes.ShoptetOrderNotFound);
 
-        var isEligible = order.StatusId == _orderSettings.PackingStateId;
+        var isEligible = order.IsEligibleForPacking;
         var orderData = new ScanOrderData
         {
             Code = order.Code,
@@ -57,7 +58,15 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             CustomerNote = order.CustomerNote,
             EshopNote = order.EshopNote,
             ShippingAddress = BuildShippingAddress(order),
-            Items = order.Items,
+            Items = order.Items
+                .Select(i => new ScanPackingOrderItemDto
+                {
+                    Name = i.Name,
+                    Quantity = i.Quantity,
+                    ImageUrl = i.ImageUrl,
+                    SetName = i.SetName,
+                })
+                .ToList(),
             Eligibility = new ScanOrderEligibility
             {
                 IsEligible = isEligible,
@@ -95,6 +104,8 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
 
         if (existingShipment is not null)
         {
+            await BackfillExistingShipmentPackagesAsync(
+                request.OrderCode, orderData.CustomerName, existingLabels, request.PackingUserId, ct);
             await TryMarkAsPackedAsync(request.OrderCode, ct);
             return new ScanPackingOrderResponse(orderData, existingShipment);
         }
@@ -145,12 +156,21 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             }).ToList()
             : [new ScanShipmentPackage { Name = "PKG-1" }];
 
+        if (request.PackingUserId is { } requestedPackerId)
+        {
+            var packer = await _authRepo.GetUserByIdAsync(requestedPackerId, ct);
+            if (packer is null || !packer.IsActive || !packer.CanPack)
+                return new ScanPackingOrderResponse(ErrorCodes.PackingUserNotEligible);
+        }
+
         await PersistPackagesAsync(
             request.OrderCode,
             orderData.CustomerName,
             command.CarrierCode,
+            options[0].Name,
             createdShipment.ShipmentGuid,
             newLabels,
+            request.PackingUserId,
             ct);
 
         await TryMarkAsPackedAsync(request.OrderCode, ct);
@@ -183,12 +203,71 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
     {
         try
         {
-            await _eshopOrderClient.UpdateStatusAsync(orderCode, _orderSettings.PackedStateId, ct);
+            await _eshopOrderClient.MarkAsPackedAsync(orderCode, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to update order {OrderCode} to packed status {StatusId}",
-                orderCode, _orderSettings.PackedStateId);
+            _logger.LogWarning(ex, "Failed to mark order {OrderCode} as packed", orderCode);
+        }
+    }
+
+    private async Task<(Guid? userId, string? name)> ResolvePackerAsync(Guid? packingUserId, CancellationToken ct)
+    {
+        if (packingUserId is { } id)
+        {
+            var user = await _authRepo.GetUserByIdAsync(id, ct);
+            if (user is not null)
+                return (user.Id, user.DisplayName);
+        }
+        return (null, _currentUserService.GetCurrentUser().Email);
+    }
+
+    /// <summary>
+    /// Backfills Package rows for an order whose Shoptet shipment already exists (reprint path).
+    /// Idempotent and best-effort: never throws, so a reprint always returns the existing shipment.
+    /// </summary>
+    private async Task BackfillExistingShipmentPackagesAsync(
+        string orderCode,
+        string customerName,
+        IReadOnlyList<ShipmentLabel> existingLabels,
+        Guid? packingUserId,
+        CancellationToken cancellationToken)
+    {
+        if (existingLabels.Count == 0)
+            return;
+
+        try
+        {
+            var options = await _shipmentClient.GetShippingOptionsAsync(orderCode, cancellationToken);
+            var carrierCode = options.Count > 0 ? options[0].CarrierCode : string.Empty;
+            var carrierName = options.Count > 0 ? options[0].Name : null;
+
+            var now = DateTimeOffset.UtcNow;
+            var (packedByUserId, packedBy) = await ResolvePackerAsync(packingUserId, cancellationToken);
+
+            var packages = existingLabels
+                .Select(label => new Package
+                {
+                    OrderCode = orderCode,
+                    CustomerName = customerName,
+                    PackageNumber = label.PackageName,
+                    TrackingNumber = label.TrackingNumber,
+                    ShippingProviderCode = carrierCode,
+                    ShippingProviderName = carrierName,
+                    ShipmentGuid = label.ShipmentGuid,
+                    PackedAt = now,
+                    PackedBy = packedBy,
+                    PackedByUserId = packedByUserId,
+                    CreatedAt = now,
+                })
+                .ToList();
+
+            await _packageRepository.AddMissingAsync(packages, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Failed to backfill Package rows for existing shipment of order {OrderCode}", orderCode);
         }
     }
 
@@ -196,12 +275,14 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         string orderCode,
         string customerName,
         string carrierCode,
+        string carrierName,
         Guid shipmentGuid,
         IReadOnlyList<ShipmentLabel> labels,
+        Guid? packingUserId,
         CancellationToken cancellationToken)
     {
         var now = DateTimeOffset.UtcNow;
-        var packedBy = _currentUserService.GetCurrentUser().Email;
+        var (packedByUserId, packedBy) = await ResolvePackerAsync(packingUserId, cancellationToken);
 
         foreach (var label in labels)
         {
@@ -214,10 +295,11 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
                     PackageNumber = label.PackageName,
                     TrackingNumber = label.TrackingNumber,
                     ShippingProviderCode = carrierCode,
-                    ShippingProviderName = null,
+                    ShippingProviderName = carrierName,
                     ShipmentGuid = shipmentGuid,
                     PackedAt = now,
                     PackedBy = packedBy,
+                    PackedByUserId = packedByUserId,
                     CreatedAt = now,
                 }, cancellationToken);
             }

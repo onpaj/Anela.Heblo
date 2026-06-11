@@ -3,86 +3,87 @@ using Anela.Heblo.Domain.Features.Configuration;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Moq;
-using Xunit;
+using Microsoft.Extensions.Logging.Abstractions;
+using NSubstitute;
 
 namespace Anela.Heblo.Tests.Features.Configuration;
 
 public class GetConfigurationHandlerTests
 {
-    private readonly Mock<IHostEnvironment> _environmentMock = new();
-    private readonly Mock<ILogger<GetConfigurationHandler>> _loggerMock = new();
-
-    [Fact]
-    public async Task Handle_WhenManufactureGroupIdConfigured_ReturnsValueInResponse()
+    private static GetConfigurationHandler CreateHandler(Dictionary<string, string?> configData)
     {
-        // Arrange
-        var configuredGroupId = "11111111-2222-3333-4444-555555555555";
-        _environmentMock.SetupGet(e => e.EnvironmentName).Returns("Test");
-
-        var configDict = new Dictionary<string, string>
-        {
-            { "ManufactureGroupId", configuredGroupId },
-            { ConfigurationConstants.USE_MOCK_AUTH, "false" }
-        };
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(configDict)
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(configData)
             .Build();
 
-        var handler = new GetConfigurationHandler(config, _environmentMock.Object, _loggerMock.Object);
+        var environment = Substitute.For<IHostEnvironment>();
+        environment.EnvironmentName.Returns("Test");
 
-        // Act
-        var response = await handler.Handle(new GetConfigurationRequest(), CancellationToken.None);
-
-        // Assert
-        response.ManufactureGroupId.Should().Be(configuredGroupId);
+        return new GetConfigurationHandler(configuration, environment, NullLogger<GetConfigurationHandler>.Instance);
     }
 
     [Fact]
-    public async Task Handle_WhenManufactureGroupIdMissing_ReturnsNull()
+    public async Task Handle_ReturnsVersionFromConfiguration_WhenAppVersionIsSet()
     {
         // Arrange
-        _environmentMock.SetupGet(e => e.EnvironmentName).Returns("Test");
-
-        var configDict = new Dictionary<string, string>
+        var handler = CreateHandler(new Dictionary<string, string?>
         {
-            { ConfigurationConstants.USE_MOCK_AUTH, "false" }
-        };
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(configDict)
-            .Build();
-
-        var handler = new GetConfigurationHandler(config, _environmentMock.Object, _loggerMock.Object);
+            [ConfigurationConstants.APP_VERSION] = "2.5.1-ci.42"
+        });
 
         // Act
         var response = await handler.Handle(new GetConfigurationRequest(), CancellationToken.None);
 
         // Assert
-        response.ManufactureGroupId.Should().BeNull();
+        response.Version.Should().Be("2.5.1-ci.42");
     }
 
     [Fact]
-    public async Task Handle_WhenManufactureGroupIdEmpty_ReturnsNull()
+    public async Task Handle_FallsBackToAssemblyVersion_WhenAppVersionIsEmpty()
     {
         // Arrange
-        _environmentMock.SetupGet(e => e.EnvironmentName).Returns("Test");
-
-        var configDict = new Dictionary<string, string>
+        var handler = CreateHandler(new Dictionary<string, string?>
         {
-            { "ManufactureGroupId", string.Empty },
-            { ConfigurationConstants.USE_MOCK_AUTH, "false" }
-        };
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(configDict)
-            .Build();
-
-        var handler = new GetConfigurationHandler(config, _environmentMock.Object, _loggerMock.Object);
+            [ConfigurationConstants.APP_VERSION] = ""
+        });
 
         // Act
         var response = await handler.Handle(new GetConfigurationRequest(), CancellationToken.None);
 
         // Assert
-        response.ManufactureGroupId.Should().BeNull();
+        // When APP_VERSION is empty, should fall back to assembly version (non-null, not the hardcoded "1.0.0" default)
+        response.Version.Should().NotBeNullOrEmpty().And.NotBe(ConfigurationConstants.DEFAULT_VERSION);
+    }
+
+    [Fact]
+    public async Task Handle_FallsBackToAssemblyVersion_WhenAppVersionIsAbsent()
+    {
+        // Arrange
+        var handler = CreateHandler(new Dictionary<string, string?>());
+
+        // Act
+        var response = await handler.Handle(new GetConfigurationRequest(), CancellationToken.None);
+
+        // Assert
+        // When APP_VERSION is absent, should fall back to assembly informational version or assembly version
+        response.Version.Should().NotBeNullOrEmpty().And.NotBe(ConfigurationConstants.DEFAULT_VERSION);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsCorrectUseMockAuth_WhenAppVersionIsSet()
+    {
+        // Arrange — regression guard: surgical change must not break UseMockAuth wiring
+        var handler = CreateHandler(new Dictionary<string, string?>
+        {
+            [ConfigurationConstants.APP_VERSION] = "1.2.3",
+            [ConfigurationConstants.USE_MOCK_AUTH] = "true"
+        });
+
+        // Act
+        var response = await handler.Handle(new GetConfigurationRequest(), CancellationToken.None);
+
+        // Assert
+        response.Version.Should().Be("1.2.3");
+        response.UseMockAuth.Should().BeTrue();
     }
 }

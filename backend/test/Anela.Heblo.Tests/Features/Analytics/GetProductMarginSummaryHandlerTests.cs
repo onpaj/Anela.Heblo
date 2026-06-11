@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSummary;
 using Anela.Heblo.Domain.Features.Analytics;
@@ -278,6 +277,105 @@ public class GetProductMarginSummaryHandlerTests
                 ProductGroupingMode.Products,
                 "M2"),
             Times.Once);
+    }
+
+    [Theory]
+    [InlineData("M1")]
+    [InlineData("m1")]
+    public async Task Handle_MarginLevelIsCaseInsensitive_ProducesIdenticalTotalMargin(string marginLevel)
+    {
+        // Arrange
+        var request = new GetProductMarginSummaryRequest
+        {
+            TimeWindow = "current-year",
+            GroupingMode = ProductGroupingMode.Products,
+            MarginLevel = marginLevel
+        };
+
+        var today = DateTime.Today;
+        var fromDate = new DateTime(today.Year, 1, 1);
+        var toDate = today;
+
+        var analyticsProducts = new List<AnalyticsProduct>
+        {
+            new AnalyticsProduct
+            {
+                ProductCode = "PROD001",
+                ProductName = "Product 1",
+                Type = AnalyticsProductType.Product,
+                MarginAmount = 100m,
+                M0Amount = 10m,
+                M1Amount = 20m,
+                M2Amount = 30m,
+                SalesHistory = new List<SalesDataPoint>
+                {
+                    new() { Date = new DateTime(today.Year, 3, 15), AmountB2B = 10, AmountB2C = 5 }
+                }
+            }
+        };
+
+        _analyticsRepositoryMock
+            .Setup(x => x.StreamProductsWithSalesAsync(fromDate, toDate,
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
+            .Returns(analyticsProducts.ToAsyncEnumerable());
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        // 15 units * 20 (M1Amount) = 300, regardless of marginLevel casing
+        result.TopProducts.Should().HaveCount(1);
+        result.TopProducts[0].TotalMargin.Should().Be(300m);
+    }
+
+    [Theory]
+    [InlineData("M9")]
+    [InlineData("")]
+    [InlineData("xyz")]
+    public async Task Handle_UnknownMarginLevel_FallsBackToM2(string unknownMarginLevel)
+    {
+        // Arrange — distinct M0/M1/M2 amounts so the fallback choice is observable
+        var today = DateTime.Today;
+        var fromDate = new DateTime(today.Year, 1, 1);
+        var toDate = today;
+
+        var analyticsProducts = new List<AnalyticsProduct>
+        {
+            new AnalyticsProduct
+            {
+                ProductCode = "PROD001",
+                ProductName = "Product 1",
+                Type = AnalyticsProductType.Product,
+                MarginAmount = 100m,
+                M0Amount = 10m,
+                M1Amount = 20m,
+                M2Amount = 30m,
+                SalesHistory = new List<SalesDataPoint>
+                {
+                    new() { Date = new DateTime(today.Year, 3, 15), AmountB2B = 10, AmountB2C = 5 }
+                }
+            }
+        };
+
+        _analyticsRepositoryMock
+            .Setup(x => x.StreamProductsWithSalesAsync(fromDate, toDate,
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
+            .Returns(analyticsProducts.ToAsyncEnumerable());
+
+        var unknownRequest = new GetProductMarginSummaryRequest
+        {
+            TimeWindow = "current-year",
+            GroupingMode = ProductGroupingMode.Products,
+            MarginLevel = unknownMarginLevel
+        };
+
+        // Act
+        var unknownResult = await _handler.Handle(unknownRequest, CancellationToken.None);
+
+        // Assert
+        // 15 units * 30 (M2Amount fallback) = 450, regardless of unknown marginLevel value
+        unknownResult.TopProducts.Should().HaveCount(1);
+        unknownResult.TopProducts[0].TotalMargin.Should().Be(450m);
     }
 }
 

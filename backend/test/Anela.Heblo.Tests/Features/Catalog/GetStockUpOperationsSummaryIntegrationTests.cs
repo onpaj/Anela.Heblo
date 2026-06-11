@@ -4,82 +4,76 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockUpOperationsSumm
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Catalog.Stock;
-using DotNet.Testcontainers.Configurations;
+using Anela.Heblo.Tests.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Catalog;
 
+[Collection("PostgresIntegration")]
 [Trait("Category", "Integration")]
 public class GetStockUpOperationsSummaryIntegrationTests : IAsyncLifetime
 {
-    static GetStockUpOperationsSummaryIntegrationTests()
-    {
-        // Required on macOS with Podman: the Ryuk ResourceReaper container
-        // cannot bind to the Docker socket and throws a NullReferenceException.
-        TestcontainersSettings.ResourceReaperEnabled = false;
-    }
-
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-        .WithImage("postgres:16")
-        .Build();
-
+    private readonly PostgresSharedContainerFixture _fixture;
+    private string _connectionString = null!;
     private ApplicationDbContext _context = null!;
     private StockUpOperationRepository _repository = null!;
     private GetStockUpOperationsSummaryHandler _handler = null!;
 
+    public GetStockUpOperationsSummaryIntegrationTests(PostgresSharedContainerFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
     public async Task InitializeAsync()
     {
-        await _container.StartAsync();
+        _connectionString = await _fixture.CreateDatabaseAsync("catalog");
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseNpgsql(_container.GetConnectionString())
+            .UseNpgsql(_connectionString)
             .Options;
 
         _context = new ApplicationDbContext(options);
 
         // Create only the StockUpOperations table + indexes we exercise.
         // Running full EF migrations brings in too many unrelated tables; this keeps the test fast.
-        await using (var conn = new NpgsqlConnection(_container.GetConnectionString()))
-        {
-            await conn.OpenAsync();
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = """
-                CREATE TABLE IF NOT EXISTS public."StockUpOperations" (
-                    "Id"             serial NOT NULL PRIMARY KEY,
-                    "DocumentNumber" varchar(100) NOT NULL,
-                    "ProductCode"    varchar(50)  NOT NULL,
-                    "Amount"         integer NOT NULL,
-                    "SourceType"     integer NOT NULL,
-                    "SourceId"       integer NOT NULL,
-                    "State"          integer NOT NULL,
-                    "CreatedAt"      timestamp with time zone NOT NULL,
-                    "SubmittedAt"    timestamp with time zone NULL,
-                    "CompletedAt"    timestamp with time zone NULL,
-                    "ErrorMessage"   varchar(2000) NULL
-                );
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS public."StockUpOperations" (
+                "Id"             serial NOT NULL PRIMARY KEY,
+                "DocumentNumber" varchar(100) NOT NULL,
+                "ProductCode"    varchar(50)  NOT NULL,
+                "Amount"         integer NOT NULL,
+                "SourceType"     integer NOT NULL,
+                "SourceId"       integer NOT NULL,
+                "State"          integer NOT NULL,
+                "CreatedAt"      timestamp with time zone NOT NULL,
+                "SubmittedAt"    timestamp with time zone NULL,
+                "CompletedAt"    timestamp with time zone NULL,
+                "ErrorMessage"   varchar(2000) NULL
+            );
 
-                CREATE UNIQUE INDEX IF NOT EXISTS "IX_StockUpOperations_DocumentNumber_Unique"
-                    ON public."StockUpOperations" ("DocumentNumber");
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_StockUpOperations_DocumentNumber_Unique"
+                ON public."StockUpOperations" ("DocumentNumber");
 
-                CREATE INDEX IF NOT EXISTS "IX_StockUpOperations_State"
-                    ON public."StockUpOperations" ("State");
+            CREATE INDEX IF NOT EXISTS "IX_StockUpOperations_State"
+                ON public."StockUpOperations" ("State");
 
-                CREATE INDEX IF NOT EXISTS "IX_StockUpOperations_Source"
-                    ON public."StockUpOperations" ("SourceType", "SourceId");
+            CREATE INDEX IF NOT EXISTS "IX_StockUpOperations_Source"
+                ON public."StockUpOperations" ("SourceType", "SourceId");
 
-                CREATE INDEX IF NOT EXISTS "IX_StockUpOperations_State_CreatedAt"
-                    ON public."StockUpOperations" ("State", "CreatedAt");
+            CREATE INDEX IF NOT EXISTS "IX_StockUpOperations_State_CreatedAt"
+                ON public."StockUpOperations" ("State", "CreatedAt");
 
-                CREATE INDEX IF NOT EXISTS "IX_StockUpOperations_State_Active"
-                    ON public."StockUpOperations" ("SourceType", "State")
-                    WHERE "State" IN (0, 1, 3);
-                """;
-            await cmd.ExecuteNonQueryAsync();
-        }
+            CREATE INDEX IF NOT EXISTS "IX_StockUpOperations_State_Active"
+                ON public."StockUpOperations" ("SourceType", "State")
+                WHERE "State" IN (0, 1, 3);
+            """;
+        await cmd.ExecuteNonQueryAsync();
 
         _repository = new StockUpOperationRepository(
             _context,
@@ -92,7 +86,6 @@ public class GetStockUpOperationsSummaryIntegrationTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await _context.DisposeAsync();
-        await _container.DisposeAsync();
     }
 
     private async Task SeedAsync(params (StockUpSourceType source, StockUpOperationState state)[] ops)
@@ -205,7 +198,7 @@ public class GetStockUpOperationsSummaryIntegrationTests : IAsyncLifetime
         }
         await _context.SaveChangesAsync();
 
-        await using var conn = new NpgsqlConnection(_container.GetConnectionString());
+        await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
         // ANALYZE so the planner has fresh statistics

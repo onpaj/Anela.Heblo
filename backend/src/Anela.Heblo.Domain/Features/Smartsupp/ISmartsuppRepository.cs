@@ -22,6 +22,9 @@ public interface ISmartsuppRepository
         SmartsuppContact contact,
         CancellationToken cancellationToken);
 
+    Task<List<string>> ListOrphanContactConversationIdsAsync(
+        CancellationToken cancellationToken);
+
     Task UpsertConversationAsync(
         SmartsuppConversation conversation,
         CancellationToken cancellationToken);
@@ -52,6 +55,8 @@ public interface ISmartsuppRepository
         CancellationToken cancellationToken);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
+
+    void DiscardChanges();
 
     Task UpdateVisitorCacheAsync(
         string conversationId,
