@@ -1,0 +1,93 @@
+using Anela.Heblo.Application.Features.Manufacture.UseCases.DuplicateManufactureOrder;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Users;
+using FluentAssertions;
+using Moq;
+using Xunit;
+
+namespace Anela.Heblo.Tests.Features.Manufacture;
+
+public class DuplicateManufactureOrderHandlerTests
+{
+    private const int SourceOrderId = 42;
+    private const int PersistedOrderId = 1234;
+    private const string GeneratedOrderNumber = "MO-2026-0042";
+    private const string DisplayName = "Test User";
+    private const string ResponsiblePerson = "Jane Foreman";
+
+    private static readonly DateTimeOffset FixedNow =
+        new(2026, 6, 8, 10, 0, 0, TimeSpan.Zero);
+
+    private readonly Mock<IManufactureOrderRepository> _repositoryMock = new();
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock = new();
+    private readonly Mock<TimeProvider> _timeProviderMock = new();
+    private readonly DuplicateManufactureOrderHandler _handler;
+
+    public DuplicateManufactureOrderHandlerTests()
+    {
+        _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(FixedNow);
+
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser("test-user-id", DisplayName, "test@example.com", true));
+
+        _handler = new DuplicateManufactureOrderHandler(
+            _repositoryMock.Object,
+            _currentUserServiceMock.Object,
+            _timeProviderMock.Object);
+    }
+
+    private static ManufactureOrder BuildSourceOrder(bool includeSemiProduct)
+    {
+        var order = new ManufactureOrder
+        {
+            Id = SourceOrderId,
+            OrderNumber = "MO-2025-9999",
+            ResponsiblePerson = ResponsiblePerson,
+            State = ManufactureOrderState.Completed,
+            PlannedDate = new DateOnly(2025, 1, 1),
+            CreatedByUser = "Original Author",
+            StateChangedByUser = "Original Author",
+        };
+
+        if (includeSemiProduct)
+        {
+            order.SemiProduct = new ManufactureOrderSemiProduct
+            {
+                ProductCode = "SEMI-001",
+                ProductName = "Source Semi Product",
+                PlannedQuantity = 1000m,
+                ActualQuantity = 950m, // intentionally distinct from planned
+                BatchMultiplier = 1.5m,
+                ExpirationMonths = 24,
+                LotNumber = "OLD-LOT",
+                ExpirationDate = new DateOnly(2027, 1, 31),
+            };
+        }
+
+        order.Products.Add(new ManufactureOrderProduct
+        {
+            ProductCode = "PROD-A",
+            ProductName = "Source Product A",
+            SemiProductCode = "SEMI-001",
+            PlannedQuantity = 100m,
+            ActualQuantity = 90m, // intentionally distinct from planned
+            LotNumber = "OLD-LOT",
+            ExpirationDate = new DateOnly(2027, 1, 31),
+        });
+
+        order.Products.Add(new ManufactureOrderProduct
+        {
+            ProductCode = "PROD-B",
+            ProductName = "Source Product B",
+            SemiProductCode = "SEMI-001",
+            PlannedQuantity = 200m,
+            ActualQuantity = 180m,
+            LotNumber = "OLD-LOT",
+            ExpirationDate = new DateOnly(2027, 1, 31),
+        });
+
+        return order;
+    }
+}
