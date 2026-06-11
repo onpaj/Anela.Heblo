@@ -13,7 +13,7 @@ jest.mock('../../../api/hooks/useArticles', () => ({
   }),
 }));
 
-let mockHasPermission: (perm: string) => boolean = () => true;
+let mockHasPermission: (perm: string) => boolean = () => false;
 jest.mock('../../../auth/PermissionsContext', () => ({
   usePermissionsContext: () => ({
     permissions: [],
@@ -27,10 +27,11 @@ jest.mock('../../../auth/PermissionsContext', () => ({
 describe('ArticleGenerationForm', () => {
   beforeEach(() => {
     mockMutate.mockReset();
-    mockHasPermission = () => true;
+    mockHasPermission = () => false;
   });
 
   it('renders the language note input with a 500-character limit', () => {
+    mockHasPermission = () => true;
     render(<ArticleGenerationForm onArticleCreated={() => {}} />);
     const input = screen.getByPlaceholderText(/krátké věty, vyhýbat se odborným termínům/) as HTMLInputElement;
     expect(input).toBeInTheDocument();
@@ -39,6 +40,7 @@ describe('ArticleGenerationForm', () => {
   });
 
   it('passes the trimmed languageNote on submit', () => {
+    mockHasPermission = () => true;
     render(<ArticleGenerationForm onArticleCreated={() => {}} />);
 
     fireEvent.change(screen.getByPlaceholderText(/Výhody fermentovaných surovin/), {
@@ -56,6 +58,7 @@ describe('ArticleGenerationForm', () => {
   });
 
   it('submits languageNote as undefined when empty', () => {
+    mockHasPermission = () => true;
     render(<ArticleGenerationForm onArticleCreated={() => {}} />);
 
     fireEvent.change(screen.getByPlaceholderText(/Výhody fermentovaných surovin/), {

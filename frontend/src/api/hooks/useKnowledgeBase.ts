@@ -427,7 +427,7 @@ export const useUploadKnowledgeBaseDocumentMutation = () => {
 
 /**
  * Fetch paginated, filtered, sorted feedback logs for the Feedback Browser.
- * Only accessible to super_user role.
+ * Gated in the UI by the customer.knowledge_base.write permission.
  */
 export const useKnowledgeBaseFeedbackListQuery = (params: GetFeedbackListParams = {}) => {
   return useQuery({

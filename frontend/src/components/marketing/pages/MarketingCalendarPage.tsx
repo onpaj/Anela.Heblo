@@ -25,7 +25,6 @@ import { useIsMobile } from '../../../hooks/useMediaQuery';
 import { MobileAgendaView } from '../calendar/MobileAgendaView';
 import { useScreenView } from '../../../telemetry/useScreenView';
 
-
 const CZECH_MONTHS = [
   'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
   'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec',

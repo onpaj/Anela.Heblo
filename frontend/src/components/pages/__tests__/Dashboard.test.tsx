@@ -413,6 +413,11 @@ describe("Dashboard", () => {
       isLoading: false,
       error: null,
     } as any);
+    mockUseUserDashboardSettings.mockReturnValue({
+      data: { tiles: [{ tileId: "tile1", isVisible: true, displayOrder: 0 }], lastModified: "2024-01-01T00:00:00Z" },
+      isLoading: false,
+      error: null,
+    } as any);
 
     renderWithQueryClient(<Dashboard />);
 
