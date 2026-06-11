@@ -104,4 +104,49 @@ public class ProcessDailyConsumptionHandlerTests
             s => s.ProcessDailyConsumptionAsync(TestDate, It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsGenericError_WhenServiceThrows()
+    {
+        // Arrange
+        const string secretDetail = "secret database connection string";
+        var thrown = new InvalidOperationException(secretDetail);
+
+        var (sut, service, logger) = MakeSut();
+        service
+            .Setup(s => s.ProcessDailyConsumptionAsync(TestDate, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(thrown);
+
+        var request = new ProcessDailyConsumptionRequest { ProcessingDate = TestDate };
+
+        // Act
+        var response = await sut.Handle(request, CancellationToken.None);
+
+        // Assert — response shape
+        response.Success.Should().BeFalse();
+        response.MaterialsProcessed.Should().Be(0);
+        response.ProcessedDate.Should().Be(TestDate);
+        response.Message.Should().Be("An unexpected error occurred while processing daily consumption.");
+
+        // Defense-in-depth: the secret must not leak into the message
+        response.Message.Should().NotContain(secretDetail);
+        response.Message.Should().NotContain(nameof(InvalidOperationException));
+
+        // Logger contract: an Error-level entry was emitted with the same exception instance
+        VerifyErrorLogged(logger, thrown);
+    }
+
+    private static void VerifyErrorLogged(
+        Mock<ILogger<ProcessDailyConsumptionHandler>> logger,
+        Exception expected)
+    {
+        logger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                expected,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
 }
