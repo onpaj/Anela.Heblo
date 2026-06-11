@@ -92,23 +92,10 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAct
                 }
             }
 
-            action.ProductAssociations.Clear();
-            if (request.AssociatedProducts?.Any() == true)
-            {
-                foreach (var product in request.AssociatedProducts.Distinct())
-                {
-                    action.AssociateWithProduct(product);
-                }
-            }
-
-            action.FolderLinks.Clear();
-            if (request.FolderLinks?.Any() == true)
-            {
-                foreach (var link in request.FolderLinks)
-                {
-                    action.LinkToFolder(link.FolderKey.Trim(), link.FolderType);
-                }
-            }
+            action.ReplaceProductAssociations(request.AssociatedProducts, now);
+            action.ReplaceFolderLinks(
+                request.FolderLinks?.Select(l => (l.FolderKey, l.FolderType)),
+                now);
 
             try
             {

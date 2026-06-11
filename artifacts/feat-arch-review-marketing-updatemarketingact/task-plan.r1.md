@@ -1,11 +1,15 @@
-Plan saved to `docs/superpowers/plans/2026-06-02-marketing-update-delete-db-error-handling.md`.
+Plan saved to `docs/superpowers/plans/2026-06-09-marketing-action-replace-collections.md`.
 
-The plan covers all spec requirements (FR-1 through FR-4, NFR-1 through NFR-4) in 6 bite-sized tasks, follows strict TDD (failing test → impl → verify per change), incorporates the arch-review's specification amendments (log-assertion mechanism, integration-test scoping, disambiguated Delete-handler phrase), and matches the Create handler reference shape exactly.
+## Summary
 
-**Summary of the plan:**
-- **Task 1–2**: TDD pair for `UpdateMarketingActionHandler` — failing test + guarded `UpdateAsync`/`SaveChangesAsync` returning `ErrorCodes.DatabaseError`
-- **Task 3–4**: TDD pair for `DeleteMarketingActionHandler` — failing test + guarded `DeleteSoftAsync`
-- **Task 5**: Grep verification of FR-3 greppable phrases and no-interpolation rule across all three handlers
-- **Task 6**: Final Marketing suite + full backend build/format/test sweep
+The plan decomposes the refactor into 14 TDD tasks:
 
-Three production files modified (Update + Delete handlers, Create untouched), two test files modified (one new `[Fact]` each), no new files, no schema/DI/package changes. Spec coverage, placeholder, and type-consistency self-checks completed inline.
+- **Tasks 1–5:** Add `ReplaceProductAssociations` to `MarketingAction` (empty/null/dedup/throw/delta + utcNow + Id propagation).
+- **Tasks 6–10:** Add `ReplaceFolderLinks` (empty/null/trim/composite-key dedup/distinct-type/throw/delta + utcNow + Id propagation).
+- **Tasks 11–12:** Lock the handler's externally-observable contract (clear-on-null, delta composition) with new tests against the *current* implementation before refactoring.
+- **Task 13:** Replace the 17-line block in `UpdateMarketingActionHandler.cs` with two delegated calls, plus a grep gate proving no direct mutations remain in the Application layer.
+- **Task 14:** Full `dotnet format` + `dotnet build` + full test-suite validation.
+
+Each task is fully self-contained with exact code, exact filter commands, expected outputs, and frequent commits. All FRs and NFRs from spec + arch-review amendments are covered (see the self-review matrix in the plan).
+
+Per the pipeline note, skipping the execution handoff prompt — the plan file is the artifact.

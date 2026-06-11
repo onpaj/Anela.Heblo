@@ -3,67 +3,63 @@ Marketing
 
 ## Finding
 
-`CreateMarketingActionHandler` wraps the DB save in a try/catch and compensates (deletes the Outlook event) if the save fails:
+`UpdateMarketingActionHandler` clears the entity's navigation collections directly (bypassing the domain entity's encapsulation) before re-adding items via the encapsulated domain methods.
+
+File: `backend/src/Anela.Heblo.Application/Features/Marketing/UseCases/UpdateMarketingAction/UpdateMarketingActionHandler.cs`
 
 ```csharp
-// CreateMarketingActionHandler.cs:87–112
-try
-{
-    await _repository.AddAsync(action, cancellationToken);
-    await _repository.SaveChangesAsync(cancellationToken);
-}
-catch (Exception dbEx)
-{
-    _logger.LogError(dbEx, "DB save failed after Outlook create; compensating Outlook event {EventId}", outlookEventId);
-    if (outlookEventId != null)
-    {
-        try { await _outlookSync.DeleteEventAsync(outlookEventId, cancellationToken); }
-        catch (Exception compEx) { /* logs orphan */ }
-    }
-    return new CreateMarketingActionResponse(ErrorCodes.DatabaseError);
-}
+// Lines 95–110
+action.ProductAssociations.Clear();          // reaches into EF collection directly
+if (request.AssociatedProducts?.Any() == true)
+    foreach (var product in request.AssociatedProducts.Distinct())
+        action.AssociateWithProduct(product);   // adds via domain method
+
+action.FolderLinks.Clear();                 // reaches into EF collection directly
+if (request.FolderLinks?.Any() == true)
+    foreach (var link in request.FolderLinks)
+        action.LinkToFolder(link.FolderKey.Trim(), link.FolderType);  // adds via domain method
 ```
 
-`UpdateMarketingActionHandler` has **no such protection**:
-
-```csharp
-// UpdateMarketingActionHandler.cs:112–113
-await _repository.UpdateAsync(action, cancellationToken);
-await _repository.SaveChangesAsync(cancellationToken);  // ← unguarded; exception propagates
-```
-
-The Outlook push happens at lines 70–91 (before the DB save). If the DB save throws, the Outlook calendar already reflects the new data while the database still holds the old data. The exception surfaces to MediatR with no compensation attempt and no structured error response — the caller sees a 500 instead of the module's `ErrorCodes.DatabaseError`.
-
-The Delete handler (`DeleteMarketingActionHandler.cs:75–76`) has the same gap: it calls `_repository.DeleteSoftAsync` (which includes `SaveChangesAsync`) after a successful Outlook deletion, with no catch.
+The `MarketingAction` entity provides `AssociateWithProduct` and `LinkToFolder` as encapsulated add methods with deduplication guards, but has no `ReplaceProducts` / `ClearProducts` / `ReplaceLinks` domain methods. The handler compensates by calling `.Clear()` on the raw `ICollection<>` navigation properties before re-adding — leaking persistence concerns into the Application layer.
 
 ## Why it matters
 
-- **Data consistency**: on any transient DB error (deadlock, connection drop), Outlook and the database diverge silently. The marketing action appears updated in the team calendar but unchanged in the app.
-- **Error surfacing**: the unhandled exception bypasses the response-object pattern used by every other handler in this module, causing the API to return 500 rather than a structured `{ success: false, errorCode: "..." }` response.
-- **Inconsistency**: the Create handler clearly documents the intended compensating-transaction pattern. The Update and Delete handlers don't follow it, which will confuse the next developer extending this module.
+- **Broken encapsulation**: the entity controls *adding* associations but not *clearing* them. Any invariant the entity would want to enforce on removal (e.g. audit log, minimum-association guard) cannot be expressed.
+- **EF coupling in Application layer**: `.Clear()` on an EF `virtual ICollection<>` works only because EF tracks the change via its change tracker. The Application-layer handler is now implicitly relying on EF behaviour — it would silently fail with a different persistence implementation.
+- **SOLID — Single Responsibility**: mutation of collection state is a domain concern; the handler should not need to know how to replace the list.
 
 ## Suggested fix
 
-Wrap the DB save in `UpdateMarketingActionHandler` with the same compensation pattern used in `CreateMarketingActionHandler`. For an update, a full revert is harder (you'd need to re-issue a `PATCH` with the original values), so the minimal fix is: catch the DB exception, log the Outlook-vs-DB inconsistency explicitly, and return `ErrorCodes.DatabaseError` so the caller knows the operation failed:
+Add replace methods to `MarketingAction` in the domain entity:
 
 ```csharp
-// UpdateMarketingActionHandler.cs — replace lines 112-113
-try
+public void ReplaceProductAssociations(IEnumerable<string> productCodes, DateTime utcNow)
 {
-    await _repository.UpdateAsync(action, cancellationToken);
-    await _repository.SaveChangesAsync(cancellationToken);
+    ProductAssociations.Clear();
+    foreach (var code in productCodes.Select(c => c.Trim().ToUpperInvariant()).Distinct())
+        ProductAssociations.Add(new MarketingActionProduct
+        {
+            MarketingActionId = Id,
+            ProductCodePrefix = code,
+            CreatedAt = utcNow,
+        });
 }
-catch (Exception dbEx)
+
+public void ReplaceFolderLinks(IEnumerable<(string key, MarketingFolderType type)> links)
 {
-    _logger.LogError(dbEx,
-        "DB save failed after Outlook update for MarketingAction {ActionId}; " +
-        "Outlook event {EventId} may now be out of sync",
-        action.Id, action.OutlookEventId);
-    return new UpdateMarketingActionResponse(ErrorCodes.DatabaseError);
+    FolderLinks.Clear();
+    foreach (var (key, type) in links)
+        FolderLinks.Add(new MarketingActionFolderLink
+        {
+            MarketingActionId = Id,
+            FolderKey = key.Trim(),
+            FolderType = type,
+            CreatedAt = utcNow,
+        });
 }
 ```
 
-Apply the same pattern to `DeleteMarketingActionHandler` around its `DeleteSoftAsync` call.
+The handler then calls `action.ReplaceProductAssociations(...)` and `action.ReplaceFolderLinks(...)` — no direct collection mutation in Application layer.
 
 ---
-_Filed by daily arch-review routine on 2026-05-29._
+_Filed by daily arch-review routine on 2026-06-07._
