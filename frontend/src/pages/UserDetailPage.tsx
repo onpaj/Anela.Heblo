@@ -5,12 +5,16 @@ import {
   useAssignUserGroups,
   useSetUserActive,
   useUserPermissions,
+  useUpdateUser,
 } from "../api/hooks/useAccessManagement";
-import { AssignUserGroupsRequest, SetUserActiveRequest } from "../api/generated/api-client";
+import { AssignUserGroupsRequest, SetUserActiveRequest, UpdateUserRequest } from "../api/generated/api-client";
 import { useToast } from "../contexts/ToastContext";
 import GroupsPicker from "../components/access-management/GroupsPicker";
 
 interface UserDraft {
+  displayName: string;
+  email: string;
+  canPack: boolean;
   groupIds: string[];
 }
 
@@ -23,6 +27,7 @@ export default function UserDetailPage() {
   const permissionsQuery = useUserPermissions(id || null);
   const assignUserGroups = useAssignUserGroups();
   const setActive = useSetUserActive();
+  const updateUser = useUpdateUser();
 
   const [draft, setDraft] = useState<UserDraft | null>(null);
   const initialized = useRef(false);
@@ -33,7 +38,12 @@ export default function UserDetailPage() {
     if (initialized.current) return;
     if (!user) return;
 
-    const d: UserDraft = { groupIds: user.groupIds ?? [] };
+    const d: UserDraft = {
+      displayName: user.displayName ?? "",
+      email: user.email ?? "",
+      canPack: user.canPack ?? false,
+      groupIds: user.groupIds ?? [],
+    };
     setDraft(d);
     initialized.current = true;
   }, [user]);
@@ -43,15 +53,35 @@ export default function UserDetailPage() {
 
   const onSave = async () => {
     if (!draft) return;
-    try {
-      await assignUserGroups.mutateAsync({
+    if (!draft.displayName.trim()) {
+      toast.showError("Save failed", "Display name is required");
+      return;
+    }
+    const [profileResult, groupResult] = await Promise.allSettled([
+      updateUser.mutateAsync({
+        id,
+        request: new UpdateUserRequest({
+          userId: id,
+          displayName: draft.displayName.trim(),
+          email: draft.email.trim(),
+          canPack: draft.canPack,
+        }),
+      }),
+      assignUserGroups.mutateAsync({
         id,
         request: new AssignUserGroupsRequest({ userId: id, groupIds: draft.groupIds }),
-      });
-      toast.showSuccess("Saved", "User groups updated successfully");
-    } catch {
-      toast.showError("Save failed", "An error occurred while saving changes");
+      }),
+    ]);
+
+    const profileFailed = profileResult.status === "rejected";
+    const groupFailed = groupResult.status === "rejected";
+    if (profileFailed || groupFailed) {
+      const part =
+        profileFailed && groupFailed ? "changes" : profileFailed ? "profile" : "group assignment";
+      toast.showError("Save failed", `Could not save ${part}. Please try again.`);
+      return;
     }
+    toast.showSuccess("Saved", "User updated successfully");
   };
 
   const onToggleActive = async () => {
@@ -71,7 +101,7 @@ export default function UserDetailPage() {
   };
 
   const isLoading = usersQuery.isLoading;
-  const isSaving = assignUserGroups.isPending;
+  const isSaving = assignUserGroups.isPending || updateUser.isPending;
 
   if (isLoading) {
     return (
@@ -104,20 +134,50 @@ export default function UserDetailPage() {
         <h1 className="text-2xl font-semibold text-gray-900">{user.displayName}</h1>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between">
-        <div className="space-y-1">
-          <p className="text-sm text-gray-700">{user.email}</p>
+      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
+        <div className="flex items-center justify-between">
           <p className="text-sm text-gray-500">Last login: {lastLoginText}</p>
+          <button
+            type="button"
+            onClick={onToggleActive}
+            disabled={setActive.isPending}
+            className={`text-sm ${user.isActive ? "text-red-600" : "text-green-600"} hover:underline disabled:opacity-50`}
+            aria-label={user.isActive ? "Disable user" : "Enable user"}
+          >
+            {user.isActive ? "Disable" : "Enable"}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onToggleActive}
-          disabled={setActive.isPending}
-          className={`text-sm ${user.isActive ? "text-red-600" : "text-green-600"} hover:underline disabled:opacity-50`}
-          aria-label={user.isActive ? "Disable user" : "Enable user"}
-        >
-          {user.isActive ? "Disable" : "Enable"}
-        </button>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="block">
+            <span className="block text-sm font-medium text-gray-700 mb-1">Display name</span>
+            <input
+              type="text"
+              value={draft.displayName}
+              onChange={(e) => updateDraft({ displayName: e.target.value })}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </label>
+          <label className="block">
+            <span className="block text-sm font-medium text-gray-700 mb-1">Email</span>
+            <input
+              type="email"
+              value={draft.email}
+              onChange={(e) => updateDraft({ email: e.target.value })}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </label>
+        </div>
+
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={draft.canPack}
+            onChange={(e) => updateDraft({ canPack: e.target.checked })}
+            className="rounded border-gray-300 accent-indigo-600"
+          />
+          <span className="text-sm text-gray-700">Can pack</span>
+        </label>
       </div>
 
       <section>

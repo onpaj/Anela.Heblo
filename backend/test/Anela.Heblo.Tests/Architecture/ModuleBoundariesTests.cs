@@ -292,8 +292,8 @@ public class ModuleBoundariesTests
 
         "Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder.CompletePackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IEshopOrderClient",
 
-        // GetPackingDashboardHandler fetches the orders-being-packed count via IPackingOrderClient.
-        // Same pattern as ScanPackingOrderHandler / ResetOrderShipmentHandler above.
+        // GetPackingDashboardHandler consumes IPackingOrderClient to read the orders-being-packed
+        // count for the dashboard (no ShoptetOrders DTOs cross the boundary — the call returns int?).
         "Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard.GetPackingDashboardHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
     };
 

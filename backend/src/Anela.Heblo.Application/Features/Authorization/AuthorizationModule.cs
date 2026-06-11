@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Authorization.UseCases.AddGroupMember;
 using Anela.Heblo.Application.Features.Authorization.UseCases.CreateLocalUser;
+using Anela.Heblo.Application.Features.Authorization.UseCases.UpdateUser;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Persistence.Features.Authorization;
 using FluentValidation;
@@ -22,6 +23,9 @@ public static class AuthorizationModule
         services.AddScoped<IValidator<CreateLocalUserRequest>, CreateLocalUserValidator>();
         services.AddTransient<IPipelineBehavior<CreateLocalUserRequest, CreateLocalUserResponse>,
             ValidationBehavior<CreateLocalUserRequest, CreateLocalUserResponse>>();
+        services.AddScoped<IValidator<UpdateUserRequest>, UpdateUserValidator>();
+        services.AddTransient<IPipelineBehavior<UpdateUserRequest, UpdateUserResponse>,
+            ValidationBehavior<UpdateUserRequest, UpdateUserResponse>>();
         return services;
     }
 }

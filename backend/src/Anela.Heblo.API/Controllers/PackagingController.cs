@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Authorization.UseCases.GetPackingUsers;
 using Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder;
 using Anela.Heblo.Application.Features.Packaging.UseCases.DeletePackage;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
@@ -91,6 +92,13 @@ public class PackagingController : BaseApiController
 
         Response.Headers.CacheControl = "no-store";
         return File(response.Content, response.ContentType, response.FileName);
+    }
+
+    [HttpGet("dashboard")]
+    public async Task<ActionResult<GetPackingDashboardResponse>> GetDashboard(CancellationToken ct)
+    {
+        var response = await _mediator.Send(new GetPackingDashboardRequest(), ct);
+        return HandleResponse(response);
     }
 
     [HttpGet("packages")]

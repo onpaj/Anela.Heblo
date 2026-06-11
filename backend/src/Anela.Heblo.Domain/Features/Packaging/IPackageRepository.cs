@@ -28,4 +28,7 @@ public interface IPackageRepository
         CancellationToken cancellationToken = default);
 
     Task DeleteAsync(Package package, CancellationToken cancellationToken = default);
+
+    Task<(int TotalDistinctOrders, IReadOnlyList<PackerPackingSummary> ByPacker)>
+        GetPackedTodayByPackerAsync(DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct = default);
 }

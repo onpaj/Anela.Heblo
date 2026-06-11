@@ -5,9 +5,11 @@ import { MemoryRouter } from 'react-router-dom';
 import BaleniHome from '../BaleniHome';
 
 const renderHome = () => {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <QueryClientProvider client={qc}>
+    <QueryClientProvider client={queryClient}>
       <MemoryRouter>
         <BaleniHome />
       </MemoryRouter>
@@ -18,10 +20,7 @@ const renderHome = () => {
 describe('BaleniHome', () => {
   it('renders heading', () => {
     renderHome();
-    // 'Vyberte operaci' on feature branch; 'Navigace' after merging main's dashboard rework.
-    const heading =
-      screen.queryByText('Vyberte operaci') ?? screen.queryByText('Navigace');
-    expect(heading).toBeInTheDocument();
+    expect(screen.getByText('Navigace')).toBeInTheDocument();
   });
 
   it('renders Balení tile with correct href', () => {
