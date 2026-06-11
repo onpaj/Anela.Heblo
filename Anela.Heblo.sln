@@ -79,6 +79,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartsuppWebhookReplay", "b
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Persistence.Analytics", "backend\src\Anela.Heblo.Persistence.Analytics\Anela.Heblo.Persistence.Analytics.csproj", "{ACA057C0-6F29-408A-A069-E9270E4480CF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.FileSystem", "backend\src\Adapters\Anela.Heblo.Adapters.FileSystem\Anela.Heblo.Adapters.FileSystem.csproj", "{2E2AA044-B62E-49E3-8286-A585EB988086}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -449,6 +451,18 @@ Global
 		{ACA057C0-6F29-408A-A069-E9270E4480CF}.Release|x64.Build.0 = Release|Any CPU
 		{ACA057C0-6F29-408A-A069-E9270E4480CF}.Release|x86.ActiveCfg = Release|Any CPU
 		{ACA057C0-6F29-408A-A069-E9270E4480CF}.Release|x86.Build.0 = Release|Any CPU
+		{2E2AA044-B62E-49E3-8286-A585EB988086}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E2AA044-B62E-49E3-8286-A585EB988086}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E2AA044-B62E-49E3-8286-A585EB988086}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2E2AA044-B62E-49E3-8286-A585EB988086}.Debug|x64.Build.0 = Debug|Any CPU
+		{2E2AA044-B62E-49E3-8286-A585EB988086}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2E2AA044-B62E-49E3-8286-A585EB988086}.Debug|x86.Build.0 = Debug|Any CPU
+		{2E2AA044-B62E-49E3-8286-A585EB988086}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E2AA044-B62E-49E3-8286-A585EB988086}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E2AA044-B62E-49E3-8286-A585EB988086}.Release|x64.ActiveCfg = Release|Any CPU
+		{2E2AA044-B62E-49E3-8286-A585EB988086}.Release|x64.Build.0 = Release|Any CPU
+		{2E2AA044-B62E-49E3-8286-A585EB988086}.Release|x86.ActiveCfg = Release|Any CPU
+		{2E2AA044-B62E-49E3-8286-A585EB988086}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -488,5 +502,6 @@ Global
 		{7D3E9F2B-4A1C-4E6D-8B5F-3C2D7F9E0A1B} = {AF9F0ADE-F207-48FB-B82C-1F2DBC866114}
 		{2F8C5E3A-1B7D-4F9E-A3C8-6D1E5B2F7A4C} = {7D3E9F2B-4A1C-4E6D-8B5F-3C2D7F9E0A1B}
 		{ACA057C0-6F29-408A-A069-E9270E4480CF} = {87237941-D198-446F-919C-467E4968E85F}
+		{2E2AA044-B62E-49E3-8286-A585EB988086} = {4B6F17C3-0A57-487A-BE8C-1808B40EC604}
 	EndGlobalSection
 EndGlobal

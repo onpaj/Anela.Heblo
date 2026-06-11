@@ -365,7 +365,6 @@ public class GetGridLayoutHandlerPayloadTests
             .Setup(r => r.GetAsync("user-1", "grid-error", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new GridLayoutPersistenceException(
                 "Database error",
-                sqlState: "42P01",
                 new InvalidOperationException("simulated error")));
 
         // Act
