@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.GridLayouts.Contracts;
 using Anela.Heblo.Application.Features.GridLayouts.UseCases.GetGridLayout;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.Users;
 using Microsoft.Extensions.Logging;
@@ -56,7 +57,7 @@ public class GetGridLayoutHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenDatabaseThrows_ReturnsNullLayoutAndLogsError()
+    public async Task Handle_WhenDatabaseThrows_ReturnsErrorResponseAndLogsError()
     {
         _currentUserMock.Setup(x => x.GetCurrentUser()).Returns(new CurrentUser("user-1", "Test", "test@test.com", true));
         _repositoryMock
@@ -68,6 +69,8 @@ public class GetGridLayoutHandlerTests
         var handler = CreateHandler();
         var response = await handler.Handle(new GetGridLayoutRequest { GridKey = "test-grid" }, default);
 
+        Assert.False(response.Success);
+        Assert.Equal(ErrorCodes.DatabaseError, response.ErrorCode);
         Assert.Null(response.Layout);
         _loggerMock.Verify(
             x => x.Log(

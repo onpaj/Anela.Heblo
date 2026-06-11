@@ -1,44 +1,50 @@
-All tasks complete. Here is the output artifact:
+All three tasks are complete. Here is the output summary:
 
 ---
 
-# Implementation: Remove unused `OrderIds` field from `PrintPickingListResult`
+# Implementation: Remove dead mutable static `PrintPickingListRequest.DefaultCarriers`
 
 ## What was implemented
 
-Removed the dead `OrderIds` property from the internal application-layer DTO `PrintPickingListResult` and removed its corresponding unused arrange step from the adapter test. The field was initialized empty, never written by any producer (`ShoptetApiExpeditionListSource.CreatePickingList`), and never read by any consumer (`LogisticsExpeditionPickingAdapter.CreatePickingListAsync`). Exactly two lines deleted across two files; no runtime behaviour change.
+Eliminated a global-mutation hazard by removing the public-setter static `DefaultCarriers` property from `PrintPickingListRequest`. The lone integration test consumer was retargeted to `ExpeditionPickingRequest.DefaultCarriers` — the canonical read-only constant that all production code already uses. No behavior change; carrier set `{ Zasilkovna, GLS, PPL, Osobak }` is identical.
 
 ## Files created/modified
 
-- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListResult.cs` — removed `public IList<int> OrderIds { get; set; } = new List<int>();` (line 7)
-- `backend/test/Anela.Heblo.Tests/Features/Logistics/Infrastructure/LogisticsExpeditionPickingAdapterTests.cs` — removed `OrderIds = new List<int> { 1, 2, 3 },` from the arrange block of `CreatePickingListAsync_TranslatesResultFields`
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListRequest.cs` — removed the `public static IList<Carriers> DefaultCarriers { get; set; }` property (lines 16–22); all other members preserved
+- `backend/test/Anela.Heblo.Adapters.Shoptet.Tests/Integration/PickingListIntegrationTests.cs` — added `using Anela.Heblo.Application.Features.ExpeditionList.Contracts;`; changed line 88 from `PrintPickingListRequest.DefaultCarriers` to `ExpeditionPickingRequest.DefaultCarriers`
 
 ## Tests
 
-- `backend/test/Anela.Heblo.Tests/Features/Logistics/Infrastructure/LogisticsExpeditionPickingAdapterTests.cs` — all 4 existing tests pass; `CreatePickingListAsync_TranslatesResultFields` retains its assertions on `ExportedFiles` and `TotalCount`
+- All 4,766 non-integration tests passed (`dotnet test --filter "Category!=Integration"`)
+- `PickingListIntegrationTests` excluded from CI (requires live Shoptet store); the test file compiles cleanly and will exercise the production carrier set on next manual run
 
 ## How to verify
 
 ```bash
-cd backend
-dotnet build Anela.Heblo.sln --nologo            # Build succeeded, 0 errors
-dotnet test Anela.Heblo.sln --filter "FullyQualifiedName~LogisticsExpeditionPickingAdapterTests" --nologo  # Failed: 0, Passed: 4
-grep -rn "OrderIds" src/Anela.Heblo.Application/Features/Logistics/ --include="*.cs"  # no output
-git log -1 --stat                                # 2 files changed, 2 deletions(-)
+# Confirm zero references to the removed property
+grep -rn 'PrintPickingListRequest\.DefaultCarriers' --include='*.cs' backend/
+
+# Confirm canonical constant is intact
+grep -A 6 'public static IList<Carriers> DefaultCarriers' backend/src/Anela.Heblo.Application/Features/ExpeditionList/Contracts/ExpeditionPickingRequest.cs
+
+# Run tests
+cd backend && dotnet test Anela.Heblo.sln --filter "Category!=Integration"
+
+# Inspect commit
+git show --stat HEAD
 ```
 
 ## Notes
 
-Baseline confirmed 70 warnings before the change; post-change build also shows 70 warnings (no regression). `dotnet format --verify-no-changes` confirmed no formatting drift. The `OrderIds` symbol still appears in the repo in unrelated places (`ChangePurchaseOrderIdsToInt` EF migration name, React `newOrderIds` callback) — none of these reference `PrintPickingListResult.OrderIds`.
+The code quality reviewer flagged a pre-existing using-directive ordering issue (`Domain` before `Application.Logistics.Picking`) in the test file. This ordering predates this change and is preserved unchanged per the surgical-changes policy in CLAUDE.md. `dotnet format` ran without reordering them, confirming the project has no enforced ordering rule for this.
 
 ## PR Summary
 
-Removes `PrintPickingListResult.OrderIds`, a dead property that was initialized to an empty list by the constructor default but never populated by `ShoptetApiExpeditionListSource.CreatePickingList` and never consumed by `LogisticsExpeditionPickingAdapter.CreatePickingListAsync`. The field violated YAGNI and created a misleading API surface that could lead a future developer to rely on it and produce a silent logic error. The cross-feature contract `ExpeditionPickingResult` never had `OrderIds` and is untouched; the OpenAPI surface is unaffected.
+Removed `PrintPickingListRequest.DefaultCarriers` — a public-setter static property that duplicated the already read-only `ExpeditionPickingRequest.DefaultCarriers` used by all production callers. The mutation hazard was eliminated and the lone integration test consumer was redirected to the canonical constant, so the test now exercises the same carrier set as production code.
 
 ### Changes
-- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListResult.cs` — deleted the `OrderIds` property declaration
-- `backend/test/Anela.Heblo.Tests/Features/Logistics/Infrastructure/LogisticsExpeditionPickingAdapterTests.cs` — deleted the dead `OrderIds` initializer from the `CreatePickingListAsync_TranslatesResultFields` arrange block
+- `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListRequest.cs` — deleted the static `DefaultCarriers` property; all other members untouched
+- `backend/test/Anela.Heblo.Adapters.Shoptet.Tests/Integration/PickingListIntegrationTests.cs` — added `.Contracts` using directive; retargeted line 88 to `ExpeditionPickingRequest.DefaultCarriers`
 
 ## Status
-
 DONE

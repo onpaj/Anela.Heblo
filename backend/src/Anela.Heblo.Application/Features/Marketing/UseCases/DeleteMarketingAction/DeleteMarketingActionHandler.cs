@@ -72,10 +72,12 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
                 }
             }
 
+            action.SoftDelete(currentUser.Id, currentUser.Name ?? "Unknown User");
+
             try
             {
-                await _repository.DeleteSoftAsync(
-                    request.Id, currentUser.Id, currentUser.Name ?? "Unknown User", cancellationToken);
+                await _repository.UpdateAsync(action, cancellationToken);
+                await _repository.SaveChangesAsync(cancellationToken);
             }
             catch (Exception ex)
             {

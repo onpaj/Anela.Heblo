@@ -295,6 +295,10 @@ public class ModuleBoundariesTests
         // GetPackingDashboardHandler consumes IPackingOrderClient to read the orders-being-packed
         // count for the dashboard (no ShoptetOrders DTOs cross the boundary — the call returns int?).
         "Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard.GetPackingDashboardHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
+
+        // PackingStatsTile is a dashboard tile that mirrors GetPackingDashboardHandler's logic;
+        // it consumes only IPackingOrderClient (returns int?) — no ShoptetOrders DTOs cross the boundary.
+        "Anela.Heblo.Application.Features.Packaging.DashboardTiles.PackingStatsTile -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
     };
 
     public static TheoryData<ModuleBoundaryRule> Rules() => new()

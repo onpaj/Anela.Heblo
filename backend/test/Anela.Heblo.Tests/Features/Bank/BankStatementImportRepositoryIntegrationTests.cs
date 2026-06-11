@@ -2,68 +2,62 @@ using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Features.Bank;
-using DotNet.Testcontainers.Configurations;
+using Anela.Heblo.Tests.Common;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Bank;
 
+[Collection("PostgresIntegration")]
 [Trait("Category", "Integration")]
 public class BankStatementImportRepositoryIntegrationTests : IAsyncLifetime
 {
-    static BankStatementImportRepositoryIntegrationTests()
-    {
-        // Required on macOS with Podman: the Ryuk ResourceReaper container
-        // cannot bind to the Docker socket and throws a NullReferenceException.
-        TestcontainersSettings.ResourceReaperEnabled = false;
-    }
-
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-        .WithImage("postgres:16")
-        .Build();
-
+    private readonly PostgresSharedContainerFixture _fixture;
+    private string _connectionString = null!;
     private ApplicationDbContext _context = null!;
     private BankStatementImportRepository _repository = null!;
 
+    public BankStatementImportRepositoryIntegrationTests(PostgresSharedContainerFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
     public async Task InitializeAsync()
     {
-        await _container.StartAsync();
+        _connectionString = await _fixture.CreateDatabaseAsync("bank");
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseNpgsql(_container.GetConnectionString())
+            .UseNpgsql(_connectionString)
             .Options;
 
         _context = new ApplicationDbContext(options);
 
-        // Create only the BankStatements table manually
+        // Create only the BankStatements table manually.
         // Do NOT use EnsureCreatedAsync because it would try to install the "vector" extension
-        // which is not available in the plain postgres:16 image
-        await using (var conn = new NpgsqlConnection(_container.GetConnectionString()))
-        {
-            await conn.OpenAsync();
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = """
-                CREATE SCHEMA IF NOT EXISTS public;
-                CREATE TABLE IF NOT EXISTS public."BankStatements" (
-                    "Id"            serial                       PRIMARY KEY,
-                    "TransferId"    character varying(100)       NOT NULL,
-                    "StatementDate" timestamp without time zone  NOT NULL,
-                    "ImportDate"    timestamp without time zone  NOT NULL,
-                    "Account"       text                         NOT NULL,
-                    "Currency"      integer                      NOT NULL,
-                    "ItemCount"     integer                      NOT NULL,
-                    "ImportResult"  text                         NOT NULL
-                );
-                CREATE UNIQUE INDEX IF NOT EXISTS "IX_BankStatements_TransferId"
-                    ON public."BankStatements" ("TransferId");
-                CREATE INDEX IF NOT EXISTS "IX_BankStatements_Account"
-                    ON public."BankStatements" ("Account");
-                """;
-            await cmd.ExecuteNonQueryAsync();
-        }
+        // which is not available in the plain postgres:16 image.
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            CREATE SCHEMA IF NOT EXISTS public;
+            CREATE TABLE IF NOT EXISTS public."BankStatements" (
+                "Id"            serial                       PRIMARY KEY,
+                "TransferId"    character varying(100)       NOT NULL,
+                "StatementDate" timestamp without time zone  NOT NULL,
+                "ImportDate"    timestamp without time zone  NOT NULL,
+                "Account"       text                         NOT NULL,
+                "Currency"      integer                      NOT NULL,
+                "ItemCount"     integer                      NOT NULL,
+                "ImportResult"  text                         NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_BankStatements_TransferId"
+                ON public."BankStatements" ("TransferId");
+            CREATE INDEX IF NOT EXISTS "IX_BankStatements_Account"
+                ON public."BankStatements" ("Account");
+            """;
+        await cmd.ExecuteNonQueryAsync();
 
         _repository = new BankStatementImportRepository(_context);
     }
@@ -71,7 +65,6 @@ public class BankStatementImportRepositoryIntegrationTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await _context.DisposeAsync();
-        await _container.DisposeAsync();
     }
 
     private async Task<BankStatementImport> SeedAsync(

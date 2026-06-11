@@ -1,74 +1,93 @@
-# Specification: Remove unused `OrderIds` field from `PrintPickingListResult`
+# Specification: Remove dead mutable static `PrintPickingListRequest.DefaultCarriers`
 
 ## Summary
-Remove the dead `OrderIds` property from `PrintPickingListResult` and clean up the corresponding unused test arrange step. The field is initialized but never written by producers nor read by consumers, creating a misleading API surface that risks silent logic errors if future code attempts to use it.
+Eliminate a global-mutation hazard in `PrintPickingListRequest.DefaultCarriers` (a public-setter static field that holds shared mutable state). The property is dead code in the production path — production callers use `ExpeditionPickingRequest.DefaultCarriers` — so the safest fix is to remove the property entirely and update the lone integration test reference.
 
 ## Background
-A daily architecture review on 2026-06-07 flagged `PrintPickingListResult.OrderIds` as dead code in the ExpeditionList feature's Logistics integration chain:
+A daily architecture review flagged `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListRequest.cs:16`:
 
-- **Definition:** `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListResult.cs:7` — declared as `List<int>` initialized to an empty list.
-- **Producer:** `ShoptetApiExpeditionListSource.CreatePickingList` (`backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Expedition/ShoptetApiExpeditionListSource.cs:229`) constructs the result with only `ExportedFiles` and `TotalCount`; never sets `OrderIds`.
-- **Consumer:** `LogisticsExpeditionPickingAdapter.CreatePickingListAsync` (`backend/src/Anela.Heblo.Application/Features/Logistics/Infrastructure/LogisticsExpeditionPickingAdapter.cs:16-22`) maps only `ExportedFiles` and `TotalCount` into `ExpeditionPickingResult`; `OrderIds` is silently discarded, and `ExpeditionPickingResult` has no equivalent field.
-- **Test:** `LogisticsExpeditionPickingAdapterTests.CreatePickingListAsync_TranslatesResultFields` (`backend/test/Anela.Heblo.Tests/Features/Logistics/Infrastructure/LogisticsExpeditionPickingAdapterTests.cs:60`) sets `OrderIds = new List<int> { 1, 2, 3 }` in arrange but never asserts on it.
+```csharp
+public static IList<Carriers> DefaultCarriers { get; set; } = new List<Carriers>()
+{
+    Carriers.Zasilkovna, Carriers.GLS, Carriers.PPL, Carriers.Osobak
+};
+```
 
-The field violates YAGNI: it advertises a capability that does not exist. A future developer reading the result type may write code that consumes `OrderIds`, observe an empty list, and produce a silent logic error that is difficult to diagnose because no exception is thrown and no compiler warning is raised.
+Two distinct problems:
+
+1. **Mutation hazard.** The public setter on a static, process-wide list lets any caller silently swap the default carrier set for the lifetime of the process. There is no diagnostic signal if a test (or other code) forgets to restore state, which can cause downstream expedition list runs to use an unexpected carrier set.
+
+2. **Dead code in production.** The property is referenced only from one integration test (`backend/test/Anela.Heblo.Adapters.Shoptet.Tests/Integration/PickingListIntegrationTests.cs:88`). All production code — `PrintPickingListJob`, `RunExpeditionListPrintFixHandler`, and other ExpeditionList handlers — uses `ExpeditionPickingRequest.DefaultCarriers` (already read-only at `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Contracts/ExpeditionPickingRequest.cs:16`).
+
+Removing the property eliminates the hazard, reduces duplication, and aligns the test with the production code path it claims to cover.
 
 ## Functional Requirements
 
-### FR-1: Remove `OrderIds` from `PrintPickingListResult`
-Delete the `OrderIds` property from `PrintPickingListResult.cs`. No other production code references this property, so no replacement or migration is required.
+### FR-1: Remove `PrintPickingListRequest.DefaultCarriers` entirely
+Delete the static `DefaultCarriers` property from `PrintPickingListRequest`. Do not retain it as read-only — production code does not reference it, so leaving a read-only duplicate of `ExpeditionPickingRequest.DefaultCarriers` would only add maintenance drift.
 
 **Acceptance criteria:**
-- `PrintPickingListResult.cs` no longer declares an `OrderIds` property.
-- `grep -r "OrderIds" backend/src/Anela.Heblo.Application/Features/Logistics/` returns no matches against `PrintPickingListResult`.
-- `dotnet build` succeeds across the solution.
+- `PrintPickingListRequest.cs` no longer declares any `DefaultCarriers` member.
+- A repo-wide search for `PrintPickingListRequest.DefaultCarriers` returns zero results.
+- `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Contracts/ExpeditionPickingRequest.cs` is unchanged and remains the single source of truth for the default carrier set.
 
-### FR-2: Clean up unused test arrange step
-Remove the `OrderIds = new List<int> { 1, 2, 3 }` initializer from the arrange section of `CreatePickingListAsync_TranslatesResultFields`. The test currently sets a field it never asserts; with FR-1 applied, the initializer would fail to compile.
-
-**Acceptance criteria:**
-- The `OrderIds` initializer is removed from `LogisticsExpeditionPickingAdapterTests.cs`.
-- The test `CreatePickingListAsync_TranslatesResultFields` continues to assert that `ExportedFiles` and `TotalCount` are correctly translated.
-- No other assertions or test cases are altered.
-
-### FR-3: Verify no hidden consumers
-Confirm via repository-wide search that no other production code, serialization contract, or external consumer reads `PrintPickingListResult.OrderIds` before deletion. Because `PrintPickingListResult` is an internal application-layer DTO (not part of the OpenAPI surface), no client regeneration is expected.
+### FR-2: Update the integration test to use `ExpeditionPickingRequest.DefaultCarriers`
+The only consumer (`PickingListIntegrationTests.cs:88`) must be updated to reference `ExpeditionPickingRequest.DefaultCarriers` — the same list production code uses — so the test exercises the production default rather than a parallel one.
 
 **Acceptance criteria:**
-- Repository-wide search for `OrderIds` returns no remaining references tied to `PrintPickingListResult` after the change.
-- Generated OpenAPI client (`frontend/src/api/`) is unchanged, confirming the field was not exposed externally.
+- The test continues to assert the same behavior it asserted before (no change in test intent, only in which constant it reads).
+- `PickingListIntegrationTests` references `ExpeditionPickingRequest.DefaultCarriers` and does not reintroduce a local mutable carrier list.
+- The integration test passes when run against the normal test environment (Postgres container per the shared-container setup in commit `7542d689`).
+
+### FR-3: Verify no behavioral change in production
+Production handlers (`PrintPickingListJob`, `RunExpeditionListPrintFixHandler`, any other ExpeditionList consumer) must continue to receive the same default carrier set they do today.
+
+**Acceptance criteria:**
+- `dotnet build` succeeds with no new warnings related to this change.
+- Existing unit and integration tests for `PrintPickingListJob`, `RunExpeditionListPrintFixHandler`, and ExpeditionList carrier defaults all pass without modification (other than the FR-2 test update).
+- Manual review confirms the carrier set used at runtime is `{ Zasilkovna, GLS, PPL, Osobak }` — identical to today.
 
 ## Non-Functional Requirements
 
-### NFR-1: Behaviour preservation
-No runtime behaviour change. Producers, consumers, and downstream `ExpeditionPickingResult` mapping are unaffected because `OrderIds` was never written or read in production.
+### NFR-1: Performance
+No runtime performance impact expected. This is a compile-time / source-level change. Static list initialization cost is unchanged (one initialization, in `ExpeditionPickingRequest`).
 
-### NFR-2: Surgical scope
-Touch only the three identified files. Do not refactor adjacent code, rename symbols, reorder properties, or reformat unrelated lines.
+### NFR-2: Security
+No direct security implications. Indirectly improves robustness by removing a vector for accidental shared-state corruption that could cause incorrect carrier selection during expedition processing.
 
-### NFR-3: Test coverage maintained
-Existing test coverage of `LogisticsExpeditionPickingAdapter.CreatePickingListAsync` for `ExportedFiles` and `TotalCount` must remain intact. The arrange-step cleanup must not weaken any assertion.
+### NFR-3: Maintainability
+After this change there is exactly one canonical default carrier list (`ExpeditionPickingRequest.DefaultCarriers`), reducing the risk of the two lists diverging when carriers are added or removed in the future.
 
 ## Data Model
-`PrintPickingListResult` (application-layer DTO) currently contains:
-- `ExportedFiles` — collection of generated picking-list files (retained)
-- `TotalCount` — number of orders included (retained)
-- `OrderIds` — `List<int>`, initialized empty, never populated (**to be removed**)
-
-`ExpeditionPickingResult` (downstream domain result) is unchanged; it has no `OrderIds` field and never did.
+No data model changes. `Carriers` enum is untouched. No database migrations.
 
 ## API / Interface Design
-No public API or external interface changes. `PrintPickingListResult` is internal to the application layer and is not serialized to any HTTP response, OpenAPI contract, MediatR contract exposed to clients, or persistence schema.
+
+**Removed surface:**
+- `PrintPickingListRequest.DefaultCarriers` (static property) — gone.
+
+**Unchanged surface:**
+- `PrintPickingListRequest` class itself remains; only the static `DefaultCarriers` member is removed. Instance members and the request contract for MediatR/picking flows are not touched.
+- `ExpeditionPickingRequest.DefaultCarriers` remains as the sole read-only default-carrier source.
+
+**Test surface:**
+- `PickingListIntegrationTests.cs:88` switches its reference target. No test method signatures change.
+
+No HTTP endpoints, no MediatR contracts, no OpenAPI schema, and no generated TypeScript client are affected.
 
 ## Dependencies
-None. The change is confined to one DTO file in `Anela.Heblo.Application` and one test file in `Anela.Heblo.Tests`. No NuGet packages, configuration, migrations, or external services are involved.
+- None added or removed.
+- Touches only files under:
+  - `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListRequest.cs`
+  - `backend/test/Anela.Heblo.Adapters.Shoptet.Tests/Integration/PickingListIntegrationTests.cs`
+- Before completion, run repo-wide search to confirm no other consumer exists outside these two files.
 
 ## Out of Scope
-- Renaming, restructuring, or otherwise modifying `ExpeditionPickingResult` or any other type in the Logistics or Picking namespaces.
-- Adding new fields, telemetry, or logging to the picking-list flow.
-- Refactoring `ShoptetApiExpeditionListSource.CreatePickingList` or `LogisticsExpeditionPickingAdapter.CreatePickingListAsync` beyond what is necessary for the field removal (which is nothing — neither file references `OrderIds`).
-- Frontend changes; the field is not exposed via the OpenAPI client.
-- Broader dead-code sweeps in the Logistics module.
+- Refactoring `PrintPickingListRequest` more broadly (other members, naming, location).
+- Refactoring or consolidating `ExpeditionPickingRequest` and `PrintPickingListRequest` into a shared contract.
+- Auditing other static-mutable-state hazards elsewhere in the codebase. (A separate sweep can be filed if desired.)
+- Changing the default carrier set itself (`{ Zasilkovna, GLS, PPL, Osobak }`) — values stay identical.
+- Any frontend changes — this is backend-only.
 
 ## Open Questions
 None.

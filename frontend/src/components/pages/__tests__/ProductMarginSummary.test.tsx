@@ -9,10 +9,7 @@ import * as useProductMarginSummaryHook from "../../../api/hooks/useProductMargi
 // Mock the hook
 jest.mock("../../../api/hooks/useProductMarginSummary");
 
-const mockUseProductMarginSummary =
-  useProductMarginSummaryHook.useProductMarginSummaryQuery as jest.MockedFunction<
-    typeof useProductMarginSummaryHook.useProductMarginSummaryQuery
-  >;
+const mockUseProductMarginSummary = useProductMarginSummaryHook.useProductMarginSummaryQuery;
 
 // Mock Chart component to avoid canvas issues in tests
 jest.mock("react-chartjs-2", () => ({
@@ -64,8 +61,8 @@ const mockData = {
   ],
   topProducts: [
     {
-      productCode: "PROD001",
-      productName: "Product 1",
+      groupKey: "PROD001",
+      displayName: "Product 1",
       totalMargin: 1500,
       colorCode: "#2563EB",
       rank: 1,

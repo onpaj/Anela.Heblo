@@ -48,7 +48,7 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    analytics_GetProductMarginSummary(timeWindow: string | undefined, topProductCount: number | undefined, groupingMode: ProductGroupingMode | undefined, marginLevel: string | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetProductMarginSummaryResponse> {
+    analytics_GetProductMarginSummary(timeWindow: string | undefined, topProductCount: number | undefined, groupingMode: ProductGroupingMode | undefined, marginLevel: MarginLevel | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetProductMarginSummaryResponse> {
         let url_ = this.baseUrl + "/api/Analytics/product-margin-summary?";
         if (timeWindow === null)
             throw new Error("The parameter 'timeWindow' cannot be null.");
@@ -8598,6 +8598,43 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    packaging_GetOrderTrackingNumber(orderCode: string): Promise<GetOrderTrackingNumberResponse> {
+        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/tracking-number";
+        if (orderCode === undefined || orderCode === null)
+            throw new Error("The parameter 'orderCode' must be defined.");
+        url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_GetOrderTrackingNumber(_response);
+        });
+    }
+
+    protected processPackaging_GetOrderTrackingNumber(response: Response): Promise<GetOrderTrackingNumberResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetOrderTrackingNumberResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetOrderTrackingNumberResponse>(null as any);
+    }
+
     packaging_GetDashboard(): Promise<GetPackingDashboardResponse> {
         let url_ = this.baseUrl + "/api/packaging/dashboard";
         url_ = url_.replace(/[?&]$/, "");
@@ -8631,6 +8668,7 @@ export class ApiClient {
         }
         return Promise.resolve<GetPackingDashboardResponse>(null as any);
     }
+
 
     packaging_GetPackages(orderCode: string | null | undefined, customerName: string | null | undefined, packageNumber: string | null | undefined, carrier: Carriers | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPackagesResponse> {
         let url_ = this.baseUrl + "/api/packaging/packages?";
@@ -10864,6 +10902,57 @@ export class ApiClient {
         return Promise.resolve<GetRecurringJobsListResponse>(null as any);
     }
 
+    recurringJobs_GetRecurringJob(jobName: string): Promise<GetRecurringJobResponse> {
+        let url_ = this.baseUrl + "/api/RecurringJobs/{jobName}";
+        if (jobName === undefined || jobName === null)
+            throw new Error("The parameter 'jobName' must be defined.");
+        url_ = url_.replace("{jobName}", encodeURIComponent("" + jobName));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRecurringJobs_GetRecurringJob(_response);
+        });
+    }
+
+    protected processRecurringJobs_GetRecurringJob(response: Response): Promise<GetRecurringJobResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetRecurringJobResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetRecurringJobResponse>(null as any);
+    }
+
     recurringJobs_UpdateJobStatus(jobName: string, request: UpdateJobStatusRequestBody): Promise<UpdateRecurringJobStatusResponse> {
         let url_ = this.baseUrl + "/api/RecurringJobs/{jobName}/status";
         if (jobName === undefined || jobName === null)
@@ -12619,7 +12708,7 @@ export class GetProductMarginSummaryResponse extends BaseResponse implements IGe
     totalMargin?: number;
     timeWindow?: string;
     groupingMode?: ProductGroupingMode;
-    marginLevel?: string;
+    marginLevel?: MarginLevel;
     fromDate?: Date;
     toDate?: Date;
 
@@ -12685,7 +12774,7 @@ export interface IGetProductMarginSummaryResponse extends IBaseResponse {
     totalMargin?: number;
     timeWindow?: string;
     groupingMode?: ProductGroupingMode;
-    marginLevel?: string;
+    marginLevel?: MarginLevel;
     fromDate?: Date;
     toDate?: Date;
 }
@@ -12868,8 +12957,6 @@ export class TopProductDto implements ITopProductDto {
     m2Percentage?: number;
     sellingPrice?: number;
     purchasePrice?: number;
-    productCode?: string;
-    productName?: string;
 
     constructor(data?: ITopProductDto) {
         if (data) {
@@ -12895,8 +12982,6 @@ export class TopProductDto implements ITopProductDto {
             this.m2Percentage = _data["m2Percentage"];
             this.sellingPrice = _data["sellingPrice"];
             this.purchasePrice = _data["purchasePrice"];
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
         }
     }
 
@@ -12922,8 +13007,6 @@ export class TopProductDto implements ITopProductDto {
         data["m2Percentage"] = this.m2Percentage;
         data["sellingPrice"] = this.sellingPrice;
         data["purchasePrice"] = this.purchasePrice;
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
         return data;
     }
 }
@@ -12942,14 +13025,18 @@ export interface ITopProductDto {
     m2Percentage?: number;
     sellingPrice?: number;
     purchasePrice?: number;
-    productCode?: string;
-    productName?: string;
 }
 
 export enum ProductGroupingMode {
     Products = "Products",
     ProductFamily = "ProductFamily",
     ProductCategory = "ProductCategory",
+}
+
+export enum MarginLevel {
+    M0 = "M0",
+    M1 = "M1",
+    M2 = "M2",
 }
 
 export enum ErrorCodes {
@@ -12968,6 +13055,7 @@ export enum ErrorCodes {
     Unauthorized = "Unauthorized",
     Forbidden = "Forbidden",
     TokenExpired = "TokenExpired",
+    InsufficientPermissions = "InsufficientPermissions",
     Exception = "Exception",
     PurchaseOrderNotFound = "PurchaseOrderNotFound",
     SupplierNotFound = "SupplierNotFound",
@@ -14420,6 +14508,7 @@ export class ArticleFeedbackSummary implements IArticleFeedbackSummary {
     title?: string | undefined;
     topic?: string;
     requestedBy?: string | undefined;
+    userName?: string | undefined;
     createdAt?: Date;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
@@ -14440,6 +14529,7 @@ export class ArticleFeedbackSummary implements IArticleFeedbackSummary {
             this.title = _data["title"];
             this.topic = _data["topic"];
             this.requestedBy = _data["requestedBy"];
+            this.userName = _data["userName"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
@@ -14460,6 +14550,7 @@ export class ArticleFeedbackSummary implements IArticleFeedbackSummary {
         data["title"] = this.title;
         data["topic"] = this.topic;
         data["requestedBy"] = this.requestedBy;
+        data["userName"] = this.userName;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
@@ -14473,6 +14564,7 @@ export interface IArticleFeedbackSummary {
     title?: string | undefined;
     topic?: string;
     requestedBy?: string | undefined;
+    userName?: string | undefined;
     createdAt?: Date;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
@@ -14894,6 +14986,8 @@ export class GroupSummaryDto implements IGroupSummaryDto {
     permissionCount?: number;
     parentCount?: number;
     memberCount?: number;
+    permissions?: string[];
+    parentGroupIds?: string[];
 
     constructor(data?: IGroupSummaryDto) {
         if (data) {
@@ -14912,6 +15006,16 @@ export class GroupSummaryDto implements IGroupSummaryDto {
             this.permissionCount = _data["permissionCount"];
             this.parentCount = _data["parentCount"];
             this.memberCount = _data["memberCount"];
+            if (Array.isArray(_data["permissions"])) {
+                this.permissions = [] as any;
+                for (let item of _data["permissions"])
+                    this.permissions!.push(item);
+            }
+            if (Array.isArray(_data["parentGroupIds"])) {
+                this.parentGroupIds = [] as any;
+                for (let item of _data["parentGroupIds"])
+                    this.parentGroupIds!.push(item);
+            }
         }
     }
 
@@ -14930,6 +15034,16 @@ export class GroupSummaryDto implements IGroupSummaryDto {
         data["permissionCount"] = this.permissionCount;
         data["parentCount"] = this.parentCount;
         data["memberCount"] = this.memberCount;
+        if (Array.isArray(this.permissions)) {
+            data["permissions"] = [];
+            for (let item of this.permissions)
+                data["permissions"].push(item);
+        }
+        if (Array.isArray(this.parentGroupIds)) {
+            data["parentGroupIds"] = [];
+            for (let item of this.parentGroupIds)
+                data["parentGroupIds"].push(item);
+        }
         return data;
     }
 }
@@ -14941,6 +15055,8 @@ export interface IGroupSummaryDto {
     permissionCount?: number;
     parentCount?: number;
     memberCount?: number;
+    permissions?: string[];
+    parentGroupIds?: string[];
 }
 
 export class GetGroupDetailResponse extends BaseResponse implements IGetGroupDetailResponse {
@@ -23539,6 +23655,7 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
+    userName?: string | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
@@ -23563,6 +23680,7 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
             this.durationMs = _data["durationMs"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.userId = _data["userId"];
+            this.userName = _data["userName"];
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
             this.feedbackComment = _data["feedbackComment"];
@@ -23587,6 +23705,7 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
         data["durationMs"] = this.durationMs;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["userId"] = this.userId;
+        data["userName"] = this.userName;
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
         data["feedbackComment"] = this.feedbackComment;
@@ -23604,6 +23723,7 @@ export interface IFeedbackLogSummary {
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
+    userName?: string | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
@@ -24292,6 +24412,7 @@ export class LeafletFeedbackSummary implements ILeafletFeedbackSummary {
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
+    userName?: string | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
@@ -24318,6 +24439,7 @@ export class LeafletFeedbackSummary implements ILeafletFeedbackSummary {
             this.durationMs = _data["durationMs"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.userId = _data["userId"];
+            this.userName = _data["userName"];
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
             this.feedbackComment = _data["feedbackComment"];
@@ -24344,6 +24466,7 @@ export class LeafletFeedbackSummary implements ILeafletFeedbackSummary {
         data["durationMs"] = this.durationMs;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["userId"] = this.userId;
+        data["userName"] = this.userName;
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
         data["feedbackComment"] = this.feedbackComment;
@@ -24363,6 +24486,7 @@ export interface ILeafletFeedbackSummary {
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
+    userName?: string | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
@@ -32510,8 +32634,42 @@ export interface IResetShipmentPackage {
     labelZpl?: string | undefined;
 }
 
+export class GetOrderTrackingNumberResponse extends BaseResponse implements IGetOrderTrackingNumberResponse {
+    trackingNumber?: string | undefined;
+
+    constructor(data?: IGetOrderTrackingNumberResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.trackingNumber = _data["trackingNumber"];
+        }
+    }
+
+    static override fromJS(data: any): GetOrderTrackingNumberResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetOrderTrackingNumberResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["trackingNumber"] = this.trackingNumber;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetOrderTrackingNumberResponse extends IBaseResponse {
+    trackingNumber?: string | undefined;
+}
+
 export class GetPackingDashboardResponse extends BaseResponse implements IGetPackingDashboardResponse {
     ordersBeingPackedCount?: number | undefined;
+    ordersBeingPackedCountLastSync?: Date | undefined;
     totalOrdersPackedToday?: number;
     packedByPacker?: PackerStatsDto[];
 
@@ -32523,6 +32681,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
         super.init(_data);
         if (_data) {
             this.ordersBeingPackedCount = _data["ordersBeingPackedCount"];
+            this.ordersBeingPackedCountLastSync = _data["ordersBeingPackedCountLastSync"] ? new Date(_data["ordersBeingPackedCountLastSync"].toString()) : <any>undefined;
             this.totalOrdersPackedToday = _data["totalOrdersPackedToday"];
             if (Array.isArray(_data["packedByPacker"])) {
                 this.packedByPacker = [] as any;
@@ -32542,6 +32701,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["ordersBeingPackedCount"] = this.ordersBeingPackedCount;
+        data["ordersBeingPackedCountLastSync"] = this.ordersBeingPackedCountLastSync ? this.ordersBeingPackedCountLastSync.toISOString() : <any>undefined;
         data["totalOrdersPackedToday"] = this.totalOrdersPackedToday;
         if (Array.isArray(this.packedByPacker)) {
             data["packedByPacker"] = [];
@@ -32555,6 +32715,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
 
 export interface IGetPackingDashboardResponse extends IBaseResponse {
     ordersBeingPackedCount?: number | undefined;
+    ordersBeingPackedCountLastSync?: Date | undefined;
     totalOrdersPackedToday?: number;
     packedByPacker?: PackerStatsDto[];
 }
@@ -37060,6 +37221,39 @@ export interface IRecurringJobDto {
     lastModifiedAt?: Date;
     lastModifiedBy?: string;
     nextRunAt?: Date | undefined;
+}
+
+export class GetRecurringJobResponse extends BaseResponse implements IGetRecurringJobResponse {
+    job?: RecurringJobDto | undefined;
+
+    constructor(data?: IGetRecurringJobResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.job = _data["job"] ? RecurringJobDto.fromJS(_data["job"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetRecurringJobResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetRecurringJobResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["job"] = this.job ? this.job.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetRecurringJobResponse extends IBaseResponse {
+    job?: RecurringJobDto | undefined;
 }
 
 export class UpdateRecurringJobStatusResponse extends BaseResponse implements IUpdateRecurringJobStatusResponse {

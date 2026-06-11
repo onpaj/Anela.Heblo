@@ -21,8 +21,4 @@ public class TopProductDto
     // Pricing (for sorting)
     public decimal SellingPrice { get; set; }
     public decimal PurchasePrice { get; set; }
-
-    // Keep for backward compatibility
-    public string ProductCode => GroupKey;
-    public string ProductName => DisplayName;
 }

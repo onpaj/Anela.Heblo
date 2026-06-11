@@ -86,6 +86,8 @@ const resources = {
         ConfigurationError: "Chyba konfigurace",
         Unauthorized: "Neautorizovaný přístup",
         Forbidden: "Přístup zakázán",
+        InsufficientPermissions:
+          "Přístup zakázán. Chybí oprávnění: {requiredPermission}",
         TokenExpired: "Token vypršel",
         Exception: "Výjimka aplikace",
 
