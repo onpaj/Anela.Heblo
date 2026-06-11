@@ -10,9 +10,13 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 
 public class GetManufactureOutputHandlerTests
 {
+    private static readonly DateTimeOffset FixedClock =
+        new DateTimeOffset(2026, 03, 15, 10, 0, 0, TimeSpan.Zero);
+
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly Mock<ILogger<GetManufactureOutputHandler>> _loggerMock;
+    private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly GetManufactureOutputHandler _handler;
 
     public GetManufactureOutputHandlerTests()
@@ -20,11 +24,14 @@ public class GetManufactureOutputHandlerTests
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _loggerMock = new Mock<ILogger<GetManufactureOutputHandler>>();
+        _timeProviderMock = new Mock<TimeProvider>();
+        _timeProviderMock.Setup(tp => tp.GetUtcNow()).Returns(FixedClock);
 
         _handler = new GetManufactureOutputHandler(
             _manufactureHistoryClientMock.Object,
             _catalogRepositoryMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _timeProviderMock.Object);
     }
 
 
@@ -133,7 +140,7 @@ public class GetManufactureOutputHandlerTests
         {
             new ManufactureDifficultySetting { DifficultyValue = 3, ValidFrom = DateTime.MinValue }
         };
-        product1.ManufactureDifficultySettings.Assign(difficulty1Settings, DateTime.Now);
+        product1.ManufactureDifficultySettings.Assign(difficulty1Settings, FixedClock.DateTime);
 
         var product2 = new CatalogAggregate
         {
@@ -147,14 +154,14 @@ public class GetManufactureOutputHandlerTests
         {
             new ManufactureDifficultySetting { DifficultyValue = 1, ValidFrom = DateTime.MinValue }
         };
-        product2.ManufactureDifficultySettings.Assign(difficulty2Settings, DateTime.Now);
+        product2.ManufactureDifficultySettings.Assign(difficulty2Settings, FixedClock.DateTime);
 
         return new List<CatalogAggregate> { product1, product2 };
     }
 
     private List<ManufactureHistoryRecord> CreateTestManufactureHistory()
     {
-        var currentDate = DateTime.Now;
+        var currentDate = FixedClock.DateTime;
         return new List<ManufactureHistoryRecord>
         {
             new ManufactureHistoryRecord
