@@ -48,7 +48,7 @@ public interface IIssuedInvoiceRepository : IRepository<IssuedInvoice, string>
     /// <summary>
     /// Gets paginated and filtered list of issued invoices with sorting
     /// </summary>
-    Task<PaginatedResult<IssuedInvoice>> GetPaginatedAsync(IssuedInvoiceFilters filters, CancellationToken cancellationToken = default);
+    Task<Anela.Heblo.Application.Shared.PaginatedResult<IssuedInvoice>> GetPaginatedAsync(IssuedInvoiceFilters filters, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets invoice headers for a specific date
