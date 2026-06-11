@@ -11,6 +11,11 @@ import type {
   JournalTagDto,
 } from "../../../../api/generated/api-client";
 
+// Mock telemetry to avoid dependency on @microsoft/applicationinsights-web
+jest.mock("../../../../telemetry/useScreenView", () => ({
+  useScreenView: jest.fn(),
+}));
+
 // Mock the useJournal hooks
 jest.mock("../../../../api/hooks/useJournal");
 

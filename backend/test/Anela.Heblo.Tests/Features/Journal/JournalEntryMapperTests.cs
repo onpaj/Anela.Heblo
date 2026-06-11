@@ -179,7 +179,7 @@ public class JournalEntryMapperTests
     }
 
     [Fact]
-    public void ToSearchDto_MapsAllScalarFields_AndOmitsContent()
+    public void ToSearchDto_MapsAllScalarFields_IncludingContent()
     {
         // Arrange
         var entry = BuildFullEntry();
@@ -190,6 +190,7 @@ public class JournalEntryMapperTests
         // Assert
         dto.Id.Should().Be(42);
         dto.Title.Should().Be("Test Entry");
+        dto.Content.Should().Be("Test content body");
         dto.EntryDate.Should().Be(new DateTime(2025, 1, 15));
         dto.CreatedAt.Should().Be(new DateTime(2025, 1, 15, 10, 0, 0));
         dto.ModifiedAt.Should().Be(new DateTime(2025, 1, 15, 11, 0, 0));
@@ -197,8 +198,6 @@ public class JournalEntryMapperTests
         dto.CreatedByUsername.Should().Be("alice");
         dto.ModifiedByUserId.Should().Be("user-002");
         dto.ModifiedByUsername.Should().Be("bob");
-        // SearchJournalEntryDto intentionally has no Content field;
-        // the absence of a property is the assertion (compile-time guarantee).
     }
 
     [Fact]
@@ -217,7 +216,7 @@ public class JournalEntryMapperTests
     }
 
     [Fact]
-    public void ToSearchDto_LeavesContentPreviewEmpty_AndHighlightedTermsEmpty()
+    public void ToSearchDto_PopulatesContentFromEntry()
     {
         // Arrange
         var entry = BuildFullEntry();
@@ -226,8 +225,6 @@ public class JournalEntryMapperTests
         var dto = JournalEntryMapper.ToSearchDto(entry);
 
         // Assert
-        // Defaults set by the mapper; the handler is responsible for populating these.
-        dto.ContentPreview.Should().Be(string.Empty);
-        dto.HighlightedTerms.Should().NotBeNull().And.BeEmpty();
+        dto.Content.Should().Be("Test content body");
     }
 }
