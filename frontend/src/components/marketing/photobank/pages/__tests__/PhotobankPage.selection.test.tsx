@@ -11,8 +11,14 @@ const mockBulkAddByIdsMutation = {
   isPending: false,
 };
 
-jest.mock("@azure/msal-react", () => ({
-  useMsal: () => ({ accounts: [{ idTokenClaims: { roles: ["marketing_writer"] } }] }),
+jest.mock("../../../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+    hasPermission: (p: string) => p === "marketing.photobank.write",
+  }),
 }));
 
 const mockPhotos: PhotoDto[] = [
