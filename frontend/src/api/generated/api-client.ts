@@ -8594,6 +8594,43 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    packaging_GetOrderTrackingNumber(orderCode: string): Promise<GetOrderTrackingNumberResponse> {
+        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/tracking-number";
+        if (orderCode === undefined || orderCode === null)
+            throw new Error("The parameter 'orderCode' must be defined.");
+        url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_GetOrderTrackingNumber(_response);
+        });
+    }
+
+    protected processPackaging_GetOrderTrackingNumber(response: Response): Promise<GetOrderTrackingNumberResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetOrderTrackingNumberResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetOrderTrackingNumberResponse>(null as any);
+    }
+
     packaging_GetDashboard(): Promise<GetPackingDashboardResponse> {
         let url_ = this.baseUrl + "/api/packaging/dashboard";
         url_ = url_.replace(/[?&]$/, "");
@@ -10821,6 +10858,57 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetRecurringJobsListResponse>(null as any);
+    }
+
+    recurringJobs_GetRecurringJob(jobName: string): Promise<GetRecurringJobResponse> {
+        let url_ = this.baseUrl + "/api/RecurringJobs/{jobName}";
+        if (jobName === undefined || jobName === null)
+            throw new Error("The parameter 'jobName' must be defined.");
+        url_ = url_.replace("{jobName}", encodeURIComponent("" + jobName));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRecurringJobs_GetRecurringJob(_response);
+        });
+    }
+
+    protected processRecurringJobs_GetRecurringJob(response: Response): Promise<GetRecurringJobResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetRecurringJobResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetRecurringJobResponse>(null as any);
     }
 
     recurringJobs_UpdateJobStatus(jobName: string, request: UpdateJobStatusRequestBody): Promise<UpdateRecurringJobStatusResponse> {
@@ -32463,6 +32551,39 @@ export interface IResetShipmentPackage {
     labelZpl?: string | undefined;
 }
 
+export class GetOrderTrackingNumberResponse extends BaseResponse implements IGetOrderTrackingNumberResponse {
+    trackingNumber?: string | undefined;
+
+    constructor(data?: IGetOrderTrackingNumberResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.trackingNumber = _data["trackingNumber"];
+        }
+    }
+
+    static override fromJS(data: any): GetOrderTrackingNumberResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetOrderTrackingNumberResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["trackingNumber"] = this.trackingNumber;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetOrderTrackingNumberResponse extends IBaseResponse {
+    trackingNumber?: string | undefined;
+}
+
 export class GetPackingDashboardResponse extends BaseResponse implements IGetPackingDashboardResponse {
     ordersBeingPackedCount?: number | undefined;
     totalOrdersPackedToday?: number;
@@ -36980,6 +37101,39 @@ export interface IRecurringJobDto {
     lastModifiedAt?: Date;
     lastModifiedBy?: string;
     nextRunAt?: Date | undefined;
+}
+
+export class GetRecurringJobResponse extends BaseResponse implements IGetRecurringJobResponse {
+    job?: RecurringJobDto | undefined;
+
+    constructor(data?: IGetRecurringJobResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.job = _data["job"] ? RecurringJobDto.fromJS(_data["job"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetRecurringJobResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetRecurringJobResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["job"] = this.job ? this.job.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetRecurringJobResponse extends IBaseResponse {
+    job?: RecurringJobDto | undefined;
 }
 
 export class UpdateRecurringJobStatusResponse extends BaseResponse implements IUpdateRecurringJobStatusResponse {
