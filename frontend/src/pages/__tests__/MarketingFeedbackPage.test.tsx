@@ -1,15 +1,21 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import MarketingFeedbackPage from '../MarketingFeedbackPage';
-import * as kbHooks from '../../api/hooks/useKnowledgeBase';
-import * as marketingWriterHooks from '../../api/hooks/useMarketingWriterPermission';
 import * as kbAdapter from '../../components/feedback/adapters/useKbFeedbackAdapter';
 import * as leafletAdapter from '../../components/feedback/adapters/useLeafletFeedbackAdapter';
 import * as articleAdapter from '../../components/feedback/adapters/useArticleFeedbackAdapter';
 import type { FeedbackDetail, GenericFeedbackStats } from '../../components/feedback/types';
 
-jest.mock('../../api/hooks/useKnowledgeBase');
-jest.mock('../../api/hooks/useMarketingWriterPermission');
+let mockHasPermission: (perm: string) => boolean = () => false;
+jest.mock('../../auth/PermissionsContext', () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+    hasPermission: (p: string) => mockHasPermission(p),
+  }),
+}));
 jest.mock('../../components/feedback/adapters/useKbFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useLeafletFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useArticleFeedbackAdapter');
@@ -41,9 +47,12 @@ const leafletRow: FeedbackDetail = {
 function setupMocks({
   hasKb = true,
   hasGenAi = false,
-}: { hasKb?: boolean; hasGenAi?: boolean } = {}) {
-  jest.spyOn(kbHooks, 'useKnowledgeBaseUploadPermission').mockReturnValue(hasKb);
-  jest.spyOn(marketingWriterHooks, 'useMarketingWriterPermission').mockReturnValue(hasGenAi);
+  hasLeaflet = false,
+}: { hasKb?: boolean; hasGenAi?: boolean; hasLeaflet?: boolean } = {}) {
+  mockHasPermission = (p) =>
+    (hasKb && p === 'customer.knowledge_base.write') ||
+    (hasGenAi && p === 'marketing.article.write') ||
+    (hasLeaflet && p === 'marketing.leaflet.write');
 
   jest.spyOn(kbAdapter, 'useKbFeedbackAdapter').mockReturnValue({
     ...emptyAdapterResult,
@@ -56,7 +65,10 @@ function setupMocks({
   jest.spyOn(articleAdapter, 'useArticleFeedbackAdapter').mockReturnValue(emptyAdapterResult);
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockHasPermission = () => false;
+});
 
 test('renders three tab buttons', () => {
   setupMocks();
@@ -97,6 +109,13 @@ test('allows access when user has only GenAI role', () => {
   expect(screen.getByRole('button', { name: /letáky/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /články/i })).toBeInTheDocument();
   expect(screen.queryByText('Přístup odepřen.')).not.toBeInTheDocument();
+});
+
+test('allows access when user has only marketing.leaflet.write', () => {
+  setupMocks({ hasKb: false, hasGenAi: false, hasLeaflet: true });
+  render(<MarketingFeedbackPage />);
+  expect(screen.queryByText('Přístup odepřen.')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /letáky/i })).toBeInTheDocument();
 });
 
 test('shows access denied when user has no roles', () => {
