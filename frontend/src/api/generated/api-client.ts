@@ -14939,6 +14939,8 @@ export class GroupSummaryDto implements IGroupSummaryDto {
     permissionCount?: number;
     parentCount?: number;
     memberCount?: number;
+    permissions?: string[];
+    parentGroupIds?: string[];
 
     constructor(data?: IGroupSummaryDto) {
         if (data) {
@@ -14957,6 +14959,16 @@ export class GroupSummaryDto implements IGroupSummaryDto {
             this.permissionCount = _data["permissionCount"];
             this.parentCount = _data["parentCount"];
             this.memberCount = _data["memberCount"];
+            if (Array.isArray(_data["permissions"])) {
+                this.permissions = [] as any;
+                for (let item of _data["permissions"])
+                    this.permissions!.push(item);
+            }
+            if (Array.isArray(_data["parentGroupIds"])) {
+                this.parentGroupIds = [] as any;
+                for (let item of _data["parentGroupIds"])
+                    this.parentGroupIds!.push(item);
+            }
         }
     }
 
@@ -14975,6 +14987,16 @@ export class GroupSummaryDto implements IGroupSummaryDto {
         data["permissionCount"] = this.permissionCount;
         data["parentCount"] = this.parentCount;
         data["memberCount"] = this.memberCount;
+        if (Array.isArray(this.permissions)) {
+            data["permissions"] = [];
+            for (let item of this.permissions)
+                data["permissions"].push(item);
+        }
+        if (Array.isArray(this.parentGroupIds)) {
+            data["parentGroupIds"] = [];
+            for (let item of this.parentGroupIds)
+                data["parentGroupIds"].push(item);
+        }
         return data;
     }
 }
@@ -14986,6 +15008,8 @@ export interface IGroupSummaryDto {
     permissionCount?: number;
     parentCount?: number;
     memberCount?: number;
+    permissions?: string[];
+    parentGroupIds?: string[];
 }
 
 export class GetGroupDetailResponse extends BaseResponse implements IGetGroupDetailResponse {
@@ -32586,6 +32610,7 @@ export interface IGetOrderTrackingNumberResponse extends IBaseResponse {
 
 export class GetPackingDashboardResponse extends BaseResponse implements IGetPackingDashboardResponse {
     ordersBeingPackedCount?: number | undefined;
+    ordersBeingPackedCountLastSync?: Date | undefined;
     totalOrdersPackedToday?: number;
     packedByPacker?: PackerStatsDto[];
 
@@ -32597,6 +32622,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
         super.init(_data);
         if (_data) {
             this.ordersBeingPackedCount = _data["ordersBeingPackedCount"];
+            this.ordersBeingPackedCountLastSync = _data["ordersBeingPackedCountLastSync"] ? new Date(_data["ordersBeingPackedCountLastSync"].toString()) : <any>undefined;
             this.totalOrdersPackedToday = _data["totalOrdersPackedToday"];
             if (Array.isArray(_data["packedByPacker"])) {
                 this.packedByPacker = [] as any;
@@ -32616,6 +32642,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["ordersBeingPackedCount"] = this.ordersBeingPackedCount;
+        data["ordersBeingPackedCountLastSync"] = this.ordersBeingPackedCountLastSync ? this.ordersBeingPackedCountLastSync.toISOString() : <any>undefined;
         data["totalOrdersPackedToday"] = this.totalOrdersPackedToday;
         if (Array.isArray(this.packedByPacker)) {
             data["packedByPacker"] = [];
@@ -32629,6 +32656,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
 
 export interface IGetPackingDashboardResponse extends IBaseResponse {
     ordersBeingPackedCount?: number | undefined;
+    ordersBeingPackedCountLastSync?: Date | undefined;
     totalOrdersPackedToday?: number;
     packedByPacker?: PackerStatsDto[];
 }

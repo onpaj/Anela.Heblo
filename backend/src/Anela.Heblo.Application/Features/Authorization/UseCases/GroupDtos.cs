@@ -8,6 +8,8 @@ public class GroupSummaryDto
     public int PermissionCount { get; set; }
     public int ParentCount { get; set; }
     public int MemberCount { get; set; }
+    public List<string> Permissions { get; set; } = new();
+    public List<Guid> ParentGroupIds { get; set; } = new();
 }
 
 public class GroupDetailDto
