@@ -87,7 +87,6 @@ public class SaveGridLayoutHandlerTests
             .Setup(x => x.UpsertAsync("user-1", "test-grid", It.IsAny<string>(), default))
             .ThrowsAsync(new GridLayoutPersistenceException(
                 "GridLayout persistence error during UpsertAsync: relation \"GridLayouts\" does not exist",
-                sqlState: "42P01",
                 new InvalidOperationException("simulated underlying driver exception")));
 
         var request = new SaveGridLayoutRequest { GridKey = "test-grid", Columns = new List<GridColumnStateDto>() };

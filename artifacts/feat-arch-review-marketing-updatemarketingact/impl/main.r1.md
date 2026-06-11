@@ -1,50 +1,54 @@
 ---
 
-# Implementation: Marketing Module — Consistent DB Save Error Handling for Update and Delete Handlers
+# Implementation: Encapsulate Collection Replacement in MarketingAction Domain Entity
 
 ## What was implemented
 
-Added a `try/catch (Exception)` guard around the DB save calls in `UpdateMarketingActionHandler` and `DeleteMarketingActionHandler`, mirroring the pattern already in `CreateMarketingActionHandler`. On DB failure after a successful Outlook write, each handler now logs a structured `LogError` and returns `ErrorCodes.DatabaseError` instead of letting the exception surface as HTTP 500.
+Added `ReplaceProductAssociations` and `ReplaceFolderLinks` to the `MarketingAction` aggregate root, then refactored `UpdateMarketingActionHandler` to delegate to them instead of directly mutating EF Core navigation collections.
 
 ## Files created/modified
 
-- `backend/src/Anela.Heblo.Application/Features/Marketing/UseCases/UpdateMarketingAction/UpdateMarketingActionHandler.cs` — wrapped `UpdateAsync` + `SaveChangesAsync` in try/catch; logs `{ActionId}`, `{EventId}`, greppable phrase "may now be out of sync"; returns `ErrorCodes.DatabaseError`
-- `backend/src/Anela.Heblo.Application/Features/Marketing/UseCases/DeleteMarketingAction/DeleteMarketingActionHandler.cs` — wrapped `DeleteSoftAsync` in try/catch; logs `{ActionId}`, `{EventId}`, greppable phrase "already deleted — DB row still present"; returns `ErrorCodes.DatabaseError`
-- `backend/test/Anela.Heblo.Tests/Application/Marketing/UpdateMarketingActionHandlerTests.cs` — added `Handle_ReturnsDatabaseError_WhenDbSaveFails` test; asserts `Success == false`, `ErrorCode == DatabaseError`, Outlook update called once, no Outlook rollback, error log contains "may now be out of sync"
-- `backend/test/Anela.Heblo.Tests/Application/Marketing/DeleteMarketingActionHandlerTests.cs` — added `Handle_ReturnsDatabaseError_WhenDbDeleteFails` test; asserts `Success == false`, `ErrorCode == DatabaseError`, Outlook delete called once, error log contains "already deleted"
+- `backend/src/Anela.Heblo.Domain/Features/Marketing/MarketingAction.cs` — two new domain methods: `ReplaceProductAssociations(IEnumerable<string>?, DateTime)` and `ReplaceFolderLinks(IEnumerable<(string, MarketingFolderType)>?, DateTime)`, each with XML docs covering null→empty, normalization, dedup key, and the folderLink/composite-key asymmetry
+- `backend/src/Anela.Heblo.Application/Features/Marketing/UseCases/UpdateMarketingAction/UpdateMarketingActionHandler.cs` — replaced lines 95–111 (17-line Clear+loop block) with two delegated calls
+- `backend/test/Anela.Heblo.Tests/Domain/Marketing/MarketingActionReplaceProductAssociationsTests.cs` — 9 unit tests: empty, null, normalize+dedup, throw-on-invalid (theory×3), delta, utcNow, MarketingActionId
+- `backend/test/Anela.Heblo.Tests/Domain/Marketing/MarketingActionReplaceFolderLinksTests.cs` — 11 unit tests: empty, null, trim, composite-key dedup, same-key-diff-type, throw-on-invalid (theory×3), delta, utcNow, MarketingActionId
+- `backend/test/Anela.Heblo.Tests/Application/Marketing/UpdateMarketingActionHandlerTests.cs` — added `BuildExistingActionWithCollections()` helper + 2 new tests locking in clear-on-null and delta-replace contracts
 
 ## Tests
 
-All 27 Marketing handler tests pass (`dotnet test --filter "FullyQualifiedName~Application.Marketing"` — 0 failures, 0 skipped).
-
-- `UpdateMarketingActionHandlerTests` — 11 tests including new DB-failure test
-- `DeleteMarketingActionHandlerTests` — 9 tests including new DB-failure test
-- `CreateMarketingActionHandlerTests` — 7 tests, all unchanged and still passing
+- `MarketingActionReplaceProductAssociationsTests` — 9 tests, all pass
+- `MarketingActionReplaceFolderLinksTests` — 11 tests, all pass
+- `UpdateMarketingActionHandlerTests` — 13 tests total (11 existing + 2 new), all pass
+- 178 Marketing tests total, all green; full suite 4802 pass, 38 pre-existing Docker integration failures (unrelated)
 
 ## How to verify
 
 ```bash
-dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
-  --filter "FullyQualifiedName~Application.Marketing"
-# Expected: 27 passed, 0 failed
+cd backend
+dotnet build --no-restore
+dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~Marketing" --no-restore
+# Verify no direct collection mutations remain in Application layer:
+grep -rn "ProductAssociations\.Clear\|FolderLinks\.Clear" src/Anela.Heblo.Application/ || echo "No direct mutations"
 ```
 
 ## Notes
 
-- The solution-wide build fails due to missing NuGet restore assets in the worktree (pre-existing, not caused by this change). The Application project and test project both build cleanly.
-- Integration tests were not added — no existing `WebApplicationFactory`-based harness covers Marketing endpoints, per the arch-review specification amendment.
-- `CreateMarketingActionHandler` is untouched (FR-4).
+- Dedup key for `ReplaceFolderLinks` is composite `(folderKey, folderType)`, intentionally stricter than `LinkToFolder` (which dedupes by `folderKey` alone) — documented in XML doc comment
+- Both new methods validate per-entry null/whitespace and throw `ArgumentException` (matching existing single-add methods)
+- `null` sequence is treated as empty, consistent with spec FR-1/FR-2
+- No new NuGet packages, no EF config changes, no migrations needed
+- All commits are on `feat-arch-review-marketing-updatemarketingact` branch
 
 ## PR Summary
 
-Added guarded DB save error handling to `UpdateMarketingActionHandler` and `DeleteMarketingActionHandler` to match the existing pattern in `CreateMarketingActionHandler`. Previously, a DB failure after a successful Outlook write in these two handlers would propagate as an unhandled HTTP 500 and leave Outlook and the database silently diverged. Now both handlers catch the exception, log a structured error (with `{ActionId}`, `{EventId}`, and a greppable phrase), and return a `DatabaseError` response envelope.
+Encapsulates collection replacement in the `MarketingAction` aggregate by adding `ReplaceProductAssociations` and `ReplaceFolderLinks` domain methods, and refactoring `UpdateMarketingActionHandler` to delegate to them instead of directly calling `.Clear()` on EF navigation properties. This removes a persistence-layer concern from the Application layer and gives the domain entity full control over its invariants (normalization, deduplication, validation) for both add and replace operations.
 
 ### Changes
-- `UpdateMarketingActionHandler.cs` — try/catch around `UpdateAsync` + `SaveChangesAsync`; `LogError` with "may now be out of sync"; returns `ErrorCodes.DatabaseError`
-- `DeleteMarketingActionHandler.cs` — try/catch around `DeleteSoftAsync`; `LogError` with "already deleted — DB row still present"; returns `ErrorCodes.DatabaseError`
-- `UpdateMarketingActionHandlerTests.cs` — `Handle_ReturnsDatabaseError_WhenDbSaveFails` covering response shape, no Outlook rollback, and log assertion
-- `DeleteMarketingActionHandlerTests.cs` — `Handle_ReturnsDatabaseError_WhenDbDeleteFails` covering response shape, Outlook delete called once, and log assertion
+- `MarketingAction.cs` — two new replace methods with full XML documentation
+- `UpdateMarketingActionHandler.cs` — 17-line Clear+loop block replaced with 3-line delegation
+- `MarketingActionReplaceProductAssociationsTests.cs` — new file, 9 domain unit tests
+- `MarketingActionReplaceFolderLinksTests.cs` — new file, 11 domain unit tests
+- `UpdateMarketingActionHandlerTests.cs` — 2 new handler tests locking in clear-on-null and delta-replace contracts
 
 ## Status
-
 DONE

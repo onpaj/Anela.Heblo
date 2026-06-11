@@ -2,22 +2,35 @@ import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import PackingLabelPrinter from '../PackingLabelPrinter';
 import { printLabelPdf } from '../printLabelPdf';
+import { useOrderTrackingNumber } from '../../../api/hooks/useOrderTrackingNumber';
 import type { PackingOrder, ScanShipment } from '../../../api/hooks/useScanPackingOrder';
 
 jest.mock('../printLabelPdf', () => ({
   printLabelPdf: jest.fn(),
 }));
 
+jest.mock('../../../api/hooks/useOrderTrackingNumber', () => ({
+  useOrderTrackingNumber: jest.fn(() => ({ data: null })),
+}));
+
 jest.mock('../PackingShipmentDoneView', () => ({
   __esModule: true,
-  default: ({ onReprint }: { onReprint: () => void }) => (
+  default: ({
+    resolvedTrackingNumber,
+    onReprint,
+  }: {
+    resolvedTrackingNumber?: string | null;
+    onReprint: () => void;
+  }) => (
     <div data-testid="done-view">
+      <span data-testid="done-tracking">{resolvedTrackingNumber ?? ''}</span>
       <button data-testid="reprint" onClick={onReprint}>R</button>
     </div>
   ),
 }));
 
 const mockPrintLabelPdf = printLabelPdf as jest.MockedFunction<typeof printLabelPdf>;
+const mockUseOrderTrackingNumber = useOrderTrackingNumber as jest.MockedFunction<typeof useOrderTrackingNumber>;
 
 const makeOrder = (code: string): PackingOrder => ({
   code,
@@ -59,6 +72,8 @@ function fireAck(callIndex: number): void {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mockUseOrderTrackingNumber.mockReturnValue({ data: null } as any);
 });
 
 describe('PackingLabelPrinter', () => {
@@ -68,6 +83,21 @@ describe('PackingLabelPrinter', () => {
     );
     expect(container).toBeEmptyDOMElement();
     expect(mockPrintLabelPdf).not.toHaveBeenCalled();
+  });
+
+  it('auto-prints exactly once under React.StrictMode (no double print)', () => {
+    render(
+      <React.StrictMode>
+        <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />
+      </React.StrictMode>
+    );
+
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(1);
+    expect(mockPrintLabelPdf).toHaveBeenCalledWith(
+      '250001',
+      expectedLabel('guid-1', 'PKG-1', 'https://x.com/1.pdf'),
+      expect.any(Function)
+    );
   });
 
   it('auto-prints first label on mount with an onAfterPrint callback', () => {
@@ -212,5 +242,19 @@ describe('PackingLabelPrinter', () => {
       expect.any(Function)
     );
     expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+  });
+
+  it('passes the resolved tracking number into the done view once printing is finished', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockUseOrderTrackingNumber.mockReturnValue({ data: '2421907688' } as any);
+
+    render(
+      <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />
+    );
+    fireAck(0);
+
+    expect(mockUseOrderTrackingNumber).toHaveBeenCalledWith('250001', true);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+    expect(screen.getByTestId('done-tracking')).toHaveTextContent('2421907688');
   });
 });

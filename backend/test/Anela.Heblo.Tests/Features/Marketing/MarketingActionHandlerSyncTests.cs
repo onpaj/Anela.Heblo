@@ -283,8 +283,11 @@ namespace Anela.Heblo.Tests.Features.Marketing
                 .ReturnsAsync(existingAction);
 
             _repositoryMock
-                .Setup(x => x.DeleteSoftAsync(42, AuthenticatedUser.Id!, AuthenticatedUser.Name!, It.IsAny<CancellationToken>()))
+                .Setup(x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
+            _repositoryMock
+                .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(1);
 
             _outlookSyncMock
                 .Setup(s => s.DeleteEventAsync("evt-to-delete", It.IsAny<CancellationToken>()))
@@ -302,7 +305,10 @@ namespace Anela.Heblo.Tests.Features.Marketing
                 Times.Once);
             _outlookSyncMock.VerifyNoOtherCalls();
             _repositoryMock.Verify(
-                x => x.DeleteSoftAsync(42, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
+                Times.Once);
+            _repositoryMock.Verify(
+                x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
                 Times.Once);
         }
 
@@ -327,7 +333,10 @@ namespace Anela.Heblo.Tests.Features.Marketing
             // Assert — fail-fast: Outlook error blocks soft-delete (non-404 errors are not swallowed)
             result.Success.Should().BeFalse();
             _repositoryMock.Verify(
-                x => x.DeleteSoftAsync(42, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _repositoryMock.Verify(
+                x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
                 Times.Never);
         }
     }

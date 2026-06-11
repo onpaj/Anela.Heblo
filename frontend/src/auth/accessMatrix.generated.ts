@@ -102,4 +102,6 @@ export const ACCESS_ROLES = [
   "admin.administration.write",
   "admin.feature_flags.read",
   "admin.feature_flags.write",
+  "jobs.trigger.read",
+  "jobs.disable.read",
 ] as const;

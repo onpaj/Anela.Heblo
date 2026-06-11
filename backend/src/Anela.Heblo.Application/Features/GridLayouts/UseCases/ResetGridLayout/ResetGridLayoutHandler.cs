@@ -33,8 +33,8 @@ public class ResetGridLayoutHandler : IRequestHandler<ResetGridLayoutRequest, Re
         catch (GridLayoutPersistenceException ex)
         {
             _logger.LogError(ex,
-                "Database error resetting GridLayout for user={UserId} gridKey={GridKey} SqlState={SqlState}",
-                userId, request.GridKey, ex.SqlState);
+                "Database error resetting GridLayout for user={UserId} gridKey={GridKey}",
+                userId, request.GridKey);
             return new ResetGridLayoutResponse(ErrorCodes.DatabaseError);
         }
     }

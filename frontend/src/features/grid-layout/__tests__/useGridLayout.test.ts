@@ -167,3 +167,66 @@ describe('useGridLayout — mutators', () => {
     );
   });
 });
+
+describe('useGridLayout — DB-error preservation', () => {
+  it('falls back to default state when initial load fails (first mount, empty state)', async () => {
+    mockGridLayouts_Get.mockRejectedValueOnce(new Error('HTTP 500'));
+
+    const { result } = renderHook(() => useGridLayout('test-grid', mockColumns));
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    expect(result.current.columnState.map((c) => c.id)).toEqual(['name', 'stock', 'reserve']);
+    expect(result.current.columnState.every((c) => !c.hidden)).toBe(true);
+  });
+
+  it('preserves existing columnState when a re-load fails (non-empty state)', async () => {
+    // First mount: successful load with a custom saved layout.
+    const savedLayout = new GridLayoutDto();
+    const c1 = new GridColumnStateDto();
+    c1.id = 'name';
+    c1.order = 0;
+    c1.hidden = false;
+    const c2 = new GridColumnStateDto();
+    c2.id = 'reserve';
+    c2.order = 1;
+    c2.hidden = false;
+    const c3 = new GridColumnStateDto();
+    c3.id = 'stock';
+    c3.order = 2;
+    c3.hidden = true; // user had hidden stock
+    savedLayout.columns = [c1, c2, c3];
+    mockGridLayouts_Get.mockResolvedValueOnce(savedLayout);
+
+    const { result, rerender } = renderHook(
+      ({ gridKey }) => useGridLayout(gridKey, mockColumns),
+      { initialProps: { gridKey: 'grid-a' } },
+    );
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+    const stateBeforeReload = result.current.columnState;
+    expect(stateBeforeReload.find((c) => c.id === 'stock')?.hidden).toBe(true);
+    expect(stateBeforeReload.map((c) => c.id)).toEqual(['name', 'reserve', 'stock']);
+
+    // Re-load triggered by gridKey change: backend returns non-2xx.
+    mockGridLayouts_Get.mockRejectedValueOnce(new Error('HTTP 500'));
+    rerender({ gridKey: 'grid-b' });
+    // Wait for the hook to complete processing the error and updating state
+    // The test should FAIL here because the current implementation resets to default state
+    await waitFor(
+      () => {
+        // The API should have been called
+        expect(mockGridLayouts_Get).toHaveBeenCalledWith('grid-b');
+      },
+      { timeout: 1000 },
+    );
+
+    // Add explicit wait for state to settle after async operations
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 100));
+    });
+
+    // columnState must be preserved — user's hidden 'stock' column must still be hidden,
+    // and the user's order ['name', 'reserve', 'stock'] must remain.
+    expect(result.current.columnState.find((c) => c.id === 'stock')?.hidden).toBe(true);
+    expect(result.current.columnState.map((c) => c.id)).toEqual(['name', 'reserve', 'stock']);
+  });
+});

@@ -21,7 +21,7 @@ import {
   useUpdateProposedTask,
   useUpdateProposedTaskStatus,
 } from "../../../api/hooks/useMeetingTasks";
-import { useMeetingManagerPermission } from '../../../api/hooks/useMeetingManagerPermission';
+import { usePermissionsContext } from '../../../auth/PermissionsContext';
 import { useExplainSelection } from './explain/useExplainSelection';
 import { ExplainTooltip } from './explain/ExplainTooltip';
 import { ExplainModal } from './explain/ExplainModal';
@@ -104,7 +104,8 @@ const MeetingTaskDetailPage: React.FC = () => {
   const [accessModalOpen, setAccessModalOpen] = useState(false);
   const reimport = useReimportMeeting();
   const [reimportError, setReimportError] = useState<string | null>(null);
-  const isMeetingManager = useMeetingManagerPermission();
+  const { hasPermission } = usePermissionsContext();
+  const isMeetingManager = hasPermission('anela.meetings.write');
 
   const explainSelection = useExplainSelection();
   const explainMutation = useExplainMeetingSummary();

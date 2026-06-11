@@ -66,10 +66,104 @@ public class PackageRepository : IPackageRepository
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task AddMissingAsync(IReadOnlyList<Package> packages, CancellationToken cancellationToken = default)
+    {
+        if (packages.Count == 0)
+            return;
+
+        var orderCodes = packages.Select(p => p.OrderCode).Distinct().ToList();
+        var existing = await _db.Packages
+            .AsNoTracking()
+            .Where(p => orderCodes.Contains(p.OrderCode))
+            .Select(p => new { p.OrderCode, p.PackageNumber })
+            .ToListAsync(cancellationToken);
+
+        var existingKeys = existing
+            .Select(p => (p.OrderCode, p.PackageNumber))
+            .ToHashSet();
+
+        var toAdd = packages
+            .Where(p => existingKeys.Add((p.OrderCode, p.PackageNumber)))
+            .ToList();
+
+        if (toAdd.Count == 0)
+            return;
+
+        await _db.Packages.AddRangeAsync(toAdd, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task DeleteAsync(Package package, CancellationToken cancellationToken = default)
     {
         _db.Packages.Remove(package);
         await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<List<Package>> GetWithNullTrackingNumberAsync(
+        int daysBack,
+        CancellationToken cancellationToken = default)
+    {
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-daysBack);
+        return await _db.Packages
+            .AsNoTracking()
+            .Where(p => p.TrackingNumber == null && p.CreatedAt >= cutoff)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task SetTrackingNumberAsync(
+        int id,
+        string trackingNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var package = await _db.Packages.FindAsync([id], cancellationToken);
+        if (package is null)
+            return;
+        package.TrackingNumber = trackingNumber;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SetTrackingNumberByOrderCodeAsync(
+        string orderCode,
+        string trackingNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var packages = await _db.Packages
+            .Where(p => p.OrderCode == orderCode && p.TrackingNumber == null)
+            .ToListAsync(cancellationToken);
+
+        if (packages.Count == 0)
+            return;
+
+        foreach (var package in packages)
+            package.TrackingNumber = trackingNumber;
+
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<(int TotalDistinctOrders, IReadOnlyList<PackerPackingSummary> ByPacker)>
+        GetPackedTodayByPackerAsync(DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct = default)
+    {
+        // Npgsql requires UTC-zero DateTimeOffset values for timestamptz comparisons.
+        var from = fromUtc.ToUniversalTime();
+        var to = toUtc.ToUniversalTime();
+
+        // SELECT DISTINCT (packer, orderCode) triples — far fewer rows than loading all packages.
+        var pairs = await _db.Packages
+            .AsNoTracking()
+            .Where(p => p.PackedAt >= from && p.PackedAt < to)
+            .Select(p => new { p.PackedByUserId, p.PackedBy, p.OrderCode })
+            .Distinct()
+            .ToListAsync(ct);
+
+        var byPacker = pairs
+            .GroupBy(p => new { p.PackedByUserId, p.PackedBy })
+            .Select(g => new PackerPackingSummary(g.Key.PackedByUserId, g.Key.PackedBy, g.Count()))
+            .OrderByDescending(x => x.DistinctOrderCount)
+            .ToList();
+
+        var total = pairs.Select(p => p.OrderCode).Distinct().Count();
+
+        return (total, byPacker);
     }
 
     private static string EscapeLike(string value) =>

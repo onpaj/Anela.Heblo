@@ -17,6 +17,7 @@ export function useKbFeedbackAdapter(params: GenericFeedbackParams) {
     secondaryText: log.answer ?? '',
     createdAt: log.createdAt,
     userId: log.userId ?? undefined,
+    userName: log.userName ?? undefined,
     precisionScore: log.precisionScore,
     styleScore: log.styleScore,
     hasFeedback: log.hasFeedback,

@@ -1004,7 +1004,7 @@ public class ShoptetApiExpeditionListSourceTests
 
     [Theory]
     [InlineData("ZASILKOVNA_DO_RUKY", "Zásilkovna (do ruky)")]
-    [InlineData("ZASILKOVNA_ZPOINT", "Zásilkovna Z-Point")]
+    [InlineData("ZASILKOVNA_ZPOINT", "Zásilkovna – Výdejní místa a Z-boxy")]
     [InlineData("ZASILKOVNA_DO_RUKY_SK", "Zásilkovna (do ruky) SK")]
     [InlineData("ZASILKOVNA_DO_RUKY_CHLAZENY", "Zásilkovna chlazený balík (do ruky)")]
     [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY", "Zásilkovna Z-Point chlazený balík")]
@@ -1021,6 +1021,14 @@ public class ShoptetApiExpeditionListSourceTests
     [InlineData("GLS_EXPORT", "GLS Export")]
     [InlineData("GLS_PARCELSHOP", "GLS ParcelShop")]
     [InlineData("OSOBAK", "Osobní odběr")]
+    // 2025+ carrier scheme (box & výdejní místa / do ruky).
+    [InlineData("PPL_BOX", "PPL přímo do PPL boxu")]
+    [InlineData("PPL_VYDEJNI_MISTA", "PPL výdejní místa a Alzaboxy")]
+    [InlineData("PPL_DO_RUKY_NEW", "PPL do ruky")]
+    [InlineData("ZASILKOVNA_BOXY_VYDEJNI", "Zásilkovna boxy a výdejní místa")]
+    [InlineData("ZASILKOVNA_DO_RUKY_NEW", "Zásilkovna do ruky")]
+    [InlineData("GLS_BOXY_VYDEJNI", "GLS boxy a výdejní místa")]
+    [InlineData("GLS_DO_RUKY_NEW", "GLS do ruky")]
     public void ShippingMethod_DisplayName_IsSetForAllRegisteredMethods(string methodName, string expectedDisplayName)
     {
         var method = ShippingMethodRegistry.ShippingList
@@ -1055,7 +1063,7 @@ public class ShoptetApiExpeditionListSourceTests
         await source.CreatePickingList(DefaultRequest(), null);
 
         capturedData.Should().ContainSingle()
-            .Which.CarrierDisplayName.Should().Be("Zásilkovna Z-Point");
+            .Which.CarrierDisplayName.Should().Be("Zásilkovna – Výdejní místa a Z-boxy");
     }
 
     // ─── ResolveGiftBadge ─────────────────────────────────────────────────────────

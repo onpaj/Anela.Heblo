@@ -84,6 +84,7 @@ export interface ArticleFeedbackSummary {
   topic: string;
   title: string | null;
   requestedBy: string;
+  userName: string | null;
   createdAt: string | null;
   precisionScore: number | null;
   styleScore: number | null;
@@ -262,6 +263,7 @@ export const useArticleFeedbackListQuery = (params: ArticleFeedbackListParams = 
           topic: item.topic ?? '',
           title: item.title ?? null,
           requestedBy: item.requestedBy ?? '',
+          userName: item.userName ?? null,
           createdAt: item.createdAt?.toISOString() ?? null,
           precisionScore: item.precisionScore ?? null,
           styleScore: item.styleScore ?? null,
