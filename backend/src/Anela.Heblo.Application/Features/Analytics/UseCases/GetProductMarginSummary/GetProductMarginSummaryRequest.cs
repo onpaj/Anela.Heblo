@@ -10,7 +10,7 @@ public class GetProductMarginSummaryRequest : IRequest<GetProductMarginSummaryRe
     public ProductGroupingMode GroupingMode { get; set; } = ProductGroupingMode.Products; // Products, ProductFamily, ProductType
 
     // Margin level for display (determines which margin values to show)
-    public string MarginLevel { get; set; } = "M2"; // M0, M1, M2 (default M2 - sales & marketing margin)
+    public MarginLevel MarginLevel { get; set; } = MarginLevel.M2;
 
     // Sorting parameters
     public string? SortBy { get; set; } // Column to sort by (m0percentage, m1amount, totalmargin, etc.)

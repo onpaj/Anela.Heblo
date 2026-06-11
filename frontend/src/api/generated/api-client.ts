@@ -48,7 +48,7 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    analytics_GetProductMarginSummary(timeWindow: string | undefined, topProductCount: number | undefined, groupingMode: ProductGroupingMode | undefined, marginLevel: string | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetProductMarginSummaryResponse> {
+    analytics_GetProductMarginSummary(timeWindow: string | undefined, topProductCount: number | undefined, groupingMode: ProductGroupingMode | undefined, marginLevel: MarginLevel | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetProductMarginSummaryResponse> {
         let url_ = this.baseUrl + "/api/Analytics/product-margin-summary?";
         if (timeWindow === null)
             throw new Error("The parameter 'timeWindow' cannot be null.");
@@ -12667,7 +12667,7 @@ export class GetProductMarginSummaryResponse extends BaseResponse implements IGe
     totalMargin?: number;
     timeWindow?: string;
     groupingMode?: ProductGroupingMode;
-    marginLevel?: string;
+    marginLevel?: MarginLevel;
     fromDate?: Date;
     toDate?: Date;
 
@@ -12733,7 +12733,7 @@ export interface IGetProductMarginSummaryResponse extends IBaseResponse {
     totalMargin?: number;
     timeWindow?: string;
     groupingMode?: ProductGroupingMode;
-    marginLevel?: string;
+    marginLevel?: MarginLevel;
     fromDate?: Date;
     toDate?: Date;
 }
@@ -12990,6 +12990,12 @@ export enum ProductGroupingMode {
     Products = "Products",
     ProductFamily = "ProductFamily",
     ProductCategory = "ProductCategory",
+}
+
+export enum MarginLevel {
+    M0 = "M0",
+    M1 = "M1",
+    M2 = "M2",
 }
 
 export enum ErrorCodes {

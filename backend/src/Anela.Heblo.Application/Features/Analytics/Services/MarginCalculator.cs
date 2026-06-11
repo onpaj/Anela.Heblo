@@ -9,7 +9,7 @@ public interface IMarginCalculator
         IAsyncEnumerable<AnalyticsProduct> products,
         DateRange dateRange,
         ProductGroupingMode groupingMode,
-        string marginLevel = "M2",
+        MarginLevel marginLevel = MarginLevel.M2,
         CancellationToken cancellationToken = default);
 
     string GetGroupKey(AnalyticsProduct product, ProductGroupingMode groupingMode);
@@ -19,7 +19,7 @@ public interface IMarginCalculator
         ProductGroupingMode groupingMode,
         List<AnalyticsProduct> products);
 
-    decimal GetMarginAmountForLevel(AnalyticsProduct product, string marginLevel);
+    decimal GetMarginAmountForLevel(AnalyticsProduct product, MarginLevel marginLevel);
 
     /// <remarks>
     /// Caller must pre-filter salesInPeriod to the desired period; the calculator sums verbatim.
@@ -44,7 +44,7 @@ public class MarginCalculator : IMarginCalculator
         IAsyncEnumerable<AnalyticsProduct> products,
         DateRange dateRange,
         ProductGroupingMode groupingMode,
-        string marginLevel = "M2",
+        MarginLevel marginLevel = MarginLevel.M2,
         CancellationToken cancellationToken = default)
     {
         var groupTotals = new Dictionary<string, decimal>();
@@ -113,14 +113,14 @@ public class MarginCalculator : IMarginCalculator
     /// <summary>
     /// Gets the margin amount for a specific margin level
     /// </summary>
-    public decimal GetMarginAmountForLevel(AnalyticsProduct product, string marginLevel)
+    public decimal GetMarginAmountForLevel(AnalyticsProduct product, MarginLevel marginLevel)
     {
-        return marginLevel.ToUpperInvariant() switch
+        return marginLevel switch
         {
-            "M0" => product.M0Amount,
-            "M1" => product.M1Amount,
-            "M2" => product.M2Amount,
-            _ => product.M2Amount // Default to M2
+            MarginLevel.M0 => product.M0Amount,
+            MarginLevel.M1 => product.M1Amount,
+            MarginLevel.M2 => product.M2Amount,
+            _ => throw new ArgumentOutOfRangeException(nameof(marginLevel), marginLevel, null),
         };
     }
 

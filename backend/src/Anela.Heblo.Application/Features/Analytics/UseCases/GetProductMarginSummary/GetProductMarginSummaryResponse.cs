@@ -11,7 +11,7 @@ public class GetProductMarginSummaryResponse : BaseResponse
     public decimal TotalMargin { get; set; }
     public string TimeWindow { get; set; } = string.Empty;
     public ProductGroupingMode GroupingMode { get; set; }
-    public string MarginLevel { get; set; } = "M2"; // Selected margin level (M0, M1, M2)
+    public MarginLevel MarginLevel { get; set; } = MarginLevel.M2;
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
 }
