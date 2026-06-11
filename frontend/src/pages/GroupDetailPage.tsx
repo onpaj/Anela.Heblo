@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   useGroup,
@@ -24,6 +24,7 @@ import {
   draftsEqual,
   useUnsavedChangesDialog,
 } from "../hooks/useUnsavedChangesDialog";
+import { resolveInheritedPermissions } from "../components/access-management/groupClosure";
 
 interface GroupDraft {
   name: string;
@@ -94,7 +95,7 @@ export default function GroupDetailPage() {
   const groupQuery = useGroup(isCreateMode ? null : id);
   const usersQuery = useUsers();
   useCatalogue();
-  useGroups();
+  const groupsQuery = useGroups();
 
   const updateGroup = useUpdateGroup();
   const createGroup = useCreateGroup();
@@ -137,6 +138,18 @@ export default function GroupDetailPage() {
 
   const updateDraft = (patch: Partial<GroupDraft>) =>
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+
+  // Permissions already covered by the currently selected included groups
+  // (transitive closure over their parents). Recomputes live as included
+  // groups change, so the highlight updates without saving.
+  const inheritedPermissionIds = useMemo(() => {
+    const graph = (groupsQuery.data?.groups ?? []).map((g) => ({
+      id: g.id ?? "",
+      permissions: g.permissions ?? [],
+      parentGroupIds: g.parentGroupIds ?? [],
+    }));
+    return resolveInheritedPermissions(draft?.parentGroupIds ?? [], graph);
+  }, [groupsQuery.data, draft?.parentGroupIds]);
 
   const onSave = async (): Promise<boolean> => {
     if (!draft) return false;
@@ -320,6 +333,7 @@ export default function GroupDetailPage() {
               value={draft.permissions}
               onChange={(permissions) => updateDraft({ permissions })}
               fillHeight
+              inheritedIds={inheritedPermissionIds}
             />
           </div>
         </section>
