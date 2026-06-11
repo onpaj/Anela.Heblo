@@ -23,7 +23,7 @@ const UnsavedChangesDialog: React.FC<UnsavedChangesDialogProps> = ({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-        onClick={onKeepEditing}
+        onClick={isSaving ? undefined : onKeepEditing}
       />
 
       {/* Dialog */}
