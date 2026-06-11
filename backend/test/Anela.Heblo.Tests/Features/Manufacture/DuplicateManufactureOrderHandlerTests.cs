@@ -90,4 +90,30 @@ public class DuplicateManufactureOrderHandlerTests
 
         return order;
     }
+
+    [Fact]
+    public async Task Handle_ReturnsOrderNotFound_WhenSourceOrderDoesNotExist()
+    {
+        // Arrange
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(SourceOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder?)null);
+
+        var request = new DuplicateManufactureOrderRequest { SourceOrderId = SourceOrderId };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Should().NotBeNull();
+        response.ErrorCode.Should().Be(ErrorCodes.OrderNotFound);
+        response.Success.Should().BeFalse();
+
+        _repositoryMock.Verify(
+            x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
+        _repositoryMock.Verify(
+            x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }
