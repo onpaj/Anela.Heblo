@@ -37,6 +37,8 @@ public static class AccessMatrix
         new FeatureDefinition(Feature.Admin_DataQuality, "Kvalita dat", HasWrite: true),
         new FeatureDefinition(Feature.Admin_Administration, "Administrace", HasWrite: true),
         new FeatureDefinition(Feature.Admin_FeatureFlags, "Feature příznaky", HasWrite: true),
+        new FeatureDefinition(Feature.Jobs_Trigger, "Spouštění úloh"),
+        new FeatureDefinition(Feature.Jobs_Disable, "Vypínání úloh"),
     };
 
     public static readonly IReadOnlyList<MenuPath> MenuPaths = new[]

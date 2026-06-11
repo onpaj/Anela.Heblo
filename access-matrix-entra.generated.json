@@ -529,6 +529,26 @@
       "displayName": "admin.feature_flags.write",
       "isEnabled": true,
       "value": "admin.feature_flags.write"
+    },
+    {
+      "id": "52e9147e-b803-522c-8faa-dc5296fda879",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Jobs_Trigger Read",
+      "displayName": "jobs.trigger.read",
+      "isEnabled": true,
+      "value": "jobs.trigger.read"
+    },
+    {
+      "id": "7a33a913-ad91-59e2-a1ca-2ff17afdda50",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Jobs_Disable Read",
+      "displayName": "jobs.disable.read",
+      "isEnabled": true,
+      "value": "jobs.disable.read"
     }
   ],
   "groups": [
@@ -586,7 +606,9 @@
         "admin.administration.read",
         "admin.administration.write",
         "admin.feature_flags.read",
-        "admin.feature_flags.write"
+        "admin.feature_flags.write",
+        "jobs.trigger.read",
+        "jobs.disable.read"
       ]
     },
     {
@@ -694,7 +716,9 @@
         "products.journal.write",
         "warehouse.expedition.write",
         "warehouse.logistics.write",
-        "warehouse.stock_up.write"
+        "warehouse.stock_up.write",
+        "jobs.trigger.read",
+        "jobs.disable.read"
       ]
     },
     {
@@ -706,7 +730,8 @@
         "warehouse.packaging.read",
         "warehouse.packaging.write",
         "warehouse.stock_up.read",
-        "warehouse.stock_up.write"
+        "warehouse.stock_up.write",
+        "jobs.trigger.read"
       ]
     },
     {

@@ -12,14 +12,17 @@ import {
 import { useRunExpeditionListPrintFix } from "../api/hooks/useExpeditionList";
 import {
   useTriggerRecurringJobMutation,
-  useRecurringJobsQuery,
+  useRecurringJobQuery,
   useUpdateRecurringJobStatusMutation,
 } from "../api/hooks/useRecurringJobs";
+import { usePermissionsContext } from "../auth/PermissionsContext";
 import { useToast } from "../contexts/ToastContext";
 import { useScreenView } from "../telemetry/useScreenView";
 
 const PAGE_SIZE = 20;
 const PRINT_JOB_NAME = "print-picking-list";
+const TRIGGER_JOBS_PERMISSION = "jobs.trigger.read";
+const DISABLE_JOBS_PERMISSION = "jobs.disable.read";
 
 const formatFileSize = (bytes: number | null): string => {
   if (bytes === null) return "–";
@@ -54,8 +57,11 @@ const ExpeditionListArchivePage: React.FC = () => {
   const reprintMutation = useReprintExpeditionList();
   const triggerJobMutation = useTriggerRecurringJobMutation();
   const runFixMutation = useRunExpeditionListPrintFix();
-  const { data: jobs } = useRecurringJobsQuery();
-  const printJob = jobs?.find((j) => j.jobName === PRINT_JOB_NAME);
+
+  const { hasPermission } = usePermissionsContext();
+  const canTriggerJob = hasPermission(TRIGGER_JOBS_PERMISSION);
+  const canToggleJob = hasPermission(DISABLE_JOBS_PERMISSION);
+  const { data: printJob } = useRecurringJobQuery(PRINT_JOB_NAME, canTriggerJob || canToggleJob);
   const updateStatusMutation = useUpdateRecurringJobStatusMutation();
 
   // Auto-select the first (most recent) date when dates load
@@ -109,11 +115,11 @@ const ExpeditionListArchivePage: React.FC = () => {
       showSuccess(
         'Uloženo',
         printJob.isEnabled
-          ? 'Automatický tisk byl vypnut.'
-          : 'Automatický tisk byl zapnut.',
+          ? 'Expediční robot byl vypnut.'
+          : 'Expediční robot byl zapnut.',
       );
     } catch {
-      showError('Chyba', 'Nepodařilo se změnit nastavení automatického tisku.');
+      showError('Chyba', 'Nepodařilo se změnit nastavení expedičního robota.');
     }
   };
 
@@ -149,31 +155,35 @@ const ExpeditionListArchivePage: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">Archiv expedičních listů</h1>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">Automatický tisk</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={printJob?.isEnabled ?? false}
-                aria-label="Automatický tisk expedičního listu"
-                onClick={handleToggleJob}
-                disabled={!printJob || updateStatusMutation.isPending}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  printJob?.isEnabled ? "bg-indigo-600" : "bg-gray-200"
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    printJob?.isEnabled ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
+          {(canTriggerJob || canToggleJob) && (
+            <div className="flex items-center gap-3">
+              {canToggleJob && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700">Expediční robot</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={printJob?.isEnabled ?? false}
+                    aria-label="Expediční robot"
+                    onClick={handleToggleJob}
+                    disabled={!printJob || updateStatusMutation.isPending}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      printJob?.isEnabled ? "bg-indigo-600" : "bg-gray-200"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        printJob?.isEnabled ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+              )}
+              <span className="text-sm text-gray-500 whitespace-nowrap">
+                Další běh: {formatDateTime(printJob?.nextRunAt ? printJob.nextRunAt.toISOString() : null)}
+              </span>
             </div>
-            <span className="text-sm text-gray-500 whitespace-nowrap">
-              Další běh: {formatDateTime(printJob?.nextRunAt ? printJob.nextRunAt.toISOString() : null)}
-            </span>
-          </div>
+          )}
           <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
@@ -195,18 +205,20 @@ const ExpeditionListArchivePage: React.FC = () => {
             )}
             Spustit tisk oprav
           </button>
-          <button
-            onClick={handleRunJob}
-            disabled={triggerJobMutation.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-          >
-            {triggerJobMutation.isPending ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-            ) : (
-              <Play size={14} />
-            )}
-            Spustit tisk
-          </button>
+          {canTriggerJob && (
+            <button
+              onClick={handleRunJob}
+              disabled={triggerJobMutation.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
+              {triggerJobMutation.isPending ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+              ) : (
+                <Play size={14} />
+              )}
+              Spustit tisk
+            </button>
+          )}
           </div>
         </div>
       </div>
