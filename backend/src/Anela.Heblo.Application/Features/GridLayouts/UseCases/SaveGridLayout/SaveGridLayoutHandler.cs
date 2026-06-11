@@ -38,8 +38,8 @@ public class SaveGridLayoutHandler : IRequestHandler<SaveGridLayoutRequest, Save
         catch (GridLayoutPersistenceException ex)
         {
             _logger.LogError(ex,
-                "Database error saving GridLayout for user={UserId} gridKey={GridKey} SqlState={SqlState}",
-                userId, request.GridKey, ex.SqlState);
+                "Database error saving GridLayout for user={UserId} gridKey={GridKey}",
+                userId, request.GridKey);
             return new SaveGridLayoutResponse(ErrorCodes.DatabaseError);
         }
     }

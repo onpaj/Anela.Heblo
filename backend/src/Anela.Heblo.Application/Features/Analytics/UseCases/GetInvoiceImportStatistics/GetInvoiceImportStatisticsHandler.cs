@@ -1,6 +1,6 @@
 using Anela.Heblo.Domain.Features.Analytics;
 using MediatR;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
 
@@ -10,14 +10,14 @@ namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportSt
 public class GetInvoiceImportStatisticsHandler : IRequestHandler<GetInvoiceImportStatisticsRequest, GetInvoiceImportStatisticsResponse>
 {
     private readonly IAnalyticsRepository _analyticsRepository;
-    private readonly IConfiguration _configuration;
+    private readonly InvoiceImportOptions _options;
 
     public GetInvoiceImportStatisticsHandler(
         IAnalyticsRepository analyticsRepository,
-        IConfiguration configuration)
+        IOptions<InvoiceImportOptions> invoiceImportOptions)
     {
         _analyticsRepository = analyticsRepository;
-        _configuration = configuration;
+        _options = invoiceImportOptions.Value;
     }
 
     public async Task<GetInvoiceImportStatisticsResponse> Handle(
@@ -25,8 +25,8 @@ public class GetInvoiceImportStatisticsHandler : IRequestHandler<GetInvoiceImpor
         CancellationToken cancellationToken)
     {
         // Get configuration values
-        var minimumThreshold = _configuration.GetValue<int>("InvoiceImport:MinimumDailyThreshold", 10);
-        var defaultDaysBack = _configuration.GetValue<int>("InvoiceImport:DefaultDaysBack", 14);
+        var minimumThreshold = _options.MinimumDailyThreshold;
+        var defaultDaysBack = _options.DefaultDaysBack;
 
         // Use provided days back or default from configuration
         var daysBack = request.DaysBack ?? defaultDaysBack;
