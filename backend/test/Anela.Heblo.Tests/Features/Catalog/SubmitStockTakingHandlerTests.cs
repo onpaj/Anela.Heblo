@@ -11,6 +11,9 @@ namespace Anela.Heblo.Tests.Features.Catalog;
 
 public class SubmitStockTakingHandlerTests
 {
+    private const decimal DefaultTargetAmount = 100m;
+    private static readonly DateTime TestDate = new(2026, 6, 8);
+
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock = new();
     private readonly Mock<IEshopStockDomainService> _eshopStockDomainServiceMock = new();
     private readonly Mock<ILogger<SubmitStockTakingHandler>> _loggerMock = new();
@@ -141,7 +144,7 @@ public class SubmitStockTakingHandlerTests
         _catalogRepositoryMock.Verify(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private static SubmitStockTakingRequest CreateRequest(string productCode, decimal targetAmount = 100m, bool soft = false)
+    private static SubmitStockTakingRequest CreateRequest(string productCode, decimal targetAmount = DefaultTargetAmount, bool soft = false)
     {
         return new SubmitStockTakingRequest
         {
@@ -160,7 +163,7 @@ public class SubmitStockTakingHandlerTests
             Code = productCode,
             AmountNew = 150.5,
             AmountOld = 100.0,
-            Date = new DateTime(2026, 6, 8),
+            Date = TestDate,
             User = "test-user",
             Error = null
         };
