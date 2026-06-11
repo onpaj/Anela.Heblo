@@ -8,11 +8,16 @@ public class GridLayoutRepository : IGridLayoutRepository
 {
     private readonly ApplicationDbContext _context;
     private readonly TimeProvider _timeProvider;
+    private readonly PostgresExceptionTranslator _translator;
 
-    public GridLayoutRepository(ApplicationDbContext context, TimeProvider timeProvider)
+    public GridLayoutRepository(
+        ApplicationDbContext context,
+        TimeProvider timeProvider,
+        PostgresExceptionTranslator translator)
     {
         _context = context;
         _timeProvider = timeProvider;
+        _translator = translator;
     }
 
     public async Task<GridLayout?> GetAsync(string userId, string gridKey, CancellationToken cancellationToken = default)
@@ -24,7 +29,7 @@ public class GridLayoutRepository : IGridLayoutRepository
         }
         catch (Exception ex)
         {
-            var translated = PostgresExceptionTranslator.TryTranslateGridLayout(ex, nameof(GetAsync));
+            var translated = _translator.TryTranslateGridLayout(ex, nameof(GetAsync));
             if (translated is not null)
             {
                 throw translated;
@@ -60,7 +65,7 @@ public class GridLayoutRepository : IGridLayoutRepository
         }
         catch (Exception ex)
         {
-            var translated = PostgresExceptionTranslator.TryTranslateGridLayout(ex, nameof(UpsertAsync));
+            var translated = _translator.TryTranslateGridLayout(ex, nameof(UpsertAsync));
             if (translated is not null)
             {
                 throw translated;
@@ -84,7 +89,7 @@ public class GridLayoutRepository : IGridLayoutRepository
         }
         catch (Exception ex)
         {
-            var translated = PostgresExceptionTranslator.TryTranslateGridLayout(ex, nameof(DeleteAsync));
+            var translated = _translator.TryTranslateGridLayout(ex, nameof(DeleteAsync));
             if (translated is not null)
             {
                 throw translated;
