@@ -14466,6 +14466,7 @@ export class ArticleFeedbackSummary implements IArticleFeedbackSummary {
     title?: string | undefined;
     topic?: string;
     requestedBy?: string | undefined;
+    userName?: string | undefined;
     createdAt?: Date;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
@@ -14486,6 +14487,7 @@ export class ArticleFeedbackSummary implements IArticleFeedbackSummary {
             this.title = _data["title"];
             this.topic = _data["topic"];
             this.requestedBy = _data["requestedBy"];
+            this.userName = _data["userName"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
@@ -14506,6 +14508,7 @@ export class ArticleFeedbackSummary implements IArticleFeedbackSummary {
         data["title"] = this.title;
         data["topic"] = this.topic;
         data["requestedBy"] = this.requestedBy;
+        data["userName"] = this.userName;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
@@ -14519,6 +14522,7 @@ export interface IArticleFeedbackSummary {
     title?: string | undefined;
     topic?: string;
     requestedBy?: string | undefined;
+    userName?: string | undefined;
     createdAt?: Date;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
@@ -23609,6 +23613,7 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
+    userName?: string | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
@@ -23633,6 +23638,7 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
             this.durationMs = _data["durationMs"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.userId = _data["userId"];
+            this.userName = _data["userName"];
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
             this.feedbackComment = _data["feedbackComment"];
@@ -23657,6 +23663,7 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
         data["durationMs"] = this.durationMs;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["userId"] = this.userId;
+        data["userName"] = this.userName;
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
         data["feedbackComment"] = this.feedbackComment;
@@ -23674,6 +23681,7 @@ export interface IFeedbackLogSummary {
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
+    userName?: string | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
@@ -24362,6 +24370,7 @@ export class LeafletFeedbackSummary implements ILeafletFeedbackSummary {
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
+    userName?: string | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
@@ -24388,6 +24397,7 @@ export class LeafletFeedbackSummary implements ILeafletFeedbackSummary {
             this.durationMs = _data["durationMs"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.userId = _data["userId"];
+            this.userName = _data["userName"];
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
             this.feedbackComment = _data["feedbackComment"];
@@ -24414,6 +24424,7 @@ export class LeafletFeedbackSummary implements ILeafletFeedbackSummary {
         data["durationMs"] = this.durationMs;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["userId"] = this.userId;
+        data["userName"] = this.userName;
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
         data["feedbackComment"] = this.feedbackComment;
@@ -24433,6 +24444,7 @@ export interface ILeafletFeedbackSummary {
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
+    userName?: string | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;

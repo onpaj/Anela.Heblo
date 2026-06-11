@@ -17,6 +17,7 @@ export function useLeafletFeedbackAdapter(params: GenericFeedbackParams) {
     secondaryText: item.finalMarkdown ?? '',
     createdAt: item.createdAt,
     userId: item.userId ?? undefined,
+    userName: item.userName ?? undefined,
     precisionScore: item.precisionScore,
     styleScore: item.styleScore,
     hasFeedback: item.hasFeedback,
