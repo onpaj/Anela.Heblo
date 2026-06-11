@@ -157,10 +157,39 @@ describe("UserDetailPage", () => {
     expect(screen.getByText("orders.write")).toBeInTheDocument();
   });
 
-  it("Cancel navigates back to access management", async () => {
+  it("Cancel with no changes navigates straight to the Users tab", async () => {
     renderWithRoute("user-1");
     await screen.findByText("Alice");
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-    expect(mockNavigate).toHaveBeenCalledWith("/admin/access");
+    expect(mockNavigate).toHaveBeenCalledWith("/admin/access/users");
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
+  });
+
+  it("Cancel with unsaved changes opens the dialog; Discard navigates to the Users tab", async () => {
+    renderWithRoute("user-1");
+    await screen.findByText("Alice");
+    fireEvent.change(screen.getByDisplayValue("Alice"), {
+      target: { value: "Alice Updated" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /discard changes/i }));
+    expect(mockNavigate).toHaveBeenCalledWith("/admin/access/users");
+  });
+
+  it("Keep editing dismisses the dialog without navigating", async () => {
+    renderWithRoute("user-1");
+    await screen.findByText("Alice");
+    fireEvent.change(screen.getByDisplayValue("Alice"), {
+      target: { value: "Alice Updated" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    fireEvent.click(screen.getByRole("button", { name: /keep editing/i }));
+
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });
