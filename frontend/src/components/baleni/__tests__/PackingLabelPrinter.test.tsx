@@ -85,6 +85,21 @@ describe('PackingLabelPrinter', () => {
     expect(mockPrintLabelPdf).not.toHaveBeenCalled();
   });
 
+  it('auto-prints exactly once under React.StrictMode (no double print)', () => {
+    render(
+      <React.StrictMode>
+        <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />
+      </React.StrictMode>
+    );
+
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(1);
+    expect(mockPrintLabelPdf).toHaveBeenCalledWith(
+      '250001',
+      expectedLabel('guid-1', 'PKG-1', 'https://x.com/1.pdf'),
+      expect.any(Function)
+    );
+  });
+
   it('auto-prints first label on mount with an onAfterPrint callback', () => {
     render(
       <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />
