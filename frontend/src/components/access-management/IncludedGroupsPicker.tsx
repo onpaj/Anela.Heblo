@@ -6,9 +6,10 @@ interface IncludedGroupsPickerProps {
   currentGroupId: string;
   value: string[];
   onChange: (groupIds: string[]) => void;
+  fillHeight?: boolean;
 }
 
-export default function IncludedGroupsPicker({ currentGroupId, value, onChange }: IncludedGroupsPickerProps) {
+export default function IncludedGroupsPicker({ currentGroupId, value, onChange, fillHeight }: IncludedGroupsPickerProps) {
   const groups = useGroups();
 
   const items: TransferItem[] = useMemo(
@@ -27,6 +28,9 @@ export default function IncludedGroupsPicker({ currentGroupId, value, onChange }
       assignedIds={value}
       onChange={onChange}
       labels={{ available: "Available groups", assigned: "Included groups" }}
+      fillHeight={fillHeight}
+      searchable
+      searchPlaceholder="Search groups…"
     />
   );
 }

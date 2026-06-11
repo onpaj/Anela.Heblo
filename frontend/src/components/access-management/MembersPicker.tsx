@@ -5,9 +5,10 @@ import TransferList, { TransferItem } from "./TransferList";
 interface MembersPickerProps {
   value: string[];
   onChange: (userIds: string[]) => void;
+  fillHeight?: boolean;
 }
 
-export default function MembersPicker({ value, onChange }: MembersPickerProps) {
+export default function MembersPicker({ value, onChange, fillHeight }: MembersPickerProps) {
   const users = useUsers();
 
   const items: TransferItem[] = useMemo(
@@ -29,6 +30,7 @@ export default function MembersPicker({ value, onChange }: MembersPickerProps) {
       assignedIds={value}
       onChange={onChange}
       labels={{ available: "All users", assigned: "Members" }}
+      fillHeight={fillHeight}
     />
   );
 }

@@ -40,11 +40,14 @@ function buildMemberMutationArgs(
   draft: { memberUserIds: string[] },
   original: { memberUserIds: string[] } | null,
   groupId: string,
-  allUsers: Array<{ id?: string | null; groupIds?: string[] | null }>
+  allUsers: Array<{ id?: string | null; groupIds?: string[] | null }>,
 ): Array<{ id: string; request: { userId: string; groupIds: string[] } }> {
   const originalIds = new Set(original?.memberUserIds ?? []);
   const newIds = new Set(draft.memberUserIds);
-  const result: Array<{ id: string; request: { userId: string; groupIds: string[] } }> = [];
+  const result: Array<{
+    id: string;
+    request: { userId: string; groupIds: string[] };
+  }> = [];
 
   for (const userId of draft.memberUserIds) {
     if (!originalIds.has(userId)) {
@@ -64,7 +67,10 @@ function buildMemberMutationArgs(
       if (user?.id) {
         result.push({
           id: userId,
-          request: { userId, groupIds: (user.groupIds ?? []).filter((g) => g !== groupId) },
+          request: {
+            userId,
+            groupIds: (user.groupIds ?? []).filter((g) => g !== groupId),
+          },
         });
       }
     }
@@ -142,7 +148,7 @@ export default function GroupDetailPage() {
             description: draft.description,
             permissions: draft.permissions,
             parentGroupIds: draft.parentGroupIds,
-          })
+          }),
         );
         toast.showSuccess("Group created", "The new group has been saved");
         navigate(`/admin/access/groups/${result.id}`);
@@ -161,14 +167,19 @@ export default function GroupDetailPage() {
       });
 
       const { data: freshUsersData } = await usersQuery.refetch();
-      const memberArgs = buildMemberMutationArgs(draft, original, id, freshUsersData?.users ?? []);
+      const memberArgs = buildMemberMutationArgs(
+        draft,
+        original,
+        id,
+        freshUsersData?.users ?? [],
+      );
       await Promise.all(
         memberArgs.map(({ id: userId, request }) =>
           assignUserGroups.mutateAsync({
             id: userId,
             request: new AssignUserGroupsRequest(request),
-          })
-        )
+          }),
+        ),
       );
 
       toast.showSuccess("Saved", "Group updated successfully");
@@ -176,21 +187,31 @@ export default function GroupDetailPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("AuthorizationGroupCycleDetected")) {
-        toast.showError("Cycle detected", "This would create a circular group dependency");
+        toast.showError(
+          "Cycle detected",
+          "This would create a circular group dependency",
+        );
       } else {
-        toast.showError("Save failed", "An error occurred while saving changes");
+        toast.showError(
+          "Save failed",
+          "An error occurred while saving changes",
+        );
       }
     }
   };
 
   const onCancel = () => navigate("/admin/access");
 
-  const isSaving = updateGroup.isPending || createGroup.isPending || assignUserGroups.isPending;
-  const isLoading = !isCreateMode && (groupQuery.isLoading || usersQuery.isLoading);
+  const isSaving =
+    updateGroup.isPending ||
+    createGroup.isPending ||
+    assignUserGroups.isPending;
+  const isLoading =
+    !isCreateMode && (groupQuery.isLoading || usersQuery.isLoading);
 
   if (isLoading) {
     return (
-      <div className="p-8 max-w-5xl mx-auto">
+      <div className="flex flex-col h-full w-full p-3 md:p-4">
         <div className="text-gray-500">Loading group…</div>
       </div>
     );
@@ -199,105 +220,139 @@ export default function GroupDetailPage() {
   if (!draft) return null;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="text-gray-500 hover:text-gray-700 text-sm"
-        >
-          ← Access management
-        </button>
-        <h1 className="text-2xl font-semibold text-gray-900">
-          {isCreateMode ? "New group" : "Edit group"}
-        </h1>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="group-name" className="block text-sm font-medium text-gray-700 mb-1">
-            Name
-          </label>
-          <input
-            id="group-name"
-            type="text"
-            value={draft.name}
-            onChange={(e) => updateDraft({ name: e.target.value })}
-            aria-label="Name"
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+    <div className="flex flex-col h-full w-full p-3 md:p-4">
+      <div className="flex-shrink-0 flex items-center justify-between gap-4 mb-3">
+        <div className="flex items-center gap-4 min-w-0">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-gray-500 hover:text-gray-700 text-sm flex-shrink-0"
+          >
+            ← Access management
+          </button>
+          <h1 className="text-2xl font-semibold text-gray-900 truncate">
+            {isCreateMode ? "New group" : "Edit group"}
+          </h1>
         </div>
-        <div>
-          <label htmlFor="group-desc" className="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
-          <input
-            id="group-desc"
-            type="text"
-            value={draft.description}
-            onChange={(e) => updateDraft({ description: e.target.value })}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+        <div className="flex gap-3 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={isSaving}
+            className="px-5 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {isSaving ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSaving}
+            className="px-5 py-2 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
         </div>
       </div>
 
-      <section>
-        <h2 className="text-lg font-medium text-gray-900 mb-3">Permissions</h2>
-        <PermissionPicker
-          value={draft.permissions}
-          onChange={(permissions) => updateDraft({ permissions })}
-        />
-      </section>
+      <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="group-name"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Name
+            </label>
+            <input
+              id="group-name"
+              type="text"
+              value={draft.name}
+              onChange={(e) => updateDraft({ name: e.target.value })}
+              aria-label="Name"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="group-desc"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Description
+            </label>
+            <input
+              id="group-desc"
+              type="text"
+              value={draft.description}
+              onChange={(e) => updateDraft({ description: e.target.value })}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+      </div>
 
-      {!isCreateMode && (
-        <section>
-          <h2 className="text-lg font-medium text-gray-900 mb-3">Included groups</h2>
-          <p className="text-sm text-gray-500 mb-3">
-            Groups in the right column are building blocks of this group — their permissions are
-            inherited.
-          </p>
-          <IncludedGroupsPicker
-            currentGroupId={id}
-            value={draft.parentGroupIds}
-            onChange={(parentGroupIds) => updateDraft({ parentGroupIds })}
-          />
+      <div
+        className={`flex-1 min-h-0 grid gap-4 ${
+          isCreateMode
+            ? "grid-cols-1 grid-rows-1"
+            : "grid-cols-1 xl:grid-cols-3 xl:grid-rows-1"
+        }`}
+      >
+        <section className="bg-white shadow rounded-lg p-4 flex flex-col min-h-0">
+          <h2 className="text-lg font-medium text-gray-900 mb-3 flex-shrink-0">
+            Permissions
+          </h2>
+          <div className="flex-1 min-h-0">
+            <PermissionPicker
+              value={draft.permissions}
+              onChange={(permissions) => updateDraft({ permissions })}
+              fillHeight
+            />
+          </div>
         </section>
-      )}
 
-      <section>
-        <h2 className="text-lg font-medium text-gray-900 mb-3">Members</h2>
         {!isCreateMode && (
-          <EntraMemberSearch
-            groupId={id}
-            currentMemberIds={draft.memberUserIds}
-            onMemberAdded={(userId) =>
-              updateDraft({ memberUserIds: [...draft.memberUserIds, userId] })
-            }
-          />
+          <section className="bg-white shadow rounded-lg p-4 flex flex-col min-h-0">
+            <div className="flex-shrink-0">
+              <h2 className="text-lg font-medium text-gray-900 mb-1">
+                Included groups
+              </h2>
+              <p className="text-sm text-gray-500 mb-3">
+                Groups in the right column are building blocks of this group —
+                their permissions are inherited.
+              </p>
+            </div>
+            <div className="flex-1 min-h-0">
+              <IncludedGroupsPicker
+                currentGroupId={id}
+                value={draft.parentGroupIds}
+                onChange={(parentGroupIds) => updateDraft({ parentGroupIds })}
+                fillHeight
+              />
+            </div>
+          </section>
         )}
-        <MembersPicker
-          value={draft.memberUserIds}
-          onChange={(memberUserIds) => updateDraft({ memberUserIds })}
-        />
-      </section>
 
-      <div className="flex gap-3 pt-4 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={isSaving}
-          className="px-5 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
-        >
-          {isSaving ? "Saving…" : "Save"}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSaving}
-          className="px-5 py-2 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
-        >
-          Cancel
-        </button>
+        {!isCreateMode && (
+          <section className="bg-white shadow rounded-lg p-4 flex flex-col min-h-0">
+            <h2 className="text-lg font-medium text-gray-900 mb-3 flex-shrink-0">
+              Members
+            </h2>
+            <EntraMemberSearch
+              groupId={id}
+              currentMemberIds={draft.memberUserIds}
+              onMemberAdded={(userId) =>
+                updateDraft({ memberUserIds: [...draft.memberUserIds, userId] })
+              }
+            />
+            <div className="flex-1 min-h-0">
+              <MembersPicker
+                value={draft.memberUserIds}
+                onChange={(memberUserIds) => updateDraft({ memberUserIds })}
+                fillHeight
+              />
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
