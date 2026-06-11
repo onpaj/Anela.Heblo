@@ -2,18 +2,30 @@
 ExpeditionList (found via Logistics integration chain)
 
 ## Finding
-`PrintPickingListResult.OrderIds` in `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListResult.cs` (line 7) is declared and initialized to an empty list, but is never written to or read in any production code path:
+`PrintPickingListRequest.DefaultCarriers` in `backend/src/Anela.Heblo.Application/Features/Logistics/Picking/PrintPickingListRequest.cs` (line 16) is declared with a public setter:
 
-- **Producer** — `ShoptetApiExpeditionListSource.CreatePickingList` (`backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Expedition/ShoptetApiExpeditionListSource.cs`, line 229) returns `new PrintPickingListResult { ExportedFiles = ..., TotalCount = ... }` and never sets `OrderIds`.
-- **Consumer** — `LogisticsExpeditionPickingAdapter.CreatePickingListAsync` (`backend/src/Anela.Heblo.Application/Features/Logistics/Infrastructure/LogisticsExpeditionPickingAdapter.cs`, lines 16–22) maps only `ExportedFiles` and `TotalCount` to `ExpeditionPickingResult`; `OrderIds` is silently discarded. `ExpeditionPickingResult` has no corresponding field.
+```csharp
+public static IList<Carriers> DefaultCarriers { get; set; } = new List<Carriers>()
+{
+    Carriers.Zasilkovna, Carriers.GLS, Carriers.PPL, Carriers.Osobak
+};
+```
 
-The only place `OrderIds` appears outside its definition is in the test arrange step (`backend/test/Anela.Heblo.Tests/Features/Logistics/Infrastructure/LogisticsExpeditionPickingAdapterTests.cs`, line 60), where it is set but not asserted — confirming it is not mapped through.
+Any code can silently replace the entire default-carrier list with `PrintPickingListRequest.DefaultCarriers = someOtherList`. The change persists for the entire process lifetime.
+
+Compare with `ExpeditionPickingRequest.DefaultCarriers` (the consumer-facing equivalent in `backend/src/Anela.Heblo.Application/Features/ExpeditionList/Contracts/ExpeditionPickingRequest.cs`, line 16), which is read-only:
+
+```csharp
+public static IList<Carriers> DefaultCarriers { get; } = new List<Carriers> { ... };
+```
+
+Additionally, `PrintPickingListRequest.DefaultCarriers` is referenced only in an integration test (`backend/test/Anela.Heblo.Adapters.Shoptet.Tests/Integration/PickingListIntegrationTests.cs`, line 88). All production code (`PrintPickingListJob`, `RunExpeditionListPrintFixHandler`) uses `ExpeditionPickingRequest.DefaultCarriers` instead, so this property is dead in the production path.
 
 ## Why it matters
-YAGNI: the field signals to future developers that order IDs are available in this result object, when in practice they are always the empty list initialized at construction. Any code written to read `OrderIds` will silently see an empty collection, producing a silent logic error that is hard to diagnose.
+A public setter on a static property that holds shared mutable state is a global-variable mutation hazard. If any caller (including a test that forgets to restore state) writes to it, subsequent expedition list runs silently use a different carrier set with no diagnostic signal.
 
 ## Suggested fix
-Remove `OrderIds` from `PrintPickingListResult`. Update `LogisticsExpeditionPickingAdapterTests.CreatePickingListAsync_TranslatesResultFields` to remove the unused `OrderIds = new List<int> { 1, 2, 3 }` from the arrange step (it adds setup complexity without exercising any real behaviour).
+Remove the setter — change to `{ get; }`. Since it is not used in production code, also verify whether the property should be removed entirely and the integration test updated to use `ExpeditionPickingRequest.DefaultCarriers` directly (which is what production code already uses).
 
 ---
 _Filed by daily arch-review routine on 2026-06-07._
