@@ -31,9 +31,10 @@ issues it files are worth a human's attention.
    failure-rate trend, result-code mix, 5xx by endpoint, 401/403 hotspots,
    exceptions by type/problemId, browser exceptions, slow & failing
    dependencies, traffic shape).
-2. Pulls GitHub context for the same window via MCP — recent commits, merged
-   PRs, open issues — to tell **new** problems apart from known/already-fixed
-   ones and to attribute signals to recent changes.
+2. Pulls GitHub context for the same window via the GitHub REST API
+   (`scripts/monitoring/gh-api.sh`, auth from `GIT_PAT` — no MCP dependency) —
+   recent commits, merged PRs, open issues — to tell **new** problems apart from
+   known/already-fixed ones and to attribute signals to recent changes.
 3. Correlates: a spike that lines up with a merge is a regression lead; a 500
    whose stack trace names a repository method is a concrete bug; a dependency
    whose p95 is climbing is a capacity/timeout risk.
@@ -120,10 +121,18 @@ same key. Categories and subjects:
 | `frontend` | `<error>@<symbol>` | `frontend:TypeError-r.filter@Yq1` |
 
 To dedup, search issues (open **and** closed) for the exact `telemetry-signal:`
-line — e.g. via the GitHub MCP search, restricted to `repo:onpaj/anela.heblo`
-and the `telemetry` label. Match on the fingerprint, then apply the two rules
-above. If no fingerprint match exists, fall back to a prose comparison of the
-endpoint/exception before filing.
+line:
+
+```bash
+scripts/monitoring/gh-api.sh find-signal 'req-5xx:Articles/FeedbackList:500'
+```
+
+This returns every matching issue with its `state` and `state_reason`. Match on
+the fingerprint, then apply the two rules above — for the "closed without a
+merged PR" check, inspect the issue's timeline
+(`gh-api.sh GET /repos/onpaj/Anela.Heblo/issues/<n>/timeline`) for a
+`closed` event with a `commit_id`/linked merged PR. If no fingerprint match
+exists, fall back to a prose comparison of the endpoint/exception before filing.
 
 ## Output
 
@@ -150,12 +159,31 @@ which are configured on the routine's environment (not in the repo):
 | Requirement | Value |
 |---|---|
 | Egress allowlist (Custom) | `api.applicationinsights.io` (not in the default Trusted list) |
+| Egress | `api.github.com` (issue search + create, via `gh-api.sh`) |
 | Env secret | `APPINSIGHTS_APP_ID` = `53f2124c-ca25-42bf-907c-17b02df8d343` |
 | Env secret | `APPINSIGHTS_API_KEY` = rotated read-telemetry key (never in repo) |
+| Env secret | `GIT_PAT` = token with `repo` scope (Issues read/write) |
 
-The API key grants **read-only telemetry** access. No secret is stored in the
-repository; the scripts read both values from the environment. See
+The App Insights key grants **read-only telemetry** access; `GIT_PAT` is used by
+`gh-api.sh` to search and create issues **instead of the GitHub MCP server**, so
+the routine has no MCP dependency. No secret is stored in the repository; the
+scripts read all values from the environment. See
 `docs/handoff/appinsights-brainstorm-routine.md` for the full config reference.
+
+### Labels (one-time setup)
+
+The routine's labels must exist in the repo. `telemetry`, `reliability`,
+`performance`, `risk`, and `frontend` are not present yet — create them once
+(the GitHub API would otherwise auto-create them with a default grey colour):
+
+```bash
+for l in "telemetry:0e8a16" "reliability:b60205" "performance:fbca04" \
+         "risk:d93f0b" "frontend:1d76db"; do
+  name="${l%%:*}"; color="${l##*:}"
+  scripts/monitoring/gh-api.sh POST /repos/onpaj/Anela.Heblo/labels \
+    "$(jq -n --arg n "$name" --arg c "$color" '{name:$n, color:$c}')"
+done
+```
 
 > Environment changes (egress + secrets) on Claude Code for web apply at
 > **container creation**, not to a running session. After editing the
@@ -179,8 +207,11 @@ GitHub issue for each NEW one — after rigorously deduplicating.
    Re-run with a custom --timespan or use ./scripts/monitoring/appinsights-query.sh
    '<KQL>' to drill into anything ambiguous.
 
-2. Pull GitHub context for the same 7-day window via the MCP tools (scoped to
-   onpaj/anela.heblo): recent commits, merged PRs, and open issues.
+2. Pull GitHub context for the same 7-day window via scripts/monitoring/gh-api.sh
+   (GitHub REST API, auth from GIT_PAT — do NOT use the GitHub MCP server):
+     ./scripts/monitoring/gh-api.sh GET '/repos/onpaj/Anela.Heblo/commits?since=<ISO>'
+     ./scripts/monitoring/gh-api.sh GET '/repos/onpaj/Anela.Heblo/pulls?state=all&per_page=30'
+   to see recent commits, merged PRs, and open issues.
 
 3. Read docs/routines/telemetry-brainstorm.md and apply its "What it flags" /
    "What it skips" rules exactly. In particular: ignore bot traffic, expected
@@ -188,7 +219,9 @@ GitHub issue for each NEW one — after rigorously deduplicating.
 
 4. For EACH surviving anomaly, compute its `telemetry-signal:` fingerprint (see
    the doc's table) and search existing issues — open AND closed — for that exact
-   fingerprint line (repo:onpaj/anela.heblo, label:telemetry). Then:
+   fingerprint line:
+     ./scripts/monitoring/gh-api.sh find-signal '<fingerprint>'
+   Then:
      - matching OPEN issue                          -> SKIP (already tracked)
      - matching issue CLOSED without a fix          -> SKIP (user rejected it:
        state_reason "not_planned", or closed with no linked merged PR)
@@ -198,8 +231,11 @@ GitHub issue for each NEW one — after rigorously deduplicating.
    When in doubt about whether two findings are "the same", err toward SKIP and
    leave a note rather than risk a duplicate.
 
-5. File a detailed GitHub issue for each anomaly that passes step 4, labelled
-   `telemetry` plus one of `reliability` / `performance` / `risk` / `frontend`.
+5. File a detailed GitHub issue for each anomaly that passes step 4 with
+   gh-api.sh create-issue, labelled `telemetry` plus one of
+   `reliability` / `performance` / `risk` / `frontend`:
+     printf '%s' "$body" | ./scripts/monitoring/gh-api.sh create-issue \
+       "<title>" "telemetry,reliability" -
    Each issue MUST contain, as its first body line, the `telemetry-signal:`
    fingerprint, then: concrete numbers (counts, percentiles, window), the mapped
    exception/endpoint, a correlation hypothesis where one exists, and a minimal

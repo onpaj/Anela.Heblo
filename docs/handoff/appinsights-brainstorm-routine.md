@@ -29,9 +29,10 @@ Run this first in any new session/container:
 
 | Item | State |
 | --- | --- |
-| GitHub access (MCP, scoped to `onpaj/anela.heblo`) | ✅ Working |
+| GitHub access (REST via `gh-api.sh` + `GIT_PAT`, no MCP) | ✅ Working — `repo` scope verified |
 | Query script `scripts/monitoring/appinsights-query.sh` | ✅ Committed |
 | Digest engine `scripts/monitoring/brainstorm-telemetry.sh` | ✅ Committed — runs the curated KQL set → Markdown |
+| GitHub helper `scripts/monitoring/gh-api.sh` | ✅ Committed — issue search/create via REST |
 | Routine definition `docs/routines/telemetry-brainstorm.md` | ✅ Committed — prompt, schedule, flag/skip rules |
 | App Insights API key validity | ✅ Rotated, stored as env secret |
 | Egress to `api.applicationinsights.io` | ✅ Verified reachable from this environment |
@@ -95,5 +96,9 @@ actionable signal:
 
 ## Useful facts
 - `az` CLI is NOT installed in the sandbox; we use the REST data-plane API directly.
-- GitHub in web sessions is via MCP tools (not `gh` CLI, despite the CLAUDE.md note).
+- `gh` CLI is also NOT installed. GitHub MCP tools exist but are flaky in
+  scheduled runs (they disconnected mid-session), so the routine talks to the
+  GitHub REST API directly via `scripts/monitoring/gh-api.sh` using `GIT_PAT`
+  (classic PAT, `repo` scope). This keeps the routine self-contained and matches
+  the CLAUDE.md intent of not depending on MCP.
 - `jq` is available; `column` is **not** — the digest formats tables with jq.
