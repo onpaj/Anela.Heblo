@@ -35,7 +35,8 @@ public class GetPackingDashboardHandlerTests
         out Mock<IPackageRepository> repo,
         out Mock<IPackingOrderClient> packingClient,
         (int TotalDistinctOrders, IReadOnlyList<PackerPackingSummary> ByPacker) repoResult,
-        int shoptetCount = 5)
+        int shoptetCount = 5,
+        int processingCount = 7)
     {
         repo = new Mock<IPackageRepository>();
         repo.Setup(r => r.GetPackedTodayByPackerAsync(
@@ -45,6 +46,8 @@ public class GetPackingDashboardHandlerTests
         packingClient = new Mock<IPackingOrderClient>();
         packingClient.Setup(c => c.GetOrdersBeingPackedCountAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(shoptetCount);
+        packingClient.Setup(c => c.GetOrdersBeingProcessedCountAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(processingCount);
 
         return new GetPackingDashboardHandler(
             repo.Object,
@@ -63,7 +66,7 @@ public class GetPackingDashboardHandlerTests
             new(packerId, "Alice", 4),
             new(null, "Bob", 2),
         };
-        var sut = MakeSut(out _, out _, (6, byPacker), shoptetCount: 3);
+        var sut = MakeSut(out _, out _, (6, byPacker), shoptetCount: 3, processingCount: 9);
 
         // Act
         var result = await sut.Handle(new GetPackingDashboardRequest(), CancellationToken.None);
@@ -72,6 +75,7 @@ public class GetPackingDashboardHandlerTests
         result.Success.Should().BeTrue();
         result.TotalOrdersPackedToday.Should().Be(6);
         result.OrdersBeingPackedCount.Should().Be(3);
+        result.OrdersBeingProcessedCount.Should().Be(9);
         result.PackedByPacker.Should().HaveCount(2);
         result.PackedByPacker[0].PackerId.Should().Be(packerId);
         result.PackedByPacker[0].PackerName.Should().Be("Alice");
@@ -106,9 +110,10 @@ public class GetPackingDashboardHandlerTests
         // Act
         var result = await sut.Handle(new GetPackingDashboardRequest(), CancellationToken.None);
 
-        // Assert — dashboard still succeeds, count is null
+        // Assert — dashboard still succeeds, counts are null
         result.Success.Should().BeTrue();
         result.OrdersBeingPackedCount.Should().BeNull();
+        result.OrdersBeingProcessedCount.Should().BeNull();
         result.TotalOrdersPackedToday.Should().Be(2);
     }
 

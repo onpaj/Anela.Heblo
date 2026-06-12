@@ -11,46 +11,53 @@ import {
   catalogItemToProductCode,
   PRODUCT_TYPE_FILTERS,
 } from "../../common/CatalogAutocompleteAdapters";
+import {
+  MarketingActionType,
+  MarketingFolderType,
+  MarketingFolderLinkRequest,
+} from "../../../api/generated/api-client";
 
-const ACTION_TYPE_OPTIONS = [
-  { value: 0,  label: "Sociální sítě", backendName: "SocialMedia" },
-  { value: 1,  label: "Blog",          backendName: "Blog" },
-  { value: 2,  label: "Newsletter",    backendName: "Newsletter" },
-  { value: 3,  label: "PR",            backendName: "PR" },
-  { value: 4,  label: "Akce",          backendName: "Event" },
-  { value: 99, label: "Porada",        backendName: "Meeting" },
+const ACTION_TYPE_OPTIONS: ReadonlyArray<{ value: MarketingActionType; label: string }> = [
+  { value: MarketingActionType.SocialMedia, label: "Sociální sítě" },
+  { value: MarketingActionType.Blog,        label: "Blog" },
+  { value: MarketingActionType.Newsletter,  label: "Newsletter" },
+  { value: MarketingActionType.PR,          label: "PR" },
+  { value: MarketingActionType.Event,       label: "Akce" },
+  { value: MarketingActionType.Meeting,     label: "Porada" },
 ];
 
-const FOLDER_TYPE_OPTIONS = [
-  { value: 0, label: "Obrázky", backendName: "General" },
-  { value: 1, label: "Texty", backendName: "Seasonal" },
-  { value: 2, label: "Videa", backendName: "ProductLine" },
-  { value: 3, label: "Grafika", backendName: "Campaign" },
-  { value: 99, label: "Ostatní", backendName: "Other" },
+const FOLDER_TYPE_OPTIONS: ReadonlyArray<{ value: MarketingFolderType; label: string }> = [
+  { value: MarketingFolderType.General,     label: "Obrázky" },
+  { value: MarketingFolderType.Seasonal,    label: "Texty" },
+  { value: MarketingFolderType.ProductLine, label: "Videa" },
+  { value: MarketingFolderType.Campaign,    label: "Grafika" },
+  { value: MarketingFolderType.Other,       label: "Ostatní" },
 ];
 
-const resolveOptionValue = (
-  options: Array<{ value: number; backendName: string }>,
-  raw: string | number | undefined,
-): number => {
-  if (raw == null) return options[0]?.value ?? 0;
-  const numeric = Number(raw);
-  const byValue = options.find((o) => !isNaN(numeric) && o.value === numeric);
-  if (byValue) return byValue.value;
-  const byName = options.find((o) => o.backendName === String(raw));
-  return byName?.value ?? options[0]?.value ?? 0;
+const resolveActionType = (raw: string | undefined): MarketingActionType => {
+  if (raw && (Object.values(MarketingActionType) as string[]).includes(raw)) {
+    return raw as MarketingActionType;
+  }
+  return MarketingActionType.SocialMedia;
+};
+
+const resolveFolderType = (raw: string | undefined): MarketingFolderType => {
+  if (raw && (Object.values(MarketingFolderType) as string[]).includes(raw)) {
+    return raw as MarketingFolderType;
+  }
+  return MarketingFolderType.General;
 };
 
 interface FolderLinkInput {
   path: string;
   label: string;
-  folderType: number;
+  folderType: MarketingFolderType;
 }
 
 interface FormState {
   title: string;
   detail: string;
-  actionType: number;
+  actionType: MarketingActionType;
   dateFrom: string;
   dateTo: string;
   associatedProducts: string[];
@@ -60,7 +67,7 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   title: "",
   detail: "",
-  actionType: 0,
+  actionType: MarketingActionType.SocialMedia,
   dateFrom: "",
   dateTo: "",
   associatedProducts: [],
@@ -110,14 +117,14 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
       setForm({
         title: existingAction.title ?? "",
         detail: existingAction.detail ?? "",
-        actionType: resolveOptionValue(ACTION_TYPE_OPTIONS, existingAction.actionType),
+        actionType: resolveActionType(existingAction.actionType),
         dateFrom: toDateInputValue(existingAction.dateFrom),
         dateTo: toDateInputValue(existingAction.dateTo),
         associatedProducts: existingAction.associatedProducts ?? [],
         folderLinks: (existingAction.folderLinks ?? []).map((fl) => ({
           path: fl.path ?? "",
           label: fl.label ?? "",
-          folderType: resolveOptionValue(FOLDER_TYPE_OPTIONS, fl.folderType),
+          folderType: resolveFolderType(fl.folderType),
         })),
       });
     } else if (prefillDates) {
@@ -157,13 +164,13 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
   const addFolderLink = () =>
     set("folderLinks", [
       ...form.folderLinks,
-      { path: "", label: "", folderType: 0 },
+      { path: "", label: "", folderType: MarketingFolderType.General },
     ]);
 
   const updateFolderLink = (
     i: number,
     field: keyof FolderLinkInput,
-    value: string | number,
+    value: string | MarketingFolderType,
   ) =>
     set(
       "folderLinks",
@@ -191,7 +198,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
       associatedProducts: form.associatedProducts,
       folderLinks: form.folderLinks
         .filter((fl) => fl.path.trim())
-        .map((fl) => ({
+        .map((fl) => new MarketingFolderLinkRequest({
           folderKey: fl.path.trim(),
           folderType: fl.folderType,
         })),
@@ -273,7 +280,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
               </label>
               <select
                 value={form.actionType}
-                onChange={(e) => set("actionType", Number(e.target.value))}
+                onChange={(e) => set("actionType", e.target.value as MarketingActionType)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 {ACTION_TYPE_OPTIONS.map((o) => (
@@ -437,7 +444,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
                   <select
                     value={fl.folderType}
                     onChange={(e) =>
-                      updateFolderLink(i, "folderType", Number(e.target.value))
+                      updateFolderLink(i, "folderType", e.target.value as MarketingFolderType)
                     }
                     className="w-28 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >

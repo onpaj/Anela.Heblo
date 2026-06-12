@@ -1,9 +1,10 @@
+import { MarketingActionType } from '../../../api/generated/api-client';
 import type { EventInput } from '@fullcalendar/core';
 
 export interface CalendarEvent {
   id: number;
   title: string;
-  actionType: string;
+  actionType: MarketingActionType;
   dateFrom: string; // YYYY-MM-DD
   dateTo: string;   // YYYY-MM-DD, inclusive
   associatedProducts: string[];
@@ -17,15 +18,6 @@ export const ACTION_TYPE_COLORS: Record<string, { bg: string; text: string }> = 
   PR:          { bg: '#f97316', text: '#ffffff' }, // Orange Category
   Event:       { bg: '#ef4444', text: '#ffffff' }, // Red Category
   Meeting:     { bg: '#14b8a6', text: '#ffffff' }, // Teal Category
-};
-
-export const ACTION_TYPE_TO_INT: Record<string, number> = {
-  SocialMedia: 0,
-  Blog:        1,
-  Newsletter:  2,
-  PR:          3,
-  Event:       4,
-  Meeting:     99,
 };
 
 export function formatDateStr(d: Date): string {
