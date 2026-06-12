@@ -3,13 +3,14 @@ import { Database } from 'lucide-react';
 import KnowledgeBaseSearchAskTab from '../components/knowledge-base/KnowledgeBaseSearchAskTab';
 import KnowledgeBaseDocumentsTab from '../components/knowledge-base/KnowledgeBaseDocumentsTab';
 import KnowledgeBaseUploadTab from '../components/knowledge-base/KnowledgeBaseUploadTab';
-import { useKnowledgeBaseUploadPermission } from '../api/hooks/useKnowledgeBase';
+import { usePermissionsContext } from '../auth/PermissionsContext';
 import { useScreenView } from '../telemetry/useScreenView';
 
 type Tab = 'search' | 'documents' | 'upload';
 
 const KnowledgeBasePage: React.FC = () => {
-  const canUpload = useKnowledgeBaseUploadPermission();
+  const { hasPermission } = usePermissionsContext();
+  const canUpload = hasPermission('customer.knowledge_base.write');
   const [activeTab, setActiveTab] = useState<Tab>('search');
 
   const subScreen =

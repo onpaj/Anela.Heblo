@@ -15,6 +15,7 @@ public enum Feature
     Customer_KnowledgeBase,
     Customer_Smartsupp,
     Purchase_PurchaseOrders,
+    Purchase_InvoiceClassification,
     Purchase_PurchaseStock,
     Manufacture_ManufactureOrders,
     Manufacture_BatchPlanning,
@@ -36,4 +37,6 @@ public enum Feature
     Admin_DataQuality,
     Admin_Administration,
     Admin_FeatureFlags,
+    Jobs_Trigger,
+    Jobs_Disable,
 }

@@ -5,68 +5,62 @@ using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Purchase.PurchaseOrders;
-using DotNet.Testcontainers.Configurations;
+using Anela.Heblo.Tests.Common;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Purchase;
 
+[Collection("PostgresIntegration")]
 [Trait("Category", "Integration")]
 public class PurchaseOrderRepositoryHistorySqlShapeTests : IAsyncLifetime
 {
-    static PurchaseOrderRepositoryHistorySqlShapeTests()
-    {
-        // Required on macOS with Podman: the Ryuk ResourceReaper container
-        // cannot bind to the Docker socket and throws a NullReferenceException.
-        TestcontainersSettings.ResourceReaperEnabled = false;
-    }
-
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-        .WithImage("postgres:16")
-        .Build();
-
+    private readonly PostgresSharedContainerFixture _fixture;
+    private string _connectionString = null!;
     private readonly CapturingCommandInterceptor _interceptor = new();
     private ApplicationDbContext _context = null!;
     private PurchaseOrderRepository _repository = null!;
 
+    public PurchaseOrderRepositoryHistorySqlShapeTests(PostgresSharedContainerFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
     public async Task InitializeAsync()
     {
-        await _container.StartAsync();
+        _connectionString = await _fixture.CreateDatabaseAsync("purchase");
 
         // Minimal schema — only the PurchaseOrderHistory table the query touches.
         // No FKs / no PurchaseOrders / no PurchaseOrderLines, so any unintended JOIN would fail at execution time.
-        await using (var conn = new NpgsqlConnection(_container.GetConnectionString()))
-        {
-            await conn.OpenAsync();
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = """
-                CREATE TABLE public."PurchaseOrderHistory" (
-                    "Id"              serial      NOT NULL PRIMARY KEY,
-                    "PurchaseOrderId" integer     NOT NULL,
-                    "Action"          varchar(50) NOT NULL,
-                    "OldValue"        varchar(2000),
-                    "NewValue"        varchar(2000),
-                    "ChangedBy"       varchar(200) NOT NULL,
-                    "ChangedAt"       timestamp   NOT NULL
-                );
-                CREATE INDEX "IX_PurchaseOrderHistory_PurchaseOrderId" ON public."PurchaseOrderHistory" ("PurchaseOrderId");
-                CREATE INDEX "IX_PurchaseOrderHistory_ChangedAt"      ON public."PurchaseOrderHistory" ("ChangedAt");
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            CREATE TABLE public."PurchaseOrderHistory" (
+                "Id"              serial      NOT NULL PRIMARY KEY,
+                "PurchaseOrderId" integer     NOT NULL,
+                "Action"          varchar(50) NOT NULL,
+                "OldValue"        varchar(2000),
+                "NewValue"        varchar(2000),
+                "ChangedBy"       varchar(200) NOT NULL,
+                "ChangedAt"       timestamp   NOT NULL
+            );
+            CREATE INDEX "IX_PurchaseOrderHistory_PurchaseOrderId" ON public."PurchaseOrderHistory" ("PurchaseOrderId");
+            CREATE INDEX "IX_PurchaseOrderHistory_ChangedAt"      ON public."PurchaseOrderHistory" ("ChangedAt");
 
-                INSERT INTO public."PurchaseOrderHistory"
-                    ("PurchaseOrderId","Action","OldValue","NewValue","ChangedBy","ChangedAt") VALUES
-                    (42, 'Created', NULL, 'Draft', 'user-1', now() - interval '2 minute'),
-                    (42, 'StatusChanged', 'Draft', 'InTransit', 'user-2', now() - interval '1 minute'),
-                    (43, 'Created', NULL, 'Draft', 'user-3', now());
-                """;
-            await cmd.ExecuteNonQueryAsync();
-        }
+            INSERT INTO public."PurchaseOrderHistory"
+                ("PurchaseOrderId","Action","OldValue","NewValue","ChangedBy","ChangedAt") VALUES
+                (42, 'Created', NULL, 'Draft', 'user-1', now() - interval '2 minute'),
+                (42, 'StatusChanged', 'Draft', 'InTransit', 'user-2', now() - interval '1 minute'),
+                (43, 'Created', NULL, 'Draft', 'user-3', now());
+            """;
+        await cmd.ExecuteNonQueryAsync();
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseNpgsql(_container.GetConnectionString())
+            .UseNpgsql(_connectionString)
             .AddInterceptors(_interceptor)
             .Options;
 
@@ -77,7 +71,6 @@ public class PurchaseOrderRepositoryHistorySqlShapeTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await _context.DisposeAsync();
-        await _container.DisposeAsync();
     }
 
     [Fact]

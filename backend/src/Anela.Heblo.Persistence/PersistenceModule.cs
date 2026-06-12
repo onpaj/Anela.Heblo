@@ -82,6 +82,11 @@ public static class PersistenceModule
         // Register interceptors
         services.AddScoped<PostgresExceptionLoggingInterceptor>();
 
+        // Register exception translator (used by GridLayoutRepository to surface domain exceptions
+        // and log SqlState/Operation at the Persistence boundary — distinct from the SaveChanges
+        // interceptor which has no operation context and does not fire on read paths).
+        services.AddScoped<PostgresExceptionTranslator>();
+
         // Register DbContext
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {

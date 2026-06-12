@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetPackingUsers;
 using Anela.Heblo.Application.Features.Packaging.UseCases.DeletePackage;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumber;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
@@ -84,6 +86,30 @@ public class PackagingController : BaseApiController
 
         Response.Headers.CacheControl = "no-store";
         return File(response.Content, response.ContentType, response.FileName);
+    }
+
+    /// <summary>
+    /// Returns the tracking number of the latest active (non-cancelled) shipment for the order,
+    /// backfilling it onto the order's package rows. Used by the kiosk confirmation screen once
+    /// the label has printed (tracking is guaranteed assigned by then). Returns trackingNumber: null
+    /// when no active shipment has one yet — callers fall back to the package name.
+    /// </summary>
+    [HttpGet("orders/{orderCode}/tracking-number")]
+    public async Task<ActionResult<GetOrderTrackingNumberResponse>> GetOrderTrackingNumber(
+        [FromRoute] string orderCode,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(
+            new GetOrderTrackingNumberRequest { OrderCode = orderCode },
+            cancellationToken);
+        return HandleResponse(response);
+    }
+
+    [HttpGet("dashboard")]
+    public async Task<ActionResult<GetPackingDashboardResponse>> GetDashboard(CancellationToken ct)
+    {
+        var response = await _mediator.Send(new GetPackingDashboardRequest(), ct);
+        return HandleResponse(response);
     }
 
     [HttpGet("packages")]

@@ -16,6 +16,7 @@ public static class AccessMatrix
         new FeatureDefinition(Feature.Customer_KnowledgeBase, "Znalostní báze", HasWrite: true),
         new FeatureDefinition(Feature.Customer_Smartsupp, "Smartsupp"),
         new FeatureDefinition(Feature.Purchase_PurchaseOrders, "Nákupní objednávky", HasWrite: true),
+        new FeatureDefinition(Feature.Purchase_InvoiceClassification, "Klasifikace faktur", HasWrite: true),
         new FeatureDefinition(Feature.Purchase_PurchaseStock, "Analýza skladu (nákup)"),
         new FeatureDefinition(Feature.Manufacture_ManufactureOrders, "Výrobní objednávky", HasWrite: true),
         new FeatureDefinition(Feature.Manufacture_BatchPlanning, "Plánování šarží", HasWrite: true),
@@ -37,6 +38,8 @@ public static class AccessMatrix
         new FeatureDefinition(Feature.Admin_DataQuality, "Kvalita dat", HasWrite: true),
         new FeatureDefinition(Feature.Admin_Administration, "Administrace", HasWrite: true),
         new FeatureDefinition(Feature.Admin_FeatureFlags, "Feature příznaky", HasWrite: true),
+        new FeatureDefinition(Feature.Jobs_Trigger, "Spouštění úloh"),
+        new FeatureDefinition(Feature.Jobs_Disable, "Vypínání úloh"),
     };
 
     public static readonly IReadOnlyList<MenuPath> MenuPaths = new[]
@@ -51,7 +54,7 @@ public static class AccessMatrix
         new MenuPath("/knowledge-base", new FeaturePermission[] { new FeaturePermission(Feature.Customer_KnowledgeBase, AccessLevel.Read) }),
         new MenuPath("/customer/smartsupp", new FeaturePermission[] { new FeaturePermission(Feature.Customer_Smartsupp, AccessLevel.Read) }),
         new MenuPath("/purchase/orders", new FeaturePermission[] { new FeaturePermission(Feature.Purchase_PurchaseOrders, AccessLevel.Read) }),
-        new MenuPath("/purchase/invoice-classification", new FeaturePermission[] { new FeaturePermission(Feature.Purchase_PurchaseOrders, AccessLevel.Read) }),
+        new MenuPath("/purchase/invoice-classification", new FeaturePermission[] { new FeaturePermission(Feature.Purchase_InvoiceClassification, AccessLevel.Read) }),
         new MenuPath("/purchase/stock-analysis", new FeaturePermission[] { new FeaturePermission(Feature.Purchase_PurchaseStock, AccessLevel.Read) }),
         new MenuPath("/manufacturing/orders", new FeaturePermission[] { new FeaturePermission(Feature.Manufacture_ManufactureOrders, AccessLevel.Read) }),
         new MenuPath("/manufacturing/batch-planning", new FeaturePermission[] { new FeaturePermission(Feature.Manufacture_BatchPlanning, AccessLevel.Read) }),

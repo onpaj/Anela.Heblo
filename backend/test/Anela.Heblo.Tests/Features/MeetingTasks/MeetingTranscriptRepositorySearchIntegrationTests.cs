@@ -1,38 +1,34 @@
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.MeetingTasks;
-using DotNet.Testcontainers.Configurations;
+using Anela.Heblo.Tests.Common;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.MeetingTasks;
 
+[Collection("PostgresIntegration")]
 [Trait("Category", "Integration")]
 public class MeetingTranscriptRepositorySearchIntegrationTests : IAsyncLifetime
 {
-    static MeetingTranscriptRepositorySearchIntegrationTests()
-    {
-        // Required on macOS with Podman: the Ryuk ResourceReaper container
-        // cannot bind to the Docker socket and throws a NullReferenceException.
-        TestcontainersSettings.ResourceReaperEnabled = false;
-    }
-
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-        .WithImage("postgres:16")
-        .Build();
-
+    private readonly PostgresSharedContainerFixture _fixture;
+    private string _connectionString = null!;
     private ApplicationDbContext _context = null!;
     private MeetingTranscriptRepository _repository = null!;
 
+    public MeetingTranscriptRepositorySearchIntegrationTests(PostgresSharedContainerFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
     public async Task InitializeAsync()
     {
-        await _container.StartAsync();
+        _connectionString = await _fixture.CreateDatabaseAsync("meeting");
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseNpgsql(_container.GetConnectionString())
+            .UseNpgsql(_connectionString)
             .Options;
 
         _context = new ApplicationDbContext(options);
@@ -40,67 +36,65 @@ public class MeetingTranscriptRepositorySearchIntegrationTests : IAsyncLifetime
         // Create only the three MeetingTasks tables we exercise.
         // EnsureCreatedAsync would try to install the "vector" extension which is
         // not available in the plain postgres:16 image, causing the whole suite to fail.
-        await using (var conn = new NpgsqlConnection(_container.GetConnectionString()))
-        {
-            await conn.OpenAsync();
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = """
-                CREATE TABLE IF NOT EXISTS public."MeetingTranscripts" (
-                    "Id"              uuid         NOT NULL PRIMARY KEY,
-                    "PlaudRecordingId" varchar(200) NOT NULL,
-                    "PlaudCreatedAt"  timestamp    NOT NULL,
-                    "Subject"         varchar(500) NOT NULL,
-                    "Summary"         text         NOT NULL,
-                    "RawTranscript"   text         NOT NULL,
-                    "Status"          varchar(50)  NOT NULL,
-                    "ReceivedAt"      timestamp    NOT NULL,
-                    "ReviewedAt"      timestamp    NULL,
-                    "ReviewedByUser"  varchar(200) NULL,
-                    "AccessLevel"     varchar(20)  NOT NULL DEFAULT 'Private'
-                );
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS public."MeetingTranscripts" (
+                "Id"              uuid         NOT NULL PRIMARY KEY,
+                "PlaudRecordingId" varchar(200) NOT NULL,
+                "PlaudCreatedAt"  timestamp    NOT NULL,
+                "Subject"         varchar(500) NOT NULL,
+                "Summary"         text         NOT NULL,
+                "RawTranscript"   text         NOT NULL,
+                "Status"          varchar(50)  NOT NULL,
+                "ReceivedAt"      timestamp    NOT NULL,
+                "ReviewedAt"      timestamp    NULL,
+                "ReviewedByUser"  varchar(200) NULL,
+                "AccessLevel"     varchar(20)  NOT NULL DEFAULT 'Private'
+            );
 
-                CREATE UNIQUE INDEX IF NOT EXISTS "UX_MeetingTranscripts_PlaudRecordingId"
-                    ON public."MeetingTranscripts" ("PlaudRecordingId");
+            CREATE UNIQUE INDEX IF NOT EXISTS "UX_MeetingTranscripts_PlaudRecordingId"
+                ON public."MeetingTranscripts" ("PlaudRecordingId");
 
-                CREATE INDEX IF NOT EXISTS "IX_MeetingTranscripts_Status"
-                    ON public."MeetingTranscripts" ("Status");
+            CREATE INDEX IF NOT EXISTS "IX_MeetingTranscripts_Status"
+                ON public."MeetingTranscripts" ("Status");
 
-                CREATE INDEX IF NOT EXISTS "IX_MeetingTranscripts_AccessLevel"
-                    ON public."MeetingTranscripts" ("AccessLevel");
+            CREATE INDEX IF NOT EXISTS "IX_MeetingTranscripts_AccessLevel"
+                ON public."MeetingTranscripts" ("AccessLevel");
 
-                CREATE INDEX IF NOT EXISTS "IX_MeetingTranscripts_ReceivedAt"
-                    ON public."MeetingTranscripts" ("ReceivedAt");
+            CREATE INDEX IF NOT EXISTS "IX_MeetingTranscripts_ReceivedAt"
+                ON public."MeetingTranscripts" ("ReceivedAt");
 
-                CREATE TABLE IF NOT EXISTS public."ProposedTasks" (
-                    "Id"                  uuid         NOT NULL PRIMARY KEY,
-                    "MeetingTranscriptId" uuid         NOT NULL REFERENCES public."MeetingTranscripts"("Id") ON DELETE CASCADE,
-                    "Title"               varchar(500) NOT NULL,
-                    "Description"         text         NOT NULL,
-                    "Assignee"            varchar(200) NOT NULL,
-                    "AssigneeEmail"       varchar(320) NULL,
-                    "DueDate"             timestamp    NULL,
-                    "Status"              varchar(50)  NOT NULL,
-                    "ExternalTaskId"      varchar(200) NULL,
-                    "IsManuallyAdded"     boolean      NOT NULL DEFAULT false
-                );
+            CREATE TABLE IF NOT EXISTS public."ProposedTasks" (
+                "Id"                  uuid         NOT NULL PRIMARY KEY,
+                "MeetingTranscriptId" uuid         NOT NULL REFERENCES public."MeetingTranscripts"("Id") ON DELETE CASCADE,
+                "Title"               varchar(500) NOT NULL,
+                "Description"         text         NOT NULL,
+                "Assignee"            varchar(200) NOT NULL,
+                "AssigneeEmail"       varchar(320) NULL,
+                "DueDate"             timestamp    NULL,
+                "Status"              varchar(50)  NOT NULL,
+                "ExternalTaskId"      varchar(200) NULL,
+                "IsManuallyAdded"     boolean      NOT NULL DEFAULT false
+            );
 
-                CREATE INDEX IF NOT EXISTS "IX_ProposedTasks_MeetingTranscriptId"
-                    ON public."ProposedTasks" ("MeetingTranscriptId");
+            CREATE INDEX IF NOT EXISTS "IX_ProposedTasks_MeetingTranscriptId"
+                ON public."ProposedTasks" ("MeetingTranscriptId");
 
-                CREATE TABLE IF NOT EXISTS public."MeetingAccessGrants" (
-                    "Id"                  uuid         NOT NULL PRIMARY KEY,
-                    "MeetingTranscriptId" uuid         NOT NULL REFERENCES public."MeetingTranscripts"("Id") ON DELETE CASCADE,
-                    "UserEmail"           varchar(320) NOT NULL,
-                    "UserDisplayName"     varchar(200) NULL,
-                    "GrantedAt"           timestamp    NOT NULL,
-                    "GrantedByUserEmail"  varchar(320) NOT NULL
-                );
+            CREATE TABLE IF NOT EXISTS public."MeetingAccessGrants" (
+                "Id"                  uuid         NOT NULL PRIMARY KEY,
+                "MeetingTranscriptId" uuid         NOT NULL REFERENCES public."MeetingTranscripts"("Id") ON DELETE CASCADE,
+                "UserEmail"           varchar(320) NOT NULL,
+                "UserDisplayName"     varchar(200) NULL,
+                "GrantedAt"           timestamp    NOT NULL,
+                "GrantedByUserEmail"  varchar(320) NOT NULL
+            );
 
-                CREATE UNIQUE INDEX IF NOT EXISTS "UX_MeetingAccessGrants_TranscriptId_UserEmail"
-                    ON public."MeetingAccessGrants" ("MeetingTranscriptId", "UserEmail");
-                """;
-            await cmd.ExecuteNonQueryAsync();
-        }
+            CREATE UNIQUE INDEX IF NOT EXISTS "UX_MeetingAccessGrants_TranscriptId_UserEmail"
+                ON public."MeetingAccessGrants" ("MeetingTranscriptId", "UserEmail");
+            """;
+        await cmd.ExecuteNonQueryAsync();
 
         _repository = new MeetingTranscriptRepository(_context);
     }
@@ -108,7 +102,6 @@ public class MeetingTranscriptRepositorySearchIntegrationTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await _context.DisposeAsync();
-        await _container.DisposeAsync();
     }
 
     private static MeetingTranscript BuildTranscript(

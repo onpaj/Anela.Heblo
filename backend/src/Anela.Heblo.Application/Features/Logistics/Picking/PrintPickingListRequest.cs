@@ -12,14 +12,5 @@ public class PrintPickingListRequest
     public int SourceStateId { get; set; } = DefaultSourceStateId;
     public int DesiredStateId { get; set; } = DefaultDesiredStateId;
     public bool ChangeOrderState { get; set; }
-
-    public static IList<Carriers> DefaultCarriers { get; set; } = new List<Carriers>()
-    {
-        Anela.Heblo.Domain.Features.Logistics.Carriers.Zasilkovna,
-        Anela.Heblo.Domain.Features.Logistics.Carriers.GLS,
-        Anela.Heblo.Domain.Features.Logistics.Carriers.PPL,
-        Anela.Heblo.Domain.Features.Logistics.Carriers.Osobak
-    };
-
     public bool SendToPrinter { get; set; }
 }

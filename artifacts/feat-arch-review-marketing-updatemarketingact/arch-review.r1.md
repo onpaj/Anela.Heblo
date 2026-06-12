@@ -1,222 +1,222 @@
-# Architecture Review: Marketing Module — Consistent DB Save Error Handling for Update and Delete Handlers
+# Architecture Review: Encapsulate Collection Replacement in MarketingAction Domain Entity
 
 ## Skip Design: true
 
-Backend-only behavior fix in three MediatR handlers. No new UI, no screens, no visual decisions. The externally visible change is "API returns a structured error envelope instead of HTTP 500" — same envelope shape the rest of the module already produces, so no frontend work is implied.
+This change is a backend-only refactor inside the Domain and Application layers. No UI components, screens, layout, or visual design decisions are introduced. The `UpdateMarketingActionCommand` wire contract is unchanged (spec confirms no OpenAPI regeneration), so the FE is not affected.
 
 ## Architectural Fit Assessment
 
-This change is a defect repair against an already-established convention, not a new pattern. The Marketing module already has the canonical implementation:
+The proposal is a textbook DDD-encapsulation refinement that aligns cleanly with the existing layering already present in this repo:
 
-- `CreateMarketingActionHandler` (lines 87–112) wraps `SaveChangesAsync` in try/catch, logs the inconsistency with structured placeholders, attempts an Outlook compensation, and returns `CreateMarketingActionResponse(ErrorCodes.DatabaseError)`.
-- `BaseResponse` already exposes the `Success` / `ErrorCode` / `Params` envelope used module-wide; every Marketing response class already has the `(ErrorCodes, Dictionary<string,string>?)` constructor.
-- `ErrorCodes.DatabaseError = 0011` exists in `Anela.Heblo.Application.Shared.ErrorCodes` with `HttpStatusCode.InternalServerError` attribute — no new enum value needed.
-- The MediatR pipeline + controller layer already translates these envelopes to the correct HTTP status; existing tests in `CreateMarketingActionHandlerTests.Handle_CompensatesOutlookEvent_WhenDbSaveFails` prove the pattern works end-to-end.
+- The codebase follows Clean Architecture with a clear Domain → Application → Persistence stack. `MarketingAction` already lives in `Anela.Heblo.Domain.Features.Marketing` and exposes encapsulated mutators (`UpdateDetails`, `AssociateWithProduct`, `LinkToFolder`, `SoftDelete`, `MarkOutlookSynced`, `ClearOutlookLink`). Adding `ReplaceProductAssociations` / `ReplaceFolderLinks` extends an established pattern; no new abstractions, conventions, or layering shifts.
+- The time-handling convention is **caller-supplies-`utcNow`** for mutators that need a timestamp on entity-level fields. `MarketingAction` ctor and `UpdateDetails` already take `DateTime utcNow`; `MarkOutlookSynced` does too. The spec's signature aligns. There is **no `IDateTimeProvider` abstraction** anywhere in the project — `DateTime.UtcNow` is captured at the handler boundary (e.g. `UpdateMarketingActionHandler.cs:59`, `CreateMarketingActionHandler.cs:47`). The open question in the brief is therefore already resolved: pass `now` (already in scope at line 59) to the new methods.
+- EF Core integration is unaffected. `MarketingActionRepository.GetByIdAsync` eagerly includes both child collections (`MarketingActionRepository.cs:22-23`), so when `Clear()` runs against tracked navigation properties from inside the entity, the change-tracker still emits the same `DELETE` + `INSERT` SQL it does today. No persistence-layer changes required.
+- Main integration points: (1) `UpdateMarketingActionHandler.Handle` lines 95–110; (2) the domain entity itself; (3) the existing domain test folder `backend/test/Anela.Heblo.Tests/Domain/Marketing/`.
 
-The only deviations are in `UpdateMarketingActionHandler.cs:112-113` and `DeleteMarketingActionHandler.cs:75-76`, which let `SaveChangesAsync` / `DeleteSoftAsync` exceptions propagate to MediatR. Fixing them brings these handlers into line with the module's existing Vertical Slice + structured-response convention — there is no architectural debate, only an execution gap.
-
-Two integration points need verification but should be no-ops:
-
-1. **Repository contract** — `IMarketingActionRepository.DeleteSoftAsync` performs its own `SaveChangesAsync` internally (brief.md states this and the existing handler has no follow-up save call). The catch must therefore wrap the `DeleteSoftAsync` call itself, not a separate save.
-2. **MediatR pipeline behaviors** — There is no global exception-to-envelope behavior in this module (otherwise the current code would not produce 500s, and the existing Create handler's try/catch would be redundant). The fix must happen inside each handler.
+The proposal is well-scoped and does not introduce coupling, layering violations, or architectural drift.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-Controller (existing, unchanged)
-    │
-    ▼
-MediatR pipeline (existing, unchanged)
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ MarketingAction handlers (per-use-case)                     │
-│                                                             │
-│  ┌──────────────────────┐ ┌──────────────────────┐ ┌──────┐ │
-│  │ CreateMarketingActi… │ │ UpdateMarketingActi… │ │ Dele…│ │
-│  │ (reference impl —    │ │ (add guarded save)   │ │ (add │ │
-│  │  unchanged)          │ │                      │ │ guar…│ │
-│  └─────────┬────────────┘ └─────────┬────────────┘ └──┬───┘ │
-│            │                        │                 │     │
-│            └────────────────────────┴─────────────────┘     │
-│                              │                              │
-│             try { repo save } catch (Exception)            │
-│             → log {ActionId},{EventId}, "out of sync"      │
-│             → return Response(ErrorCodes.DatabaseError)     │
-└─────────────────────────────────────────────────────────────┘
-    │                                            │
-    ▼                                            ▼
-IMarketingActionRepository                IOutlookCalendarSync
-(UpdateAsync, SaveChangesAsync,          (CreateEventAsync,
- DeleteSoftAsync)                         UpdateEventAsync,
-                                          DeleteEventAsync)
+┌─────────────────────────────────────────────────────────────────┐
+│ Application Layer                                               │
+│   UpdateMarketingActionHandler.Handle                           │
+│     ├─ var now = DateTime.UtcNow;                               │
+│     ├─ action.UpdateDetails(..., utcNow: now)        (existing) │
+│     ├─ action.ReplaceProductAssociations(            (NEW CALL) │
+│     │     request.AssociatedProducts, now)                      │
+│     ├─ action.ReplaceFolderLinks(                    (NEW CALL) │
+│     │     request.FolderLinks?.Select(...), now)                │
+│     └─ _repository.UpdateAsync + SaveChangesAsync               │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ delegates to
+┌─────────────────────────────────────────────────────────────────┐
+│ Domain Layer — MarketingAction (aggregate root)                 │
+│   existing: AssociateWithProduct, LinkToFolder, UpdateDetails…  │
+│   NEW:      ReplaceProductAssociations(codes, utcNow)           │
+│   NEW:      ReplaceFolderLinks(links, utcNow)                   │
+│                                                                 │
+│   Both new methods:                                             │
+│     1. Treat null input as empty sequence                       │
+│     2. Normalize each entry (Trim + ToUpperInvariant for codes; │
+│        Trim for folderKey)                                      │
+│     3. Deduplicate                                              │
+│     4. Clear existing collection                                │
+│     5. Add new child entities with CreatedAt = utcNow           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ EF change-tracker (unchanged)
+┌─────────────────────────────────────────────────────────────────┐
+│ Persistence — MarketingActionProduct / MarketingActionFolderLink│
+│   DELETE old rows + INSERT new rows (identical SQL to today)    │
+└─────────────────────────────────────────────────────────────────┘
 ```
-
-The dashed boundary above is the only thing changing. No new components, interfaces, services, packages, configuration, DI registration, controller routes, or database objects.
 
 ### Key Design Decisions
 
-#### Decision 1: Inline try/catch in each handler vs. extracted helper
-
+#### Decision 1: Method signature — caller passes `utcNow`
 **Options considered:**
-- (A) Add three near-identical try/catch blocks inline (one in each handler).
-- (B) Extract a shared helper / base class / MediatR `IPipelineBehavior` that runs the DB save and produces a `DatabaseError` response.
+- A) `ReplaceProductAssociations(IEnumerable<string>? codes, DateTime utcNow)` — caller supplies time.
+- B) `ReplaceProductAssociations(IEnumerable<string>? codes)` — domain calls `DateTime.UtcNow` internally (matches existing `AssociateWithProduct` / `LinkToFolder`).
+- C) Inject `IDateTimeProvider` into the entity (would require a new abstraction).
 
-**Chosen approach:** (A) — inline in each handler.
+**Chosen approach:** **A** — caller passes `utcNow`.
 
-**Rationale:** The catch bodies are not identical: the Create handler also runs a compensating Outlook delete; the Update handler logs "may now be out of sync"; the Delete handler logs "Outlook event already deleted". The compensation logic, log phrasing, and response *type* all differ. Spec §Out of Scope explicitly says "three near-identical try/catch blocks are acceptable" and NFR-4 ("a future developer can copy any of them as a template") is satisfied by symmetry, not by abstraction. A pipeline behavior cannot inject the per-handler log message or response type without ambient state, and would also catch errors thrown by *non-Outlook* operations (e.g. `GetByIdAsync`) we do not want to remap to `DatabaseError`. YAGNI: keep the surface area small.
+**Rationale:** `MarketingAction`'s constructor, `UpdateDetails`, and `MarkOutlookSynced` already follow this convention. Choosing B would propagate the same testability/clock-control friction the rest of the entity has already solved. C is over-engineering — no time abstraction exists in this codebase, and adding one solely for this refactor exceeds the spec's scope ("Out of Scope: replacing EF Core change tracking…"). Within the same Update transaction, the new child rows' `CreatedAt` and the action's `ModifiedAt` will now share a single timestamp, which is preferable.
 
-#### Decision 2: What to catch — `Exception` vs. a narrower type
-
+#### Decision 2: Replace methods do NOT delegate to `AssociateWithProduct` / `LinkToFolder`
 **Options considered:**
-- (A) `catch (Exception)` — matches the existing Create handler precedent.
-- (B) `catch (DbUpdateException)` / `catch (DbException)` — narrower, only intercepts persistence-layer errors.
+- A) Inline the Clear + normalize + dedupe + add logic inside each Replace method.
+- B) Clear, then loop and call `AssociateWithProduct(code)` / `LinkToFolder(key, type)` per item.
 
-**Chosen approach:** (A) `catch (Exception)` — match the Create handler exactly.
+**Chosen approach:** **A** — inline the logic (matches the spec's illustrative code).
 
-**Rationale:** Consistency with the established reference implementation (FR-4) is explicitly required, and the spec's stated goal is to ensure *any* DB-save failure surfaces as `DatabaseError` rather than 500. Narrowing the catch would re-introduce inconsistency and risk missing wrapped exceptions (`DbUpdateConcurrencyException`, broker-level timeouts wrapped by EF, etc.). `OperationCanceledException` from a caller-cancelled token will be caught and mapped to `DatabaseError`; this is acceptable because a cancellation after a successful Outlook write still represents an out-of-sync state the operator needs to know about — and that is what the log message says.
+**Rationale:** The single-add methods capture `DateTime.UtcNow` internally (`MarketingAction.cs:108, 125`), so reusing them would (1) ignore the caller-supplied `utcNow` parameter, (2) produce per-row timestamp drift, and (3) perform redundant per-item dedupe scans after a `Clear`. The brief's suggested implementation is correct on this point.
 
-#### Decision 3: Where the catch goes in `DeleteMarketingActionHandler`
-
+#### Decision 3: Folder-link dedup uses composite key `(folderKey, folderType)`
 **Options considered:**
-- (A) Wrap only the `DeleteSoftAsync` call (which internally does `SaveChangesAsync`).
-- (B) Add an explicit `SaveChangesAsync` after `DeleteSoftAsync` and wrap both.
+- A) Dedup by `folderKey` alone (matches existing `LinkToFolder` line 117).
+- B) Dedup by `(folderKey, folderType)` composite (matches spec FR-2).
 
-**Chosen approach:** (A).
+**Chosen approach:** **B** — composite key, per spec.
 
-**Rationale:** `IMarketingActionRepository.DeleteSoftAsync` already commits internally — the current handler never calls `SaveChangesAsync` separately. Adding a second save would either be a no-op or change repository semantics. Wrap the single call.
+**Rationale:** The existing `LinkToFolder` deduplicates by `FolderKey` only and ignores `FolderType` — this is arguably a latent bug, but in practice the existing handler iterates a single request list with no duplicates of either kind, so the bug is not user-observable. The Replace method is a new surface and should be correct from day one. This is a deliberate, narrow improvement over the legacy add method (FR-2 acceptance criterion: "two pairs differing only in `folderType` keeps both"). Document this divergence in the method's XML doc-comment so future readers understand the asymmetry with `LinkToFolder`.
 
-#### Decision 4: Update handler — wrap save only, or wrap update+save together
-
+#### Decision 4: Invalid individual entries — silently skip vs throw
 **Options considered:**
-- (A) Wrap both `UpdateAsync` and `SaveChangesAsync` in one try/catch.
-- (B) Wrap only `SaveChangesAsync`.
+- A) Throw `ArgumentException` on null/whitespace entries (mirrors `AssociateWithProduct` / `LinkToFolder` per-item validation).
+- B) Silently filter out null/whitespace entries.
 
-**Chosen approach:** (A) — mirror the Create handler, which has `AddAsync` outside the try but only because `AddAsync` is purely in-memory tracking. In EF Core both `UpdateAsync` and `SaveChangesAsync` *can* throw (`UpdateAsync` may trigger change-tracker work; in some repository implementations it touches the context). The spec's `FR-1` says "wrap the `UpdateAsync` + `SaveChangesAsync` calls".
+**Chosen approach:** **A** — throw on per-entry whitespace, matching the existing single-add validation contract.
 
-**Rationale:** Defer to the spec. Cost of including `UpdateAsync` in the try block is zero on the happy path.
+**Rationale:** The brief's "Open Questions" item is closed in spec FR-2 ("Rejects entries where `folderKey` is null, empty, or whitespace by throwing the same exception type the existing `LinkToFolder` uses"). Extend the same rule to `ReplaceProductAssociations` for symmetry. The Application layer should never send invalid codes in practice (the request DTO has `[Required]` annotations on `MarketingFolderLinkRequest.FolderKey`); fail-loud at the domain boundary is consistent with this aggregate's other invariants. A `null` *sequence* is still treated as empty (per FR-1/FR-2) — only invalid *entries within* the sequence throw.
 
-#### Decision 5: Log severity and structured fields
+#### Decision 5: Keep navigation collection setters as-is
+**Options considered:**
+- A) Convert `ProductAssociations` / `FolderLinks` to `IReadOnlyCollection<>` exposure with private `ICollection<>` backing field for EF.
+- B) Leave the public `virtual ICollection<>` setters untouched.
 
-**Chosen approach:** `LogError` with structured placeholders `{ActionId}` and `{EventId}`, and the literal phrase from the spec:
-- Update: `"DB save failed after Outlook update for MarketingAction {ActionId}; Outlook event {EventId} may now be out of sync"`
-- Delete: `"DB soft-delete failed after Outlook delete for MarketingAction {ActionId}; Outlook event {EventId} already deleted — DB row still present"`
+**Chosen approach:** **B** — leave them.
 
-**Rationale:** FR-3 requires structured placeholders (NOT interpolation) and the greppable phrases "may now be out of sync" / "already deleted". NFR-2 forbids logging marketing-action payload (title/description); only IDs are logged. The exception object is the first argument to `LogError`, matching the Create handler.
+**Rationale:** Out of scope per the spec. The architectural goal here is *Application-layer hygiene*, not full aggregate hardening. Locking down the collections would require also reviewing every read-site (handlers, repository projections at `MarketingActionRepository.cs:92, 99`, mapping code) — an unbounded change set. Flag it under Risks as a future opportunity.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-No new directories, no new files. Touch exactly three production files and update two test files:
+No new files, no new folders. Strictly modify-in-place:
 
-```
-backend/src/Anela.Heblo.Application/Features/Marketing/UseCases/
-  UpdateMarketingAction/UpdateMarketingActionHandler.cs   ← modify lines 112–113
-  DeleteMarketingAction/DeleteMarketingActionHandler.cs   ← modify lines 75–76
-  CreateMarketingAction/CreateMarketingActionHandler.cs   ← unchanged (FR-4)
+| Action | Path |
+|---|---|
+| Modify | `backend/src/Anela.Heblo.Domain/Features/Marketing/MarketingAction.cs` — add two methods |
+| Modify | `backend/src/Anela.Heblo.Application/Features/Marketing/UseCases/UpdateMarketingAction/UpdateMarketingActionHandler.cs` — replace lines 95–110 |
+| Add | `backend/test/Anela.Heblo.Tests/Domain/Marketing/MarketingActionReplaceProductAssociationsTests.cs` |
+| Add | `backend/test/Anela.Heblo.Tests/Domain/Marketing/MarketingActionReplaceFolderLinksTests.cs` |
+| Optional | Augment `backend/test/Anela.Heblo.Tests/Application/Marketing/UpdateMarketingActionHandlerTests.cs` with one delta scenario (see "Specification Amendments") |
 
-backend/test/Anela.Heblo.Tests/Application/Marketing/
-  UpdateMarketingActionHandlerTests.cs   ← add DB-failure test
-  DeleteMarketingActionHandlerTests.cs   ← add DB-failure test
-  CreateMarketingActionHandlerTests.cs   ← unchanged
-```
+Follow the existing domain-file conventions exactly: block-scoped namespace (`namespace Anela.Heblo.Domain.Features.Marketing { ... }`), `using` directives inside the namespace block, `private` methods placed below public ones.
 
 ### Interfaces and Contracts
 
-No interface changes. The following already exist and must be reused as-is:
+```csharp
+// In Anela.Heblo.Domain.Features.Marketing.MarketingAction:
 
-- `IMarketingActionRepository.UpdateAsync(MarketingAction, CancellationToken)` and `SaveChangesAsync(CancellationToken)` (verified in `backend/src/Anela.Heblo.Domain/Features/Marketing/IMarketingActionRepository.cs` via inheritance from `IRepository<MarketingAction,int>`).
-- `IMarketingActionRepository.DeleteSoftAsync(int id, string userId, string username, CancellationToken)` — performs its own commit.
-- `UpdateMarketingActionResponse(ErrorCodes, Dictionary<string,string>?)` constructor (verified `UpdateMarketingActionRequest.cs:41`).
-- `DeleteMarketingActionResponse(ErrorCodes, Dictionary<string,string>?)` constructor (verified `DeleteMarketingActionRequest.cs:19`).
-- `ErrorCodes.DatabaseError` with `[HttpStatusCode(HttpStatusCode.InternalServerError)]` (verified `ErrorCodes.cs:35`).
+/// <summary>
+/// Replaces the full set of product associations atomically.
+/// Null input is treated as an empty sequence (clears all associations).
+/// Inputs are trimmed, upper-cased (invariant), and deduplicated.
+/// Throws ArgumentException on entries that are null/empty/whitespace.
+/// </summary>
+public void ReplaceProductAssociations(
+    IEnumerable<string>? productCodes,
+    DateTime utcNow);
 
-API behavior change (not a contract change): `PUT` and `DELETE` endpoints will return `500 InternalServerError` carrying `{ success: false, errorCode: "DatabaseError" }` instead of an unhandled 500 page. The HTTP status is unchanged because `DatabaseError` itself maps to 500 — only the body shape becomes structured.
+/// <summary>
+/// Replaces the full set of folder links atomically.
+/// Null input is treated as an empty sequence (clears all links).
+/// Deduplicates by the composite key (folderKey, folderType) — note this is
+/// stricter than LinkToFolder which dedupes by folderKey alone.
+/// Throws ArgumentException on entries with null/empty/whitespace folderKey.
+/// </summary>
+public void ReplaceFolderLinks(
+    IEnumerable<(string folderKey, MarketingFolderType folderType)>? links,
+    DateTime utcNow);
+```
+
+**Handler delegation (replaces `UpdateMarketingActionHandler.cs:95-111`):**
+
+```csharp
+action.ReplaceProductAssociations(request.AssociatedProducts, now);
+action.ReplaceFolderLinks(
+    request.FolderLinks?.Select(l => (l.FolderKey, l.FolderType)),
+    now);
+```
+
+Note: `request.AssociatedProducts` is `List<string>?` (per `UpdateMarketingActionRequest.cs:29`) and assigns directly to `IEnumerable<string>?` — no `?? Enumerable.Empty<…>()` shim needed at the call site since the domain method handles `null` internally. This keeps the handler maximally terse and pushes the null-handling contract into the domain (which is the entire point of the refactor).
 
 ### Data Flow
 
-#### Update — failure path after this fix
+**Update path (after refactor) — clearing all associations:**
 ```
-Client → PUT /api/marketing-actions/{id}
-  → UpdateMarketingActionHandler.Handle
-    → GetByIdAsync                              [unchanged]
-    → mutate action fields                       [unchanged]
-    → IOutlookCalendarSync.UpdateEventAsync      [succeeds — Outlook now updated]
-    → try {
-        UpdateAsync(action)
-        SaveChangesAsync()                       [throws e.g. DbUpdateException]
-      } catch (Exception ex) {
-        _logger.LogError(ex, "...{ActionId}...{EventId}...may now be out of sync", id, eventId)
-        return new UpdateMarketingActionResponse(ErrorCodes.DatabaseError)
-      }
-  → controller serializes envelope → HTTP 500 + structured body
+PUT /api/marketing/actions/42  { AssociatedProducts: null, FolderLinks: null, ... }
+   → UpdateMarketingActionHandler.Handle
+   → repo.GetByIdAsync(42) → loads MarketingAction + ProductAssociations + FolderLinks
+   → action.UpdateDetails(..., utcNow: now)
+   → action.ReplaceProductAssociations(null, now)
+        → null → empty; ProductAssociations.Clear(); no Adds
+   → action.ReplaceFolderLinks(null, now)
+        → null → empty; FolderLinks.Clear(); no Adds
+   → repo.UpdateAsync + SaveChangesAsync
+        → EF emits: UPDATE MarketingAction; DELETE MarketingActionProduct WHERE …;
+                    DELETE MarketingActionFolderLink WHERE …
 ```
 
-#### Delete — failure path after this fix
+**Update path — delta scenario (some kept, some added, some removed):**
 ```
-Client → DELETE /api/marketing-actions/{id}
-  → DeleteMarketingActionHandler.Handle
-    → GetByIdAsync                              [unchanged]
-    → IOutlookCalendarSync.DeleteEventAsync     [succeeds — Outlook event gone]
-    → try {
-        _repository.DeleteSoftAsync(id, ...)    [throws]
-      } catch (Exception ex) {
-        _logger.LogError(ex, "...{ActionId}...{EventId}...already deleted", id, eventId)
-        return new DeleteMarketingActionResponse(ErrorCodes.DatabaseError)
-      }
-  → controller serializes envelope → HTTP 500 + structured body
+… AssociatedProducts = ["ABC", " def ", "abc"], FolderLinks = [(key1, General), (key1, Project)]
+   → ReplaceProductAssociations: normalize → ["ABC", "DEF"]; Clear; Add 2 rows
+   → ReplaceFolderLinks: dedup by composite → keeps both; Clear; Add 2 rows
+   → EF emits: DELETE all 3 old product rows; INSERT 2 new; DELETE old folder rows; INSERT 2 new
 ```
 
-#### Happy paths
-Unchanged. No new branches in success paths.
-
-### Testing Approach
-
-The existing test fixtures (`xUnit` + `Moq` + `FluentAssertions`, `Mock<ILogger<T>>` already in test classes) cover everything needed. Each new test:
-
-1. Reuses the existing constructor's default mocks.
-2. Overrides `SaveChangesAsync` / `DeleteSoftAsync` to `ThrowsAsync(new Exception("DB unavailable"))`.
-3. Asserts `result.Success == false`, `result.ErrorCode == ErrorCodes.DatabaseError`.
-4. Verifies the logger's `LogError` was called via `_logger.Verify(...)` matching on the message-template fragment (`"may now be out of sync"` / `"already deleted"`) and that `ActionId` and `EventId` appear in the structured state. The Create test (`Handle_CompensatesOutlookEvent_WhenDbSaveFails`) does *not* assert the log content today, but spec FR-1/FR-2 explicitly require asserting an error-level log — see Specification Amendments below for the recommended `Mock<ILogger<T>>.Verify` pattern.
-5. For Update: verifies Outlook update was attempted but **not** reverted (out of scope per spec).
-6. For Delete: verifies Outlook delete was attempted but **not** recreated.
-
-API-level integration test for HTTP 500 body shape is **NOT** added in this change unless there is an existing integration-test harness for Marketing endpoints — the search did not find one. Spec FR-1/FR-2 say "API integration test… returns the structured error envelope". Treat that as aspirational unless an existing pattern exists; the unit tests are the hard gate. See Specification Amendments.
+The DML pattern is identical to today (Clear+Add already produces full DELETE+INSERT churn). No round-trip change.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| `Mock<ILogger<T>>.Verify` for structured log messages is fragile (matches on the message template, not the rendered string) | Low | Use the documented `It.Is<It.IsAnyType>((v,t) => v.ToString()!.Contains("may now be out of sync"))` pattern; this is already in use elsewhere in the test suite — check `backend/test/Anela.Heblo.Tests/` for prior examples before writing new boilerplate. |
-| Catching `Exception` swallows `OperationCanceledException` and converts caller cancellation into `DatabaseError` | Low | Acceptable: a cancellation after a successful Outlook write *is* a divergence the operator needs to learn about. Matches the existing Create handler. If team disagrees, add `catch (OperationCanceledException) { throw; }` ahead of the general catch — note this would deviate from the Create reference. |
-| Update handler logs `action.OutlookEventId` which may be **freshly set** by `MarkOutlookSynced` on this request (line 77/82). If the Outlook step created a new event (`else` branch at 81), the logged ID is the new one — correct. | None | This is the desired behavior; the new ID is what's now in Outlook. |
-| Spec asks for the "Outlook event ID" but Update handler may not have one (push disabled). | Low | When `_options.CurrentValue.PushEnabled == false`, no Outlook write happened, so there is no drift on DB failure — the log message can still be emitted (`{EventId}` will be `null`/empty), and an operator who sees a null `EventId` knows Outlook was not the issue. No code branch needed. |
-| Catching after Update sets `action.MarkOutlookSynced` — the in-memory mutation has already happened on the now-stale tracked entity. EF context state may be poisoned for the next request if the repository is scoped per-request. | None | MediatR handlers in this codebase are scoped per-request (standard ASP.NET Core DI). The `DbContext` is discarded at request end. No leak between requests. |
-| Compensation parity question: should Update handler also attempt Outlook revert (mirroring Create)? | None | Explicitly out of scope per spec §Out of Scope. Do not add. |
-| Tests written today fail tomorrow when team adopts a global MediatR exception-handling behavior. | Low | The structured envelope shape (`{ Success, ErrorCode, Params }`) is the contract; a future global behavior would have to produce the same envelope. Tests assert against the envelope, not the absence of a behavior. Acceptable. |
+| `LinkToFolder` (still in use by `CreateMarketingActionHandler.cs:65`) dedupes by `folderKey` alone, while `ReplaceFolderLinks` dedupes by composite key. Two methods on the same aggregate now have asymmetric invariants. | Medium | Document the asymmetry in the new method's XML doc comment. Flag as a follow-up to harmonize `LinkToFolder` (out of scope per spec "Out of Scope: Renaming or restructuring `AssociateWithProduct` / `LinkToFolder`"). |
+| `ProductAssociations` / `FolderLinks` setters remain publicly settable (`public ... { get; set; }`), so any future Application code could still bypass encapsulation. | Low | Add a code-review checklist item; consider follow-up PR to switch to `IReadOnlyCollection<>` projections with private backing fields. Out of scope here. |
+| Existing per-item `CreatedAt` values are silently regenerated to `utcNow` even for child rows whose logical content is unchanged. EF cannot tell "kept" from "replaced" because we Clear+Add. | Low | Matches current behavior — the existing Clear+`AssociateWithProduct` flow does the same. No regression. Note for future: if `CreatedAt` semantics ever become audit-grade, switch to a true diff implementation. |
+| Per-entry `ArgumentException` on whitespace product codes is a new throw site reachable from the Update handler (the existing handler also reached it via `AssociateWithProduct`, but only when the request DTO contained such values). | Low | DTO validation is already in place (`UpdateMarketingActionRequest` doesn't currently validate individual list entries). Add a defensive `if (string.IsNullOrWhiteSpace(code)) continue;` filter inside the Replace method **only if** the spec is explicitly clarified to silently skip. Default to throwing per Decision 4. |
+| Test fixture currently writes assertions like `a.ProductAssociations.Count == 2` (line 202 of `UpdateMarketingActionHandlerTests.cs`) — these continue to pass, but they do not assert the *Clear* semantics. | Low | Add one negative-path handler test: pre-existing action has product associations, request sets `AssociatedProducts = null`, assert `a.ProductAssociations.Count == 0`. |
 
 ## Specification Amendments
 
-1. **FR-1 / FR-2 — clarify log assertion mechanism.** The spec says "asserts that an error-level log entry is emitted containing the action ID and the Outlook event ID." With `Mock<ILogger<T>>` this is done by `_logger.Verify(x => x.Log(LogLevel.Error, It.IsAny<EventId>(), It.Is<It.IsAnyType>((v,_) => v.ToString()!.Contains("...")), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType,Exception?,string>>()))`. Recommend the spec's acceptance criteria be read as "assertion against the rendered message template substring," not literal field-by-field structured-state introspection.
+1. **Resolve the "Open Questions" section explicitly in spec.** The spec already says "Status: COMPLETE" but the body of FR-3 mentions "if no `IDateTimeProvider` is currently injected, fall through to `DateTime.UtcNow` at the call site — see Open Questions." Update FR-3 to a definitive statement: *"Use `var now = DateTime.UtcNow;` already declared at `UpdateMarketingActionHandler.cs:59`. No new abstraction will be introduced; this matches the existing codebase convention."* Same for FR-2's per-entry validation — settle on **throw**, as decided above.
 
-2. **FR-1 / FR-2 — API integration test.** The spec lists this as a hard acceptance criterion. The codebase does not appear to have a `WebApplicationFactory`-based integration harness for Marketing endpoints (search did not surface one). Recommend amending acceptance criteria to "unit tests prove handler returns the structured envelope; an integration test is added *only if* an existing harness covers similar endpoints." If no harness exists, do not introduce one in this change — that is a separate, much larger effort.
+2. **Tighten the method signatures to nullable types.** Spec body shows `IEnumerable<string>` but the "API / Interface Design" section shows `IEnumerable<string>?`. The nullable form is correct (the entity treats `null` as empty). Align the FR-1 / FR-2 illustrative signatures to use `?`.
 
-3. **FR-3 — exact phrase for Delete handler.** The spec says "Outlook event already deleted" should be greppable. The Delete handler's Outlook step already logs `"Outlook event {EventId} already deleted (404)"` (line 62-64) for the *successful* 404 case. To avoid grep collisions, the DB-failure log should use a more specific phrase. Recommend: `"DB soft-delete failed after Outlook delete; Outlook event {EventId} already deleted — DB row {ActionId} still present"`. This keeps the "already deleted" greppable token while making the DB-failure case unambiguous.
+3. **Clarify "integration test" wording in FR-3.** The repo has no DB-backed handler integration test for `UpdateMarketingActionHandler` — existing tests at `UpdateMarketingActionHandlerTests.cs` mock `IMarketingActionRepository`. The new test for "actually clears them in the database" should be reworded to "verifies that after the handler runs, the in-memory `MarketingAction` passed to `UpdateAsync` has the expected final collection state" — assertable via `Mock.Verify(It.Is<MarketingAction>(a => …))` exactly like the existing test at line 200.
 
-4. **FR-4 — clarify "no functional change."** The spec says no functional change to `CreateMarketingActionHandler`. This explicitly forbids extracting a shared helper that the Create handler would also call. Accepted as-is — Decision 1 above reinforces this.
+4. **Document the dedup-key asymmetry between `LinkToFolder` and `ReplaceFolderLinks`** in FR-2's behaviour list (it is currently only implicit). Future maintainers should not "fix" the asymmetry by silently aligning one to the other.
+
+5. **Add a Non-Functional Requirement on documentation:** XML doc-comments on both new methods explicitly call out (a) `null` ⇒ empty, (b) normalization rules, (c) dedup key, (d) the dedup-key divergence from `LinkToFolder` for the folder-link method.
 
 ## Prerequisites
 
-None. All required infrastructure exists:
+None. This change requires:
 
-- ✅ `ErrorCodes.DatabaseError = 0011` exists with the correct HTTP status mapping.
-- ✅ `UpdateMarketingActionResponse` and `DeleteMarketingActionResponse` both have the `(ErrorCodes, Dictionary<string,string>?)` constructor.
-- ✅ `ILogger<UpdateMarketingActionHandler>` and `ILogger<DeleteMarketingActionHandler>` are already injected.
-- ✅ Repository methods (`UpdateAsync`, `SaveChangesAsync`, `DeleteSoftAsync`) exist on `IMarketingActionRepository`.
-- ✅ Test fixtures with `Mock<ILogger<T>>`, `Mock<IMarketingActionRepository>`, `TestOptionsMonitor<MarketingCalendarOptions>` already wired up for both handlers.
-- ✅ No new packages, no DI registration, no config keys, no DB migration, no Key Vault secret.
+- No database schema changes / migrations
+- No EF configuration changes (`MarketingActionConfiguration.cs`, `MarketingActionProductConfiguration.cs`, `MarketingActionFolderLinkConfiguration.cs` are unaffected)
+- No new NuGet packages
+- No new DI registrations
+- No new configuration / `appsettings` entries
+- No new secrets / Key Vault entries
+- No OpenAPI regeneration; no FE client regeneration
+- No feature flag
 
-Implementation can start immediately. Total expected diff: ~30 LOC of production code + ~50 LOC of tests.
+Implementation can start immediately against the current `main` branch. Validation gates per the project's `CLAUDE.md`: `dotnet build`, `dotnet format`, new + existing tests in `Anela.Heblo.Tests` pass.

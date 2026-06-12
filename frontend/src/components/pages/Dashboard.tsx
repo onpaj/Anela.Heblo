@@ -9,7 +9,7 @@ import {
   useTileData,
   useSaveDashboardSettings
 } from "../../api/hooks/useDashboard";
-import { useAuth } from "../../auth/useAuth";
+import { usePermissionsContext } from "../../auth/PermissionsContext";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import DashboardGrid from "../dashboard/DashboardGrid";
 import DashboardSettings from "../dashboard/DashboardSettings";
@@ -25,7 +25,7 @@ const Dashboard: React.FC = () => {
 
   useScreenView('Dashboard', 'Dashboard');
 
-  const { getUserInfo } = useAuth();
+  const { hasPermission } = usePermissionsContext();
 
   const { data: userSettings, isLoading: settingsLoading } = useUserDashboardSettings();
   const { data: allTileData = [], isLoading: dataLoading } = useTileData();
@@ -35,8 +35,6 @@ const Dashboard: React.FC = () => {
   const visibleTileData = React.useMemo(() => {
     if (!userSettings || !allTileData.length) return [];
 
-    const userRoles = getUserInfo()?.roles ?? [];
-
     const userTileSettings = userSettings.tiles.reduce((acc, tile) => {
       acc[tile.tileId] = tile;
       return acc;
@@ -45,7 +43,7 @@ const Dashboard: React.FC = () => {
     return allTileData
       .filter(tile => {
         const hasAccess = tile.requiredPermissions.length === 0 ||
-          tile.requiredPermissions.every(role => userRoles.includes(role));
+          tile.requiredPermissions.every(perm => hasPermission(perm));
         if (!hasAccess) return false;
 
         const userSetting = userTileSettings[tile.tileId];
@@ -56,7 +54,7 @@ const Dashboard: React.FC = () => {
         const bOrder = userTileSettings[b.tileId]?.displayOrder ?? 999;
         return aOrder - bOrder;
       });
-  }, [userSettings, allTileData, getUserInfo]);
+  }, [userSettings, allTileData, hasPermission]);
 
   const handleReorder = async (tileIds: string[]) => {
     if (!userSettings) return;

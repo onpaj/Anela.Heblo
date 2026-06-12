@@ -25,6 +25,17 @@ jest.mock("../../../api/hooks/useDashboard", () => ({
   useSaveDashboardSettings: jest.fn(),
 }));
 
+let mockHasPermission: (perm: string) => boolean = () => true;
+jest.mock("../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+    hasPermission: (p: string) => mockHasPermission(p),
+  }),
+}));
+
 // Mock dashboard components
 jest.mock("../../dashboard/DashboardGrid", () => {
   return function MockDashboardGrid({ tiles, onReorder }: any) {
@@ -129,7 +140,8 @@ const mockTileData = [
 describe("Dashboard", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+    mockHasPermission = () => true;
+
     // Setup default mocks
     mockUseLiveHealthCheck.mockReturnValue({
       data: { status: "healthy" },
@@ -390,5 +402,43 @@ describe("Dashboard", () => {
 
     // The tiles should be sorted by display order regardless of how they appear in the settings
     expect(screen.getByTestId('dashboard-grid')).toBeInTheDocument();
+  });
+
+  it("shows a tile when the user has its required permission", () => {
+    mockHasPermission = (p) => p === "finance.financial_overview.read";
+    mockUseTileData.mockReturnValue({
+      data: [
+        { ...mockTileData[0], requiredPermissions: ["finance.financial_overview.read"] },
+      ],
+      isLoading: false,
+      error: null,
+    } as any);
+    mockUseUserDashboardSettings.mockReturnValue({
+      data: { tiles: [{ tileId: "tile1", isVisible: true, displayOrder: 0 }], lastModified: "2024-01-01T00:00:00Z" },
+      isLoading: false,
+      error: null,
+    } as any);
+
+    renderWithQueryClient(<Dashboard />);
+
+    // tile1 is visible per settings AND its required permission is granted → it shows.
+    expect(screen.getByTestId("tile-count")).toHaveTextContent("1");
+  });
+
+  it("hides tiles whose requiredPermissions the user lacks", () => {
+    mockHasPermission = (p) => p !== "finance.financial_overview.read";
+    mockUseTileData.mockReturnValue({
+      data: [
+        { ...mockTileData[0], requiredPermissions: [] },
+        { ...mockTileData[1], requiredPermissions: ["finance.financial_overview.read"] },
+      ],
+      isLoading: false,
+      error: null,
+    } as any);
+
+    renderWithQueryClient(<Dashboard />);
+
+    // tile1 (no requirement) shows; tile2 (autoShow but requires the missing perm) is filtered out.
+    expect(screen.getByTestId("tile-count")).toHaveTextContent("1");
   });
 });

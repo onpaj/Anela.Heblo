@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { GenerateArticleRequest } from '../../api/generated/api-client';
 import { useGenerateArticleMutation } from '../../api/hooks/useArticles';
-import { useMarketingWriterPermission } from '../../api/hooks/useMarketingWriterPermission';
+import { usePermissionsContext } from '../../auth/PermissionsContext';
 
 interface ArticleGenerationFormProps {
   onArticleCreated: (articleId: string) => void;
@@ -22,7 +22,8 @@ const LENGTH_OPTIONS = [
 ];
 
 export default function ArticleGenerationForm({ onArticleCreated }: ArticleGenerationFormProps) {
-  const canGenerate = useMarketingWriterPermission();
+  const { hasPermission } = usePermissionsContext();
+  const canGenerate = hasPermission('marketing.article.write');
   const { mutate: generate, isPending, error } = useGenerateArticleMutation();
 
   const [topic, setTopic] = useState('');

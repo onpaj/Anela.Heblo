@@ -8,8 +8,6 @@ namespace Anela.Heblo.Domain.Features.Marketing
 {
     public interface IMarketingActionRepository : IRepository<MarketingAction, int>
     {
-        Task DeleteSoftAsync(int id, string userId, string username, DateTime utcNow, CancellationToken cancellationToken = default);
-
         Task<PagedResult<MarketingAction>> GetPagedAsync(
             MarketingActionQueryCriteria criteria,
             CancellationToken cancellationToken = default);

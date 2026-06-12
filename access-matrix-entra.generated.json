@@ -141,6 +141,26 @@
       "value": "purchase.purchase_orders.write"
     },
     {
+      "id": "ade26668-b2bc-5893-9c4e-29dd47598610",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Purchase_InvoiceClassification Read",
+      "displayName": "purchase.invoice_classification.read",
+      "isEnabled": true,
+      "value": "purchase.invoice_classification.read"
+    },
+    {
+      "id": "5cf462eb-b83b-5695-a3ae-7561c0c443ec",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Purchase_InvoiceClassification Write",
+      "displayName": "purchase.invoice_classification.write",
+      "isEnabled": true,
+      "value": "purchase.invoice_classification.write"
+    },
+    {
       "id": "f0fa1142-80fa-519d-842e-8cc301d053a0",
       "allowedMemberTypes": [
         "User"
@@ -529,6 +549,26 @@
       "displayName": "admin.feature_flags.write",
       "isEnabled": true,
       "value": "admin.feature_flags.write"
+    },
+    {
+      "id": "52e9147e-b803-522c-8faa-dc5296fda879",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Jobs_Trigger Read",
+      "displayName": "jobs.trigger.read",
+      "isEnabled": true,
+      "value": "jobs.trigger.read"
+    },
+    {
+      "id": "7a33a913-ad91-59e2-a1ca-2ff17afdda50",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Jobs_Disable Read",
+      "displayName": "jobs.disable.read",
+      "isEnabled": true,
+      "value": "jobs.disable.read"
     }
   ],
   "groups": [
@@ -548,6 +588,8 @@
         "customer.smartsupp.read",
         "purchase.purchase_orders.read",
         "purchase.purchase_orders.write",
+        "purchase.invoice_classification.read",
+        "purchase.invoice_classification.write",
         "purchase.purchase_stock.read",
         "manufacture.manufacture_orders.read",
         "manufacture.manufacture_orders.write",
@@ -586,7 +628,9 @@
         "admin.administration.read",
         "admin.administration.write",
         "admin.feature_flags.read",
-        "admin.feature_flags.write"
+        "admin.feature_flags.write",
+        "jobs.trigger.read",
+        "jobs.disable.read"
       ]
     },
     {
@@ -601,6 +645,7 @@
         "customer.knowledge_base.read",
         "customer.smartsupp.read",
         "purchase.purchase_orders.read",
+        "purchase.invoice_classification.read",
         "purchase.purchase_stock.read",
         "manufacture.manufacture_orders.read",
         "manufacture.batch_planning.read",
@@ -654,6 +699,8 @@
       "roles": [
         "purchase.purchase_orders.read",
         "purchase.purchase_orders.write",
+        "purchase.invoice_classification.read",
+        "purchase.invoice_classification.write",
         "purchase.purchase_stock.read"
       ]
     },
@@ -694,7 +741,9 @@
         "products.journal.write",
         "warehouse.expedition.write",
         "warehouse.logistics.write",
-        "warehouse.stock_up.write"
+        "warehouse.stock_up.write",
+        "jobs.trigger.read",
+        "jobs.disable.read"
       ]
     },
     {
@@ -706,7 +755,8 @@
         "warehouse.packaging.read",
         "warehouse.packaging.write",
         "warehouse.stock_up.read",
-        "warehouse.stock_up.write"
+        "warehouse.stock_up.write",
+        "jobs.trigger.read"
       ]
     },
     {

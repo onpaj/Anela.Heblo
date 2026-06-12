@@ -15,6 +15,7 @@ import type {
   GetUserEffectivePermissionsResponse,
   CreateLocalUserResponse,
   SetUserCanPackResponse,
+  UpdateUserResponse,
 } from "../generated/api-client";
 import {
   CreateGroupRequest,
@@ -24,6 +25,7 @@ import {
   AddGroupMemberRequest,
   CreateLocalUserRequest,
   SetUserCanPackRequest,
+  UpdateUserRequest,
 } from "../generated/api-client";
 
 const keys = {
@@ -176,6 +178,27 @@ export const useSetUserActive = () => {
   });
 };
 
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      request,
+    }: {
+      id: string;
+      request: UpdateUserRequest;
+    }): Promise<UpdateUserResponse> => {
+      const client = getAuthenticatedApiClient();
+      return client.authorization_UpdateUser(id, request);
+    },
+    // Profile fields (display name, email, can-pack) don't affect effective
+    // permissions, so only the users list needs refreshing.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.users });
+    },
+  });
+};
+
 export const useEntraAccessUsers = () => {
   return useQuery({
     queryKey: keys.entraUsers,
@@ -233,4 +256,4 @@ export const useCreateLocalUser = () => {
   });
 };
 
-export type { CreateGroupRequest, UpdateGroupRequest, AssignUserGroupsRequest, SetUserActiveRequest, AddGroupMemberRequest, CreateLocalUserRequest, SetUserCanPackRequest };
+export type { CreateGroupRequest, UpdateGroupRequest, AssignUserGroupsRequest, SetUserActiveRequest, AddGroupMemberRequest, CreateLocalUserRequest, SetUserCanPackRequest, UpdateUserRequest };

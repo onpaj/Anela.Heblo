@@ -11,8 +11,14 @@ const mockBulkAddByIdsMutation = {
   isPending: false,
 };
 
-jest.mock("@azure/msal-react", () => ({
-  useMsal: () => ({ accounts: [{ idTokenClaims: { roles: ["marketing_writer"] } }] }),
+jest.mock("../../../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+    hasPermission: (p: string) => p === "marketing.photobank.write",
+  }),
 }));
 
 const mockPhotos: PhotoDto[] = [
@@ -84,9 +90,9 @@ test("initial state: bulk action bar not shown when nothing selected", () => {
   expect(screen.queryByTestId("bulk-action-bar")).not.toBeInTheDocument();
 });
 
-// TODO: Add a test for canBulkTag=false (no marketing_writer role) that properly isolates
-// the useMsal mock per describe block. The role gate is exercised implicitly by unit tests
-// on PhotoGrid and PhotoList (canSelect=false hides checkboxes).
+// TODO: Add a test for canBulkTag=false (no marketing.photobank.write permission) that properly
+// isolates the PermissionsContext mock per describe block. The gate is exercised implicitly by
+// unit tests on PhotoGrid and PhotoList (canSelect=false hides checkboxes).
 
 test("photo tiles are rendered in grid view and no checkboxes shown", () => {
   // Arrange & Act

@@ -35,6 +35,7 @@ public class LeafletFeedbackSummary
     public long DurationMs { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public string? UserId { get; set; }
+    public string? UserName { get; set; }
     public int? PrecisionScore { get; set; }
     public int? StyleScore { get; set; }
     public string? FeedbackComment { get; set; }

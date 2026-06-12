@@ -1,56 +1,48 @@
-All three commits are on the branch. Implementation complete.
+All tasks complete. Here is the output summary:
 
 ---
 
-# Implementation: Fix Error Handling in GetGroupMembers Flow
+# Implementation: GraphService.GetGroupMembersAsync Refactor
 
 ## What was implemented
 
-Refactored the `UserManagement` module's Graph API error handling to eliminate the swallow-and-return-empty anti-pattern. Exceptions now propagate from `GraphService` and are caught/converted at the appropriate handler boundaries, making `Success = false` and `ErrorCode` accurate in all failure scenarios. The second Graph caller (`BackfillArticleRequestedByHandler`) was also hardened against the newly propagated exceptions.
+Two private helper methods extracted from `GraphService.GetGroupMembersAsync`, reducing the orchestrator from ~160 lines to 93 lines and making the parsing logic directly unit-testable. The refactor is strictly behaviour-preserving — all log templates, exception flows, cache semantics, and the public interface are unchanged.
 
 ## Files created/modified
 
-- `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs` — Removed all swallow-and-return catch blocks; added log-and-rethrow for MsalException, ODataError, UnauthorizedAccessException, and generic Exception. Inner MSAL try/catch restructured into outer catch chain to avoid double-logging.
-- `backend/src/Anela.Heblo.Application/Features/UserManagement/UseCases/GetGroupMembers/GetGroupMembersHandler.cs` — Added four typed catches mapping to ConfigurationError / ExternalServiceError / Forbidden / InternalServerError with single log-per-catch pattern.
-- `backend/src/Anela.Heblo.Application/Features/Article/Admin/BackfillArticleRequestedByHandler.cs` — Added try/catch around resolver call with same four-exception pattern returning error envelope on Graph failure.
-- `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs` — Updated two tests from expecting empty list to expecting thrown exceptions.
-- `backend/test/Anela.Heblo.Tests/Features/UserManagement/GetGroupMembersHandlerTests.cs` — Added four typed exception tests + empty-group distinguishability test; tightened existing test to assert specific `InternalServerError`.
-- `backend/test/Anela.Heblo.Tests/Article/Admin/BackfillArticleRequestedByHandlerTests.cs` — Added four Graph failure tests for FR-4 coverage.
+- `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs` — two helpers extracted: `internal static (List<UserDto> Users, int TotalCount) ParseMembersFromJson(string json)` and `private async Task<string> AcquireGraphTokenAsync(string groupId, CancellationToken cancellationToken)`. Orchestrator now reads as a clean sequential pipeline.
+- `backend/test/Anela.Heblo.Tests/Features/UserManagement/ParseMembersFromJsonTests.cs` — 7 unit tests for the parser (all-users, mixed users/groups, empty value, missing optional fields, mail/UPN fallback, no @odata.type but has UPN, empty JSON).
+
+`InternalsVisibleTo("Anela.Heblo.Tests")` was already present in the `.csproj` — no change needed.
 
 ## Tests
 
-- `GraphServiceTests.cs` — 12 tests passing; two updated to assert thrown exceptions instead of empty list
-- `GetGroupMembersHandlerTests.cs` — 7 tests passing; 4 new typed exception tests + empty-group test
-- `BackfillArticleRequestedByHandlerTests.cs` — 12 tests passing (8 original + 4 new Graph failure tests)
-- Full suite: 4492 tests pass
+- **`ParseMembersFromJsonTests`** — 7 tests covering all NFR-3 scenarios; parser callable directly without HTTP plumbing.
+- **`GraphServiceTests`** — 12 pre-existing tests; all pass without modification (behaviour preserved).
 
 ## How to verify
 
 ```bash
-cd backend/
-dotnet build
-dotnet test test/Anela.Heblo.Tests/ --filter "FullyQualifiedName~GraphServiceTests|FullyQualifiedName~GetGroupMembersHandlerTests|FullyQualifiedName~BackfillArticleRequestedByHandlerTests"
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~GraphServiceTests|FullyQualifiedName~ParseMembersFromJsonTests"
+# Expected: 19 passed, 0 failed
 ```
 
 ## Notes
 
-- The non-success HTTP response path in `GraphService` (lines 89–99) still returns empty list from an `if` statement — this is intentional per spec FR-1 which only targets `catch` blocks.
-- `GraphArticleUserResolver` remains a one-line adapter with no exception handling — consistent with the design decision to keep thin adapters clean and let the use-case handler decide how to handle failures.
-- `UnauthorizedAccessException` is kept in the handler's catch list explicitly; if it escaped it would be intercepted by the global `UnauthorizedAccessExceptionHandler` middleware and return a bare 401 instead of the correct Forbidden/403 envelope.
+- **FR-3 line-count target (≤50 lines):** Not met — method is 93 lines. The excess is from pre-existing verbose structured logging (12 statements) and 4 exception handlers that were in the original method and are not touched by the two scoped extractions. The HTTP send block (25 lines) is explicitly out-of-scope for extraction per the spec. A follow-up task extracting `SendGraphRequestAsync` would bring the count under 50.
+- **`AcquireGraphTokenAsync` unused parameters:** `groupId` and `cancellationToken` are accepted but not forwarded to `GetAccessTokenForAppAsync` — the Microsoft.Identity.Web 3.14.1 API does not expose a `CancellationToken` overload; all other callers in the codebase do the same.
+- **`graphToken?.Length ?? 0` defensive null-check:** Pre-existing code carried over verbatim; harmless but technically redundant since `Task<string>` is non-nullable.
 
 ## PR Summary
 
-Fixed the `GetGroupMembers` error-handling contract so `Success = false` and `ErrorCode` are set accurately when Microsoft Graph or MSAL fails, replacing the previous swallow-and-return-empty pattern that made all failure paths invisible to callers.
-
-Each layer now owns exactly one responsibility: `GraphService` logs Graph/MSAL diagnostic fields and rethrows; `GetGroupMembersHandler` catches typed exceptions and maps to `ErrorCodes`; `BackfillArticleRequestedByHandler` catches the same four types from its resolver call and returns a non-Success envelope so the admin caller cannot mistake a "Graph unavailable" result for valid backfill data.
+Extracted two focused private helpers from the 160-line `GraphService.GetGroupMembersAsync` to separate token acquisition and JSON response parsing from the orchestration flow. The parser is now directly unit-testable without HTTP plumbing (7 new tests). All 12 existing `GraphServiceTests` pass without modification.
 
 ### Changes
-- `GraphService.cs` — Log-and-rethrow replaces swallow-and-return-empty in all four exception types
-- `GetGroupMembersHandler.cs` — Four typed catches mapping MsalException → ConfigurationError, ODataError → ExternalServiceError, UnauthorizedAccessException → Forbidden, Exception → InternalServerError
-- `BackfillArticleRequestedByHandler.cs` — Same four-catch pattern wrapping resolver call (FR-4 hardening)
-- `GraphServiceTests.cs` — Two tests updated: now assert exception thrown instead of empty list
-- `GetGroupMembersHandlerTests.cs` — Four new typed exception tests + empty-group distinguishability test
-- `BackfillArticleRequestedByHandlerTests.cs` — Four new Graph failure tests
+- `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs` — extracted `ParseMembersFromJson` (internal static, returns tuple for total count logging) and `AcquireGraphTokenAsync` (private instance); orchestrator reduced to a readable sequential pipeline
+- `backend/test/Anela.Heblo.Tests/Features/UserManagement/ParseMembersFromJsonTests.cs` — 7 tests covering all specified parser scenarios
 
 ## Status
-DONE
+DONE_WITH_CONCERNS
+
+> Concern: `GetGroupMembersAsync` is 93 lines vs the ≤50-line acceptance criterion. The remaining excess is pre-existing code (logging, exception handlers, HTTP block that is spec-exempt from extraction). Follow-up: extract `SendGraphRequestAsync` to close the gap.

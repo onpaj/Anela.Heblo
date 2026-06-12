@@ -156,6 +156,7 @@ Features/{Feature}/
 - **Features/{Feature}/{Feature}Repository.cs**: Repository implementations
 - **Features/{Feature}/{Feature}Module.cs**: DI container registration
 - **Shared/Rag/**: Cross-module RAG **application/infrastructure** types — options base classes, helpers, shared services (`RagFeatureOptions`, `OneDriveFolderMapping`, `IRagQueryExpander`). Distinct from `Domain/Shared/Rag/`, which holds Domain-layer RAG types
+- **I/O placement rule**: Concrete `IPrintQueueSink` implementations and any I/O-bound service live in adapter projects under `backend/src/Adapters/`, not in `Features/{Feature}/Services/`.
 
 ### Infrastructure Layer (`Anela.Heblo.Persistence`):
 - **ApplicationDbContext.cs**: Single DbContext (initially)

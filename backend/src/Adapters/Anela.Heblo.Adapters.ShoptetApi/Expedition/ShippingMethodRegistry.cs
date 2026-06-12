@@ -8,7 +8,7 @@ internal static class ShippingMethodRegistry
     internal static readonly IReadOnlyList<ShippingMethod> ShippingList = new List<ShippingMethod>
     {
         new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY",                DisplayName = "Zásilkovna (do ruky)",                           Id = 21,  Guids = ["f6610d4d-578d-11e9-beb1-002590dad85e"] },
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT",                 DisplayName = "Zásilkovna Z-Point",                             Id = 15,  Guids = ["7878c138-578d-11e9-beb1-002590dad85e", "389cea0b-40f1-11ea-beb1-002590dad85e"] },
+        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT",                 DisplayName = "Zásilkovna – Výdejní místa a Z-boxy",             Id = 15,  Guids = ["7878c138-578d-11e9-beb1-002590dad85e", "389cea0b-40f1-11ea-beb1-002590dad85e"] },
         new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_SK",             DisplayName = "Zásilkovna (do ruky) SK",                        Id = 385, Guids = ["a6d9a6ce-0ede-11ee-b534-2a01067a25a9"] },
         new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_CHLAZENY",       DisplayName = "Zásilkovna chlazený balík (do ruky)",            Id = 370, Guids = ["34d3f7d4-166f-11ee-b534-2a01067a25a9"] },
         new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT_CHLAZENY",        DisplayName = "Zásilkovna Z-Point chlazený balík",              Id = 373, Guids = ["bac58d34-166f-11ee-b534-2a01067a25a9"] },
@@ -24,6 +24,15 @@ internal static class ShippingMethodRegistry
         new() { Carrier = Carriers.GLS,        Name = "GLS_DO_RUKY",                       DisplayName = "GLS (do ruky)",                                  Id = 97,  Guids = ["138ec07f-0119-11ec-a39f-002590dc5efc", "b7e787c5-011d-11ec-a39f-002590dc5efc"] },
         new() { Carrier = Carriers.GLS,        Name = "GLS_EXPORT",                        DisplayName = "GLS Export",                                     Id = 109, Guids = ["c06835e6-165e-11ec-a39f-002590dc5efc", "bbbe7223-4ea8-11ec-a39f-002590dc5efc"] },
         new() { Carrier = Carriers.GLS,        Name = "GLS_PARCELSHOP",                    DisplayName = "GLS ParcelShop",                                 Id = 489, Guids = ["49b79aec-0118-11ec-a39f-002590dc5efc"] },
+        // 2025+ carrier scheme — new PPL/Zásilkovna/GLS "box & výdejní místa / do ruky" methods (anela.cz prod, GUIDs *-11f1-9239-bc241122355e).
+        // Coexist with the legacy methods above; both still receive orders during the transition.
+        new() { Carrier = Carriers.PPL,        Name = "PPL_BOX",                           DisplayName = "PPL přímo do PPL boxu",                          Id = 490, Guids = ["6fc70492-6341-11f1-9239-bc241122355e"] },
+        new() { Carrier = Carriers.PPL,        Name = "PPL_VYDEJNI_MISTA",                 DisplayName = "PPL výdejní místa a Alzaboxy",                   Id = 496, Guids = ["8e6313c7-6342-11f1-9239-bc241122355e"] },
+        new() { Carrier = Carriers.PPL,        Name = "PPL_DO_RUKY_NEW",                   DisplayName = "PPL do ruky",                                    Id = 493, Guids = ["53f8a8a5-6342-11f1-9239-bc241122355e"] },
+        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_BOXY_VYDEJNI",           DisplayName = "Zásilkovna boxy a výdejní místa",                Id = 502, Guids = ["68201aa2-6343-11f1-9239-bc241122355e"] },
+        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_NEW",            DisplayName = "Zásilkovna do ruky",                             Id = 505, Guids = ["b1915a68-6343-11f1-9239-bc241122355e"] },
+        new() { Carrier = Carriers.GLS,        Name = "GLS_BOXY_VYDEJNI",                  DisplayName = "GLS boxy a výdejní místa",                       Id = 511, Guids = ["8448f4b6-6344-11f1-9239-bc241122355e"] },
+        new() { Carrier = Carriers.GLS,        Name = "GLS_DO_RUKY_NEW",                   DisplayName = "GLS do ruky",                                    Id = 508, Guids = ["53db451b-6344-11f1-9239-bc241122355e"] },
         new() { Carrier = Carriers.Osobak,     Name = "OSOBAK",                            DisplayName = "Osobní odběr",                                   Id = 4,   Guids = ["8fdb2c89-3fae-11e2-a723-705ab6a2ba75", "389ce19e-40f1-11ea-beb1-002590dad85e"], MaxOrders = 1, MaxItems = int.MaxValue },
     };
 
@@ -34,6 +43,7 @@ internal static class ShippingMethodRegistry
 
     internal static DeliveryHandling? ResolveDeliveryHandling(ShippingMethod method) =>
         method.Name.Contains("DO_RUKY") ? DeliveryHandling.NaRuky :
-        method.Name.Contains("PARCELSHOP") || method.Name.Contains("ZPOINT") ? DeliveryHandling.Box :
+        method.Name.Contains("PARCELSHOP") || method.Name.Contains("ZPOINT")
+            || method.Name.Contains("BOX") || method.Name.Contains("VYDEJNI") ? DeliveryHandling.Box :
         (DeliveryHandling?)null;
 }
