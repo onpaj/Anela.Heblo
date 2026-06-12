@@ -404,12 +404,9 @@ describe("Dashboard", () => {
     expect(screen.getByTestId('dashboard-grid')).toBeInTheDocument();
   });
 
-  it("shows a tile when the user has its required permission", () => {
-    mockHasPermission = (p) => p === "finance.financial_overview.read";
+  it("renders a normally visible tile", () => {
     mockUseTileData.mockReturnValue({
-      data: [
-        { ...mockTileData[0], requiredPermissions: ["finance.financial_overview.read"] },
-      ],
+      data: [{ ...mockTileData[0] }],
       isLoading: false,
       error: null,
     } as any);
@@ -421,24 +418,30 @@ describe("Dashboard", () => {
 
     renderWithQueryClient(<Dashboard />);
 
-    // tile1 is visible per settings AND its required permission is granted → it shows.
     expect(screen.getByTestId("tile-count")).toHaveTextContent("1");
   });
 
-  it("hides tiles whose requiredPermissions the user lacks", () => {
-    mockHasPermission = (p) => p !== "finance.financial_overview.read";
+  it("renders (does not hide) tiles the backend flagged as unauthorized", () => {
     mockUseTileData.mockReturnValue({
       data: [
-        { ...mockTileData[0], requiredPermissions: [] },
-        { ...mockTileData[1], requiredPermissions: ["finance.financial_overview.read"] },
+        { ...mockTileData[0] },                                       // tile1 visible
+        { ...mockTileData[1], isUnauthorized: true, data: null },     // tile2 autoShow + unauthorized
       ],
+      isLoading: false,
+      error: null,
+    } as any);
+    mockUseUserDashboardSettings.mockReturnValue({
+      data: {
+        tiles: [{ tileId: "tile1", isVisible: true, displayOrder: 0 }], // tile2 omitted → shows via autoShow
+        lastModified: "2024-01-01T00:00:00Z",
+      },
       isLoading: false,
       error: null,
     } as any);
 
     renderWithQueryClient(<Dashboard />);
 
-    // tile1 (no requirement) shows; tile2 (autoShow but requires the missing perm) is filtered out.
-    expect(screen.getByTestId("tile-count")).toHaveTextContent("1");
+    // Both tiles pass through; the unauthorized one renders a placeholder instead of being hidden.
+    expect(screen.getByTestId("tile-count")).toHaveTextContent("2");
   });
 });
