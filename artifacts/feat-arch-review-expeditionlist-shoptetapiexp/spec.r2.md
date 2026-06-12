@@ -37,7 +37,7 @@ Constructor dependencies (long-lived):
 - `ICatalogRepository`
 - `ShoptetOrderClient` (for the cooling PATCH)
 - `Func<ExpeditionProtocolData, byte[]>` (PDF generator)
-- `ILogger<...>` (warning logger for PATCH failures)
+- `ILogger` — the existing `ILogger<ShoptetApiExpeditionListSource>` is passed through as the base `ILogger` interface (see FR-7).
 
 `FlushAsync` parameters (per-call values):
 - `IReadOnlyList<ExpeditionOrder> batch`
@@ -52,7 +52,7 @@ Constructor dependencies (long-lived):
 **Acceptance criteria:**
 - A new helper type (default name: `PickingListBatchProcessor`) lives in the same project under `Expedition/`.
 - The helper has no `static` mutable state and no captured outer variables.
-- `CreatePickingList` constructs (or receives) one instance per run and calls `FlushAsync` once per batch.
+- `CreatePickingList` constructs one instance per run and calls `FlushAsync` once per batch.
 - `FlushAsync` produces the same file name pattern: `{timestamp}_{method.Name}_{batchIndex}.pdf`.
 - `FlushAsync` returns the file path; the caller appends to `exportedFiles`.
 
@@ -93,6 +93,15 @@ The catalog-enrichment block (lines 126–151) — looking up stock, location, c
 - A new unit test asserts that `onBatchFilesReady` is invoked exactly once per `FlushAsync` call with a 1-element list.
 - A null `onBatchFilesReady` is handled without throwing (matches current behavior).
 
+### FR-7: Logger category stability
+The helper receives the existing `ILogger<ShoptetApiExpeditionListSource>` instance typed as the base `ILogger` interface. The helper does not declare its own `ILogger<PickingListBatchProcessor>` and is not registered in DI. This preserves the log category that ops/alerting filter on and keeps existing logger-mock assertions matching unchanged.
+
+**Acceptance criteria:**
+- `PickingListBatchProcessor` constructor parameter is typed `ILogger` (not `ILogger<PickingListBatchProcessor>`).
+- `ShoptetApiExpeditionListSource` passes its own `_logger` field through when constructing the helper.
+- No new DI registration is added for `PickingListBatchProcessor`.
+- The existing `Mock<ILogger<ShoptetApiExpeditionListSource>>`-based assertions at `backend/test/Anela.Heblo.Adapters.Shoptet.Tests/Expedition/ShoptetApiExpeditionListSource_CoolingMarkerTests.cs:266` and `:278` continue to pass without modification.
+
 ## Non-Functional Requirements
 
 ### NFR-1: Code quality
@@ -104,12 +113,12 @@ The catalog-enrichment block (lines 126–151) — looking up stock, location, c
 - `dotnet build` passes with zero new warnings.
 
 ### NFR-2: Testability
-- The new helper is reachable from `Anela.Heblo.Adapters.Shoptet.Tests` via the existing `InternalsVisibleTo` (line 13). The helper may be `public` or `internal`; prefer `internal sealed` to keep the public surface unchanged.
+- The new helper is reachable from `Anela.Heblo.Adapters.Shoptet.Tests` via the existing `InternalsVisibleTo` (line 13). Prefer `internal sealed` to keep the public surface unchanged.
 - Tests for the new helper do not depend on `HttpClient` mocks — they use `Mock<ICatalogRepository>` plus a fake/spy for the Shoptet PATCH side-effect.
 
 ### NFR-3: Backward compatibility
 - Public API of `ShoptetApiExpeditionListSource` (constructor signature, `CreatePickingList` signature, `IPickingListSource` contract) is unchanged.
-- DI registration (wherever the source is registered) does not need to change. If a new helper instance must be constructed from inside `ShoptetApiExpeditionListSource`, it is instantiated directly with the existing constructor dependencies — no new public DI registration is required.
+- DI registration (wherever the source is registered) does not change. `PickingListBatchProcessor` is instantiated directly inside `ShoptetApiExpeditionListSource` using its existing constructor dependencies — no new DI registration.
 
 ### NFR-4: Performance
 No regression. The helper does the same work in the same order; per-batch overhead is bounded by one allocation of the helper instance per run (or per call, if instantiated per batch — either is acceptable).
@@ -117,7 +126,7 @@ No regression. The helper does the same work in the same order; per-batch overhe
 ### NFR-5: Logging
 The warning-log shape on PATCH failure must match the existing template exactly:
 `"Failed to set Shoptet additionalField[{Index}]={Value} for order {OrderCode}; PDF print continues."`
-The `CreatePickingList_PatchFails_PdfStillCompletes` test asserts the order code appears in the message — this must continue to hold.
+The `CreatePickingList_PatchFails_PdfStillCompletes` test asserts the order code appears in the message — this must continue to hold. The log category remains `ShoptetApiExpeditionListSource` (see FR-7).
 
 ## Data Model
 No data-model changes. Types used:
@@ -168,13 +177,15 @@ internal sealed class PickingListBatchProcessor
 }
 ```
 
+The constructor takes the base `ILogger` interface (not the generic `ILogger<T>`) — `ShoptetApiExpeditionListSource` passes its own `ILogger<ShoptetApiExpeditionListSource>` instance through, preserving the log category (see FR-7).
+
 Optional internal sub-methods within the helper (split for the 50-line limit):
 - `EnrichBatchAsync(batch, ct)` — catalog lookups + `ApplyEnrichment`.
 - `WriteCoolingMarkersAsync(batch, ct)` — PATCH loop with warning-log on failure.
 
 ### Driver shape (post-refactor)
 
-`CreatePickingList` constructs one `PickingListBatchProcessor` (passing `_logger` cast as `ILogger`, or accept `ILogger<PickingListBatchProcessor>` if a typed logger is preferred — see Open Questions). The driver calls `processor.FlushAsync(...)` from both flush sites (mid-loop on overflow and end-of-loop drain) and appends the returned path to `exportedFiles`.
+`CreatePickingList` constructs one `PickingListBatchProcessor` per run, passing its `_logger` field (the existing `ILogger<ShoptetApiExpeditionListSource>`) as the `ILogger` parameter. The driver calls `processor.FlushAsync(...)` from both flush sites (mid-loop on overflow and end-of-loop drain) and appends the returned path to `exportedFiles`.
 
 No public API changes. No new DI registrations required.
 
@@ -182,9 +193,9 @@ No public API changes. No new DI registrations required.
 - `ICatalogRepository` — already injected.
 - `ShoptetOrderClient` — already injected.
 - `Func<ExpeditionProtocolData, byte[]>` — already injected with a default.
-- `ILogger<ShoptetApiExpeditionListSource>` — already injected; the helper can reuse this instance (typed as `ILogger`) or take its own `ILogger<PickingListBatchProcessor>` — see Open Questions.
+- `ILogger<ShoptetApiExpeditionListSource>` — already injected; passed through to the helper typed as `ILogger`.
 
-No new NuGet packages. No new external services.
+No new NuGet packages. No new external services. No new DI registrations.
 
 ## Out of Scope
 - Changing the cooling-marker semantics (field index, value, error handling).
@@ -197,14 +208,9 @@ No new NuGet packages. No new external services.
 - Refactoring `FetchAllOrdersAsync` or the per-carrier detail-fetch loop.
 - Adding new caching, concurrency, or parallelism.
 - Test coverage for orchestration paths already covered by existing tests (we add helper-level tests, not duplicate driver-level tests).
+- Introducing a `PickingListBatchProcessor`-typed logger category or DI registration for the helper.
 
 ## Open Questions
+None.
 
-### OQ-1: Logger type for the new helper
-The helper logs only one message (the PATCH warning). Two options:
-- (a) Reuse the existing `ILogger<ShoptetApiExpeditionListSource>` passed through as `ILogger`. Keeps log category stable for ops/alerts.
-- (b) Give the helper its own `ILogger<PickingListBatchProcessor>`. Cleaner DI semantics, but changes the log category and would surprise anyone filtering on the existing category.
-
-**Assumption:** go with (a) — pass the existing logger through as `ILogger` so the log category and existing assertion `It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains(CooledOrderCode))` keep matching without category-related changes. Confirm before merging.
-
-## Status: HAS_QUESTIONS
+## Status: COMPLETE

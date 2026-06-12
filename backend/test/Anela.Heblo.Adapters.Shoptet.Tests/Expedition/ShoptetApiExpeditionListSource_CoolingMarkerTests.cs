@@ -294,4 +294,96 @@ public class ShoptetApiExpeditionListSource_CoolingMarkerTests
         var cooledOrder = captured!.Orders.Single(o => o.Code == CooledOrderCode);
         cooledOrder.CoolingText.Should().Be("MRAZ");
     }
+
+    private Mock<HttpMessageHandler> BuildTwoBatchHandler()
+    {
+        var handler = new Mock<HttpMessageHandler>();
+
+        // Two orders, 7 items each = 14 total items > MaxItems (13), forcing a mid-loop overflow flush
+        var orderCodes = new[] { "BATCH-ORDER-A", "BATCH-ORDER-B" };
+
+        var twoOrderList = $$"""
+            {
+              "data": {
+                "orders": [
+                  {
+                    "code": "{{orderCodes[0]}}",
+                    "status": { "id": -2 },
+                    "shipping": { "guid": "{{ZasilkovnaDoRukyGuid}}", "name": "Zásilkovna (do ruky)" },
+                    "price": { "withVat": "300.00", "currencyCode": "CZK" }
+                  },
+                  {
+                    "code": "{{orderCodes[1]}}",
+                    "status": { "id": -2 },
+                    "shipping": { "guid": "{{ZasilkovnaDoRukyGuid}}", "name": "Zásilkovna (do ruky)" },
+                    "price": { "withVat": "300.00", "currencyCode": "CZK" }
+                  }
+                ],
+                "paginator": { "totalCount": 2, "page": 1, "pageCount": 1 }
+              }
+            }
+            """;
+
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.Is<HttpRequestMessage>(r =>
+                    r.Method == HttpMethod.Get &&
+                    r.RequestUri!.AbsolutePath == "/api/orders" &&
+                    r.RequestUri.Query.Contains("statusId")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(OkJson(twoOrderList));
+
+        // 7 items per order JSON builder (inline)
+        foreach (var code in orderCodes)
+        {
+            var items = string.Join(",\n", Enumerable.Range(1, 7).Select(i =>
+                $"{{ \"itemType\": \"product\", \"itemId\": {i}, \"code\": \"{NormalProductCode}\", \"name\": \"Item{i}\", \"amount\": 1, \"unit\": \"ks\", \"itemPriceWithVat\": \"10.00\" }}"));
+
+            var orderJson = $@"{{
+  ""data"": {{
+    ""order"": {{
+      ""code"": ""{code}"",
+      ""fullName"": ""Customer {code}"",
+      ""phone"": ""+420000000000"",
+      ""billingAddress"": {{
+        ""fullName"": ""Customer {code}"",
+        ""street"": ""Test"",
+        ""houseNumber"": ""1"",
+        ""city"": ""Praha"",
+        ""zip"": ""10000""
+      }},
+      ""items"": [
+        {items}
+      ],
+      ""completion"": []
+    }}
+  }}
+}}";
+
+            handler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(r =>
+                        r.Method == HttpMethod.Get &&
+                        r.RequestUri!.AbsolutePath == $"/api/orders/{code}"),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(OkJson(orderJson));
+        }
+
+        return handler;
+    }
+
+    [Fact]
+    public async Task CreatePickingList_MultipleBatches_FilenamesContainSequentialBatchIndex()
+    {
+        // Two orders with 7 items each = 14 total items, exceeding MaxItems=13, forcing a mid-loop overflow flush.
+        // This locks in the batchIndex pass-through behavior after the PickingListBatchProcessor refactor.
+        var handler = BuildTwoBatchHandler();
+        var source = BuildSource(handler);
+
+        var result = await source.CreatePickingList(BuildRequest(), null, CancellationToken.None);
+
+        result.ExportedFiles.Should().HaveCount(2);
+        result.ExportedFiles.Should().Contain(p => p.EndsWith("_0.pdf"));
+        result.ExportedFiles.Should().Contain(p => p.EndsWith("_1.pdf"));
+    }
 }

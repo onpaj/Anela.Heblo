@@ -25,9 +25,6 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     private readonly ILogger<ShoptetApiExpeditionListSource> _logger;
     private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
 
-    private const string CoolingMarkerValue = "CHLAZENE";
-    private const int CoolingAdditionalFieldIndex = 6;
-
     public ShoptetApiExpeditionListSource(
         ShoptetOrderClient client,
         TimeProvider timeProvider,
@@ -51,37 +48,13 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         Func<IList<string>, Task>? onBatchFilesReady,
         CancellationToken cancellationToken = default)
     {
-        // 1. Fetch all orders with the requested source state (paginate)
         var allOrders = await FetchAllOrdersAsync(request.SourceStateId, cancellationToken);
-
-        // 2. Filter to carriers requested; group by carrier
-        var carrierFilter = request.Carriers.Any()
-            ? new HashSet<Carriers>(request.Carriers)
-            : null;
-
-        var ordersByMethod = new Dictionary<ShippingMethod, List<(string Code, string ShippingGuid, decimal? TotalWithVat, string? CurrencyCode)>>();
-        foreach (var order in allOrders)
-        {
-            var shippingGuid = order.Shipping?.Guid;
-            if (string.IsNullOrEmpty(shippingGuid) || !ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method))
-                continue;
-            if (carrierFilter != null && !carrierFilter.Contains(method.Carrier))
-                continue;
-
-            if (!ordersByMethod.TryGetValue(method, out var list))
-            {
-                list = new List<(string, string, decimal?, string?)>();
-                ordersByMethod[method] = list;
-            }
-
-            list.Add((order.Code, shippingGuid, order.Price?.WithVat, order.Price?.CurrencyCode));
-        }
+        var ordersByMethod = BuildOrdersByMethod(allOrders, request.Carriers);
 
         var exportedFiles = new List<string>();
         var processedCodes = new List<string>();
         var timestamp = _timeProvider.GetFilenameTimestamp();
 
-        // Load carrier cooling matrix once for the entire run
         var allSettings = await _carrierCooling.GetAllAsync(cancellationToken);
         var coolingMatrix = allSettings.ToDictionary(
             s => (s.Carrier, s.DeliveryHandling),
@@ -90,134 +63,13 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             s => (s.Carrier, s.DeliveryHandling),
             s => s.CoolingText);
 
-        // Load gift setting once for the entire run
         var giftSetting = await _giftSettings.GetAsync(cancellationToken);
+        var processor = new PickingListBatchProcessor(_catalog, _client, _generateDocument, _logger);
 
         foreach (var (method, orders) in ordersByMethod)
-        {
-            var sorted = orders;
-            var maxItems = method.MaxItems;
-            var maxOrders = method.MaxOrders;
-            var carrierDisplayName = method.DisplayName;
+            await BatchAndFlushAsync(method, orders, coolingMatrix, coolingTextMatrix,
+                giftSetting, processor, timestamp, exportedFiles, processedCodes, onBatchFilesReady, cancellationToken);
 
-            // 3. Fetch all order details for this carrier upfront, then batch greedily by item count.
-            //    This ensures batches are split based on how much content fits on a printed page,
-            //    rather than by an arbitrary order count.
-            var allExpeditionOrders = new List<ExpeditionOrder>();
-            foreach (var (code, shippingGuid, totalWithVat, currencyCode) in sorted)
-            {
-                var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
-                var expeditionOrder = MapToExpeditionOrder(detail);
-                expeditionOrder.CarrierCooling = ResolveCarrierCooling(shippingGuid, coolingMatrix);
-                expeditionOrder.CoolingText = ResolveCarrierCoolingText(shippingGuid, coolingTextMatrix);
-                expeditionOrder.GiftBadgeText = ResolveGiftBadge(totalWithVat, currencyCode, giftSetting);
-                allExpeditionOrders.Add(expeditionOrder);
-                processedCodes.Add(code);
-            }
-
-            // Greedy batching: accumulate orders until adding the next would exceed maxItems.
-            // A single order with more items than maxItems always becomes its own batch.
-            var currentBatch = new List<ExpeditionOrder>();
-            var currentItemCount = 0;
-            var batchIndex = 0;
-
-            async Task FlushBatchAsync(List<ExpeditionOrder> batch)
-            {
-                // Enrich with stock counts, warehouse positions, and cooling from catalog.
-                // Positions are only applied where the Shoptet API left them blank (set components).
-                var productCodes = batch.SelectMany(o => o.Items).Select(i => i.ProductCode).Distinct();
-                var stockByCode = new Dictionary<string, decimal>();
-                var locationByCode = new Dictionary<string, string>();
-                var coolingByCode = new Dictionary<string, Cooling>();
-                var priceByCode = new Dictionary<string, decimal>();
-                foreach (var productCode in productCodes)
-                {
-                    var entry = await _catalog.GetByIdAsync(productCode, cancellationToken);
-                    if (entry != null)
-                    {
-                        stockByCode[productCode] = entry.Stock.Eshop;
-                        if (!string.IsNullOrEmpty(entry.Location))
-                            locationByCode[productCode] = entry.Location;
-                        coolingByCode[productCode] = entry.Properties.Cooling;
-                        if (entry.PriceWithVat is > 0)
-                            priceByCode[productCode] = entry.PriceWithVat.Value;
-                    }
-                }
-                ApplyEnrichment(
-                    batch.SelectMany(o => o.Items),
-                    stockByCode,
-                    locationByCode,
-                    coolingByCode,
-                    priceByCode);
-
-                var fileName = $"{timestamp}_{method.Name}_{batchIndex}.pdf";
-                var listId = Path.GetFileNameWithoutExtension(fileName);
-
-                var data = new ExpeditionProtocolData
-                {
-                    CarrierDisplayName = carrierDisplayName,
-                    ListId = listId,
-                    Orders = batch,
-                };
-
-                var pdfBytes = _generateDocument(data);
-                var filePath = Path.Combine(Path.GetTempPath(), fileName);
-                await File.WriteAllBytesAsync(filePath, pdfBytes, cancellationToken);
-                exportedFiles.Add(filePath);
-
-                foreach (var order in batch)
-                {
-                    if (!order.IsCooled)
-                        continue;
-
-                    try
-                    {
-                        await _client.SetAdditionalFieldAsync(
-                            order.Code,
-                            CoolingAdditionalFieldIndex,
-                            CoolingMarkerValue,
-                            cancellationToken);
-                    }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
-                    {
-                        _logger.LogWarning(
-                            ex,
-                            "Failed to set Shoptet additionalField[{Index}]={Value} for order {OrderCode}; PDF print continues.",
-                            CoolingAdditionalFieldIndex,
-                            CoolingMarkerValue,
-                            order.Code);
-                    }
-                }
-
-                if (onBatchFilesReady != null)
-                    await onBatchFilesReady(new List<string> { filePath });
-            }
-
-            foreach (var order in allExpeditionOrders)
-            {
-                var orderItemCount = order.Items.Count;
-
-                if ((currentItemCount + orderItemCount > maxItems || currentBatch.Count >= maxOrders) && currentBatch.Count > 0)
-                {
-                    // Flush current batch before starting a new one
-                    await FlushBatchAsync(currentBatch);
-                    batchIndex++;
-                    currentBatch = new List<ExpeditionOrder>();
-                    currentItemCount = 0;
-                }
-
-                currentBatch.Add(order);
-                currentItemCount += orderItemCount;
-            }
-
-            // Flush any remaining orders
-            if (currentBatch.Count > 0)
-            {
-                await FlushBatchAsync(currentBatch);
-            }
-        }
-
-        // 5. Update order states if requested
         if (request.ChangeOrderState)
         {
             foreach (var code in processedCodes)
@@ -245,6 +97,90 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             page++;
         }
         return all;
+    }
+
+    private static Dictionary<ShippingMethod, List<(string Code, string ShippingGuid, decimal? TotalWithVat, string? CurrencyCode)>>
+        BuildOrdersByMethod(
+            List<OrderSummary> allOrders,
+            IList<Carriers> requestedCarriers)
+    {
+        var carrierFilter = requestedCarriers.Any()
+            ? new HashSet<Carriers>(requestedCarriers)
+            : null;
+
+        var ordersByMethod = new Dictionary<ShippingMethod, List<(string, string, decimal?, string?)>>();
+        foreach (var order in allOrders)
+        {
+            var shippingGuid = order.Shipping?.Guid;
+            if (string.IsNullOrEmpty(shippingGuid) || !ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method))
+                continue;
+            if (carrierFilter != null && !carrierFilter.Contains(method.Carrier))
+                continue;
+
+            if (!ordersByMethod.TryGetValue(method, out var list))
+            {
+                list = new List<(string, string, decimal?, string?)>();
+                ordersByMethod[method] = list;
+            }
+
+            list.Add((order.Code, shippingGuid, order.Price?.WithVat, order.Price?.CurrencyCode));
+        }
+        return ordersByMethod;
+    }
+
+    private async Task BatchAndFlushAsync(
+        ShippingMethod method,
+        List<(string Code, string ShippingGuid, decimal? TotalWithVat, string? CurrencyCode)> orders,
+        IReadOnlyDictionary<(Carriers, DeliveryHandling), Cooling> coolingMatrix,
+        IReadOnlyDictionary<(Carriers, DeliveryHandling), string?> coolingTextMatrix,
+        GiftSetting giftSetting,
+        PickingListBatchProcessor processor,
+        string timestamp,
+        List<string> exportedFiles,
+        List<string> processedCodes,
+        Func<IList<string>, Task>? onBatchFilesReady,
+        CancellationToken cancellationToken)
+    {
+        var allExpeditionOrders = new List<ExpeditionOrder>();
+        foreach (var (code, shippingGuid, totalWithVat, currencyCode) in orders)
+        {
+            var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
+            var expeditionOrder = MapToExpeditionOrder(detail);
+            expeditionOrder.CarrierCooling = ResolveCarrierCooling(shippingGuid, coolingMatrix);
+            expeditionOrder.CoolingText = ResolveCarrierCoolingText(shippingGuid, coolingTextMatrix);
+            expeditionOrder.GiftBadgeText = ResolveGiftBadge(totalWithVat, currencyCode, giftSetting);
+            allExpeditionOrders.Add(expeditionOrder);
+            processedCodes.Add(code);
+        }
+
+        var currentBatch = new List<ExpeditionOrder>();
+        var currentItemCount = 0;
+        var batchIndex = 0;
+
+        foreach (var order in allExpeditionOrders)
+        {
+            var orderItemCount = order.Items.Count;
+
+            if ((currentItemCount + orderItemCount > method.MaxItems || currentBatch.Count >= method.MaxOrders) && currentBatch.Count > 0)
+            {
+                var overflowPath = await processor.FlushAsync(
+                    currentBatch, method, batchIndex, timestamp, onBatchFilesReady, cancellationToken);
+                exportedFiles.Add(overflowPath);
+                batchIndex++;
+                currentBatch = new List<ExpeditionOrder>();
+                currentItemCount = 0;
+            }
+
+            currentBatch.Add(order);
+            currentItemCount += orderItemCount;
+        }
+
+        if (currentBatch.Count > 0)
+        {
+            var finalPath = await processor.FlushAsync(
+                currentBatch, method, batchIndex, timestamp, onBatchFilesReady, cancellationToken);
+            exportedFiles.Add(finalPath);
+        }
     }
 
     internal static ExpeditionOrder MapToExpeditionOrder(Model.ExpeditionOrderDetail detail)
