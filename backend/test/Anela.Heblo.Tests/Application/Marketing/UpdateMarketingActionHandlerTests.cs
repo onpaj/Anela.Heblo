@@ -43,8 +43,8 @@ public class UpdateMarketingActionHandlerTests
     private static MarketingAction BuildExistingActionWithCollections()
     {
         var action = BuildExistingAction();
-        action.AssociateWithProduct("OLD-PROD");
-        action.LinkToFolder("old-key", MarketingFolderType.General);
+        action.AssociateWithProduct("OLD-PROD", DateTime.UtcNow);
+        action.LinkToFolder("old-key", MarketingFolderType.General, DateTime.UtcNow);
         return action;
     }
 
