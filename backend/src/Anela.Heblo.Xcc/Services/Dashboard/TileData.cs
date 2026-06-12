@@ -10,5 +10,6 @@ public class TileData
     public bool DefaultEnabled { get; set; }
     public bool AutoShow { get; set; }
     public string[] RequiredPermissions { get; set; } = Array.Empty<string>();
+    public bool IsUnauthorized { get; set; }
     public object Data { get; set; } = new();
 }

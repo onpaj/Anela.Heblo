@@ -26,8 +26,8 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.AssociateWithProduct("ABC");
-            action.AssociateWithProduct("XYZ");
+            action.AssociateWithProduct("ABC", UtcNow);
+            action.AssociateWithProduct("XYZ", UtcNow);
             action.ProductAssociations.Should().HaveCount(2);
 
             // Act
@@ -42,7 +42,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.AssociateWithProduct("ABC");
+            action.AssociateWithProduct("ABC", UtcNow);
 
             // Act
             action.ReplaceProductAssociations(null, UtcNow);
@@ -88,8 +88,8 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.AssociateWithProduct("KEEP");
-            action.AssociateWithProduct("REMOVE");
+            action.AssociateWithProduct("KEEP", UtcNow);
+            action.AssociateWithProduct("REMOVE", UtcNow);
 
             // Act — KEEP stays (re-supplied), REMOVE goes away, ADD is new
             action.ReplaceProductAssociations(new[] { "KEEP", "ADD" }, UtcNow);

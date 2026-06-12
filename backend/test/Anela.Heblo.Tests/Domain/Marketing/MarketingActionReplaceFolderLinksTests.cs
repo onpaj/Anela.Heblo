@@ -26,7 +26,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.LinkToFolder("key-1", MarketingFolderType.General);
+            action.LinkToFolder("key-1", MarketingFolderType.General, UtcNow);
             action.FolderLinks.Should().HaveCount(1);
 
             // Act
@@ -43,7 +43,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.LinkToFolder("key-1", MarketingFolderType.General);
+            action.LinkToFolder("key-1", MarketingFolderType.General, UtcNow);
 
             // Act
             action.ReplaceFolderLinks(null, UtcNow);
@@ -141,8 +141,8 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.LinkToFolder("KEEP", MarketingFolderType.General);
-            action.LinkToFolder("REMOVE", MarketingFolderType.General);
+            action.LinkToFolder("KEEP", MarketingFolderType.General, UtcNow);
+            action.LinkToFolder("REMOVE", MarketingFolderType.General, UtcNow);
 
             // Act
             action.ReplaceFolderLinks(
