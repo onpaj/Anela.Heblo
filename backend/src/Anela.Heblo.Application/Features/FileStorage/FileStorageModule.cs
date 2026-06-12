@@ -10,7 +10,7 @@ namespace Anela.Heblo.Application.Features.FileStorage;
 
 public static class FileStorageModule
 {
-    public const string ProductExportDownloadClientName = "ProductExportDownload";
+    public const string FileDownloadClientName = "FileDownload";
 
     public static IServiceCollection AddFileStorageModule(this IServiceCollection services, IConfiguration configuration)
     {
@@ -32,7 +32,7 @@ public static class FileStorageModule
         // PooledConnectionLifetime recycles sockets and refreshes DNS every 5 minutes,
         // preventing the stale-socket and DNS-pinning problems of a long-lived singleton HttpClient.
         // AutomaticDecompression handles gzip/brotli responses from the export URL transparently.
-        services.AddHttpClient(ProductExportDownloadClientName)
+        services.AddHttpClient(FileDownloadClientName)
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
             {
                 PooledConnectionLifetime = TimeSpan.FromMinutes(5),

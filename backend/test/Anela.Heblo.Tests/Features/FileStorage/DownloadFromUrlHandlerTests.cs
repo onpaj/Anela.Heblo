@@ -70,7 +70,7 @@ public class DownloadFromUrlHandlerTests
         var client = new HttpClient(handler);
         var factory = new Mock<IHttpClientFactory>();
         factory
-            .Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
             .Returns(client);
         return factory;
     }
@@ -279,7 +279,7 @@ public class DownloadFromUrlHandlerTests
         _resilience.Verify(
             r => r.ExecuteWithResilienceAsync(
                 It.IsAny<Func<CancellationToken, Task<string>>>(),
-                FileStorageModule.ProductExportDownloadClientName,
+                FileStorageModule.FileDownloadClientName,
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

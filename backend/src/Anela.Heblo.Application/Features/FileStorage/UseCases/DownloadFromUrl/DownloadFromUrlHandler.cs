@@ -92,7 +92,7 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
                         request.BlobName,
                         ct);
                 },
-                FileStorageModule.ProductExportDownloadClientName,
+                FileStorageModule.FileDownloadClientName,
                 cancellationToken);
 
             sw.Stop();
@@ -141,7 +141,7 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
         headCts.CancelAfter(_options.Value.HeadTimeout);
         try
         {
-            var client = _httpClientFactory.CreateClient(FileStorageModule.ProductExportDownloadClientName);
+            var client = _httpClientFactory.CreateClient(FileStorageModule.FileDownloadClientName);
             using var req = new HttpRequestMessage(HttpMethod.Head, fileUrl);
             using var resp = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, headCts.Token);
             if (resp.IsSuccessStatusCode && resp.Content.Headers.ContentLength.HasValue)
