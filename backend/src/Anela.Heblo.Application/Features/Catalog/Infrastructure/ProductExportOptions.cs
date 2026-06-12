@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Features.FileStorage;
+namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
 
 public class ProductExportOptions
 {

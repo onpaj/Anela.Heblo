@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Xcc.Telemetry;
