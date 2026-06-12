@@ -40,8 +40,8 @@ public class GetPackingDashboardHandler : IRequestHandler<GetPackingDashboardReq
         try
         {
             ordersBeingPackedCount = await _packingOrderClient.GetOrdersBeingPackedCountAsync(cancellationToken);
-            ordersBeingProcessedCount = await _packingOrderClient.GetOrdersBeingProcessedCountAsync(cancellationToken);
             ordersBeingPackedCountLastSync = now;
+            ordersBeingProcessedCount = await _packingOrderClient.GetOrdersBeingProcessedCountAsync(cancellationToken);
         }
         catch (Exception ex)
         {
