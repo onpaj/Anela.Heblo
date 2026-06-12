@@ -34,6 +34,9 @@ command -v jq >/dev/null || err "jq is required."
 
 req() {
   # req METHOD PATH_OR_URL [json-body]
+  # Retries transient 403/429 (GitHub search rate limiting is 30/min and bursts
+  # of dedup searches can trip it) with backoff, so a throttled dedup never
+  # turns into a spurious skip or a duplicate filing.
   local method="$1" path="$2" body="${3:-}"
   local url="$path"
   [[ "$path" == http* ]] || url="${API}${path}"
@@ -43,7 +46,18 @@ req() {
     -H "X-GitHub-Api-Version: 2022-11-28"
     -w $'\n__HTTP_CODE__%{http_code}')
   [[ -n "$body" ]] && args+=(-d "$body")
-  curl "${args[@]}" "$url"
+
+  local out code delay=3 attempt
+  for attempt in 1 2 3 4; do
+    out="$(curl "${args[@]}" "$url")"
+    code="${out##*__HTTP_CODE__}"
+    if [[ "$code" != "403" && "$code" != "429" ]]; then
+      printf '%s' "$out"; return 0
+    fi
+    [[ $attempt -eq 4 ]] && { printf '%s' "$out"; return 0; }
+    echo "GitHub API ${code} (rate limit?) — retrying in ${delay}s..." >&2
+    sleep "$delay"; delay=$((delay * 2))
+  done
 }
 
 emit() {
