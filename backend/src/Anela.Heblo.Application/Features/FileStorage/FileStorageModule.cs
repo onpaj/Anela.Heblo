@@ -55,6 +55,8 @@ public static class FileStorageModule
         // BlobServiceClient is already Singleton — no thread-safety concerns.
         services.AddSingleton<IBlobStorageService, AzureBlobStorageService>();
 
+        services.Configure<FileDownloadOptions>(configuration.GetSection("FileStorage:Download"));
+
         return services;
     }
 }
