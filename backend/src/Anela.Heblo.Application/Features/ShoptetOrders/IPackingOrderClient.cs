@@ -17,6 +17,11 @@ public interface IPackingOrderClient
     /// Returns the total count of orders currently in the configured packing state ("Balí se").
     /// </summary>
     Task<int> GetOrdersBeingPackedCountAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the total count of orders currently in the configured processing state ("Vyřizuje se").
+    /// </summary>
+    Task<int> GetOrdersBeingProcessedCountAsync(CancellationToken ct = default);
 }
 
 /// <summary>Packing view of an eshop order. Internal contract — not an API DTO.</summary>
