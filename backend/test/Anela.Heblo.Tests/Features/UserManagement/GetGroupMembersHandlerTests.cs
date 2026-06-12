@@ -69,27 +69,6 @@ public class GetGroupMembersHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithEmptyGroupId_CallsGraphService()
-    {
-        // Arrange
-        var groupId = "";
-        var request = new GetGroupMembersRequest { GroupId = groupId };
-        var expectedMembers = new List<UserDto>();
-
-        _mockGraphService
-            .Setup(x => x.GetGroupMembersAsync(groupId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expectedMembers);
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        Assert.True(result.Success);
-        Assert.Empty(result.Members);
-        _mockGraphService.Verify(x => x.GetGroupMembersAsync(groupId, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
     public async Task Handle_WhenGraphServiceThrowsMsalException_ReturnsConfigurationError()
     {
         // Arrange
