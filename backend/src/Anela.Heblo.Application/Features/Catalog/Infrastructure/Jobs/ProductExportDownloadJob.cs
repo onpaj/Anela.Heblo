@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Xcc.Telemetry;
@@ -12,7 +11,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Anela.Heblo.Application.Features.FileStorage.Infrastructure.Jobs;
+namespace Anela.Heblo.Application.Features.Catalog.Infrastructure.Jobs;
 
 [AutomaticRetry(Attempts = 0)]
 public sealed class ProductExportDownloadJob : IRecurringJob
