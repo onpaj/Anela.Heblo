@@ -4,6 +4,7 @@ using Anela.Heblo.Domain.Features.FileStorage;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -27,8 +28,18 @@ public class FileStorageModuleTests
         return services;
     }
 
-    private static IConfiguration BuildConfiguration() =>
-        new ConfigurationBuilder().Build();
+    private static IConfiguration BuildConfiguration(string? blobConnectionString = "UseDevelopmentStorage=true")
+    {
+        var dict = new Dictionary<string, string?>();
+        if (blobConnectionString is not null)
+        {
+            dict["FileStorage:BlobConnectionString"] = blobConnectionString;
+        }
+        return new ConfigurationBuilder().AddInMemoryCollection(dict).Build();
+    }
+
+    private static IHostEnvironment BuildEnvironment(string environmentName) =>
+        Mock.Of<IHostEnvironment>(e => e.EnvironmentName == environmentName);
 
     [Fact]
     public void AddFileStorageModule_RegistersBlobStorageService_AsSingleton()
@@ -37,7 +48,7 @@ public class FileStorageModuleTests
         var services = BuildBaseServices();
 
         // Act
-        services.AddFileStorageModule(BuildConfiguration());
+        services.AddFileStorageModule(BuildConfiguration(), BuildEnvironment(Environments.Development));
 
         // Assert — IBlobStorageService must be Singleton so _containerExists cache survives requests
         var descriptor = services.Single(s => s.ServiceType == typeof(IBlobStorageService));
@@ -49,7 +60,7 @@ public class FileStorageModuleTests
     {
         // Arrange
         var services = BuildBaseServices();
-        services.AddFileStorageModule(BuildConfiguration());
+        services.AddFileStorageModule(BuildConfiguration(), BuildEnvironment(Environments.Development));
         var provider = services.BuildServiceProvider();
 
         // Act
@@ -65,7 +76,7 @@ public class FileStorageModuleTests
     {
         // Arrange
         var services = BuildBaseServices();
-        services.AddFileStorageModule(BuildConfiguration());
+        services.AddFileStorageModule(BuildConfiguration(), BuildEnvironment(Environments.Development));
         var provider = services.BuildServiceProvider();
 
         // Act
@@ -84,7 +95,7 @@ public class FileStorageModuleTests
         var services = BuildBaseServices();
 
         // Act
-        services.AddFileStorageModule(BuildConfiguration());
+        services.AddFileStorageModule(BuildConfiguration(), BuildEnvironment(Environments.Development));
 
         // Assert — the old services.AddTransient<HttpClient>() self-registers HttpClient with
         // ImplementationType == typeof(HttpClient). AddHttpClient(...) registers a transient with
@@ -105,7 +116,7 @@ public class FileStorageModuleTests
         var services = BuildBaseServices();
 
         // Act
-        services.AddFileStorageModule(BuildConfiguration());
+        services.AddFileStorageModule(BuildConfiguration(), BuildEnvironment(Environments.Development));
 
         // Assert — IDownloadResilienceService must be Singleton with the correct implementation
         var descriptor = services.Single(d => d.ServiceType == typeof(IDownloadResilienceService));
