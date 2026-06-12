@@ -1,12 +1,10 @@
-using Anela.Heblo.Application.Features.Invoices.Contracts;
-using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Invoices;
-using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Repositories;
+using Anela.Heblo.Xcc.Persistance;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.Invoices.Infrastructure;
+namespace Anela.Heblo.Persistence.Invoices;
 
 /// <summary>
 /// Repository implementation for IssuedInvoice entity
