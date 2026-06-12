@@ -18,7 +18,7 @@ public class FileStorageModuleTests
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         services.AddSingleton(Mock.Of<ITelemetryService>());
-        services.Configure<ProductExportOptions>(opts =>
+        services.Configure<FileDownloadOptions>(opts =>
         {
             opts.MaxRetryAttempts = 3;
             opts.DownloadTimeout = TimeSpan.FromSeconds(120);
