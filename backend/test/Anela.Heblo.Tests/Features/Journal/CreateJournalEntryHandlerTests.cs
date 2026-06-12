@@ -153,12 +153,56 @@ public class CreateJournalEntryHandlerTests
         _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Fact]
-    public async Task Handle_WhenValidRequestWithoutOptionalFields_ShouldCreateJournalEntrySuccessfully()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Handle_WhenTitleIsNullOrWhitespace_ShouldReturnInvalidJournalTitleError(string? title)
     {
         // Arrange
         var request = new CreateJournalEntryRequest
         {
+            Title = title!,
+            Content = "Test content",
+            EntryDate = DateTime.Today
+        };
+
+        var currentUser = new CurrentUser(
+            Id: "user123",
+            Name: "Test User",
+            Email: "test@example.com",
+            IsAuthenticated: true
+        );
+
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(currentUser);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.InvalidJournalTitle);
+        result.Params.Should().ContainKey("field");
+        result.Params!["field"].Should().Be("title");
+
+        _repositoryMock.Verify(
+            x => x.AddAsync(It.IsAny<JournalEntry>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _repositoryMock.Verify(
+            x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTitleIsWhitespaceOnly_TitleIsTrimmedBeforePersist()
+    {
+        // Arrange
+        var request = new CreateJournalEntryRequest
+        {
+            Title = "  My Entry  ",
             Content = "Test content",
             EntryDate = DateTime.Today
         };
@@ -173,7 +217,7 @@ public class CreateJournalEntryHandlerTests
         var createdEntry = new JournalEntry
         {
             Id = 1,
-            Title = null,
+            Title = "My Entry",
             Content = request.Content,
             EntryDate = request.EntryDate,
             CreatedAt = DateTime.UtcNow,
@@ -198,7 +242,9 @@ public class CreateJournalEntryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
-        result.Id.Should().Be(1);
-        result.ErrorCode.Should().BeNull();
+
+        _repositoryMock.Verify(x => x.AddAsync(
+            It.Is<JournalEntry>(e => e.Title == "My Entry"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Features.Invoices.Contracts;
+namespace Anela.Heblo.Persistence.Invoices;
 
 /// <summary>
 /// Filter criteria for issued invoices
