@@ -7,12 +7,15 @@ namespace Anela.Heblo.Tests.Domain.Marketing
 {
     public class MarketingActionAssociateWithProductTests
     {
+        private static readonly DateTime FixedUtcNow =
+            new DateTime(2026, 1, 15, 10, 30, 0, DateTimeKind.Utc);
+
         private static MarketingAction CreateAction() =>
             new MarketingActionTestBuilder()
                 .WithTitle("Test Action")
-                .WithStartDate(DateTime.UtcNow)
-                .WithCreatedAt(DateTime.UtcNow)
-                .WithModifiedAt(DateTime.UtcNow)
+                .WithStartDate(FixedUtcNow)
+                .WithCreatedAt(FixedUtcNow)
+                .WithModifiedAt(FixedUtcNow)
                 .WithCreatedBy("user-1")
                 .Build();
 
@@ -23,8 +26,8 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             var action = CreateAction();
 
             // Act
-            action.AssociateWithProduct("ABC");
-            action.AssociateWithProduct("abc");
+            action.AssociateWithProduct("ABC", FixedUtcNow);
+            action.AssociateWithProduct("abc", FixedUtcNow);
 
             // Assert
             action.ProductAssociations.Should().HaveCount(1);
@@ -36,10 +39,10 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.AssociateWithProduct("ABC");
+            action.AssociateWithProduct("ABC", FixedUtcNow);
 
             // Act
-            action.AssociateWithProduct("abc");
+            action.AssociateWithProduct("abc", FixedUtcNow);
 
             // Assert
             action.ProductAssociations.Should().HaveCount(1);
@@ -50,10 +53,10 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.AssociateWithProduct("ABC");
+            action.AssociateWithProduct("ABC", FixedUtcNow);
 
             // Act
-            action.AssociateWithProduct(" abc ");
+            action.AssociateWithProduct(" abc ", FixedUtcNow);
 
             // Assert
             action.ProductAssociations.Should().HaveCount(1);
@@ -67,14 +70,14 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             action.Id = 42;
 
             // Act
-            action.AssociateWithProduct("xyz");
+            action.AssociateWithProduct("xyz", FixedUtcNow);
 
             // Assert
             action.ProductAssociations.Should().HaveCount(1);
             var added = action.ProductAssociations.Single();
             added.ProductCodePrefix.Should().Be("XYZ");
             added.MarketingActionId.Should().Be(42);
-            added.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+            added.CreatedAt.Should().Be(FixedUtcNow);
         }
 
         [Fact]
@@ -84,7 +87,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             var action = CreateAction();
 
             // Act
-            action.AssociateWithProduct("  aBc  ");
+            action.AssociateWithProduct("  aBc  ", FixedUtcNow);
 
             // Assert
             action.ProductAssociations.Should().HaveCount(1);
@@ -101,13 +104,28 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             var action = CreateAction();
 
             // Act
-            Action act = () => action.AssociateWithProduct(input!);
+            Action act = () => action.AssociateWithProduct(input!, FixedUtcNow);
 
             // Assert
             act.Should()
                 .Throw<ArgumentException>()
                 .Which.ParamName.Should().Be("productCode");
             action.ProductAssociations.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void AssociateWithProduct_AssignsCreatedAtFromUtcNowParameter_Exactly()
+        {
+            // Arrange
+            var action = CreateAction();
+            var fixedNow = new DateTime(2026, 3, 15, 12, 0, 0, DateTimeKind.Utc);
+
+            // Act
+            action.AssociateWithProduct("ABC", fixedNow);
+
+            // Assert
+            action.ProductAssociations.Should().HaveCount(1);
+            action.ProductAssociations.Single().CreatedAt.Should().Be(fixedNow);
         }
     }
 }

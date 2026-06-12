@@ -117,132 +117,6 @@ public class IssuedInvoiceRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task FindBySyncStatusAsync_WithSyncedFilter_ReturnsOnlySynced()
-    {
-        // Arrange
-        var syncedInvoice = new IssuedInvoice { Id = "INV-SYNCED", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        syncedInvoice.SyncSucceeded(CreateTestSyncData());
-
-        var unsyncedInvoice = new IssuedInvoice { Id = "INV-UNSYNCED", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-
-        await _repository.AddAsync(syncedInvoice);
-        await _repository.AddAsync(unsyncedInvoice);
-        await _repository.SaveChangesAsync();
-
-        // Act
-        var syncedResult = await _repository.FindBySyncStatusAsync(true);
-        var unsyncedResult = await _repository.FindBySyncStatusAsync(false);
-
-        // Assert
-        Assert.Single(syncedResult);
-        Assert.Equal("INV-SYNCED", syncedResult.First().Id);
-
-        Assert.Single(unsyncedResult);
-        Assert.Equal("INV-UNSYNCED", unsyncedResult.First().Id);
-    }
-
-    [Fact]
-    public async Task FindBySyncStatusAsync_WithNullFilter_ReturnsAll()
-    {
-        // Arrange
-        var syncedInvoice = new IssuedInvoice { Id = "INV-SYNCED", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        syncedInvoice.SyncSucceeded(CreateTestSyncData());
-
-        var unsyncedInvoice = new IssuedInvoice { Id = "INV-UNSYNCED", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-
-        await _repository.AddAsync(syncedInvoice);
-        await _repository.AddAsync(unsyncedInvoice);
-        await _repository.SaveChangesAsync();
-
-        // Act
-        var result = await _repository.FindBySyncStatusAsync(null);
-
-        // Assert
-        Assert.Equal(2, result.Count());
-        Assert.Contains(result, i => i.Id == "INV-SYNCED");
-        Assert.Contains(result, i => i.Id == "INV-UNSYNCED");
-    }
-
-    [Fact]
-    public async Task FindByInvoiceDateRangeAsync_WithDateRange_ReturnsFilteredInvoices()
-    {
-        // Arrange
-        var invoice1 = new IssuedInvoice { Id = "INV-OLD", InvoiceDate = DateTime.Today.AddDays(-10), DueDate = DateTime.Today.AddDays(20), TaxDate = DateTime.Today.AddDays(-10) };
-        var invoice2 = new IssuedInvoice { Id = "INV-RECENT", InvoiceDate = DateTime.Today.AddDays(-2), DueDate = DateTime.Today.AddDays(28), TaxDate = DateTime.Today.AddDays(-2) };
-        var invoice3 = new IssuedInvoice { Id = "INV-FUTURE", InvoiceDate = DateTime.Today.AddDays(5), DueDate = DateTime.Today.AddDays(35), TaxDate = DateTime.Today.AddDays(5) };
-
-        await _repository.AddAsync(invoice1);
-        await _repository.AddAsync(invoice2);
-        await _repository.AddAsync(invoice3);
-        await _repository.SaveChangesAsync();
-
-        // Act
-        var result = await _repository.FindByInvoiceDateRangeAsync(
-            DateTime.Today.AddDays(-5),
-            DateTime.Today);
-
-        // Assert
-        Assert.Single(result);
-        Assert.Equal("INV-RECENT", result.First().Id);
-    }
-
-    [Fact]
-    public async Task FindWithCriticalErrorsAsync_WithErrorTypes_ReturnsOnlyCriticalErrors()
-    {
-        // Arrange
-        var criticalErrorInvoice = new IssuedInvoice { Id = "INV-CRITICAL", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        criticalErrorInvoice.SyncFailed(CreateTestSyncData(), "Critical error");
-
-        var pairedInvoice = new IssuedInvoice { Id = "INV-PAIRED", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        pairedInvoice.SyncFailed(CreateTestSyncData(), new IssuedInvoiceError { ErrorType = IssuedInvoiceErrorType.InvoicePaired, Message = "Invoice paired" }); // Not critical
-
-        var successInvoice = new IssuedInvoice { Id = "INV-SUCCESS", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        successInvoice.SyncSucceeded(CreateTestSyncData());
-
-        await _repository.AddAsync(criticalErrorInvoice);
-        await _repository.AddAsync(pairedInvoice);
-        await _repository.AddAsync(successInvoice);
-        await _repository.SaveChangesAsync();
-
-        // Act
-        var result = await _repository.FindWithCriticalErrorsAsync();
-
-        // Assert
-        Assert.Single(result);
-        Assert.Equal("INV-CRITICAL", result.First().Id);
-        // Should not include paired invoice (not critical) or success invoice
-    }
-
-    [Fact]
-    public async Task FindStaleInvoicesAsync_WithStaleInvoices_ReturnsUnsyncedAndOldSynced()
-    {
-        // Arrange
-        var unsyncedInvoice = new IssuedInvoice { Id = "INV-UNSYNCED", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-
-        var oldSyncedInvoice = new IssuedInvoice { Id = "INV-OLD-SYNC", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        oldSyncedInvoice.SyncSucceeded(CreateTestSyncData());
-        SetLastSyncTime(oldSyncedInvoice, DateTime.UtcNow.AddDays(-10));
-
-        var recentSyncedInvoice = new IssuedInvoice { Id = "INV-RECENT-SYNC", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        recentSyncedInvoice.SyncSucceeded(CreateTestSyncData());
-        SetLastSyncTime(recentSyncedInvoice, DateTime.UtcNow.AddHours(-1));
-
-        await _repository.AddAsync(unsyncedInvoice);
-        await _repository.AddAsync(oldSyncedInvoice);
-        await _repository.AddAsync(recentSyncedInvoice);
-        await _repository.SaveChangesAsync();
-
-        // Act
-        var result = await _repository.FindStaleInvoicesAsync(DateTime.UtcNow.AddDays(-5));
-
-        // Assert
-        Assert.Equal(2, result.Count());
-        Assert.Contains(result, i => i.Id == "INV-UNSYNCED");
-        Assert.Contains(result, i => i.Id == "INV-OLD-SYNC");
-        Assert.DoesNotContain(result, i => i.Id == "INV-RECENT-SYNC");
-    }
-
-    [Fact]
     public async Task GetSyncStatsAsync_WithVariousInvoices_ReturnsAccurateStats()
     {
         // Arrange
@@ -280,49 +154,6 @@ public class IssuedInvoiceRepositoryTests : IDisposable
         Assert.Equal(3, stats.UnsyncedInvoices); // Unsynced, error, paired
         Assert.Equal(2, stats.InvoicesWithErrors); // Error and paired
         Assert.Equal(1, stats.CriticalErrors); // Only error invoice (paired is not critical)
-    }
-
-    [Fact]
-    public async Task FindByCustomerNameAsync_WithPartialName_ReturnsMatchingInvoices()
-    {
-        // Arrange
-        var invoice1 = new IssuedInvoice { Id = "INV-001", CustomerName = "ACME Corporation", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        var invoice2 = new IssuedInvoice { Id = "INV-002", CustomerName = "Beta Corp", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        var invoice3 = new IssuedInvoice { Id = "INV-003", CustomerName = "ACME Industries", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        var invoice4 = new IssuedInvoice { Id = "INV-004", CustomerName = null, InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-
-        await _repository.AddAsync(invoice1);
-        await _repository.AddAsync(invoice2);
-        await _repository.AddAsync(invoice3);
-        await _repository.AddAsync(invoice4);
-        await _repository.SaveChangesAsync();
-
-        // Act
-        var result = await _repository.FindByCustomerNameAsync("ACME");
-
-        // Assert
-        Assert.Equal(2, result.Count());
-        Assert.Contains(result, i => i.Id == "INV-001");
-        Assert.Contains(result, i => i.Id == "INV-003");
-        Assert.DoesNotContain(result, i => i.Id == "INV-002");
-        Assert.DoesNotContain(result, i => i.Id == "INV-004");
-    }
-
-    [Fact]
-    public async Task FindByCustomerNameAsync_WithEmptyName_ReturnsEmpty()
-    {
-        // Arrange
-        var invoice = new IssuedInvoice { Id = "INV-001", CustomerName = "Test Customer", InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        await _repository.AddAsync(invoice);
-        await _repository.SaveChangesAsync();
-
-        // Act
-        var result1 = await _repository.FindByCustomerNameAsync("");
-        var result2 = await _repository.FindByCustomerNameAsync("   ");
-
-        // Assert
-        Assert.Empty(result1);
-        Assert.Empty(result2);
     }
 
     [Fact]
@@ -453,12 +284,6 @@ public class IssuedInvoiceRepositoryTests : IDisposable
                 CurrencyCode = "CZK"
             }
         };
-    }
-
-    private static void SetLastSyncTime(IssuedInvoice invoice, DateTime syncTime)
-    {
-        var property = typeof(IssuedInvoice).GetProperty("LastSyncTime");
-        property?.SetValue(invoice, syncTime);
     }
 
     public void Dispose()

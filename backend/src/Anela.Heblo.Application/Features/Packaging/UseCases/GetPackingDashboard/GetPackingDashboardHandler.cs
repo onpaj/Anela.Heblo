@@ -35,20 +35,23 @@ public class GetPackingDashboardHandler : IRequestHandler<GetPackingDashboardReq
         var (total, byPacker) = await _repo.GetPackedTodayByPackerAsync(start, end, cancellationToken);
 
         int? ordersBeingPackedCount = null;
+        int? ordersBeingProcessedCount = null;
         DateTimeOffset? ordersBeingPackedCountLastSync = null;
         try
         {
             ordersBeingPackedCount = await _packingOrderClient.GetOrdersBeingPackedCountAsync(cancellationToken);
             ordersBeingPackedCountLastSync = now;
+            ordersBeingProcessedCount = await _packingOrderClient.GetOrdersBeingProcessedCountAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to retrieve orders-being-packed count from Shoptet; dashboard will show null");
+            _logger.LogWarning(ex, "Failed to retrieve order counts from Shoptet; dashboard will show null");
         }
 
         return new GetPackingDashboardResponse
         {
             OrdersBeingPackedCount = ordersBeingPackedCount,
+            OrdersBeingProcessedCount = ordersBeingProcessedCount,
             OrdersBeingPackedCountLastSync = ordersBeingPackedCountLastSync,
             TotalOrdersPackedToday = total,
             PackedByPacker = byPacker

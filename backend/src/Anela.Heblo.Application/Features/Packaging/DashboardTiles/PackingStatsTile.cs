@@ -46,15 +46,17 @@ public class PackingStatsTile : ITile
             var (total, byPacker) = await _repo.GetPackedTodayByPackerAsync(start, end, cancellationToken);
 
             int? ordersBeingPackedCount = null;
+            int? ordersBeingProcessedCount = null;
             DateTimeOffset? ordersBeingPackedCountLastSync = null;
             try
             {
                 ordersBeingPackedCount = await _packingOrderClient.GetOrdersBeingPackedCountAsync(cancellationToken);
                 ordersBeingPackedCountLastSync = now;
+                ordersBeingProcessedCount = await _packingOrderClient.GetOrdersBeingProcessedCountAsync(cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to retrieve orders-being-packed count from Shoptet");
+                _logger.LogWarning(ex, "Failed to retrieve order counts from Shoptet");
             }
 
             var packers = byPacker
@@ -72,6 +74,7 @@ public class PackingStatsTile : ITile
                 data = new
                 {
                     ordersBeingPackedCount,
+                    ordersBeingProcessedCount,
                     ordersBeingPackedCountLastSync,
                     totalOrdersPackedToday = total,
                     packedByPacker = packers,

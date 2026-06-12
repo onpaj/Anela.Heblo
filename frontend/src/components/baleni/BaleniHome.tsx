@@ -67,7 +67,13 @@ const BaleniHome: React.FC = () => {
     <div className="pt-4 space-y-8">
       <section>
         <h2 className="text-lg font-semibold text-neutral-slate mb-4">Přehled</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <StatCard
+            label="Vyřizuje se (Shoptet)"
+            value={data?.ordersBeingProcessedCount ?? '—'}
+            loading={isLoading}
+            syncTime={data?.ordersBeingPackedCountLastSync}
+          />
           <StatCard
             label="Balí se (Shoptet)"
             value={data?.ordersBeingPackedCount ?? '—'}

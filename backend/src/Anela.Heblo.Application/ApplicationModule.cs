@@ -92,7 +92,7 @@ public static class ApplicationModule
         services.AddOrgChartServices(configuration);
         services.AddInvoiceClassificationModule();
         services.AddPackingMaterialsModule();
-        services.AddInvoicesModule();
+        services.AddInvoicesModule(configuration);
         services.AddKnowledgeBaseModule(configuration);
         services.AddCatalogDocumentsModule(configuration);
         services.AddLeafletModule(configuration);
