@@ -1,12 +1,15 @@
 using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
+using Anela.Heblo.Application.Features.FileStorage.Services;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Anela.Heblo.Xcc.Telemetry;
+using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -129,5 +132,63 @@ public class FileStorageModuleTests
     {
         // Assert — the constant must be stable so all consumers reference the same string
         Assert.Equal("ProductExportDownload", FileStorageModule.ProductExportDownloadClientName);
+    }
+
+    [Fact]
+    public void AddFileStorageModule_NonDevelopmentEnvironmentWithMissingKey_FailsValidation()
+    {
+        // Arrange — Production environment with no FileStorage:BlobConnectionString seeded
+        var services = BuildBaseServices();
+        var configuration = BuildConfiguration(blobConnectionString: null);
+        services.AddFileStorageModule(configuration, BuildEnvironment(Environments.Production));
+        var provider = services.BuildServiceProvider();
+
+        // Act — resolving IOptions<FileStorageOptions>.Value triggers the same .Validate pipeline
+        // that ValidateOnStart() runs at host start. This is the unit-test analogue: we want to
+        // confirm the rule fires and the message names the missing key (per spec NFR-2: no value
+        // leakage; the key name is mentioned, not the offending value).
+        var act = () => provider.GetRequiredService<IOptions<FileStorageOptions>>().Value;
+
+        // Assert
+        var ex = Assert.Throws<OptionsValidationException>(act);
+        Assert.Contains("FileStorage:BlobConnectionString", ex.Message);
+    }
+
+    [Fact]
+    public void AddFileStorageModule_DevelopmentEnvironmentWithMissingKey_FallsBackAndLogsWarning()
+    {
+        // Arrange — Development environment, no FileStorage:BlobConnectionString
+        var services = new ServiceCollection();
+        services.AddSingleton(Mock.Of<ITelemetryService>());
+        services.Configure<ProductExportOptions>(opts =>
+        {
+            opts.MaxRetryAttempts = 3;
+            opts.DownloadTimeout = TimeSpan.FromSeconds(120);
+            opts.RetryBaseDelay = TimeSpan.FromSeconds(2);
+        });
+
+        var warningLogger = new Mock<ILogger<AzureBlobStorageService>>();
+        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+        // Override the AzureBlobStorageService logger so we can verify the warning was emitted.
+        services.AddSingleton(warningLogger.Object);
+
+        var configuration = BuildConfiguration(blobConnectionString: null);
+        services.AddFileStorageModule(configuration, BuildEnvironment(Environments.Development));
+        var provider = services.BuildServiceProvider();
+
+        // Act — resolving the BlobServiceClient runs the factory, which emits the warning
+        // and returns a client pointed at UseDevelopmentStorage=true.
+        var client = provider.GetRequiredService<BlobServiceClient>();
+
+        // Assert — client is constructed (no throw) and the warning was logged once.
+        Assert.NotNull(client);
+        warningLogger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("FileStorage:BlobConnectionString")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 }
