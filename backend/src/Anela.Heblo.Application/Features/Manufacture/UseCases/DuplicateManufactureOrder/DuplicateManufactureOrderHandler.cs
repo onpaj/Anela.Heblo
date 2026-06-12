@@ -44,12 +44,12 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
         var duplicateOrder = new ManufactureOrder
         {
             OrderNumber = orderNumber,
-            CreatedDate = DateTime.UtcNow,
+            CreatedDate = _timeProvider.GetUtcNow().DateTime,
             CreatedByUser = currentUser.GetDisplayName(),
             ResponsiblePerson = sourceOrder.ResponsiblePerson,
             PlannedDate = today,
             State = ManufactureOrderState.Draft,
-            StateChangedAt = DateTime.UtcNow,
+            StateChangedAt = _timeProvider.GetUtcNow().DateTime,
             StateChangedByUser = currentUser.GetDisplayName()
         };
 
