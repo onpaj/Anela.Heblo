@@ -23,6 +23,7 @@ import type {
 } from "../../../api/generated/api-client";
 import JournalEntryModal from "../../JournalEntryModal";
 import { useScreenView } from '../../../telemetry/useScreenView';
+import { truncateContent } from "./journalPreview";
 
 interface JournalRowProps {
   id: number;
@@ -248,12 +249,6 @@ const JournalList: React.FC = () => {
     setPageNumber(1); // Reset to first page when changing page size
   };
 
-  const truncateContent = (content: string, maxLength: number = 150) => {
-    return content.length > maxLength
-      ? content.substring(0, maxLength) + "..."
-      : content;
-  };
-
   // Modal handlers
   const handleOpenNewModal = () => {
     setEditingEntryId(null);
@@ -431,7 +426,7 @@ const JournalList: React.FC = () => {
                         title={entry.title ?? undefined}
                         entryDate={entry.entryDate!}
                         authorLabel={entry.createdByUsername || entry.createdByUserId!}
-                        contentText={entry.contentPreview!}
+                        contentText={truncateContent(entry.content!, { searchQuery: searchTextFilter })}
                         tags={entry.tags}
                         associatedProducts={entry.associatedProducts}
                         onClick={() => handleOpenEditModal(entry.id!)}
@@ -444,7 +439,7 @@ const JournalList: React.FC = () => {
                         title={entry.title ?? undefined}
                         entryDate={entry.entryDate!}
                         authorLabel={entry.createdByUsername || entry.createdByUserId!}
-                        contentText={truncateContent(entry.content!, 150)}
+                        contentText={truncateContent(entry.content!)}
                         tags={entry.tags}
                         associatedProducts={entry.associatedProducts}
                         onClick={() => handleOpenEditModal(entry.id!)}
