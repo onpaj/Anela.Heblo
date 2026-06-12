@@ -37,8 +37,11 @@ issues it files are worth a human's attention.
 3. Correlates: a spike that lines up with a merge is a regression lead; a 500
    whose stack trace names a repository method is a concrete bug; a dependency
    whose p95 is climbing is a capacity/timeout risk.
-4. Files 0–5 GitHub issues for the signals that survive the noise filter. Zero
-   is a valid, common outcome.
+4. **Deduplicates** each surviving signal against existing GitHub issues
+   (see "Deduplication & suppression" below) and drops any that are already
+   tracked or were previously dismissed.
+5. Files a detailed GitHub issue for each **new** anomaly — typically 0–5 per
+   run. Zero is a valid, common outcome.
 
 The routine never makes code changes, never opens PRs, never commits.
 
@@ -75,11 +78,59 @@ The routine never makes code changes, never opens PRs, never commits.
 - **Anything already addressed** — a signal whose fix merged inside the window
   (cross-check GitHub before filing).
 
+## Deduplication & suppression
+
+Never file a duplicate, and never re-file something the user already rejected.
+Before opening an issue for a surviving signal, the routine **must** check it
+against existing GitHub issues and drop it if any of these hold:
+
+1. **A similar issue is open.** An open `telemetry` issue describing the same
+   anomaly → skip (it is already tracked). Do not post a "still happening"
+   comment unless the signal has materially worsened.
+2. **A similar issue was closed by the user without a fix.** A closed issue for
+   the same anomaly whose closure did **not** land a fix — i.e. closed as *not
+   planned* (`state_reason: not_planned`), or closed manually with **no linked
+   merged PR** — is an explicit "won't do" decision. Skip it permanently;
+   respect the rejection.
+
+A closed issue that **was** resolved by a merged PR is *not* a suppression: if
+the same anomaly reappears after its fix shipped, that is a regression worth a
+**new** issue (reference the old one).
+
+### Signal fingerprint (how "similar" is decided)
+
+Prose matching is unreliable, so every filed issue carries a stable,
+machine-matchable fingerprint on its own line in the body:
+
+```
+telemetry-signal: <category>:<subject>[:<detail>]
+```
+
+The fingerprint is derived only from *what* the anomaly is, never from the
+counts/percentiles of a particular run, so the same anomaly always produces the
+same key. Categories and subjects:
+
+| Category | Subject : detail | Example |
+|---|---|---|
+| `req-5xx` | `<endpoint>` : `<resultCode>` | `req-5xx:Articles/FeedbackList:500` |
+| `req-403` | `<endpoint>` | `req-403:GET /api/StockUpOperations/summary` |
+| `exception` | `<type>@<innermost app frame>` | `exception:InvalidOperationException@ArticleRepository.GetFeedbackStatsAsync` |
+| `dep-fail` | `<type>:<target>` | `dep-fail:HTTP:homeassistant.tail0cdb23.ts.net` |
+| `dep-latency` | `<type>:<target>` | `dep-latency:HTTP:petra-tesarikova.flexibee.eu` |
+| `frontend` | `<error>@<symbol>` | `frontend:TypeError-r.filter@Yq1` |
+
+To dedup, search issues (open **and** closed) for the exact `telemetry-signal:`
+line — e.g. via the GitHub MCP search, restricted to `repo:onpaj/anela.heblo`
+and the `telemetry` label. Match on the fingerprint, then apply the two rules
+above. If no fingerprint match exists, fall back to a prose comparison of the
+endpoint/exception before filing.
+
 ## Output
 
 Issues are labelled `telemetry` + a severity-ish secondary label
 (`reliability`, `performance`, `risk`, or `frontend`). Each issue includes:
 
+- the `telemetry-signal:` fingerprint line (for future dedup),
 - the observed signal with **numbers** (counts, percentiles, time window),
 - the exception/stack or endpoint it maps to,
 - a hypothesis correlating it to recent commits/PRs where one exists,
@@ -118,24 +169,41 @@ secrets above, with the schedule `0 5 * * *`, model `claude-sonnet-4-6`, and
 this prompt:
 
 ```
-You are the daily telemetry-brainstorm routine for the Anela Heblo production app.
+You are the daily telemetry-anomaly routine for the Anela Heblo production app.
+Your job: find anomalies/issues in Application Insights and open a detailed
+GitHub issue for each NEW one — after rigorously deduplicating.
 
 1. Run: ./scripts/monitoring/brainstorm-telemetry.sh   (default window is the last 7 days)
    If the first line of output is an error about egress or APPINSIGHTS_*, stop and
    report that the environment is missing network access or secrets — do not guess.
+   Re-run with a custom --timespan or use ./scripts/monitoring/appinsights-query.sh
+   '<KQL>' to drill into anything ambiguous.
 
 2. Pull GitHub context for the same 7-day window via the MCP tools (scoped to
    onpaj/anela.heblo): recent commits, merged PRs, and open issues.
 
 3. Read docs/routines/telemetry-brainstorm.md and apply its "What it flags" /
    "What it skips" rules exactly. In particular: ignore bot traffic, expected
-   401 auth gating, and resultCode-0 aborted browser fetches; do not re-file a
-   signal whose fix merged inside the window.
+   401 auth gating, and resultCode-0 aborted browser fetches.
 
-4. File 0–5 GitHub issues for the surviving signals, labelled `telemetry` plus
-   one of `reliability` / `performance` / `risk` / `frontend`. Each issue must
-   cite concrete numbers, the mapped exception/endpoint, a correlation
-   hypothesis where one exists, and a minimal next step. Zero issues is fine.
+4. For EACH surviving anomaly, compute its `telemetry-signal:` fingerprint (see
+   the doc's table) and search existing issues — open AND closed — for that exact
+   fingerprint line (repo:onpaj/anela.heblo, label:telemetry). Then:
+     - matching OPEN issue                          -> SKIP (already tracked)
+     - matching issue CLOSED without a fix          -> SKIP (user rejected it:
+       state_reason "not_planned", or closed with no linked merged PR)
+     - matching issue CLOSED by a merged PR, but the
+       anomaly is back                              -> file a NEW issue, ref the old
+     - no match                                     -> file a new issue
+   When in doubt about whether two findings are "the same", err toward SKIP and
+   leave a note rather than risk a duplicate.
+
+5. File a detailed GitHub issue for each anomaly that passes step 4, labelled
+   `telemetry` plus one of `reliability` / `performance` / `risk` / `frontend`.
+   Each issue MUST contain, as its first body line, the `telemetry-signal:`
+   fingerprint, then: concrete numbers (counts, percentiles, window), the mapped
+   exception/endpoint, a correlation hypothesis where one exists, and a minimal
+   next step. Typically 0–5 issues; zero is fine.
 
 Never change code, never open a PR, never commit.
 ```
