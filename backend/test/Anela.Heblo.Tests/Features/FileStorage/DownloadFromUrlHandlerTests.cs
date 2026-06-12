@@ -26,14 +26,14 @@ public class DownloadFromUrlHandlerTests
     private readonly Mock<IDownloadResilienceService> _resilience;
     private Mock<IHttpClientFactory> _headFactory;
     private readonly Mock<ILogger<DownloadFromUrlHandler>> _logger;
-    private readonly IOptions<ProductExportOptions> _options;
+    private readonly IOptions<FileDownloadOptions> _options;
 
     public DownloadFromUrlHandlerTests()
     {
         _blobStorage = new Mock<IBlobStorageService>();
         _resilience = new Mock<IDownloadResilienceService>();
         _logger = new Mock<ILogger<DownloadFromUrlHandler>>();
-        _options = Options.Create(new ProductExportOptions
+        _options = Options.Create(new FileDownloadOptions
         {
             HeadTimeout = TimeSpan.FromSeconds(5),
         });

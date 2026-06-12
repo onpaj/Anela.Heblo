@@ -18,14 +18,14 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
     private readonly IBlobStorageService _blobStorageService;
     private readonly IDownloadResilienceService _resilience;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IOptions<ProductExportOptions> _options;
+    private readonly IOptions<FileDownloadOptions> _options;
     private readonly ILogger<DownloadFromUrlHandler> _logger;
 
     public DownloadFromUrlHandler(
         IBlobStorageService blobStorageService,
         IDownloadResilienceService resilience,
         IHttpClientFactory httpClientFactory,
-        IOptions<ProductExportOptions> options,
+        IOptions<FileDownloadOptions> options,
         ILogger<DownloadFromUrlHandler> logger)
     {
         _blobStorageService = blobStorageService;

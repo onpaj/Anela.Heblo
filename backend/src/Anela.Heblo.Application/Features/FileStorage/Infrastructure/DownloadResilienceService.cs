@@ -14,10 +14,10 @@ public sealed class DownloadResilienceService : IDownloadResilienceService
 
     private readonly ILogger<DownloadResilienceService> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ProductExportOptions _options;
+    private readonly FileDownloadOptions _options;
 
     public DownloadResilienceService(
-        IOptions<ProductExportOptions> options,
+        IOptions<FileDownloadOptions> options,
         IServiceScopeFactory scopeFactory,
         ILogger<DownloadResilienceService> logger)
     {
@@ -29,7 +29,7 @@ public sealed class DownloadResilienceService : IDownloadResilienceService
         if (worstCase >= MaxWallClock)
         {
             throw new InvalidOperationException(
-                $"ProductExportOptions: MaxRetryAttempts ({_options.MaxRetryAttempts}) * DownloadTimeout ({_options.DownloadTimeout}) " +
+                $"FileDownloadOptions: MaxRetryAttempts ({_options.MaxRetryAttempts}) * DownloadTimeout ({_options.DownloadTimeout}) " +
                 $"must be < 20 minutes; got worst-case {worstCase}.");
         }
     }
