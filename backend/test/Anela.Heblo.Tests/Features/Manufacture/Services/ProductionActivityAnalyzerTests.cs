@@ -256,4 +256,45 @@ public class ProductionActivityAnalyzerTests
         // Assert
         result.Should().Be(15.0); // Only one interval: 15 days
     }
+
+    [Fact]
+    public void CalculateAverageProductionFrequency_RecordExactlyAtAnalysisStart_IsIncluded()
+    {
+        // Arrange — first record sits exactly on the analysis-start boundary (inclusive),
+        // second record sits 15 days later (well inside the window). One interval, 15 days.
+        const int analysisMonths = 12;
+        var analysisStartDate = FrozenNowUtc.AddMonths(-analysisMonths);
+        var manufactureHistory = new List<ManufactureHistoryRecord>
+        {
+            new() { Date = analysisStartDate, Amount = 10 },
+            new() { Date = analysisStartDate.AddDays(15), Amount = 5 }
+        };
+
+        // Act
+        var result = _analyzer.CalculateAverageProductionFrequency(manufactureHistory, analysisMonths);
+
+        // Assert
+        result.Should().Be(15.0);
+    }
+
+    [Fact]
+    public void CalculateAverageProductionFrequency_RecordOneTickBeforeAnalysisStart_IsExcluded()
+    {
+        // Arrange — one record one tick before the boundary (must be EXCLUDED) and one
+        // record well inside the window. After filtering only 1 record remains, which is
+        // insufficient for a frequency calculation, so the result is PositiveInfinity.
+        const int analysisMonths = 12;
+        var analysisStartDate = FrozenNowUtc.AddMonths(-analysisMonths);
+        var manufactureHistory = new List<ManufactureHistoryRecord>
+        {
+            new() { Date = analysisStartDate.AddTicks(-1), Amount = 10 },
+            new() { Date = analysisStartDate.AddDays(15), Amount = 5 }
+        };
+
+        // Act
+        var result = _analyzer.CalculateAverageProductionFrequency(manufactureHistory, analysisMonths);
+
+        // Assert
+        result.Should().Be(double.PositiveInfinity);
+    }
 }
