@@ -15,6 +15,7 @@ public enum Feature
     Customer_KnowledgeBase,
     Customer_Smartsupp,
     Purchase_PurchaseOrders,
+    Purchase_InvoiceClassification,
     Purchase_PurchaseStock,
     Manufacture_ManufactureOrders,
     Manufacture_BatchPlanning,

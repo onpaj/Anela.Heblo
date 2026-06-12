@@ -1,6 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
-import { MarketingActionType } from "../generated/api-client";
+import {
+  MarketingActionType,
+  CreateMarketingActionRequest,
+  UpdateMarketingActionRequest,
+  ImportFromOutlookRequest,
+  type ICreateMarketingActionRequest,
+  type IImportFromOutlookRequest,
+  type IUpdateMarketingActionRequest,
+} from "../generated/api-client";
 
 interface GetMarketingActionsParams {
   pageNumber?: number;
@@ -20,26 +28,9 @@ interface GetMarketingCalendarParams {
   endDate: Date;
 }
 
-interface CreateMarketingActionPayload {
-  title: string;
-  description?: string;
-  actionType: number;
-  startDate: Date;
-  endDate?: Date;
-  associatedProducts?: string[];
-  folderLinks?: Array<{ folderKey: string; folderType: number }>;
-}
-
-interface UpdateMarketingActionPayload {
-  id: number;
-  title: string;
-  description?: string;
-  actionType: number;
-  startDate: Date;
-  endDate?: Date;
-  associatedProducts?: string[];
-  folderLinks?: Array<{ folderKey: string; folderType: number }>;
-}
+export type CreateMarketingActionPayload = ICreateMarketingActionRequest;
+export type UpdateMarketingActionPayload = IUpdateMarketingActionRequest;
+export type ImportFromOutlookPayload = IImportFromOutlookRequest;
 
 export const useMarketingActions = (
   params: GetMarketingActionsParams = {},
@@ -48,10 +39,7 @@ export const useMarketingActions = (
     queryKey: [...QUERY_KEYS.marketingCalendar, "actions", params],
     queryFn: async () => {
       const client = await getAuthenticatedApiClient();
-      // Positional args match the generated signature (last verified at commit 2f582c12):
-      // (pageNumber, pageSize, searchTerm, actionType, productCodePrefix, startDateFrom, startDateTo, endDateFrom, endDateTo, includeDeleted)
-      // If the backend DTO changes, re-run `npm run build` to regenerate and verify argument positions.
-      return await (client as any).marketingCalendar_GetMarketingActions(
+      return await client.marketingCalendar_GetMarketingActions(
         params.pageNumber,
         params.pageSize,
         params.searchTerm,
@@ -72,7 +60,7 @@ export const useMarketingAction = (id: number) => {
     queryKey: [...QUERY_KEYS.marketingCalendar, "action", id],
     queryFn: async () => {
       const client = await getAuthenticatedApiClient();
-      return await (client as any).marketingCalendar_GetMarketingAction(id);
+      return await client.marketingCalendar_GetMarketingAction(id);
     },
     enabled: id > 0,
   });
@@ -88,7 +76,7 @@ export const useMarketingCalendar = (params: GetMarketingCalendarParams) => {
     ],
     queryFn: async () => {
       const client = await getAuthenticatedApiClient();
-      return await (client as any).marketingCalendar_GetCalendar(
+      return await client.marketingCalendar_GetCalendar(
         params.startDate,
         params.endDate,
       );
@@ -103,8 +91,8 @@ export const useCreateMarketingAction = () => {
   return useMutation({
     mutationFn: async (request: CreateMarketingActionPayload) => {
       const client = await getAuthenticatedApiClient();
-      return await (client as any).marketingCalendar_CreateMarketingAction(
-        request,
+      return await client.marketingCalendar_CreateMarketingAction(
+        new CreateMarketingActionRequest(request),
       );
     },
     onSuccess: () => {
@@ -130,10 +118,13 @@ export const useUpdateMarketingAction = () => {
       request: Omit<UpdateMarketingActionPayload, "id">;
     }) => {
       const client = await getAuthenticatedApiClient();
-      return await (client as any).marketingCalendar_UpdateMarketingAction(id, {
-        ...request,
+      return await client.marketingCalendar_UpdateMarketingAction(
         id,
-      });
+        new UpdateMarketingActionRequest({
+          ...request,
+          id,
+        }),
+      );
     },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({
@@ -155,7 +146,7 @@ export const useDeleteMarketingAction = () => {
   return useMutation({
     mutationFn: async (id: number) => {
       const client = await getAuthenticatedApiClient();
-      return await (client as any).marketingCalendar_DeleteMarketingAction(id);
+      return await client.marketingCalendar_DeleteMarketingAction(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -167,12 +158,6 @@ export const useDeleteMarketingAction = () => {
     },
   });
 };
-
-interface ImportFromOutlookPayload {
-  fromUtc: Date;
-  toUtc: Date;
-  dryRun?: boolean;
-}
 
 export interface ImportFromOutlookResult {
   created: number;
@@ -188,14 +173,16 @@ export const useImportFromOutlook = () => {
   return useMutation({
     mutationFn: async (payload: ImportFromOutlookPayload) => {
       const client = await getAuthenticatedApiClient();
-      return await (client as any).marketingCalendar_ImportFromOutlook(payload);
+      return await client.marketingCalendar_ImportFromOutlook(
+        new ImportFromOutlookRequest(payload),
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [...QUERY_KEYS.marketingCalendar, 'actions'],
+        queryKey: [...QUERY_KEYS.marketingCalendar, "actions"],
       });
       queryClient.invalidateQueries({
-        queryKey: [...QUERY_KEYS.marketingCalendar, 'calendar'],
+        queryKey: [...QUERY_KEYS.marketingCalendar, "calendar"],
       });
     },
   });

@@ -17,7 +17,7 @@ import {
   useMarketingAction,
   useUpdateMarketingAction,
 } from '../../../api/hooks/useMarketingCalendar';
-import { ACTION_TYPE_TO_INT, formatDateStr } from '../calendar/fullcalendarAdapters';
+import { formatDateStr } from '../calendar/fullcalendarAdapters';
 import type { CalendarEvent } from '../calendar/fullcalendarAdapters';
 import { PAGE_CONTAINER_HEIGHT } from '../../../constants/layout';
 import { usePermissionsContext } from '../../../auth/PermissionsContext';
@@ -212,7 +212,7 @@ const MarketingCalendarPage: React.FC = () => {
         id,
         request: {
           title: event.title,
-          actionType: ACTION_TYPE_TO_INT[event.actionType] ?? 99,
+          actionType: event.actionType,
           startDate: new Date(dateFrom),
           endDate: new Date(dateTo),
           associatedProducts: event.associatedProducts,

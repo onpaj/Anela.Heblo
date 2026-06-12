@@ -1,139 +1,125 @@
-# Specification: Fix Error Handling in GetGroupMembers Flow
+# Specification: Refactor GraphService.GetGroupMembersAsync into Focused Helper Methods
 
 ## Summary
-The `GraphService.GetGroupMembersAsync` method currently swallows all exceptions and returns an empty list, making the handler's error path dead code and preventing callers from distinguishing "empty group" from "Graph API failure". This specification defines a refactor that establishes a single, clear error-handling boundary so the `Success` flag accurately reflects the outcome of the operation.
+Extract two private helper methods from the 160-line `GraphService.GetGroupMembersAsync` to separate token acquisition and Microsoft Graph JSON response parsing from the orchestration flow. This is a strictly internal, behaviour-preserving refactor that improves readability, testability, and adherence to the Single Responsibility Principle without altering the public interface or runtime behaviour.
 
 ## Background
-The `UserManagement` module exposes a `GetGroupMembers` use case backed by Microsoft Graph. Today the failure-handling responsibility is duplicated and incorrect:
-
-- `GraphService.GetGroupMembersAsync` (`backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs:50-193`) catches `MsalException`, `ODataError`, `UnauthorizedAccessException`, and the outer `Exception` and returns `new List<UserDto>()` in every branch.
-- `GetGroupMembersHandler` (`backend/src/Anela.Heblo.Application/Features/UserManagement/UseCases/GetGroupMembers/GetGroupMembersHandler.cs:18-43`) wraps the call in another `try/catch` that sets `Success = false`, but this branch never fires for real Graph failures.
-
-Consequences:
-- The API contract is misleading: consumers (frontend, MCP tool) always observe `Success = true` regardless of Graph errors.
-- `GetGroupMembersHandlerTests.Handle_WhenGraphServiceThrowsException_ReturnsFailureResponse` exercises a path production never reaches, giving false confidence.
-- Layers duplicate the same catch-all behavior, violating single-level-of-abstraction and single-responsibility principles.
-
-This refactor was filed by the daily architectural review routine on 2026-06-05.
+`GraphService.GetGroupMembersAsync` currently mixes four abstraction levels in one method: memory cache access, MSAL token acquisition with timing/exception handling, raw HTTP request/response handling, manual `JsonDocument` walking with `@odata.type` discrimination, and cache write-back. At 160 lines, the method exceeds the team's 50-line guideline, and the JSON parsing logic (45 lines) cannot be unit-tested without the `FakeHttpMessageHandler` plumbing used in `GraphServiceTests`. A bug in member-type filtering (e.g. the `@odata.type` check at line 134) requires reading through token and HTTP code to reach the relevant branch, which slows reviews and makes safe modification harder. The daily arch-review routine flagged this on 2026-06-05.
 
 ## Functional Requirements
 
-### FR-1: Service Propagates Exceptions
-`GraphService.GetGroupMembersAsync` must no longer swallow Graph-related exceptions. It logs the failure (preserving current log context — exception type, group id, correlation id where available) and then rethrows so the caller can react.
+### FR-1: Extract `AcquireGraphTokenAsync` helper
+Introduce a private instance method that encapsulates Microsoft Graph token acquisition for the application identity.
+
+**Signature (assumed):**
+```csharp
+private async Task<string?> AcquireGraphTokenAsync(string groupId, CancellationToken cancellationToken)
+```
+
+**Behaviour:**
+- Calls `ITokenAcquisition.GetAccessTokenForAppAsync` with the same scope(s) currently used at lines 64–85.
+- Measures token acquisition duration with the same `Stopwatch`/logging pattern currently in place.
+- Catches `MsalException` and returns `null` (or whatever sentinel the current code uses) with identical logging output and log levels.
+- Propagates `OperationCanceledException` unchanged when cancellation is requested.
+- Logs the same messages at the same severity levels with the same structured-logging property names as today (including `groupId` where present).
 
 **Acceptance criteria:**
-- The method contains no `catch` block that returns `new List<UserDto>()`.
-- Each formerly-caught exception type (`MsalException`, `ODataError`, `UnauthorizedAccessException`, and the general `Exception`) either has no catch at all, or has a catch that logs and rethrows (using `throw;` to preserve the stack trace).
-- Logging output for failure cases is at least as informative as today (same log level, same fields).
-- Successful calls still return the populated `List<UserDto>` unchanged.
+- All existing `GraphServiceTests` scenarios that cover token success, MSAL failure, and cancellation pass without modification.
+- Method body of `GetGroupMembersAsync` no longer contains a direct call to `ITokenAcquisition.GetAccessTokenForAppAsync`.
+- Log output (message templates, levels, structured properties) for a successful token acquisition and for an `MsalException` is byte-for-byte equivalent to current output for identical inputs.
 
-### FR-2: Handler is the Single Catch-and-Convert Boundary
-`GetGroupMembersHandler` is the single place that translates exceptions into a `GetGroupMembersResponse`. It maps known failure modes to specific error codes and falls back to `InternalServerError` for unexpected exceptions.
+### FR-2: Extract `ParseMembersFromJson` helper
+Introduce a private static method that converts the raw Microsoft Graph JSON response body into the `List<UserDto>` currently produced inline at lines 119–164.
 
-**Acceptance criteria:**
-- The handler catches exceptions from the service and returns `Success = false` with an appropriate `ErrorCode`.
-- Exception-to-`ErrorCode` mapping:
-  - `MsalException` → an authentication error code (new or existing, e.g. `ExternalAuthenticationFailed`).
-  - `ODataError` → `ExternalServiceError` (or equivalent existing code) with the OData error message preserved in logs.
-  - `UnauthorizedAccessException` → `Forbidden` (or equivalent existing code).
-  - Any other `Exception` → `InternalServerError`.
-- On failure, `Members` is `new List<UserDto>()` (preserving the existing response shape) and the response includes a non-null `ErrorCode`.
-- The exception is logged once, at the handler level, with the request payload and the exception details.
+**Signature (assumed):**
+```csharp
+private static List<UserDto> ParseMembersFromJson(string json)
+```
 
-### FR-3: Distinguishable Empty vs. Failed Responses
-Callers must be able to differentiate "group is genuinely empty" from "the Graph call failed".
-
-**Acceptance criteria:**
-- A genuinely empty group returns `Success = true`, `Members = []`, `ErrorCode = null`.
-- A Graph failure returns `Success = false`, `Members = []`, `ErrorCode != null`.
-- A successful fetch with members returns `Success = true`, `Members = [...]`, `ErrorCode = null`.
-
-### FR-4: Test Coverage Reflects Production Behavior
-The handler and service tests cover the real exception paths now that exceptions propagate.
+**Behaviour:**
+- Parses the input string with `JsonDocument.Parse` and walks the `value` array exactly as the current implementation does.
+- Discriminates users from nested groups using the `@odata.type` property (current check at line 134) — only entries whose type indicates a user are included.
+- Maps each user entry to a `UserDto` using the same property names and null-handling as the current code.
+- Returns an empty `List<UserDto>` (never `null`) when the `value` array is missing or empty.
+- Disposes the `JsonDocument` deterministically (e.g. `using`).
+- Does not throw on entries whose optional fields are missing — falls back to the same defaults the current code uses.
 
 **Acceptance criteria:**
-- `GetGroupMembersHandlerTests` contains test cases for each mapped exception type (`MsalException`, `ODataError`, `UnauthorizedAccessException`, generic `Exception`), each asserting the expected `Success`, `ErrorCode`, and that `Members` is empty.
-- The existing `Handle_WhenGraphServiceThrowsException_ReturnsFailureResponse` test is kept (covering generic `Exception`) or split into the specific cases above; no test depends on the service's old swallow-and-return-empty behavior.
-- New or updated `GraphService` unit tests assert that the service rethrows for each of the four exception types instead of returning an empty list.
-- Test coverage for the touched files remains at or above 80%.
+- New unit tests can call `ParseMembersFromJson` directly with representative JSON fixtures without involving HTTP or cache plumbing.
+- For any JSON body that the current `GraphServiceTests` `FakeHttpMessageHandler` returns, the new helper produces a list whose contents are equal (by sequence of `UserDto` field values) to the list produced by the current inline parser.
+- The helper handles a JSON body containing a mix of `#microsoft.graph.user` and `#microsoft.graph.group` entries, returning only users — verified by a new dedicated test.
+- The helper handles JSON with no `value` field by returning an empty list (no exception).
 
-### FR-5: API Consumer Compatibility
-Existing API and MCP-tool consumers continue to deserialize successful responses without code changes; failure responses now carry meaningful error information.
+### FR-3: Rewrite `GetGroupMembersAsync` as an orchestrator
+After extraction, `GetGroupMembersAsync` reads as a sequential pipeline: cache read → token acquisition → HTTP call → response parsing → cache write.
 
 **Acceptance criteria:**
-- The JSON shape of `GetGroupMembersResponse` is unchanged (same field names, same types).
-- Existing successful integrations (frontend group-member list, MCP `get_group_members` tool) function identically against the refactored backend.
-- Failure responses carry `Success = false` and a populated `ErrorCode`, allowing the frontend/MCP to surface a meaningful error to the user.
+- Method length is reduced from ~160 lines to ≤50 lines (target ~30 lines).
+- The method retains its existing signature, return type, parameters, and `CancellationToken` propagation.
+- All existing `GraphServiceTests` pass without modification.
+- The public surface of `GraphService` is unchanged (no new public/internal members added or removed).
+- The HTTP request construction (URI, headers, method) and response status-code handling remain inline in the orchestrator — they are not extracted in this scope (see Out of Scope).
+
+### FR-4: Preserve caching semantics
+The `IMemoryCache` read (lines 39–45) and write (lines 171–173) remain in `GetGroupMembersAsync`.
+
+**Acceptance criteria:**
+- Cache key, value type, and expiration policy are identical to the current implementation.
+- Cache read on hit short-circuits before token acquisition (no token request, no HTTP call) — verified by an existing or new test.
+- Cache write occurs only after a successful parse, as today.
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
-No measurable change. The refactor is purely about error-flow plumbing; the happy path executes the same Graph call and returns the same payload.
+No measurable regression. Token acquisition, HTTP I/O, and JSON parsing are unchanged in mechanism; only method boundaries shift. The `ParseMembersFromJson` helper must not introduce additional allocations beyond what the current inline code produces (no intermediate `List` copies, no LINQ where the current code uses index loops).
+
+**Acceptance criteria:**
+- Benchmark or manual profiling of a representative response (≥100 members) shows ≤5% deviation in execution time and allocated bytes versus the pre-refactor implementation.
 
 ### NFR-2: Security
-- No exception messages from Microsoft Graph or MSAL may leak to the API response body. Detailed exception data stays in server-side logs only; the response surfaces a stable `ErrorCode` plus a generic, user-safe message.
-- No new credentials, tokens, or PII are introduced into logs beyond what is already logged today.
+No change to security posture. Token scopes, header construction, and HTTPS endpoint remain identical. The extracted helpers must not log token values or full response bodies at any log level.
 
-### NFR-3: Observability
-- Every failure path must emit a single, structured log entry at `Error` (or the existing level used today, whichever is higher) including: exception type, group id, correlation id (if available), and exception message + stack trace.
-- Avoid double-logging: if the handler logs the exception, the service should not also log the same exception with the same severity. Choose one canonical log site (recommended: the handler, since it has full request context).
+**Acceptance criteria:**
+- A grep of the diff confirms no new logging of `accessToken`, `Authorization` header values, or raw response bodies.
 
-### NFR-4: Backward Compatibility
-The wire contract (response field names and types) is unchanged. Only the runtime values of `Success` and `ErrorCode` change in failure scenarios, which is the intended fix.
+### NFR-3: Testability
+JSON parsing becomes testable without HTTP plumbing.
 
-### NFR-5: Maintainability
-- Each layer has a single, clear responsibility: the service performs the Graph call; the handler translates outcomes (including exceptions) into the response.
-- No `try/catch` block exists solely to convert an exception into an empty collection.
+**Acceptance criteria:**
+- New `ParseMembersFromJsonTests` class (or equivalent test fixture) exercises the parser directly with at least: (a) all-users response, (b) mixed users/groups, (c) empty `value`, (d) missing optional fields.
+- Test coverage of the parsing logic measured by line coverage is ≥90%.
+
+### NFR-4: Maintainability
+Each method has a single responsibility expressible in one short sentence. No method in the refactored file exceeds 50 lines.
 
 ## Data Model
-No data-model changes. The affected types are:
-
-- `UserDto` — unchanged.
-- `GetGroupMembersResponse` — unchanged shape; fields `Success`, `ErrorCode`, `Members` now carry their intended semantics in all paths.
-- `ErrorCodes` — may gain a small number of new constants (e.g. `ExternalAuthenticationFailed`, `ExternalServiceError`) if equivalents do not already exist. Implementer should reuse existing codes wherever they cover the case.
+No data-model changes. The existing `UserDto` (consumer-facing DTO returned from `GetGroupMembersAsync`) remains the only entity touched, and its shape is unchanged.
 
 ## API / Interface Design
-
-### `IGraphService.GetGroupMembersAsync`
-Signature unchanged:
-```csharp
-Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken);
-```
-Behavior change: throws on failure (previously returned empty list on any failure).
-
-### `GetGroupMembersHandler.Handle`
-Signature unchanged. Behavior:
-1. Call `IGraphService.GetGroupMembersAsync`.
-2. On success → return `Success = true, Members = result, ErrorCode = null`.
-3. On exception → log once with full context; map to `ErrorCode` per FR-2; return `Success = false, Members = [], ErrorCode = <mapped>`.
-
-### `GetGroupMembersResponse` (consumer-facing contract)
-| Field | Type | Empty group | Graph failure |
-|-------|------|-------------|---------------|
-| `Success` | `bool` | `true` | `false` |
-| `Members` | `List<UserDto>` | `[]` | `[]` |
-| `ErrorCode` | `string?` | `null` | non-null |
+No external API changes:
+- `IGraphService.GetGroupMembersAsync` signature, semantics, and return value are unchanged.
+- No new public, internal, or protected members are added to `GraphService`.
+- The two new helpers are `private` (instance for `AcquireGraphTokenAsync`, static for `ParseMembersFromJson`).
 
 ## Dependencies
-- Microsoft Graph SDK (existing).
-- MSAL (existing).
-- The project's logging abstraction (existing — likely `ILogger<T>`).
-- Existing `ErrorCodes` constants in the application layer (extend if needed).
-- Existing handler test infrastructure (xUnit/NUnit + Moq or equivalent — implementer should follow project convention).
-
-No new external dependencies are required.
+No new dependencies. The refactor uses only types already referenced by `GraphService`:
+- `Microsoft.Identity.Web.ITokenAcquisition`
+- `Microsoft.Identity.Client.MsalException`
+- `System.Text.Json.JsonDocument`
+- `Microsoft.Extensions.Caching.Memory.IMemoryCache`
+- `Microsoft.Extensions.Logging.ILogger<GraphService>`
+- The existing `UserDto`
 
 ## Out of Scope
-- Changing the `GetGroupMembersResponse` shape (e.g. introducing a `Result<T>` envelope across the API).
-- Refactoring other methods on `GraphService` that exhibit the same anti-pattern. Those should be filed as separate tickets so this PR stays focused and reviewable.
-- Frontend or MCP-tool changes to *surface* the new `ErrorCode` to end users (the backend will return it correctly; UI uplift is a follow-up).
-- Introducing a retry policy for transient Graph failures (e.g. Polly). Retries can be layered on later once the error path is honest.
-- Changing the broader project convention between exception-based and Result-based error handling.
+- **HTTP request/response extraction.** The 25-line HTTP block (lines 89–113) is not extracted in this iteration — the brief specifies exactly two extractions. A follow-up may extract an `SendGraphRequestAsync` helper if subsequent review identifies further benefit.
+- **Replacing manual `JsonDocument` walking with `JsonSerializer` / source-generated deserializers.** The parsing mechanism stays as-is to keep the diff strictly behaviour-preserving.
+- **Changes to `IGraphService` or any caller of `GetGroupMembersAsync`.**
+- **Cache key strategy or expiration tuning.**
+- **Adding pagination support for groups exceeding the Graph default page size** (current behaviour, whatever it is, is preserved).
+- **Changing log levels, message templates, or structured property names** beyond what is required to move code into the new helpers.
+- **Adding new metrics, OpenTelemetry spans, or activity sources.**
 
 ## Open Questions
+None.
 
-1. **Specific `ErrorCode` values for MSAL / OData / Unauthorized exceptions.** The codebase likely already has a partial set in `ErrorCodes`. Implementer should reuse existing codes where they fit; if none exist for `ExternalAuthenticationFailed` / `ExternalServiceError` / `Forbidden`, confirm with the team before adding new constants.
-2. **Canonical log site.** This spec recommends the handler as the single log site (since it has the request context and is the catch-and-convert boundary). Confirm that the service does not have other callers that would lose logging if the service's catches are removed entirely.
-3. **Assumption flagged: chose Option A (exceptions propagate, handler catches once).** Option B (service returns `Result<T>`) was deferred because it would require a broader project-wide convention change and would touch every consumer of `IGraphService`. If the team has already adopted a Result/discriminated-union convention elsewhere, revisit this choice before implementation.
-
-## Status: HAS_QUESTIONS
+## Status: COMPLETE

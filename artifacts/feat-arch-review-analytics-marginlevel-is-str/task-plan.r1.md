@@ -1,0 +1,5 @@
+Plan saved to `docs/superpowers/plans/2026-06-10-analytics-margin-level-enum.md`.
+
+**Summary:** 12 bite-sized tasks taking the change from the new `Anela.Heblo.Domain.Features.Analytics.MarginLevel` enum, through every signature in `IMarginCalculator`, `IMonthlyBreakdownGenerator`, the handler, and both DTOs, then to test refresh (delete the two legacy fallback/case-insensitivity tests, add the throw-on-undefined-enum test, conditionally add a 400-on-invalid-query integration test), regeneration of the TS client, and frontend adoption — closed by a full validation gate (`dotnet build`/`format`/`test`, `npm run build`/`lint`, plus a wire-format smoke check). The build order intentionally fails after Task 2 so the compiler enumerates remaining call sites; Tasks 3–5 land them and the backend builds green. Frontend `MarginLevelType` literal union is dropped in favor of the generated string-valued enum (verified compatible with `ProductGroupingMode`'s emitted shape).
+
+Per the pipeline note, skipping the execution-choice handoff prompt.

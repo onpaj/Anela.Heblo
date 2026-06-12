@@ -141,6 +141,26 @@
       "value": "purchase.purchase_orders.write"
     },
     {
+      "id": "ade26668-b2bc-5893-9c4e-29dd47598610",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Purchase_InvoiceClassification Read",
+      "displayName": "purchase.invoice_classification.read",
+      "isEnabled": true,
+      "value": "purchase.invoice_classification.read"
+    },
+    {
+      "id": "5cf462eb-b83b-5695-a3ae-7561c0c443ec",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Purchase_InvoiceClassification Write",
+      "displayName": "purchase.invoice_classification.write",
+      "isEnabled": true,
+      "value": "purchase.invoice_classification.write"
+    },
+    {
       "id": "f0fa1142-80fa-519d-842e-8cc301d053a0",
       "allowedMemberTypes": [
         "User"
@@ -568,6 +588,8 @@
         "customer.smartsupp.read",
         "purchase.purchase_orders.read",
         "purchase.purchase_orders.write",
+        "purchase.invoice_classification.read",
+        "purchase.invoice_classification.write",
         "purchase.purchase_stock.read",
         "manufacture.manufacture_orders.read",
         "manufacture.manufacture_orders.write",
@@ -623,6 +645,7 @@
         "customer.knowledge_base.read",
         "customer.smartsupp.read",
         "purchase.purchase_orders.read",
+        "purchase.invoice_classification.read",
         "purchase.purchase_stock.read",
         "manufacture.manufacture_orders.read",
         "manufacture.batch_planning.read",
@@ -676,6 +699,8 @@
       "roles": [
         "purchase.purchase_orders.read",
         "purchase.purchase_orders.write",
+        "purchase.invoice_classification.read",
+        "purchase.invoice_classification.write",
         "purchase.purchase_stock.read"
       ]
     },

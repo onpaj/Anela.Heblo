@@ -489,6 +489,18 @@ function App() {
                         <Route path="/admin/feature-flags" element={guard("/admin/feature-flags", <FeatureFlagsAdminPage />)} />
                         <Route
                           path="/admin/access"
+                          element={<Navigate to="/admin/access/users" replace />}
+                        />
+                        <Route
+                          path="/admin/access/users"
+                          element={
+                            <RequireMenuPath path="/admin/access">
+                              <AccessManagementPage />
+                            </RequireMenuPath>
+                          }
+                        />
+                        <Route
+                          path="/admin/access/groups"
                           element={
                             <RequireMenuPath path="/admin/access">
                               <AccessManagementPage />

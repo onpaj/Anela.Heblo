@@ -32,59 +32,6 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-    public async Task<IEnumerable<IssuedInvoice>> FindBySyncStatusAsync(bool? isSynced, CancellationToken cancellationToken = default)
-    {
-        var query = DbSet.AsQueryable();
-
-        if (isSynced.HasValue)
-        {
-            query = query.Where(x => x.IsSynced == isSynced.Value);
-        }
-
-        return await query
-            .OrderByDescending(x => x.InvoiceDate)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<IEnumerable<IssuedInvoice>> FindByInvoiceDateRangeAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken = default)
-    {
-        return await DbSet
-            .Where(x => x.InvoiceDate >= fromDate.Date && x.InvoiceDate <= toDate.Date)
-            .OrderByDescending(x => x.InvoiceDate)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<IEnumerable<IssuedInvoice>> FindByCustomerNameAsync(string customerName, CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(customerName))
-        {
-            return new List<IssuedInvoice>();
-        }
-
-        var searchTerm = customerName.Trim().ToLower();
-
-        return await DbSet
-            .Where(x => x.CustomerName != null && x.CustomerName.ToLower().Contains(searchTerm))
-            .OrderByDescending(x => x.InvoiceDate)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<IEnumerable<IssuedInvoice>> FindWithCriticalErrorsAsync(CancellationToken cancellationToken = default)
-    {
-        return await DbSet
-            .Where(x => x.ErrorType != null && x.ErrorType != IssuedInvoiceErrorType.InvoicePaired)
-            .OrderByDescending(x => x.LastSyncTime ?? x.InvoiceDate)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<IEnumerable<IssuedInvoice>> FindStaleInvoicesAsync(DateTime beforeDate, CancellationToken cancellationToken = default)
-    {
-        return await DbSet
-            .Where(x => !x.IsSynced || (x.LastSyncTime.HasValue && x.LastSyncTime.Value < beforeDate))
-            .OrderByDescending(x => x.InvoiceDate)
-            .ToListAsync(cancellationToken);
-    }
-
     public async Task<IssuedInvoiceSyncStats> GetSyncStatsAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken = default)
     {
         var query = DbSet.Where(x => x.InvoiceDate >= fromDate.Date && x.InvoiceDate <= toDate.Date);

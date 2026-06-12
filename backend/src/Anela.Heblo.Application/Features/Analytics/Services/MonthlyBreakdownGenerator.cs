@@ -10,7 +10,7 @@ public interface IMonthlyBreakdownGenerator
         MarginCalculationResult calculationResult,
         DateRange dateRange,
         ProductGroupingMode groupingMode,
-        string marginLevel = "M2");
+        MarginLevel marginLevel = MarginLevel.M2);
 }
 
 /// <summary>
@@ -33,7 +33,7 @@ public class MonthlyBreakdownGenerator : IMonthlyBreakdownGenerator
         MarginCalculationResult calculationResult,
         DateRange dateRange,
         ProductGroupingMode groupingMode,
-        string marginLevel = "M2")
+        MarginLevel marginLevel = MarginLevel.M2)
     {
         var monthlyData = new List<MonthlyProductMarginDto>();
 
@@ -76,7 +76,7 @@ public class MonthlyBreakdownGenerator : IMonthlyBreakdownGenerator
         DateTime monthStart,
         DateTime monthEnd,
         ProductGroupingMode groupingMode,
-        string marginLevel)
+        MarginLevel marginLevel)
     {
         var segments = new List<ProductMarginSegmentDto>();
         var totalMonthMargin = 0m;
@@ -132,7 +132,7 @@ public class MonthlyBreakdownGenerator : IMonthlyBreakdownGenerator
         List<AnalyticsProduct> products,
         DateTime monthStart,
         DateTime monthEnd,
-        string marginLevel)
+        MarginLevel marginLevel)
     {
         var totalMargin = 0m;
         var totalUnitsSold = 0;

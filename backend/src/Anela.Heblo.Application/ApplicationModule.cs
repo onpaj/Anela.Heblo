@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.TimePeriods;
+using Anela.Heblo.Application.Shared.Users;
 using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Shared.Rag;
@@ -67,6 +68,9 @@ public static class ApplicationModule
         // Register shared time period services
         services.AddScoped<ITimePeriodResolver, TimePeriodResolver>();
 
+        // Register shared user display-name resolver (used by feedback list handlers)
+        services.AddScoped<IUserDisplayNameResolver, UserDisplayNameResolver>();
+
         // Background refresh system, hydration, and service readiness tracking are handled by XCC module
 
         // Register all feature modules
@@ -88,7 +92,7 @@ public static class ApplicationModule
         services.AddOrgChartServices(configuration);
         services.AddInvoiceClassificationModule();
         services.AddPackingMaterialsModule();
-        services.AddInvoicesModule();
+        services.AddInvoicesModule(configuration);
         services.AddKnowledgeBaseModule(configuration);
         services.AddCatalogDocumentsModule(configuration);
         services.AddLeafletModule(configuration);

@@ -48,7 +48,7 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    analytics_GetProductMarginSummary(timeWindow: string | undefined, topProductCount: number | undefined, groupingMode: ProductGroupingMode | undefined, marginLevel: string | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetProductMarginSummaryResponse> {
+    analytics_GetProductMarginSummary(timeWindow: string | undefined, topProductCount: number | undefined, groupingMode: ProductGroupingMode | undefined, marginLevel: MarginLevel | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetProductMarginSummaryResponse> {
         let url_ = this.baseUrl + "/api/Analytics/product-margin-summary?";
         if (timeWindow === null)
             throw new Error("The parameter 'timeWindow' cannot be null.");
@@ -8665,6 +8665,7 @@ export class ApiClient {
         return Promise.resolve<GetPackingDashboardResponse>(null as any);
     }
 
+
     packaging_GetPackages(orderCode: string | null | undefined, customerName: string | null | undefined, packageNumber: string | null | undefined, carrier: Carriers | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPackagesResponse> {
         let url_ = this.baseUrl + "/api/packaging/packages?";
         if (orderCode !== undefined && orderCode !== null)
@@ -12666,7 +12667,7 @@ export class GetProductMarginSummaryResponse extends BaseResponse implements IGe
     totalMargin?: number;
     timeWindow?: string;
     groupingMode?: ProductGroupingMode;
-    marginLevel?: string;
+    marginLevel?: MarginLevel;
     fromDate?: Date;
     toDate?: Date;
 
@@ -12732,7 +12733,7 @@ export interface IGetProductMarginSummaryResponse extends IBaseResponse {
     totalMargin?: number;
     timeWindow?: string;
     groupingMode?: ProductGroupingMode;
-    marginLevel?: string;
+    marginLevel?: MarginLevel;
     fromDate?: Date;
     toDate?: Date;
 }
@@ -12915,8 +12916,6 @@ export class TopProductDto implements ITopProductDto {
     m2Percentage?: number;
     sellingPrice?: number;
     purchasePrice?: number;
-    productCode?: string;
-    productName?: string;
 
     constructor(data?: ITopProductDto) {
         if (data) {
@@ -12942,8 +12941,6 @@ export class TopProductDto implements ITopProductDto {
             this.m2Percentage = _data["m2Percentage"];
             this.sellingPrice = _data["sellingPrice"];
             this.purchasePrice = _data["purchasePrice"];
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
         }
     }
 
@@ -12969,8 +12966,6 @@ export class TopProductDto implements ITopProductDto {
         data["m2Percentage"] = this.m2Percentage;
         data["sellingPrice"] = this.sellingPrice;
         data["purchasePrice"] = this.purchasePrice;
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
         return data;
     }
 }
@@ -12989,14 +12984,18 @@ export interface ITopProductDto {
     m2Percentage?: number;
     sellingPrice?: number;
     purchasePrice?: number;
-    productCode?: string;
-    productName?: string;
 }
 
 export enum ProductGroupingMode {
     Products = "Products",
     ProductFamily = "ProductFamily",
     ProductCategory = "ProductCategory",
+}
+
+export enum MarginLevel {
+    M0 = "M0",
+    M1 = "M1",
+    M2 = "M2",
 }
 
 export enum ErrorCodes {
@@ -14466,6 +14465,7 @@ export class ArticleFeedbackSummary implements IArticleFeedbackSummary {
     title?: string | undefined;
     topic?: string;
     requestedBy?: string | undefined;
+    userName?: string | undefined;
     createdAt?: Date;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
@@ -14486,6 +14486,7 @@ export class ArticleFeedbackSummary implements IArticleFeedbackSummary {
             this.title = _data["title"];
             this.topic = _data["topic"];
             this.requestedBy = _data["requestedBy"];
+            this.userName = _data["userName"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
@@ -14506,6 +14507,7 @@ export class ArticleFeedbackSummary implements IArticleFeedbackSummary {
         data["title"] = this.title;
         data["topic"] = this.topic;
         data["requestedBy"] = this.requestedBy;
+        data["userName"] = this.userName;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
@@ -14519,6 +14521,7 @@ export interface IArticleFeedbackSummary {
     title?: string | undefined;
     topic?: string;
     requestedBy?: string | undefined;
+    userName?: string | undefined;
     createdAt?: Date;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
@@ -23609,6 +23612,7 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
+    userName?: string | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
@@ -23633,6 +23637,7 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
             this.durationMs = _data["durationMs"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.userId = _data["userId"];
+            this.userName = _data["userName"];
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
             this.feedbackComment = _data["feedbackComment"];
@@ -23657,6 +23662,7 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
         data["durationMs"] = this.durationMs;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["userId"] = this.userId;
+        data["userName"] = this.userName;
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
         data["feedbackComment"] = this.feedbackComment;
@@ -23674,6 +23680,7 @@ export interface IFeedbackLogSummary {
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
+    userName?: string | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
@@ -24362,6 +24369,7 @@ export class LeafletFeedbackSummary implements ILeafletFeedbackSummary {
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
+    userName?: string | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
@@ -24388,6 +24396,7 @@ export class LeafletFeedbackSummary implements ILeafletFeedbackSummary {
             this.durationMs = _data["durationMs"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.userId = _data["userId"];
+            this.userName = _data["userName"];
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
             this.feedbackComment = _data["feedbackComment"];
@@ -24414,6 +24423,7 @@ export class LeafletFeedbackSummary implements ILeafletFeedbackSummary {
         data["durationMs"] = this.durationMs;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["userId"] = this.userId;
+        data["userName"] = this.userName;
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
         data["feedbackComment"] = this.feedbackComment;
@@ -24433,6 +24443,7 @@ export interface ILeafletFeedbackSummary {
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
+    userName?: string | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;

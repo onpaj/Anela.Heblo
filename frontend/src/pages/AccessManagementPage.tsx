@@ -1,11 +1,16 @@
-import React, { useState } from "react";
+import React from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { PAGE_CONTAINER_HEIGHT } from "../constants/layout";
 import { useScreenView } from "../telemetry/useScreenView";
 import GroupsGrid from "../components/pages/access/GroupsGrid";
 import UsersGrid from "../components/pages/access/UsersGrid";
 
 export default function AccessManagementPage() {
-  const [tab, setTab] = useState<"users" | "groups">("users");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tab: "users" | "groups" = location.pathname.endsWith("/groups")
+    ? "groups"
+    : "users";
 
   useScreenView("Admin", "AccessManagement");
 
@@ -18,7 +23,7 @@ export default function AccessManagementPage() {
       <div className="flex-shrink-0 border-b border-gray-200 mb-4">
         <nav className="flex gap-6" aria-label="Tabs">
           <button
-            onClick={() => setTab("users")}
+            onClick={() => navigate("/admin/access/users")}
             className={`py-2 text-sm font-medium border-b-2 transition-colors ${
               tab === "users"
                 ? "border-indigo-500 text-indigo-600"
@@ -28,7 +33,7 @@ export default function AccessManagementPage() {
             Users
           </button>
           <button
-            onClick={() => setTab("groups")}
+            onClick={() => navigate("/admin/access/groups")}
             className={`py-2 text-sm font-medium border-b-2 transition-colors ${
               tab === "groups"
                 ? "border-indigo-500 text-indigo-600"

@@ -1,143 +1,183 @@
-# Architecture Review: Replace Misleading Interface Injection in ShoptetApiExpeditionListSource
+I have enough context. Now writing the review.
+
+# Architecture Review: Refactor `ShoptetApiExpeditionListSource.CreatePickingList` — extract `FlushBatchAsync` local function
 
 ## Skip Design: true
 
-Pure backend constructor signature refactor inside one adapter assembly. No UI, no visual changes, no new components.
-
 ## Architectural Fit Assessment
 
-This change is a direct, near-mechanical follow-up to the already-completed `ShoptetApiPackingOrderClient` refactor (see `docs/superpowers/plans/2026-05-24-honest-dependency-shoptetapi-packing-order-client.md`), which explicitly flagged the identical pattern in `ShoptetApiExpeditionListSource.cs:42` as "out of scope; file a follow-up." This *is* that follow-up.
+The proposal fits the codebase cleanly. The existing adapter (`backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Expedition/`) is the canonical home for Shoptet-specific picking-list logic, and extracting an `internal sealed PickingListBatchProcessor` into the same folder mirrors the file-per-responsibility pattern already used in `ExpeditionProtocolDocument.cs`, `ShippingMethodCatalog.cs`, etc.
 
-It aligns with the project's existing Clean Architecture posture: `IEshopOrderClient` is the contract used by *application-layer* consumers (`BlockOrderProcessingHandler`, `ScanPackingOrderHandler`) that genuinely depend on its narrow surface. `ShoptetApiExpeditionListSource` lives in the **same adapter assembly** as `ShoptetOrderClient`, calls methods (`GetOrdersByStatusAsync`, `GetExpeditionOrderDetailAsync`, `SetAdditionalFieldAsync`) that exist only on the concrete client, and is the *only* in-process consumer of those methods. Depending on the concrete type here is appropriate and matches the pattern just established for `ShoptetApiPackingOrderClient`.
+Three integration points to validate against:
 
-**Integration points:**
-1. `ShoptetApiExpeditionListSource` constructor signature.
-2. DI registration in `ShoptetApiAdapterServiceCollectionExtensions.cs`.
-3. Two test files that already construct the SUT directly.
+1. **DI registration unchanged** — `ShoptetApiAdapterServiceCollectionExtensions.cs:76` registers `IPickingListSource` only. The helper is *not* a DI participant; it is owned and instantiated by the source. This is consistent with how `ShoptetInvoiceMapper` and `BillingMethodMapper` are owned objects within the adapter, but here we go even further: no DI registration at all, since the helper is purely internal to one call site.
+2. **Logger category stability** — `ShoptetApiExpeditionListSource` is registered as transient. Passing its `ILogger<ShoptetApiExpeditionListSource>` instance to the helper typed as `ILogger` preserves the `Microsoft.Extensions.Logging` category that operations alerting relies on, and the existing `Mock<ILogger<ShoptetApiExpeditionListSource>>` assertions at `ShoptetApiExpeditionListSource_CoolingMarkerTests.cs:266,278` continue to match without modification. This is a deliberate, correct choice.
+3. **InternalsVisibleTo already wired** — `ShoptetApiExpeditionListSource.cs:13–14` exposes internals to both test assemblies. The `internal sealed` helper is reachable from `Anela.Heblo.Adapters.Shoptet.Tests` (helper-level tests) and `Anela.Heblo.Tests` (existing `ApplyEnrichment` tests). No new assembly attribute required.
+
+The spec's separation of *per-run dependencies* (constructor) from *per-batch values* (method parameters) correctly avoids the closure capture anti-pattern that motivated the brief.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-[Application Layer]
-    IPickingListSource ──┐
-                         │  resolved by DI
-                         ▼
-[Adapter: Anela.Heblo.Adapters.ShoptetApi]
-    ShoptetApiExpeditionListSource
-        ├── ShoptetOrderClient      ◄── concrete dependency (changed)
-        ├── ICatalogRepository
-        ├── ICarrierCoolingRepository
-        ├── IGiftSettingRepository
-        ├── TimeProvider
-        └── ILogger<…>
-
-[DI Composition Root]
-    AddHttpClient<ShoptetOrderClient>(…)                       ◄── already concrete; unchanged
-    AddTransient<IEshopOrderClient>(sp => sp.GetRequiredService<ShoptetOrderClient>())  ◄── already in place; unchanged
-    AddTransient<IPickingListSource, ShoptetApiExpeditionListSource>()                  ◄── unchanged
+ShoptetApiExpeditionListSource (transient, IPickingListSource)
+│
+├── owns ──> PickingListBatchProcessor (internal sealed, NEW)
+│              ctor: ICatalogRepository, ShoptetOrderClient,
+│                    Func<ExpeditionProtocolData, byte[]>, ILogger
+│              ├── FlushAsync(batch, method, batchIndex, timestamp,
+│              │                onBatchFilesReady, ct) -> Task<string>
+│              ├── (optional) EnrichBatchAsync(batch, ct)
+│              └── (optional) WriteCoolingMarkersAsync(batch, ct)
+│
+└── CreatePickingList(...) — driver
+       1. FetchAllOrdersAsync → carrier groups
+       2. Load cooling matrix + gift setting (once/run)
+       3. Per carrier: greedy batch → processor.FlushAsync(...)
+                                        → append returned path to exportedFiles
+       4. Optional status update
+       5. Return PrintPickingListResult
 ```
+
+The processor instance is constructed once per `CreatePickingList` call and reused across all batches in that run. Lifetime matches the source's own per-request lifetime; the processor holds no mutable state across calls.
 
 ### Key Design Decisions
 
-#### Decision 1: Depend on concrete `ShoptetOrderClient`, not a narrowed interface
-
+#### Decision 1: Direct instantiation, no DI registration
 **Options considered:**
-- (A) Inject `ShoptetOrderClient` directly. (Chosen.)
-- (B) Widen `IEshopOrderClient` to include the three additional methods.
-- (C) Introduce a new narrow interface (e.g., `IExpeditionOrderDetailClient`) that the adapter implements.
+- (A) Register `PickingListBatchProcessor` as transient in DI; inject into `ShoptetApiExpeditionListSource`.
+- (B) Direct `new` inside `ShoptetApiExpeditionListSource.CreatePickingList`.
 
-**Chosen approach:** Option A.
+**Chosen approach:** (B) — instantiate directly inside the source.
 
-**Rationale:**
-- Both consumer and dependency live in the same adapter assembly, so a contract abstraction provides no decoupling benefit (Clean Architecture's "depend on abstractions only when needed for decoupling").
-- Option B pollutes a contract used by other application-layer handlers with methods they don't need (ISP violation).
-- Option C is YAGNI for a single in-assembly consumer. If a second consumer appears, extract then.
-- This is the same decision the team made and validated for `ShoptetApiPackingOrderClient` in May.
+**Rationale:** The processor has one consumer, owns no public abstraction, and depends on the resolved `Func<ExpeditionProtocolData, byte[]>` that the source already resolves with a default fallback (`generateDocument ?? ExpeditionProtocolDocument.Generate`). Registering it in DI would either duplicate the resolution logic or require yet another factory registration, with no benefit. This also keeps the helper `internal sealed` and out of the adapter's DI surface, matching the spec's NFR-3.
 
-#### Decision 2: No DI changes required
-
+#### Decision 2: Accept concrete `ShoptetOrderClient`, not `IEshopOrderClient`
 **Options considered:**
-- (A) Leave DI alone — `ShoptetOrderClient` is already registered as a concrete type via `AddHttpClient<ShoptetOrderClient>(…)` (line 37 of `ShoptetApiAdapterServiceCollectionExtensions.cs`), and `IEshopOrderClient` is forwarded via a transient factory (line 43). (Chosen.)
-- (B) Add a new registration.
+- (A) Take `ShoptetOrderClient` (concrete).
+- (B) Take `IEshopOrderClient` and downcast for `SetAdditionalFieldAsync`.
+- (C) Introduce a new narrow interface `IOrderAdditionalFieldClient`.
 
-**Chosen approach:** Option A.
+**Chosen approach:** (A) — concrete class, as specified.
 
-**Rationale:** The DI shape was already inverted during the prior `ShoptetApiPackingOrderClient` refactor specifically to enable both concrete- and interface-based resolution. The new constructor signature for `ShoptetApiExpeditionListSource` is already satisfiable by the container as-is. Spec FR-2 should be treated as a verification step, not a change.
+**Rationale:** `SetAdditionalFieldAsync` lives on the concrete `ShoptetOrderClient` only (not on `IEshopOrderClient`). Adding a new interface for the helper is YAGNI: a single consumer, tested via the existing HTTP handler mocks. Tests for the helper unit-test path use a `ShoptetOrderClient` constructed against a `Mock<HttpMessageHandler>` — the same pattern already in `ShoptetApiExpeditionListSource_CoolingMarkerTests.cs:118–169`.
 
-#### Decision 3: No test edits required
-
+#### Decision 3: Driver retains accumulation of `exportedFiles`
 **Options considered:**
-- (A) Leave tests unchanged. (Chosen.)
-- (B) Edit test helpers.
+- (A) Helper appends to a list passed in by reference.
+- (B) Helper returns the produced path; driver appends.
 
-**Chosen approach:** Option A.
+**Chosen approach:** (B) — as specified.
 
-**Rationale:** Both `ShoptetApiExpeditionListSourceTests` (`backend/test/Anela.Heblo.Tests/Adapters/ShoptetApi/`) and `ShoptetApiExpeditionListSource_CoolingMarkerTests` (`backend/test/Anela.Heblo.Adapters.Shoptet.Tests/Expedition/`) already construct a real `ShoptetOrderClient` (wrapped around `FakeDelegatingHandler` / Moq `HttpMessageHandler`) and pass it to the SUT. Changing the constructor parameter from `IEshopOrderClient` to `ShoptetOrderClient` is **source-compatible** — the test code requires no edits. Spec FR-3 should similarly be treated as a "must compile and pass" verification, not an edit task.
+**Rationale:** Returning the path is the explicit data flow; mutation-by-reference is exactly the closure pattern we are removing. Keeping accumulation in the driver also keeps the helper stateless across calls, which is necessary for safe reuse of one instance across multiple batches.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-No new files. Modify only:
+```
+backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Expedition/
+├── ExpeditionProtocolData.cs              (unchanged)
+├── ExpeditionProtocolDocument.cs          (unchanged)
+├── ShippingMethod.cs                      (unchanged)
+├── ShippingMethodCatalog.cs               (unchanged)
+├── ShippingMethodRegistry.cs              (unchanged)
+├── ShoptetApiExpeditionListSource.cs      (slim driver)
+└── PickingListBatchProcessor.cs           (NEW, internal sealed, ≤ 400 lines)
 
-- `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Expedition/ShoptetApiExpeditionListSource.cs`
-  - Line 34: change constructor parameter type from `IEshopOrderClient` to `ShoptetOrderClient`.
-  - Line 42: replace `_client = (ShoptetOrderClient)client;` with `_client = client;`.
-  - Lines 20–21: remove the now-stale "ShoptetOrderClient is the only implementation… safe to cast" comment — it describes a workaround that no longer exists.
-  - Remove the `using Anela.Heblo.Application.Features.ShoptetOrders;` import **only if** `dotnet format` removes it as unused. Do not hand-edit the using list (project rule: surgical changes).
+backend/test/Anela.Heblo.Adapters.Shoptet.Tests/Expedition/
+├── ShoptetApiExpeditionListSource_CoolingMarkerTests.cs  (unchanged)
+└── PickingListBatchProcessorTests.cs                     (NEW)
+```
 
-Files validated (must continue to compile and pass; **do not edit**):
-
-- `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/ShoptetApiAdapterServiceCollectionExtensions.cs` — DI registration is already correct.
-- `backend/test/Anela.Heblo.Tests/Adapters/ShoptetApi/ShoptetApiExpeditionListSourceTests.cs` — already passes a real `ShoptetOrderClient`.
-- `backend/test/Anela.Heblo.Adapters.Shoptet.Tests/Expedition/ShoptetApiExpeditionListSource_CoolingMarkerTests.cs` — same.
-- `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/IEshopOrderClient.cs` — interface is unchanged.
+Test file name follows the existing convention (`{Class}Tests.cs`). New helper tests do **not** duplicate driver-level integration tests; they target the four responsibilities the spec calls out: catalog enrichment, PDF/file output, cooling-marker PATCH (success + failure), and callback semantics.
 
 ### Interfaces and Contracts
 
-**No public contract changes.**
+```csharp
+namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 
-- `IEshopOrderClient` is untouched. Other consumers (`BlockOrderProcessingHandler`, `ScanPackingOrderHandler`) continue to depend on it.
-- `IPickingListSource` (the application-layer contract `ShoptetApiExpeditionListSource` implements) is untouched.
-- Only the internal constructor signature of `ShoptetApiExpeditionListSource` changes.
+internal sealed class PickingListBatchProcessor
+{
+    public PickingListBatchProcessor(
+        ICatalogRepository catalog,
+        ShoptetOrderClient client,
+        Func<ExpeditionProtocolData, byte[]> generateDocument,
+        ILogger logger);
+
+    public Task<string> FlushAsync(
+        IReadOnlyList<ExpeditionOrder> batch,
+        ShippingMethod method,
+        int batchIndex,
+        string timestamp,
+        Func<IList<string>, Task>? onBatchFilesReady,
+        CancellationToken cancellationToken);
+}
+```
+
+**Contract rules developers must follow:**
+- Logger parameter type is **base `ILogger`**, never `ILogger<PickingListBatchProcessor>`. This is load-bearing for log-category continuity (FR-7) — do not change it during the refactor or any follow-up.
+- `FlushAsync` must produce the file name `{timestamp}_{method.Name}_{batchIndex}.pdf` and write it to `Path.GetTempPath()`. Do not introduce a configurable output directory in this PR.
+- PATCH failure handling: catch every exception except `OperationCanceledException`; log at `Warning` with the exact template `"Failed to set Shoptet additionalField[{Index}]={Value} for order {OrderCode}; PDF print continues."` Order code must appear in the formatted message (asserted by `CreatePickingList_PatchFails_PdfStillCompletes`).
+- Constants `CoolingMarkerValue = "CHLAZENE"` and `CoolingAdditionalFieldIndex = 6` move with the PATCH logic to the helper, or stay on the source — either is fine; the spec does not constrain placement. Recommendation: **move them into `PickingListBatchProcessor`** since that is where they are used after the refactor. The source no longer references them.
 
 ### Data Flow
 
-Unchanged. The class continues to:
+Per-run flow (unchanged externally; the only change is in step 4):
 
-1. Resolve from DI with the same set of dependencies (only the parameter type differs).
-2. Fetch order lists via `_client.GetOrdersByStatusAsync` (paginated).
-3. Fetch each order detail via `_client.GetExpeditionOrderDetailAsync`.
-4. Optionally PATCH cooling marker via `_client.SetAdditionalFieldAsync`.
-5. Optionally update status via `_client.UpdateStatusAsync`.
-
-The removed cast was a no-op at runtime (the DI factory always returns a `ShoptetOrderClient`), so production behavior is byte-identical.
+```
+CreatePickingList(request, onBatchFilesReady, ct)
+  ├── FetchAllOrdersAsync(statusId, ct)                       → List<OrderSummary>
+  ├── Group by ShippingMethod, filter by request.Carriers     → Dictionary<ShippingMethod, List<...>>
+  ├── Load cooling matrix + gift setting                      → (once)
+  ├── Instantiate PickingListBatchProcessor                   → (once)
+  └── For each (method, orders):
+        ├── For each order: client.GetExpeditionOrderDetailAsync → MapToExpeditionOrder → resolve carrier cooling/gift
+        └── Greedy batch loop:
+              ├── On overflow:  path = await processor.FlushAsync(batch, method, batchIndex++, timestamp, cb, ct)
+              │                 exportedFiles.Add(path)
+              └── At end:       path = await processor.FlushAsync(remaining, method, batchIndex, timestamp, cb, ct)
+                                exportedFiles.Add(path)
+        Inside FlushAsync:
+        ├── Distinct product codes → catalog.GetByIdAsync (N lookups)
+        ├── ApplyEnrichment (existing internal static, unchanged)
+        ├── Build ExpeditionProtocolData → generateDocument → byte[]
+        ├── File.WriteAllBytesAsync to Path.GetTempPath()
+        ├── For each cooled order: client.SetAdditionalFieldAsync (best-effort, warn-log on failure)
+        ├── if (onBatchFilesReady != null) await onBatchFilesReady([path])
+        └── return path
+  ├── (Optional) UpdateStatusAsync for processedCodes
+  └── return PrintPickingListResult { ExportedFiles = exportedFiles, TotalCount = processedCodes.Count }
+```
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| A test or production consumer (not yet found) passes a non-`ShoptetOrderClient` implementation of `IEshopOrderClient` to this constructor | Low | The full-solution `dotnet build` after the change catches this at compile time. No grep hit beyond the two test files already verified. |
-| DI resolution fails at boot because the concrete type isn't registered | Very low | `AddHttpClient<ShoptetOrderClient>(…)` already registers the concrete type (line 37 of the DI module). Confirm with `dotnet build` of the API project; a startup integration test, if present (`WebApplicationFactory<Program>`), is a stronger check. |
-| Stale comment about the cast misleads future readers | Low | Remove the comment block on lines 20–21 of `ShoptetApiExpeditionListSource.cs` as part of the same commit. |
-| Unused `using Anela.Heblo.Application.Features.ShoptetOrders;` lingers | Low | Let `dotnet format` decide. Don't hand-edit. |
+| Subtle behavior drift in the cooling-marker PATCH loop during extraction (e.g., catch clause semantics, exception filter `is not OperationCanceledException`). | High | Run all 4 tests in `ShoptetApiExpeditionListSource_CoolingMarkerTests` *first* (red→green); a green run proves the PATCH semantics including the warn-log path. Add the FR-4 helper tests as additional coverage, not as the only safety net. |
+| Closure-to-parameter pass-through order error (especially `batchIndex` increment, which the spec correctly moves to the driver). | Medium | The driver increments `batchIndex` *after* the overflow flush (mirroring the current code at line 204). The final-drain flush at line 216 uses the un-incremented value. The refactor must preserve both call sites exactly. Cover this with a test that creates ≥ 2 batches and asserts file names contain `_0.pdf` and `_1.pdf`. |
+| Logger category regression if someone "cleans up" the `ILogger` parameter to `ILogger<PickingListBatchProcessor>` in a follow-up. | Medium | Add an XML doc `///` comment on the constructor parameter stating *why* it is the base interface (preserves ops/alert log category). This is one of the rare cases where a comment is justified — the rule is non-obvious and removing it would silently break dashboards. |
+| Test author duplicates driver-level integration tests at the helper level, bloating the suite without adding signal. | Low | Spec Out-of-Scope explicitly forbids this. Helper tests should each touch exactly one of: enrichment, PDF output, PATCH success, PATCH failure, callback. Anything that requires HTTP `GetOrdersByStatusAsync` mocks belongs at the driver level. |
+| `Path.GetTempPath()` and `File.WriteAllBytesAsync` make helper unit tests touch the real filesystem. | Low | Acceptable — same pattern as the existing driver tests. Test cleanup is not necessary because the temp files are timestamped and short-lived. Do not add a filesystem abstraction in this PR. |
 
 ## Specification Amendments
 
-**FR-2 (DI registration) — reframe as verification only.** The spec wording ("ensure `ShoptetOrderClient` is resolvable… verify the existing registration still satisfies") is already correct in intent, but should be made explicit: **no edit to `ShoptetApiAdapterServiceCollectionExtensions.cs` is expected**. The registration was put in its current shape during the `ShoptetApiPackingOrderClient` refactor specifically to support exactly this scenario. The acceptance criterion "No new registration is added unless required" is already met by *no change*.
+The spec is mature and complete. Minor refinements:
 
-**FR-3 (Unit tests) — reframe as verification only.** Both relevant test files already construct the SUT with a concrete `ShoptetOrderClient`. The change is source-compatible. The acceptance criteria can be satisfied by **running** the existing tests; no test code edits should be needed. If an edit *is* required, that's a signal that the test was reaching for something the new signature accidentally prevents, and the developer should stop and report rather than work around it.
+1. **Constants placement (clarification, not a change).** The spec leaves `CoolingMarkerValue` / `CoolingAdditionalFieldIndex` placement implicit. Recommend moving them into `PickingListBatchProcessor` since the source no longer references them after the refactor. This is a behavior-neutral cleanup that keeps the constants co-located with their only user.
 
-**Additional cleanup (not in spec).** The current class has a comment (lines 20–21) explaining the cast as "safe to cast within this adapter assembly." Once the cast is gone, the comment is dead and misleading. Remove it as part of the same commit — this is within the spirit of FR-4 (behavior-preserving) and is the minimal surgical follow-through.
+2. **Add one explicit driver test (FR-3 addendum).** When the spec calls for `CreatePickingList` ≤ 50 lines, the assertion is structural, not behavioral. Recommend adding one test that constructs `≥ maxItems + 1` items across `≥ 2` orders to force a mid-loop flush, verifying both batches produce files named `_0.pdf` and `_1.pdf`. This locks in the `batchIndex` pass-through behavior identified in the risk table above.
+
+3. **No further amendments.** Do not introduce `IOrderAdditionalFieldClient`, `IFileSystem`, or any other "future-proofing" interface in this PR — YAGNI, and the spec's Out of Scope section already forbids it.
 
 ## Prerequisites
 
-None. No migrations, no config changes, no infrastructure work. The DI registration is already in the required shape (verified at `ShoptetApiAdapterServiceCollectionExtensions.cs:37-43`).
+None. All required infrastructure exists:
 
-Validation gates before commit:
-- `dotnet build backend/Anela.Heblo.sln` — green.
-- `dotnet test backend/Anela.Heblo.sln --filter "FullyQualifiedName~ShoptetApiExpeditionListSource"` — green (covers both test files).
-- `dotnet test backend/Anela.Heblo.sln` — green (full suite, to catch any unexpected consumer).
-- `dotnet format backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Anela.Heblo.Adapters.ShoptetApi.csproj` — no diffs after run.
+- `InternalsVisibleTo("Anela.Heblo.Adapters.Shoptet.Tests")` is already declared at `ShoptetApiExpeditionListSource.cs:13`.
+- `ICatalogRepository`, `ShoptetOrderClient`, `Func<ExpeditionProtocolData, byte[]>`, and `ILogger<ShoptetApiExpeditionListSource>` are already injected into the source.
+- Existing `Mock<HttpMessageHandler>` + `ShoptetOrderClient` pattern in the cooling-marker tests is directly reusable for helper-level PATCH tests.
+- No DB migrations, config changes, or new Key Vault secrets required.
+
+Implementation can begin immediately.
