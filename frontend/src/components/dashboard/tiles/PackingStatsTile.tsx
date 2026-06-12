@@ -9,6 +9,7 @@ interface PackerStat {
 
 interface PackingStatsData {
   ordersBeingPackedCount: number | null;
+  ordersBeingProcessedCount: number | null;
   ordersBeingPackedCountLastSync: string | null;
   totalOrdersPackedToday: number;
   packedByPacker: PackerStat[];
@@ -48,7 +49,18 @@ export const PackingStatsTile: React.FC<PackingStatsTileProps> = ({ data }) => {
       onClick={isClickable ? () => navigate('/baleni') : undefined}
       title={data.drillDown?.tooltip}
     >
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-secondary-blue-pale rounded-lg p-3 text-center">
+          <p className="text-xs text-neutral-gray mb-1">Vyřizuje se</p>
+          <p className="text-2xl font-bold text-primary-blue">
+            {stats.ordersBeingProcessedCount ?? '—'}
+          </p>
+          {stats.ordersBeingPackedCountLastSync && (
+            <p className="text-xs text-neutral-gray mt-1">
+              sync {new Date(stats.ordersBeingPackedCountLastSync).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )}
+        </div>
         <div className="bg-secondary-blue-pale rounded-lg p-3 text-center">
           <p className="text-xs text-neutral-gray mb-1">Balí se</p>
           <p className="text-2xl font-bold text-primary-blue">

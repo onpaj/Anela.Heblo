@@ -206,17 +206,10 @@ const JournalList: React.FC = () => {
   const error = currentQuery.error;
 
   // Handler for applying filters
-  const handleApplyFilters = async () => {
+  const handleApplyFilters = () => {
     setSearchTextFilter(searchTextInput);
     setIsSearchMode(searchTextInput.trim() !== "");
     setPageNumber(1); // Reset to first page when applying filters
-
-    // Force data reload by refetching
-    if (searchTextInput.trim()) {
-      await searchQuery.refetch();
-    } else {
-      await entriesQuery.refetch();
-    }
   };
 
   // Handler for Enter key press
@@ -227,14 +220,11 @@ const JournalList: React.FC = () => {
   };
 
   // Handler for clearing all filters
-  const handleClearFilters = async () => {
+  const handleClearFilters = () => {
     setSearchTextInput("");
     setSearchTextFilter("");
     setIsSearchMode(false);
     setPageNumber(1); // Reset to first page when clearing filters
-
-    // Force data reload by refetching
-    await entriesQuery.refetch();
   };
 
   // Sorting handler
@@ -273,12 +263,6 @@ const JournalList: React.FC = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingEntryId(null);
-    // Refetch data after modal closes
-    if (isSearchMode) {
-      searchQuery.refetch();
-    } else {
-      entriesQuery.refetch();
-    }
   };
 
   // Loading state

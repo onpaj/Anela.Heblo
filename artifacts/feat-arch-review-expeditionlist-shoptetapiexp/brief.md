@@ -2,31 +2,21 @@
 ExpeditionList (Shoptet adapter)
 
 ## Finding
-`ShoptetApiExpeditionListSource` constructor (`backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Expedition/ShoptetApiExpeditionListSource.cs`, line 42) accepts `IEshopOrderClient` but immediately casts it to the concrete type:
+`ShoptetApiExpeditionListSource.CreatePickingList` in `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Expedition/ShoptetApiExpeditionListSource.cs` (lines 51–234) is 183 lines.
 
-```csharp
-_client = (ShoptetOrderClient)client;
-```
+It contains a nested local function `FlushBatchAsync` (lines 126–196, ~70 lines) that closes over eight outer-scope variables: `_catalog`, `_client`, `batchIndex`, `method`, `carrierDisplayName`, `exportedFiles`, `cancellationToken`, and `onBatchFilesReady`. The local function packs four distinct responsibilities:
+1. Catalog enrichment (stock counts, warehouse positions, product cooling)
+2. PDF byte generation via `_generateDocument`
+3. Shoptet API side-effect: writing the cooling marker via `SetAdditionalFieldAsync`
+4. Invoking the `onBatchFilesReady` batch callback
 
-The three methods this class actually calls — `GetOrdersByStatusAsync`, `GetExpeditionOrderDetailAsync`, and `SetAdditionalFieldAsync` — are not declared on `IEshopOrderClient` (see `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/IEshopOrderClient.cs`). The interface injection serves no purpose: the constructor signature accepts an abstraction but the code requires the concrete type.
+Because `FlushBatchAsync` is a local function — not a private method — it cannot be targeted by a unit test directly. Existing tests exercise it only through full `CreatePickingList` integration paths, making it impossible to test the cooling-marker write in isolation without running the entire list-creation flow.
 
 ## Why it matters
-- **Interface Segregation (ISP)**: `IEshopOrderClient` does not cover the operations needed here, so injecting it via the interface is misleading.
-- **Hidden hard dependency**: the constructor signature lies — the real dependency is `ShoptetOrderClient`. Any other `IEshopOrderClient` implementation will throw `InvalidCastException` at first use.
-- **Testability**: test code must supply a real `ShoptetOrderClient` despite the constructor accepting an interface, which is confusing.
+Exceeds the 50-line method guideline. The deep outer-variable closure makes the control flow hard to follow and incremental changes risky: modifying any captured variable's type or lifetime can have non-obvious effects on `FlushBatchAsync`'s behaviour. The cooling-marker Shoptet API call (a live-store write) buried inside PDF generation is particularly hard to mock out.
 
 ## Suggested fix
-Inject `ShoptetOrderClient` directly — the class is already in the same adapter assembly, so depending on the concrete type is appropriate here:
-
-```csharp
-public ShoptetApiExpeditionListSource(
-    ShoptetOrderClient client,   // concrete; already in this assembly
-    TimeProvider timeProvider,
-    ICatalogRepository catalog,
-    ...
-```
-
-This removes the silent cast, makes the actual dependency explicit, and eliminates any risk of `InvalidCastException`.
+Introduce a `PickingListBatchProcessor` private helper (or a separate class if complexity warrants it) whose `FlushAsync(List<ExpeditionOrder> batch, ...)` method receives all needed context as explicit parameters rather than captured outer variables. This makes each responsibility independently testable and reduces `CreatePickingList` to a loop-and-dispatch driver well under 50 lines.
 
 ---
 _Filed by daily arch-review routine on 2026-06-06._

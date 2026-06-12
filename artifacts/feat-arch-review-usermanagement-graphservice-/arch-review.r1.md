@@ -1,259 +1,195 @@
-I have enough context. Writing the architecture review now.
-
-```markdown
-# Architecture Review: Fix Error Handling in GetGroupMembers Flow
+# Architecture Review: Refactor `GraphService.GetGroupMembersAsync` into Focused Helper Methods
 
 ## Skip Design: true
 
-This is a backend-only error-handling refactor. No new UI components, screens, or visual design decisions are required. The frontend may eventually surface the new `ErrorCode` to users, but that work is explicitly **out of scope** for this change (per spec).
-
 ## Architectural Fit Assessment
 
-The proposal aligns cleanly with the codebase's prevailing pattern for cross-cutting error handling:
+This is a **strictly internal, behaviour-preserving refactor** of one method inside an existing Application-layer service. It does not touch any architectural seam: the public `IGraphService` contract, the `UserManagement` module boundary, MediatR handlers (`GetGroupMembersHandler`), `UserDto`, and the `MicrosoftGraph` named `HttpClient` registration all remain untouched. There is no new module, no new DI registration, no new file under `Features/UserManagement/`.
 
-- **`BaseResponse` envelope** (`backend/src/Anela.Heblo.Application/Shared/BaseResponse.cs:6-62`) — all MediatR responses inherit `Success` / `ErrorCode` / `Params`. There is **no `Result<T>` convention** anywhere in the codebase; every handler uses exception-based flow plus this envelope. Spec correctly excludes Option B.
-- **`ErrorCodes` is an `enum`, not string constants** (`backend/src/Anela.Heblo.Application/Shared/ErrorCodes.cs:11`). Each value carries an `[HttpStatusCode]` attribute that `BaseApiController.HandleResponse` uses to derive the HTTP status. The spec text refers to the field as `string?` — this is a documentation slip; the actual type is `ErrorCodes?`.
-- **Catch-at-handler-boundary precedent exists**: `Photobank/UseCases/GetThumbnail/GetThumbnailHandler.cs:38-63` is the model — the service throws `MsalException` / `HttpRequestException` / domain-specific exceptions; the handler catches each and maps to a specific `ErrorCodes` value. This refactor brings `GetGroupMembers` into conformance with that established pattern.
-- **Global exception middleware exists** (`UnauthorizedAccessExceptionHandler` at `backend/src/Anela.Heblo.API/Infrastructure/ExceptionHandling/UnauthorizedAccessExceptionHandler.cs:14`) — it maps any *uncaught* `UnauthorizedAccessException` to a bare 401 ProblemDetails. Because MediatR runs inside the controller, the handler's `catch` runs first and intercepts the exception before the middleware sees it. Conclusion: **no conflict**, but the spec must keep `UnauthorizedAccessException` in the handler's catch list — letting it escape would silently change the HTTP code from 403 (Forbidden via `BaseResponse`) to 401 (Unauthorized via the global handler).
-- **MockGraphService never throws** (`backend/src/Anela.Heblo.Application/Features/UserManagement/Services/MockGraphService.cs`) — refactor is transparent in mock auth mode.
+The refactor aligns well with existing patterns:
+- **File organisation** — `GraphService.cs` already lives in the correct place per `docs/architecture/filesystem.md` (`Features/UserManagement/Services/`). Helpers stay inside the same file as private members; no new files are warranted (KISS, YAGNI).
+- **Coding standards** — the global C# rules (`csharp-coding-style.md`, `coding-style.md`) call out the 50-line function ceiling, single-responsibility, and immutability. The current method violates the first two; the refactor fixes both without introducing mutation.
+- **Existing test patterns** — `GraphServiceTests` already exercises the HTTP path through `FakeHttpMessageHandler`. A new `ParseMembersFromJsonTests` fixture is the natural complement and matches the project's xUnit + FluentAssertions convention.
 
-Main integration points:
-1. `GraphService.GetGroupMembersAsync` — internal `try/catch` blocks rewritten to log-and-rethrow.
-2. `GetGroupMembersHandler` — catches expand from one block to four typed catches plus a fallback.
-3. `GraphArticleUserResolver` — currently has no defense; once exceptions propagate, `BackfillArticleRequestedByHandler` will fault. Must be hardened (FR-4).
-
-The fit is good. One amendment needed (see below).
+The one integration point worth naming: `GetAppRoleMembersAsync` (same file, lines 267–418) **calls `GetGroupMembersAsync` directly** at line 382 to expand nested-group members. The orchestrator's public signature and behaviour must remain identical or `GetAppRoleMembersAsync` regresses silently — the spec already requires this, but it is the single highest-stakes invariant.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-┌──────────────────────────────────────┐    ┌──────────────────────────────────────┐
-│ UserManagementController             │    │ ArticlesController                   │
-│ HandleResponse() → HTTP status       │    │ (backfill endpoint)                  │
-└────────────────┬─────────────────────┘    └────────────────┬─────────────────────┘
-                 │ MediatR                                   │ MediatR
-                 ▼                                           ▼
-┌──────────────────────────────────────┐    ┌──────────────────────────────────────┐
-│ GetGroupMembersHandler               │    │ BackfillArticleRequestedByHandler    │
-│ ─ try { service call }               │    │ ─ try { resolver call }              │
-│ ─ catch MsalException                │    │ ─ catch (Exception) → degrade        │
-│   → ConfigurationError (500)         │    │   (Unresolved++ / log / continue)    │
-│ ─ catch ODataError                   │    │                                      │
-│   → ExternalServiceError (503)       │    │ Uses IArticleUserResolver,           │
-│ ─ catch UnauthorizedAccessException  │    │ NOT IGraphService directly.          │
-│   → Forbidden (403)                  │    └────────────────┬─────────────────────┘
-│ ─ catch Exception                    │                     │
-│   → InternalServerError (500)        │                     ▼
-│                                      │    ┌──────────────────────────────────────┐
-│ Logs once with {GroupId,UseCase}.    │    │ GraphArticleUserResolver              │
-└────────────────┬─────────────────────┘    │ (thin adapter, no catch)              │
-                 │                          └────────────────┬─────────────────────┘
-                 │                                           │
-                 └─────────────────┬─────────────────────────┘
-                                   ▼
-                  ┌────────────────────────────────────┐
-                  │ IGraphService.GetGroupMembersAsync │
-                  │                                    │
-                  │ GraphService (real)                │
-                  │ ─ logs MSAL/OData diagnostics      │
-                  │ ─ throws (no catch-and-swallow)    │
-                  │                                    │
-                  │ MockGraphService                   │
-                  │ ─ returns mock list, never throws  │
-                  └────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│ GraphService (class, unchanged surface)                              │
+│                                                                       │
+│  public GetGroupMembersAsync(groupId, ct)  ◄── orchestrator (~30 LOC)│
+│    │                                                                  │
+│    ├─► IMemoryCache.TryGetValue / Set      (inline, unchanged)       │
+│    │                                                                  │
+│    ├─► AcquireGraphTokenAsync(groupId, ct)  ◄── NEW private instance │
+│    │     └─► ITokenAcquisition.GetAccessTokenForAppAsync             │
+│    │     └─► MsalException → rethrow (caught by outer handler)       │
+│    │                                                                  │
+│    ├─► HttpClient.SendAsync (inline, unchanged — see Out of Scope)   │
+│    │                                                                  │
+│    └─► ParseMembersFromJson(responseBody)   ◄── NEW private static   │
+│          └─► JsonDocument walk + @odata.type filter → List<UserDto>  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
+
+No public surface changes. No new types. No new DI registrations.
 
 ### Key Design Decisions
 
-#### Decision 1: Catch location for the backfill path
+#### Decision 1: Keep helpers as private members of `GraphService`, not separate classes
 **Options considered:**
-- A. Catch inside `GraphArticleUserResolver` (thin adapter swallows everything, returns empty).
-- B. Catch inside `BackfillArticleRequestedByHandler` (the use case decides how to degrade).
-- C. No catch; let exceptions bubble — backfill becomes a 500.
+- (A) Private helpers inside `GraphService.cs` — chosen.
+- (B) Extract `ParseMembersFromJson` into a separate internal static class `GraphMembersParser` in `Features/UserManagement/Services/`.
+- (C) Extract a full `IGraphTokenProvider` interface and `GraphMemberParser` interface for DI.
 
-**Chosen approach:** **B — catch in `BackfillArticleRequestedByHandler`.**
+**Chosen approach:** (A).
 
-**Rationale:**
-- The whole point of the refactor is to stop hiding failures inside thin pass-through layers. Re-introducing a swallow inside `GraphArticleUserResolver` repeats the original sin one layer down.
-- The use-case handler already owns the response envelope (`BackfillArticleRequestedByResponse : BaseResponse`) and the structured outcome counters (`Resolved`, `Unresolved`, `UnresolvedRows`). It is the right layer to translate "could not reach Graph" into a graceful outcome — e.g. an empty `members` lookup, treating every row as `Unresolved` with reason `"Graph unavailable: <ErrorCode>"`, or short-circuiting with a non-`Success` envelope.
-- `GraphArticleUserResolver` remains a one-line adapter, faithful to its purpose.
+**Rationale:** The brief and spec are explicit that this is **strictly internal**, two extractions only. Option (B) would create a one-call-site class for marginal benefit; option (C) is speculative DI generality (YAGNI). The parser remains testable as a `private static` via a tiny internal accessor *only if needed* — but the simpler path is to ship the parser as `private static`, write `ParseMembersFromJsonTests` against it via `InternalsVisibleTo` if absolutely required, or **prefer to make the parser `internal static` on a nested or partner static class only if the test project cannot otherwise reach it.** Given `GraphServiceTests` lives in `backend/test/Anela.Heblo.Tests`, check `Anela.Heblo.Application.csproj` for an existing `InternalsVisibleTo` to that test assembly; if present, declare the parser `internal static` on `GraphService`. If absent, the cleanest minimal-impact move is to mark the parser `internal static` and add the `InternalsVisibleTo` entry. **Do not change visibility to `public` solely for testing** — that violates the "no public surface change" requirement in FR-3.
 
-**Recommended behavior in the handler:** catch `MsalException`, `ODataError`, `UnauthorizedAccessException`, and generic `Exception` around the `_userResolver.ResolveByGroupAsync(...)` call (`BackfillArticleRequestedByHandler.cs:37`). Log once with `{GroupId}` and the exception, then return a `BackfillArticleRequestedByResponse(errorCode)` constructed via the existing error-code constructor (`BackfillArticleRequestedByResponse.cs:9-12`). Map the same way as `GetGroupMembersHandler` so behavior is consistent across both Graph callers. This bounds the change and matches the BaseResponse precedent.
+#### Decision 2: `AcquireGraphTokenAsync` stays instance, not static
+**Options considered:** Instance method (captures `_tokenAcquisition`, `_logger` via `this`) vs static method taking dependencies as parameters.
 
-#### Decision 2: Use existing `ErrorCodes` enum values
+**Chosen approach:** Instance method.
+
+**Rationale:** It depends on two injected fields and needs no parameters beyond the cancellation context. Making it static would force a longer parameter list with no testability gain — `AcquireGraphTokenAsync` is exercised through existing token-path tests (`GetGroupMembersAsync_TokenAcquisitionMsalException_Throws`), which already inject mocks at the constructor.
+
+#### Decision 3: Do NOT extract HTTP send block in this iteration
+**Options considered:** Extract a third helper `SendGraphRequestAsync` covering lines 84–104; defer it.
+
+**Chosen approach:** Defer (spec Out of Scope).
+
+**Rationale:** The brief says "exactly two extractions." Three would expand scope and risk subtle behaviour changes (e.g. who reads `errorContent`, where status logging lives). Leaving the HTTP block inline keeps the diff focused and reviewable. A follow-up arch-review can decide whether `SendGraphRequestAsync` carries its weight, especially given `SearchUsersAsync` and `GetAppRoleMembersAsync` duplicate the same pattern — that's the right time to extract, when there are three call sites instead of one.
+
+#### Decision 4: MSAL exception handling must move with the token call, not stay in the outer `try/catch`
 **Options considered:**
-- A. Reuse `ConfigurationError` / `ExternalServiceError` / `Forbidden` / `InternalServerError`.
-- B. Add Graph-specific codes (`GraphTokenFailed`, `GraphApiError`, …).
+- (A) `AcquireGraphTokenAsync` does not catch `MsalException`; the existing outer `catch (MsalException msalEx)` block at line 168 handles it as today.
+- (B) `AcquireGraphTokenAsync` catches `MsalException`, logs, and rethrows.
 
-**Chosen approach:** **A — reuse existing values.**
+**Chosen approach:** (A).
 
-**Rationale:** Spec explicitly forbids new codes (Out of Scope). The existing codes already carry the correct HTTP status via `[HttpStatusCode]` attributes (`ErrorCodes.cs:37,41,33,391`), and `BaseApiController.HandleResponse` reads those attributes. No code change in the controller layer is required.
-
-#### Decision 3: Log split — service emits diagnostics, handler emits context
-**Chosen approach:** Service logs Graph/MSAL-specific fields (`GroupId`, MSAL `ErrorCode`, OData `Error.Code`, scope, request URL) at `LogError` immediately before rethrowing. Handler logs once at `LogError` with use-case context (`GroupId`, use-case name) and the exception object.
-
-**Rationale:** Matches spec NFR-3. The split prevents duplicated structured fields, but the exception object is logged at both sites — that is intentional so the stack trace and Graph-specific fields appear together regardless of which log query a developer runs. The second `IGraphService` caller (`GraphArticleUserResolver` / `BackfillArticleRequestedByHandler`) benefits from the service's diagnostics without needing to know Graph internals.
-
-#### Decision 4: `MsalException` → `ConfigurationError` (not `Unauthorized`)
-**Rationale:** Token acquisition failure for **application permissions** (`GetAccessTokenForAppAsync`) signals a broken Entra app registration, expired client secret, missing Key Vault binding, or wrong tenant — none of which the end user can fix. `Unauthorized` (0013) would mislead the caller into thinking it is a user-auth problem. `ConfigurationError` (0012, HTTP 500) is correct.
-
-By contrast, `UnauthorizedAccessException` indicates the app is authenticated but lacks the required Graph permission (`Group.Read.All`) — a permissions/consent problem, not a config problem — so it maps to `Forbidden` (0014, HTTP 403). Both mappings match the spec.
+**Rationale:** The current code does **not** catch and return null on `MsalException` — it lets the exception propagate to the outer catch at line 168, which logs and **rethrows**. The spec's FR-1 says "Catches `MsalException` and returns `null`," but the source code disagrees: today, the call fails the whole method with a rethrow. **Treat the spec language as an inaccuracy** (see Specification Amendments below) — preserving today's behaviour means the helper must NOT swallow `MsalException`. The outer catch at line 168 stays in `GetGroupMembersAsync` and continues to log + rethrow.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-No new files or directories. All changes are in-place edits:
+No new files. All changes are within:
 
 ```
-backend/src/Anela.Heblo.Application/Features/
-├── UserManagement/
-│   ├── Services/
-│   │   └── GraphService.cs                          ← MODIFY: remove swallow-and-return
-│   └── UseCases/GetGroupMembers/
-│       └── GetGroupMembersHandler.cs                ← MODIFY: catch typed exceptions
-└── Article/Admin/
-    └── BackfillArticleRequestedByHandler.cs         ← MODIFY: catch & degrade gracefully
-
-backend/test/Anela.Heblo.Tests/
-├── Features/UserManagement/
-│   ├── GetGroupMembersHandlerTests.cs               ← MODIFY: 4 new typed catch tests
-│   └── GraphServiceTests.cs                         ← NEW (if absent) or MODIFY:
-│                                                        verify rethrow + log fields
-└── Article/Admin/
-    └── BackfillArticleRequestedByHandlerTests.cs    ← ADD: Graph-failure degrade test
+backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs
+backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs        (no changes, must still pass)
+backend/test/Anela.Heblo.Tests/Features/UserManagement/ParseMembersFromJsonTests.cs  (NEW)
 ```
 
-No DI registration changes — `UserManagementModule.AddUserManagement` is untouched.
+If `InternalsVisibleTo("Anela.Heblo.Tests")` is not already declared on `Anela.Heblo.Application`, add it in `backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj` (or via `AssemblyInfo.cs`) — this is the only project-file change permitted by the refactor.
 
 ### Interfaces and Contracts
 
-**`IGraphService.GetGroupMembersAsync` — signature unchanged, contract changed:**
+**Unchanged:**
+- `IGraphService.GetGroupMembersAsync(string, CancellationToken)` — exact signature preserved.
+- `UserDto` — no field changes.
+- `GetGroupMembersHandler` / `GetGroupMembersRequest` / `GetGroupMembersResponse` — untouched.
+
+**New (internal to `GraphService.cs`):**
 ```csharp
-// Before: returns [] on any Graph/MSAL/auth failure.
-// After:  throws MsalException, Microsoft.Graph.Models.ODataErrors.ODataError,
-//         UnauthorizedAccessException, or generic Exception on failure.
-//         Returns the populated List<UserDto> on success (including empty list
-//         for a genuinely empty group).
-Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken = default);
+private async Task<string> AcquireGraphTokenAsync(string groupId, CancellationToken cancellationToken);
+internal static List<UserDto> ParseMembersFromJson(string json);
 ```
 
-**`GetGroupMembersHandler.Handle` — signature unchanged, behavior tightened:**
-```csharp
-// On success         → Success=true, Members=result, ErrorCode=null
-// On MsalException   → Success=false, Members=[], ErrorCode=ConfigurationError
-// On ODataError      → Success=false, Members=[], ErrorCode=ExternalServiceError
-// On Unauthorized…   → Success=false, Members=[], ErrorCode=Forbidden
-// On Exception       → Success=false, Members=[], ErrorCode=InternalServerError
-```
-
-**`GetGroupMembersResponse` — wire shape unchanged.** Note the actual `ErrorCode` field type is `ErrorCodes?` (nullable enum) inherited from `BaseResponse`, not `string?`. The serialized JSON is the enum **name** (default System.Text.Json behavior unless a converter is configured) — the wire format is identical to today.
-
-**`BackfillArticleRequestedByHandler.Handle` — signature unchanged, new catch around line 37:**
-- Either return an error envelope via `new BackfillArticleRequestedByResponse(mappedErrorCode)` (mirrors the existing `ValidationError` branch at `BackfillArticleRequestedByHandler.cs:32-35`), **or** treat the failure as "no resolved users" and let the existing per-row `Unresolved` path tag every row with reason `"Graph unavailable"`.
-
-  **Recommendation:** error envelope. Backfill is an admin operation; running it across thousands of rows after Graph is unreachable produces a misleading "all unresolved" report and may stamp rows incorrectly on a future re-run if the caller misreads the success flag. Fail loudly via the envelope.
+Note the token helper returns `string` (non-nullable), not `string?` as the spec suggests. The current code at line 70 assigns the result to `var graphToken` and the compiler does not flag a null dereference at line 85 — `GetAccessTokenForAppAsync` is declared as returning `Task<string>`. The spec's "returns `null` … with whatever sentinel the current code uses" is incorrect; there is no sentinel. The helper should mirror today's return type: `Task<string>`.
 
 ### Data Flow
 
-**Happy path — group with members:**
+For the cache-miss path:
+
 ```
-Controller → MediatR → GetGroupMembersHandler.Handle
-  → IGraphService.GetGroupMembersAsync(groupId)
-    → token acquisition → HTTP GET /groups/{id}/members → parse → List<UserDto>
-  ← List<UserDto> (populated)
-← GetGroupMembersResponse { Success=true, Members=[...], ErrorCode=null }
-← Ok(response)
+caller → GetGroupMembersAsync(groupId, ct)
+       │
+       ├── _cache.TryGetValue(cacheKey) ──► HIT: return cached, done
+       │
+       ├── validate groupId ──► empty: return empty list, done
+       │
+       ├── graphToken = await AcquireGraphTokenAsync(groupId, ct)
+       │     ├── stopwatch start
+       │     ├── _tokenAcquisition.GetAccessTokenForAppAsync(scope)
+       │     │     └── on MsalException: propagates → outer catch logs+rethrows
+       │     ├── stopwatch stop, log duration
+       │     └── return token
+       │
+       ├── httpClient = _httpClientFactory.CreateClient("MicrosoftGraph")
+       ├── build request with Bearer header
+       ├── response = await httpClient.SendAsync(request, ct)
+       ├── if !IsSuccessStatusCode: log + return empty list, done
+       ├── responseBody = await response.Content.ReadAsStringAsync(ct)
+       │
+       ├── members = ParseMembersFromJson(responseBody)
+       │     ├── JsonDocument.Parse(json) using
+       │     ├── if no "value" array: return new List<UserDto>()
+       │     ├── for each entry: if @odata.type contains "user" OR has userPrincipalName
+       │     │     ├── extract id, displayName, mail, userPrincipalName (each null-tolerant)
+       │     │     └── add UserDto { Id, DisplayName, Email = mail ?? upn ?? "" }
+       │     └── return list
+       │
+       ├── _cache.Set(cacheKey, members, _cacheExpiration)
+       └── return members
 ```
 
-**Happy path — empty group (the case the bug previously masked):**
-```
-Controller → MediatR → GetGroupMembersHandler.Handle
-  → IGraphService.GetGroupMembersAsync(groupId)
-    → token → HTTP 200 with `value: []` → empty List<UserDto>
-  ← []
-← GetGroupMembersResponse { Success=true, Members=[], ErrorCode=null }
-← Ok(response)
-```
+For the cache-hit path: returns at step 1, never touches token, HTTP, or parser — this is exercised by `GetGroupMembersAsync_CacheHit_DoesNotInvokeFactory` and must continue to pass without modification.
 
-**Failure path — Graph 503 (ODataError):**
-```
-Controller → MediatR → GetGroupMembersHandler.Handle
-  → IGraphService.GetGroupMembersAsync(groupId)
-    → HTTP error → ODataError thrown by Graph SDK
-    → service logs {GroupId, OData Error.Code}; rethrow
-  ✗ ODataError caught in handler
-    → handler logs {GroupId, "GetGroupMembers"} + exception
-    → return { Success=false, Members=[], ErrorCode=ExternalServiceError }
-← BaseApiController.HandleResponse reads [HttpStatusCode(ServiceUnavailable)]
-← StatusCode 503 with envelope JSON
-```
+**Logging-equivalence checkpoints** (FR-1 acceptance criterion):
+- The "Successfully acquired MS Graph application token in {Duration}ms" message at line 72 must be emitted by `AcquireGraphTokenAsync` with the same template, level (`Information`), and `Duration` value type.
+- The "Token acquired with length: {TokenLength}" message at line 75 must remain — decide whether it lives in the helper (preferred, since it logs the helper's output) or in the orchestrator (also acceptable). Either is fine as long as it fires under identical conditions.
+- The "Attempting to acquire MS Graph token with application scope: {Scope}" at line 67 belongs in the helper.
 
-**Failure path — MSAL token failure:**
-```
-… → IGraphService.GetGroupMembersAsync
-  → GetAccessTokenForAppAsync throws MsalException
-  → service logs {GroupId, MSAL ErrorCode, Scope}; rethrow
-✗ MsalException caught in handler
-  → handler logs {GroupId, "GetGroupMembers"} + exception
-  → return { Success=false, Members=[], ErrorCode=ConfigurationError }
-← StatusCode 500 with envelope JSON
-```
+**Parser-equivalence checkpoint** (FR-2 acceptance criterion):
+The current parser also emits per-member `LogDebug` messages at lines 135 and 148, and aggregate `LogInformation` at lines 117 and 152. The spec does not explicitly mention these. **Preserve them inside `ParseMembersFromJson`** by passing an `ILogger` parameter, OR — preferred for testability — emit aggregate counts only and let the orchestrator log them from the returned list. Decision: **drop the per-element `LogDebug` lines and the array-length `LogInformation` line into the parser as a static-method `ILogger` parameter, since they reference `groupId` (line 153) which is not available to a pure parser.** Either keep them as `private static` taking `ILogger` and `groupId`, or move all four log statements back into the orchestrator after the parse returns (recommended — keeps the parser pure for unit testing).
 
-**Failure path — backfill caller sees Graph error:**
-```
-ArticlesController → MediatR → BackfillArticleRequestedByHandler
-  → _userResolver.ResolveByGroupAsync(groupId)
-    → GraphArticleUserResolver._graph.GetGroupMembersAsync(...)
-      → throws (any of the four types)
-  ✗ caught in BackfillArticleRequestedByHandler
-    → log {GroupId} + exception
-    → return new BackfillArticleRequestedByResponse(mappedErrorCode)
-← HandleResponse → 500/503/403 per attribute
-```
-
-**MockGraphService path:** unaffected. Mock never throws; handler's catch never fires under mock auth, frontend continues to see `Success=true` with three mock users.
+If you move the logs into the orchestrator, you lose `totalMembers` vs `userMembers` distinction (the parser only returns `userMembers`). To preserve the existing log message at line 152, have `ParseMembersFromJson` return a small `(List<UserDto> users, int totalCount)` tuple — see Specification Amendments.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| `UnauthorizedAccessException` escapes the handler → `UnauthorizedAccessExceptionHandler` middleware returns bare 401 instead of `Forbidden` 403 envelope. | High | Keep `catch (UnauthorizedAccessException)` in `GetGroupMembersHandler` and `BackfillArticleRequestedByHandler`. Verify with a dedicated unit test (FR-5). |
-| `BackfillArticleRequestedByHandler` does not currently catch resolver errors; once Graph propagates, the endpoint starts returning 500s with stack traces unless FR-4 is implemented in the same PR. | High | FR-4 is part of this change set — do not split it into a follow-up PR. Block the merge if `BackfillArticleRequestedByHandlerTests` has no Graph-failure test. |
-| Spec ambiguity: `ErrorCode` is `ErrorCodes?` (enum), not `string?`. A developer following the spec literally might introduce a string field. | Medium | Spec amendment below clarifies this. Existing code in the handler (`GetGroupMembersHandler.cs:39`) already uses the enum correctly. |
-| Forbidden handling: `BaseApiController.HandleResponse` returns `Forbid()` (`BaseApiController.cs:50`) for `ErrorCodes.Forbidden`, which does **not** include the response body. Consumers that rely on parsing `ErrorCode` from the body cannot distinguish 403 reasons. | Medium | Out of scope for this PR — pre-existing behavior of the controller base. File a follow-up if frontend needs the `ErrorCode` in 403 responses. Mention in PR description so reviewers are aware. |
-| OData status detection: spec maps `ODataError` → `ExternalServiceError` (503), but the SDK also raises `ODataError` for 4xx (e.g. 404 unknown group, 400 invalid groupId). Conflating those into 503 is technically wrong. | Medium | Acceptable for this iteration — spec explicitly enumerates the four exception types and one mapping each. If finer mapping is needed, file a follow-up that inspects `odataEx.ResponseStatusCode`. Do not add the branch in this PR; it grows scope. |
-| `HttpRequestException` / `OperationCanceledException` / `TaskCanceledException` (from the raw `HttpClient.SendAsync` in `GraphService.cs:98`) are **not** in the spec's four-exception list — today they hit the generic `catch (Exception)` and are swallowed; after the refactor they propagate and land in the handler's `catch (Exception)` → `InternalServerError`. | Low | Acceptable. `InternalServerError` is the safest default; tightening the mapping (e.g. canceled → 499) is a future improvement. Note in the handler test that the generic-catch branch must cover at least one of these. |
-| Existing test `Handle_WhenGraphServiceThrowsException_ReturnsFailureResponse` (`GetGroupMembersHandlerTests.cs:50-67`) only asserts `Success=false` and `ErrorCode != null`, which is too loose post-refactor. | Low | Spec FR-5 already requires splitting this into typed cases. The loose assertions are fine to keep as a smoke test if the typed tests are added alongside. |
-| Cached members are returned **before** the try block (`GraphService.cs:41-45`). Refactor must not break cache short-circuit. | Low | Read of `_cache` is outside any catch — refactor only touches the inner try/catch structure. Verify with an existing-cache test (call twice; second call returns cached list without touching `_tokenAcquisition`). |
+| `GetAppRoleMembersAsync` (line 382) silently regresses because it calls the refactored `GetGroupMembersAsync` | HIGH | All existing `GraphServiceTests` must pass unchanged; add an integration smoke test if not already present that exercises the nested-group expansion path via `GetAppRoleMembersAsync`. |
+| Logging output drift — message templates, levels, or structured property names diverge from current output | MEDIUM | Before merging, diff the new code's log statements line-by-line against the current ones. The spec requires "byte-for-byte equivalent" for token-success and MSAL-exception paths. |
+| `ParseMembersFromJson` test access — making it `public` to satisfy NFR-3 would violate "no public surface change" in FR-3 | MEDIUM | Use `internal static` + `InternalsVisibleTo("Anela.Heblo.Tests")`. Verify the attribute exists on `Anela.Heblo.Application` before assuming it. |
+| Moving aggregate logs into the parser couples it to `ILogger<GraphService>` and to `groupId`, undermining the pure-parser testability win | MEDIUM | Keep `ParseMembersFromJson` pure (no `ILogger`). Return `(List<UserDto>, int totalCount)`, log totals in the orchestrator. |
+| Misreading the spec's "returns null on MsalException" as today's behaviour — risk of swallowing exceptions that today are rethrown | HIGH | Read lines 168–173 of the current implementation: `MsalException` is rethrown, not swallowed. Mirror that. |
+| Cache-hit short-circuit is broken if the cache `TryGetValue` is moved inside the helper | LOW | Spec FR-4 keeps cache read/write inline in the orchestrator. Verify `GetGroupMembersAsync_CacheHit_DoesNotInvokeFactory` and `GetGroupMembersAsync_EmptyGroupId_ReturnsEmptyList_WithoutTouchingFactory` still pass without changes. |
+| Allocation regression from incidental LINQ or `ToList()` introduced during extraction | LOW | NFR-1 requires ≤5% deviation. The parser must keep the `foreach` + index-style pattern; no `Select`/`Where`. |
 
 ## Specification Amendments
 
-1. **`ErrorCode` type clarification** — Spec §"API / Interface Design" describes `ErrorCode` as `string?`. The actual field on `BaseResponse` (`BaseResponse.cs:16`) is `ErrorCodes?` (nullable enum). Update spec text to read:
-   - `ErrorCode` field type: `ErrorCodes?` (nullable enum from `Anela.Heblo.Application.Shared.ErrorCodes`).
-   - The four mapped values (`ConfigurationError`, `ExternalServiceError`, `Forbidden`, `InternalServerError`) are enum members, accessed as `ErrorCodes.ConfigurationError`, etc.
-   - The JSON wire format is the enum **name** (e.g. `"ConfigurationError"`) — this is the existing serialization behavior; no JSON contract change.
+The spec is largely accurate but contains three points that need correction or refinement before implementation:
 
-2. **`ErrorCodes` is an enum, not "constants"** — Spec calls them "constants" in FR-2. Replace "constants" with "enum members" to avoid confusion when developers grep for `static readonly` fields.
+1. **FR-1 token return type and MSAL handling.** The spec says `AcquireGraphTokenAsync` returns `Task<string?>` and "catches `MsalException` and returns `null` (or whatever sentinel the current code uses)." This contradicts the current implementation: `GetAccessTokenForAppAsync` returns `Task<string>` (non-nullable), there is no sentinel, and `MsalException` is **not caught** at the call site — it propagates to the outer `catch (MsalException msalEx)` at line 168, which logs and **rethrows**. **Amend FR-1**: return type is `Task<string>`; the helper does not catch `MsalException`; logging on MSAL failure remains in the outer catch block of `GetGroupMembersAsync`.
 
-3. **FR-4 binding clarification** — Spec FR-4 offers two options ("handler catches" or "resolver absorbs"). Per Decision 1 above, the chosen approach is **handler catches in `BackfillArticleRequestedByHandler`**. The resolver stays a one-line adapter. Update FR-4 to remove the ambiguity.
+2. **FR-2 parser signature.** To preserve the aggregate log message at line 152 ("Processed {TotalMembers} total members, {UserMembers} user members for group {GroupId}") without polluting the parser with `ILogger` and `groupId`, **amend the parser signature** to:
+   ```csharp
+   internal static (List<UserDto> Users, int TotalCount) ParseMembersFromJson(string json);
+   ```
+   The orchestrator then logs `result.TotalCount` and `result.Users.Count`. This keeps the parser pure for unit testing while preserving existing observability.
 
-4. **Backfill response on Graph failure** — Spec is silent on whether the backfill returns a successful "all unresolved" envelope or a non-`Success` envelope when Graph is unreachable. Per Decision 1, the implementation MUST return `new BackfillArticleRequestedByResponse(mappedErrorCode)` with `Success = false`, so the admin caller cannot mistake the report for valid data. Add this as a sub-clause of FR-4.
+3. **FR-2 visibility.** The spec says `private static`. NFR-3 requires direct unit testing of the parser, which is impossible with `private` from a separate test assembly. **Amend to `internal static`** and require `InternalsVisibleTo("Anela.Heblo.Tests")` on `Anela.Heblo.Application` (add if missing). This preserves the FR-3 "no public surface change" intent — internal is not part of the public API.
 
-5. **Keep `UnauthorizedAccessException` in the handler's catch list explicitly** — Note in NFR-3 (or as a new FR-2 sub-clause) that letting `UnauthorizedAccessException` escape would be intercepted by the global `UnauthorizedAccessExceptionHandler` middleware and converted to a bare 401 ProblemDetails, breaking the `Forbidden`/403 + envelope contract. The handler's `catch` for this type is **load-bearing**, not defensive.
+4. **FR-2 per-element debug logs.** The spec is silent on the existing `LogDebug` calls at lines 135 ("Processing user member…") and 148 ("Skipping non-user member…"). Because moving them into the pure parser would force an `ILogger` dependency, **amend Out of Scope** to explicitly state: "Per-element `LogDebug` lines inside the parsed loop are removed in this refactor; aggregate counts remain via the parser's return-tuple, logged by the orchestrator." This is a minor observability change that should be called out — `LogDebug` lines are rarely enabled in production, so the impact is minimal, but the developer should not silently drop them without an explicit decision.
 
 ## Prerequisites
 
-None. All of the following already exist and require no preparatory work:
+1. **Verify `InternalsVisibleTo` on `Anela.Heblo.Application`.** Grep `backend/src/Anela.Heblo.Application/` for `InternalsVisibleTo`. If `Anela.Heblo.Tests` is not listed, add it — either in `Anela.Heblo.Application.csproj`:
+   ```xml
+   <ItemGroup>
+     <InternalsVisibleTo Include="Anela.Heblo.Tests" />
+   </ItemGroup>
+   ```
+   or in a new `Properties/AssemblyInfo.cs`. This is the only prerequisite change outside the two files in scope.
 
-- `ErrorCodes.ConfigurationError`, `ExternalServiceError`, `Forbidden`, `InternalServerError` — present in `ErrorCodes.cs`.
-- `BaseApiController.HandleResponse` correctly maps each via `[HttpStatusCode]` attribute.
-- `Microsoft.Graph.Models.ODataErrors.ODataError`, `Microsoft.Identity.Client.MsalException` — referenced packages already in `Anela.Heblo.Application.csproj` (in use today by `GraphService.cs:75-80,178-181`).
-- `Microsoft.Extensions.Logging` is wired into both handlers and the service.
-- Test infrastructure (xUnit + Moq) is present; `BackfillArticleRequestedByHandlerTests` already uses Moq for `IArticleUserResolver`.
-- No DI changes, no migration, no Key Vault, no environment variable, no feature flag.
+2. **Re-read the current logging template formats** before extracting, so the new helpers emit identical message templates, log levels, and structured property names (`Duration`, `TokenLength`, `Scope`, `GroupId`).
 
-Implementation can begin immediately on this branch.
-```
+3. **Run `GraphServiceTests` against `main` first** to capture the current pass-state baseline. All seven tests in that fixture must still pass after the refactor with no test code changes — this is the load-bearing safety net for behaviour preservation.
+
+4. **No infrastructure, configuration, migration, or feature-flag work is required.** No new packages. No DI registration changes. No `Program.cs` edits. No `appsettings.*.json` edits. No Key Vault secrets.
