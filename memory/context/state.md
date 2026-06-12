@@ -15,8 +15,8 @@ _Update this file at the end of significant sessions._
 ## Recently Completed
 
 - Telemetry brainstorm routine (branch `claude/laughing-babbage-yeu5pw`, 2026-06-12):
-  `scripts/monitoring/brainstorm-telemetry.sh` (curated App Insights KQL set →
-  Markdown digest) + `docs/routines/telemetry-brainstorm.md` (routine def) +
+  `routines/telemetry-anomaly/telemetry-digest.sh` (curated App Insights KQL set →
+  Markdown digest) + `routines/telemetry-anomaly/README.md` (routine def) +
   updated `docs/handoff/appinsights-brainstorm-routine.md`. App Insights egress
   + read-telemetry secrets verified live. Remaining: create the scheduled
   routine in the Claude Code web UI per the routine doc.
