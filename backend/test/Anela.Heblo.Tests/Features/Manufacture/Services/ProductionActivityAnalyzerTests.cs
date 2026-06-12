@@ -101,6 +101,43 @@ public class ProductionActivityAnalyzerTests
     }
 
     [Fact]
+    public void IsInActiveProduction_RecordExactlyAtCutoff_IsConsideredActive()
+    {
+        // Arrange — record date matches the cutoff exactly. The production code uses
+        // m.Date >= cutoffDate, so equality is INCLUSIVE.
+        const int dayThreshold = 30;
+        var cutoffDate = FrozenNowUtc.AddDays(-dayThreshold);
+        var manufactureHistory = new List<ManufactureHistoryRecord>
+        {
+            new() { Date = cutoffDate, Amount = 10 }
+        };
+
+        // Act
+        var result = _analyzer.IsInActiveProduction(manufactureHistory, dayThreshold);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsInActiveProduction_RecordOneTickBeforeCutoff_IsNotConsideredActive()
+    {
+        // Arrange — one tick before the cutoff is OUTSIDE the inclusive window.
+        const int dayThreshold = 30;
+        var cutoffDate = FrozenNowUtc.AddDays(-dayThreshold);
+        var manufactureHistory = new List<ManufactureHistoryRecord>
+        {
+            new() { Date = cutoffDate.AddTicks(-1), Amount = 10 }
+        };
+
+        // Act
+        var result = _analyzer.IsInActiveProduction(manufactureHistory, dayThreshold);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
     public void GetLastProductionDate_WithHistory_ReturnsLatestDate()
     {
         // Arrange
