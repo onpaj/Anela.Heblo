@@ -2,7 +2,6 @@ import {
   toFcEvent,
   fromFcDates,
   formatDateStr,
-  ACTION_TYPE_TO_INT,
   ACTION_TYPE_COLORS,
 } from '../fullcalendarAdapters';
 import type { CalendarEvent } from '../fullcalendarAdapters';
@@ -101,32 +100,6 @@ describe('formatDateStr', () => {
 
   it('zero-pads month and day', () => {
     expect(formatDateStr(new Date(2026, 0, 1))).toBe('2026-01-01');
-  });
-});
-
-describe('ACTION_TYPE_TO_INT', () => {
-  it('maps SocialMedia to 0', () => {
-    expect(ACTION_TYPE_TO_INT['SocialMedia']).toBe(0);
-  });
-
-  it('maps Blog to 1', () => {
-    expect(ACTION_TYPE_TO_INT['Blog']).toBe(1);
-  });
-
-  it('maps Newsletter to 2', () => {
-    expect(ACTION_TYPE_TO_INT['Newsletter']).toBe(2);
-  });
-
-  it('maps PR to 3', () => {
-    expect(ACTION_TYPE_TO_INT['PR']).toBe(3);
-  });
-
-  it('maps Event to 4', () => {
-    expect(ACTION_TYPE_TO_INT['Event']).toBe(4);
-  });
-
-  it('maps Meeting to 99', () => {
-    expect(ACTION_TYPE_TO_INT['Meeting']).toBe(99);
   });
 });
 
