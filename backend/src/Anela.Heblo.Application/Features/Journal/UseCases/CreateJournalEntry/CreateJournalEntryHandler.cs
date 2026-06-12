@@ -36,12 +36,19 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.CreateJournalEntry
                 });
             }
 
+            if (string.IsNullOrWhiteSpace(request.Title))
+            {
+                return new CreateJournalEntryResponse(
+                    ErrorCodes.InvalidJournalTitle,
+                    new Dictionary<string, string> { { "field", "title" } });
+            }
+
             var userId = currentUser.Id;
             var now = DateTime.UtcNow;
 
             var entry = new JournalEntry
             {
-                Title = request.Title?.Trim(),
+                Title = request.Title.Trim(),
                 Content = request.Content.Trim(),
                 EntryDate = request.EntryDate.Date,
                 CreatedAt = now,

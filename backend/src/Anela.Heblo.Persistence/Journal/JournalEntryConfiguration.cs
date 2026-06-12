@@ -15,7 +15,7 @@ namespace Anela.Heblo.Persistence.Journal
 
             builder.Property(x => x.Title)
                 .HasMaxLength(200)
-                .IsRequired(false);
+                .IsRequired();
 
             builder.Property(x => x.Content)
                 .HasMaxLength(10000)
