@@ -44,6 +44,12 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
         return response.Data.Paginator.TotalCount;
     }
 
+    public async Task<int> GetOrdersBeingProcessedCountAsync(CancellationToken ct = default)
+    {
+        var response = await _orderClient.GetOrdersByStatusAsync(_orderSettings.ProcessingStateId, page: 1, ct);
+        return response.Data.Paginator.TotalCount;
+    }
+
     public async Task<PackingOrder?> GetPackingOrderAsync(string code, CancellationToken ct = default)
     {
         ExpeditionOrderDetail detail;
