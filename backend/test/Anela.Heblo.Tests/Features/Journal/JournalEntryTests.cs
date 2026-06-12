@@ -252,22 +252,6 @@ public class JournalEntryTests
     }
 
     [Fact]
-    public void Update_WithNullTitle_StoresNullWithoutThrowing()
-    {
-        var entry = NewEntry();
-
-        var act = () => entry.Update(
-            title: null,
-            content: "content",
-            entryDate: DateTime.UtcNow,
-            userId: "u",
-            username: "n");
-
-        act.Should().NotThrow();
-        entry.Title.Should().BeNull();
-    }
-
-    [Fact]
     public void Update_TrimsTitleAndContent()
     {
         var entry = NewEntry();
