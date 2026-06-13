@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Adapters.Plaud;
 
-internal interface IPlaudTokenManager
+public interface IPlaudTokenManager
 {
     /// <summary>
     /// No-op on the happy path. If the cached token is inside ExpiryBuffer of expiry,
