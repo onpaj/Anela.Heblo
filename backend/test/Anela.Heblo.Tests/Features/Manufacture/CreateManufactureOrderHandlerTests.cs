@@ -17,7 +17,11 @@ public class CreateManufactureOrderHandlerTests
     private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<IProductNameFormatter> _productNameFormatterMock;
+    private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly CreateManufactureOrderHandler _handler;
+
+    private static readonly DateTimeOffset FixedNow =
+        new(2026, 6, 8, 10, 0, 0, TimeSpan.Zero);
 
     private const string ValidProductCode = "SEMI001";
     private const string ValidProductName = "Test Semi Product";
@@ -33,6 +37,8 @@ public class CreateManufactureOrderHandlerTests
         _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _productNameFormatterMock = new Mock<IProductNameFormatter>();
+        _timeProviderMock = new Mock<TimeProvider>();
+        _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(FixedNow);
 
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
@@ -44,7 +50,7 @@ public class CreateManufactureOrderHandlerTests
             _productNameFormatterMock.Object,
             _catalogRepositoryMock.Object,
             _currentUserServiceMock.Object,
-            TimeProvider.System);
+            _timeProviderMock.Object);
     }
 
     [Fact]
@@ -109,6 +115,8 @@ public class CreateManufactureOrderHandlerTests
         capturedOrder.PlannedDate.Should().Be(request.PlannedDate);
         capturedOrder.State.Should().Be(ManufactureOrderState.Draft);
         capturedOrder.StateChangedByUser.Should().Be("Test User");
+        capturedOrder.CreatedDate.Should().Be(FixedNow.UtcDateTime);
+        capturedOrder.StateChangedAt.Should().Be(FixedNow.UtcDateTime);
     }
 
     [Fact]
