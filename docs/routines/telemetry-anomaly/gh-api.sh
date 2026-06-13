@@ -13,14 +13,14 @@
 #
 # Usage:
 #   # Raw GET (path or full URL); prints JSON
-#   routines/telemetry-anomaly/gh-api.sh GET '/search/issues?q=repo:onpaj/Anela.Heblo+label:telemetry+in:body+telemetry-signal'
+#   docs/routines/telemetry-anomaly/gh-api.sh GET '/search/issues?q=repo:onpaj/Anela.Heblo+label:telemetry+in:body+telemetry-signal'
 #
 #   # Search issues (open AND closed) for a telemetry-signal fingerprint
-#   routines/telemetry-anomaly/gh-api.sh find-signal 'req-5xx:Articles/FeedbackList:500'
+#   docs/routines/telemetry-anomaly/gh-api.sh find-signal 'req-5xx:Articles/FeedbackList:500'
 #
 #   # Create an issue (body from a file or stdin)
-#   routines/telemetry-anomaly/gh-api.sh create-issue "title" "telemetry,reliability" body.md
-#   printf '...' | routines/telemetry-anomaly/gh-api.sh create-issue "title" "telemetry,risk" -
+#   docs/routines/telemetry-anomaly/gh-api.sh create-issue "title" "telemetry,reliability" body.md
+#   printf '...' | docs/routines/telemetry-anomaly/gh-api.sh create-issue "title" "telemetry,risk" -
 #
 set -euo pipefail
 

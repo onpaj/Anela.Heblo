@@ -7,7 +7,7 @@ risk signals.
 **Status: design complete.** The query engine, digest engine, and routine
 definition are committed. The only remaining manual step is **creating the
 scheduled routine in the Claude Code web UI** (see
-[`routines/telemetry-anomaly/README.md`](../../routines/telemetry-anomaly/README.md) →
+[`docs/routines/telemetry-anomaly/README.md`](../../docs/routines/telemetry-anomaly/README.md) →
 "Creating the routine").
 
 ## Connectivity self-test
@@ -15,7 +15,7 @@ scheduled routine in the Claude Code web UI** (see
 Run this first in any new session/container:
 
 ```bash
-./routines/telemetry-anomaly/appinsights-query.sh --test
+./docs/routines/telemetry-anomaly/appinsights-query.sh --test
 ```
 
 - **`OK — authenticated and reachable`** → egress + secrets are live.
@@ -30,10 +30,10 @@ Run this first in any new session/container:
 | Item | State |
 | --- | --- |
 | GitHub access (REST via `gh-api.sh` + `GIT_PAT`, no MCP) | ✅ Working — `repo` scope verified |
-| Query script `routines/telemetry-anomaly/appinsights-query.sh` | ✅ Committed |
-| Digest engine `routines/telemetry-anomaly/telemetry-digest.sh` | ✅ Committed — runs the curated KQL set → Markdown |
-| GitHub helper `routines/telemetry-anomaly/gh-api.sh` | ✅ Committed — issue search/create via REST |
-| Routine definition `routines/telemetry-anomaly/README.md` | ✅ Committed — prompt, schedule, flag/skip rules |
+| Query script `docs/routines/telemetry-anomaly/appinsights-query.sh` | ✅ Committed |
+| Digest engine `docs/routines/telemetry-anomaly/telemetry-digest.sh` | ✅ Committed — runs the curated KQL set → Markdown |
+| GitHub helper `docs/routines/telemetry-anomaly/gh-api.sh` | ✅ Committed — issue search/create via REST |
+| Routine definition `docs/routines/telemetry-anomaly/README.md` | ✅ Committed — prompt, schedule, flag/skip rules |
 | App Insights API key validity | ✅ Rotated, stored as env secret |
 | Egress to `api.applicationinsights.io` | ✅ Verified reachable from this environment |
 | Scheduled routine created in web UI | ⏳ **Last step** — create per the routine doc |
@@ -61,14 +61,14 @@ App Settings.
 
 ```bash
 # Arbitrary KQL, default last 24h
-./routines/telemetry-anomaly/appinsights-query.sh 'requests | summarize count() by resultCode'
+./docs/routines/telemetry-anomaly/appinsights-query.sh 'requests | summarize count() by resultCode'
 
 # Custom ISO-8601 timespan (e.g. last 7 days)
-./routines/telemetry-anomaly/appinsights-query.sh --timespan P7D 'exceptions | summarize count() by type'
+./docs/routines/telemetry-anomaly/appinsights-query.sh --timespan P7D 'exceptions | summarize count() by type'
 
 # Full brainstorm digest (default window P7D)
-./routines/telemetry-anomaly/telemetry-digest.sh
-./routines/telemetry-anomaly/telemetry-digest.sh --timespan P1D
+./docs/routines/telemetry-anomaly/telemetry-digest.sh
+./docs/routines/telemetry-anomaly/telemetry-digest.sh --timespan P1D
 ```
 
 ## Signals seen on the first run (2026-06-12, P7D)
@@ -98,7 +98,7 @@ actionable signal:
 - `az` CLI is NOT installed in the sandbox; we use the REST data-plane API directly.
 - `gh` CLI is also NOT installed. GitHub MCP tools exist but are flaky in
   scheduled runs (they disconnected mid-session), so the routine talks to the
-  GitHub REST API directly via `routines/telemetry-anomaly/gh-api.sh` using `GIT_PAT`
+  GitHub REST API directly via `docs/routines/telemetry-anomaly/gh-api.sh` using `GIT_PAT`
   (classic PAT, `repo` scope). This keeps the routine self-contained and matches
   the CLAUDE.md intent of not depending on MCP.
 - `jq` is available; `column` is **not** — the digest formats tables with jq.

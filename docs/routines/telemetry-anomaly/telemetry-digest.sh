@@ -6,15 +6,15 @@
 # This is the deterministic data-gathering half of the routine: it runs a
 # curated, fixed KQL set over a window and prints a Markdown digest. The
 # routine's Claude session then reasons over this digest + GitHub activity to
-# surface reliability/performance/risk signals (see routines/telemetry-anomaly/README.md).
+# surface reliability/performance/risk signals (see docs/routines/telemetry-anomaly/README.md).
 #
 # Credentials and egress are inherited from appinsights-query.sh (which this
 # script calls): APPINSIGHTS_APP_ID / APPINSIGHTS_API_KEY env secrets, and the
 # api.applicationinsights.io host on the environment's Custom egress allowlist.
 #
 # Usage:
-#   routines/telemetry-anomaly/telemetry-digest.sh                 # default window P7D
-#   routines/telemetry-anomaly/telemetry-digest.sh --timespan P1D  # last 24h
+#   docs/routines/telemetry-anomaly/telemetry-digest.sh                 # default window P7D
+#   docs/routines/telemetry-anomaly/telemetry-digest.sh --timespan P1D  # last 24h
 #
 set -euo pipefail
 
