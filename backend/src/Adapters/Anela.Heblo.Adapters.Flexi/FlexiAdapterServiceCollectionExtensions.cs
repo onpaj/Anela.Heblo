@@ -100,7 +100,9 @@ public static class FlexiAdapterServiceCollectionExtensions
         var analyticsConnectionString = configuration["AnalyticsDatabase:ConnectionString"];
         if (!string.IsNullOrWhiteSpace(analyticsConnectionString))
         {
-            services.AddAnalyticsPersistenceServices(analyticsConnectionString);
+            services.AddAnalyticsPersistenceServices(
+                analyticsConnectionString,
+                configuration.GetValue<int?>("AnalyticsDatabase:MaxPoolSize") ?? 10);
             services.Configure<FlexiAnalyticsSyncOptions>(
                 configuration.GetSection(FlexiAnalyticsSyncOptions.ConfigurationKey));
             services.AddScoped<ISyncWatermarkRepository, SyncWatermarkRepository>();

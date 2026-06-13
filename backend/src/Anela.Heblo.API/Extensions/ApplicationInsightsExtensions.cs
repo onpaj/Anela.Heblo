@@ -54,6 +54,13 @@ public static class ApplicationInsightsExtensions
 
         services.AddApplicationInsightsTelemetry(options);
 
+        // Npgsql 8 publishes pool counters via both EventCounters (auto-collected by
+        // EnableEventCounterCollectionModule above) and System.Diagnostics.Metrics.
+        // The EventCounters path flows into App Insights automatically in Production.
+        // Custom DbResilienceMetrics counters ("Anela.Heblo.Database.Resilience" meter)
+        // are surfaced via structured ILogger events (DbTransientRetry, DbTransientRetryExhausted)
+        // which App Insights captures through its ILogger integration.
+
         // Add telemetry initializer
         services.AddSingleton<ITelemetryInitializer, EnvironmentTelemetryInitializer>();
 
