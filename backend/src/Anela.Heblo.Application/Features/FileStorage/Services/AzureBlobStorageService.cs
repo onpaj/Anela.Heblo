@@ -35,7 +35,7 @@ public sealed class AzureBlobStorageService : IBlobStorageService
 
             // Download file from URL — resolve the named client per call so socket pooling
             // is managed by IHttpClientFactory (SocketsHttpHandler with PooledConnectionLifetime).
-            var httpClient = _httpClientFactory.CreateClient(FileStorageModule.ProductExportDownloadClientName);
+            var httpClient = _httpClientFactory.CreateClient(FileStorageModule.FileDownloadClientName);
             using var response = await httpClient.GetAsync(fileUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
 

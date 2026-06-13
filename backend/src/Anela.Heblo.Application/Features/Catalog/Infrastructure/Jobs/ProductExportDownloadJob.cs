@@ -11,7 +11,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Anela.Heblo.Application.Features.FileStorage.Infrastructure.Jobs;
+namespace Anela.Heblo.Application.Features.Catalog.Infrastructure.Jobs;
 
 [AutomaticRetry(Attempts = 0)]
 public sealed class ProductExportDownloadJob : IRecurringJob

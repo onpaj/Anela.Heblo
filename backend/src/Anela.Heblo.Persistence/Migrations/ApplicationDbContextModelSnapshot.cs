@@ -1298,6 +1298,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<string>("Title")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 

@@ -14,6 +14,12 @@ _Update this file at the end of significant sessions._
 
 ## Recently Completed
 
+- Telemetry brainstorm routine (branch `claude/laughing-babbage-yeu5pw`, 2026-06-12):
+  `docs/routines/telemetry-anomaly/telemetry-digest.sh` (curated App Insights KQL set →
+  Markdown digest) + `docs/routines/telemetry-anomaly/README.md` (routine def) +
+  updated `docs/handoff/appinsights-brainstorm-routine.md`. App Insights egress
+  + read-telemetry secrets verified live. Remaining: create the scheduled
+  routine in the Claude Code web UI per the routine doc.
 - Shoptet test environment hydration (issue #444): added `SHOPTET_HYDRATE` env var gate, Rider launch profile, non-hardcoded storage
 - MCP server: 15 tools across Catalog, Manufacturing, Batch Planning, Knowledge Base
 

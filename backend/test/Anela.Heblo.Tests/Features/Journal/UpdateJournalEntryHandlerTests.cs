@@ -211,6 +211,53 @@ public class UpdateJournalEntryHandlerTests
             Times.Once);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Handle_WhenTitleIsNullOrWhitespace_ReturnsInvalidJournalTitleError(string? title)
+    {
+        // Arrange
+        var entryId = 1;
+        var request = new UpdateJournalEntryRequest
+        {
+            Id = entryId,
+            Title = title!,
+            Content = "Valid content",
+            EntryDate = DateTime.Today
+        };
+        var existing = BuildExistingEntry(entryId);
+
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(
+                Id: "user123",
+                Name: "Test User",
+                Email: "test@example.com",
+                IsAuthenticated: true));
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(entryId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.InvalidJournalTitle);
+        result.Params.Should().ContainKey("field");
+        result.Params!["field"].Should().Be("title");
+
+        _repositoryMock.Verify(
+            x => x.UpdateAsync(It.IsAny<JournalEntry>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _repositoryMock.Verify(
+            x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     [Fact]
     public async Task Handle_WhenCurrentUserNameIsNull_FallsBackToUnknownUser()
     {

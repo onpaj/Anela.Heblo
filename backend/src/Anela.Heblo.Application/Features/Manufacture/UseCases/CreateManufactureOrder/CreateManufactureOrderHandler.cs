@@ -43,13 +43,13 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
         var order = new ManufactureOrder
         {
             OrderNumber = orderNumber,
-            CreatedDate = DateTime.UtcNow,
+            CreatedDate = _timeProvider.GetUtcNow().DateTime,
             CreatedByUser = currentUser.Name,
             ResponsiblePerson = request.ResponsiblePerson,
             PlannedDate = request.PlannedDate,
             ManufactureType = request.ManufactureType,
             State = ManufactureOrderState.Draft,
-            StateChangedAt = DateTime.UtcNow,
+            StateChangedAt = _timeProvider.GetUtcNow().DateTime,
             StateChangedByUser = currentUser.Name
         };
 

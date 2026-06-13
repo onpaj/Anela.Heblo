@@ -22,7 +22,7 @@ public class FileStorageModuleTests
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         services.AddSingleton(Mock.Of<ITelemetryService>());
-        services.Configure<ProductExportOptions>(opts =>
+        services.Configure<FileDownloadOptions>(opts =>
         {
             opts.MaxRetryAttempts = 3;
             opts.DownloadTimeout = TimeSpan.FromSeconds(120);
@@ -75,7 +75,7 @@ public class FileStorageModuleTests
     }
 
     [Fact]
-    public void AddFileStorageModule_RegistersNamedHttpClient_ProductExportDownload()
+    public void AddFileStorageModule_RegistersNamedHttpClient_FileDownload()
     {
         // Arrange
         var services = BuildBaseServices();
@@ -84,7 +84,7 @@ public class FileStorageModuleTests
 
         // Act
         var factory = provider.GetRequiredService<IHttpClientFactory>();
-        var client = factory.CreateClient(FileStorageModule.ProductExportDownloadClientName);
+        var client = factory.CreateClient(FileStorageModule.FileDownloadClientName);
 
         // Assert — named client is registered and timeout is infinite (per-call CTS enforces timeout)
         Assert.NotNull(client);
@@ -131,7 +131,7 @@ public class FileStorageModuleTests
     public void AddFileStorageModule_NamedClient_ConstantIsExported()
     {
         // Assert — the constant must be stable so all consumers reference the same string
-        Assert.Equal("ProductExportDownload", FileStorageModule.ProductExportDownloadClientName);
+        Assert.Equal("FileDownload", FileStorageModule.FileDownloadClientName);
     }
 
     [Fact]

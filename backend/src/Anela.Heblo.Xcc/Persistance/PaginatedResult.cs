@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Shared;
+namespace Anela.Heblo.Xcc.Persistance;
 
 /// <summary>
 /// Paginated result container

@@ -11,7 +11,7 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
         public int Id { get; set; }
 
         [MaxLength(200)]
-        public string? Title { get; set; }
+        public string Title { get; set; } = null!;
 
         [Required]
         [MaxLength(10000)]

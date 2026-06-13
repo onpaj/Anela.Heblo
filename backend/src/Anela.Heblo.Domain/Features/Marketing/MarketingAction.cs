@@ -91,7 +91,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
         private MarketingAction() { }
 
         // Domain methods
-        public void AssociateWithProduct(string productCode)
+        public void AssociateWithProduct(string productCode, DateTime utcNow)
         {
             if (string.IsNullOrWhiteSpace(productCode))
                 throw new ArgumentException("Product code cannot be empty", nameof(productCode));
@@ -105,11 +105,11 @@ namespace Anela.Heblo.Domain.Features.Marketing
             {
                 MarketingActionId = Id,
                 ProductCodePrefix = normalized,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = utcNow,
             });
         }
 
-        public void LinkToFolder(string folderKey, MarketingFolderType folderType)
+        public void LinkToFolder(string folderKey, MarketingFolderType folderType, DateTime utcNow)
         {
             if (string.IsNullOrWhiteSpace(folderKey))
                 throw new ArgumentException("Folder key cannot be empty", nameof(folderKey));
@@ -122,7 +122,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
                 MarketingActionId = Id,
                 FolderKey = folderKey.Trim(),
                 FolderType = folderType,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = utcNow,
             });
         }
 
@@ -202,13 +202,13 @@ namespace Anela.Heblo.Domain.Features.Marketing
             }
         }
 
-        public void SoftDelete(string userId, string username)
+        public void SoftDelete(string userId, string username, DateTime utcNow)
         {
             IsDeleted = true;
-            DeletedAt = DateTime.UtcNow;
+            DeletedAt = utcNow;
             DeletedByUserId = userId;
             DeletedByUsername = username;
-            ModifiedAt = DateTime.UtcNow;
+            ModifiedAt = utcNow;
             ModifiedByUserId = userId;
             ModifiedByUsername = username;
         }

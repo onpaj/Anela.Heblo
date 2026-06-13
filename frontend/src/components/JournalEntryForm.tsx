@@ -28,6 +28,7 @@ import {
   CreateJournalEntryRequest,
   UpdateJournalEntryRequest,
   CreateJournalTagRequest,
+  ErrorCodes,
 } from "../api/generated/api-client";
 
 interface JournalEntryFormProps {
@@ -166,6 +167,10 @@ export default function JournalEntryForm({
         }
       }
     } catch (error) {
+      if ((error as any)?.errorCode === ErrorCodes.InvalidJournalTitle) {
+        setErrors((prev) => ({ ...prev, title: "Název je povinný" }));
+        return;
+      }
       console.error("Error saving journal entry:", error);
     }
   };

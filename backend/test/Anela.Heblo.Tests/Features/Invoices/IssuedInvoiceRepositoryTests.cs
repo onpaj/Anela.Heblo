@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.Invoices.Contracts;
-using Anela.Heblo.Application.Features.Invoices.Infrastructure;
+using Anela.Heblo.Persistence.Invoices;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
