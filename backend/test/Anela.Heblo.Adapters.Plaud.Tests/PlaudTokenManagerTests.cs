@@ -73,4 +73,23 @@ public sealed class PlaudTokenManagerTests
             It.IsAny<Dictionary<string, double>>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task ForceRefreshAsync_ReturnsTrueAndEmitsAuthFailedRetry_WhenRefreshSucceeds()
+    {
+        var initial = new PlaudTokens("old-a", "old-r", UnixSecondsFromNow(TimeSpan.FromMinutes(-10)));
+        var rotated = new PlaudTokens("new-a", "new-r", UnixSecondsFromNow(TimeSpan.FromDays(30)));
+        var (sut, _, refresh, telemetry) = CreateSut(initial);
+
+        refresh.Setup(r => r.RefreshAsync("old-r", It.IsAny<CancellationToken>())).ReturnsAsync(rotated);
+
+        var result = await sut.ForceRefreshAsync(CancellationToken.None);
+
+        result.Should().BeTrue();
+        telemetry.Verify(t => t.TrackBusinessEvent(
+            PlaudTelemetryEventNames.Refreshed,
+            It.Is<Dictionary<string, string>>(d => d["triggeredBy"] == "auth-failed-retry"),
+            It.IsAny<Dictionary<string, double>>()),
+            Times.Once);
+    }
 }
