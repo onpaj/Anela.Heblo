@@ -33,7 +33,7 @@ public class ShoptetOrdersSettings
     /// Shoptet order status ID representing the "Vyřizuje se" (being processed) state.
     /// These orders later transition into the packing state; the count is surfaced on the
     /// packing dashboard as an "incoming work" indicator.
-    /// Configure the actual value in user secrets / Azure App Config per environment.
+    /// Defaults to -2 ("Vyřizuje se"), a global Shoptet system state.
     /// </summary>
-    public int ProcessingStateId { get; set; }
+    public int ProcessingStateId { get; set; } = -2;
 }
