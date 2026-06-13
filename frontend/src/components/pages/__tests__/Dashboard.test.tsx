@@ -444,4 +444,43 @@ describe("Dashboard", () => {
     // Both tiles pass through; the unauthorized one renders a placeholder instead of being hidden.
     expect(screen.getByTestId("tile-count")).toHaveTextContent("2");
   });
+
+  it("does not throw when useTileData returns null (contract drift)", () => {
+    mockUseTileData.mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+    } as any);
+
+    expect(() => renderWithQueryClient(<Dashboard />)).not.toThrow();
+
+    const tileCount = screen.getByTestId("tile-count");
+    expect(tileCount).toHaveTextContent("0");
+  });
+
+  it("does not throw when userSettings.tiles is null (contract drift)", () => {
+    mockUseUserDashboardSettings.mockReturnValue({
+      data: { tiles: null, lastModified: "2024-01-01T00:00:00Z" },
+      isLoading: false,
+      error: null,
+    } as any);
+
+    expect(() => renderWithQueryClient(<Dashboard />)).not.toThrow();
+
+    const tileCount = screen.getByTestId("tile-count");
+    expect(tileCount).toHaveTextContent("0");
+  });
+
+  it("does not throw when useTileData returns a non-array object (contract drift)", () => {
+    mockUseTileData.mockReturnValue({
+      data: { unexpected: "shape", length: 1 } as any,
+      isLoading: false,
+      error: null,
+    } as any);
+
+    expect(() => renderWithQueryClient(<Dashboard />)).not.toThrow();
+
+    const tileCount = screen.getByTestId("tile-count");
+    expect(tileCount).toHaveTextContent("0");
+  });
 });
