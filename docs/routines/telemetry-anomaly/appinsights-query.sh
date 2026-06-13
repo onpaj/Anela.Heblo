@@ -12,13 +12,13 @@
 # default Trusted list).
 #
 # Usage:
-#   routines/telemetry-anomaly/appinsights-query.sh --test
+#   docs/routines/telemetry-anomaly/appinsights-query.sh --test
 #       Run a connectivity + auth self-test.
 #
-#   routines/telemetry-anomaly/appinsights-query.sh 'requests | take 5'
+#   docs/routines/telemetry-anomaly/appinsights-query.sh 'requests | take 5'
 #       Run an arbitrary KQL query; prints raw JSON.
 #
-#   routines/telemetry-anomaly/appinsights-query.sh --timespan P1D 'exceptions | summarize count() by type'
+#   docs/routines/telemetry-anomaly/appinsights-query.sh --timespan P1D 'exceptions | summarize count() by type'
 #       Same, scoped to an ISO-8601 timespan (default P1D = last 24h).
 #
 set -euo pipefail
