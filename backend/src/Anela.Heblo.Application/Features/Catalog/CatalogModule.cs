@@ -111,6 +111,8 @@ public static class CatalogModule
             configuration.GetSection(CatalogCacheOptions.SectionName).Bind(options);
         });
 
+        services.Configure<ProductExportOptions>(configuration.GetSection("ProductExportOptions"));
+
         // Register AutoMapper for catalog mappings
         services.AddAutoMapper(cfg => { }, typeof(CatalogModule));
 
