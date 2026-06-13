@@ -158,4 +158,25 @@ public sealed class PlaudTokenManagerTests
             It.IsAny<Dictionary<string, double>>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task ForceRefreshAsync_SingleFlight_WhenCalledConcurrently()
+    {
+        var initial = new PlaudTokens("old-a", "old-r", UnixSecondsFromNow(TimeSpan.FromMinutes(-1)));
+        var rotated = new PlaudTokens("new-a", "new-r", UnixSecondsFromNow(TimeSpan.FromDays(30)));
+        var (sut, _, refresh, _) = CreateSut(initial);
+
+        var gate = new TaskCompletionSource<PlaudTokens>(TaskCreationOptions.RunContinuationsAsynchronously);
+        refresh.Setup(r => r.RefreshAsync("old-r", It.IsAny<CancellationToken>())).Returns(gate.Task);
+
+        var t1 = sut.ForceRefreshAsync(CancellationToken.None);
+        var t2 = sut.ForceRefreshAsync(CancellationToken.None);
+
+        await Task.Delay(50);
+        gate.SetResult(rotated);
+
+        await Task.WhenAll(t1, t2);
+
+        refresh.Verify(r => r.RefreshAsync("old-r", It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
