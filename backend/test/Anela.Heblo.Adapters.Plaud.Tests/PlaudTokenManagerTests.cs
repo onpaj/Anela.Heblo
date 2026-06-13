@@ -137,4 +137,25 @@ public sealed class PlaudTokenManagerTests
             It.IsAny<Dictionary<string, double>>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task ForceRefreshAsync_ReturnsFalseAndEmitsDiskWriteFailed_WhenStoreThrows()
+    {
+        var initial = new PlaudTokens("old-a", "old-r", UnixSecondsFromNow(TimeSpan.FromMinutes(-1)));
+        var rotated = new PlaudTokens("new-a", "new-r", UnixSecondsFromNow(TimeSpan.FromDays(30)));
+        var (sut, store, refresh, telemetry) = CreateSut(initial);
+
+        refresh.Setup(r => r.RefreshAsync("old-r", It.IsAny<CancellationToken>())).ReturnsAsync(rotated);
+        store.Setup(s => s.SaveAsync(rotated, It.IsAny<CancellationToken>()))
+             .ThrowsAsync(new IOException("disk full"));
+
+        var result = await sut.ForceRefreshAsync(CancellationToken.None);
+
+        result.Should().BeFalse();
+        telemetry.Verify(t => t.TrackBusinessEvent(
+            PlaudTelemetryEventNames.RefreshFailed,
+            It.Is<Dictionary<string, string>>(d => d["reason"] == "DiskWriteFailed"),
+            It.IsAny<Dictionary<string, double>>()),
+            Times.Once);
+    }
 }
