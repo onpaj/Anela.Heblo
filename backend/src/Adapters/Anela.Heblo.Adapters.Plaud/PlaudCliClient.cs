@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Anela.Heblo.Application.Features.MeetingTasks.Services;
+using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -10,11 +11,24 @@ public sealed class PlaudCliClient : IPlaudClient
 {
     private readonly ILogger<PlaudCliClient> _logger;
     private readonly IOptions<PlaudOptions> _options;
+    private readonly IPlaudTokenManager? _tokenManager;
+    private readonly ITelemetryService? _telemetry;
 
     public PlaudCliClient(ILogger<PlaudCliClient> logger, IOptions<PlaudOptions> options)
+        : this(logger, options, tokenManager: null, telemetry: null)
+    {
+    }
+
+    internal PlaudCliClient(
+        ILogger<PlaudCliClient> logger,
+        IOptions<PlaudOptions> options,
+        IPlaudTokenManager? tokenManager,
+        ITelemetryService? telemetry)
     {
         _logger = logger;
         _options = options;
+        _tokenManager = tokenManager;
+        _telemetry = telemetry;
     }
 
     public async Task<List<PlaudRecordingSummary>> ListRecentAsync(int days, CancellationToken ct = default)
