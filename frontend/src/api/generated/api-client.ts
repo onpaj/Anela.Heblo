@@ -7298,7 +7298,7 @@ export class ApiClient {
         return Promise.resolve<SubmitManufactureStockTakingResponse>(null as any);
     }
 
-    manufactureStockTaking_GetManufactureStockTakingHistory(productCode: string | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetStockTakingHistoryResponse> {
+    manufactureStockTaking_GetManufactureStockTakingHistory(productCode: string | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetManufactureStockTakingHistoryResponse> {
         let url_ = this.baseUrl + "/api/ManufactureStockTaking/history?";
         if (productCode === null)
             throw new Error("The parameter 'productCode' cannot be null.");
@@ -7332,14 +7332,14 @@ export class ApiClient {
         });
     }
 
-    protected processManufactureStockTaking_GetManufactureStockTakingHistory(response: Response): Promise<GetStockTakingHistoryResponse> {
+    protected processManufactureStockTaking_GetManufactureStockTakingHistory(response: Response): Promise<GetManufactureStockTakingHistoryResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetStockTakingHistoryResponse.fromJS(resultData200);
+            result200 = GetManufactureStockTakingHistoryResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -7347,7 +7347,7 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<GetStockTakingHistoryResponse>(null as any);
+        return Promise.resolve<GetManufactureStockTakingHistoryResponse>(null as any);
     }
 
     manufacturingStockAnalysis_GetStockAnalysis(timePeriod: TimePeriod | undefined, customFromDate: Date | null | undefined, customToDate: Date | null | undefined, productFamily: string | null | undefined, criticalItemsOnly: boolean | undefined, majorItemsOnly: boolean | undefined, adequateItemsOnly: boolean | undefined, unconfiguredOnly: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: ManufacturingStockSortBy | undefined, sortDescending: boolean | undefined, salesMultiplier: number | undefined, isExport: boolean | undefined): Promise<GetManufacturingStockAnalysisResponse> {
@@ -29325,14 +29325,14 @@ export interface IManufactureStockTakingLotDto {
     softStockTaking?: boolean;
 }
 
-export class GetStockTakingHistoryResponse extends BaseResponse implements IGetStockTakingHistoryResponse {
-    items?: StockTakingHistoryItemDto[];
+export class GetManufactureStockTakingHistoryResponse extends BaseResponse implements IGetManufactureStockTakingHistoryResponse {
+    items?: ManufactureStockTakingHistoryItemDto[];
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
     totalPages?: number;
 
-    constructor(data?: IGetStockTakingHistoryResponse) {
+    constructor(data?: IGetManufactureStockTakingHistoryResponse) {
         super(data);
     }
 
@@ -29342,7 +29342,7 @@ export class GetStockTakingHistoryResponse extends BaseResponse implements IGetS
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
                 for (let item of _data["items"])
-                    this.items!.push(StockTakingHistoryItemDto.fromJS(item));
+                    this.items!.push(ManufactureStockTakingHistoryItemDto.fromJS(item));
             }
             this.totalCount = _data["totalCount"];
             this.pageNumber = _data["pageNumber"];
@@ -29351,9 +29351,9 @@ export class GetStockTakingHistoryResponse extends BaseResponse implements IGetS
         }
     }
 
-    static override fromJS(data: any): GetStockTakingHistoryResponse {
+    static override fromJS(data: any): GetManufactureStockTakingHistoryResponse {
         data = typeof data === 'object' ? data : {};
-        let result = new GetStockTakingHistoryResponse();
+        let result = new GetManufactureStockTakingHistoryResponse();
         result.init(data);
         return result;
     }
@@ -29374,15 +29374,15 @@ export class GetStockTakingHistoryResponse extends BaseResponse implements IGetS
     }
 }
 
-export interface IGetStockTakingHistoryResponse extends IBaseResponse {
-    items?: StockTakingHistoryItemDto[];
+export interface IGetManufactureStockTakingHistoryResponse extends IBaseResponse {
+    items?: ManufactureStockTakingHistoryItemDto[];
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
     totalPages?: number;
 }
 
-export class StockTakingHistoryItemDto implements IStockTakingHistoryItemDto {
+export class ManufactureStockTakingHistoryItemDto implements IManufactureStockTakingHistoryItemDto {
     id?: number;
     type?: StockTakingType;
     code?: string;
@@ -29393,7 +29393,7 @@ export class StockTakingHistoryItemDto implements IStockTakingHistoryItemDto {
     error?: string | undefined;
     difference?: number;
 
-    constructor(data?: IStockTakingHistoryItemDto) {
+    constructor(data?: IManufactureStockTakingHistoryItemDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -29416,9 +29416,9 @@ export class StockTakingHistoryItemDto implements IStockTakingHistoryItemDto {
         }
     }
 
-    static fromJS(data: any): StockTakingHistoryItemDto {
+    static fromJS(data: any): ManufactureStockTakingHistoryItemDto {
         data = typeof data === 'object' ? data : {};
-        let result = new StockTakingHistoryItemDto();
+        let result = new ManufactureStockTakingHistoryItemDto();
         result.init(data);
         return result;
     }
@@ -29438,7 +29438,7 @@ export class StockTakingHistoryItemDto implements IStockTakingHistoryItemDto {
     }
 }
 
-export interface IStockTakingHistoryItemDto {
+export interface IManufactureStockTakingHistoryItemDto {
     id?: number;
     type?: StockTakingType;
     code?: string;
@@ -39354,6 +39354,131 @@ export interface ISubmitStockTakingRequest {
     productCode: string;
     targetAmount: number;
     softStockTaking?: boolean;
+}
+
+export class GetStockTakingHistoryResponse extends BaseResponse implements IGetStockTakingHistoryResponse {
+    items?: StockTakingHistoryItemDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+
+    constructor(data?: IGetStockTakingHistoryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(StockTakingHistoryItemDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+        }
+    }
+
+    static override fromJS(data: any): GetStockTakingHistoryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetStockTakingHistoryResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetStockTakingHistoryResponse extends IBaseResponse {
+    items?: StockTakingHistoryItemDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+}
+
+export class StockTakingHistoryItemDto implements IStockTakingHistoryItemDto {
+    id?: number;
+    type?: StockTakingType;
+    code?: string;
+    amountNew?: number;
+    amountOld?: number;
+    date?: Date;
+    user?: string | undefined;
+    error?: string | undefined;
+    difference?: number;
+
+    constructor(data?: IStockTakingHistoryItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.type = _data["type"];
+            this.code = _data["code"];
+            this.amountNew = _data["amountNew"];
+            this.amountOld = _data["amountOld"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.user = _data["user"];
+            this.error = _data["error"];
+            this.difference = _data["difference"];
+        }
+    }
+
+    static fromJS(data: any): StockTakingHistoryItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new StockTakingHistoryItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["type"] = this.type;
+        data["code"] = this.code;
+        data["amountNew"] = this.amountNew;
+        data["amountOld"] = this.amountOld;
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["user"] = this.user;
+        data["error"] = this.error;
+        data["difference"] = this.difference;
+        return data;
+    }
+}
+
+export interface IStockTakingHistoryItemDto {
+    id?: number;
+    type?: StockTakingType;
+    code?: string;
+    amountNew?: number;
+    amountOld?: number;
+    date?: Date;
+    user?: string | undefined;
+    error?: string | undefined;
+    difference?: number;
 }
 
 export class GetStockUpOperationsResponse extends BaseResponse implements IGetStockUpOperationsResponse {
