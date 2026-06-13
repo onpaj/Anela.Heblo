@@ -13,7 +13,7 @@ public class TodayProductionTile : UpcomingProductionTile
 
     protected sealed override DateOnly ReferenceDate { get; set; }
 
-    public TodayProductionTile(IManufactureOrderRepository repository, TimeProvider timeProvider) : base(repository)
+    public TodayProductionTile(IManufactureOrderRepository repository, TimeProvider timeProvider) : base(repository, timeProvider)
     {
         ReferenceDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().Date); // Get next workday
     }
