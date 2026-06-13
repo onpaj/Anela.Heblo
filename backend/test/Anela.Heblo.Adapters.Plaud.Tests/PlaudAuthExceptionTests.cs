@@ -12,7 +12,7 @@ public sealed class PlaudAuthExceptionTests
         var ex = new PlaudAuthExpiredException(stderr);
 
         ex.Message.Should().Contain(stderr);
-        ex.Message.Should().Contain("Plaud__TokensJson");
+        ex.Message.Should().Contain("Plaud--TokensJson");
     }
 
     [Fact]
