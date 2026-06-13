@@ -48,4 +48,29 @@ public sealed class PlaudTokenManagerTests
             It.IsAny<string>(), It.IsAny<Dictionary<string, string>>(), It.IsAny<Dictionary<string, double>>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task EnsureFreshAsync_RefreshesAndEmitsNearExpiry_WhenInsideBuffer()
+    {
+        var initial = new PlaudTokens("old-a", "old-r", UnixSecondsFromNow(TimeSpan.FromHours(24)));
+        var rotated = new PlaudTokens("new-a", "new-r", UnixSecondsFromNow(TimeSpan.FromDays(30)));
+        var (sut, store, refresh, telemetry) = CreateSut(initial);
+
+        refresh.Setup(r => r.RefreshAsync("old-r", It.IsAny<CancellationToken>())).ReturnsAsync(rotated);
+
+        await sut.EnsureFreshAsync(CancellationToken.None);
+
+        refresh.Verify(r => r.RefreshAsync("old-r", It.IsAny<CancellationToken>()), Times.Once);
+        store.Verify(s => s.SaveAsync(rotated, It.IsAny<CancellationToken>()), Times.Once);
+        telemetry.Verify(t => t.TrackBusinessEvent(
+            PlaudTelemetryEventNames.NearExpiry,
+            It.Is<Dictionary<string, string>>(d => d.ContainsKey("expiresAt") && d.ContainsKey("bufferHours") && d.ContainsKey("tokenIdShort")),
+            It.IsAny<Dictionary<string, double>>()),
+            Times.Once);
+        telemetry.Verify(t => t.TrackBusinessEvent(
+            PlaudTelemetryEventNames.Refreshed,
+            It.Is<Dictionary<string, string>>(d => d["triggeredBy"] == "near-expiry"),
+            It.IsAny<Dictionary<string, double>>()),
+            Times.Once);
+    }
 }
