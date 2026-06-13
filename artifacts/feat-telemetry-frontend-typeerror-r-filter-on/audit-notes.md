@@ -48,6 +48,42 @@ Array method calls found in `frontend/src/components/pages/Journal/JournalList.t
 
 **All array method calls are SAFE.** No fixes required.
 
+---
+
+## FR-3 audit results
+
+### PR file lists
+
+PR #2962: frontend/src/api/generated/api-client.ts, frontend/src/api/hooks/useDashboard.ts, frontend/src/components/dashboard/tiles/TileContent.tsx, frontend/src/components/dashboard/tiles/UnauthorizedTile.tsx, frontend/src/components/pages/Dashboard.tsx
+
+PR #2943: frontend/src/components/catalog/detail/tabs/JournalTab.tsx, frontend/src/components/pages/Journal/JournalList.tsx, frontend/src/components/pages/Journal/journalPreview.ts
+
+PR #2948: frontend/src/components/pages/Journal/JournalList.tsx
+
+### Sites reviewed
+
+- Dashboard.tsx — `userSettings.tiles.reduce(...)`, `allTileData.filter(...)`, `.sort(...)` — fixed in Task 3
+- DashboardSettings.tsx — `userSettings?.tiles.filter(...)`, `.find(...)` (×2), `availableTiles.filter(...)` (×2), `.length` (×2) — fixed in Task 4
+- JournalList.tsx — `entries.map(...)` ×2 — audited in Task 5, SAFE (`entries = data?.entries || []` on line 202)
+- JournalTab.tsx:30 — `data?.entries || []` — SAFE (|| [] guard)
+- JournalTab.tsx:88 — `entries.map(...)` — SAFE (entries guarded at line 30)
+- JournalTab.tsx:112 — `entry.tags.map(...)` — SAFE (guarded by `entry.tags && entry.tags.length > 0` on line 110)
+- useDashboard.ts — no array-method calls in changed hunks
+- TileContent.tsx — no array-method calls in changed hunks
+- UnauthorizedTile.tsx — no array-method calls in changed hunks
+- journalPreview.ts — no array-method calls in changed hunks
+- api-client.ts — generated file, no array-method calls in changed hunks
+
+### Sites fixed
+
+None — all sites already safe or covered by Tasks 3/4/5.
+
+### Sites left as-is with rationale
+
+- JournalTab.tsx:88 — `entries.map(...)` — receiver is `entries = data?.entries || []`, guaranteed array
+- JournalTab.tsx:112 — `entry.tags.map(...)` — guarded by truthiness check on line 110 (`entry.tags && entry.tags.length > 0`)
+- JournalList.tsx:422,435 — `entries.map(...)` — receiver guarded at line 202
+
 The critical guard is at line 202:
 ```typescript
 const entries = currentQuery.data?.entries || [];
