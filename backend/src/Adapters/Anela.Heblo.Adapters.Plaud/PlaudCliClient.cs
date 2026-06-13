@@ -93,6 +93,36 @@ public sealed class PlaudCliClient : IPlaudClient
 
     private async Task<string> RunCliAsync(string[] args, CancellationToken ct)
     {
+        if (_tokenManager is not null)
+            await _tokenManager.EnsureFreshAsync(ct);
+
+        try
+        {
+            return await ExecuteCliAsync(args, ct);
+        }
+        catch (PlaudAuthExpiredException) when (_tokenManager is not null)
+        {
+            var refreshed = await _tokenManager.ForceRefreshAsync(ct);
+            if (!refreshed)
+            {
+                _telemetry?.TrackException(new PlaudAuthExpiredException("Refresh failed; runbook required"));
+                throw;
+            }
+
+            try
+            {
+                return await ExecuteCliAsync(args, ct);
+            }
+            catch (PlaudAuthExpiredException)
+            {
+                _telemetry?.TrackException(new PlaudAuthExpiredException("Retry after refresh still AUTH_FAILED"));
+                throw;
+            }
+        }
+    }
+
+    private async Task<string> ExecuteCliAsync(string[] args, CancellationToken ct)
+    {
         var options = _options.Value;
         var psi = new ProcessStartInfo
         {
