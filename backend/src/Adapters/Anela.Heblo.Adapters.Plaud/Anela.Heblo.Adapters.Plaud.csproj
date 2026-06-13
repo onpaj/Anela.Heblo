@@ -22,6 +22,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Anela.Heblo.Adapters.Plaud.Tests" />
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     </ItemGroup>
 
 </Project>
