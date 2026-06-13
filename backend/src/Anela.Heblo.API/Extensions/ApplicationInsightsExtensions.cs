@@ -1,6 +1,7 @@
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.API.Telemetry;
+using Anela.Heblo.Adapters.HomeAssistant.Telemetry;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -59,6 +60,7 @@ public static class ApplicationInsightsExtensions
 
         // Add telemetry processor for filtering
         services.AddApplicationInsightsTelemetryProcessor<CostOptimizedTelemetryProcessor>();
+        services.AddApplicationInsightsTelemetryProcessor<HomeAssistantDependencyTelemetryFilter>();
 
         // Configure sampling (more aggressive for cost savings)
         services.Configure<TelemetryConfiguration>((config) =>
