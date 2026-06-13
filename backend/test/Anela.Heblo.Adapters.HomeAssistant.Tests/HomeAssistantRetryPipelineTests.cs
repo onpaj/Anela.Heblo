@@ -46,6 +46,36 @@ public class HomeAssistantRetryPipelineTests
         };
 
     [Fact]
+    public async Task Resilience_RecoversOneTransientIoException_ProducesLiveSnapshot()
+    {
+        // Each sensor fails on its FIRST attempt, succeeds on retry — verified via per-entity call count.
+        var perEntityCalls = new System.Collections.Concurrent.ConcurrentDictionary<string, int>();
+        var handler = new StatefulHandler(request =>
+        {
+            var entityId = request.RequestUri!.Segments.Last();
+            var count = perEntityCalls.AddOrUpdate(entityId, 1, (_, v) => v + 1);
+            if (count == 1)
+                throw new IOException("boom on first attempt");
+            return Json(entityId switch
+            {
+                "sensor.inner_temp" => "21.5",
+                "sensor.inner_humidity" => "55.0",
+                "sensor.outer_temp" => "18.2",
+                "sensor.outer_humidity" => "72.3",
+                _ => "0",
+            });
+        });
+
+        using var sp = (ServiceProvider)BuildProvider(handler);
+        var provider = sp.GetRequiredService<HomeAssistantConditionsReadingProvider>();
+
+        var snapshot = await provider.GetCurrentSnapshotAsync(CancellationToken.None);
+
+        snapshot.Source.Should().Be(ConditionsReadingSource.Live);
+        handler.CallCount.Should().Be(8, "each of 4 sensors fails once and retries once");
+    }
+
+    [Fact]
     public async Task Resilience_AllSucceed_ProducesLiveSnapshot()
     {
         HttpResponseMessage Handler(HttpRequestMessage request)
@@ -127,6 +157,27 @@ public class HomeAssistantRetryPipelineTests
         // With 4 sensors and up to 3 attempts each, we expect up to 12 calls,
         // but we only fail the first 2, so we should use slightly more than 4 calls
         handler.CallCount.Should().BeGreaterThan(4, "retry policy should make additional attempts");
+    }
+
+    private sealed class SequencedHandler : HttpMessageHandler
+    {
+        private readonly Queue<Func<HttpResponseMessage>> _responses;
+        public int CallCount { get; private set; }
+
+        public SequencedHandler(params Func<HttpResponseMessage>[] responses)
+        {
+            _responses = new Queue<Func<HttpResponseMessage>>(responses);
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            CallCount++;
+            if (_responses.Count == 0)
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+            var factory = _responses.Dequeue();
+            try { return Task.FromResult(factory()); }
+            catch (Exception ex) { return Task.FromException<HttpResponseMessage>(ex); }
+        }
     }
 
     private sealed class StatefulHandler : HttpMessageHandler
