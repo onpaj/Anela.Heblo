@@ -179,4 +179,36 @@ public sealed class PlaudTokenManagerTests
 
         refresh.Verify(r => r.RefreshAsync("old-r", It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task TelemetryEvents_NeverContain_RefreshTokenOrAccessTokenContents()
+    {
+        var initial = new PlaudTokens("super-secret-access", "super-secret-refresh",
+            UnixSecondsFromNow(TimeSpan.FromMinutes(-1)));
+        var rotated = new PlaudTokens("rotated-access-xyz", "rotated-refresh-xyz",
+            UnixSecondsFromNow(TimeSpan.FromDays(30)));
+        var capturedProps = new List<Dictionary<string, string>>();
+
+        var (sut, _, refresh, telemetry) = CreateSut(initial);
+        refresh.Setup(r => r.RefreshAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(rotated);
+        telemetry.Setup(t => t.TrackBusinessEvent(
+            It.IsAny<string>(), It.IsAny<Dictionary<string, string>>(), It.IsAny<Dictionary<string, double>>()))
+            .Callback<string, Dictionary<string, string>?, Dictionary<string, double>?>((_, p, _) =>
+            {
+                if (p is not null) capturedProps.Add(p);
+            });
+
+        await sut.ForceRefreshAsync(CancellationToken.None);
+
+        foreach (var props in capturedProps)
+        {
+            foreach (var (_, value) in props)
+            {
+                value.Should().NotContain("super-secret-access");
+                value.Should().NotContain("super-secret-refresh");
+                value.Should().NotContain("rotated-access-xyz");
+                value.Should().NotContain("rotated-refresh-xyz");
+            }
+        }
+    }
 }
