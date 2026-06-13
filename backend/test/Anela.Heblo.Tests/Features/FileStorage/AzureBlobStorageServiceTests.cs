@@ -27,7 +27,7 @@ public class AzureBlobStorageServiceTests
         var httpClient = new HttpClient(_stubHandler) { BaseAddress = new Uri("http://test/") };
         _mockHttpClientFactory = new Mock<IHttpClientFactory>();
         _mockHttpClientFactory
-            .Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
             .Returns(httpClient);
 
         _service = new AzureBlobStorageService(
@@ -70,7 +70,7 @@ public class AzureBlobStorageServiceTests
 
         // Assert — factory must have been asked for the named client exactly once
         _mockHttpClientFactory.Verify(
-            f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName),
+            f => f.CreateClient(FileStorageModule.FileDownloadClientName),
             Times.Once);
     }
 
@@ -82,7 +82,7 @@ public class AzureBlobStorageServiceTests
         var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
 
         var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+        factory.Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
                .Returns(client);
 
         var service = new AzureBlobStorageService(
@@ -182,7 +182,7 @@ public class AzureBlobStorageServiceTests
         var handler = new StubHttpMessageHandler(HttpStatusCode.OK, overrideContent: responseContent);
         var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
         _mockHttpClientFactory
-            .Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
             .Returns(client);
 
         var expectedBlobUrl = $"https://testaccount.blob.core.windows.net/{containerName}/downloaded-file-guid{expectedExtension}";
@@ -421,7 +421,7 @@ public class AzureBlobStorageServiceTests
         var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
 
         var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+        factory.Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
                .Returns(client);
 
         var service = new AzureBlobStorageService(

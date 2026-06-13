@@ -4,11 +4,11 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Application.Features.FileStorage.Infrastructure.Jobs;
+using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Application.Features.Catalog.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
-using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Xcc.Telemetry;
 using FluentAssertions;
 using Hangfire;
@@ -17,7 +17,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 
-namespace Anela.Heblo.Tests.Features.FileStorage.Infrastructure.Jobs;
+namespace Anela.Heblo.Tests.Features.Catalog.Infrastructure.Jobs;
 
 public sealed class ProductExportDownloadJobTests
 {
@@ -49,9 +49,6 @@ public sealed class ProductExportDownloadJobTests
         {
             Url = exportUrl,
             ContainerName = containerName,
-            MaxRetryAttempts = 3,
-            DownloadTimeout = TimeSpan.FromSeconds(30),
-            RetryBaseDelay = TimeSpan.FromSeconds(1),
         });
 
         return new ProductExportDownloadJob(
