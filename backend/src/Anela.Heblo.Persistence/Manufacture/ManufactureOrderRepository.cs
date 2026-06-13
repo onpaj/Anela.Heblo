@@ -145,10 +145,10 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
         }
     }
 
-    public async Task<string> GenerateOrderNumberAsync(CancellationToken cancellationToken = default)
+    public async Task<string> GenerateOrderNumberAsync(int year, CancellationToken cancellationToken = default)
     {
-        var currentYear = DateTime.Now.Year;
-        var prefix = $"MO-{currentYear}-";
+        // year is supplied by the caller; do not introduce TimeProvider/DateTime.Now here (see spec FR-1).
+        var prefix = $"MO-{year}-";
 
         var lastOrderNumber = await _context.ManufactureOrders
             .Where(x => x.OrderNumber.StartsWith(prefix))

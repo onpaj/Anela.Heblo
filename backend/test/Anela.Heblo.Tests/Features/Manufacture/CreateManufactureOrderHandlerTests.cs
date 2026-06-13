@@ -64,7 +64,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -94,7 +94,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -131,7 +131,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -171,7 +171,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -209,7 +209,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -256,7 +256,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -294,7 +294,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -308,7 +308,7 @@ public class CreateManufactureOrderHandlerTests
         await _handler.Handle(request, CancellationToken.None);
 
         _repositoryMock.Verify(
-            x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()),
+            x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -323,7 +323,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -361,7 +361,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -390,7 +390,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -414,7 +414,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Order number generation failed"));
 
         var action = async () => await _handler.Handle(request, CancellationToken.None);
@@ -533,7 +533,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock

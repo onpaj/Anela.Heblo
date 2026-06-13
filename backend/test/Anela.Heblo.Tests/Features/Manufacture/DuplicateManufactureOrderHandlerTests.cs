@@ -110,7 +110,7 @@ public class DuplicateManufactureOrderHandlerTests
         response.Success.Should().BeFalse();
 
         _repositoryMock.Verify(
-            x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()),
+            x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _repositoryMock.Verify(
             x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()),
@@ -127,7 +127,7 @@ public class DuplicateManufactureOrderHandlerTests
             .Setup(x => x.GetOrderByIdAsync(SourceOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sourceOrder);
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         ManufactureOrder? captured = null;
@@ -206,7 +206,7 @@ public class DuplicateManufactureOrderHandlerTests
             .Setup(x => x.GetOrderByIdAsync(SourceOrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sourceOrder);
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         ManufactureOrder? captured = null;
