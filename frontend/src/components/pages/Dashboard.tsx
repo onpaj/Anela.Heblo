@@ -28,19 +28,18 @@ const Dashboard: React.FC = () => {
   const { data: allTileData = [], isLoading: dataLoading } = useTileData();
   const saveDashboardSettings = useSaveDashboardSettings();
 
-  // Filter visible tiles based on user settings and AutoShow.
-  // Per-tile permission enforcement happens on the backend: unauthorized tiles arrive
-  // flagged (isUnauthorized, no data) and render a placeholder, so there is no
-  // client-side permission gating here.
   const visibleTileData = React.useMemo(() => {
-    if (!userSettings || !allTileData.length) return [];
+    const tileData = Array.isArray(allTileData) ? allTileData : [];
+    const settingsTiles = Array.isArray(userSettings?.tiles) ? userSettings!.tiles : [];
 
-    const userTileSettings = userSettings.tiles.reduce((acc, tile) => {
+    if (!userSettings || !Array.isArray(userSettings.tiles) || tileData.length === 0) return [];
+
+    const userTileSettings = settingsTiles.reduce((acc, tile) => {
       acc[tile.tileId] = tile;
       return acc;
     }, {} as Record<string, any>);
 
-    return allTileData
+    return tileData
       .filter(tile => {
         const userSetting = userTileSettings[tile.tileId];
         return userSetting?.isVisible || (tile.autoShow && userSetting?.isVisible !== false);
@@ -55,9 +54,10 @@ const Dashboard: React.FC = () => {
   const handleReorder = async (tileIds: string[]) => {
     if (!userSettings) return;
 
-    // Create updated tiles with new order
+    const settingsTiles = Array.isArray(userSettings.tiles) ? userSettings.tiles : [];
+
     const updatedTiles = tileIds.map((tileId, index) => {
-      const existingTile = userSettings.tiles.find(t => t.tileId === tileId);
+      const existingTile = settingsTiles.find(t => t.tileId === tileId);
       return {
         tileId,
         isVisible: existingTile?.isVisible ?? true,
@@ -65,8 +65,7 @@ const Dashboard: React.FC = () => {
       };
     });
 
-    // Add tiles that weren't reordered (not visible)
-    userSettings.tiles.forEach(tile => {
+    settingsTiles.forEach(tile => {
       if (!tileIds.includes(tile.tileId)) {
         updatedTiles.push(tile);
       }
