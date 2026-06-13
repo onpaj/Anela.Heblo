@@ -7,7 +7,7 @@ namespace Anela.Heblo.Adapters.HomeAssistant.Resilience;
 /// Application Insights dependency processor can drop transient retries
 /// before they reach the AI ingestion endpoint.
 /// </summary>
-internal sealed class HomeAssistantRetryActivityTaggingHandler : DelegatingHandler
+public sealed class HomeAssistantRetryActivityTaggingHandler : DelegatingHandler
 {
     public const string SuppressTagName = "ha.retry-suppress";
 
