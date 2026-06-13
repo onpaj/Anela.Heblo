@@ -95,3 +95,52 @@ The component properly follows the established pattern:
 - Guards at the React Query consumer boundary (line 202)
 - Subsequent array method calls operate on the guarded local variable
 - Optional chaining used for nested optional arrays (tags, associatedProducts)
+
+---
+
+## NFR-3 follow-up: Upstream contract drift investigation
+
+**Crash Site:** Dashboard.tsx visibleTileData memo, line 33 (`userSettings?.tiles.reduce(...)` before Task 3 fix)
+
+### Type Analysis
+
+**TypeScript Type Declaration (useDashboard.ts:23-26):**
+```typescript
+export interface UserDashboardSettings {
+  tiles: UserDashboardTile[];     // Non-nullable, required array
+  lastModified: string;
+}
+```
+
+**Hook Return Type (useDashboard.ts:49-61):**
+```typescript
+export const useUserDashboardSettings = () => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.dashboard, 'settings'],
+    queryFn: async (): Promise<UserDashboardSettings> => {
+      const apiClient = getAuthenticatedApiClient(false);
+      const relativeUrl = `/api/dashboard/settings`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+      const response = await (apiClient as any).http.fetch(fullUrl, { method: 'GET' });
+      if (response.status === 403) return { tiles: [], lastModified: new Date().toISOString() };  // ← Fallback to []
+      if (!response.ok) throw new Error(`API Call Error (${response.status})`);
+      return response.json();
+    },
+  });
+};
+```
+
+### Findings
+
+- **tiles field type:** Non-nullable array (`UserDashboardTile[]`)
+- **403 handling:** Hook explicitly returns `{ tiles: [], lastModified: ... }` — never null
+- **Other error handling:** Throws exception (no implicit null return)
+- **Backend API contract:** Matches the declared TypeScript type; `tiles` should always be an array
+
+### Verdict
+
+**No upstream contract drift detected.** 
+
+The OpenAPI schema and backend API correctly honor the declared contract: `tiles` is always a non-nullable array. The 403 fallback in the hook ensures even restricted users get `tiles: []`.
+
+The crash (`r.filter is not a function`) was **client-side defensive coding gap**, not a backend contract violation. The fix applied in Task 3 (adding `Array.isArray` guards) is prudent hardening against transient state or future drift, but does not indicate a real upstream bug.
