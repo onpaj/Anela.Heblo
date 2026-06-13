@@ -44,8 +44,35 @@ The server `[FeatureAuthorize(Feature.Warehouse_StockUp)]` gate remains in place
 
 ## FR-5 — Single 500
 
-_TBD by Task 10._
+**Attribution status: Unattributable** — Application Insights is not accessible from this automated session context.
+
+The single 500 response occurred within the same 7-day window as the 403 storm. It resolved to the same route (`GET /api/StockUpOperations/summary` → `StockUpOperationsController.GetSummary`) because there is only one handler for this path.
+
+The KQL query to investigate when App Insights is accessible:
+```kusto
+requests
+| where timestamp between (datetime(2026-06-05) .. datetime(2026-06-12T23:59:59Z))
+| where url has "/api/StockUpOperations/summary"
+| where resultCode == 500
+| project timestamp, id, name, resultCode, duration, customDimensions, operation_Id
+| join kind=leftouter (
+    exceptions
+    | project operation_Id, exceptionType=type, exceptionMessage=outerMessage, exceptionStack=outerType
+) on operation_Id
+```
+
+Given the low frequency (1 out of 210 requests), this is likely a transient infrastructure event (e.g., DB timeout, cold-start) rather than a reproducible defect in `GetStockUpOperationsSummaryHandler`. No fix applied in this PR. If the query above reveals a structured exception, file a follow-up issue.
 
 ## NFR-3 — Post-deploy observability
 
-_TBD by Task 11._
+After this change is deployed to production, run the following KQL daily for 3 days:
+
+```kusto
+requests
+| where timestamp > ago(24h)
+| where url has "/api/StockUpOperations/summary"
+| summarize calls = count(), forbidden = countif(resultCode == 403), ok = countif(resultCode == 200)
+```
+
+Expected: `forbidden` drops to near-zero (single-digit at most, from edge cases like users mid-permission-revocation).
+If `forbidden` stays high: caller attribution (FR-2) missed a principal; re-run with a broader window and reconsider the chosen path.
