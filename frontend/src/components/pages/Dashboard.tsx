@@ -56,20 +56,17 @@ const Dashboard: React.FC = () => {
 
     const settingsTiles = Array.isArray(userSettings.tiles) ? userSettings.tiles : [];
 
-    const updatedTiles = tileIds.map((tileId, index) => {
-      const existingTile = settingsTiles.find(t => t.tileId === tileId);
-      return {
-        tileId,
-        isVisible: existingTile?.isVisible ?? true,
-        displayOrder: index
-      };
-    });
-
-    settingsTiles.forEach(tile => {
-      if (!tileIds.includes(tile.tileId)) {
-        updatedTiles.push(tile);
-      }
-    });
+    const updatedTiles = [
+      ...tileIds.map((tileId, index) => {
+        const existingTile = settingsTiles.find(t => t.tileId === tileId);
+        return {
+          tileId,
+          isVisible: existingTile?.isVisible ?? true,
+          displayOrder: index
+        };
+      }),
+      ...settingsTiles.filter(tile => !tileIds.includes(tile.tileId))
+    ];
 
     await saveDashboardSettings.mutateAsync({ tiles: updatedTiles });
   };
