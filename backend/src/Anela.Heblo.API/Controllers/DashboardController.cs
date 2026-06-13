@@ -4,7 +4,6 @@ using Anela.Heblo.Application.Features.Dashboard.UseCases.SaveUserSettings;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetTileData;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.EnableTile;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.DisableTile;
-using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,7 +11,6 @@ namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[FeatureAuthorize(Feature.Admin_Administration)]
 public class DashboardController : BaseApiController
 {
     private readonly IMediator _mediator;

@@ -14,8 +14,11 @@ public class UpdateManufactureOrderHandlerTests
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<UpdateManufactureOrderHandler>> _loggerMock;
-    private readonly TimeProvider _timeProvider;
+    private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly UpdateManufactureOrderHandler _handler;
+
+    private static readonly DateTimeOffset FixedNow =
+        new(2026, 6, 8, 10, 0, 0, TimeSpan.Zero);
 
     private const int ValidOrderId = 1;
     private const string ValidResponsiblePerson = "Jane Doe";
@@ -27,7 +30,8 @@ public class UpdateManufactureOrderHandlerTests
         _repositoryMock = new Mock<IManufactureOrderRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderHandler>>();
-        _timeProvider = TimeProvider.System;
+        _timeProviderMock = new Mock<TimeProvider>();
+        _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(FixedNow);
 
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
@@ -36,7 +40,7 @@ public class UpdateManufactureOrderHandlerTests
         _handler = new UpdateManufactureOrderHandler(
             _repositoryMock.Object,
             _currentUserServiceMock.Object,
-            _timeProvider,
+            _timeProviderMock.Object,
             _loggerMock.Object);
     }
 
@@ -220,7 +224,7 @@ public class UpdateManufactureOrderHandlerTests
         var note = updatedOrder.Notes.First();
         note.Text.Should().Be(ValidNewNote);
         note.CreatedByUser.Should().Be("Test User");
-        note.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        note.CreatedAt.Should().Be(FixedNow.UtcDateTime);
     }
 
     [Fact]

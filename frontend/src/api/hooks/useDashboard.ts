@@ -10,6 +10,7 @@ export interface DashboardTile {
   defaultEnabled: boolean;
   autoShow: boolean;
   requiredPermissions: string[];
+  isUnauthorized?: boolean;
   data?: any;
 }
 

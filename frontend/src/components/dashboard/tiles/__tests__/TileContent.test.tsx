@@ -64,8 +64,24 @@ describe('TileContent', () => {
   it('should render LoadingTile when data is undefined', () => {
     const tile = createMockTile('test-tile', undefined);
     render(<TileContent tile={tile} />);
-    
+
     expect(screen.getByTestId('loading-tile')).toBeInTheDocument();
+  });
+
+  it('should render UnauthorizedTile when the tile is unauthorized', () => {
+    const tile = { ...createMockTile('backgroundtaskstatus', null), isUnauthorized: true };
+    render(<TileContent tile={tile} />);
+
+    expect(screen.getByTestId('unauthorized-tile')).toBeInTheDocument();
+    expect(screen.getByText('Přístup zakázán')).toBeInTheDocument();
+  });
+
+  it('should render UnauthorizedTile even when data is present', () => {
+    const tile = { ...createMockTile('backgroundtaskstatus', { running: 1 }), isUnauthorized: true };
+    render(<TileContent tile={tile} />);
+
+    expect(screen.getByTestId('unauthorized-tile')).toBeInTheDocument();
+    expect(screen.queryByTestId('background-tasks-tile')).not.toBeInTheDocument();
   });
 
   it('should render BackgroundTasksTile for backgroundtaskstatus', () => {

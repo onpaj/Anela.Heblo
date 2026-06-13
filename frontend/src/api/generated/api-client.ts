@@ -8665,7 +8665,6 @@ export class ApiClient {
         return Promise.resolve<GetPackingDashboardResponse>(null as any);
     }
 
-
     packaging_GetPackages(orderCode: string | null | undefined, customerName: string | null | undefined, packageNumber: string | null | undefined, carrier: Carriers | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPackagesResponse> {
         let url_ = this.baseUrl + "/api/packaging/packages?";
         if (orderCode !== undefined && orderCode !== null)
@@ -18942,6 +18941,7 @@ export class DashboardTileDto implements IDashboardTileDto {
     defaultEnabled?: boolean;
     autoShow?: boolean;
     requiredPermissions?: string[];
+    isUnauthorized?: boolean;
     data?: any | undefined;
 
     constructor(data?: IDashboardTileDto) {
@@ -18967,6 +18967,7 @@ export class DashboardTileDto implements IDashboardTileDto {
                 for (let item of _data["requiredPermissions"])
                     this.requiredPermissions!.push(item);
             }
+            this.isUnauthorized = _data["isUnauthorized"];
             this.data = _data["data"];
         }
     }
@@ -18992,6 +18993,7 @@ export class DashboardTileDto implements IDashboardTileDto {
             for (let item of this.requiredPermissions)
                 data["requiredPermissions"].push(item);
         }
+        data["isUnauthorized"] = this.isUnauthorized;
         data["data"] = this.data;
         return data;
     }
@@ -19006,6 +19008,7 @@ export interface IDashboardTileDto {
     defaultEnabled?: boolean;
     autoShow?: boolean;
     requiredPermissions?: string[];
+    isUnauthorized?: boolean;
     data?: any | undefined;
 }
 
@@ -22278,7 +22281,7 @@ export interface IGetJournalEntriesResponse extends IBaseResponse {
 
 export class JournalEntryDto implements IJournalEntryDto {
     id?: number;
-    title?: string | undefined;
+    title?: string;
     content?: string;
     entryDate?: Date;
     createdAt?: Date;
@@ -22359,7 +22362,7 @@ export class JournalEntryDto implements IJournalEntryDto {
 
 export interface IJournalEntryDto {
     id?: number;
-    title?: string | undefined;
+    title?: string;
     content?: string;
     entryDate?: Date;
     createdAt?: Date;
@@ -22483,7 +22486,8 @@ export interface ISearchJournalEntriesResponse extends IBaseResponse {
 
 export class SearchJournalEntryDto implements ISearchJournalEntryDto {
     id?: number;
-    title?: string | undefined;
+    title?: string;
+    content?: string;
     entryDate?: Date;
     createdAt?: Date;
     modifiedAt?: Date;
@@ -22493,8 +22497,6 @@ export class SearchJournalEntryDto implements ISearchJournalEntryDto {
     modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     tags?: JournalEntryTagDto[];
-    contentPreview?: string;
-    highlightedTerms?: string[];
 
     constructor(data?: ISearchJournalEntryDto) {
         if (data) {
@@ -22509,6 +22511,7 @@ export class SearchJournalEntryDto implements ISearchJournalEntryDto {
         if (_data) {
             this.id = _data["id"];
             this.title = _data["title"];
+            this.content = _data["content"];
             this.entryDate = _data["entryDate"] ? new Date(_data["entryDate"].toString()) : <any>undefined;
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
@@ -22526,12 +22529,6 @@ export class SearchJournalEntryDto implements ISearchJournalEntryDto {
                 for (let item of _data["tags"])
                     this.tags!.push(JournalEntryTagDto.fromJS(item));
             }
-            this.contentPreview = _data["contentPreview"];
-            if (Array.isArray(_data["highlightedTerms"])) {
-                this.highlightedTerms = [] as any;
-                for (let item of _data["highlightedTerms"])
-                    this.highlightedTerms!.push(item);
-            }
         }
     }
 
@@ -22546,6 +22543,7 @@ export class SearchJournalEntryDto implements ISearchJournalEntryDto {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["title"] = this.title;
+        data["content"] = this.content;
         data["entryDate"] = this.entryDate ? this.entryDate.toISOString() : <any>undefined;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
@@ -22563,19 +22561,14 @@ export class SearchJournalEntryDto implements ISearchJournalEntryDto {
             for (let item of this.tags)
                 data["tags"].push(item.toJSON());
         }
-        data["contentPreview"] = this.contentPreview;
-        if (Array.isArray(this.highlightedTerms)) {
-            data["highlightedTerms"] = [];
-            for (let item of this.highlightedTerms)
-                data["highlightedTerms"].push(item);
-        }
         return data;
     }
 }
 
 export interface ISearchJournalEntryDto {
     id?: number;
-    title?: string | undefined;
+    title?: string;
+    content?: string;
     entryDate?: Date;
     createdAt?: Date;
     modifiedAt?: Date;
@@ -22585,8 +22578,6 @@ export interface ISearchJournalEntryDto {
     modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     tags?: JournalEntryTagDto[];
-    contentPreview?: string;
-    highlightedTerms?: string[];
 }
 
 export class GetJournalEntryResponse extends BaseResponse implements IGetJournalEntryResponse {
@@ -22664,7 +22655,7 @@ export interface ICreateJournalEntryResponse extends IBaseResponse {
 }
 
 export class CreateJournalEntryRequest implements ICreateJournalEntryRequest {
-    title?: string | undefined;
+    title?: string;
     content!: string;
     entryDate!: Date;
     associatedProducts?: string[] | undefined;
@@ -22724,7 +22715,7 @@ export class CreateJournalEntryRequest implements ICreateJournalEntryRequest {
 }
 
 export interface ICreateJournalEntryRequest {
-    title?: string | undefined;
+    title?: string;
     content: string;
     entryDate: Date;
     associatedProducts?: string[] | undefined;
@@ -22774,7 +22765,7 @@ export interface IUpdateJournalEntryResponse extends IBaseResponse {
 
 export class UpdateJournalEntryRequest implements IUpdateJournalEntryRequest {
     id?: number;
-    title?: string | undefined;
+    title?: string;
     content!: string;
     entryDate!: Date;
     associatedProducts?: string[] | undefined;
@@ -22837,7 +22828,7 @@ export class UpdateJournalEntryRequest implements IUpdateJournalEntryRequest {
 
 export interface IUpdateJournalEntryRequest {
     id?: number;
-    title?: string | undefined;
+    title?: string;
     content: string;
     entryDate: Date;
     associatedProducts?: string[] | undefined;
@@ -32622,6 +32613,7 @@ export interface IGetOrderTrackingNumberResponse extends IBaseResponse {
 
 export class GetPackingDashboardResponse extends BaseResponse implements IGetPackingDashboardResponse {
     ordersBeingPackedCount?: number | undefined;
+    ordersBeingProcessedCount?: number | undefined;
     ordersBeingPackedCountLastSync?: Date | undefined;
     totalOrdersPackedToday?: number;
     packedByPacker?: PackerStatsDto[];
@@ -32634,6 +32626,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
         super.init(_data);
         if (_data) {
             this.ordersBeingPackedCount = _data["ordersBeingPackedCount"];
+            this.ordersBeingProcessedCount = _data["ordersBeingProcessedCount"];
             this.ordersBeingPackedCountLastSync = _data["ordersBeingPackedCountLastSync"] ? new Date(_data["ordersBeingPackedCountLastSync"].toString()) : <any>undefined;
             this.totalOrdersPackedToday = _data["totalOrdersPackedToday"];
             if (Array.isArray(_data["packedByPacker"])) {
@@ -32654,6 +32647,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["ordersBeingPackedCount"] = this.ordersBeingPackedCount;
+        data["ordersBeingProcessedCount"] = this.ordersBeingProcessedCount;
         data["ordersBeingPackedCountLastSync"] = this.ordersBeingPackedCountLastSync ? this.ordersBeingPackedCountLastSync.toISOString() : <any>undefined;
         data["totalOrdersPackedToday"] = this.totalOrdersPackedToday;
         if (Array.isArray(this.packedByPacker)) {
@@ -32668,6 +32662,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
 
 export interface IGetPackingDashboardResponse extends IBaseResponse {
     ordersBeingPackedCount?: number | undefined;
+    ordersBeingProcessedCount?: number | undefined;
     ordersBeingPackedCountLastSync?: Date | undefined;
     totalOrdersPackedToday?: number;
     packedByPacker?: PackerStatsDto[];

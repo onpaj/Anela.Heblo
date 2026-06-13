@@ -1,6 +1,7 @@
 import React from 'react';
 import { DashboardTile as DashboardTileType } from '../../../api/hooks/useDashboard';
 import { LoadingTile } from './LoadingTile';
+import { UnauthorizedTile } from './UnauthorizedTile';
 import { BackgroundTasksTile } from './BackgroundTasksTile';
 import { ProductionTile } from './ProductionTile';
 import { CountTile } from './CountTile';
@@ -22,6 +23,10 @@ interface TileContentProps {
 }
 
 export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
+  if (tile.isUnauthorized) {
+    return <UnauthorizedTile />;
+  }
+
   if (!tile.data) {
     return <LoadingTile />;
   }
