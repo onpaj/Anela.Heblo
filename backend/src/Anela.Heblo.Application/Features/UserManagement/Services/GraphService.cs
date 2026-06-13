@@ -116,15 +116,6 @@ public class GraphService : IGraphService
 
         try
         {
-            // Validate groupId
-            if (string.IsNullOrWhiteSpace(groupId))
-            {
-                _logger.LogWarning("GroupId is null or empty for MS Entra group lookup");
-                return new List<UserDto>();
-            }
-
-            _logger.LogInformation("GroupId validation passed. GroupId: {GroupId}", groupId);
-
             var graphToken = await AcquireGraphTokenAsync(groupId, cancellationToken);
 
             // Get group members from Microsoft Graph.

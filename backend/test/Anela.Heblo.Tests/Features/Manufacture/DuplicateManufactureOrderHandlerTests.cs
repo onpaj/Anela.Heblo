@@ -165,6 +165,8 @@ public class DuplicateManufactureOrderHandlerTests
         captured.StateChangedByUser.Should().Be(DisplayName);
         captured.ResponsiblePerson.Should().Be(ResponsiblePerson);
         captured.PlannedDate.Should().Be(expectedPlannedDate);
+        captured.CreatedDate.Should().Be(FixedNow.UtcDateTime);
+        captured.StateChangedAt.Should().Be(FixedNow.UtcDateTime);
 
         // Assert duplicated semi-product
         captured.SemiProduct.Should().NotBeNull();

@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Text.Json;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
+using Anela.Heblo.Application.Shared;
+using FluentValidation;
 using MediatR;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
@@ -28,7 +30,18 @@ public class UserManagementMcpTools
     )
     {
         var request = new GetGroupMembersRequest { GroupId = groupId };
-        var response = await _mediator.Send(request, cancellationToken);
+
+        GetGroupMembersResponse response;
+        try
+        {
+            response = await _mediator.Send(request, cancellationToken);
+        }
+        catch (ValidationException ex)
+        {
+            var details = string.Join(" | ",
+                ex.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}"));
+            throw new McpException($"[{ErrorCodes.ValidationError}] {details}");
+        }
 
         if (!response.Success)
         {
