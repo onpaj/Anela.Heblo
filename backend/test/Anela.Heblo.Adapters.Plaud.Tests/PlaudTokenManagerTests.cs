@@ -111,4 +111,30 @@ public sealed class PlaudTokenManagerTests
             It.IsAny<Dictionary<string, double>>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task ForceRefreshAsync_ReturnsTrueAndEmitsKvWarning_WhenKvWriteFails()
+    {
+        var initial = new PlaudTokens("old-a", "old-r", UnixSecondsFromNow(TimeSpan.FromMinutes(-1)));
+        var rotated = new PlaudTokens("new-a", "new-r", UnixSecondsFromNow(TimeSpan.FromDays(30)));
+        var (sut, store, refresh, telemetry) = CreateSut(initial);
+
+        refresh.Setup(r => r.RefreshAsync("old-r", It.IsAny<CancellationToken>())).ReturnsAsync(rotated);
+        store.Setup(s => s.SaveAsync(rotated, It.IsAny<CancellationToken>()))
+             .ReturnsAsync(new PlaudTokenSaveResult(KeyVaultWriteFailed: true, KeyVaultError: new Exception("kv")));
+
+        var result = await sut.ForceRefreshAsync(CancellationToken.None);
+
+        result.Should().BeTrue();
+        telemetry.Verify(t => t.TrackBusinessEvent(
+            PlaudTelemetryEventNames.KeyVaultWriteFailed,
+            It.IsAny<Dictionary<string, string>>(),
+            It.IsAny<Dictionary<string, double>>()),
+            Times.Once);
+        telemetry.Verify(t => t.TrackBusinessEvent(
+            PlaudTelemetryEventNames.Refreshed,
+            It.IsAny<Dictionary<string, string>>(),
+            It.IsAny<Dictionary<string, double>>()),
+            Times.Once);
+    }
 }
