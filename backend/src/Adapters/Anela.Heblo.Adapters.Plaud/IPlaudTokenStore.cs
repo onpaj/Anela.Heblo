@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Adapters.Plaud;
 
-internal interface IPlaudTokenStore
+public interface IPlaudTokenStore
 {
     /// <summary>
     /// Loads the current tokens from disk (~/.plaud/tokens.json).
