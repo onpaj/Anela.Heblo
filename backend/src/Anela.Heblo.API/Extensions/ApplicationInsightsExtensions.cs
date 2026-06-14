@@ -1,6 +1,7 @@
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.API.Telemetry;
+using Anela.Heblo.Adapters.HomeAssistant.Telemetry;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -54,11 +55,19 @@ public static class ApplicationInsightsExtensions
 
         services.AddApplicationInsightsTelemetry(options);
 
+        // Npgsql 8 publishes pool counters via both EventCounters (auto-collected by
+        // EnableEventCounterCollectionModule above) and System.Diagnostics.Metrics.
+        // The EventCounters path flows into App Insights automatically in Production.
+        // Custom DbResilienceMetrics counters ("Anela.Heblo.Database.Resilience" meter)
+        // are surfaced via structured ILogger events (DbTransientRetry, DbTransientRetryExhausted)
+        // which App Insights captures through its ILogger integration.
+
         // Add telemetry initializer
         services.AddSingleton<ITelemetryInitializer, EnvironmentTelemetryInitializer>();
 
         // Add telemetry processor for filtering
         services.AddApplicationInsightsTelemetryProcessor<CostOptimizedTelemetryProcessor>();
+        services.AddApplicationInsightsTelemetryProcessor<HomeAssistantDependencyTelemetryFilter>();
 
         // Configure sampling (more aggressive for cost savings)
         services.Configure<TelemetryConfiguration>((config) =>

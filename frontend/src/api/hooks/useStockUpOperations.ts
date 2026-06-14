@@ -105,21 +105,25 @@ export const useAcceptStockUpOperationMutation = () => {
   });
 };
 
-/**
- * Hook to get StockUpOperations summary counts (Pending, Submitted, Failed)
- * Polls every 15 seconds for live updates
- */
-export const useStockUpOperationsSummary = (sourceType?: StockUpSourceType) => {
+export interface UseStockUpOperationsSummaryOptions {
+  enabled?: boolean;
+}
+
+export const useStockUpOperationsSummary = (
+  sourceType?: StockUpSourceType,
+  options?: UseStockUpOperationsSummaryOptions,
+) => {
   return useQuery({
     queryKey: stockUpOperationsKeys.summary(sourceType),
     queryFn: async (): Promise<GetStockUpOperationsSummaryResponse> => {
       const client = getStockUpOperationsClient();
       return await client.stockUpOperations_GetSummary(sourceType ?? undefined);
     },
-    refetchInterval: 15000, // Poll every 15 seconds
+    enabled: options?.enabled ?? true,
+    refetchInterval: 15000,
     refetchOnWindowFocus: true,
-    staleTime: 14000, // Consider stale just before next poll
-    gcTime: 60000, // Keep in cache for 1 minute
-    retry: 1, // Limit retries during polling
+    staleTime: 14000,
+    gcTime: 60000,
+    retry: 1,
   });
 };
