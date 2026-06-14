@@ -1,180 +1,145 @@
-```markdown
-# Specification: Fix OrgChartController Error Contract Violation and Information Leakage
+# Specification: Fix OrgChartController Error Response Contract
 
 ## Summary
-`OrgChartController.GetOrganizationStructure` returns an anonymous `{ error, message }` object on exceptions instead of the declared `OrgChartResponse` contract, and forwards raw exception messages (including internal URLs and stack-trace fragments) to clients. This spec defines the required fix: align the error response with the typed `BaseResponse`/`OrgChartResponse` contract used by every other module, and stop leaking exception internals to the browser.
+The `OrgChartController.GetOrganizationStructure` endpoint currently returns an anonymous object on errors that violates its declared `ActionResult<OrgChartResponse>` contract and leaks raw exception messages to clients. This spec replaces the error path with a typed `OrgChartResponse` error and sanitizes the response, aligning the endpoint with the rest of the codebase and the generated OpenAPI/TypeScript client.
 
 ## Background
-- File: `backend/src/Anela.Heblo.API/Controllers/OrgChartController.cs:38-53`.
-- The action is declared as `Task<ActionResult<OrgChartResponse>>` and decorated with `[ProducesResponseType(typeof(OrgChartResponse), 200)]`, but its `catch (Exception ex)` block returns `new { error = "...", message = ex.Message }` with status 500.
-- `ex.Message` originates upstream in `OrgChartService.GetOrganizationStructureAsync` (`backend/src/Anela.Heblo.Application/Features/OrgChart/Infrastructure/OrgChartService.cs:60-69`), which wraps `HttpRequestException` and `JsonException` in `InvalidOperationException` messages that include `_options.DataSourceUrl` and underlying error text.
-- `OrgChartResponse` (`backend/src/Anela.Heblo.Application/Features/OrgChart/Contracts/OrgChartResponse.cs:8-19`) already provides an error constructor that accepts an `ErrorCodes` value and parameter dictionary, mirroring the project-wide `BaseResponse` envelope (`backend/src/Anela.Heblo.Application/Shared/BaseResponse.cs`).
-- Every other controller in `backend/src/Anela.Heblo.API/Controllers/*.cs` (e.g. `BankStatementsController`, `LeafletController`) inherits from `BaseApiController` and uses `HandleResponse<T>` (`BaseApiController.cs:29-60`) to map `BaseResponse.ErrorCode` to the correct HTTP status code via `[HttpStatusCode]` attributes on `ErrorCodes`.
-- Pipeline already exposes a generic exception-handler chain: `services.AddExceptionHandler<UnauthorizedAccessExceptionHandler>()` (`ServiceCollectionExtensions.cs:132`) plus `app.UseExceptionHandler()` (`ApplicationBuilderExtensions.cs:91`). Adding a fallback handler here is supported by the existing infrastructure.
+The codebase uses a consistent typed-error pattern: every controller returns `BaseResponse`-derived DTOs whose `Success`, `ErrorCode`, and `Params` fields express both success and failure cases. The TypeScript client is generated from the OpenAPI spec, so any response shape that is not declared on the endpoint becomes invisible to the client — fields show up as `undefined` and callers cannot react to errors in a typed way.
 
-**Impact:**
-1. **Broken API contract.** Generated OpenAPI / TypeScript clients deserialize the 500 body as `OrgChartResponse`; every typed field becomes `undefined`, masking the real failure mode.
-2. **Information leakage.** Raw exception messages — including the configured SharePoint/data-source URL and wrapped `InvalidOperationException` text — are sent to the browser. Violates `~/.claude/rules/csharp-security.md` ("Do not expose stack traces, SQL text, or filesystem paths in API responses").
-3. **Inconsistency.** This is the only controller in the codebase returning an anonymous error object; it bypasses `BaseApiController.HandleResponse` and the `ErrorCodes`/`HttpStatusCode` attribute mapping that the rest of the codebase relies on.
+`OrgChartController.GetOrganizationStructure` is the only module in the project that deviates from this pattern. Its catch block constructs an anonymous `{ error, message }` object, which:
+
+1. **Breaks the contract** — `OrgChartResponse` is the declared return type; the anonymous object is not assignable to it. The generated TypeScript client receives `OrgChartResponse | undefined` and silently treats the error response as a malformed success.
+2. **Leaks internal details** — `ex.Message` may contain the configured `DataSourceUrl` (the SharePoint endpoint), connection-string fragments, or wrapped `InvalidOperationException` messages produced inside `OrgChartService`. These reach the browser unfiltered.
+3. **Diverges from convention** — `OrgChartResponse` already has a constructor (`OrgChartResponse.cs:17-18`) that takes an `ErrorCodes` value, designed exactly for this purpose.
+
+This was filed by the daily arch-review routine on 2026-06-04.
 
 ## Functional Requirements
 
-### FR-1: 500 responses must conform to the `OrgChartResponse` contract
-On any unhandled exception path inside `GET /api/OrgChart`, the response body must be a serialized `OrgChartResponse` with:
-- `Success = false`
-- `ErrorCode = ErrorCodes.InternalServerError` (value `0010`, decorated with `[HttpStatusCode(HttpStatusCode.InternalServerError)]`)
-- `Organization` left at its default empty `OrganizationDto`
-- `Params` either `null` or containing only non-sensitive, structured keys (see FR-3)
-
-> Note: the brief references `ErrorCodes.ServerError`. The actual enum member in `Anela.Heblo.Application.Shared.ErrorCodes` is `InternalServerError`. Use `ErrorCodes.InternalServerError`.
+### FR-1: Typed error response on `GetOrganizationStructure` failure
+When `GetOrganizationStructure` catches an unhandled exception, the response body MUST be a serialized `OrgChartResponse` constructed via the existing `OrgChartResponse(ErrorCodes errorCode)` constructor.
 
 **Acceptance criteria:**
-- Hitting `GET /api/OrgChart` while `OrgChartService` throws returns HTTP 500 with a body that deserializes cleanly into `OrgChartResponse`.
-- The body contains `success: false` and `errorCode: "InternalServerError"` (or numeric `10` depending on serializer settings already in use).
-- The OpenAPI document advertises `OrgChartResponse` as the schema for both 200 and 500 (i.e. the controller declares `[ProducesResponseType(typeof(OrgChartResponse), StatusCodes.Status500InternalServerError)]`).
-- The regenerated TypeScript client treats the 500 body as the same `OrgChartResponse` type used for 200.
+- The 500 response body deserializes successfully into `OrgChartResponse` on the client.
+- `Success` is `false`, `ErrorCode` is `ErrorCodes.ServerError` (or a more specific code if one fits — see Open Questions), and the data-bearing properties (e.g. `Departments`, root org node) are `null`/empty rather than partially populated.
+- The HTTP status code remains `500 Internal Server Error`.
+- The `Content-Type` is `application/json` and matches the success response.
 
-### FR-2: Stop forwarding raw exception text to clients
-The 500 response body must not contain any of the following:
-- `ex.Message`
-- `ex.ToString()` / stack frames
-- `OrgChartOptions.DataSourceUrl` or any other configuration value
-- Inner-exception messages produced by `OrgChartService` (`"Failed to fetch organizational structure: ..."`, `"Failed to parse organizational structure: ..."`)
-
-`_logger.LogError(ex, ...)` server-side logging must be preserved so operators retain full diagnostic context.
+### FR-2: No raw exception details in the response
+The response body MUST NOT contain `ex.Message`, `ex.StackTrace`, the underlying inner exception text, or any string built from those values.
 
 **Acceptance criteria:**
-- Integration test asserting the 500 response body does not contain `_options.DataSourceUrl` (use a sentinel URL like `https://sentinel.test/orgchart-source` via test configuration).
-- Integration test asserting the 500 body does not contain the substring `Failed to fetch organizational structure:` or any HTTP error message bubbled from `HttpRequestException`.
-- Server-side log entry continues to capture exception type, message, stack trace, and structured `{Url}` property.
+- Inspecting the JSON response for any failure mode (transport error, parse error, upstream 404, etc.) shows no SharePoint URL, no stack frame, and no internal class names.
+- Confidential details (configured URLs, secrets, host names) are confirmed absent via a unit test that injects a service throwing an exception whose `Message` contains a marker string; the response body must not contain the marker.
 
-### FR-3: Align with the project-wide error envelope
-The controller must use the same response pattern as the rest of the codebase. Implement **option A** (preferred) or **option B**:
-
-**Option A (preferred): handler returns typed error; controller uses `HandleResponse`.**
-- Move the try/catch from the controller into `GetOrganizationStructureHandler`.
-- On caught exceptions, log via `ILogger<GetOrganizationStructureHandler>` and return `new OrgChartResponse(ErrorCodes.InternalServerError)`.
-- Change `OrgChartController` to inherit from `BaseApiController` and call `return HandleResponse(result);` after `_mediator.Send`.
-- Remove the controller-level `try/catch` entirely.
-
-**Option B: add a generic fallback `IExceptionHandler`.**
-- Add `OrgChartExceptionHandler` (or a generic `UnhandledExceptionHandler`) under `backend/src/Anela.Heblo.API/Infrastructure/ExceptionHandling/` that maps unhandled exceptions originating from the OrgChart endpoint (or globally) to a `ProblemDetails` or `BaseResponse`-shaped 500 with no exception text.
-- Register via `services.AddExceptionHandler<...>()` after `UnauthorizedAccessExceptionHandler`.
-- Remove the controller-level `try/catch`.
-- If the fallback handler produces `ProblemDetails`, FR-1 changes accordingly: the contract advertised in `[ProducesResponseType]` must match what the middleware writes. **A is preferred because it preserves the typed OpenAPI contract; B is acceptable only if applied uniformly across all controllers (out of scope here).**
+### FR-3: Full exception detail is still logged server-side
+The existing `_logger.LogError(ex, ...)` call MUST be preserved so operators retain the diagnostic information that is now removed from the response.
 
 **Acceptance criteria:**
-- The controller no longer contains `new { error = ..., message = ... }` or any anonymous return type.
-- If A is implemented, the controller inherits from `BaseApiController` and uses `HandleResponse(result)`; the `try/catch` block is gone.
-- A new unit test on `GetOrganizationStructureHandler` confirms it returns an `OrgChartResponse` with `Success == false` and `ErrorCode == ErrorCodes.InternalServerError` when `IOrgChartService.GetOrganizationStructureAsync` throws.
-- The existing test `Handle_PropagatesException_WhenServiceThrows` is updated or replaced to match the new contract (handler swallows and converts to error response).
+- Log output for a forced failure contains the full exception (message + stack trace) at `Error` level with the existing message template.
+- No log statements are removed or downgraded in severity.
 
-### FR-4: Preserve 200 success path behavior
-The success path must remain functionally identical: `200 OK` with the populated `OrgChartResponse` (including `Organization.Positions` and nested employees). No DTO shape changes.
+### FR-4: Generated TypeScript client recognizes the error shape
+After regenerating the OpenAPI client, the TypeScript `OrgChartResponse` type MUST include the fields needed to detect and react to the error case (`success`, `errorCode`, `params`).
 
 **Acceptance criteria:**
-- Existing handler test `Handle_ReturnsServiceResponse_WhenServiceSucceeds` continues to pass.
-- A new integration test against the controller confirms `200` + populated body when the mocked `IOrgChartService` returns a non-error `OrgChartResponse`.
+- Running `npm run build` in `frontend/` regenerates `OrgChartResponse` such that `success`, `errorCode`, and `params` are typed properties (matching `BaseResponse`).
+- A frontend caller can branch on `response.success === false` without TypeScript errors.
+
+### FR-5: Existing success path is unchanged
+The success behaviour, status code, and response body of `GetOrganizationStructure` MUST remain bit-for-bit identical to today's output (modulo any field set by `BaseResponse` that is already present).
+
+**Acceptance criteria:**
+- Existing unit/integration tests covering the happy path continue to pass without modification.
+- A snapshot of a successful response before and after the change is byte-identical for the data-bearing fields.
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
-No measurable change. The fix is a pure error-path refactor; the happy path adds zero work.
+No measurable change. The fix is a single allocation swap inside a catch block on the error path; it must not add latency to the success path.
 
 ### NFR-2: Security
-- Eliminate information leakage of configuration values and exception internals (see FR-2).
-- Server-side logs must continue to capture full exception detail via structured logging (`{Url}`, exception object). Do not weaken logging.
-- Aligns with `~/.claude/rules/csharp-security.md` → "Return safe client-facing messages" and "Do not expose stack traces, SQL text, or filesystem paths in API responses".
+- Eliminates information leakage of internal infrastructure URLs and exception text to unauthenticated and authenticated clients alike.
+- Logging policy is unchanged — operators still see full detail server-side.
+- No new secrets, new endpoints, or new authentication surface.
 
-### NFR-3: Consistency
-The controller must follow the same pattern as the other 40+ controllers in `backend/src/Anela.Heblo.API/Controllers/`: inherit from `BaseApiController`, return `BaseResponse`-derived bodies, rely on `HandleResponse<T>` for status-code mapping driven by `[HttpStatusCode]` on `ErrorCodes`.
+### NFR-3: Compatibility
+- HTTP status code (`500`) is unchanged.
+- The generated TypeScript client must continue to compile. Any frontend code currently relying on the `{ error, message }` shape (if it exists) must be updated as part of this change.
 
-### NFR-4: OpenAPI / TypeScript client compatibility
-After the fix, regenerating the TypeScript client must continue to compile and must expose 500 responses with the same `OrgChartResponse` type used for 200 responses.
-
-### NFR-5: Test coverage
-Per `~/.claude/rules/csharp-testing.md`, maintain 80%+ coverage. Add the explicit failure-path test described in FR-3.
+### NFR-4: Consistency
+The endpoint must conform to the project-wide pattern: typed `BaseResponse`-derived DTOs with `Success`/`ErrorCode`/`Params`. No new error-envelope shapes are introduced.
 
 ## Data Model
-No data-model changes. Reuses existing types:
-- `BaseResponse` (`backend/src/Anela.Heblo.Application/Shared/BaseResponse.cs`)
-- `ErrorCodes.InternalServerError = 0010` with `[HttpStatusCode(HttpStatusCode.InternalServerError)]` (`backend/src/Anela.Heblo.Application/Shared/ErrorCodes.cs:32-33`)
-- `OrgChartResponse` and its `(ErrorCodes, Dictionary<string,string>?)` constructor (`OrgChartResponse.cs:17-18`)
+
+No schema changes. Reuses existing types:
+
+- **`OrgChartResponse`** (`backend/src/Anela.Heblo.API/.../OrgChartResponse.cs`) — already inherits the `BaseResponse` family via its existing `(ErrorCodes)` constructor.
+- **`ErrorCodes`** — existing enum; the relevant value is `ServerError` unless a more specific upstream-failure code already exists (see Open Questions).
+- **`BaseResponse`** — existing base class exposing `Success`, `ErrorCode`, `Params`.
 
 ## API / Interface Design
 
-### `GET /api/OrgChart`
-Unchanged route, auth (`[Authorize]`), and success contract.
+### Endpoint (unchanged signature)
+`GET /api/orgchart/structure` — `ActionResult<OrgChartResponse>`
 
-**Response — 200 OK**
-```json
-{
-  "success": true,
-  "errorCode": null,
-  "params": null,
-  "organization": { "name": "...", "positions": [ /* ... */ ] }
-}
+### Success response (unchanged)
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{ "success": true, "errorCode": null, "params": null, ...<existing fields>... }
 ```
 
-**Response — 500 Internal Server Error (NEW shape)**
-```json
-{
-  "success": false,
-  "errorCode": "InternalServerError",
-  "params": null,
-  "organization": { "name": null, "positions": [] }
-}
+### Error response (changed)
+Before:
 ```
-(`errorCode` serialization format — string vs. integer — follows whatever JsonSerializerOptions the API already uses for other `BaseResponse` errors; do not introduce a new convention.)
+HTTP/1.1 500 Internal Server Error
+{ "error": "Failed to fetch organizational structure",
+  "message": "Connection refused to http://internal-sharepoint/..." }
+```
 
-### Controller signature after fix (option A)
+After:
+```
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/json
+
+{ "success": false, "errorCode": "ServerError", "params": null }
+```
+
+### Controller change (illustrative)
 ```csharp
-public class OrgChartController : BaseApiController
+catch (Exception ex)
 {
-    [HttpGet]
-    [ProducesResponseType(typeof(OrgChartResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(OrgChartResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<OrgChartResponse>> GetOrganizationStructure(CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(new GetOrganizationStructureRequest(), cancellationToken);
-        return HandleResponse(result);
-    }
+    _logger.LogError(ex, "Error fetching organizational structure");
+    return StatusCode(StatusCodes.Status500InternalServerError,
+        new OrgChartResponse(ErrorCodes.ServerError));
 }
 ```
 
-### Handler signature after fix (option A)
-```csharp
-public async Task<OrgChartResponse> Handle(GetOrganizationStructureRequest request, CancellationToken ct)
-{
-    try
-    {
-        return await _orgChartService.GetOrganizationStructureAsync(ct);
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error fetching organizational structure");
-        return new OrgChartResponse(ErrorCodes.InternalServerError);
-    }
-}
-```
+### Alternative considered: global exception middleware
+If the project already has global exception-handling middleware that produces a `BaseResponse`-shaped 500 for unhandled exceptions, the preferred change is to **remove the try/catch entirely** and let the middleware handle it. The architect should verify which path the rest of the codebase uses and apply the same.
 
 ## Dependencies
-- `Anela.Heblo.Application.Shared.BaseResponse` and `ErrorCodes` (existing).
-- `Anela.Heblo.API.Controllers.BaseApiController.HandleResponse<T>` (existing).
-- `Microsoft.Extensions.Logging` (existing).
-- OpenAPI / TypeScript client regeneration tooling — see `docs/development/api-client-generation.md` (the OpenAPI TypeScript client is auto-generated on build).
 
-No new packages.
+- `OrgChartResponse` class and its `(ErrorCodes)` constructor — already in place.
+- `ErrorCodes` enum — already in place.
+- OpenAPI client generation pipeline (`npm run build` in `frontend/`) — required to refresh the TypeScript types.
+- (Conditional) global exception-handling middleware, if it exists in the project.
 
 ## Out of Scope
-- Refactoring `OrgChartService` exception strategy (it will keep throwing wrapped `InvalidOperationException`; the handler will catch it).
-- Removing the `_options.DataSourceUrl` interpolation inside `OrgChartService`'s wrapped exception messages — those strings continue to be logged server-side and are no longer forwarded to clients per FR-2.
-- Introducing a global unhandled-exception middleware that replaces all controller-level `try/catch` blocks across the codebase. Other controllers also contain `catch (Exception)` blocks (`SmartsuppWebhookController`, `LeafletController`, `BankStatementsController`, etc.); auditing them is a separate effort.
-- Localization of the new error response. `OrgChartResponse(ErrorCodes.InternalServerError)` will pass `Params = null`; any localization layer already wired to `ErrorCode` continues to work unchanged.
-- Changing the 200-response shape, route, auth, or any DTO fields.
+
+- Refactoring `OrgChartService` exception types or messages.
+- Introducing new `ErrorCodes` enum values beyond what already exists (unless a fitting one is already present and obviously better than `ServerError`).
+- Changes to authentication, authorization, or rate limiting on the endpoint.
+- Audit of other controllers for similar issues (handled separately by the arch-review routine).
+- Frontend UX changes for error display — only the type contract is in scope; visual treatment of the error state is a follow-up if needed.
+- Changes to logging sinks, formats, or correlation IDs.
 
 ## Open Questions
-None.
 
-## Status: COMPLETE
-```
+1. **Global exception middleware**: Does the project already register a global exception handler that converts unhandled exceptions to a typed `BaseResponse`-shaped 500? If yes, the try/catch should be removed entirely instead of replaced. If no, the typed catch-block replacement is the correct change.
+2. **Specific error code**: Is there a more specific `ErrorCodes` value (e.g. `ExternalServiceUnavailable`, `UpstreamFailure`) that better describes a SharePoint fetch failure than the generic `ServerError`? If one exists, prefer it; otherwise default to `ServerError`.
+3. **Frontend consumers**: Does any existing frontend code currently read `error`/`message` fields from the 500 response? If yes, those call sites need to be updated to read `success`/`errorCode` instead. (A quick repo-wide search for `"Failed to fetch organizational structure"` and consumers of the orgchart endpoint should answer this.)
+
+## Status: HAS_QUESTIONS
