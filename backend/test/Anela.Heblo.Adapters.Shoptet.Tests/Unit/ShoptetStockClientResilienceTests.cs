@@ -134,6 +134,32 @@ public class ShoptetStockClientResilienceTests
         calls.Should().Be(1, "caller cancellation must not trigger retries");
     }
 
+    [Fact]
+    public async Task ListAsync_AbortsRequest_WhenPerAttemptTimeoutExceeded()
+    {
+        // Arrange — per-attempt timeout = 1s (from BuildProvider config); handler sleeps 5s.
+        var calls = 0;
+        var provider = BuildProvider(async (req, ct) =>
+        {
+            calls++;
+            await Task.Delay(TimeSpan.FromSeconds(5), ct);
+            return CsvOk();
+        });
+        var client = provider.GetRequiredService<IEshopStockClient>();
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        // Act
+        Func<Task> act = async () => await client.ListAsync(CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<Exception>(); // either HttpRequestException or TimeoutRejectedException
+        stopwatch.Stop();
+        // 1 initial attempt @ 1s + 3 retries @ 1s + backoff (0s) = ~4s — must complete in < 10s.
+        stopwatch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(10));
+        calls.Should().BeGreaterThan(1, "timeouts should be classified transient and retried");
+    }
+
     private sealed class CapturingLoggerProvider : Microsoft.Extensions.Logging.ILoggerProvider
     {
         public readonly List<string> Lines = new();
