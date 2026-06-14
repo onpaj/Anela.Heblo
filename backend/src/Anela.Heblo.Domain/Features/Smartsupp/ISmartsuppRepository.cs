@@ -22,6 +22,9 @@ public interface ISmartsuppRepository
         SmartsuppContact contact,
         CancellationToken cancellationToken);
 
+    Task<List<string>> ListOrphanContactConversationIdsAsync(
+        CancellationToken cancellationToken);
+
     Task UpsertConversationAsync(
         SmartsuppConversation conversation,
         CancellationToken cancellationToken);

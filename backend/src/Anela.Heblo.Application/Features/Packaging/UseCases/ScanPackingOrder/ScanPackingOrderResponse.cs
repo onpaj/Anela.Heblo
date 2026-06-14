@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Shared;
 
@@ -34,7 +33,7 @@ public class ScanOrderData
     public string? EshopNote { get; set; }
     public ShippingAddress? ShippingAddress { get; set; }
     public ScanOrderEligibility Eligibility { get; set; } = null!;
-    public List<PackingOrderItem> Items { get; set; } = [];
+    public List<ScanPackingOrderItemDto> Items { get; set; } = [];
 }
 
 public class ShippingAddress
@@ -56,11 +55,11 @@ public class ScanShipmentData
     public Guid ShipmentGuid { get; set; }
     public List<ScanShipmentPackage> Packages { get; set; } = [];
     public bool AlreadyExisted { get; set; }
+    public bool PendingCompletion { get; set; }
 }
 
 public class ScanShipmentPackage
 {
-    public string Name { get; set; } = null!;
     public string? TrackingNumber { get; set; }
     public string? LabelUrl { get; set; }
     public string? LabelZpl { get; set; }

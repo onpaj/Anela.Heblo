@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Article;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Client;
 
 namespace Anela.Heblo.Application.Features.Article.Admin;
 
@@ -34,7 +35,32 @@ public sealed class BackfillArticleRequestedByHandler
                 new Dictionary<string, string> { { "field", "GroupId" } });
         }
 
-        var members = await _userResolver.ResolveByGroupAsync(request.GroupId, ct);
+        IReadOnlyList<ArticleUserMatch> members;
+        try
+        {
+            members = await _userResolver.ResolveByGroupAsync(request.GroupId, ct);
+        }
+        catch (MsalException ex)
+        {
+            _logger.LogError(ex, "Graph token acquisition failed for backfill of group {GroupId}", request.GroupId);
+            return new BackfillArticleRequestedByResponse(ErrorCodes.ConfigurationError);
+        }
+        catch (Microsoft.Graph.Models.ODataErrors.ODataError ex)
+        {
+            _logger.LogError(ex, "Graph OData error during backfill for group {GroupId}", request.GroupId);
+            return new BackfillArticleRequestedByResponse(ErrorCodes.ExternalServiceError);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogError(ex, "Graph access denied during backfill for group {GroupId}", request.GroupId);
+            return new BackfillArticleRequestedByResponse(ErrorCodes.Forbidden);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during backfill for group {GroupId}", request.GroupId);
+            return new BackfillArticleRequestedByResponse(ErrorCodes.InternalServerError);
+        }
+
         var byDisplayName = members
             .GroupBy(m => m.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);

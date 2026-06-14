@@ -1,169 +1,134 @@
-# Specification: Encapsulate Replace Semantics for JournalEntry Collections
+# Specification: Encapsulate JournalEntry update in domain method
 
 ## Summary
-Replace the raw `.Clear()` + per-item add pattern in `UpdateJournalEntryHandler` with two new domain methods on `JournalEntry`: `ReplaceProductAssociations(IEnumerable<string>)` and `ReplaceTagAssignments(IEnumerable<int>)`. This restores tell-don't-ask encapsulation, eliminates the inconsistency between the create and update paths, and centralizes invariant enforcement for both add and remove flows.
+Refactor `JournalEntry` update logic so the entity owns its own audit-trail bookkeeping and input normalisation, mirroring the existing `SoftDelete` pattern. The `UpdateJournalEntryHandler` will be reduced to orchestration only (load, authorize, call domain method, persist).
 
 ## Background
-`UpdateJournalEntryHandler.Handle` (lines 62–80) directly mutates the `ProductAssociations` and `TagAssignments` navigation collections by calling `.Clear()` on them before re-adding items through the existing `AssociateWithProduct`/`AssignTag` domain methods. `CreateJournalEntryHandler` routes 100% of mutations through domain methods. The asymmetry means:
+The `JournalEntry` aggregate already encapsulates audit-trail bookkeeping for deletion via `SoftDelete(userId, username)` at `backend/src/Anela.Heblo.Domain/Features/Journal/JournalEntry.cs:153`. However, the `UpdateJournalEntryHandler` at `backend/src/Anela.Heblo.Application/Features/Journal/UseCases/UpdateJournalEntry/UpdateJournalEntryHandler.cs:51-59` directly mutates `Title`, `Content`, `EntryDate`, `ModifiedAt`, `ModifiedByUserId`, and `ModifiedByUsername` from the application layer. It also performs input normalisation (`Trim()`, `.Date`) outside the entity.
 
-- Any future removal invariant (audit, validation, side effect) would need to be applied in both the handler and the entity.
-- The handler violates tell-don't-ask by reaching into the aggregate's internal collections.
-- EF Core change-tracking for owned/related collections is brittle when cleared directly — future cascade or tracking changes could surface as silent data bugs.
+This split has two concrete consequences:
+1. Audit-trail rules are duplicated across layers — the entity owns them for deletion, the handler owns them for updates.
+2. Future invariants (e.g. "only the original author may edit", "content may not be blank", "EntryDate cannot be in the future") would land in the handler rather than the entity, drifting further from the Clean Architecture / DDD pattern this codebase already establishes for the same aggregate.
 
-The fix is small, surgical, and confined to the Journal aggregate and one handler. The domain entity already has the templates (`AssociateWithProduct`, `AssignTag`) that the new methods mirror.
+The fix is small, low-risk, and aligns the update path with the deletion path.
 
 ## Functional Requirements
 
-### FR-1: Add `ReplaceProductAssociations` domain method to `JournalEntry`
-A new public instance method on `Anela.Heblo.Domain.Features.Journal.JournalEntry` that accepts a collection of product identifiers and atomically updates `ProductAssociations` to exactly match that collection.
+### FR-1: Add `Update` domain method to `JournalEntry`
+Introduce a new instance method on `JournalEntry` that performs all field changes and audit-trail bookkeeping atomically.
 
 **Signature:**
 ```csharp
-public void ReplaceProductAssociations(IEnumerable<string>? productCodes)
+public void Update(string? title, string content, DateTime entryDate, string userId, string username)
 ```
 
-**Behavior:**
-- A `null` or empty input clears all existing associations.
-- Input is de-duplicated (case-insensitive, after trim/upper) before comparison.
-- Each non-null, non-whitespace product code is normalized with `Trim().ToUpperInvariant()`, matching the existing rule in `AssociateWithProduct`.
-- Whitespace-only or empty codes trigger `ArgumentException`, matching the per-item guard in `AssociateWithProduct`.
-- Associations not present in the new set are removed.
-- Associations already present (matched by `ProductCodePrefix` after normalization) are left in place — no churn on unchanged items, so `CreatedAt` is preserved and EF tracking is not unnecessarily disturbed.
-- New associations are added via the same construction path used by `AssociateWithProduct` (sets `JournalEntryId` and normalized `ProductCodePrefix`).
+**Behaviour:**
+- Assign `Title` from the trimmed value of `title` (null-preserving: if `title` is null, `Title` becomes null).
+- Assign `Content` from the trimmed value of `content`.
+- Assign `EntryDate` from `entryDate.Date` (time component stripped).
+- Set `ModifiedAt` to `DateTime.UtcNow`.
+- Set `ModifiedByUserId` to `userId`.
+- Set `ModifiedByUsername` to `username`.
+- Do **not** mutate creation-audit fields (`CreatedAt`, `CreatedByUserId`, `CreatedByUsername`) or deletion fields (`IsDeleted`, `DeletedAt`, `DeletedByUserId`, `DeletedByUsername`).
+- Style and placement should mirror `SoftDelete` in the same file.
 
 **Acceptance criteria:**
-- Calling with `null` empties `ProductAssociations`.
-- Calling with `[]` empties `ProductAssociations`.
-- Calling with `["AB-1", "ab-1", " AB-1 "]` results in exactly one association with `ProductCodePrefix = "AB-1"`.
-- Calling with `["X"]` on an entry that already has `["X", "Y"]` removes `Y`, retains the existing `X` instance (object reference preserved), and adds no duplicate.
-- Calling with `[" "]` throws `ArgumentException`.
+- Method exists on `JournalEntry` with the signature above.
+- After calling `entry.Update(...)`, all six listed fields reflect the new values and the three audit fields are updated.
+- `CreatedAt`, `CreatedByUserId`, `CreatedByUsername`, and all deletion fields are unchanged by `Update`.
+- A unit test covers the happy path (all fields set, audit trail recorded).
+- A unit test covers `title == null` (resulting `Title` is null, no `NullReferenceException`).
+- A unit test covers trimming for both `title` (with surrounding whitespace) and `content`.
+- A unit test covers `entryDate` time-stripping (passing `2026-06-04 14:30:00` results in `2026-06-04 00:00:00`).
 
-### FR-2: Add `ReplaceTagAssignments` domain method to `JournalEntry`
-A new public instance method that accepts a collection of tag IDs and atomically updates `TagAssignments` to exactly match that collection.
-
-**Signature:**
-```csharp
-public void ReplaceTagAssignments(IEnumerable<int>? tagIds)
-```
-
-**Behavior:**
-- A `null` or empty input clears all existing tag assignments.
-- Input is de-duplicated.
-- Assignments not present in the new set are removed.
-- Assignments already present (matched by `TagId`) are retained (instance preserved).
-- New assignments are constructed via the same path as `AssignTag` (sets `JournalEntryId` and `TagId`).
+### FR-2: Replace direct field assignments in `UpdateJournalEntryHandler`
+Replace the block at `UpdateJournalEntryHandler.cs:51-59` (the seven-line sequence beginning with `var now = DateTime.UtcNow;` through `entry.ModifiedByUsername = ...`) with a single call to `entry.Update(request.Title, request.Content, request.EntryDate, currentUser.Id, currentUser.Name ?? "Unknown User")`.
 
 **Acceptance criteria:**
-- Calling with `null` empties `TagAssignments`.
-- Calling with `[1, 1, 2]` leaves assignments for exactly `{1, 2}`.
-- Calling with `[1]` on an entry with `{1, 2}` removes the assignment for `2` and retains the existing `TagId == 1` instance.
-- No validation on tag-existence is performed in the domain method (consistent with the existing `AssignTag`, which also does not verify the tag row exists).
+- The handler no longer reads or writes `ModifiedAt`, `ModifiedByUserId`, `ModifiedByUsername`, `Title`, `Content`, or `EntryDate` directly.
+- The handler still performs all surrounding work it did before: loading the entity by id, authorization / not-found checks, persisting via the repository / unit-of-work, returning the response DTO.
+- The `"Unknown User"` fallback for a missing `currentUser.Name` is preserved (kept in the handler, since it is application-layer policy about how identity is presented).
+- The local `var now = DateTime.UtcNow;` is removed if no longer needed; if other code in the handler still uses it, it is retained.
+- All existing handler-level tests continue to pass without modification beyond test-double / mock setup adjustments required by the call-site change.
 
-### FR-3: Update `UpdateJournalEntryHandler` to use the new domain methods
-Replace lines 61–80 of `UpdateJournalEntryHandler.cs` with two calls:
-
-```csharp
-entry.ReplaceProductAssociations(request.AssociatedProducts);
-entry.ReplaceTagAssignments(request.TagIds);
-```
-
-The handler no longer touches `ProductAssociations` or `TagAssignments` directly.
+### FR-3: Preserve observable behaviour
+The refactor must be behaviour-preserving from the API consumer's perspective.
 
 **Acceptance criteria:**
-- The handler file no longer references `.Clear()` on `ProductAssociations` or `TagAssignments`.
-- The handler file no longer iterates `request.AssociatedProducts` or `request.TagIds` directly.
-- Behavior observed via the existing PUT endpoint (`PUT /api/journal/{id}` or equivalent) is unchanged for typical inputs: passing a list replaces the set; passing `null` clears it.
-
-### FR-4: Unit-test coverage for the new domain methods
-Add xUnit tests in `backend/test/Anela.Heblo.Tests/Features/Journal/` (new file, e.g. `JournalEntryDomainTests.cs`) covering both methods.
-
-**Acceptance criteria — `ReplaceProductAssociations`:**
-- Replacing with `null` clears existing associations.
-- Replacing with empty collection clears existing associations.
-- Replacing with a superset adds the new codes.
-- Replacing with a disjoint set removes the old codes.
-- Replacing with overlapping codes preserves the existing instance reference for unchanged items.
-- De-duplication is case-insensitive and whitespace-insensitive.
-- Whitespace-only entries throw `ArgumentException`.
-
-**Acceptance criteria — `ReplaceTagAssignments`:**
-- Replacing with `null` clears existing assignments.
-- Replacing with empty collection clears existing assignments.
-- Replacing with a superset adds the new IDs.
-- Replacing with a disjoint set removes the old IDs.
-- Replacing with overlapping IDs preserves the existing instance reference.
-- Duplicate IDs in input are collapsed.
-
-### FR-5: Handler test coverage
-If unit tests for `UpdateJournalEntryHandler` exist, update them to verify behavior via the new domain methods (i.e. set up an entry with prior associations and assert replacement semantics through the handler). If none exist, do not introduce a new test project — handler behavior is exercised indirectly by the domain tests.
-
-**Acceptance criteria:**
-- Existing tests still pass.
-- No new test infrastructure is introduced.
+- Request DTO, response DTO, HTTP route, status codes, and validation error shapes are unchanged.
+- Persisted column values for an update are byte-for-byte equivalent to the pre-refactor implementation given the same input (modulo `DateTime.UtcNow` drift).
+- No new public API surface is added beyond the `JournalEntry.Update` method.
+- No database migration is required.
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
-- Replace operations are O(n + m) where n = existing count, m = incoming count. Journal entries have a small number of associations and tags in practice (single-digit to low-double-digit), so set-difference using `HashSet<T>` is acceptable and preferred over nested loops.
-- No additional database round-trips are introduced. EF change tracking should detect removal of the unwanted child rows and insertion of new ones via the existing `UpdateAsync`/`SaveChangesAsync` flow.
+No measurable change. The refactor moves six assignments and two `Trim()` calls from one layer to another. No new allocations, queries, or I/O.
 
 ### NFR-2: Security
-- No change to the authentication/authorization model. The existing `currentUser.IsAuthenticated` check in the handler remains.
-- No new user input is accepted; the contract of `UpdateJournalEntryRequest` is unchanged.
+No change to auth, input validation, or data exposure. The handler retains responsibility for authorization and for resolving the current user; the entity only records what it is told.
 
-### NFR-3: Backwards compatibility
-- Public API contract (`UpdateJournalEntryRequest`/`UpdateJournalEntryResponse`) is unchanged.
-- Database schema is unchanged.
-- Observable behavior of `PUT` is unchanged for all valid inputs already accepted today.
+### NFR-3: Maintainability
+After the refactor, any future update-time invariant or normalisation rule must be added to `JournalEntry.Update` rather than to the handler. This is the principal goal of the change.
 
-### NFR-4: Code quality
-- Domain methods must follow the same coding style as existing `AssociateWithProduct`/`AssignTag`: `[`guard clauses → existence check → mutation`]`.
-- `dotnet build` and `dotnet format` must pass.
-- All journal-related tests must pass.
+### NFR-4: Test coverage
+Per project standards (`~/.claude/rules/testing.md`), maintain ≥80% coverage on touched files. Both `JournalEntry` and `UpdateJournalEntryHandler` must retain or improve their existing coverage after the change.
 
 ## Data Model
-
-No schema changes. Affected entities:
-
-- `JournalEntry` (1) — gains two methods, no property/field changes.
-- `JournalEntryProduct` (n) — owned child; lifecycle continues to be managed via parent's navigation collection.
-- `JournalEntryTagAssignment` (n) — owned child; same.
-
-Relationships and EF mappings are unchanged.
+No schema changes. Existing `JournalEntry` columns continue to be used:
+- `Title` (nullable string)
+- `Content` (string)
+- `EntryDate` (date)
+- `ModifiedAt` (UTC timestamp)
+- `ModifiedByUserId` (string)
+- `ModifiedByUsername` (string)
 
 ## API / Interface Design
 
-### Domain (new public methods on `JournalEntry`)
+### Domain (new)
 ```csharp
-public void ReplaceProductAssociations(IEnumerable<string>? productCodes);
-public void ReplaceTagAssignments(IEnumerable<int>? tagIds);
+// backend/src/Anela.Heblo.Domain/Features/Journal/JournalEntry.cs
+public void Update(string? title, string content, DateTime entryDate, string userId, string username)
+{
+    Title = title?.Trim();
+    Content = content.Trim();
+    EntryDate = entryDate.Date;
+    ModifiedAt = DateTime.UtcNow;
+    ModifiedByUserId = userId;
+    ModifiedByUsername = username;
+}
+```
+Placed adjacent to `SoftDelete` for discoverability.
+
+### Application (changed call site)
+```csharp
+// backend/src/Anela.Heblo.Application/Features/Journal/UseCases/UpdateJournalEntry/UpdateJournalEntryHandler.cs
+entry.Update(
+    request.Title,
+    request.Content,
+    request.EntryDate,
+    currentUser.Id,
+    currentUser.Name ?? "Unknown User");
 ```
 
-### Application handler (changed body, unchanged signature)
-`UpdateJournalEntryHandler.Handle` retains its signature; the replace blocks become two method calls.
-
 ### HTTP API
-Unchanged. `PUT /api/journal/{id}` (or whichever route maps to `UpdateJournalEntryRequest`) continues to accept the same payload.
+Unchanged.
 
 ## Dependencies
-
-- `Anela.Heblo.Domain.Features.Journal.JournalEntry`
-- `Anela.Heblo.Application.Features.Journal.UseCases.UpdateJournalEntry.UpdateJournalEntryHandler`
-- `Anela.Heblo.Tests` project for new unit tests
-- No new NuGet packages, no new abstractions, no new DI registrations.
+- `Anela.Heblo.Domain.Features.Journal.JournalEntry` (modified)
+- `Anela.Heblo.Application.Features.Journal.UseCases.UpdateJournalEntry.UpdateJournalEntryHandler` (modified)
+- Existing unit tests for both classes (added to / kept green)
+- No new packages, services, or configuration
 
 ## Out of Scope
-
-- Refactoring `AssociateWithProduct` or `AssignTag` themselves.
-- Validating that supplied `tagId` values exist in the `JournalEntryTag` table (current `AssignTag` does not validate either; behavioral parity is intentional).
-- Adding audit-trail entries for removed associations/assignments (no existing audit mechanism on these child entities).
-- Introducing a domain event for replace operations.
-- Changing the `CreateJournalEntryHandler` (already correctly delegates to domain methods).
-- Restricting edit permissions to the original author (explicitly left as a future concern in the handler comment).
-- Front-end changes.
+- Adding new invariants (e.g. "only original author may edit", "content non-empty", "EntryDate not in future"). The refactor enables these but does not introduce them.
+- Refactoring other handlers in the Journal module (e.g. `CreateJournalEntryHandler`) to a similar pattern. Out of scope unless the architecture review separately flags them.
+- Changing input validation (currently performed by FluentValidation / request DTO validators).
+- Renaming or repurposing the existing `SoftDelete` method.
+- Database schema changes or migrations.
+- Changes to the OpenAPI-generated client.
 
 ## Open Questions
-
 None.
 
 ## Status: COMPLETE

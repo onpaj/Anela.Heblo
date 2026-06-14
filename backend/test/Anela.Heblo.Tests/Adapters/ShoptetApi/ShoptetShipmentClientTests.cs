@@ -262,6 +262,204 @@ public class ShoptetShipmentClientTests
     }
 
     [Fact]
+    public async Task GetLatestActiveTrackingNumberAsync_ReturnsTrackingFromLatestActiveShipment_ExcludingDeadStatuses()
+    {
+        // Arrange — mirrors order 126000035: older cancelled shipments carry tracking,
+        // the latest 'created' shipment is the one whose tracking should be backfilled.
+        // All packages share the name "Vlastní balení" (non-unique), proving the match
+        // is by shipment, not by package name.
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                items = new[]
+                {
+                    new
+                    {
+                        guid = Guid.NewGuid(),
+                        orderCode = "126000035",
+                        status = "deleted",
+                        packages = new[] { new { name = "Vlastní balení", trackingNumber = (string?)null } },
+                    },
+                    new
+                    {
+                        guid = Guid.NewGuid(),
+                        orderCode = "126000035",
+                        status = "canceled",
+                        packages = new[] { new { name = "Vlastní balení", trackingNumber = (string?)"70603624111" } },
+                    },
+                    new
+                    {
+                        guid = Guid.NewGuid(),
+                        orderCode = "126000035",
+                        status = "created",
+                        packages = new[] { new { name = "Vlastní balení", trackingNumber = (string?)"70603624124" } },
+                    },
+                },
+            },
+            errors = Array.Empty<object>(),
+        }));
+
+        // Act
+        var result = await client.GetLatestActiveTrackingNumberAsync("126000035");
+
+        // Assert
+        result.Should().Be("70603624124");
+    }
+
+    [Fact]
+    public async Task GetLatestActiveTrackingNumberAsync_ReturnsLastActiveShipment_WhenMultipleActive()
+    {
+        // Arrange — two active shipments; the latest (last in Shoptet's oldest-first order) wins.
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                items = new[]
+                {
+                    new
+                    {
+                        guid = Guid.NewGuid(),
+                        orderCode = "0001234",
+                        status = "created",
+                        packages = new[] { new { name = "Vlastní balení", trackingNumber = (string?)"TRK-OLDER" } },
+                    },
+                    new
+                    {
+                        guid = Guid.NewGuid(),
+                        orderCode = "0001234",
+                        status = "created",
+                        packages = new[] { new { name = "Vlastní balení", trackingNumber = (string?)"TRK-LATEST" } },
+                    },
+                },
+            },
+            errors = Array.Empty<object>(),
+        }));
+
+        // Act
+        var result = await client.GetLatestActiveTrackingNumberAsync("0001234");
+
+        // Assert
+        result.Should().Be("TRK-LATEST");
+    }
+
+    [Fact]
+    public async Task GetLatestActiveTrackingNumberAsync_ReturnsNull_WhenLatestActiveShipmentHasNoTrackingYet()
+    {
+        // Arrange — latest active shipment is still 'requested' with no tracking; an older
+        // cancelled shipment has tracking but must NOT be used (it's a dead label).
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                items = new[]
+                {
+                    new
+                    {
+                        guid = Guid.NewGuid(),
+                        orderCode = "0001234",
+                        status = "canceled",
+                        packages = new[] { new { name = "Vlastní balení", trackingNumber = (string?)"TRK-DEAD" } },
+                    },
+                    new
+                    {
+                        guid = Guid.NewGuid(),
+                        orderCode = "0001234",
+                        status = "requested",
+                        packages = new[] { new { name = "Vlastní balení", trackingNumber = (string?)null } },
+                    },
+                },
+            },
+            errors = Array.Empty<object>(),
+        }));
+
+        // Act
+        var result = await client.GetLatestActiveTrackingNumberAsync("0001234");
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetLatestActiveTrackingNumberAsync_ReturnsFirstNonEmptyTracking_WhenLatestActiveHasMultiplePackages()
+    {
+        // Arrange — latest active shipment has several packages; the first carries no tracking yet.
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                items = new[]
+                {
+                    new
+                    {
+                        guid = Guid.NewGuid(),
+                        orderCode = "0001234",
+                        status = "created",
+                        packages = new[]
+                        {
+                            new { name = "Vlastní balení", trackingNumber = (string?)null },
+                            new { name = "Vlastní balení", trackingNumber = (string?)"TRK-SECOND" },
+                        },
+                    },
+                },
+            },
+            errors = Array.Empty<object>(),
+        }));
+
+        // Act
+        var result = await client.GetLatestActiveTrackingNumberAsync("0001234");
+
+        // Assert
+        result.Should().Be("TRK-SECOND");
+    }
+
+    [Fact]
+    public async Task GetLatestActiveTrackingNumberAsync_ReturnsNull_WhenNoShipments()
+    {
+        // Arrange
+        var client = BuildClient(_ => Json(new
+        {
+            data = new { items = Array.Empty<object>() },
+            errors = Array.Empty<object>(),
+        }));
+
+        // Act
+        var result = await client.GetLatestActiveTrackingNumberAsync("0001234");
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetLatestActiveTrackingNumberAsync_ReturnsNull_WhenAllShipmentsAreDead()
+    {
+        // Arrange
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                items = new[]
+                {
+                    new
+                    {
+                        guid = Guid.NewGuid(),
+                        orderCode = "0001234",
+                        status = "canceled",
+                        packages = new[] { new { name = "Vlastní balení", trackingNumber = (string?)"TRK-DEAD" } },
+                    },
+                },
+            },
+            errors = Array.Empty<object>(),
+        }));
+
+        // Act
+        var result = await client.GetLatestActiveTrackingNumberAsync("0001234");
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
     public async Task GetShippingOptionsAsync_WithOptions_ReturnsMappedList()
     {
         // Arrange

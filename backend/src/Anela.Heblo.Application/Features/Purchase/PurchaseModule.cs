@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Purchase.Services;
 using Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 using Anela.Heblo.Domain.Features.Purchase;
+using Anela.Heblo.Persistence.Purchase.PurchaseOrders;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,9 @@ public static class PurchaseModule
     public static IServiceCollection AddPurchaseModule(this IServiceCollection services)
     {
         services.AddScoped<IPurchaseOrderNumberGenerator, PurchaseOrderNumberGenerator>();
+
+        // Repository (implementation lives in the Persistence layer)
+        services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
 
         // Register stock severity calculator
         services.AddScoped<IStockSeverityCalculator, StockSeverityCalculator>();

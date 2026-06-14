@@ -11,6 +11,7 @@ import {
 import type { SearchJournalEntryDto } from "../../../../api/generated/api-client";
 import { useJournalEntriesByProduct } from "../../../../api/hooks/useJournal";
 import { format } from "date-fns";
+import { truncateContent } from "../../../pages/Journal/journalPreview";
 
 interface JournalTabProps {
   productCode: string;
@@ -104,7 +105,7 @@ const JournalTab: React.FC<JournalTabProps> = ({
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 line-clamp-2">
-                    {entry.contentPreview}
+                    {truncateContent(entry.content!)}
                   </p>
                   {entry.tags && entry.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">

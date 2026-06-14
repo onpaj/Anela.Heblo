@@ -4,7 +4,6 @@ using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Anela.Heblo.Tests.Application.ShoptetOrders;
@@ -13,10 +12,9 @@ public class GetPackingOrderHandlerTests
 {
     private readonly Mock<IPackingOrderClient> _clientMock = new();
 
-    private GetPackingOrderHandler CreateHandler(int packingStateId = 26) =>
+    private GetPackingOrderHandler CreateHandler() =>
         new(
             _clientMock.Object,
-            Options.Create(new ShoptetOrdersSettings { PackingStateId = packingStateId }),
             NullLogger<GetPackingOrderHandler>.Instance);
 
     [Fact]
@@ -32,8 +30,12 @@ public class GetPackingOrderHandlerTests
                 Cooling = Cooling.L1,
                 IsCooled = true,
                 StatusId = 26,
+                IsEligibleForPacking = true,
                 CustomerNote = "Zabalit jako dárek",
                 EshopNote = "Stálý zákazník",
+                ShippingStreet = "Hlavní 123/4",
+                ShippingCity = "Praha",
+                ShippingZip = "110 00",
                 Items = new List<PackingOrderItem>
                 {
                     new() { Name = "Krém", Quantity = 2, ImageUrl = "https://img/p.jpg" },
@@ -51,6 +53,9 @@ public class GetPackingOrderHandlerTests
         response.IsCooled.Should().BeTrue();
         response.CustomerNote.Should().Be("Zabalit jako dárek");
         response.EshopNote.Should().Be("Stálý zákazník");
+        response.ShippingStreet.Should().Be("Hlavní 123/4");
+        response.ShippingCity.Should().Be("Praha");
+        response.ShippingZip.Should().Be("110 00");
         response.Items.Should().ContainSingle().Which.Name.Should().Be("Krém");
     }
 
@@ -65,6 +70,7 @@ public class GetPackingOrderHandlerTests
                 CustomerName = "Jan Novák",
                 ShippingMethodName = "PPL",
                 StatusId = 26,
+                IsEligibleForPacking = true,
                 Items = [],
             });
 
@@ -75,6 +81,9 @@ public class GetPackingOrderHandlerTests
         result.Eligibility.IsEligible.Should().BeTrue();
         result.Eligibility.WarningTitle.Should().BeNull();
         result.Eligibility.WarningBody.Should().BeNull();
+        result.ShippingStreet.Should().BeNull();
+        result.ShippingCity.Should().BeNull();
+        result.ShippingZip.Should().BeNull();
     }
 
     [Fact]
@@ -88,6 +97,7 @@ public class GetPackingOrderHandlerTests
                 CustomerName = "Jana Nováková",
                 ShippingMethodName = "PPL",
                 StatusId = 99,
+                IsEligibleForPacking = false,
                 Items = [],
             });
 
@@ -96,7 +106,7 @@ public class GetPackingOrderHandlerTests
 
         result.Success.Should().BeTrue();
         result.Eligibility.IsEligible.Should().BeFalse();
-        result.Eligibility.WarningTitle.Should().Be("Objednávka není ve stavu „Balí se“");
+        result.Eligibility.WarningTitle.Should().Be("Objednávka není ve stavu „Balí se”");
         result.Eligibility.WarningBody.Should().Be("Tuto objednávku nezpracovávejte, dokud nebude ve správném stavu.");
     }
 
@@ -127,5 +137,18 @@ public class GetPackingOrderHandlerTests
 
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
+    }
+
+    [Fact]
+    public void PackingOrderItemDto_HasExactlyTheFourPublicFields_AndNoWeightGrams()
+    {
+        var properties = typeof(PackingOrderItemDto)
+            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Select(p => p.Name)
+            .ToHashSet();
+
+        properties.Should().BeEquivalentTo(new[] { "Name", "Quantity", "ImageUrl", "SetName" },
+            "PackingOrderItemDto must not expose internal fields such as WeightGrams to API clients.");
+        typeof(PackingOrderItemDto).GetProperty("WeightGrams").Should().BeNull();
     }
 }

@@ -240,11 +240,14 @@ jobs:
               ]
             }')
 
-          # Make the API call
+          # Make the API call (write payload to file to avoid ARG_MAX limit)
+          PAYLOAD_FILE=$(mktemp)
+          echo "$REQUEST_PAYLOAD" > "$PAYLOAD_FILE"
           RESPONSE=$(curl -s -w "\n%{http_code}" https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-            -d "$REQUEST_PAYLOAD")
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -d "@$PAYLOAD_FILE")
+          rm -f "$PAYLOAD_FILE"
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           RESPONSE_BODY=$(echo "$RESPONSE" | head -n -1)
@@ -390,6 +393,7 @@ jobs:
             REACT_APP_AZURE_AUTHORITY=${{ secrets.REACT_APP_AZURE_AUTHORITY }}
             REACT_APP_AZURE_BACKEND_CLIENT_ID=${{ secrets.REACT_APP_AZURE_BACKEND_CLIENT_ID }}
             REACT_APP_AZURE_TENANT_ID=${{ secrets.REACT_APP_AZURE_TENANT_ID }}
+            REACT_APP_AI_CONNECTION_STRING=${{ secrets.REACT_APP_AI_CONNECTION_STRING }}
 
       - name: 📝 Build Summary
         run: |

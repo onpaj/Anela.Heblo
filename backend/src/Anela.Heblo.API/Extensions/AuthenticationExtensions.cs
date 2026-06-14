@@ -2,6 +2,7 @@ using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Domain.Features.Configuration;
@@ -104,19 +105,18 @@ public static class AuthenticationExtensions
     {
         services.AddAuthorization(options =>
         {
-            // Default policy requires HebloUser role for all endpoints with [Authorize]
             options.DefaultPolicy = new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
-                .RequireRole(AuthorizationConstants.Roles.HebloUser)
+                .RequireRole(AccessRoles.Base)
                 .Build();
-
-            options.AddPolicy(AuthorizationConstants.Policies.KnowledgeBaseUpload, policy =>
-                policy.RequireAuthenticatedUser()
-                      .RequireRole(AuthorizationConstants.Roles.SuperUser));
-
-            options.AddPolicy(AuthorizationConstants.Policies.MarketingReader, policy =>
-                policy.RequireAuthenticatedUser()
-                      .RequireRole(AuthorizationConstants.Roles.MarketingReader));
+            options.AddPolicy("AuthenticatedUser", p => p.RequireAuthenticatedUser());
+            // Per-feature gating is expressed via [Authorize(Roles = …)] on controllers/actions.
         });
+
+        services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, PermissionClaimsTransformation>();
+
+        // Replace the bare 403 from the authorization middleware with a structured body naming the
+        // missing permission(s). Covers both mock and real auth — both call this method.
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, PermissionAuthorizationResultHandler>();
     }
 }

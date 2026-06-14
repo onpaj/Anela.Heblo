@@ -1,0 +1,1 @@
+All 5 `FinancialAnalysisServiceTests` pass (including the new FR-4 characterization test). The implementation is complete and fully verified.

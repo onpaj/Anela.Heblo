@@ -1,206 +1,200 @@
-I have enough context. Now I will write the architecture review.
+I have enough context. Writing the architecture review now.
 
-# Architecture Review: Encapsulate Replace Semantics for JournalEntry Collections
+```markdown
+# Architecture Review: Encapsulate JournalEntry update in domain method
 
 ## Skip Design: true
 
-(Pure backend refactor — no UI, no API contract change, no schema change.)
+Backend-only refactor. No UI/UX surface area, no new visual components, no public API contract change. Design phase is not required.
 
 ## Architectural Fit Assessment
 
-The change is **strongly aligned with existing patterns** and is in fact a correction of a localized drift away from them:
+This change aligns cleanly with the established conventions of this codebase:
 
-- The codebase follows **Clean Architecture + Vertical Slice** (`Domain → Application → Persistence → API`) with MediatR handlers in `UseCases/*`. Domain entities under `Anela.Heblo.Domain/Features/Journal/` are rich models that own their invariants.
-- `JournalEntry` already exposes intent-revealing methods (`AssociateWithProduct`, `AssignTag`, `SoftDelete`, `IsAssociatedWithProduct`). Adding `ReplaceProductAssociations` / `ReplaceTagAssignments` mirrors that style exactly.
-- `CreateJournalEntryHandler` already routes 100% of mutations through domain methods; `UpdateJournalEntryHandler` is the lone deviation. This change restores symmetry.
-- No new abstractions, DI registrations, NuGet packages, migrations, or contract changes are required. Integration points are: (a) `JournalEntry` entity, (b) `UpdateJournalEntryHandler`, (c) a new test file in `Anela.Heblo.Tests/Features/Journal/`.
+- **Clean Architecture / Vertical Slice.** `JournalEntry` lives in `Anela.Heblo.Domain/Features/Journal/`. The Application layer (`UpdateJournalEntryHandler`) orchestrates use cases via MediatR. Moving audit-trail bookkeeping from the handler into the entity *strengthens* this separation — currently the handler reaches across the boundary to mutate audit fields, which violates the "behaviour belongs in entities" rule explicitly called out in `docs/architecture/development_guidelines.md:241` ("Don't create anemic domain models — Put behaviour in entities").
+- **Mirrors `SoftDelete`.** `JournalEntry.SoftDelete(string userId, string username)` at `JournalEntry.cs:153` already encapsulates the same audit-trail concern for deletion. Adding `Update` adjacent to it gives a single, discoverable home for "what happens when someone modifies a journal entry."
+- **No friction with persistence.** The `JournalEntryConfiguration` (EF Core) maps the same six fields the new method will set. EF change tracking will pick up the mutations the same way it does today. No migration, no schema change, no repository contract change.
+- **One omission to be aware of.** The handler at `UpdateJournalEntryHandler.cs:61-62` also calls `entry.ReplaceProductAssociations(request.AssociatedProducts)` and `entry.ReplaceTagAssignments(request.TagIds)`. These are **already** domain methods on the entity and are correctly out of scope. The new `Update` method MUST NOT touch product/tag collections — those remain as separate calls in the handler. The spec implicitly assumes this but does not state it; see Specification Amendments below.
 
-**Verified against codebase reality:**
-- `JournalEntryProduct` PK is composite `{JournalEntryId, ProductCodePrefix}` — DB-level uniqueness is enforced, so the in-memory dedupe is defense-in-depth, not the sole guard.
-- `JournalEntryTagAssignment` PK is composite `{JournalEntryId, TagId}` — same.
-- Both child entity configurations declare `CreatedAt` as `IsRequired()`. The existing `AssociateWithProduct` / `AssignTag` methods do **not** set `CreatedAt`, relying on EF/DB defaulting. The new methods must follow the same pattern (don't set it) to preserve behavioral parity — this is what the spec already prescribes.
-- `IJournalRepository.GetByIdAsync` eagerly `Include`s both child collections, so `entry.ProductAssociations`/`TagAssignments` are fully materialized in the handler — no lazy-loading hazard when diffing.
-- Soft delete query filter (`!x.IsDeleted`) operates only on `JournalEntries`; child collections are not filtered. The diff operates on the in-memory tracked set, which is correct.
+The main integration points are exactly two files: `JournalEntry.cs` (add method) and `UpdateJournalEntryHandler.cs` (replace block at lines 51–59 with a single call). No other module, controller, contract, validator, or repository is affected.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-                   ┌──────────────────────────────────────────┐
-                   │ UpdateJournalEntryHandler (Application)  │
-                   │ ──────────────────────────────────────── │
-                   │  GetByIdAsync (incl. children)           │
-                   │  entry.Title/Content/EntryDate = …       │
-                   │  entry.ReplaceProductAssociations(req…)  │◄── two domain calls
-                   │  entry.ReplaceTagAssignments(req…)       │     replace lines 62–80
-                   │  UpdateAsync + SaveChangesAsync          │
-                   └──────────────────────────────────────────┘
-                                      │
-                                      ▼
-                   ┌──────────────────────────────────────────┐
-                   │ JournalEntry (Domain)                    │
-                   │ ──────────────────────────────────────── │
-                   │  AssociateWithProduct(code)   [existing] │
-                   │  AssignTag(tagId)             [existing] │
-                   │  ReplaceProductAssociations(codes) [NEW] │── set-diff:
-                   │  ReplaceTagAssignments(tagIds)     [NEW] │   keep, add, remove
-                   │  ProductAssociations  (ICollection)      │
-                   │  TagAssignments       (ICollection)      │
-                   └──────────────────────────────────────────┘
-                                      │
-                                      ▼
-                   ┌──────────────────────────────────────────┐
-                   │ EF Core Change Tracker                   │
-                   │ ──────────────────────────────────────── │
-                   │  Removed children → DELETE (cascade)     │
-                   │  Added children   → INSERT               │
-                   │  Kept children    → unchanged            │
-                   └──────────────────────────────────────────┘
+HTTP Controller
+      │
+      ▼
+UpdateJournalEntryRequest ──► MediatR ──► UpdateJournalEntryHandler
+                                                  │
+                                                  │ 1. resolve current user
+                                                  │ 2. authorization / not-found guards
+                                                  │ 3. load entry via IJournalRepository
+                                                  ▼
+                                          JournalEntry
+                                          ├── Update(title, content, entryDate, userId, username)   ◄── NEW
+                                          ├── ReplaceProductAssociations(codes)
+                                          └── ReplaceTagAssignments(ids)
+                                                  │
+                                                  ▼
+                                  IJournalRepository.UpdateAsync + SaveChangesAsync
+                                                  │
+                                                  ▼
+                                  UpdateJournalEntryResponse
 ```
+
+The arrow from handler into `JournalEntry` collapses six direct property assignments into one method call. All other arrows are unchanged.
 
 ### Key Design Decisions
 
-#### Decision 1: Set-diff vs. clear-and-re-add
+#### Decision 1: Method signature mirrors `SoftDelete`, not a "command object"
 
 **Options considered:**
-1. **Clear-and-re-add inside the domain method** — preserves the encapsulation goal but keeps EF tracking churn and discards original `CreatedAt` for unchanged children.
-2. **Set-diff (compute add/remove against existing items)** — only removes children that are truly gone and only adds children that are truly new; unchanged items keep their identity and `CreatedAt`.
+- (a) `Update(string? title, string content, DateTime entryDate, string userId, string username)` — five primitive parameters, parallel to `SoftDelete(string userId, string username)`.
+- (b) `Update(UpdateJournalEntryCommand cmd)` — pass a dedicated command/value object from the domain layer.
+- (c) `Update(request, currentUser)` — pass the MediatR request DTO and the `CurrentUser` record directly.
 
-**Chosen approach:** Set-diff using `HashSet<T>` for both keys (normalized `ProductCodePrefix` and `TagId`).
+**Chosen approach:** (a), as specified.
 
-**Rationale:**
-- Preserves the historical `CreatedAt` on unchanged children (the spec calls this out explicitly).
-- Generates a minimal change set for EF — only the children that actually moved produce SQL. With current sizes (single-digit / low-double-digit), the algorithmic cost (O(n+m)) is identical in practice, but the SQL footprint is strictly smaller.
-- Plays nicely with the composite PK: EF cannot have two tracked entities with the same key, so clear-and-re-add in the same `SaveChanges` cycle can trigger tracking conflicts on overlapping items unless the cleared list is detached first. Set-diff sidesteps that class of bug entirely.
+**Rationale:** `SoftDelete` is the established precedent in the same aggregate. Introducing a domain-layer command object (option b) is speculative generality — there is one caller, no second use case is planned, and YAGNI applies. Option (c) would leak `Anela.Heblo.Application` types (`UpdateJournalEntryRequest`) and `Anela.Heblo.Domain.Features.Users.CurrentUser` (already in Domain, but conceptually an application concern) into a domain method, making the domain depend on knowledge of the application/HTTP shape. Primitive parameters keep the entity's API symmetric with `SoftDelete` and free of upstream coupling.
 
-#### Decision 2: Where the input-normalization rules live
+#### Decision 2: Normalisation (`Trim`, `.Date`) belongs in the domain method
 
 **Options considered:**
-1. Duplicate the `Trim().ToUpperInvariant()` + whitespace guard logic inside `ReplaceProductAssociations`.
-2. Extract a private static helper (e.g. `NormalizeProductCode`) and use it from both `AssociateWithProduct` and `ReplaceProductAssociations`.
+- (a) Normalise in the entity (`Title = title?.Trim()`, `Content = content.Trim()`, `EntryDate = entryDate.Date`).
+- (b) Keep normalisation in the handler; entity stores whatever it's given.
+- (c) Move normalisation upstream into a FluentValidation rule or DTO setter.
 
-**Chosen approach:** Extract one private static helper inside `JournalEntry` (e.g. `private static string NormalizeProductCode(string raw)`), used by both the existing `AssociateWithProduct` and the new `ReplaceProductAssociations`. Same guard semantics, same normalization, **one source of truth**.
+**Chosen approach:** (a).
 
-**Rationale:**
-- The spec's acceptance criteria require behavioral parity with `AssociateWithProduct` for trim/upper/whitespace. Two independent copies of the rule will drift. The spec lists "Refactoring `AssociateWithProduct`" as out of scope, but extracting a private helper used by both is a non-behavioral, internal refactor — it leaves the public API of `AssociateWithProduct` unchanged. This is the minimum required change to keep the rule DRY.
-- If the user intends "do not touch `AssociateWithProduct` at all", fall back to duplicating the four-line normalization inline. **Recommend the helper; flag as an explicit choice for the user.**
+**Rationale:** Normalisation rules are invariants about the stored shape ("titles never carry leading/trailing whitespace", "entry dates are date-only"). Those invariants belong with the entity that owns the data. Option (b) preserves today's split-brain problem the refactor is trying to eliminate. Option (c) is plausible but is a larger architectural choice (and would have to handle validators that strip vs. validators that reject); doing it inside `Update` mirrors `NormalizeProductCode` (`JournalEntry.cs:105`) which already normalises product codes inside the entity.
 
-#### Decision 3: Whitespace-guard placement
-
-**Options considered:**
-1. Pre-filter (silently drop) blanks before diffing.
-2. Throw `ArgumentException` on the first whitespace-only entry, before any mutation.
-
-**Chosen approach:** Throw `ArgumentException` **before** mutating the collection. Validate the entire incoming set in a single pass first, then apply the diff. This matches the spec's acceptance criterion ("Calling with `[" "]` throws `ArgumentException`") and preserves entity state on invalid input — no partial replacement.
-
-**Rationale:** Domain methods that throw mid-mutation leave aggregates in inconsistent states; the handler currently has no try/catch and would propagate to MediatR's pipeline. Fail fast, atomically. This also matches the guard-first ordering used by `AssociateWithProduct`.
-
-#### Decision 4: Tag validation (existence)
+#### Decision 3: Validation/invariants remain out of scope; `Update` is a *recorder*, not a *guard*
 
 **Options considered:**
-1. Validate `tagId` exists in `JournalEntryTag` before assigning.
-2. Skip existence validation (current `AssignTag` behavior).
+- (a) `Update` only assigns and normalises; invariants ("only original author may edit", "content non-empty", "EntryDate not in future") are handled elsewhere or added later.
+- (b) Add basic guards now (e.g. `ArgumentException` on empty `content`, on `username` being null/empty).
 
-**Chosen approach:** Skip — behavioral parity with existing `AssignTag`.
+**Chosen approach:** (a), per spec "Out of Scope".
 
-**Rationale:** The spec is explicit on this. FK constraint at the DB level will reject an invalid `TagId` at `SaveChangesAsync` time; the resulting `DbUpdateException` is the existing handling path. Introducing pre-validation would expand scope and require injecting `IJournalTagRepository` into the domain entity — a Clean-Architecture violation.
+**Rationale:** Behaviour preservation is FR-3. Today the handler does not guard against empty content (FluentValidation does that at the API boundary). Adding guards now would either be redundant with the validator or would change observable behaviour for the few code paths that bypass validation (none currently). The spec is explicit: the refactor *enables* future invariants but does not introduce them. Stay surgical.
 
-#### Decision 5: Method signatures accept `IEnumerable<T>?`
+#### Decision 4: `username` parameter is non-nullable `string`; the `?? "Unknown User"` fallback stays in the handler
 
-**Chosen approach:** `IEnumerable<string>?` and `IEnumerable<int>?` (nullable). Null and empty are treated identically (clear all).
+**Options considered:**
+- (a) `Update(..., string userId, string username)` — entity demands a non-null username; handler resolves it.
+- (b) `Update(..., string userId, string? username)` — entity stores whatever the application gives it, including null.
 
-**Rationale:** Matches the nullable `UpdateJournalEntryRequest.AssociatedProducts` / `TagIds` shape and removes the null-check from the handler — the whole point of the refactor is to let the handler stop reasoning about the input shape.
+**Chosen approach:** (a), matching `SoftDelete`'s signature.
+
+**Rationale:** "How do we present a missing user identity?" is an application-layer policy, not a domain rule. The domain just records what it's told. This is consistent with how `DeleteJournalEntryHandler.cs:51` calls `entry.SoftDelete(currentUser.Id, currentUser.Name)`. **However, see the Risks section below — there is a pre-existing nullability inconsistency in the Delete path that the architecture review surfaces but explicitly does NOT fix in this change.**
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-No new files except the test file. Modifications only:
+No new files. Two edits:
 
 ```
 backend/src/Anela.Heblo.Domain/Features/Journal/
-  JournalEntry.cs                                   [MODIFY: +2 public methods, +1 private helper]
+  └── JournalEntry.cs                                    [MODIFY] add Update method adjacent to SoftDelete (around line 153)
 
 backend/src/Anela.Heblo.Application/Features/Journal/UseCases/UpdateJournalEntry/
-  UpdateJournalEntryHandler.cs                      [MODIFY: replace lines 61–80 with 2 calls]
+  └── UpdateJournalEntryHandler.cs                       [MODIFY] replace lines 51-59 with single call to entry.Update(...)
 
 backend/test/Anela.Heblo.Tests/Features/Journal/
-  JournalEntryDomainTests.cs                        [NEW: xUnit + FluentAssertions]
+  ├── JournalEntryTests.cs                               [MODIFY] add Update domain method tests (see Test placement note)
+  └── UpdateJournalEntryHandlerTests.cs                  [NEW]    handler-level tests (see Specification Amendments)
 ```
 
-This matches `docs/architecture/filesystem.md` exactly: domain entities live under `Domain/Features/{Feature}/`, handlers under `Application/Features/{Feature}/UseCases/{UseCase}/`, tests mirror at `test/Anela.Heblo.Tests/Features/{Feature}/`.
+**Test placement note.** Domain entity tests for this codebase live under `backend/test/Anela.Heblo.Tests/Features/Journal/JournalEntryTests.cs`, not under `Domain/Journal/`. (`Domain/Journal/SimpleJournalTests.cs` exists separately but is a coarser smoke test.) Follow the established convention: add `Update` tests to `Features/Journal/JournalEntryTests.cs` alongside `ReplaceProductAssociations_*` and `ReplaceTagAssignments_*`.
 
 ### Interfaces and Contracts
 
-**Public surface added to `JournalEntry`:**
+**New public method on `JournalEntry`:**
 
 ```csharp
-public void ReplaceProductAssociations(IEnumerable<string>? productCodes);
-public void ReplaceTagAssignments(IEnumerable<int>? tagIds);
+public void Update(string? title, string content, DateTime entryDate, string userId, string username)
 ```
 
-**Internal helpers (private to `JournalEntry`):**
+Contract:
+- **Inputs.** `title` may be null; `content`, `userId`, `username` are non-null; `entryDate` may carry a time component (it will be stripped).
+- **Outputs.** None. Mutates `Title`, `Content`, `EntryDate`, `ModifiedAt`, `ModifiedByUserId`, `ModifiedByUsername`.
+- **Invariants preserved.** `CreatedAt`, `CreatedByUserId`, `CreatedByUsername`, `IsDeleted`, `DeletedAt`, `DeletedByUserId`, `DeletedByUsername` are not touched.
+- **Side effects.** Reads `DateTime.UtcNow` (same as `SoftDelete`).
+- **Throws.** Nothing currently; `content.Trim()` would throw `NullReferenceException` if `content` were null, which is acceptable — the validator guarantees non-null at the boundary and `[Required]` is declared on the property (`JournalEntry.cs:17`). This matches `SoftDelete`'s "no guards" stance.
 
-```csharp
-private static string NormalizeProductCode(string raw); // Trim().ToUpperInvariant(), throws on whitespace-only
-```
-
-**Unchanged:**
-- `IJournalRepository`, `UpdateJournalEntryRequest`, `UpdateJournalEntryResponse`, `JournalController` PUT route, all EF configurations and migrations.
+No changes to:
+- `IJournalRepository`
+- `UpdateJournalEntryRequest` / `UpdateJournalEntryResponse`
+- `JournalEntryDto` / `JournalEntryMapper`
+- HTTP routes, status codes, error codes
+- FluentValidation rules
+- OpenAPI-generated TypeScript client
 
 ### Data Flow
 
-**Update flow (golden path):**
+**Update use case (post-refactor):**
 
-1. `JournalController` → MediatR → `UpdateJournalEntryHandler.Handle`.
-2. `_journalRepository.GetByIdAsync(id, ct)` loads entry **with** `ProductAssociations` + `TagAssignments` + `Tag` (already configured with `Include` chains).
-3. Handler updates scalar fields (`Title`, `Content`, `EntryDate`, `ModifiedAt`, `ModifiedByUserId`, `ModifiedByUsername`).
-4. Handler calls `entry.ReplaceProductAssociations(request.AssociatedProducts)`:
-   - **Validate pass**: normalize every non-null code via `NormalizeProductCode` (throws `ArgumentException` if any is whitespace).
-   - **Build target set**: `HashSet<string>` of normalized codes (deduplicated, case-insensitive via the `ToUpperInvariant` normalization step).
-   - **Remove**: iterate `ProductAssociations` snapshot, remove any whose `ProductCodePrefix` is not in target set.
-   - **Add**: iterate target set, add a new `JournalEntryProduct { JournalEntryId = Id, ProductCodePrefix = normalized }` for any not already present.
-5. Handler calls `entry.ReplaceTagAssignments(request.TagIds)` with the same algorithm keyed on `TagId`.
-6. `UpdateAsync` + `SaveChangesAsync` flush diffs. EF's change tracker emits `DELETE` for removed children and `INSERT` for new ones. Unchanged children produce no SQL.
-7. Return `UpdateJournalEntryResponse { Id, ModifiedAt }`.
+```
+1. HTTP PUT /api/journal-entries/{id}
+       │
+       ▼
+2. UpdateJournalEntryRequest (validated by FluentValidation)
+       │
+       ▼
+3. UpdateJournalEntryHandler.Handle
+   ├─ a. _currentUserService.GetCurrentUser()
+   ├─ b. guard: unauthenticated → UnauthorizedJournalAccess response
+   ├─ c. _journalRepository.GetByIdAsync(request.Id)
+   ├─ d. guard: null → JournalEntryNotFound response
+   ├─ e. entry.Update(                                  ◄── single call replaces 7 lines
+   │         request.Title,
+   │         request.Content,
+   │         request.EntryDate,
+   │         currentUser.Id,
+   │         currentUser.Name ?? "Unknown User")
+   ├─ f. entry.ReplaceProductAssociations(request.AssociatedProducts)   [UNCHANGED]
+   ├─ g. entry.ReplaceTagAssignments(request.TagIds)                    [UNCHANGED]
+   ├─ h. _journalRepository.UpdateAsync(entry)
+   ├─ i. _journalRepository.SaveChangesAsync()
+   └─ j. log + return UpdateJournalEntryResponse { Id, ModifiedAt = entry.ModifiedAt }
+```
 
-**Failure flow — invalid product code:**
-
-`ReplaceProductAssociations` throws `ArgumentException` before any mutation. The handler does not catch it; MediatR pipeline / ASP.NET middleware returns 500 — same behavior as the existing `AssociateWithProduct` invocation when a blank prefix is sent. No partial state.
+Step (e) is the only difference from today. Steps (f) and (g) must remain in the handler — they are separate aggregate operations with different normalisation rules.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Iterating and mutating `ProductAssociations` in the same loop throws `InvalidOperationException` | Medium | Snapshot to `var toRemove = existing.Where(...).ToList()` before calling `Remove`. Standard C# pattern; the test "disjoint set removes the old codes" will catch a violation. |
-| EF change tracker conflict if two children with the same composite PK ever coexist in the tracked graph | Medium | The set-diff approach never adds a duplicate to the in-memory collection — the "already present" branch returns the existing instance untouched. Tests for the "overlap preserves instance reference" case validate this. |
-| `CreatedAt` on `JournalEntryProduct`/`JournalEntryTagAssignment` is `IsRequired()` but neither old nor new construction paths set it | Low (pre-existing) | Out of scope for this refactor; spec explicitly requires parity with `AssociateWithProduct`. If `CreatedAt` is currently being populated by a value generator, `AsUtcTimestamp()`, or DB default, the new method inherits the same behavior. Flag for a follow-up issue. |
-| Behavioral drift between `AssociateWithProduct` and `ReplaceProductAssociations` normalization rules | Medium | Single private `NormalizeProductCode` helper used by both. If the user vetoes touching `AssociateWithProduct`, duplicate the four lines verbatim and add a comment cross-referencing the two. |
-| Future audit/validation requirements on remove operations | Low | The whole point of the refactor — the domain method becomes the single seam where future remove invariants land. |
-| Test file name collision | Low | Verified no `JournalEntryDomainTests.cs` or `UpdateJournalEntryHandlerTests.cs` exists in `backend/test/Anela.Heblo.Tests/Features/Journal/`. |
+| Developer accidentally folds `ReplaceProductAssociations` / `ReplaceTagAssignments` into the new `Update` method, breaking the contract of those methods (which validate input). | MEDIUM | State explicitly in the PR description / commit message that `Update` covers only the six listed fields. Add a comment near the call site in the handler if needed (one line, only if it's non-obvious). Reviewer should diff `Update` against `SoftDelete` for structural symmetry. |
+| Time-stripping changes a stored `EntryDate` for any client currently relying on a stored time component. | LOW | The current handler already does `request.EntryDate.Date` at `UpdateJournalEntryHandler.cs:56`. Behaviour is preserved. No change. |
+| `DateTime.UtcNow` is read once (in `Update`) instead of once (`var now = ...` in the handler). For a single call this is irrelevant, but a unit test that asserts equality of `entry.ModifiedAt` against a captured `before/after` window must allow for tiny drift. | LOW | New unit tests should use range assertions (`should().BeOnOrAfter(before).And.BeOnOrBefore(DateTime.UtcNow)`) rather than exact equality. |
+| **Pre-existing nullability inconsistency.** `DeleteJournalEntryHandler.cs:51` passes `currentUser.Name` (a `string?`) directly into `SoftDelete(string userId, string username)`. Under nullable-reference-types this should emit CS8604, and at runtime the `DeletedByUsername` field can end up null while the new `Update` path falls back to `"Unknown User"`. Two paths, two policies. | LOW (existing, out of scope) | **Do NOT fix in this refactor.** Surgical-changes rule applies. Flag it in the PR description as a follow-up. A separate change should align both handlers (either both fall back to `"Unknown User"`, or both let the domain record null — the codebase needs to pick one). |
+| No existing handler-level tests cover `UpdateJournalEntryHandler` (verified: no `UpdateJournalEntryHandlerTests.cs` exists). The spec FR-2 says "All existing handler-level tests continue to pass" — there are none to keep green. | MEDIUM | See Specification Amendments: add new `UpdateJournalEntryHandlerTests` modelled on `DeleteJournalEntryHandlerTests`. |
+| `Title` `MaxLength(200)` and `Content` `MaxLength(10000)` are enforced only by FluentValidation and EF's column types — not by the new `Update` method. A bypass that constructs and saves an entity outside the request pipeline could exceed these limits. | LOW | Matches today's behaviour. Out of scope (consistent with the "Update enables future invariants but does not introduce them" decision). |
 
 ## Specification Amendments
 
-1. **Extract a private `NormalizeProductCode` helper on `JournalEntry`** (Decision 2). The spec says "Refactoring `AssociateWithProduct` itself is out of scope" — clarify that **swapping its inline normalization for a private helper call is permitted and recommended**, because it is a non-behavioral internal cleanup that prevents the DRY violation the spec otherwise creates. If the user prefers strict no-touch on `AssociateWithProduct`, duplicate the normalization inside the new method and add an explicit `// keep in sync with AssociateWithProduct` comment.
+The spec is sound but two items need to be tightened before implementation:
 
-2. **Validate-then-mutate ordering** (Decision 3). The spec lists the whitespace-throws acceptance criterion but does not say at which point in the algorithm the throw happens. Specify: **all incoming items are normalized/validated in a first pass; mutation only begins if validation succeeds.** Add an acceptance criterion: "Calling with `["A", " ", "B"]` throws `ArgumentException` and leaves `ProductAssociations` unchanged" (state preservation on failure).
+1. **State explicitly that `ReplaceProductAssociations` and `ReplaceTagAssignments` remain on the handler.** The spec lists "six fields" that the entity will now own (`Title`, `Content`, `EntryDate`, `ModifiedAt`, `ModifiedByUserId`, `ModifiedByUsername`). It does not say what happens to the calls at `UpdateJournalEntryHandler.cs:61-62`. Add a sentence to FR-2 / Out of Scope: *"`entry.ReplaceProductAssociations(...)` and `entry.ReplaceTagAssignments(...)` continue to be invoked from the handler; the new `Update` method does not touch product or tag collections."*
 
-3. **`ReplaceTagAssignments` null-input contract**. The spec lists `null` → clear for products and tags but does not list "calling with `null` empties existing tag assignments" in the FR-2 acceptance bullets (line says it under "Behavior" but missing from the bullets). Add the explicit acceptance bullet for symmetry with FR-1.
+2. **Correct the "existing handler-level tests" claim.** The spec FR-2 says: *"All existing handler-level tests continue to pass without modification beyond test-double / mock setup adjustments required by the call-site change."* No such file exists (verified via `find` — `Update*` tests do not exist under `backend/test/Anela.Heblo.Tests/Features/Journal/`). Replace the sentence with: *"Add `UpdateJournalEntryHandlerTests.cs` mirroring the structure of `DeleteJournalEntryHandlerTests.cs`, covering: unauthenticated → `UnauthorizedJournalAccess`; empty `currentUser.Id` → `UnauthorizedJournalAccess`; entry not found → `JournalEntryNotFound`; valid request → repository receives entity with updated fields, audit trail populated, and product/tag associations replaced; null `currentUser.Name` → `ModifiedByUsername == "Unknown User"`."* This brings the touched code to ≥80% per NFR-4 (today it is effectively 0% for this handler).
 
-4. **Test naming convention.** Spec proposes `JournalEntryDomainTests.cs`. Looking at the existing test layout (`GetJournalEntryHandlerTests.cs`, `JournalEntryMapperTests.cs`, `SearchJournalEntriesHandlerTests.cs`), a more idiomatic name is `JournalEntryTests.cs` (entity tests are named after the entity, not after "Domain"). Minor; either is fine.
-
-5. **Add one new test case**: "calling `ReplaceProductAssociations` on an entry with `["X", "Y"]` and an input of `["x"]` (different case) preserves the existing `X` instance reference and removes `Y`." Pins the case-insensitive matching against the existing-instance preservation contract.
+3. **(Optional / informational only.)** Note in the spec's Background or Out of Scope that an analogous split exists for the `DeleteJournalEntryHandler` regarding the `?? "Unknown User"` fallback (see Risks). This refactor does not address it — but a future PR should align the two handlers' policies.
 
 ## Prerequisites
 
-None. The refactor is self-contained:
+None. The change is self-contained:
 
-- No DB migration (schema unchanged).
-- No configuration / appsettings change.
-- No infrastructure change.
-- No new NuGet packages, no DI registration changes.
-- No frontend change.
-- No prior PR or feature must land first.
+- No database migration.
+- No new packages, services, or DI registrations.
+- No new configuration, secrets, or Key Vault entries.
+- No infrastructure changes.
+- No OpenAPI / TypeScript client regeneration is necessary (no contract change).
+- No feature flag.
 
-Implementation can start immediately. Validation gates per project rules: `dotnet build`, `dotnet format`, `dotnet test --filter FullyQualifiedName~Journal` must all pass; existing handler-level tests (if any are added later) must continue to pass.
+Implementation can start immediately once this review is approved and the spec amendments above are applied.
+```

@@ -48,30 +48,36 @@ fires within 5 minutes of the first failure (see monitoring alert `Heblo-Plaud-A
 
 ## Observed Refresh Endpoint
 
-From `@plaud-ai/cli` source inspection:
+From `@plaud-ai/cli` source inspection (`/opt/homebrew/bin/plaud`, the bundled Node script). The
+request body **must be `application/x-www-form-urlencoded`** — sending JSON returns
+`422 Unprocessable Entity`:
 
 ```
 POST https://platform.plaud.ai/developer/api/oauth/third-party/access-token/refresh
-Content-Type: application/json
+Content-Type: application/x-www-form-urlencoded
+Accept: application/json
 
-{
-  "refresh_token": "<current_refresh_token>"
-}
+refresh_token=<current_refresh_token>
 ```
 
-Response shape (observed):
+Response shape (from CLI parsing — note `expires_in`, not `expires_at`):
 
 ```json
 {
   "access_token": "...",
-  "refresh_token": "...",
-  "expires_at": 1234567890
+  "refresh_token": "...",   // may be omitted when only the access token rotates → reuse the old one
+  "token_type": "bearer",
+  "expires_in": 1209600     // relative seconds until expiry
 }
 ```
 
-> **Open question:** Confirm Plaud's refresh-token hard TTL by inspecting `expires_at` and observing
-> rotation over several days after implementing this. The hard TTL appears to be ~30 days but is not
-> officially documented.
+The CLI (and our `PlaudTokenRefreshClient`) computes the stored `expires_at` as a **Unix millisecond**
+timestamp: `now_ms + expires_in * 1000`. The `~/.plaud/tokens.json` file therefore stores
+`expires_at` in milliseconds (13 digits), which is the format `PlaudTokenRefreshJob` validates and
+re-serializes.
+
+> **Open question:** Confirm Plaud's refresh-token hard TTL by inspecting `expires_in` and observing
+> rotation over several days. The hard TTL appears to be ~30 days but is not officially documented.
 
 ## Proposed Design
 

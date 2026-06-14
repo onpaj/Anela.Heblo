@@ -18,14 +18,14 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
     private readonly IBlobStorageService _blobStorageService;
     private readonly IDownloadResilienceService _resilience;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IOptions<ProductExportOptions> _options;
+    private readonly IOptions<FileDownloadOptions> _options;
     private readonly ILogger<DownloadFromUrlHandler> _logger;
 
     public DownloadFromUrlHandler(
         IBlobStorageService blobStorageService,
         IDownloadResilienceService resilience,
         IHttpClientFactory httpClientFactory,
-        IOptions<ProductExportOptions> options,
+        IOptions<FileDownloadOptions> options,
         ILogger<DownloadFromUrlHandler> logger)
     {
         _blobStorageService = blobStorageService;
@@ -92,7 +92,7 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
                         request.BlobName,
                         ct);
                 },
-                FileStorageModule.ProductExportDownloadClientName,
+                FileStorageModule.FileDownloadClientName,
                 cancellationToken);
 
             sw.Stop();
@@ -141,7 +141,7 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
         headCts.CancelAfter(_options.Value.HeadTimeout);
         try
         {
-            var client = _httpClientFactory.CreateClient(FileStorageModule.ProductExportDownloadClientName);
+            var client = _httpClientFactory.CreateClient(FileStorageModule.FileDownloadClientName);
             using var req = new HttpRequestMessage(HttpMethod.Head, fileUrl);
             using var resp = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, headCts.Token);
             if (resp.IsSuccessStatusCode && resp.Content.Headers.ContentLength.HasValue)

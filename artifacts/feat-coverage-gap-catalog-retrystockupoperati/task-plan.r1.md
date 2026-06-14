@@ -1,0 +1,3 @@
+Plan saved to `docs/superpowers/plans/2026-06-11-catalog-retrystockupoperation-tests.md`.
+
+Summary: 7 tasks, ~30 steps total. Task 1 lays down the test class skeleton (mocks, ctor, `FixedNow` constant). Tasks 2-6 add one `[Fact]` per spec FR with full code, a targeted `dotnet test --filter` step, and a focused commit message. Task 7 runs the full class, `dotnet format`, and a clean build to satisfy the project's pre-completion checklist. Both architectural amendments from the review (FR-5's explicit `SaveChangesAsync` Times.Once assertion and the inline comments explaining the Warning-count proxy) are folded into the relevant tasks.

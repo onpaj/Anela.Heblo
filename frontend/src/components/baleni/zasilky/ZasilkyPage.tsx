@@ -21,9 +21,8 @@ export function ZasilkyPage() {
     orderCode: "",
     customerName: "",
     packageNumber: "",
-    shippingProviderCode: "",
-    fromDate: "",
-    toDate: "",
+    carrier: "",
+    date: "",
   });
   const [pageNumber, setPageNumber] = useState(1);
   const [sortBy, setSortBy] = useState<ZasilkySortBy>("PackedAt");
@@ -35,9 +34,9 @@ export function ZasilkyPage() {
       orderCode: filters.orderCode || undefined,
       customerName: filters.customerName || undefined,
       packageNumber: filters.packageNumber || undefined,
-      shippingProviderCode: filters.shippingProviderCode || undefined,
-      fromDate: filters.fromDate || undefined,
-      toDate: filters.toDate || undefined,
+      carrier: filters.carrier || undefined,
+      fromDate: filters.date || undefined,
+      toDate: filters.date || undefined,
       pageNumber,
       pageSize: PAGE_SIZE,
       sortBy,
@@ -68,11 +67,23 @@ export function ZasilkyPage() {
 
   const handleReprint = useCallback(
     (pkg: PackageDto) => {
-      printLabelPdf(pkg.orderCode, { packageName: pkg.packageNumber }, () => {
-        showSuccess("Tisk", `Štítek balíku ${pkg.packageNumber} odeslán na tiskárnu.`);
-      });
+      printLabelPdf(
+        pkg.orderCode,
+        { packageNumber: Number(pkg.packageNumber) },
+        () => {
+          showSuccess("Tisk", `Štítek balíku ${pkg.packageNumber} odeslán na tiskárnu.`);
+        },
+        (status) => {
+          showError(
+            "Tisk",
+            status === 404
+              ? `Štítek balíku ${pkg.packageNumber} zatím nebyl u dopravce vygenerován.`
+              : `Štítek balíku ${pkg.packageNumber} se nepodařilo načíst${status ? ` (chyba ${status})` : ""}.`,
+          );
+        },
+      );
     },
-    [showSuccess],
+    [showSuccess, showError],
   );
 
   const confirmDelete = useCallback(async () => {

@@ -117,9 +117,14 @@ jest.mock("../../../../api/hooks/useMarketingCalendar", () => ({
   useUpdateMarketingAction: () => ({ mutate: jest.fn() }),
 }));
 
-jest.mock("../../../../auth/useAuth", () => ({
-  useAuth: () => ({
-    getUserInfo: () => ({ roles: [] }),
+let mockHasPermission: (perm: string) => boolean = () => false;
+jest.mock("../../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+    hasPermission: (p: string) => mockHasPermission(p),
   }),
 }));
 
@@ -139,6 +144,7 @@ beforeEach(() => {
   calendarHookCalls.length = 0;
   mockGotoDate.mockClear();
   mockIsMobile = false;
+  mockHasPermission = () => false;
 });
 
 describe("MarketingCalendarPage — default render", () => {
@@ -338,6 +344,20 @@ describe("MarketingCalendarPage — 'Dnes' button respects active view", () => {
     const expected = startOfWeekMondayForTest(new Date());
     expected.setDate(expected.getDate() - 7);
     expectSameInstant(arg, expected);
+  });
+});
+
+describe("MarketingCalendarPage — Outlook import gate", () => {
+  it("hides the Outlook import button without marketing.marketing_calendar.write", () => {
+    mockHasPermission = () => false;
+    render(<MarketingCalendarPage />);
+    expect(screen.queryByRole("button", { name: /import z outlooku/i })).not.toBeInTheDocument();
+  });
+
+  it("shows the Outlook import button with marketing.marketing_calendar.write", () => {
+    mockHasPermission = (p) => p === "marketing.marketing_calendar.write";
+    render(<MarketingCalendarPage />);
+    expect(screen.getByRole("button", { name: /import z outlooku/i })).toBeInTheDocument();
   });
 });
 

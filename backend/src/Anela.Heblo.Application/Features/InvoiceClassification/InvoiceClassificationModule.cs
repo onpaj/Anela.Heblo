@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Anela.Heblo.Application.Features.InvoiceClassification.Services;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.InvoiceClassification.Rules;
+using Anela.Heblo.Persistence.InvoiceClassification;
 
 namespace Anela.Heblo.Application.Features.InvoiceClassification;
 
@@ -11,6 +12,10 @@ public static class InvoiceClassificationModule
     {
         services.AddScoped<IInvoiceClassificationService, InvoiceClassificationService>();
         services.AddScoped<IRuleEvaluationEngine, RuleEvaluationEngine>();
+
+        // Repositories (implementations live in the Persistence layer)
+        services.AddScoped<IClassificationRuleRepository, ClassificationRuleRepository>();
+        services.AddScoped<IClassificationHistoryRepository, ClassificationHistoryRepository>();
 
         // Register all classification rule implementations
         services.AddScoped<IClassificationRule, VatClassificationRule>();

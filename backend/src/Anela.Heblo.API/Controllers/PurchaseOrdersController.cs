@@ -9,13 +9,13 @@ using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderInvo
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderStatus;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.API.Infrastructure;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[FeatureAuthorize(Feature.Purchase_PurchaseOrders)]
 [ApiController]
 [Route("api/purchase-orders")]
 public class PurchaseOrdersController : BaseApiController
@@ -37,6 +37,7 @@ public class PurchaseOrdersController : BaseApiController
     }
 
     [HttpPost]
+    [FeatureAuthorize(Feature.Purchase_PurchaseOrders, AccessLevel.Write)]
     public async Task<ActionResult<CreatePurchaseOrderResponse>> CreatePurchaseOrder(
         [FromBody] CreatePurchaseOrderRequest request,
         CancellationToken cancellationToken)
@@ -68,6 +69,7 @@ public class PurchaseOrdersController : BaseApiController
     }
 
     [HttpPut("{id:int}")]
+    [FeatureAuthorize(Feature.Purchase_PurchaseOrders, AccessLevel.Write)]
     public async Task<ActionResult<UpdatePurchaseOrderResponse>> UpdatePurchaseOrder(
         [FromRoute] int id,
         [FromBody] UpdatePurchaseOrderRequest request,
@@ -90,6 +92,7 @@ public class PurchaseOrdersController : BaseApiController
     }
 
     [HttpPut("{id:int}/status")]
+    [FeatureAuthorize(Feature.Purchase_PurchaseOrders, AccessLevel.Write)]
     public async Task<ActionResult<UpdatePurchaseOrderStatusResponse>> UpdatePurchaseOrderStatus(
         [FromRoute] int id,
         [FromBody] UpdatePurchaseOrderStatusRequest request,
@@ -112,6 +115,7 @@ public class PurchaseOrdersController : BaseApiController
     }
 
     [HttpPut("{id:int}/invoice-acquired")]
+    [FeatureAuthorize(Feature.Purchase_PurchaseOrders, AccessLevel.Write)]
     public async Task<ActionResult<UpdatePurchaseOrderInvoiceAcquiredResponse>> UpdateInvoiceAcquired(
         [FromRoute] int id,
         [FromBody] UpdatePurchaseOrderInvoiceAcquiredRequest request,
@@ -138,6 +142,7 @@ public class PurchaseOrdersController : BaseApiController
     }
 
     [HttpPost("recalculate-purchase-price")]
+    [FeatureAuthorize(Feature.Purchase_PurchaseOrders, AccessLevel.Write)]
     public async Task<ActionResult<RecalculatePurchasePriceResponse>> RecalculatePurchasePrice(
         [FromBody] RecalculatePurchasePriceRequest request,
         CancellationToken cancellationToken)

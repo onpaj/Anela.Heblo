@@ -3,14 +3,12 @@ using Anela.Heblo.Application.Features.GridLayouts.UseCases.GetGridLayout;
 using Anela.Heblo.Application.Features.GridLayouts.UseCases.ResetGridLayout;
 using Anela.Heblo.Application.Features.GridLayouts.UseCases.SaveGridLayout;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class GridLayoutsController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -25,6 +23,8 @@ public class GridLayoutsController : BaseApiController
     {
         var request = new GetGridLayoutRequest { GridKey = gridKey };
         var response = await _mediator.Send(request);
+        if (!response.Success)
+            return StatusCode(500, response);
         return Ok(response.Layout);
     }
 

@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { ScanLine, Loader2 } from 'lucide-react';
+import { useState, useEffect, type ReactNode } from 'react';
+import { ScanLine, Loader2, PackagePlus } from 'lucide-react';
 import ScanInput from '../terminal/ScanInput';
 import { useScanPackingOrder } from '../../api/hooks/useScanPackingOrder';
 import type { PackingOrder, ScanShipment } from '../../api/hooks/useScanPackingOrder';
@@ -9,7 +9,9 @@ import PackingStateWarning from './PackingStateWarning';
 import PackingOrderNotes from './PackingOrderNotes';
 import PackingItems from './PackingItems';
 import PackingShipmentCreator from './PackingShipmentCreator';
+import MultiPackageModal from './MultiPackageModal';
 import { useScreenView } from '../../telemetry/useScreenView';
+import { usePackingUser } from './packingUser/PackingUserContext';
 
 function CenteredMessage({ children }: { children: ReactNode }) {
   return (
@@ -30,9 +32,10 @@ interface OrderBodyProps {
   shipment: ScanShipment | null;
   isShowingDoneView: boolean;
   onDoneStateChange: (isDone: boolean) => void;
+  onPrintModalOpenChange: (isOpen: boolean) => void;
 }
 
-function OrderBody({ order, shipment, isShowingDoneView, onDoneStateChange }: OrderBodyProps) {
+function OrderBody({ order, shipment, isShowingDoneView, onDoneStateChange, onPrintModalOpenChange }: OrderBodyProps) {
   return (
     <>
       <PackingStateWarning order={order} />
@@ -49,6 +52,7 @@ function OrderBody({ order, shipment, isShowingDoneView, onDoneStateChange }: Or
         order={order}
         scanShipment={shipment}
         onDoneStateChange={onDoneStateChange}
+        onPrintModalOpenChange={onPrintModalOpenChange}
       />
       {!isShowingDoneView && (
         <>
@@ -64,11 +68,27 @@ function OrderBody({ order, shipment, isShowingDoneView, onDoneStateChange }: Or
 
 function BaleniPacking() {
   useScreenView('Baleni', 'BaleniPacking');
+  const { current, openPicker } = usePackingUser();
   const scanMutation = useScanPackingOrder();
   const [isShowingDoneView, setIsShowingDoneView] = useState(false);
+  const [isMultiModalOpen, setIsMultiModalOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
-  const handleScan = (value: string) => {
-    scanMutation.mutate(value);
+  useEffect(() => {
+    if (!current) openPicker();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleScan = (value: string, numberOfPackages = 1) => {
+    if (!current) {
+      openPicker();
+      return;
+    }
+    scanMutation.mutate({ orderCode: value, numberOfPackages, packingUserId: current.id });
+  };
+
+  const handleMultiConfirm = (orderCode: string, numberOfPackages: number) => {
+    setIsMultiModalOpen(false);
+    handleScan(orderCode, numberOfPackages);
   };
 
   const renderBody = () => {
@@ -100,6 +120,7 @@ function BaleniPacking() {
           shipment={scanMutation.data.shipment}
           isShowingDoneView={isShowingDoneView}
           onDoneStateChange={setIsShowingDoneView}
+          onPrintModalOpenChange={setIsPrintModalOpen}
         />
       );
     }
@@ -114,19 +135,40 @@ function BaleniPacking() {
 
   return (
     <div className="flex flex-col gap-4" data-testid="baleni-packing">
-      <div className="flex justify-end">
+      <div className="flex items-end justify-end gap-2">
+        <button
+          type="button"
+          data-testid="multi-package-button"
+          aria-label="Více balíků"
+          onClick={() => setIsMultiModalOpen(true)}
+          className="flex h-14 items-center gap-2 rounded-xl border-2 border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-slate shadow active:scale-95"
+        >
+          <PackagePlus className="h-5 w-5" />
+          Více balíků
+        </button>
         <div className="w-72 shrink-0">
+          {!current && (
+            <p className="text-sm text-center text-amber-600">
+              Nejprve vyberte baliče
+            </p>
+          )}
           <ScanInput
             label="Sken čísla objednávky"
             placeholder="Naskenujte objednávku…"
             onScan={handleScan}
-            loading={scanMutation.isPending}
+            loading={scanMutation.isPending || !current}
             autoFocusOnMount
-            refocusOnBlur
+            refocusOnBlur={!isMultiModalOpen && !isPrintModalOpen}
             allowKeyboardToggle
           />
         </div>
       </div>
+      {isMultiModalOpen && (
+        <MultiPackageModal
+          onConfirm={handleMultiConfirm}
+          onClose={() => setIsMultiModalOpen(false)}
+        />
+      )}
       {renderBody()}
     </div>
   );

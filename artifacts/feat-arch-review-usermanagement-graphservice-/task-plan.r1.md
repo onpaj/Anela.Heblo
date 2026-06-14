@@ -1,929 +1,692 @@
-# GraphService HttpClientFactory Migration Implementation Plan
+# GraphService.GetGroupMembersAsync Refactor Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the raw `new HttpClient()` instantiation in `GraphService.GetGroupMembersAsync` with an `IHttpClientFactory`-provided client to eliminate socket exhaustion / DNS-staleness risks against `graph.microsoft.com`, preserving all observable behavior.
+**Goal:** Extract two private helpers (`AcquireGraphTokenAsync`, `ParseMembersFromJson`) from the 160-line `GraphService.GetGroupMembersAsync` so the orchestrator drops to ≤50 lines while preserving every observable behaviour (cache, token, HTTP, logging, exception flow).
 
-**Architecture:** Inject `IHttpClientFactory` into `GraphService` as a fourth constructor parameter; register the named client `"MicrosoftGraph"` (literal, matching five sister modules — no shared constant) in the production branch of `UserManagementModule.AddUserManagement`; replace the in-method `using var httpClient = new HttpClient()` with `_httpClientFactory.CreateClient("MicrosoftGraph")` (no `using`), and switch the Graph request from `httpClient.GetAsync(...)` with `DefaultRequestHeaders.Authorization` to a per-request `HttpRequestMessage` with `Headers.Authorization` (defensive against header leaks if the client is later reused). Caching, token acquisition, response parsing, and all `catch` branches stay byte-for-byte identical.
+**Architecture:** Strictly internal refactor inside `Features/UserManagement/Services/GraphService.cs`. Token helper is `private async Task<string>` instance method (uses `_tokenAcquisition` and `_logger`). Parser helper is `internal static (List<UserDto> Users, int TotalCount)` to enable direct unit tests via `InternalsVisibleTo`. Orchestrator still owns cache, HTTP send, and outer `MsalException` catch+rethrow. No public surface change. No new DI. No new files except a single new test class.
 
-**Tech Stack:** .NET 8, C#, `Microsoft.Extensions.Http`, `Microsoft.Extensions.DependencyInjection`, `Microsoft.Identity.Web` (`ITokenAcquisition`), `Microsoft.Extensions.Caching.Memory`, xUnit + FluentAssertions + Moq, existing `Anela.Heblo.Tests.Helpers.FakeHttpMessageHandler` for HTTP-level stubbing.
+**Tech Stack:** C# / .NET (Anela.Heblo.Application), `System.Text.Json.JsonDocument`, `Microsoft.Identity.Web`, `Microsoft.Extensions.Caching.Memory`, xUnit + FluentAssertions + Moq for tests.
+
+**Specification Amendments Applied (from arch-review.r1.md):**
+1. `AcquireGraphTokenAsync` returns `Task<string>` (not `Task<string?>`). Does NOT catch `MsalException` — the outer catch in the orchestrator continues to log+rethrow as it does today.
+2. `ParseMembersFromJson` returns `(List<UserDto> Users, int TotalCount)` so the orchestrator can log the existing aggregate "{TotalMembers} total / {UserMembers} user" message without the parser depending on `ILogger` or `groupId`.
+3. `ParseMembersFromJson` is `internal static` (not `private static`) so unit tests in `Anela.Heblo.Tests` can reach it via `InternalsVisibleTo`. This is not a public-surface change.
+4. Per-element `LogDebug` lines inside the existing parsing loop are removed. Aggregate counts remain (logged by orchestrator using the parser's tuple return).
 
 ---
 
 ## File Structure
 
-Files touched by this plan:
+**Modified files:**
+- `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs` — extract two helpers, shrink orchestrator.
+- `backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj` **OR** `backend/src/Anela.Heblo.Application/Properties/AssemblyInfo.cs` — add `InternalsVisibleTo("Anela.Heblo.Tests")` ONLY IF it does not already exist.
 
-```
-backend/src/Anela.Heblo.Application/Features/UserManagement/
-  ├── Services/GraphService.cs                   ← modify constructor + client acquisition + per-request HttpRequestMessage
-  └── UserManagementModule.cs                    ← add services.AddHttpClient("MicrosoftGraph") in production branch
+**New files:**
+- `backend/test/Anela.Heblo.Tests/Features/UserManagement/ParseMembersFromJsonTests.cs` — direct unit tests for the parser helper.
 
-backend/test/Anela.Heblo.Tests/Features/UserManagement/
-  └── GraphServiceTests.cs                       ← NEW unit test class
-```
-
-Responsibilities:
-
-- `GraphService.cs` — the only place that calls Graph over HTTP for the UserManagement module. Owns caching and error translation; depends on `IHttpClientFactory` for client lifetime.
-- `UserManagementModule.cs` — DI composition root for the feature. Owns wiring choices between real / mock services and registers the named `HttpClient`.
-- `GraphServiceTests.cs` — first unit tests against `GraphService`. Verifies factory usage, cache short-circuit, error-branch fallbacks, no client disposal, and per-request `Authorization` header.
-
-Convention reference (do not modify these — they exist to confirm the pattern):
-- `backend/src/Anela.Heblo.Application/Features/Marketing/MarketingModule.cs:43` — `services.AddHttpClient("MicrosoftGraph");`
-- `backend/src/Anela.Heblo.Application/Features/MeetingTasks/MeetingTasksModule.cs:31`
-- `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/KnowledgeBaseModule.cs:53`
-- `backend/src/Anela.Heblo.Application/Features/CatalogDocuments/CatalogDocumentsModule.cs:31`
-- `backend/src/Anela.Heblo.Application/Features/Marketing/Services/OutlookCalendarSyncService.cs:208-213` — `CreateRequest` helper using per-request `HttpRequestMessage.Headers.Authorization`.
+**Unchanged but load-bearing (must still pass without edits):**
+- `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs` — full behaviour safety net.
+- All callers of `IGraphService.GetGroupMembersAsync`, especially `GraphService.GetAppRoleMembersAsync` (same file, line 382) which calls the orchestrator to expand nested group members.
 
 ---
 
-## Architecture Notes (binding decisions from arch-review)
-
-These supersede the spec text where they conflict:
-
-- **No `GraphHttpClientName` constant.** Use the literal `"MicrosoftGraph"` in both `GraphService` and `UserManagementModule`. Sister modules all use the literal; introducing a constant only here creates asymmetric drift. Add a one-line comment at each call site cross-referencing the convention.
-- **Per-request `HttpRequestMessage`** with `Headers.Authorization`, not `httpClient.DefaultRequestHeaders.Authorization`. Defensive against header leaks if the named client is reused by future code.
-- **Remove the `using` keyword on the factory-provided client.** Disposal is the factory's responsibility; `using` defeats pooling.
-- **Constructor parameter order:** append `IHttpClientFactory` as the **fourth** parameter — do not reorder existing parameters (minimize diff blast radius and avoid breaking any reflection-based test wiring).
-
----
-
-## Known Follow-ups (out of scope for this plan)
-
-These are noted by the arch-review but explicitly NOT part of this change:
-
-- Five sister modules independently register `AddHttpClient("MicrosoftGraph")`; `PhotobankModule` adds a custom handler. With named clients, last registration wins for handler config — registration order is not deterministic. A follow-up should consolidate into a single `AddMicrosoftGraphHttpClient()` extension applying `SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }` uniformly.
-- Migration from raw HTTP to `Microsoft.Graph.GraphServiceClient` SDK.
-- Polly resilience policies (retry / circuit breaker) on the named client.
-- Paging support for `@odata.nextLink`.
-- Cache TTL / eager refresh tuning.
-
----
-
-## Task 1: Add the `IHttpClientFactory` dependency and named-client registration (red — test fails because constructor signature doesn't accept the factory yet)
+## Task 1: Establish Baseline and Verify Prerequisites
 
 **Files:**
-- Test: `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs` (NEW)
+- Read: `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs`
+- Read: `backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj`
+- Read: `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs`
 
-- [ ] **Step 1: Create the test file with a constructor-wiring test that fails because `GraphService` does not yet take `IHttpClientFactory`**
+- [ ] **Step 1: Capture green baseline for the affected tests**
 
-Create `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs` with this content:
+Run:
+```bash
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~GraphServiceTests" \
+  --no-restore --logger "console;verbosity=normal"
+```
+
+Expected: All `GraphServiceTests` pass. Record the exact count of passing tests (e.g. "7 passed, 0 failed") in a scratch note — this is the post-refactor target.
+
+- [ ] **Step 2: Locate the exact line ranges in `GraphService.cs` that will move**
+
+Use Read on `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs`. In a scratch note, record:
+- Cache TryGetValue block (around lines 39–45).
+- Token acquisition block including stopwatch, scope literal, `LogInformation` "Attempting…", call to `_tokenAcquisition.GetAccessTokenForAppAsync`, "Successfully acquired… in {Duration}ms", "Token acquired with length: {TokenLength}" (around lines 64–85).
+- HTTP send block (around lines 89–113) — STAYS in orchestrator.
+- JSON parse block including `JsonDocument.Parse`, foreach over `value`, `@odata.type` discrimination, per-element `LogDebug` lines, aggregate `LogInformation` "Processed {TotalMembers} total members, {UserMembers} user members for group {GroupId}" (around lines 117–164).
+- Cache Set block (around lines 171–173).
+- Outer `catch (MsalException msalEx)` block (around line 168) — STAYS in orchestrator.
+
+Confirm the actual line numbers in your local copy (the spec/arch-review cite approximate ranges; trust the source).
+
+- [ ] **Step 3: Verify `InternalsVisibleTo` for the test assembly**
+
+Run:
+```bash
+grep -R "InternalsVisibleTo" backend/src/Anela.Heblo.Application/
+```
+
+Expected outcomes:
+- (A) A line containing `InternalsVisibleTo` AND `Anela.Heblo.Tests` already exists → skip Task 2 entirely.
+- (B) `InternalsVisibleTo` exists but does NOT name `Anela.Heblo.Tests` → Task 2 will add the entry alongside the existing one.
+- (C) No `InternalsVisibleTo` anywhere → Task 2 will add a fresh declaration in the `.csproj`.
+
+Record which outcome applies before proceeding.
+
+- [ ] **Step 4: Capture the existing token scope literal verbatim**
+
+In the token acquisition block (around line 64–85), copy the exact scope string passed to `_tokenAcquisition.GetAccessTokenForAppAsync(...)` into the scratch note. The helper introduced in Task 5 must pass the same literal — do not paraphrase or normalise it.
+
+- [ ] **Step 5: Capture the existing log message templates verbatim**
+
+From the same range, copy verbatim into the scratch note:
+- The "Attempting…" template and its log level.
+- The "Successfully acquired…" template and level.
+- The "Token acquired with length…" template and level.
+- The "Processed {TotalMembers} total members, {UserMembers} user members for group {GroupId}" template and level.
+
+These templates and levels must be reproduced byte-for-byte (FR-1 / spec acceptance criteria).
+
+- [ ] **Step 6: Inspect callers of `GetGroupMembersAsync` to confirm signature constraints**
+
+Run:
+```bash
+grep -Rn "GetGroupMembersAsync" backend/src/
+```
+
+Expected: `GetAppRoleMembersAsync` in the same file (around line 382) is one of the callers. Confirm there is no caller that depends on a behaviour we are about to change (there shouldn't be — this refactor preserves behaviour). Record the caller list in the scratch note.
+
+- [ ] **Step 7: No commit for this task**
+
+This task is read-only baseline capture. Nothing to commit.
+
+---
+
+## Task 2: Add `InternalsVisibleTo("Anela.Heblo.Tests")` (only if missing)
+
+**Skip this entire task if Task 1 Step 3 returned outcome (A).**
+
+**Files:**
+- Modify: `backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj`
+
+- [ ] **Step 1: Open the project file and locate the `<ItemGroup>` containing existing references**
+
+Use Read on `backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj`. Identify either:
+- An existing `<ItemGroup>` containing `<InternalsVisibleTo …/>` entries (outcome B), or
+- The last `<ItemGroup>` in the file (outcome C).
+
+- [ ] **Step 2: Add the entry**
+
+For outcome B (add alongside existing entries), use Edit to insert a sibling line. Example resulting fragment:
+```xml
+<ItemGroup>
+  <InternalsVisibleTo Include="Anela.Heblo.SomeExistingAssembly" />
+  <InternalsVisibleTo Include="Anela.Heblo.Tests" />
+</ItemGroup>
+```
+
+For outcome C (no existing block), add a new `<ItemGroup>` near the bottom of the `<Project>` element:
+```xml
+<ItemGroup>
+  <InternalsVisibleTo Include="Anela.Heblo.Tests" />
+</ItemGroup>
+```
+
+- [ ] **Step 3: Restore and build to confirm the project still compiles**
+
+Run:
+```bash
+dotnet build backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj
+```
+
+Expected: Build succeeded, 0 errors. Warnings unchanged from baseline.
+
+- [ ] **Step 4: Re-run the baseline tests to confirm nothing regressed**
+
+Run:
+```bash
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~GraphServiceTests" --no-restore
+```
+
+Expected: Same pass count as Task 1 Step 1.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj
+git commit -m "chore: expose internals of Anela.Heblo.Application to Anela.Heblo.Tests"
+```
+
+---
+
+## Task 3: Write Failing Characterization Tests for `ParseMembersFromJson`
+
+The parser does not exist yet. We write tests against the intended `internal static` signature first; they will fail to compile until Task 4. The tests describe behaviour the current inline parser already exhibits — we are pinning that behaviour down before moving the code.
+
+**Files:**
+- Create: `backend/test/Anela.Heblo.Tests/Features/UserManagement/ParseMembersFromJsonTests.cs`
+
+- [ ] **Step 1: Inspect `UserDto` so the test fixtures use real field names**
+
+Use Glob to find `UserDto.cs`:
+```bash
+grep -Rn "class UserDto" backend/src/Anela.Heblo.Application/
+```
+
+Read the file. Record the public property names (the arch-review references `Id`, `DisplayName`, `Email`; verify in the source — DO NOT assume).
+
+- [ ] **Step 2: Inspect the existing parsing block in `GraphService.cs` to capture exact mapping rules**
+
+From the parsing range identified in Task 1 Step 2, record in the scratch note:
+- How `id` is read and what default it falls back to.
+- How `displayName` is read and what default it falls back to.
+- How `mail` is read.
+- How `userPrincipalName` is read.
+- The exact rule for deciding whether an entry maps to `Email`: today's code prefers `mail`, falls back to `userPrincipalName`, otherwise empty string — confirm in source.
+- The exact rule for the `@odata.type` user/group discrimination — what string comparison the existing code does (e.g. `Contains("user")`, `Equals("#microsoft.graph.user")`, case-sensitivity).
+- Whether an entry that lacks `@odata.type` but has `userPrincipalName` is treated as a user today.
+
+Match the test expectations to the source's current behaviour, NOT to the spec's prose. The whole point of the refactor is to preserve current behaviour exactly.
+
+- [ ] **Step 3: Create the test file with failing tests**
+
+Create `backend/test/Anela.Heblo.Tests/Features/UserManagement/ParseMembersFromJsonTests.cs`. Use the existing `GraphServiceTests.cs` for the namespace + using conventions; mirror them. Suggested content (adjust `UserDto` property names and the `@odata.type` discrimination rule to match what Step 2 recorded):
 
 ```csharp
+using System.Collections.Generic;
 using Anela.Heblo.Application.Features.UserManagement.Services;
-using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Identity.Web;
-using Moq;
+using Xunit;
 
 namespace Anela.Heblo.Tests.Features.UserManagement;
 
-public class GraphServiceTests
+public class ParseMembersFromJsonTests
 {
     [Fact]
-    public void Constructor_Resolves_FromServiceCollection_WhenNamedHttpClientRegistered()
+    public void ReturnsEmptyList_WhenJsonHasNoValueProperty()
     {
-        // Arrange
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMemoryCache();
-        services.AddSingleton(Mock.Of<ITokenAcquisition>());
-        services.AddHttpClient("MicrosoftGraph");
-        services.AddScoped<IGraphService, GraphService>();
+        var json = "{}";
 
-        // Act
-        using var provider = services.BuildServiceProvider();
-        using var scope = provider.CreateScope();
-        var resolved = scope.ServiceProvider.GetRequiredService<IGraphService>();
+        var (users, totalCount) = GraphService.ParseMembersFromJson(json);
 
-        // Assert
-        resolved.Should().BeOfType<GraphService>();
+        users.Should().BeEmpty();
+        totalCount.Should().Be(0);
+    }
+
+    [Fact]
+    public void ReturnsEmptyList_WhenValueArrayIsEmpty()
+    {
+        var json = """{"value":[]}""";
+
+        var (users, totalCount) = GraphService.ParseMembersFromJson(json);
+
+        users.Should().BeEmpty();
+        totalCount.Should().Be(0);
+    }
+
+    [Fact]
+    public void MapsSingleUser_WithAllFieldsPresent()
+    {
+        var json = """
+        {
+          "value": [
+            {
+              "@odata.type": "#microsoft.graph.user",
+              "id": "u-1",
+              "displayName": "Alice Example",
+              "mail": "alice@example.com",
+              "userPrincipalName": "alice@example.onmicrosoft.com"
+            }
+          ]
+        }
+        """;
+
+        var (users, totalCount) = GraphService.ParseMembersFromJson(json);
+
+        users.Should().HaveCount(1);
+        users[0].Id.Should().Be("u-1");
+        users[0].DisplayName.Should().Be("Alice Example");
+        users[0].Email.Should().Be("alice@example.com");
+        totalCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void FallsBackToUserPrincipalName_WhenMailIsMissing()
+    {
+        var json = """
+        {
+          "value": [
+            {
+              "@odata.type": "#microsoft.graph.user",
+              "id": "u-2",
+              "displayName": "Bob NoMail",
+              "userPrincipalName": "bob@example.onmicrosoft.com"
+            }
+          ]
+        }
+        """;
+
+        var (users, _) = GraphService.ParseMembersFromJson(json);
+
+        users.Should().HaveCount(1);
+        users[0].Email.Should().Be("bob@example.onmicrosoft.com");
+    }
+
+    [Fact]
+    public void SkipsGroupEntries_AndCountsThemInTotal()
+    {
+        var json = """
+        {
+          "value": [
+            { "@odata.type": "#microsoft.graph.user",  "id": "u-3", "displayName": "Carol", "mail": "carol@example.com" },
+            { "@odata.type": "#microsoft.graph.group", "id": "g-1", "displayName": "Nested Group" },
+            { "@odata.type": "#microsoft.graph.user",  "id": "u-4", "displayName": "Dan",   "mail": "dan@example.com" }
+          ]
+        }
+        """;
+
+        var (users, totalCount) = GraphService.ParseMembersFromJson(json);
+
+        users.Should().HaveCount(2);
+        users.Select(u => u.Id).Should().BeEquivalentTo(new[] { "u-3", "u-4" });
+        totalCount.Should().Be(3);
+    }
+
+    [Fact]
+    public void TolerateMissingOptionalFields_OnUserEntries()
+    {
+        var json = """
+        {
+          "value": [
+            { "@odata.type": "#microsoft.graph.user", "id": "u-5" }
+          ]
+        }
+        """;
+
+        var (users, totalCount) = GraphService.ParseMembersFromJson(json);
+
+        users.Should().HaveCount(1);
+        users[0].Id.Should().Be("u-5");
+        users[0].DisplayName.Should().Be(string.Empty);
+        users[0].Email.Should().Be(string.Empty);
+        totalCount.Should().Be(1);
     }
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails because the constructor does not yet take `IHttpClientFactory`**
+If the current source treats an entry with no `@odata.type` but a `userPrincipalName` as a user (a defensive fallback), add a seventh test asserting that behaviour. If it strictly requires `@odata.type` containing "user", omit it. Decide based on Step 2 evidence.
+
+- [ ] **Step 4: Build the test project to confirm tests fail at compile time**
 
 Run:
 ```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GraphServiceTests.Constructor_Resolves_FromServiceCollection_WhenNamedHttpClientRegistered" --nologo --verbosity minimal
+dotnet build backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj
 ```
 
-Expected: build failure or test failure. The DI container will resolve `GraphService` with its current 3-parameter constructor — the test will pass accidentally if we don't enforce the factory dependency. To make this a true red, the test must require the factory. Update the test before re-running.
+Expected: Build FAILS with `CS0117: 'GraphService' does not contain a definition for 'ParseMembersFromJson'` (or similar). This proves the new tests reference a method that has not yet been written — the RED step of TDD.
 
-- [ ] **Step 3: Tighten the test to require the factory dependency**
+- [ ] **Step 5: No commit yet**
 
-Replace the test method body so it asserts the resolved service is constructed via the factory-aware path. Replace the file content with:
+We do not commit a broken build. Task 4 will add the parser and bring the tree back to green before commit.
+
+---
+
+## Task 4: Extract `ParseMembersFromJson` and Make Tests Green
+
+**Files:**
+- Modify: `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs`
+
+- [ ] **Step 1: Add the parser as `internal static`, mirroring the existing inline logic**
+
+Insert the new method as a private region near the bottom of the `GraphService` class. The method body is a direct transplant of the existing parsing block (Task 1 Step 2 range, around lines 117–164), with two changes:
+1. It takes a `string json` parameter instead of reading `responseBody` from an outer scope.
+2. It returns a tuple `(List<UserDto> Users, int TotalCount)` instead of writing into a list visible to the orchestrator.
+3. The per-element `LogDebug` calls inside the loop are deleted. No `ILogger` is referenced inside the parser.
+
+Skeleton — fill in the field-extraction lines using the exact null-handling that the current inline code does (do not invent defaults that the source doesn't already use):
 
 ```csharp
-using Anela.Heblo.Application.Features.UserManagement.Services;
-using Anela.Heblo.Tests.Helpers;
-using FluentAssertions;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Identity.Web;
-using Moq;
-
-namespace Anela.Heblo.Tests.Features.UserManagement;
-
-public class GraphServiceTests
+internal static (List<UserDto> Users, int TotalCount) ParseMembersFromJson(string json)
 {
-    [Fact]
-    public void Constructor_RequiresIHttpClientFactory()
+    var users = new List<UserDto>();
+    var totalCount = 0;
+
+    using var doc = JsonDocument.Parse(json);
+
+    if (!doc.RootElement.TryGetProperty("value", out var valueArray)
+        || valueArray.ValueKind != JsonValueKind.Array)
     {
-        // Arrange
-        var tokenAcquisition = Mock.Of<ITokenAcquisition>();
-        var cache = new MemoryCache(new MemoryCacheOptions());
-        var logger = Mock.Of<ILogger<GraphService>>();
-        var httpClientFactory = Mock.Of<IHttpClientFactory>();
-
-        // Act
-        var service = new GraphService(tokenAcquisition, cache, logger, httpClientFactory);
-
-        // Assert
-        service.Should().NotBeNull();
+        return (users, totalCount);
     }
+
+    foreach (var member in valueArray.EnumerateArray())
+    {
+        totalCount++;
+
+        // === BEGIN: copy of existing user/group discrimination from GraphService.cs lines ~130–155 ===
+        // Paste the existing @odata.type check verbatim (case sensitivity, Contains vs Equals, fallback rules).
+        // If the entry is NOT a user, `continue;` without adding to `users`.
+        // If it IS a user, extract id / displayName / mail / userPrincipalName using the SAME null-handling
+        // that the inline code uses today, build a UserDto, and `users.Add(...)` it.
+        // === END ===
+    }
+
+    return (users, totalCount);
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it fails to compile because `GraphService` has no 4-arg constructor**
+When you transplant the field-extraction lines, do not change `string?` vs `string`, do not change defaults, do not change ordering, and do not replace `foreach`/index loops with LINQ (NFR-1 forbids allocation regressions).
+
+- [ ] **Step 2: Update the orchestrator to call the parser instead of parsing inline**
+
+Within `GetGroupMembersAsync`, replace the parsing block (Task 1 Step 2 range) with a single call:
+
+```csharp
+var (members, totalMembers) = ParseMembersFromJson(responseBody);
+_logger.LogInformation(
+    "Processed {TotalMembers} total members, {UserMembers} user members for group {GroupId}",
+    totalMembers, members.Count, groupId);
+```
+
+The template, level, and property names of that `LogInformation` MUST match what Task 1 Step 5 recorded. Do not paraphrase.
+
+The per-element `LogDebug` lines that lived inside the loop are intentionally dropped (spec amendment #4 from arch-review). Do not re-add them in the orchestrator.
+
+- [ ] **Step 3: Build the production project**
 
 Run:
 ```bash
-cd backend && dotnet build test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --nologo --verbosity minimal
+dotnet build backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj
 ```
 
-Expected: compile error `CS1729: 'GraphService' does not contain a constructor that takes 4 arguments` (or equivalent). This is the RED state.
+Expected: Build succeeded. If there are unresolved references (e.g. missing `using System.Text.Json;`), add them.
 
-- [ ] **Step 5: Commit the failing test**
+- [ ] **Step 4: Build the test project**
+
+Run:
+```bash
+dotnet build backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj
+```
+
+Expected: Build succeeded. The `ParseMembersFromJson` reference in the new test file now resolves thanks to `InternalsVisibleTo`.
+
+- [ ] **Step 5: Run the new parser tests**
+
+Run:
+```bash
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~ParseMembersFromJsonTests" --no-restore
+```
+
+Expected: All tests in `ParseMembersFromJsonTests` pass. If a test fails, the parser is not faithfully reproducing the inline behaviour — fix the parser (do NOT loosen the test) until they all pass.
+
+- [ ] **Step 6: Run the existing `GraphServiceTests` to confirm the orchestrator still works end-to-end**
+
+Run:
+```bash
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~GraphServiceTests" --no-restore
+```
+
+Expected: Same pass count as Task 1 Step 1 — zero regressions.
+
+- [ ] **Step 7: Commit**
 
 ```bash
-git add backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs
-git commit -m "test: add failing test requiring IHttpClientFactory on GraphService"
+git add \
+  backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs \
+  backend/test/Anela.Heblo.Tests/Features/UserManagement/ParseMembersFromJsonTests.cs
+git commit -m "refactor(graph): extract ParseMembersFromJson helper from GetGroupMembersAsync"
 ```
 
 ---
 
-## Task 2: Implement the constructor change in `GraphService` (green — adds the factory dependency)
+## Task 5: Extract `AcquireGraphTokenAsync`
 
 **Files:**
-- Modify: `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs:14-29`
+- Modify: `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs`
 
-- [ ] **Step 1: Add the `_httpClientFactory` field and extend the constructor**
+- [ ] **Step 1: Add the helper as `private async Task<string>` instance method**
 
-Edit `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs`.
+Insert near the other private helpers (alongside `ParseMembersFromJson` is fine). The body is a verbatim transplant of the existing token-acquisition block (Task 1 Step 2 range, around lines 64–85), with one change: it takes `string groupId` and `CancellationToken cancellationToken` as parameters so the helper can log `groupId` if any current template references it (Task 1 Step 5 will tell you whether it does).
 
-Find the existing fields and constructor (lines 14–29):
 ```csharp
-public class GraphService : IGraphService
+private async Task<string> AcquireGraphTokenAsync(string groupId, CancellationToken cancellationToken)
 {
-    private readonly ITokenAcquisition _tokenAcquisition;
-    private readonly IMemoryCache _cache;
-    private readonly ILogger<GraphService> _logger;
-    private readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(20);
-
-    public GraphService(
-        ITokenAcquisition tokenAcquisition,
-        IMemoryCache cache,
-        ILogger<GraphService> logger)
-    {
-        _tokenAcquisition = tokenAcquisition;
-        _cache = cache;
-        _logger = logger;
-    }
+    // Paste verbatim from the current implementation:
+    //   - the scope literal (captured in Task 1 Step 4)
+    //   - _logger.LogInformation("Attempting to acquire MS Graph token with application scope: {Scope}", ...)
+    //   - var stopwatch = Stopwatch.StartNew();
+    //   - var token = await _tokenAcquisition.GetAccessTokenForAppAsync(scope);   // <-- DO NOT wrap in try/catch
+    //   - stopwatch.Stop();
+    //   - _logger.LogInformation("Successfully acquired MS Graph application token in {Duration}ms", stopwatch.ElapsedMilliseconds);
+    //   - _logger.LogDebug("Token acquired with length: {TokenLength}", token.Length);
+    //   - return token;
+}
 ```
 
-Replace with:
-```csharp
-public class GraphService : IGraphService
-{
-    private readonly ITokenAcquisition _tokenAcquisition;
-    private readonly IMemoryCache _cache;
-    private readonly ILogger<GraphService> _logger;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(20);
+CRITICAL invariants:
+- Do NOT add a `try { … } catch (MsalException) { return null; }` block. The current code lets `MsalException` propagate to the outer catch in the orchestrator, which logs and rethrows. The spec FR-1 prose is inaccurate on this point (arch-review amendment #1) — follow the source, not the spec.
+- Do NOT change log message templates, log levels, or structured property names. They must remain byte-for-byte identical (FR-1 acceptance criterion).
+- Do NOT change the scope literal.
+- Use the `cancellationToken` parameter if the existing call does (e.g. some overloads accept a token); otherwise do not invent one.
 
-    public GraphService(
-        ITokenAcquisition tokenAcquisition,
-        IMemoryCache cache,
-        ILogger<GraphService> logger,
-        IHttpClientFactory httpClientFactory)
-    {
-        _tokenAcquisition = tokenAcquisition;
-        _cache = cache;
-        _logger = logger;
-        _httpClientFactory = httpClientFactory;
-    }
+- [ ] **Step 2: Update the orchestrator to call the helper instead of inlining the token logic**
+
+Within `GetGroupMembersAsync`, replace the entire token-acquisition block with one call:
+
+```csharp
+var graphToken = await AcquireGraphTokenAsync(groupId, cancellationToken);
 ```
 
-- [ ] **Step 2: Run the test to verify it now compiles and passes**
+Keep the existing outer `try { … } catch (MsalException msalEx) { … }` wrapping intact — its catch block continues to handle MSAL failures thrown from inside the helper. Do not move the catch into the helper.
+
+Keep the existing HTTP request construction (Bearer header, URI, method) inline after the helper call. The HTTP send block is explicitly out of scope (arch-review Decision 3).
+
+- [ ] **Step 3: Build the production project**
 
 Run:
 ```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GraphServiceTests.Constructor_RequiresIHttpClientFactory" --nologo --verbosity minimal
+dotnet build backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj
 ```
 
-Expected: 1 test passed.
+Expected: Build succeeded with no new warnings.
 
-- [ ] **Step 3: Verify the existing `MockGraphService` and any other consumers still compile**
+- [ ] **Step 4: Run the full `GraphServiceTests` fixture**
 
 Run:
 ```bash
-cd backend && dotnet build --nologo --verbosity minimal
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~GraphServiceTests" --no-restore
 ```
 
-Expected: build succeeds. (`MockGraphService` does not derive from `GraphService` — it implements `IGraphService` separately and is unaffected.)
+Expected: Same pass count as Task 1 Step 1. Specifically:
+- `GetGroupMembersAsync_CacheHit_DoesNotInvokeFactory` — still passes (cache short-circuit preserved; helper not entered).
+- `GetGroupMembersAsync_TokenAcquisitionMsalException_Throws` (or equivalent) — still passes (MSAL still propagates and the outer catch still rethrows).
+- All response-shape tests — still pass with the same `FakeHttpMessageHandler` payloads.
 
-- [ ] **Step 4: Commit**
+If any test fails, the most likely cause is a log-template drift or accidentally catching `MsalException` inside the helper. Diff against the pre-refactor code and align.
+
+- [ ] **Step 5: Run the parser tests as well to confirm no regression**
+
+Run:
+```bash
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~ParseMembersFromJsonTests" --no-restore
+```
+
+Expected: All pass.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs
-git commit -m "feat: add IHttpClientFactory dependency to GraphService"
+git commit -m "refactor(graph): extract AcquireGraphTokenAsync helper from GetGroupMembersAsync"
 ```
 
 ---
 
-## Task 3: Replace `new HttpClient()` with the factory and switch to per-request `HttpRequestMessage`
+## Task 6: Final Orchestrator Cleanup and Acceptance Verification
 
 **Files:**
-- Modify: `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs:83-91`
-- Test: `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs`
+- Modify: `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs` (only if cleanup needed)
 
-- [ ] **Step 1: Write the failing test for cache miss invoking the factory exactly once and parsing the canned Graph response**
-
-Open `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs` and **add** these usings to the existing imports if missing:
-
-```csharp
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-```
-
-Then **append** these new test methods inside the `GraphServiceTests` class (after the existing `Constructor_RequiresIHttpClientFactory` method):
-
-```csharp
-private const string MicrosoftGraphClientName = "MicrosoftGraph";
-
-private const string SampleGraphResponse = """
-{
-  "value": [
-    {
-      "@odata.type": "#microsoft.graph.user",
-      "id": "11111111-1111-1111-1111-111111111111",
-      "displayName": "Alice Example",
-      "mail": "alice@example.com",
-      "userPrincipalName": "alice@example.com"
-    },
-    {
-      "@odata.type": "#microsoft.graph.user",
-      "id": "22222222-2222-2222-2222-222222222222",
-      "displayName": "Bob Example",
-      "mail": null,
-      "userPrincipalName": "bob@example.com"
-    },
-    {
-      "@odata.type": "#microsoft.graph.group",
-      "id": "33333333-3333-3333-3333-333333333333",
-      "displayName": "Nested Group"
-    }
-  ]
-}
-""";
-
-private static GraphService BuildService(
-    HttpMessageHandler handler,
-    out Mock<IHttpClientFactory> factoryMock,
-    out Mock<ITokenAcquisition> tokenMock,
-    out IMemoryCache cache)
-{
-    factoryMock = new Mock<IHttpClientFactory>();
-    factoryMock
-        .Setup(f => f.CreateClient(MicrosoftGraphClientName))
-        .Returns(() => new HttpClient(handler, disposeHandler: false));
-
-    tokenMock = new Mock<ITokenAcquisition>();
-    tokenMock
-        .Setup(t => t.GetAccessTokenForAppAsync(
-            "https://graph.microsoft.com/.default",
-            It.IsAny<string?>(),
-            It.IsAny<TokenAcquisitionOptions?>()))
-        .ReturnsAsync("test-token");
-
-    cache = new MemoryCache(new MemoryCacheOptions());
-    var logger = Mock.Of<ILogger<GraphService>>();
-
-    return new GraphService(tokenMock.Object, cache, logger, factoryMock.Object);
-}
-
-[Fact]
-public async Task GetGroupMembersAsync_CacheMiss_InvokesFactory_AndReturnsParsedUsers()
-{
-    // Arrange
-    var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, SampleGraphResponse);
-    var service = BuildService(handler, out var factoryMock, out _, out _);
-
-    // Act
-    var result = await service.GetGroupMembersAsync("group-1");
-
-    // Assert
-    factoryMock.Verify(f => f.CreateClient(MicrosoftGraphClientName), Times.Once);
-    result.Should().HaveCount(2);
-    result[0].Id.Should().Be("11111111-1111-1111-1111-111111111111");
-    result[0].DisplayName.Should().Be("Alice Example");
-    result[0].Email.Should().Be("alice@example.com");
-    result[1].Id.Should().Be("22222222-2222-2222-2222-222222222222");
-    result[1].Email.Should().Be("bob@example.com"); // fallback to UPN when mail is null
-
-    handler.LastRequestUri!.ToString()
-        .Should().Be("https://graph.microsoft.com/v1.0/groups/group-1/members?$select=id,displayName,mail,userPrincipalName");
-    handler.LastMethod.Should().Be(HttpMethod.Get);
-}
-```
-
-- [ ] **Step 2: Run the test to verify it currently passes (because today's code creates a `new HttpClient()` which would bypass the factory) or fails (because the factory is never called)**
+- [ ] **Step 1: Read the post-refactor `GetGroupMembersAsync` and count its lines**
 
 Run:
 ```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GraphServiceTests.GetGroupMembersAsync_CacheMiss_InvokesFactory_AndReturnsParsedUsers" --nologo --verbosity minimal
+grep -n "GetGroupMembersAsync\|^    }\|^    public\|^    private" \
+  backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs | head -40
 ```
 
-Expected: FAIL. `GraphService` still calls `new HttpClient()` (Task 2 only added the constructor dependency); the factory's `CreateClient` is never invoked, so `factoryMock.Verify(..., Times.Once)` fails. The request never hits the `FakeHttpMessageHandler`, so the URI assertion will also fail.
+Then Read the method body. Confirm:
+- Line count is ≤50 (target ~30) — FR-3 acceptance.
+- The method reads as a sequential pipeline: cache read → groupId validation → `AcquireGraphTokenAsync` → HTTP send → `ParseMembersFromJson` → aggregate log → cache write → return.
+- The outer `try { … } catch (MsalException) { … }` wrapping is still present and still rethrows after logging.
+- The HTTP request construction (URI, headers, method) and `IsSuccessStatusCode` handling remain inline (FR-3 keeps these inline — out of scope to extract).
+- No new `internal` or `public` members exist besides `ParseMembersFromJson` (which is intentionally internal for test access).
 
-- [ ] **Step 3: Replace `new HttpClient()` with `_httpClientFactory.CreateClient("MicrosoftGraph")` and switch to per-request `HttpRequestMessage`**
+If the method is still >50 lines, the most likely culprits are stale comments or a redundant variable; tidy those without changing behaviour. Do not aggressively reformat unrelated code.
 
-Edit `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs`.
-
-Find the block (currently lines 83–91):
-```csharp
-            // Get group members from Microsoft Graph
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
-
-            var requestUrl = $"https://graph.microsoft.com/v1.0/groups/{groupId}/members?$select=id,displayName,mail,userPrincipalName";
-            _logger.LogInformation("Making MS Graph API request to: {RequestUrl}", requestUrl);
-
-            var apiCallStart = DateTime.UtcNow;
-            var response = await httpClient.GetAsync(requestUrl, cancellationToken);
-            var apiCallDuration = DateTime.UtcNow - apiCallStart;
-```
-
-Replace with:
-```csharp
-            // Get group members from Microsoft Graph.
-            // Matches the shared "MicrosoftGraph" named client used by Marketing/MeetingTasks/CatalogDocuments/KnowledgeBase/Photobank modules.
-            var httpClient = _httpClientFactory.CreateClient("MicrosoftGraph");
-
-            var requestUrl = $"https://graph.microsoft.com/v1.0/groups/{groupId}/members?$select=id,displayName,mail,userPrincipalName";
-            _logger.LogInformation("Making MS Graph API request to: {RequestUrl}", requestUrl);
-
-            using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
-
-            var apiCallStart = DateTime.UtcNow;
-            var response = await httpClient.SendAsync(request, cancellationToken);
-            var apiCallDuration = DateTime.UtcNow - apiCallStart;
-```
-
-Key changes:
-- `using var httpClient = new HttpClient();` → `var httpClient = _httpClientFactory.CreateClient("MicrosoftGraph");` (no `using` keyword; factory owns disposal).
-- `httpClient.DefaultRequestHeaders.Authorization = ...` removed; the header is set on the per-request `HttpRequestMessage` instead.
-- `await httpClient.GetAsync(requestUrl, cancellationToken)` → `await httpClient.SendAsync(request, cancellationToken)`.
-- `using var request = new HttpRequestMessage(...)` ensures the request itself is disposed (good practice; doesn't touch the pooled client).
-- The cross-reference comment makes the convention explicit for future readers.
-
-- [ ] **Step 4: Run the cache-miss test to verify it now passes**
+- [ ] **Step 2: Diff-check log statements against the pre-refactor baseline**
 
 Run:
 ```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GraphServiceTests.GetGroupMembersAsync_CacheMiss_InvokesFactory_AndReturnsParsedUsers" --nologo --verbosity minimal
+git diff HEAD~2 -- backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs \
+  | grep -E "^[-+].*Log(Information|Warning|Error|Debug|Trace|Critical)"
 ```
 
-Expected: 1 test passed.
+Inspect every `-`/`+` log line in the diff. The only legitimate differences should be:
+- Lines moved into `AcquireGraphTokenAsync` or `ParseMembersFromJson` (location change only).
+- The two per-element `LogDebug` lines inside the parsing loop, intentionally removed (arch-review amendment #4).
+- The aggregate "Processed {TotalMembers} total members…" line now lives in the orchestrator (template unchanged).
 
-- [ ] **Step 5: Run the full test class to confirm no regression**
+Any other template/level/property-name change is a regression — fix it.
+
+- [ ] **Step 3: Confirm no token values or response bodies are logged**
 
 Run:
 ```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GraphServiceTests" --nologo --verbosity minimal
+git diff HEAD~2 -- backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs \
+  | grep -iE "accessToken|Authorization|responseBody|response\.Content"
 ```
 
-Expected: all tests in `GraphServiceTests` pass.
+Expected: The only matches are the existing `responseBody = await response.Content.ReadAsStringAsync(...)` line (which was already there) and the Bearer header construction (already there). No `LogXxx(...)` line includes `accessToken`, the `Authorization` header value, or the raw response body string. NFR-2 acceptance.
 
-- [ ] **Step 6: Run `dotnet build` and `dotnet format --verify-no-changes` to verify no new warnings or formatting drift**
+- [ ] **Step 4: Confirm `IGraphService` and `UserDto` are untouched**
 
 Run:
 ```bash
-cd backend && dotnet build --nologo --verbosity minimal
-cd backend && dotnet format --verify-no-changes --verbosity minimal
+git diff HEAD~2 -- backend/src/Anela.Heblo.Application/Features/UserManagement/Contracts/ \
+  backend/src/Anela.Heblo.Application/Features/UserManagement/Models/
 ```
 
-Expected: build succeeds with no new warnings (specifically: no `CA2000`/`CA1816` regressions for `GraphService`); `dotnet format` exits with code 0.
+(Adjust paths if `IGraphService.cs` / `UserDto.cs` live elsewhere — use `grep -Rn "interface IGraphService" backend/src/` first if unsure.)
 
-- [ ] **Step 7: Commit**
+Expected: No diff. FR-3 + spec "API / Interface Design" acceptance.
+
+- [ ] **Step 5: Confirm no new public members on `GraphService`**
+
+Run:
+```bash
+git diff HEAD~2 -- backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs \
+  | grep -E "^\+\s*(public|protected)\s+"
+```
+
+Expected: No matches. The only additions should be `private` and one `internal static` (the parser).
+
+- [ ] **Step 6: Run the full test suite for the Application project**
+
+Run:
+```bash
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --no-restore
+```
+
+Expected: All tests pass. Any failure outside `GraphServiceTests` / `ParseMembersFromJsonTests` is suspicious — investigate before claiming completion. Pay special attention to any test that exercises `GetAppRoleMembersAsync` (the nested-group expansion path that calls `GetGroupMembersAsync` from line 382 of the same file).
+
+- [ ] **Step 7: Run the full solution build to catch any cross-project effects**
+
+Run:
+```bash
+dotnet build
+```
+
+Expected: Build succeeded, 0 errors. Warning count unchanged from baseline (Task 1 implicit).
+
+- [ ] **Step 8: Verify line-coverage of the parser is ≥90% (NFR-3)**
+
+Run (adjust collector configuration if the repo already specifies one — search for `coverlet.runsettings` or `.runsettings` first):
+```bash
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~ParseMembersFromJsonTests" \
+  --collect:"XPlat Code Coverage"
+```
+
+Inspect the generated coverage report (Cobertura XML under `TestResults/.../coverage.cobertura.xml`). Locate the `ParseMembersFromJson` method entry. Confirm line-rate ≥ 0.90. If below, add a test case that covers the missing branch (likely the "value missing entirely" branch or the group-vs-user discrimination edge case).
+
+- [ ] **Step 9: Optional micro-benchmark (NFR-1)**
+
+If the project already has a benchmark harness (search for `BenchmarkDotNet` references), add a comparison run for `ParseMembersFromJson` vs the pre-refactor inline parse on a synthetic 100-member response. Confirm ≤5% deviation in execution time and allocated bytes.
+
+If no benchmark harness exists, this step is satisfied by visual inspection: confirm the parser uses the same loop shape (no LINQ, no extra `List` allocations, no extra `ToList()` calls) as the pre-refactor inline code. Record the inspection result in the commit body.
+
+- [ ] **Step 10: Final commit (only if Step 1 required cleanup or Step 8 added a test)**
+
+If no further code changes were needed in this task, skip the commit. Otherwise:
 
 ```bash
-git add backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs
-git commit -m "fix(usermanagement): use IHttpClientFactory and per-request headers in GraphService"
+git add backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs \
+        backend/test/Anela.Heblo.Tests/Features/UserManagement/ParseMembersFromJsonTests.cs
+git commit -m "refactor(graph): final polish on GetGroupMembersAsync orchestrator"
 ```
 
 ---
 
-## Task 4: Register the named `"MicrosoftGraph"` HttpClient in `UserManagementModule`
+## Acceptance Checklist (verify before closing the work)
 
-**Files:**
-- Modify: `backend/src/Anela.Heblo.Application/Features/UserManagement/UserManagementModule.cs:23-30`
-- Test: `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs`
-
-- [ ] **Step 1: Write the failing test that verifies the production wiring registers the named client and resolves `GraphService`**
-
-Open `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs` and add these usings if missing:
-
-```csharp
-using Microsoft.Extensions.Configuration;
-using Anela.Heblo.Application.Features.UserManagement;
-```
-
-Append a new test method inside `GraphServiceTests`:
-
-```csharp
-[Fact]
-public void AddUserManagement_ProductionBranch_RegistersMicrosoftGraphNamedClient_AndResolvesGraphService()
-{
-    // Arrange
-    var services = new ServiceCollection();
-    services.AddLogging();
-    services.AddMemoryCache();
-    services.AddSingleton(Mock.Of<ITokenAcquisition>());
-    var configuration = new ConfigurationBuilder().Build(); // no mock-auth keys set => production branch
-
-    // Act
-    services.AddUserManagement(configuration);
-
-    // Assert
-    using var provider = services.BuildServiceProvider();
-    using var scope = provider.CreateScope();
-    var resolved = scope.ServiceProvider.GetRequiredService<IGraphService>();
-    resolved.Should().BeOfType<GraphService>();
-
-    var factory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
-    var client = factory.CreateClient("MicrosoftGraph");
-    client.Should().NotBeNull();
-}
-```
-
-- [ ] **Step 2: Run the test to verify it fails because `IHttpClientFactory` is not registered by the module**
-
-Run:
-```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GraphServiceTests.AddUserManagement_ProductionBranch_RegistersMicrosoftGraphNamedClient_AndResolvesGraphService" --nologo --verbosity minimal
-```
-
-Expected: FAIL — `InvalidOperationException: Unable to resolve service for type 'System.Net.Http.IHttpClientFactory'` when constructing `GraphService` (the module does not yet call `AddHttpClient`).
-
-- [ ] **Step 3: Add the `AddHttpClient("MicrosoftGraph")` registration in the production branch**
-
-Edit `backend/src/Anela.Heblo.Application/Features/UserManagement/UserManagementModule.cs`.
-
-Find the `else` block (lines 23–30):
-```csharp
-        else
-        {
-            // Register real GraphService for production authentication
-            services.AddScoped<IGraphService, GraphService>();
-
-            // Note: GraphServiceClient must be registered in the API layer with proper authentication
-            // through Microsoft.Identity.Web's AddMicrosoftGraph() method
-        }
-```
-
-Replace with:
-```csharp
-        else
-        {
-            // Register the named "MicrosoftGraph" HttpClient for IHttpClientFactory.
-            // Matches the shared "MicrosoftGraph" named client used by Marketing/MeetingTasks/CatalogDocuments/KnowledgeBase/Photobank modules.
-            services.AddHttpClient("MicrosoftGraph");
-
-            // Register real GraphService for production authentication
-            services.AddScoped<IGraphService, GraphService>();
-
-            // Note: GraphServiceClient must be registered in the API layer with proper authentication
-            // through Microsoft.Identity.Web's AddMicrosoftGraph() method
-        }
-```
-
-- [ ] **Step 4: Run the test to verify it now passes**
-
-Run:
-```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GraphServiceTests.AddUserManagement_ProductionBranch_RegistersMicrosoftGraphNamedClient_AndResolvesGraphService" --nologo --verbosity minimal
-```
-
-Expected: 1 test passed.
-
-- [ ] **Step 5: Verify the mock branch is untouched**
-
-Append a regression test (in the same `GraphServiceTests` class) that proves the mock branch still binds `MockGraphService`:
-
-```csharp
-[Fact]
-public void AddUserManagement_MockBranch_RegistersMockGraphService()
-{
-    // Arrange
-    var services = new ServiceCollection();
-    services.AddLogging();
-    services.AddMemoryCache();
-    var configuration = new ConfigurationBuilder()
-        .AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["UseMockAuth"] = "true"
-        })
-        .Build();
-
-    // Act
-    services.AddUserManagement(configuration);
-
-    // Assert
-    using var provider = services.BuildServiceProvider();
-    using var scope = provider.CreateScope();
-    var resolved = scope.ServiceProvider.GetRequiredService<IGraphService>();
-    resolved.Should().BeOfType<MockGraphService>();
-}
-```
-
-Note: `ConfigurationConstants.USE_MOCK_AUTH` is defined as `"UseMockAuth"` in `backend/src/Anela.Heblo.Domain/Features/Configuration/ConfigurationConstants.cs:13`. The dictionary key in the test matches this constant exactly.
-
-- [ ] **Step 6: Run the mock-branch test**
-
-Run:
-```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GraphServiceTests.AddUserManagement_MockBranch_RegistersMockGraphService" --nologo --verbosity minimal
-```
-
-Expected: 1 test passed.
-
-- [ ] **Step 7: Commit**
-
-```bash
-git add backend/src/Anela.Heblo.Application/Features/UserManagement/UserManagementModule.cs backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs
-git commit -m "feat(usermanagement): register MicrosoftGraph named HttpClient in production branch"
-```
+- [ ] `GetGroupMembersAsync` method body ≤50 lines (target ~30). [FR-3]
+- [ ] `GetGroupMembersAsync` signature, return type, parameter list, and `CancellationToken` propagation unchanged. [FR-3]
+- [ ] Cache read short-circuits before token / HTTP / parse; cache write happens only after a successful parse. [FR-4]
+- [ ] `AcquireGraphTokenAsync` is `private async Task<string>` instance method, does not catch `MsalException`. [FR-1, arch-review amendment #1]
+- [ ] `ParseMembersFromJson` is `internal static (List<UserDto>, int)` and contains no `ILogger` dependency. [FR-2, arch-review amendment #2/#3]
+- [ ] No new public/protected members on `GraphService`. [FR-3]
+- [ ] `IGraphService` and `UserDto` unchanged. [Spec API section]
+- [ ] All pre-existing `GraphServiceTests` pass without modification. [FR-3]
+- [ ] New `ParseMembersFromJsonTests` covers: empty value, missing value, all-users, mixed users+groups, missing optional fields, mail/upn fallback. Line coverage ≥90%. [NFR-3]
+- [ ] Log message templates, levels, and structured property names for "Attempting…", "Successfully acquired…", "Token acquired with length…", and "Processed {TotalMembers}…" are byte-for-byte identical to pre-refactor. [FR-1, NFR-2]
+- [ ] No log statement emits `accessToken`, `Authorization` header values, or raw response body strings. [NFR-2]
+- [ ] Per-element `LogDebug` lines inside the old parsing loop are removed (intentional, per arch-review amendment #4).
+- [ ] `InternalsVisibleTo("Anela.Heblo.Tests")` is declared on `Anela.Heblo.Application` (added in Task 2 if it was not already present).
+- [ ] Full solution build succeeds; full `Anela.Heblo.Tests` run succeeds.
+- [ ] `GetAppRoleMembersAsync` (caller at line 382 of the same file) behaviour visually inspected and existing tests covering it (if any) pass.
 
 ---
 
-## Task 5: Verify cache-hit short-circuit does not touch the factory
-
-**Files:**
-- Test: `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs`
-
-- [ ] **Step 1: Write the failing test for cache-hit behavior**
-
-Append inside `GraphServiceTests`:
-
-```csharp
-[Fact]
-public async Task GetGroupMembersAsync_CacheHit_DoesNotInvokeFactory()
-{
-    // Arrange
-    var handler = new FakeHttpMessageHandler(HttpStatusCode.InternalServerError, "should not be called");
-    var service = BuildService(handler, out var factoryMock, out _, out var cache);
-
-    var cached = new List<Application.Features.UserManagement.Contracts.UserDto>
-    {
-        new() { Id = "cached-1", DisplayName = "Cached User", Email = "cached@example.com" }
-    };
-    cache.Set("group_members_group-1", cached, TimeSpan.FromMinutes(20));
-
-    // Act
-    var result = await service.GetGroupMembersAsync("group-1");
-
-    // Assert
-    result.Should().BeEquivalentTo(cached);
-    factoryMock.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
-    handler.LastRequestUri.Should().BeNull();
-}
-```
-
-- [ ] **Step 2: Run the test to verify it passes (cache-hit logic is preserved verbatim by Task 3)**
-
-Run:
-```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GraphServiceTests.GetGroupMembersAsync_CacheHit_DoesNotInvokeFactory" --nologo --verbosity minimal
-```
-
-Expected: 1 test passed (no implementation change needed — the cache short-circuit at `GraphService.cs:37-41` is unchanged).
-
-If the test fails, investigate: the cache key must match `group_members_{groupId}` exactly (see `GraphService.cs:34`).
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs
-git commit -m "test: verify cache-hit path does not invoke IHttpClientFactory"
-```
-
----
-
-## Task 6: Verify error branches return empty list (token failure, non-2xx, transport exception)
-
-**Files:**
-- Test: `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs`
-
-- [ ] **Step 1: Write failing tests for each failure branch**
-
-Append the following tests inside `GraphServiceTests`. Add `using Microsoft.Identity.Client;` to the file's usings if not already present.
-
-```csharp
-[Fact]
-public async Task GetGroupMembersAsync_TokenAcquisitionMsalException_ReturnsEmptyList_AndDoesNotInvokeFactory()
-{
-    // Arrange
-    var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, SampleGraphResponse);
-    var service = BuildService(handler, out var factoryMock, out var tokenMock, out _);
-
-    tokenMock
-        .Setup(t => t.GetAccessTokenForAppAsync(
-            It.IsAny<string>(),
-            It.IsAny<string?>(),
-            It.IsAny<TokenAcquisitionOptions?>()))
-        .ThrowsAsync(new MsalUiRequiredException("err", "msg"));
-
-    // Act
-    var result = await service.GetGroupMembersAsync("group-1");
-
-    // Assert
-    result.Should().BeEmpty();
-    factoryMock.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
-}
-
-[Fact]
-public async Task GetGroupMembersAsync_GraphReturnsNonSuccess_ReturnsEmptyList()
-{
-    // Arrange
-    var handler = new FakeHttpMessageHandler(HttpStatusCode.Forbidden, "{\"error\":{\"code\":\"Forbidden\"}}");
-    var service = BuildService(handler, out _, out _, out _);
-
-    // Act
-    var result = await service.GetGroupMembersAsync("group-1");
-
-    // Assert
-    result.Should().BeEmpty();
-}
-
-[Fact]
-public async Task GetGroupMembersAsync_TransportThrows_ReturnsEmptyList()
-{
-    // Arrange
-    var throwingHandler = new ThrowingHttpMessageHandler(new HttpRequestException("boom"));
-    var service = BuildService(throwingHandler, out _, out _, out _);
-
-    // Act
-    var result = await service.GetGroupMembersAsync("group-1");
-
-    // Assert
-    result.Should().BeEmpty();
-}
-
-[Fact]
-public async Task GetGroupMembersAsync_EmptyGroupId_ReturnsEmptyList_WithoutTouchingFactory()
-{
-    // Arrange
-    var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, SampleGraphResponse);
-    var service = BuildService(handler, out var factoryMock, out _, out _);
-
-    // Act
-    var result = await service.GetGroupMembersAsync("   ");
-
-    // Assert
-    result.Should().BeEmpty();
-    factoryMock.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
-}
-```
-
-- [ ] **Step 2: Add a small in-test helper handler that throws on send (the existing `FakeHttpMessageHandler` only returns canned responses)**
-
-Append a nested helper class **at the end of the `GraphServiceTests` class file** (still inside the namespace, outside the test class). To keep `GraphServiceTests.cs` self-contained, declare it as a `private sealed class` inside `GraphServiceTests`:
-
-```csharp
-private sealed class ThrowingHttpMessageHandler : HttpMessageHandler
-{
-    private readonly Exception _exception;
-    public ThrowingHttpMessageHandler(Exception exception) => _exception = exception;
-
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        => throw _exception;
-}
-```
-
-- [ ] **Step 3: Run the failure-branch tests**
-
-Run:
-```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GraphServiceTests.GetGroupMembersAsync_TokenAcquisitionMsalException_ReturnsEmptyList_AndDoesNotInvokeFactory|FullyQualifiedName~GraphServiceTests.GetGroupMembersAsync_GraphReturnsNonSuccess_ReturnsEmptyList|FullyQualifiedName~GraphServiceTests.GetGroupMembersAsync_TransportThrows_ReturnsEmptyList|FullyQualifiedName~GraphServiceTests.GetGroupMembersAsync_EmptyGroupId_ReturnsEmptyList_WithoutTouchingFactory" --nologo --verbosity minimal
-```
-
-Expected: all 4 tests pass without any changes to `GraphService` (the error branches at `GraphService.cs:71-81`, `97-107`, and `171-185` already return `new List<UserDto>()`).
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs
-git commit -m "test: cover GraphService failure branches (token, non-2xx, transport, empty id)"
-```
-
----
-
-## Task 7: Verify the factory-provided client is not disposed by `GraphService`
-
-**Files:**
-- Test: `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs`
-
-- [ ] **Step 1: Add a test that fails if `GraphService` disposes the handler returned by the factory**
-
-Append inside `GraphServiceTests`:
-
-```csharp
-[Fact]
-public async Task GetGroupMembersAsync_DoesNotDispose_FactoryProvidedClient()
-{
-    // Arrange
-    var tracker = new DisposalTrackingHandler(HttpStatusCode.OK, SampleGraphResponse);
-
-    var factoryMock = new Mock<IHttpClientFactory>();
-    factoryMock
-        .Setup(f => f.CreateClient("MicrosoftGraph"))
-        .Returns(() => new HttpClient(tracker, disposeHandler: true));
-
-    var tokenMock = new Mock<ITokenAcquisition>();
-    tokenMock
-        .Setup(t => t.GetAccessTokenForAppAsync(
-            It.IsAny<string>(),
-            It.IsAny<string?>(),
-            It.IsAny<TokenAcquisitionOptions?>()))
-        .ReturnsAsync("test-token");
-
-    var cache = new MemoryCache(new MemoryCacheOptions());
-    var logger = Mock.Of<ILogger<GraphService>>();
-    var service = new GraphService(tokenMock.Object, cache, logger, factoryMock.Object);
-
-    // Act
-    await service.GetGroupMembersAsync("group-1");
-
-    // Assert
-    tracker.DisposeCount.Should().Be(0,
-        "GraphService must not dispose the HttpClient/HttpMessageHandler returned by IHttpClientFactory — disposal is the factory's responsibility, and disposing defeats connection pooling.");
-}
-```
-
-And add the tracking handler as a `private sealed class` inside `GraphServiceTests`:
-
-```csharp
-private sealed class DisposalTrackingHandler : HttpMessageHandler
-{
-    private readonly HttpStatusCode _status;
-    private readonly string _body;
-    public int DisposeCount { get; private set; }
-
-    public DisposalTrackingHandler(HttpStatusCode status, string body)
-    {
-        _status = status;
-        _body = body;
-    }
-
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        => Task.FromResult(new HttpResponseMessage(_status)
-        {
-            Content = new StringContent(_body, System.Text.Encoding.UTF8, "application/json")
-        });
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing) DisposeCount++;
-        base.Dispose(disposing);
-    }
-}
-```
-
-Why this test design: the factory test setup returns a fresh `HttpClient` wrapping the tracking handler with `disposeHandler: true` so that any `using` / `Dispose()` call on the client would cascade into the handler. Task 3 removed the `using` keyword on the client — this test will fail if a future change reintroduces it.
-
-- [ ] **Step 2: Run the disposal test**
-
-Run:
-```bash
-cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GraphServiceTests.GetGroupMembersAsync_DoesNotDispose_FactoryProvidedClient" --nologo --verbosity minimal
-```
-
-Expected: 1 test passed (Task 3 removed the `using` keyword on the factory-provided client).
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs
-git commit -m "test: GraphService must not dispose factory-provided HttpClient"
-```
-
----
-
-## Task 8: Final full-suite validation and formatter check
-
-**Files:** none modified — verification only.
-
-- [ ] **Step 1: Run the entire test suite to confirm no regressions across the solution**
-
-Run:
-```bash
-cd backend && dotnet test --nologo --verbosity minimal
-```
-
-Expected: all tests pass. Pay particular attention to:
-- `Anela.Heblo.Tests.Features.UserManagement.*` — must all pass.
-- Any test that constructs `GraphService` directly via reflection or via a different DI graph — none expected, but the test runner is the authority.
-
-If any test outside the `UserManagement` namespace fails, inspect whether it touches `GraphService` constructor or `UserManagementModule.AddUserManagement` wiring. The new 4-parameter constructor is the most likely failure surface.
-
-- [ ] **Step 2: Run the formatter and verifier**
-
-Run:
-```bash
-cd backend && dotnet format --verify-no-changes --verbosity minimal
-cd backend && dotnet build --nologo --verbosity minimal
-```
-
-Expected: format reports no changes; build succeeds with no new warnings. Look specifically for new `CA2000` (Dispose objects before losing scope) — there should be none on `GraphService.cs` because the factory owns the lifetime.
-
-- [ ] **Step 3: Manual sanity check — confirm `using` keyword is gone from the factory-provided client and the per-request `HttpRequestMessage` is in place**
-
-Run:
-```bash
-grep -n "new HttpClient\|DefaultRequestHeaders\|HttpRequestMessage\|CreateClient" backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs
-```
-
-Expected output should include:
-- `_httpClientFactory.CreateClient("MicrosoftGraph")` — present.
-- `using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);` — present.
-- `request.Headers.Authorization = ...` — present.
-
-Expected output should **NOT** include:
-- `new HttpClient(` (without arguments) — must be absent in production code path.
-- `httpClient.DefaultRequestHeaders.Authorization` — must be absent.
-- `using var httpClient` — must be absent.
-
-- [ ] **Step 4: Commit the validation pass if any incidental fixes were required (skip if no changes)**
-
-If steps 1–3 surfaced no required edits, this task produces no commit and is considered complete.
-
-If incidental changes were needed (e.g., `dotnet format` produced diffs unrelated to functional behavior), commit them separately:
-
-```bash
-git add backend/
-git commit -m "chore: dotnet format pass after GraphService HttpClientFactory migration"
-```
-
----
-
-## Validation Checklist (run before declaring the plan done)
-
-- [ ] `dotnet build` succeeds for the solution with no new warnings.
-- [ ] `dotnet test` passes for the entire `Anela.Heblo.Tests` project.
-- [ ] `dotnet format --verify-no-changes` reports no changes.
-- [ ] `GraphService.cs` no longer contains `new HttpClient()` or `using var httpClient`.
-- [ ] `GraphService.cs` uses `_httpClientFactory.CreateClient("MicrosoftGraph")` once and `using var request = new HttpRequestMessage(...)`.
-- [ ] `UserManagementModule.cs` production branch calls `services.AddHttpClient("MicrosoftGraph")` before `AddScoped<IGraphService, GraphService>()`.
-- [ ] `MockGraphService` is unchanged; mock-auth branch is unchanged.
-- [ ] `IGraphService` interface is unchanged.
-- [ ] `UserDto` shape is unchanged.
-- [ ] Cache key (`group_members_{groupId}`) and 20-minute TTL preserved.
-- [ ] All five existing `catch` branches preserved verbatim.
-- [ ] `CancellationToken` flows into `SendAsync` and `ReadAsStringAsync`.
-
-## Spec Coverage Cross-Check
-
-| Spec requirement | Implemented in |
-|---|---|
-| FR-1 — Inject `IHttpClientFactory` into `GraphService` | Task 2 |
-| FR-1 — Field `_httpClientFactory`, constructor order preserved (factory appended) | Task 2 |
-| FR-1 — No `new HttpClient(...)` in any code path | Task 3 |
-| FR-1 — `MockGraphService` unchanged | (no change; verified by Task 4 mock-branch test in Step 5) |
-| FR-1 — `IGraphService` interface unchanged | (no change; verified by Validation Checklist) |
-| FR-2 — `services.AddHttpClient("MicrosoftGraph")` in production branch | Task 4 |
-| FR-2 — Default handler lifetime; no `BaseAddress`/`DefaultRequestHeaders` on the named client | Task 4 |
-| FR-3 — Cache key + 20-min TTL preserved | Task 5 (cache-hit test) |
-| FR-3 — Token-acquisition flow preserved | Task 3, Task 6 |
-| FR-3 — Request URL + query string preserved | Task 3 (URI assertion) |
-| FR-3 — Response parsing preserved | Task 3 (parsed users assertion) |
-| FR-3 — All `catch` branches preserved | Task 6 |
-| FR-3 — `CancellationToken` flow preserved | Task 3 (`SendAsync(request, cancellationToken)`) |
-| FR-3 — Per-request `HttpRequestMessage` (arch-review amendment) | Task 3 |
-| FR-4 — `GraphService` remains scoped | Task 4 (production branch test) |
-| FR-4 — No `using` block on factory-provided client | Task 7 (disposal test) |
-| FR-4 — No new analyzer warnings | Task 8 (build check) |
-| NFR-1 — Performance (factory pooling) | Indirect — verified by code review of Task 3 |
-| NFR-2 — Security (no token logging, scopes unchanged) | No change to logging or scopes |
-| NFR-3 — Literal `"MicrosoftGraph"` (arch-review amendment, supersedes spec NFR-3) | Task 3 + Task 4 |
-| NFR-4 — Logging preserved | Task 3 (no logging touched) |
-| NFR-5 — No public API / DTO / migration / env change | (no change) |
+## Self-Review Notes
+
+**Spec coverage:**
+- FR-1 (`AcquireGraphTokenAsync` extraction) → Task 5.
+- FR-2 (`ParseMembersFromJson` extraction) → Tasks 3+4.
+- FR-3 (orchestrator rewrite ≤50 lines, signature preserved) → Task 6 Steps 1, 4, 5.
+- FR-4 (caching semantics preserved) → enforced in Tasks 4/5/6, verified via existing `GetGroupMembersAsync_CacheHit_DoesNotInvokeFactory`.
+- NFR-1 (no perf regression) → Task 6 Step 9.
+- NFR-2 (no security regression, no token/body logging) → Task 6 Step 3.
+- NFR-3 (parser unit-testable, ≥90% line coverage) → Task 3 (tests) + Task 6 Step 8 (coverage check).
+- NFR-4 (no method >50 lines) → Task 6 Step 1.
+
+**Arch-review amendments applied:**
+- Amendment #1 (token returns `Task<string>`, MSAL not caught in helper) → enforced in Task 5 Step 1's CRITICAL note.
+- Amendment #2 (parser returns tuple) → Task 3 tests + Task 4 implementation.
+- Amendment #3 (parser is `internal static` + `InternalsVisibleTo`) → Task 2 + Task 4 Step 1.
+- Amendment #4 (per-element `LogDebug` lines removed) → Task 4 Step 1 (deletion) + Task 6 Step 2 (diff verification).
+
+**Risks mitigated (from arch-review):**
+- HIGH risk: `GetAppRoleMembersAsync` silent regression → Task 6 Step 6 explicitly checks this caller.
+- HIGH risk: misreading spec's "returns null on MsalException" → Task 5 Step 1 CRITICAL note and Task 1 Step 5 capture of current behaviour.
+- MEDIUM risk: logging drift → Task 1 Step 5 baseline + Task 6 Step 2 diff check.
+- MEDIUM risk: parser test access via wrong visibility → Task 2 (only adds `InternalsVisibleTo`; no public widening).
+- MEDIUM risk: aggregate log coupling parser to `ILogger`/`groupId` → tuple return resolves this.
+- LOW risks (cache short-circuit, LINQ allocations) → Task 4 Step 6 and Task 6 Step 9.

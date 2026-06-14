@@ -28,21 +28,21 @@ const Dashboard: React.FC = () => {
   const { data: allTileData = [], isLoading: dataLoading } = useTileData();
   const saveDashboardSettings = useSaveDashboardSettings();
 
-  // Filter visible tiles based on user settings and handle AutoShow tiles
+  // Filter visible tiles based on user settings and AutoShow.
+  // Per-tile permission enforcement happens on the backend: unauthorized tiles arrive
+  // flagged (isUnauthorized, no data) and render a placeholder, so there is no
+  // client-side permission gating here.
   const visibleTileData = React.useMemo(() => {
     if (!userSettings || !allTileData.length) return [];
 
-    // Get user's visible tile settings
     const userTileSettings = userSettings.tiles.reduce((acc, tile) => {
       acc[tile.tileId] = tile;
       return acc;
     }, {} as Record<string, any>);
 
-    // Filter and sort tiles
     return allTileData
       .filter(tile => {
         const userSetting = userTileSettings[tile.tileId];
-        // Show tile if user has it enabled, or if it's AutoShow and not explicitly disabled
         return userSetting?.isVisible || (tile.autoShow && userSetting?.isVisible !== false);
       })
       .sort((a, b) => {

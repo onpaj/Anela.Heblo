@@ -54,9 +54,7 @@ public sealed class SubmitArticleFeedbackHandler
                 new Dictionary<string, string> { { "id", request.ArticleId.ToString() } });
         }
 
-        article.PrecisionScore = request.PrecisionScore;
-        article.StyleScore = request.StyleScore;
-        article.FeedbackComment = request.Comment;
+        article.SubmitFeedback(request.PrecisionScore, request.StyleScore, request.Comment);
 
         await _repository.SaveChangesAsync(ct);
 

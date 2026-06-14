@@ -7,6 +7,7 @@ using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using FluentAssertions;
 using Moq;
+using CatalogMarginLevel = Anela.Heblo.Domain.Features.Catalog.MarginLevel;
 
 namespace Anela.Heblo.Tests.Features.Catalog.Infrastructure;
 
@@ -74,15 +75,15 @@ public sealed class CatalogAnalyticsSourceAdapterTests
         {
             [new DateTime(2024, 1, 1)] = new MarginData
             {
-                M0 = new MarginLevel(10m, 10m, 0m, 5m),
-                M1_A = new MarginLevel(15m, 20m, 0m, 7m),
-                M2 = new MarginLevel(20m, 30m, 0m, 0m)
+                M0 = new CatalogMarginLevel(10m, 10m, 0m, 5m),
+                M1_A = new CatalogMarginLevel(15m, 20m, 0m, 7m),
+                M2 = new CatalogMarginLevel(20m, 30m, 0m, 0m)
             },
             [new DateTime(2024, 6, 1)] = new MarginData
             {
-                M0 = new MarginLevel(12m, 12m, 0m, 6m),
-                M1_A = new MarginLevel(18m, 22m, 0m, 8m),
-                M2 = new MarginLevel(22m, 32m, 0m, 0m)
+                M0 = new CatalogMarginLevel(12m, 12m, 0m, 6m),
+                M1_A = new CatalogMarginLevel(18m, 22m, 0m, 8m),
+                M2 = new CatalogMarginLevel(22m, 32m, 0m, 0m)
             }
         };
 
@@ -296,9 +297,9 @@ public sealed class CatalogAnalyticsSourceAdapterTests
         {
             [new DateTime(2024, 6, 1)] = new MarginData
             {
-                M0 = new MarginLevel(20m, 20m, 0m, 25m),
-                M1_A = new MarginLevel(25m, 25m, 0m, 30m),
-                M2 = new MarginLevel(30m, 30m, 0m, 0m)
+                M0 = new CatalogMarginLevel(20m, 20m, 0m, 25m),
+                M1_A = new CatalogMarginLevel(25m, 25m, 0m, 30m),
+                M2 = new CatalogMarginLevel(30m, 30m, 0m, 0m)
             }
         };
 
@@ -327,5 +328,44 @@ public sealed class CatalogAnalyticsSourceAdapterTests
         result.M0Amount.Should().Be(20m);
         result.M1Amount.Should().Be(25m);
         result.M2Amount.Should().Be(30m);
+    }
+
+    [Fact]
+    public async Task GetProductAnalysisDataAsync_ExcludesSalesOutsidePeriodEvenWhenCallerPassesUnfilteredAggregate()
+    {
+        // Arrange — aggregate contains sales BEFORE, INSIDE, and AFTER the requested period.
+        // The adapter is responsible for date-bounding SalesHistory regardless of whether the
+        // caller pre-filters. This pins the helper as the single source of the period filter.
+        var product = CreateCatalogAggregate("PROD001", "Test", ProductType.Product);
+        product.SalesHistory = new List<CatalogSaleRecord>
+        {
+            new CatalogSaleRecord { Date = new DateTime(2023, 12, 31), AmountB2B = 1, AmountB2C = 1, SumB2B = 10, SumB2C = 10 },
+            new CatalogSaleRecord { Date = new DateTime(2024, 1, 1), AmountB2B = 2, AmountB2C = 2, SumB2B = 20, SumB2C = 20 },
+            new CatalogSaleRecord { Date = new DateTime(2024, 6, 15), AmountB2B = 3, AmountB2C = 3, SumB2B = 30, SumB2C = 30 },
+            new CatalogSaleRecord { Date = new DateTime(2024, 12, 31), AmountB2B = 4, AmountB2C = 4, SumB2B = 40, SumB2C = 40 },
+            new CatalogSaleRecord { Date = new DateTime(2025, 1, 1), AmountB2B = 5, AmountB2C = 5, SumB2B = 50, SumB2C = 50 }
+        };
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock
+            .Setup(r => r.GetByIdAsync("PROD001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        var adapter = new CatalogAnalyticsSourceAdapter(repoMock.Object);
+        var fromDate = new DateTime(2024, 1, 1);
+        var toDate = new DateTime(2024, 12, 31);
+
+        // Act
+        var result = await adapter.GetProductAnalysisDataAsync("PROD001", fromDate, toDate);
+
+        // Assert — boundary-inclusive: 2024-01-01, 2024-06-15, 2024-12-31 are in; the other two are out.
+        result.Should().NotBeNull();
+        result!.SalesHistory.Should().HaveCount(3);
+        result.SalesHistory.Select(s => s.Date).Should().BeEquivalentTo(new[]
+        {
+            new DateTime(2024, 1, 1),
+            new DateTime(2024, 6, 15),
+            new DateTime(2024, 12, 31)
+        });
     }
 }

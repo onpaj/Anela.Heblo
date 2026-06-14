@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Grid3x3, List, Settings, Tag } from "lucide-react";
-import { useMsal } from "@azure/msal-react";
+import { usePermissionsContext } from "../../../../auth/PermissionsContext";
 import TagSidebar from "../TagSidebar";
 import PhotoGrid from "../PhotoGrid";
 import PhotoList from "../PhotoList";
@@ -13,9 +13,6 @@ import PhotobankBulkActionBar from "../PhotobankBulkActionBar";
 import { usePhotos, usePhotoTags, useBulkAddPhotoTagByIds, useRetagPhotos } from "../../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
 import { useScreenView } from "../../../../telemetry/useScreenView";
-
-const ADMIN_ROLE = "super_user";
-const TAGGER_ROLE = "marketing_writer";
 
 const DEFAULT_PAGE_SIZE = 48;
 const SIDEBAR_WIDTH = "220px";
@@ -47,10 +44,9 @@ function readTagsOnTiles(): boolean {
 }
 
 function PhotobankPage() {
-  const { accounts } = useMsal();
-  const roles = (accounts[0]?.idTokenClaims as any)?.roles as string[] | undefined;
-  const isAdmin = roles?.includes(ADMIN_ROLE) ?? false;
-  const canBulkTag = roles?.includes(TAGGER_ROLE) ?? false;
+  const { hasPermission } = usePermissionsContext();
+  const isAdmin = hasPermission('marketing.photobank.admin');
+  const canBulkTag = hasPermission('marketing.photobank.write');
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [search, setSearch] = useState("");

@@ -48,6 +48,7 @@ export function ZasilkyTable({
           <th className="px-4 py-3 text-left cursor-pointer" onClick={() => onSortChange("PackedAt")}>
             Zabaleno{indicator("PackedAt")}
           </th>
+          <th className="px-4 py-3 text-left">Zabalil</th>
           <th className="px-4 py-3 text-right">Akce</th>
         </tr>
       </thead>
@@ -56,10 +57,11 @@ export function ZasilkyTable({
           <tr key={p.id} className="border-t hover:bg-slate-50">
             <td className="px-4 py-3 font-mono">{p.orderCode}</td>
             <td className="px-4 py-3">{p.customerName}</td>
-            <td className="px-4 py-3">{p.packageNumber}</td>
+            <td className="px-4 py-3">{p.trackingNumber ?? p.packageNumber}</td>
             <td className="px-4 py-3 font-mono text-sm">{p.trackingNumber ?? "—"}</td>
             <td className="px-4 py-3">{p.shippingProviderName ?? p.shippingProviderCode}</td>
             <td className="px-4 py-3">{new Date(p.packedAt).toLocaleString("cs-CZ")}</td>
+            <td className="px-4 py-3">{p.packedBy ?? "—"}</td>
             <td className="px-4 py-3 text-right">
               <div className="inline-flex gap-2">
                 <button
@@ -82,7 +84,7 @@ export function ZasilkyTable({
         ))}
         {items.length === 0 && (
           <tr>
-            <td className="px-4 py-8 text-center text-slate-500" colSpan={7}>
+            <td className="px-4 py-8 text-center text-slate-500" colSpan={8}>
               Žádné zásilky.
             </td>
           </tr>

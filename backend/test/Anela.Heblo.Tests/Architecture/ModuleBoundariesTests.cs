@@ -219,11 +219,11 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.Services.ResidueDistributionCalculator+<CalculateAsync>d__3 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient.CalculateBatchByIngredientHandler+<Handle>d__3 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize.CalculatedBatchSizeHandler+<Handle>d__3 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan.CalculateBatchPlanHandler+<Handle>d__6 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan.CalculateBatchPlanHandler+<Handle>d__7 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrder.CreateManufactureOrderHandler+<Handle>d__6 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<>c__DisplayClass4_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<>c__DisplayClass5_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<Handle>d__5 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf.GetSemiproductRecipePdfHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
@@ -253,6 +253,61 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingLot",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingRequest",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
+
+        // Follow-up (same as ProductCatalogSnapshot): GetManufactureStockTakingHistoryHandler reads
+        // CatalogAggregate via IManufactureCatalogSource and projects StockTakingRecord. The DTO
+        // declares a StockTakingType property to match the Catalog DTO byte-for-byte (FR-6).
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingType",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.ManufactureStockTakingHistoryItemDto -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingType",
+    };
+
+    // Allowlist for ExpeditionList -> Logistics.
+    // Carriers is a Domain enum (Zasilkovna/GLS/PPL/Osobak) consumed widely across the codebase.
+    // Duplicating it into ExpeditionList would create a synchronization burden far worse than
+    // the dependency it removes. The single entry below is the only Logistics-namespaced type
+    // ExpeditionList intentionally references, and it appears solely on ExpeditionPickingRequest.
+    private static readonly HashSet<string> ExpeditionListLogisticsAllowlist = new(StringComparer.Ordinal)
+    {
+        "Anela.Heblo.Application.Features.ExpeditionList.Contracts.ExpeditionPickingRequest -> Anela.Heblo.Domain.Features.Logistics.Carriers",
+    };
+
+    // Allowlist for Packaging -> ShoptetOrders. The Packaging module legitimately consumes
+    // the IPackingOrderClient / IEshopOrderClient contracts (and their DTOs) defined in
+    // Anela.Heblo.Application.Features.ShoptetOrders. Everything else — particularly
+    // ShoptetOrdersSettings, PackingStateId, and PackedStateId — must not be referenced
+    // from Packaging. This rule pins the 2026-06-05 decoupling in place.
+    private static readonly HashSet<string> PackagingShoptetOrdersAllowlist = new(StringComparer.Ordinal)
+    {
+        // Constructor injections in ScanPackingOrderHandler.
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder.ScanPackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder.ScanPackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IEshopOrderClient",
+
+        // PackingOrder is consumed in Handle and in the private BuildShippingAddress helper;
+        // PackingOrderItem flows through ScanOrderData.Items.
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder.ScanPackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrder",
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder.ScanPackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
+
+        // ScanOrderData.Items is List<PackingOrderItem> — the DTO uses the contract item type directly.
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder.ScanOrderData -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
+
+        // ResetOrderShipmentHandler also uses IPackingOrderClient, PackingOrder, and PackingOrderItem
+        // (compiler-generated async state machine and closure types are covered by the declaring-type check).
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrder",
+        "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
+
+        "Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder.CompletePackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IEshopOrderClient",
+
+        // GetPackingDashboardHandler consumes IPackingOrderClient to read the orders-being-packed
+        // count for the dashboard (no ShoptetOrders DTOs cross the boundary — the call returns int?).
+        "Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard.GetPackingDashboardHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
+
+        // PackingStatsTile is a dashboard tile that mirrors GetPackingDashboardHandler's logic;
+        // it consumes only IPackingOrderClient (returns int?) — no ShoptetOrders DTOs cross the boundary.
+        "Anela.Heblo.Application.Features.Packaging.DashboardTiles.PackingStatsTile -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
     };
 
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
@@ -358,6 +413,52 @@ public class ModuleBoundariesTests
             InspectedAssembly: "Anela.Heblo.Domain"),
 
         new ModuleBoundaryRule(
+            Name: "Analytics (Application) -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Domain) -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Domain.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal),
+            InspectedAssembly: "Anela.Heblo.Domain"),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Application) -> Bank",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Bank",
+                "Anela.Heblo.Application.Features.Bank",
+                "Anela.Heblo.Persistence.Bank",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Domain) -> Bank",
+            InspectedNamespacePrefix: "Anela.Heblo.Domain.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Bank",
+                "Anela.Heblo.Application.Features.Bank",
+                "Anela.Heblo.Persistence.Bank",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal),
+            InspectedAssembly: "Anela.Heblo.Domain"),
+
+        new ModuleBoundaryRule(
             Name: "Catalog -> Logistics",
             InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Catalog",
             ForbiddenNamespacePrefixes: new[]
@@ -422,6 +523,26 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Catalog",
             },
             Allowlist: ManufactureCatalogAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "ExpeditionList -> Logistics",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.ExpeditionList",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Logistics",
+                "Anela.Heblo.Application.Features.Logistics",
+                "Anela.Heblo.Persistence.Logistics",
+            },
+            Allowlist: ExpeditionListLogisticsAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Packaging -> ShoptetOrders",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Packaging",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Application.Features.ShoptetOrders",
+            },
+            Allowlist: PackagingShoptetOrdersAllowlist),
     };
 
     [Theory]

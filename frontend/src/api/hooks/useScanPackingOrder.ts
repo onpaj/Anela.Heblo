@@ -42,7 +42,6 @@ export interface PackingOrder {
 }
 
 export interface ScanShipmentPackage {
-  name: string;
   trackingNumber: string | null;
   labelUrl: string | null;
   labelZpl: string | null;
@@ -52,6 +51,7 @@ export interface ScanShipment {
   shipmentGuid: string;
   packages: ScanShipmentPackage[];
   alreadyExisted: boolean;
+  pendingCompletion?: boolean;
 }
 
 export interface ScanPackingOrderResult {
@@ -64,16 +64,30 @@ const SCAN_ERROR_MESSAGES: Partial<Record<string, string>> = {
   ShipmentCarrierNotResolved: 'Dopravce se nepodařilo určit pro tuto objednávku.',
   ShipmentCreationFailed: 'Shoptet nemohl vytvořit zásilku — zkuste znovu.',
   ShipmentOrderWeightUnavailable: 'Nelze zjistit hmotnost objednávky.',
+  PackingUserNotEligible: 'Vybraný balič není aktivní nebo nemá oprávnění balit. Vyberte baliče znovu.',
 };
 
 const GENERIC_SCAN_ERROR = 'Chyba při skenování objednávky.';
 
-const scanPackingOrder = async (orderCode: string): Promise<ScanPackingOrderResult> => {
+export type ScanPackingOrderVariables = {
+  orderCode: string;
+  numberOfPackages?: number;
+  packingUserId?: string | null;
+};
+
+const scanPackingOrder = async ({
+  orderCode,
+  numberOfPackages = 1,
+  packingUserId = null,
+}: ScanPackingOrderVariables): Promise<ScanPackingOrderResult> => {
   const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const response = await apiClient.http.fetch(
-    `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/scan`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+    `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/scan?numberOfPackages=${numberOfPackages}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packingUserId }),
+    },
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = (await response.json()) as any;
@@ -90,6 +104,6 @@ const scanPackingOrder = async (orderCode: string): Promise<ScanPackingOrderResu
 };
 
 export const useScanPackingOrder = () =>
-  useMutation<ScanPackingOrderResult, Error, string>({
+  useMutation<ScanPackingOrderResult, Error, ScanPackingOrderVariables>({
     mutationFn: scanPackingOrder,
   });

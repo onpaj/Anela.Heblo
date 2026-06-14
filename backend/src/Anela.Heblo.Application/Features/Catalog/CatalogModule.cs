@@ -27,6 +27,7 @@ using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Persistence.Catalog.ManufactureDifficulty;
+using Anela.Heblo.Persistence.Catalog.Stock;
 using Anela.Heblo.Persistence.Repositories;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentValidation;
@@ -45,6 +46,8 @@ public static class CatalogModule
         // Register default implementations - tests can override these
         services.AddTransient<ICatalogRepository, CatalogRepository>();
         services.AddTransient<IManufactureDifficultyRepository, ManufactureDifficultyRepository>();
+        // Stock is a Catalog subdomain; its repository implementation lives in the Persistence layer
+        services.AddScoped<IStockUpOperationRepository, StockUpOperationRepository>();
         // Register adapter to expose catalog services to Purchase module
         services.AddScoped<IMaterialCatalogService, PurchaseMaterialCatalogAdapter>();
         services.AddScoped<IPurchasePriceRecalculationService, CatalogPurchasePriceRecalculationAdapter>();
@@ -107,6 +110,8 @@ public static class CatalogModule
         {
             configuration.GetSection(CatalogCacheOptions.SectionName).Bind(options);
         });
+
+        services.Configure<ProductExportOptions>(configuration.GetSection("ProductExportOptions"));
 
         // Register AutoMapper for catalog mappings
         services.AddAutoMapper(cfg => { }, typeof(CatalogModule));

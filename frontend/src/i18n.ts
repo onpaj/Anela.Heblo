@@ -86,6 +86,8 @@ const resources = {
         ConfigurationError: "Chyba konfigurace",
         Unauthorized: "Neautorizovaný přístup",
         Forbidden: "Přístup zakázán",
+        InsufficientPermissions:
+          "Přístup zakázán. Chybí oprávnění: {requiredPermission}",
         TokenExpired: "Token vypršel",
         Exception: "Výjimka aplikace",
 
@@ -187,6 +189,7 @@ const resources = {
         BlobNotFound: "Soubor nenalezen",
         FileTooLarge: "Soubor je příliš velký",
         UnsupportedFileType: "Nepodporovaný typ souboru",
+        InvalidBlobPath: "Neplatná cesta k souboru.",
 
         // BackgroundJobs module errors
         RecurringJobNotFound: "Opakovaná úloha nenalezena",
@@ -284,6 +287,9 @@ const resources = {
         PackageLabelNotFound: "Štítek pro tento balík nebyl nalezen.",
         PackageLabelDownloadFailed: "Stažení PDF štítku od dopravce se nezdařilo.",
         PackageNotFound: "Zásilka nebyla nalezena.",
+        InvalidPackageCount: "Neplatný počet balíků.",
+        PackingCompletionFailed: "Dokončení balení se nezdařilo.",
+        PackingUserNotEligible: "Zvolený pracovník není oprávněn k balení objednávek.",
 
         // CatalogDocuments module errors
         CatalogDocumentInvalidTypeCode: "Neplatný kód typu dokumentu katalogu.",
@@ -292,6 +298,14 @@ const resources = {
         CatalogDocumentFolderMultipleMatches: "Nalezeno více odpovídajících složek dokumentů katalogu.",
         CatalogDocumentFileMissing: "Soubor dokumentu katalogu chybí.",
         CatalogDocumentGraphError: "Chyba přístupu k úložišti dokumentů katalogu.",
+
+        // Authorization module errors
+        AuthorizationGroupNotFound: "Skupina oprávnění nebyla nalezena.",
+        AuthorizationUserNotFound: "Uživatel nebyl nalezen.",
+        AuthorizationInvalidPermission: "Neplatné oprávnění.",
+        AuthorizationGroupCycleDetected: "Přiřazení skupiny by vytvořilo cyklus.",
+        AuthorizationSystemGroupImmutable: "Systémové skupiny nelze upravovat.",
+        AuthorizationDuplicateGroupName: "Skupina s tímto názvem již existuje.",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",

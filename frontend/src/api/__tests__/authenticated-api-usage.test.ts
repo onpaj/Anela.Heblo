@@ -194,7 +194,10 @@ describe("Authenticated API Usage", () => {
   it("should not use (as any) type casting patterns for API clients", () => {
     // Hooks that have been fully migrated away from (apiClient as any) patterns.
     // Add new hook file names here (basename only) when they are migrated.
-    const MIGRATED_HOOKS = new Set(["useArticles.ts"]);
+    const MIGRATED_HOOKS = new Set([
+      "useArticles.ts",
+      "useExpeditionListArchive.ts",
+    ]);
 
     const hookFiles = getTypeScriptFiles(apiHooksDir);
     const violations: Array<{ file: string; line: number; content: string }> =

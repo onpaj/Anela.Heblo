@@ -1,12 +1,12 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[FeatureAuthorize(Feature.Manufacture_ManufactureStock)]
 [ApiController]
 [Route("api/manufacturing-stock-analysis")]
 public class ManufacturingStockAnalysisController : BaseApiController

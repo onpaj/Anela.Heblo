@@ -85,6 +85,8 @@ public class ResidueDistributionCalculator : IResidueDistributionCalculator
                 continue;
 
             var template = await _manufactureClient.GetManufactureTemplateAsync(product.ProductCode, cancellationToken);
+            if (template is null)
+                continue;
             var semiProductIngredient = template.Ingredients
                 .FirstOrDefault(i => i.ProductType == ProductType.SemiProduct);
 

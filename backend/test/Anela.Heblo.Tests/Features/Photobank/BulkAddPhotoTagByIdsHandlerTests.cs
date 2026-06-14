@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByIds;
 using Anela.Heblo.Application.Shared;
@@ -84,7 +85,7 @@ public class BulkAddPhotoTagByIdsHandlerTests
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.BulkTagLimitExceeded);
         result.Params.Should().ContainKey("Count").WhoseValue.Should().Be("5001");
-        result.Params.Should().ContainKey("Limit").WhoseValue.Should().Be("5000");
+        result.Params.Should().ContainKey("Limit").WhoseValue.Should().Be(PhotobankConstants.BulkTagLimit.ToString());
 
         _repositoryMock.Verify(r => r.GetOrCreateTagAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }

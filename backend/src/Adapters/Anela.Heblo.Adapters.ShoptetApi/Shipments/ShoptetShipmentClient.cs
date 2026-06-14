@@ -31,6 +31,43 @@ public class ShoptetShipmentClient : IShipmentClient
         string orderCode,
         CancellationToken ct = default)
     {
+        var items = await FetchShipmentsAsync(orderCode, ct);
+
+        return items
+            .Where(IsActive)
+            .SelectMany(shipment => (shipment.Packages ?? [])
+                .Select(pkg => new ShipmentLabel
+                {
+                    ShipmentGuid = shipment.Guid,
+                    OrderCode = orderCode,
+                    PackageName = pkg.Name ?? string.Empty,
+                    LabelUrl = pkg.LabelUrl,
+                    LabelZpl = pkg.LabelZpl,
+                    TrackingNumber = pkg.TrackingNumber,
+                    TrackingUrl = pkg.TrackingUrl,
+                }))
+            .ToList();
+    }
+
+    public async Task<string?> GetLatestActiveTrackingNumberAsync(
+        string orderCode,
+        CancellationToken ct = default)
+    {
+        var items = await FetchShipmentsAsync(orderCode, ct);
+
+        // Shoptet returns shipments oldest-first (guids are UUIDv7, time-ordered), so the last
+        // non-cancelled shipment is the latest active one. Package names are unreliable as a match
+        // key (non-unique within an order, and renamed once the label is generated), so the tracking
+        // number is taken from the shipment itself rather than matched by package name.
+        var latestActive = items.Where(IsActive).LastOrDefault();
+
+        return latestActive?.Packages?
+            .Select(pkg => pkg.TrackingNumber)
+            .FirstOrDefault(trackingNumber => !string.IsNullOrEmpty(trackingNumber));
+    }
+
+    private async Task<List<ShoptetShipmentDto>> FetchShipmentsAsync(string orderCode, CancellationToken ct)
+    {
         var encodedOrderCode = Uri.EscapeDataString(orderCode);
         var response = await _http.GetAsync($"/api/shipments?orderCode={encodedOrderCode}", ct);
 
@@ -49,23 +86,11 @@ public class ShoptetShipmentClient : IShipmentClient
             throw new HttpRequestException($"Shoptet Delivery API error for order {orderCode}: {errorMsg}");
         }
 
-        var items = data?.Data?.Items ?? [];
-
-        return items
-            .Where(s => s.Status is null || !DeadStatuses.Contains(s.Status))
-            .SelectMany(shipment => (shipment.Packages ?? [])
-                .Select(pkg => new ShipmentLabel
-                {
-                    ShipmentGuid = shipment.Guid,
-                    OrderCode = orderCode,
-                    PackageName = pkg.Name ?? string.Empty,
-                    LabelUrl = pkg.LabelUrl,
-                    LabelZpl = pkg.LabelZpl,
-                    TrackingNumber = pkg.TrackingNumber,
-                    TrackingUrl = pkg.TrackingUrl,
-                }))
-            .ToList();
+        return data?.Data?.Items ?? [];
     }
+
+    private static bool IsActive(ShoptetShipmentDto shipment) =>
+        shipment.Status is null || !DeadStatuses.Contains(shipment.Status);
 
     public async Task<IReadOnlyList<ShippingOption>> GetShippingOptionsAsync(
         string orderCode,
@@ -115,22 +140,24 @@ public class ShoptetShipmentClient : IShipmentClient
         var weightKg = (command.Package.WeightGrams / 1000.0).ToString("F3",
             System.Globalization.CultureInfo.InvariantCulture);
 
+        var packageCount = command.PackageCount < 1 ? 1 : command.PackageCount;
+        var packages = Enumerable.Range(0, packageCount)
+            .Select(_ => new ShoptetCreatePackageDto
+            {
+                Width = command.Package.WidthMm,
+                Height = command.Package.HeightMm,
+                Depth = command.Package.DepthMm,
+                Weight = weightKg,
+            })
+            .ToList();
+
         var envelope = new ShoptetCreateShipmentRequestEnvelope
         {
             Data = new ShoptetCreateShipmentRequestData
             {
                 OrderCode = command.OrderCode,
                 ShippingId = shippingId,
-                Packages =
-                [
-                    new ShoptetCreatePackageDto
-                    {
-                        Width = command.Package.WidthMm,
-                        Height = command.Package.HeightMm,
-                        Depth = command.Package.DepthMm,
-                        Weight = weightKg,
-                    }
-                ],
+                Packages = packages,
             }
         };
 

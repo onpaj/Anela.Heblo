@@ -1,61 +1,48 @@
-All tasks complete. Writing the output artifact.
+All tasks complete. Here is the output summary:
 
 ---
 
-# Implementation: GraphService HttpClientFactory Migration
+# Implementation: GraphService.GetGroupMembersAsync Refactor
 
 ## What was implemented
 
-Replaced the raw `new HttpClient()` instantiation in `GraphService.GetGroupMembersAsync` with an `IHttpClientFactory`-provided client. The change eliminates socket exhaustion and DNS-staleness risks against `graph.microsoft.com` while preserving all observable behavior (caching, token acquisition, response parsing, error branches). The implementation follows the arch-review's decisions: literal `"MicrosoftGraph"` (no shared constant), per-request `HttpRequestMessage` for headers (defensive against future multi-call scenarios), and no `using` on the factory-provided client.
+Two private helper methods extracted from `GraphService.GetGroupMembersAsync`, reducing the orchestrator from ~160 lines to 93 lines and making the parsing logic directly unit-testable. The refactor is strictly behaviour-preserving — all log templates, exception flows, cache semantics, and the public interface are unchanged.
 
 ## Files created/modified
 
-- `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs` — added `_httpClientFactory` field, `IHttpClientFactory` 4th constructor parameter, replaced `new HttpClient()` with `_httpClientFactory.CreateClient("MicrosoftGraph")`, switched from `GetAsync`/`DefaultRequestHeaders` to `SendAsync` with per-request `HttpRequestMessage`
-- `backend/src/Anela.Heblo.Application/Features/UserManagement/UserManagementModule.cs` — added `services.AddHttpClient("MicrosoftGraph")` in production branch before `GraphService` registration
-- `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs` — new file with 12 tests covering constructor, cache-hit, cache-miss + factory verification, DI registration (both branches), all error branches, and no-dispose invariant
+- `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs` — two helpers extracted: `internal static (List<UserDto> Users, int TotalCount) ParseMembersFromJson(string json)` and `private async Task<string> AcquireGraphTokenAsync(string groupId, CancellationToken cancellationToken)`. Orchestrator now reads as a clean sequential pipeline.
+- `backend/test/Anela.Heblo.Tests/Features/UserManagement/ParseMembersFromJsonTests.cs` — 7 unit tests for the parser (all-users, mixed users/groups, empty value, missing optional fields, mail/UPN fallback, no @odata.type but has UPN, empty JSON).
+
+`InternalsVisibleTo("Anela.Heblo.Tests")` was already present in the `.csproj` — no change needed.
 
 ## Tests
 
-`backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs` — 12 tests:
-- `Constructor_AcceptsIHttpClientFactory_AsFourthParameter`
-- `GetGroupMembersAsync_CacheMiss_InvokesFactory_AndReturnsParsedUsers`
-- `GetGroupMembersAsync_CacheHit_DoesNotInvokeFactory`
-- `AddUserManagement_ProductionBranch_RegistersMicrosoftGraphNamedClient_AndResolvesGraphService`
-- `AddUserManagement_MockBranch_RegistersMockGraphService`
-- `GetGroupMembersAsync_TokenAcquisitionMsalException_ReturnsEmptyList_AndDoesNotInvokeFactory`
-- `GetGroupMembersAsync_GraphReturnsNonSuccess_ReturnsEmptyList`
-- `GetGroupMembersAsync_TransportThrows_ReturnsEmptyList`
-- `GetGroupMembersAsync_EmptyGroupId_ReturnsEmptyList_WithoutTouchingFactory`
-- `GetGroupMembersAsync_DoesNotDispose_FactoryProvidedClient`
-
-All 3909 tests in the solution pass.
+- **`ParseMembersFromJsonTests`** — 7 tests covering all NFR-3 scenarios; parser callable directly without HTTP plumbing.
+- **`GraphServiceTests`** — 12 pre-existing tests; all pass without modification (behaviour preserved).
 
 ## How to verify
 
 ```bash
-cd backend
-dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GraphServiceTests" --nologo --verbosity minimal
-dotnet build --nologo --verbosity minimal
-dotnet format --verify-no-changes --verbosity minimal
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~GraphServiceTests|FullyQualifiedName~ParseMembersFromJsonTests"
+# Expected: 19 passed, 0 failed
 ```
 
 ## Notes
 
-- The arch-review's amendment to use per-request `HttpRequestMessage` (Decision 2) was adopted — `request.Headers.Authorization` instead of `httpClient.DefaultRequestHeaders.Authorization`.
-- The arch-review's amendment to use the literal `"MicrosoftGraph"` without a shared constant (Decision 1) was adopted — both `GraphService.cs` and `UserManagementModule.cs` have a one-line cross-reference comment pointing to the sister modules.
-- `MockGraphService` and `IGraphService` are unchanged.
-- Known follow-up (out of scope): five other modules independently register `AddHttpClient("MicrosoftGraph")` with potentially conflicting handler configs (`PhotobankModule` adds `AllowAutoRedirect`). Consolidating into a shared `AddMicrosoftGraphHttpClient()` extension is recommended as a separate task.
+- **FR-3 line-count target (≤50 lines):** Not met — method is 93 lines. The excess is from pre-existing verbose structured logging (12 statements) and 4 exception handlers that were in the original method and are not touched by the two scoped extractions. The HTTP send block (25 lines) is explicitly out-of-scope for extraction per the spec. A follow-up task extracting `SendGraphRequestAsync` would bring the count under 50.
+- **`AcquireGraphTokenAsync` unused parameters:** `groupId` and `cancellationToken` are accepted but not forwarded to `GetAccessTokenForAppAsync` — the Microsoft.Identity.Web 3.14.1 API does not expose a `CancellationToken` overload; all other callers in the codebase do the same.
+- **`graphToken?.Length ?? 0` defensive null-check:** Pre-existing code carried over verbatim; harmless but technically redundant since `Task<string>` is non-nullable.
 
 ## PR Summary
 
-Migrates `GraphService` from raw `new HttpClient()` to `IHttpClientFactory` to eliminate socket exhaustion and DNS-staleness against `graph.microsoft.com`. This closes the only remaining raw-HttpClient caller in the UserManagement module, aligning it with the five sister Graph-consuming modules (Marketing, MeetingTasks, CatalogDocuments, KnowledgeBase, Photobank).
-
-The change is a three-line production diff: inject the factory, call `CreateClient("MicrosoftGraph")`, switch to per-request `HttpRequestMessage`. All caching, token acquisition, error handling, and response parsing are preserved verbatim.
+Extracted two focused private helpers from the 160-line `GraphService.GetGroupMembersAsync` to separate token acquisition and JSON response parsing from the orchestration flow. The parser is now directly unit-testable without HTTP plumbing (7 new tests). All 12 existing `GraphServiceTests` pass without modification.
 
 ### Changes
-- `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs` — added `IHttpClientFactory` constructor dependency, replaced `new HttpClient()` + `DefaultRequestHeaders.Authorization` + `GetAsync` with `CreateClient` + per-request `HttpRequestMessage` + `SendAsync`
-- `backend/src/Anela.Heblo.Application/Features/UserManagement/UserManagementModule.cs` — added `services.AddHttpClient("MicrosoftGraph")` in the production branch
-- `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs` — new test class with 12 tests covering the constructor wiring, cache-hit/miss paths, DI registration for both branches, all error paths, and the no-dispose invariant
+- `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs` — extracted `ParseMembersFromJson` (internal static, returns tuple for total count logging) and `AcquireGraphTokenAsync` (private instance); orchestrator reduced to a readable sequential pipeline
+- `backend/test/Anela.Heblo.Tests/Features/UserManagement/ParseMembersFromJsonTests.cs` — 7 tests covering all specified parser scenarios
 
 ## Status
-DONE
+DONE_WITH_CONCERNS
+
+> Concern: `GetGroupMembersAsync` is 93 lines vs the ≤50-line acceptance criterion. The remaining excess is pre-existing code (logging, exception handlers, HTTP block that is spec-exempt from extraction). Follow-up: extract `SendGraphRequestAsync` to close the gap.

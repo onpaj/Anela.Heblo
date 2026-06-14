@@ -4,7 +4,6 @@ using Anela.Heblo.Application.Features.Smartsupp.UseCases.ReplayWebhookEvent;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,7 +11,7 @@ namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/admin/smartsupp/webhooks")]
-[Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+[FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
 public class SmartsuppWebhookAuditController : BaseApiController
 {
     private readonly IMediator _mediator;

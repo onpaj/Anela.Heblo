@@ -348,10 +348,11 @@ public class CatalogRepositoryCacheOptimizationTests
         staleCache.Should().NotBeNull();
         staleCache!.First().ProductCode.Should().Be("OLD001");
 
-        // Update time should be recent
+        // Update time should match the mocked TimeProvider's value
         var updateTime = _cache.Get<DateTime?>("CatalogData_LastUpdate");
         updateTime.Should().NotBeNull();
-        updateTime!.Value.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        var expectedUpdateTime = _timeProviderMock.Object.GetUtcNow().UtcDateTime;
+        updateTime!.Value.Should().Be(expectedUpdateTime);
     }
 
     [Fact]

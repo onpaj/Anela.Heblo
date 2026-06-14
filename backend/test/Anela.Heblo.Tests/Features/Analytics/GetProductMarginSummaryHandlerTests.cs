@@ -172,7 +172,7 @@ public class GetProductMarginSummaryHandlerTests
         {
             TimeWindow = "current-year",
             GroupingMode = ProductGroupingMode.Products,
-            MarginLevel = "M2"
+            MarginLevel = MarginLevel.M2
         };
 
         var today = DateTime.Today;
@@ -229,7 +229,7 @@ public class GetProductMarginSummaryHandlerTests
                 It.IsAny<IAsyncEnumerable<AnalyticsProduct>>(),
                 It.IsAny<DateRange>(),
                 ProductGroupingMode.Products,
-                "M2",
+                MarginLevel.M2,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(calculationResult);
 
@@ -245,7 +245,7 @@ public class GetProductMarginSummaryHandlerTests
                 calculationResult,
                 It.IsAny<DateRange>(),
                 ProductGroupingMode.Products,
-                "M2"))
+                MarginLevel.M2))
             .Returns(monthlyData);
 
         var handler = new GetProductMarginSummaryHandler(
@@ -266,7 +266,7 @@ public class GetProductMarginSummaryHandlerTests
                 It.IsAny<IAsyncEnumerable<AnalyticsProduct>>(),
                 It.IsAny<DateRange>(),
                 ProductGroupingMode.Products,
-                "M2",
+                MarginLevel.M2,
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
@@ -275,8 +275,33 @@ public class GetProductMarginSummaryHandlerTests
                 calculationResult,
                 It.IsAny<DateRange>(),
                 ProductGroupingMode.Products,
-                "M2"),
+                MarginLevel.M2),
             Times.Once);
+    }
+
+    [Fact]
+    public void GetMarginAmountForLevel_WithUndefinedEnumValue_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var product = new AnalyticsProduct
+        {
+            ProductCode = "PROD001",
+            ProductName = "Product 1",
+            Type = AnalyticsProductType.Product,
+            MarginAmount = 50m,
+            M0Amount = 10m,
+            M1Amount = 20m,
+            M2Amount = 30m,
+            SalesHistory = new List<SalesDataPoint>()
+        };
+        var undefined = (MarginLevel)99;
+
+        // Act
+        Action act = () => _marginCalculator.GetMarginAmountForLevel(product, undefined);
+
+        // Assert
+        act.Should().Throw<ArgumentOutOfRangeException>()
+            .WithParameterName("marginLevel");
     }
 }
 

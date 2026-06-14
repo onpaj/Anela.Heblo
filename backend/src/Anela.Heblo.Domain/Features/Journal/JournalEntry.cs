@@ -11,7 +11,7 @@ namespace Anela.Heblo.Domain.Features.Journal
         public int Id { get; set; }
 
         [MaxLength(200)]
-        public string? Title { get; set; }
+        public string Title { get; set; } = null!;
 
         [Required]
         [MaxLength(10000)]
@@ -148,6 +148,16 @@ namespace Anela.Heblo.Domain.Features.Journal
                     TagId = tagId
                 });
             }
+        }
+
+        public void Update(string title, string content, DateTime entryDate, string userId, string username)
+        {
+            Title = title.Trim();
+            Content = content.Trim();
+            EntryDate = entryDate.Date;
+            ModifiedAt = DateTime.UtcNow;
+            ModifiedByUserId = userId;
+            ModifiedByUsername = username;
         }
 
         public void SoftDelete(string userId, string username)

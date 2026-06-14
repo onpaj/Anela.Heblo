@@ -10,6 +10,7 @@ export interface DashboardTile {
   defaultEnabled: boolean;
   autoShow: boolean;
   requiredPermissions: string[];
+  isUnauthorized?: boolean;
   data?: any;
 }
 
@@ -49,12 +50,12 @@ export const useUserDashboardSettings = () => {
   return useQuery({
     queryKey: [...QUERY_KEYS.dashboard, 'settings'],
     queryFn: async (): Promise<UserDashboardSettings> => {
-      const apiClient = await getAuthenticatedApiClient();
+      const apiClient = getAuthenticatedApiClient(false);
       const relativeUrl = `/api/dashboard/settings`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-      });
+      const response = await (apiClient as any).http.fetch(fullUrl, { method: 'GET' });
+      if (response.status === 403) return { tiles: [], lastModified: new Date().toISOString() };
+      if (!response.ok) throw new Error(`API Call Error (${response.status})`);
       return response.json();
     },
   });
@@ -65,15 +66,15 @@ export const useTileData = () => {
   return useQuery({
     queryKey: [...QUERY_KEYS.dashboard, 'data'],
     queryFn: async (): Promise<DashboardTile[]> => {
-      const apiClient = await getAuthenticatedApiClient();
+      const apiClient = getAuthenticatedApiClient(false);
       const relativeUrl = `/api/dashboard/data`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-      });
+      const response = await (apiClient as any).http.fetch(fullUrl, { method: 'GET' });
+      if (response.status === 403) return [];
+      if (!response.ok) throw new Error(`API Call Error (${response.status})`);
       return response.json();
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
   });
 };
 

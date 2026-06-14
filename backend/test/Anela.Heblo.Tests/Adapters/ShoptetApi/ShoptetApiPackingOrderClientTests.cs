@@ -6,6 +6,7 @@ using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -26,7 +27,7 @@ public class ShoptetApiPackingOrderClientTests
         {
             BaseAddress = new Uri("https://fake.shoptet.cz"),
         };
-        return new ShoptetOrderClient(http);
+        return new ShoptetOrderClient(http, Options.Create(new ShoptetOrdersSettings()));
     }
 
     private static HttpResponseMessage Json(object obj, HttpStatusCode status = HttpStatusCode.OK)
@@ -83,8 +84,9 @@ public class ShoptetApiPackingOrderClientTests
         int defaultWeightGrams = 500)
     {
         var settings = Options.Create(new ShoptetApiSettings { DefaultItemWeightGrams = defaultWeightGrams });
+        var orderSettings = Options.Create(new ShoptetOrdersSettings());
         var logger = NullLogger<ShoptetApiPackingOrderClient>.Instance;
-        return new ShoptetApiPackingOrderClient(orderClient, catalog, cooling, logger, settings);
+        return new ShoptetApiPackingOrderClient(orderClient, catalog, cooling, logger, settings, orderSettings);
     }
 
     [Fact]
@@ -274,5 +276,45 @@ public class ShoptetApiPackingOrderClientTests
 
         // Assert
         result!.Items[0].WeightGrams.Should().Be(500); // DefaultItemWeightGrams fallback
+    }
+
+    [Fact]
+    public async Task GetOrdersBeingProcessedCountAsync_QueriesVyrizujeSeStatus_AndReturnsTotalCount()
+    {
+        // Arrange — "Vyřizuje se" is the Shoptet system state -2 (default ProcessingStateId).
+        string? requestedQuery = null;
+        var orderClient = BuildOrderClient(req =>
+        {
+            requestedQuery = req.RequestUri!.Query;
+            return Json(new { data = new { paginator = new { totalCount = 26 } } });
+        });
+        var sut = BuildSut(orderClient, CatalogWith(), CoolingWith());
+
+        // Act
+        var count = await sut.GetOrdersBeingProcessedCountAsync(CancellationToken.None);
+
+        // Assert
+        count.Should().Be(26);
+        requestedQuery.Should().Contain("statusId=-2");
+    }
+
+    [Fact]
+    public async Task GetOrdersBeingPackedCountAsync_QueriesBaliSeStatus_AndReturnsTotalCount()
+    {
+        // Arrange — "Balí se" is status 26 (default PackingStateId).
+        string? requestedQuery = null;
+        var orderClient = BuildOrderClient(req =>
+        {
+            requestedQuery = req.RequestUri!.Query;
+            return Json(new { data = new { paginator = new { totalCount = 3 } } });
+        });
+        var sut = BuildSut(orderClient, CatalogWith(), CoolingWith());
+
+        // Act
+        var count = await sut.GetOrdersBeingPackedCountAsync(CancellationToken.None);
+
+        // Assert
+        count.Should().Be(3);
+        requestedQuery.Should().Contain("statusId=26");
     }
 }

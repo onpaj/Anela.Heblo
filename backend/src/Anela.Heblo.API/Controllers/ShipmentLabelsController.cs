@@ -1,13 +1,13 @@
 using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.CreateOrderShipment;
 using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.GetOrderShipmentLabels;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[FeatureAuthorize(Feature.Warehouse_Expedition)]
 [ApiController]
 [Route("api/shipment-labels")]
 public class ShipmentLabelsController : BaseApiController
@@ -24,6 +24,7 @@ public class ShipmentLabelsController : BaseApiController
     /// The Baleni kiosk uses these to print on a USB-connected Zebra printer.
     /// </summary>
     [HttpPost]
+    [FeatureAuthorize(Feature.Warehouse_Expedition, AccessLevel.Write)]
     public async Task<ActionResult<GetOrderShipmentLabelsResponse>> GetLabels(
         [FromBody] GetShipmentLabelsRequest body)
     {
@@ -39,6 +40,7 @@ public class ShipmentLabelsController : BaseApiController
     /// Creates a new shipment for an order via the Shoptet API and returns label data.
     /// </summary>
     [HttpPost("create")]
+    [FeatureAuthorize(Feature.Warehouse_Expedition, AccessLevel.Write)]
     public async Task<ActionResult<CreateOrderShipmentResponse>> CreateShipment(
         [FromBody] CreateShipmentRequest body,
         CancellationToken cancellationToken)

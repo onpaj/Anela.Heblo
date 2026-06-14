@@ -11,9 +11,13 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 
 public class GetManufactureOutputHandlerTests
 {
+    private static readonly DateTimeOffset FixedClock =
+        new DateTimeOffset(2026, 03, 15, 10, 0, 0, TimeSpan.Zero);
+
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
     private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<ILogger<GetManufactureOutputHandler>> _loggerMock;
+    private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly GetManufactureOutputHandler _handler;
 
     public GetManufactureOutputHandlerTests()
@@ -21,11 +25,14 @@ public class GetManufactureOutputHandlerTests
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
         _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _loggerMock = new Mock<ILogger<GetManufactureOutputHandler>>();
+        _timeProviderMock = new Mock<TimeProvider>();
+        _timeProviderMock.Setup(tp => tp.GetUtcNow()).Returns(FixedClock);
 
         _handler = new GetManufactureOutputHandler(
             _manufactureHistoryClientMock.Object,
             _catalogRepositoryMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _timeProviderMock.Object);
     }
 
 
@@ -120,6 +127,58 @@ public class GetManufactureOutputHandlerTests
         response.Months.Should().AllSatisfy(month => month.TotalOutput.Should().Be(0));
     }
 
+    [Fact]
+    public async Task Handle_UsesInjectedClock_ForDateRangeUpperBound()
+    {
+        // Arrange
+        var request = new GetManufactureOutputRequest { MonthsBack = 3 };
+
+        DateTime? capturedTo = null;
+        DateTime? capturedFrom = null;
+        _manufactureHistoryClientMock
+            .Setup(x => x.GetHistoryAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Callback<DateTime, DateTime, string?, CancellationToken>((from, to, _, _) =>
+            {
+                capturedFrom = from;
+                capturedTo = to;
+            })
+            .ReturnsAsync(new List<ManufactureHistoryRecord>());
+
+        _catalogRepositoryMock
+            .Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestCatalogItems());
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        capturedTo.Should().Be(FixedClock.DateTime);
+        capturedFrom.Should().Be(FixedClock.DateTime.AddMonths(-3));
+    }
+
+    [Fact]
+    public async Task Handle_GapFillingLoop_TerminatesAtMonthOfInjectedClock()
+    {
+        // Arrange
+        var request = new GetManufactureOutputRequest { MonthsBack = 2 };
+
+        _manufactureHistoryClientMock
+            .Setup(x => x.GetHistoryAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ManufactureHistoryRecord>());
+
+        _catalogRepositoryMock
+            .Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestCatalogItems());
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        // FixedClock is 2026-03-15 → range start month = 2026-01, end month = 2026-03 → 3 buckets.
+        response.Months.Should().HaveCount(3);
+        response.Months.Select(m => m.Month).Should().ContainInOrder("2026-01", "2026-02", "2026-03");
+    }
+
     private List<CatalogAggregate> CreateTestCatalogItems()
     {
         var product1 = new CatalogAggregate
@@ -155,7 +214,7 @@ public class GetManufactureOutputHandlerTests
 
     private List<ManufactureHistoryRecord> CreateTestManufactureHistory()
     {
-        var currentDate = DateTime.Now;
+        var currentDate = FixedClock.DateTime;
         return new List<ManufactureHistoryRecord>
         {
             new ManufactureHistoryRecord

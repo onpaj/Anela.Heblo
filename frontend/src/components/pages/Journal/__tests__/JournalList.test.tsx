@@ -11,6 +11,11 @@ import type {
   JournalTagDto,
 } from "../../../../api/generated/api-client";
 
+// Mock telemetry to avoid dependency on @microsoft/applicationinsights-web
+jest.mock("../../../../telemetry/useScreenView", () => ({
+  useScreenView: jest.fn(),
+}));
+
 // Mock the useJournal hooks
 jest.mock("../../../../api/hooks/useJournal");
 
@@ -233,80 +238,7 @@ describe("JournalList", () => {
     expect(screen.getByText("Vytvořit první záznam")).toBeInTheDocument();
   });
 
-  it("should handle search input and apply search", async () => {
-    const mockSearchRefetch = jest.fn().mockResolvedValue({});
-    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
-      data: {
-        entries: [mockJournalEntries[0]], // Return first entry as search result
-        totalCount: 1,
-        currentPage: 1,
-        pageSize: 20,
-        totalPages: 1,
-      },
-      isLoading: false,
-      error: null,
-      refetch: mockSearchRefetch,
-    } as any);
-
-    render(<JournalList />, { wrapper: createWrapper });
-
-    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
-    const filterButton = screen.getByText("Filtrovat");
-
-    fireEvent.change(searchInput, { target: { value: "skincare" } });
-    fireEvent.click(filterButton);
-
-    await waitFor(() => {
-      expect(mockSearchRefetch).toHaveBeenCalled();
-    });
-
-    // Basic test - component should render search input
-    expect(searchInput).toBeInTheDocument();
-  });
-
-  it("should handle Enter key press in search input", async () => {
-    const mockSearchRefetch = jest.fn().mockResolvedValue({});
-    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
-      data: {
-        entries: [],
-        totalCount: 0,
-        currentPage: 1,
-        pageSize: 20,
-        totalPages: 0,
-      },
-      isLoading: false,
-      error: null,
-      refetch: mockSearchRefetch,
-    } as any);
-
-    render(<JournalList />, { wrapper: createWrapper });
-
-    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
-
-    fireEvent.change(searchInput, { target: { value: "test search" } });
-    fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
-
-    await waitFor(() => {
-      expect(mockSearchRefetch).toHaveBeenCalled();
-    });
-  });
-
-  it("should clear search and return to normal mode", async () => {
-    const mockRefetch = jest.fn().mockResolvedValue({});
-    mockUseJournalHooks.useJournalEntries.mockReturnValue({
-      data: {
-        entries: mockJournalEntries,
-        totalCount: 2,
-        currentPage: 1,
-        pageSize: 20,
-        totalPages: 1,
-      },
-      isLoading: false,
-      error: null,
-      refetch: mockRefetch,
-    } as any);
-
-    // Start with search mode active
+  it("re-invokes the search hook with the new searchText and enabled=true when applying filters", async () => {
     mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
       data: {
         entries: [mockJournalEntries[0]],
@@ -317,27 +249,127 @@ describe("JournalList", () => {
       },
       isLoading: false,
       error: null,
-      refetch: jest.fn(),
+      refetch: jest.fn().mockResolvedValue({}),
     } as any);
 
     render(<JournalList />, { wrapper: createWrapper });
 
-    // Trigger search first
+    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
+    const filterButton = screen.getByText("Filtrovat");
+
+    fireEvent.change(searchInput, { target: { value: "skincare" } });
+    fireEvent.click(filterButton);
+
+    let searchParams: any;
+    let searchEnabled: any;
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      searchParams = lastCall?.[0];
+      searchEnabled = lastCall?.[1];
+
+      expect(searchEnabled).toBe(true);
+    });
+
+    expect(searchParams).toMatchObject({
+      searchText: "skincare",
+      pageNumber: 1,
+    });
+  });
+
+  it("re-invokes the search hook with the new searchText when Enter is pressed in the search input", async () => {
+    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
+      data: {
+        entries: [],
+        totalCount: 0,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 0,
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn().mockResolvedValue({}),
+    } as any);
+
+    render(<JournalList />, { wrapper: createWrapper });
+
+    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
+
+    fireEvent.change(searchInput, { target: { value: "test search" } });
+    fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
+
+    let searchParams: any;
+    let searchEnabled: any;
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      searchParams = lastCall?.[0];
+      searchEnabled = lastCall?.[1];
+
+      expect(searchEnabled).toBe(true);
+    });
+
+    expect(searchParams).toMatchObject({
+      searchText: "test search",
+      pageNumber: 1,
+    });
+  });
+
+  it("disables the search hook and re-invokes the entries hook when filters are cleared", async () => {
+    mockUseJournalHooks.useJournalEntries.mockReturnValue({
+      data: {
+        entries: mockJournalEntries,
+        totalCount: 2,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 1,
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn().mockResolvedValue({}),
+    } as any);
+
+    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
+      data: {
+        entries: [mockJournalEntries[0]],
+        totalCount: 1,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 1,
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn().mockResolvedValue({}),
+    } as any);
+
+    render(<JournalList />, { wrapper: createWrapper });
+
+    // Enter search mode.
     const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
     fireEvent.change(searchInput, { target: { value: "test" } });
     fireEvent.keyDown(searchInput, { key: "Enter" });
 
     await waitFor(() => {
-      expect(screen.getByText("Vymazat")).toBeInTheDocument();
+      const lastSearchCall = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls.at(-1);
+      expect(lastSearchCall?.[1]).toBe(true);
     });
 
-    // Clear search
+    // Clear filters.
     const clearButton = screen.getByText("Vymazat");
     fireEvent.click(clearButton);
 
     await waitFor(() => {
-      expect(mockRefetch).toHaveBeenCalled();
+      const lastSearchCall = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls.at(-1);
+      expect(lastSearchCall?.[1]).toBe(false);
     });
+
+    const lastEntriesCall = (mockUseJournalHooks.useJournalEntries as jest.Mock).mock.calls.at(-1);
+    expect(lastEntriesCall?.[0]).toMatchObject({
+      pageNumber: 1,
+    });
+
+    // The search input should also be cleared visually.
+    expect(searchInput).toHaveValue("");
   });
 
   it("should open new journal entry modal", () => {
@@ -480,5 +512,183 @@ describe("JournalList", () => {
         sortDirection: "ASC",
       });
     });
+  });
+
+  it("re-invokes the search hook with the new pageNumber when paginating in search mode", async () => {
+    // Search returns 25 entries across 2 pages so page-2 button is visible.
+    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
+      data: {
+        entries: [mockJournalEntries[0]],
+        totalCount: 25,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 2,
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn().mockResolvedValue({}),
+    } as any);
+
+    render(<JournalList />, { wrapper: createWrapper });
+
+    // Enter search mode.
+    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
+    fireEvent.change(searchInput, { target: { value: "skincare" } });
+    fireEvent.click(screen.getByText("Filtrovat"));
+
+    // Wait until search mode is active (page-2 button is rendered in the pagination footer).
+    const page2Button = await screen.findByRole("button", { name: "2" });
+
+    // Click page 2.
+    fireEvent.click(page2Button);
+
+    let paginationParams: any;
+    let paginationEnabled: any;
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      paginationParams = lastCall?.[0];
+      paginationEnabled = lastCall?.[1];
+
+      expect(paginationEnabled).toBe(true);
+    });
+
+    expect(paginationParams).toMatchObject({
+      searchText: "skincare",
+      pageNumber: 2,
+    });
+  });
+
+  it("re-invokes the search hook with the new sortBy when sorting in search mode", async () => {
+    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
+      data: {
+        entries: [mockJournalEntries[0]],
+        totalCount: 1,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 1,
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn().mockResolvedValue({}),
+    } as any);
+
+    render(<JournalList />, { wrapper: createWrapper });
+
+    // Enter search mode.
+    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
+    fireEvent.change(searchInput, { target: { value: "skincare" } });
+    fireEvent.click(screen.getByText("Filtrovat"));
+
+    // Click "Datum" header to switch sortBy to "entryDate".
+    const dateHeader = await screen.findByRole("columnheader", { name: /Datum/i });
+    fireEvent.click(dateHeader);
+
+    let sortParams: any;
+    let sortEnabled: any;
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      sortParams = lastCall?.[0];
+      sortEnabled = lastCall?.[1];
+
+      expect(sortEnabled).toBe(true);
+    });
+
+    expect(sortParams).toMatchObject({
+      searchText: "skincare",
+      sortBy: "entryDate",
+      sortDirection: "ASC",
+    });
+  });
+
+  it("re-invokes the search hook with the new pageSize and resets to page 1 in search mode", async () => {
+    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
+      data: {
+        entries: [mockJournalEntries[0]],
+        totalCount: 100,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 5,
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn().mockResolvedValue({}),
+    } as any);
+
+    render(<JournalList />, { wrapper: createWrapper });
+
+    // Enter search mode.
+    const searchInput = screen.getByPlaceholderText("Hledat v záznamech...");
+    fireEvent.change(searchInput, { target: { value: "skincare" } });
+    fireEvent.click(screen.getByText("Filtrovat"));
+
+    // Change page size to 50 via the <select> in the pagination footer.
+    const pageSizeSelect = await screen.findByRole("combobox");
+    fireEvent.change(pageSizeSelect, { target: { value: "50" } });
+
+    let pageSizeParams: any;
+    let pageSizeEnabled: any;
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useSearchJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      pageSizeParams = lastCall?.[0];
+      pageSizeEnabled = lastCall?.[1];
+
+      expect(pageSizeEnabled).toBe(true);
+    });
+
+    expect(pageSizeParams).toMatchObject({
+      searchText: "skincare",
+      pageSize: 50,
+      pageNumber: 1, // page-size change must reset to page 1
+    });
+  });
+
+  it("does not call refetch on entriesQuery or searchQuery when the modal closes", async () => {
+    const entriesRefetch = jest.fn().mockResolvedValue({});
+    const searchRefetch = jest.fn().mockResolvedValue({});
+
+    mockUseJournalHooks.useJournalEntries.mockReturnValue({
+      data: {
+        entries: mockJournalEntries,
+        totalCount: 2,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 1,
+      },
+      isLoading: false,
+      error: null,
+      refetch: entriesRefetch,
+    } as any);
+
+    mockUseJournalHooks.useSearchJournalEntries.mockReturnValue({
+      data: {
+        entries: [],
+        totalCount: 0,
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 0,
+      },
+      isLoading: false,
+      error: null,
+      refetch: searchRefetch,
+    } as any);
+
+    render(<JournalList />, { wrapper: createWrapper });
+
+    // Open the "new entry" modal.
+    fireEvent.click(screen.getByTestId("add-journal-entry"));
+
+    // Close the modal via the JournalEntryModal onClose prop.
+    // The modal is rendered as <JournalEntryModal isOpen={isModalOpen} onClose={handleCloseModal} ...>
+    // Try Escape first; if that doesn't trigger handleCloseModal, find the close button.
+    fireEvent.keyDown(document.body, { key: "Escape", code: "Escape" });
+
+    // Allow any pending state updates / effects to flush.
+    // With unchanged source, refetch IS called (test is red/failing before the source fix).
+    // After Task 5 source fix, refetch is NOT called (test turns green).
+    await waitFor(() => expect(entriesRefetch).not.toHaveBeenCalled());
+    expect(searchRefetch).not.toHaveBeenCalled();
   });
 });

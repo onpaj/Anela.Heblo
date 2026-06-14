@@ -41,4 +41,11 @@ public interface IPackingMaterialRepository : IRepository<PackingMaterial, int>
     Task AddConsumptionRowsAsync(IEnumerable<PackingMaterialConsumption> rows, CancellationToken cancellationToken = default);
     Task<IEnumerable<PackingMaterialConsumption>> GetConsumptionsByDateAsync(DateOnly date, CancellationToken cancellationToken = default);
     Task AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default);
+
+    Task<(IReadOnlyList<MaterialConsumptionHistoryRecord> Items, int TotalCount)> GetConsumptionHistoryAsync(
+        MaterialConsumptionHistoryFilter filter,
+        int skip,
+        int take,
+        bool ascending,
+        CancellationToken cancellationToken = default);
 }

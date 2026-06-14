@@ -13,7 +13,6 @@ namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/feature-flags")]
-[Authorize]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 public class FeatureFlagsController : BaseApiController
 {
@@ -22,19 +21,20 @@ public class FeatureFlagsController : BaseApiController
     public FeatureFlagsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(EvaluateFlagsForClientResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<EvaluateFlagsForClientResponse>> Get(CancellationToken ct)
         => HandleResponse(await _mediator.Send(new EvaluateFlagsForClientRequest(), ct));
 
     [HttpGet("admin")]
-    [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+    [FeatureAuthorize(Feature.Admin_FeatureFlags, AccessLevel.Write)]
     [ProducesResponseType(typeof(ListFlagsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ListFlagsResponse>> GetAdmin(CancellationToken ct)
         => HandleResponse(await _mediator.Send(new ListFlagsRequest(), ct));
 
     [HttpPut("admin/{key}")]
-    [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+    [FeatureAuthorize(Feature.Admin_FeatureFlags, AccessLevel.Write)]
     [ProducesResponseType(typeof(UpsertFlagOverrideResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(UpsertFlagOverrideResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -56,7 +56,7 @@ public class FeatureFlagsController : BaseApiController
     }
 
     [HttpDelete("admin/{key}")]
-    [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+    [FeatureAuthorize(Feature.Admin_FeatureFlags, AccessLevel.Write)]
     [ProducesResponseType(typeof(ClearFlagOverrideResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ClearFlagOverrideResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

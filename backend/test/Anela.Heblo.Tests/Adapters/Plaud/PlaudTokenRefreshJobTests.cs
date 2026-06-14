@@ -18,13 +18,15 @@ public sealed class PlaudTokenRefreshJobTests : IDisposable
     private readonly Mock<SecretClient> _secretClient = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
 
+    // expires_at is a Unix millisecond timestamp; use a far-future value so the past-check passes.
     private static readonly PlaudTokens ValidTokens = new(
         AccessToken: "new-access",
         RefreshToken: "new-refresh",
-        ExpiresAt: 9999999999L);
+        ExpiresAt: 99999999999999L,
+        TokenType: "bearer");
 
     private static readonly string CurrentTokensJson = """
-        {"access_token":"old-access","refresh_token":"old-refresh","expires_at":9999999999}
+        {"access_token":"old-access","refresh_token":"old-refresh","expires_at":99999999999999,"token_type":"bearer"}
         """;
 
     public PlaudTokenRefreshJobTests()

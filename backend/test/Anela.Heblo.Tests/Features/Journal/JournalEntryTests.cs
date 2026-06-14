@@ -215,4 +215,115 @@ public class JournalEntryTests
         entry.TagAssignments.Select(t => t.TagId)
             .Should().BeEquivalentTo(new[] { 1, 2 });
     }
+
+    // ----- Update -----
+
+    [Fact]
+    public void Update_AssignsAllFieldsAndAuditTrail()
+    {
+        // Arrange
+        var entry = NewEntry();
+        var originalCreatedAt = entry.CreatedAt;
+        var originalCreatedByUserId = entry.CreatedByUserId;
+        var originalCreatedByUsername = entry.CreatedByUsername;
+        var before = DateTime.UtcNow;
+
+        // Act
+        entry.Update(
+            title: "New Title",
+            content: "New content body",
+            entryDate: new DateTime(2026, 6, 4, 14, 30, 0, DateTimeKind.Utc),
+            userId: "user-42",
+            username: "Alice");
+
+        // Assert
+        var after = DateTime.UtcNow;
+        entry.Title.Should().Be("New Title");
+        entry.Content.Should().Be("New content body");
+        entry.EntryDate.Should().Be(new DateTime(2026, 6, 4));
+        entry.ModifiedAt.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
+        entry.ModifiedByUserId.Should().Be("user-42");
+        entry.ModifiedByUsername.Should().Be("Alice");
+
+        // Creation audit untouched
+        entry.CreatedAt.Should().Be(originalCreatedAt);
+        entry.CreatedByUserId.Should().Be(originalCreatedByUserId);
+        entry.CreatedByUsername.Should().Be(originalCreatedByUsername);
+    }
+
+    [Fact]
+    public void Update_TrimsTitleAndContent()
+    {
+        var entry = NewEntry();
+
+        entry.Update(
+            title: "  spaced title  ",
+            content: "  spaced content  ",
+            entryDate: DateTime.UtcNow,
+            userId: "u",
+            username: "n");
+
+        entry.Title.Should().Be("spaced title");
+        entry.Content.Should().Be("spaced content");
+    }
+
+    [Fact]
+    public void Update_StripsTimeComponentFromEntryDate()
+    {
+        var entry = NewEntry();
+        var input = new DateTime(2026, 6, 4, 14, 30, 45, DateTimeKind.Utc);
+
+        entry.Update(
+            title: "t",
+            content: "c",
+            entryDate: input,
+            userId: "u",
+            username: "n");
+
+        entry.EntryDate.Should().Be(new DateTime(2026, 6, 4));
+        entry.EntryDate.TimeOfDay.Should().Be(TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void Update_DoesNotTouchDeletionFields()
+    {
+        var entry = NewEntry();
+        // Pre-condition: not deleted
+        entry.IsDeleted.Should().BeFalse();
+        entry.DeletedAt.Should().BeNull();
+        entry.DeletedByUserId.Should().BeNull();
+        entry.DeletedByUsername.Should().BeNull();
+
+        entry.Update(
+            title: "t",
+            content: "c",
+            entryDate: DateTime.UtcNow,
+            userId: "u",
+            username: "n");
+
+        entry.IsDeleted.Should().BeFalse();
+        entry.DeletedAt.Should().BeNull();
+        entry.DeletedByUserId.Should().BeNull();
+        entry.DeletedByUsername.Should().BeNull();
+    }
+
+    [Fact]
+    public void Update_DoesNotTouchProductAndTagCollections()
+    {
+        var entry = NewEntry();
+        entry.AssociateWithProduct("AB-1");
+        entry.AssignTag(7);
+
+        entry.Update(
+            title: "t",
+            content: "c",
+            entryDate: DateTime.UtcNow,
+            userId: "u",
+            username: "n");
+
+        entry.ProductAssociations.Should().ContainSingle()
+            .Which.ProductCodePrefix.Should().Be("AB-1");
+        entry.TagAssignments.Should().ContainSingle()
+            .Which.TagId.Should().Be(7);
+    }
 }

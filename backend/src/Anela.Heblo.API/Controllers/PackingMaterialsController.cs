@@ -4,21 +4,22 @@ using Anela.Heblo.Application.Features.PackingMaterials.UseCases.CreateAllocatio
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeleteAllocation;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeletePackingMaterial;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetAllocations;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetConsumptionHistory;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetDailyConsumptionBreakdown;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDailyConsumption;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdateAllocation;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterialQuantity;
 using Anela.Heblo.API.Infrastructure;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[FeatureAuthorize(Feature.Warehouse_Logistics)]
 [ApiController]
 [Route("api/packing-materials")]
 public class PackingMaterialsController : BaseApiController
@@ -40,6 +41,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     public async Task<ActionResult<CreatePackingMaterialResponse>> CreatePackingMaterial(
         [FromBody] CreatePackingMaterialRequest request,
         CancellationToken cancellationToken = default)
@@ -57,6 +59,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPut("{id}")]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     [ProducesResponseType(typeof(UpdatePackingMaterialResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -82,6 +85,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost("{id}/quantity")]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     [ProducesResponseType(typeof(UpdatePackingMaterialQuantityResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -109,6 +113,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpDelete("{id}")]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -124,6 +129,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost("process-daily-consumption")]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     public async Task<ActionResult<ProcessDailyConsumptionResponse>> ProcessDailyConsumption(
         [FromBody] ProcessDailyConsumptionRequest request,
         CancellationToken cancellationToken = default)
@@ -153,6 +159,17 @@ public class PackingMaterialsController : BaseApiController
         var request = new GetDailyConsumptionBreakdownRequest { Date = parsedDate, GroupBy = groupBy };
         var response = await _mediator.Send(request, cancellationToken);
         return response.Success ? Ok(response) : BadRequest(new { error = response.Error });
+    }
+
+    [HttpGet("consumption-history")]
+    [ProducesResponseType(typeof(GetConsumptionHistoryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<GetConsumptionHistoryResponse>> GetConsumptionHistory(
+        [FromQuery] GetConsumptionHistoryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _mediator.Send(request, cancellationToken);
+        return Ok(response);
     }
 
     [HttpGet("{id}/logs")]
@@ -191,6 +208,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost("{id}/allocations")]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     [ProducesResponseType(typeof(CreateAllocationResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -217,6 +235,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPut("{id}/allocations/{allocationId}")]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     [ProducesResponseType(typeof(UpdateAllocationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -241,6 +260,7 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpDelete("{id}/allocations/{allocationId}")]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DeleteAllocationResponse>> DeleteAllocation(

@@ -41,7 +41,20 @@ export const useJournalEntries = (params: JournalEntriesParams = {}) => {
   });
 };
 
-export const useSearchJournalEntries = (params: SearchJournalParams) => {
+/**
+ * Searches journal entries. The query is gated by `enabled` so that the page
+ * controlling search mode can opt in only when the user has applied a non-empty
+ * filter. Default is `false` to preserve the "no request on mount" behavior for
+ * any future caller that does not explicitly enable the query.
+ *
+ * When `enabled` is `true`, React Query auto-refetches on every change to
+ * `params` (pagination, page size, sort), so callers should rely on key-change
+ * refetch rather than calling `.refetch()` manually after changing state.
+ */
+export const useSearchJournalEntries = (
+  params: SearchJournalParams,
+  enabled: boolean = false,
+) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.journal, "search", params],
     queryFn: async () => {
@@ -59,7 +72,7 @@ export const useSearchJournalEntries = (params: SearchJournalParams) => {
         params.sortDirection,
       );
     },
-    enabled: false, // Only run when explicitly called
+    enabled,
   });
 };
 

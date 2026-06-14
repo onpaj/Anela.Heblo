@@ -210,6 +210,126 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("ArticleSources", (string)null);
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Authorization.Entities.AppUser", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CanPack")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("EntraObjectId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntraObjectId")
+                        .IsUnique()
+                        .HasFilter("\"EntraObjectId\" IS NOT NULL");
+
+                    b.ToTable("AppUsers", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Authorization.Entities.GroupParent", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ParentGroupId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("GroupId", "ParentGroupId");
+
+                    b.HasIndex("ParentGroupId");
+
+                    b.ToTable("GroupParents", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Authorization.Entities.GroupPermission", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PermissionValue")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("GroupId", "PermissionValue");
+
+                    b.ToTable("GroupPermissions", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Authorization.Entities.PermissionGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("PermissionGroups", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Authorization.Entities.UserGroup", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("UserId", "GroupId");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("UserGroups", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.BackgroundJobs.RecurringJobConfiguration", b =>
                 {
                     b.Property<string>("Id")
@@ -583,6 +703,67 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasDatabaseName("IX_StockUpOperations_State_CreatedAt");
 
                     b.ToTable("StockUpOperations", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Dashboard.UserDashboardSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("LastModified")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("UserDashboardSettings", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Dashboard.UserDashboardTile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LastModified")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("TileId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "DisplayOrder");
+
+                    b.HasIndex("UserId", "TileId")
+                        .IsUnique();
+
+                    b.ToTable("UserDashboardTiles", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.DqtDriftResult", b =>
@@ -1117,6 +1298,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<string>("Title")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
@@ -2597,6 +2779,9 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<Guid?>("PackedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ShipmentGuid")
                         .HasColumnType("uuid");
 
@@ -2618,6 +2803,8 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("OrderCode");
 
                     b.HasIndex("PackedAt");
+
+                    b.HasIndex("PackedByUserId");
 
                     b.HasIndex("OrderCode", "PackageNumber")
                         .IsUnique();
@@ -3523,67 +3710,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("SmartsuppWebhookAuditEntries", "public");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Dashboard.UserDashboardSettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("LastModified")
-                        .HasColumnType("timestamp");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("UserDashboardSettings", "public");
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Dashboard.UserDashboardTile", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsVisible")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("LastModified")
-                        .HasColumnType("timestamp");
-
-                    b.Property<string>("TileId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "DisplayOrder");
-
-                    b.HasIndex("UserId", "TileId")
-                        .IsUnique();
-
-                    b.ToTable("UserDashboardTiles", "public");
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Article.ArticleGenerationStep", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Article.Article", null)
@@ -3602,6 +3728,55 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Authorization.Entities.GroupParent", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Authorization.Entities.PermissionGroup", "Group")
+                        .WithMany("Parents")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Anela.Heblo.Domain.Features.Authorization.Entities.PermissionGroup", "ParentGroup")
+                        .WithMany()
+                        .HasForeignKey("ParentGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+
+                    b.Navigation("ParentGroup");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Authorization.Entities.GroupPermission", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Authorization.Entities.PermissionGroup", "Group")
+                        .WithMany("Permissions")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Authorization.Entities.UserGroup", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Authorization.Entities.PermissionGroup", "Group")
+                        .WithMany("UserGroups")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Anela.Heblo.Domain.Features.Authorization.Entities.AppUser", "User")
+                        .WithMany("UserGroups")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.Inventory.MaterialContainer", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Purchase.PurchaseOrderLine", null)
@@ -3609,6 +3784,18 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasForeignKey("PurchaseOrderLineId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("FK_MaterialContainers_PurchaseOrderLines_PurchaseOrderLineId");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Dashboard.UserDashboardTile", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Dashboard.UserDashboardSettings", "DashboardSettings")
+                        .WithMany("Tiles")
+                        .HasForeignKey("UserId")
+                        .HasPrincipalKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DashboardSettings");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.InvoiceDqtResult", b =>
@@ -3932,23 +4119,30 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("Conversation");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Dashboard.UserDashboardTile", b =>
-                {
-                    b.HasOne("Anela.Heblo.Domain.Features.Dashboard.UserDashboardSettings", "DashboardSettings")
-                        .WithMany("Tiles")
-                        .HasForeignKey("UserId")
-                        .HasPrincipalKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DashboardSettings");
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Article.Article", b =>
                 {
                     b.Navigation("Sources");
 
                     b.Navigation("Steps");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Authorization.Entities.AppUser", b =>
+                {
+                    b.Navigation("UserGroups");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Authorization.Entities.PermissionGroup", b =>
+                {
+                    b.Navigation("Parents");
+
+                    b.Navigation("Permissions");
+
+                    b.Navigation("UserGroups");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Dashboard.UserDashboardSettings", b =>
+                {
+                    b.Navigation("Tiles");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.DqtRun", b =>
@@ -4052,11 +4246,6 @@ namespace Anela.Heblo.Persistence.Migrations
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Smartsupp.SmartsuppConversation", b =>
                 {
                     b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Dashboard.UserDashboardSettings", b =>
-                {
-                    b.Navigation("Tiles");
                 });
 #pragma warning restore 612, 618
         }

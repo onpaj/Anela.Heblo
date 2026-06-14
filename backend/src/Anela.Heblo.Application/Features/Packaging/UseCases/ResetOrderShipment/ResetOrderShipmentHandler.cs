@@ -28,6 +28,10 @@ public class ResetOrderShipmentHandler : IRequestHandler<ResetOrderShipmentReque
 
     public async Task<ResetOrderShipmentResponse> Handle(ResetOrderShipmentRequest request, CancellationToken ct)
     {
+        const int maxPackages = 10;
+        if (request.NumberOfPackages < 1 || request.NumberOfPackages > maxPackages)
+            return new ResetOrderShipmentResponse(ErrorCodes.InvalidPackageCount);
+
         var existingLabels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
         if (existingLabels.Count == 0)
             return new ResetOrderShipmentResponse(ErrorCodes.NoShipmentToReset);
@@ -59,7 +63,8 @@ public class ResetOrderShipmentHandler : IRequestHandler<ResetOrderShipmentReque
         if (totalWeightGrams == 0)
             return new ResetOrderShipmentResponse(ErrorCodes.ShipmentOrderWeightUnavailable);
 
-        var weightGrams = Math.Max(totalWeightGrams, _shipmentSettings.MinPackageWeightGrams);
+        var n = request.NumberOfPackages;
+        var perPackageWeightGrams = Math.Max(totalWeightGrams / n, _shipmentSettings.MinPackageWeightGrams);
 
         var options = await _shipmentClient.GetShippingOptionsAsync(request.OrderCode, ct);
         if (options.Count == 0)
@@ -69,12 +74,13 @@ public class ResetOrderShipmentHandler : IRequestHandler<ResetOrderShipmentReque
         {
             OrderCode = request.OrderCode,
             CarrierCode = options[0].CarrierCode,
+            PackageCount = n,
             Package = new ShipmentPackage
             {
                 WidthMm = _shipmentSettings.DefaultPackageWidthMm,
                 HeightMm = _shipmentSettings.DefaultPackageHeightMm,
                 DepthMm = _shipmentSettings.DefaultPackageDepthMm,
-                WeightGrams = weightGrams,
+                WeightGrams = perPackageWeightGrams,
             },
         };
 
@@ -89,23 +95,31 @@ public class ResetOrderShipmentHandler : IRequestHandler<ResetOrderShipmentReque
             return new ResetOrderShipmentResponse(ErrorCodes.ShipmentCreationFailed);
         }
 
+        // Shoptet generates labels asynchronously, so the response may contain fewer labels than the
+        // requested `n`. Always produce exactly `n` entries (mirroring ScanPackingOrderHandler) so the
+        // FE shows the correct "X/N" counter; packages with no label yet get null tracking + URLs.
         var newLabels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
         var createdPackages = newLabels
             .Where(l => l.ShipmentGuid == createdShipment.ShipmentGuid)
             .ToList();
-        var packages = createdPackages.Count > 0
-            ? createdPackages.Select(l => new ResetShipmentPackage
+        var packages = Enumerable.Range(1, n)
+            .Select(i =>
             {
-                Name = l.PackageName,
-                LabelUrl = l.LabelUrl,
-                LabelZpl = l.LabelZpl,
-            }).ToList()
-            : [new ResetShipmentPackage { Name = "PKG-1" }];
+                var label = i <= createdPackages.Count ? createdPackages[i - 1] : null;
+                return new ResetShipmentPackage
+                {
+                    TrackingNumber = label?.TrackingNumber,
+                    LabelUrl = label?.LabelUrl,
+                    LabelZpl = label?.LabelZpl,
+                };
+            })
+            .ToList();
 
         return new ResetOrderShipmentResponse(new ResetShipmentData
         {
             ShipmentGuid = createdShipment.ShipmentGuid,
             Packages = packages,
+            PendingCompletion = n >= 2,
         });
     }
 }

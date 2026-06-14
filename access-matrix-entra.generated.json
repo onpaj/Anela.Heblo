@@ -1,0 +1,784 @@
+{
+  "appRoles": [
+    {
+      "id": "8bc7eabb-a014-5aa0-8e16-d325a373011e",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Break-glass: grants all permissions regardless of DB group assignments",
+      "displayName": "super_user",
+      "isEnabled": true,
+      "value": "super_user"
+    },
+    {
+      "id": "b46097bf-0d78-5ae2-9eca-35ac8a52043b",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Finance_FinancialOverview Read",
+      "displayName": "finance.financial_overview.read",
+      "isEnabled": true,
+      "value": "finance.financial_overview.read"
+    },
+    {
+      "id": "4297f9ac-ba9f-53c9-b817-787f8a95d23f",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Finance_MarginAnalysis Read",
+      "displayName": "finance.margin_analysis.read",
+      "isEnabled": true,
+      "value": "finance.margin_analysis.read"
+    },
+    {
+      "id": "2f73f3b6-d20e-51f2-a2d2-6fb064fd37ff",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Products_ProductMargins Read",
+      "displayName": "products.product_margins.read",
+      "isEnabled": true,
+      "value": "products.product_margins.read"
+    },
+    {
+      "id": "eb9c4479-6ec6-57c8-8f5f-6a93e9fb8e9c",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Products_Catalog Read",
+      "displayName": "products.catalog.read",
+      "isEnabled": true,
+      "value": "products.catalog.read"
+    },
+    {
+      "id": "802ea564-db16-51b8-aba8-960cdb0728a4",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Products_Catalog Write",
+      "displayName": "products.catalog.write",
+      "isEnabled": true,
+      "value": "products.catalog.write"
+    },
+    {
+      "id": "ce725b24-f4a2-5ead-8739-be2a4d3f9fed",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Products_Journal Read",
+      "displayName": "products.journal.read",
+      "isEnabled": true,
+      "value": "products.journal.read"
+    },
+    {
+      "id": "fd1331e4-26e5-5477-a0fd-4e6a34a70892",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Products_Journal Write",
+      "displayName": "products.journal.write",
+      "isEnabled": true,
+      "value": "products.journal.write"
+    },
+    {
+      "id": "06c8e11c-db67-5ca8-a03d-a82863c27ee2",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Customer_BankStatements Read",
+      "displayName": "customer.bank_statements.read",
+      "isEnabled": true,
+      "value": "customer.bank_statements.read"
+    },
+    {
+      "id": "10ad11ff-38a5-59b0-b426-c4c89b80c87f",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Customer_KnowledgeBase Read",
+      "displayName": "customer.knowledge_base.read",
+      "isEnabled": true,
+      "value": "customer.knowledge_base.read"
+    },
+    {
+      "id": "a19caee9-67a2-5315-b662-09bccc65778c",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Customer_KnowledgeBase Write",
+      "displayName": "customer.knowledge_base.write",
+      "isEnabled": true,
+      "value": "customer.knowledge_base.write"
+    },
+    {
+      "id": "da47919d-f974-5535-972c-78a2d8fa287b",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Customer_Smartsupp Read",
+      "displayName": "customer.smartsupp.read",
+      "isEnabled": true,
+      "value": "customer.smartsupp.read"
+    },
+    {
+      "id": "c808bc57-5064-5ad7-9265-07c2a93f0159",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Purchase_PurchaseOrders Read",
+      "displayName": "purchase.purchase_orders.read",
+      "isEnabled": true,
+      "value": "purchase.purchase_orders.read"
+    },
+    {
+      "id": "c2207c66-f4df-5920-aa83-33775d65c662",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Purchase_PurchaseOrders Write",
+      "displayName": "purchase.purchase_orders.write",
+      "isEnabled": true,
+      "value": "purchase.purchase_orders.write"
+    },
+    {
+      "id": "ade26668-b2bc-5893-9c4e-29dd47598610",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Purchase_InvoiceClassification Read",
+      "displayName": "purchase.invoice_classification.read",
+      "isEnabled": true,
+      "value": "purchase.invoice_classification.read"
+    },
+    {
+      "id": "5cf462eb-b83b-5695-a3ae-7561c0c443ec",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Purchase_InvoiceClassification Write",
+      "displayName": "purchase.invoice_classification.write",
+      "isEnabled": true,
+      "value": "purchase.invoice_classification.write"
+    },
+    {
+      "id": "f0fa1142-80fa-519d-842e-8cc301d053a0",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Purchase_PurchaseStock Read",
+      "displayName": "purchase.purchase_stock.read",
+      "isEnabled": true,
+      "value": "purchase.purchase_stock.read"
+    },
+    {
+      "id": "7d4ebd7a-5226-5d64-9cbe-b449ad62db83",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_ManufactureOrders Read",
+      "displayName": "manufacture.manufacture_orders.read",
+      "isEnabled": true,
+      "value": "manufacture.manufacture_orders.read"
+    },
+    {
+      "id": "3786412c-0489-5980-a982-b6c1ad0cca10",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_ManufactureOrders Write",
+      "displayName": "manufacture.manufacture_orders.write",
+      "isEnabled": true,
+      "value": "manufacture.manufacture_orders.write"
+    },
+    {
+      "id": "d8bb3d56-3e4e-520e-a80f-58e62b7ffcff",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_BatchPlanning Read",
+      "displayName": "manufacture.batch_planning.read",
+      "isEnabled": true,
+      "value": "manufacture.batch_planning.read"
+    },
+    {
+      "id": "0c51bfae-25ae-5976-aae7-3a91620f84bd",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_BatchPlanning Write",
+      "displayName": "manufacture.batch_planning.write",
+      "isEnabled": true,
+      "value": "manufacture.batch_planning.write"
+    },
+    {
+      "id": "06285f7b-0c31-5941-971c-147361213da3",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_ManufactureOutput Read",
+      "displayName": "manufacture.manufacture_output.read",
+      "isEnabled": true,
+      "value": "manufacture.manufacture_output.read"
+    },
+    {
+      "id": "241d85dc-733b-568a-8a54-d5bb6232c5e3",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_ManufactureStock Read",
+      "displayName": "manufacture.manufacture_stock.read",
+      "isEnabled": true,
+      "value": "manufacture.manufacture_stock.read"
+    },
+    {
+      "id": "a2ddd7d1-e492-56c2-bcdb-117493bc99dc",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_MaterialInventory Read",
+      "displayName": "manufacture.material_inventory.read",
+      "isEnabled": true,
+      "value": "manufacture.material_inventory.read"
+    },
+    {
+      "id": "6315103a-ac9a-5bed-85ed-1cdb5efd309a",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_MaterialInventory Write",
+      "displayName": "manufacture.material_inventory.write",
+      "isEnabled": true,
+      "value": "manufacture.material_inventory.write"
+    },
+    {
+      "id": "b13d1edc-3533-58f4-90ef-c1d3adf045a5",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_ProductInventory Read",
+      "displayName": "manufacture.product_inventory.read",
+      "isEnabled": true,
+      "value": "manufacture.product_inventory.read"
+    },
+    {
+      "id": "13c5029c-f774-5a47-8435-b8174137616c",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_ProductInventory Write",
+      "displayName": "manufacture.product_inventory.write",
+      "isEnabled": true,
+      "value": "manufacture.product_inventory.write"
+    },
+    {
+      "id": "0e350e97-9a11-5b4b-8bf2-d9058b0d29d1",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_MaterialContainers Read",
+      "displayName": "manufacture.material_containers.read",
+      "isEnabled": true,
+      "value": "manufacture.material_containers.read"
+    },
+    {
+      "id": "d959d6fa-bdbc-5ddb-8cd0-174904b38f94",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_MaterialContainers Write",
+      "displayName": "manufacture.material_containers.write",
+      "isEnabled": true,
+      "value": "manufacture.material_containers.write"
+    },
+    {
+      "id": "9968d427-1784-5791-84a4-d24005de71b7",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Warehouse_Logistics Read",
+      "displayName": "warehouse.logistics.read",
+      "isEnabled": true,
+      "value": "warehouse.logistics.read"
+    },
+    {
+      "id": "e3bf4fce-c800-596a-a089-d704ac454a2a",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Warehouse_Logistics Write",
+      "displayName": "warehouse.logistics.write",
+      "isEnabled": true,
+      "value": "warehouse.logistics.write"
+    },
+    {
+      "id": "dbacee8f-82c8-55d8-90a9-e8ac954465a8",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Warehouse_Expedition Read",
+      "displayName": "warehouse.expedition.read",
+      "isEnabled": true,
+      "value": "warehouse.expedition.read"
+    },
+    {
+      "id": "de91af7f-7503-5072-a3b8-1543b784fd1f",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Warehouse_Expedition Write",
+      "displayName": "warehouse.expedition.write",
+      "isEnabled": true,
+      "value": "warehouse.expedition.write"
+    },
+    {
+      "id": "ca7c5945-7d73-59e5-adbe-27eff5215bb7",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Warehouse_Packaging Read",
+      "displayName": "warehouse.packaging.read",
+      "isEnabled": true,
+      "value": "warehouse.packaging.read"
+    },
+    {
+      "id": "6eb2de51-0455-5581-8e5c-d3fae22450bc",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Warehouse_Packaging Write",
+      "displayName": "warehouse.packaging.write",
+      "isEnabled": true,
+      "value": "warehouse.packaging.write"
+    },
+    {
+      "id": "f9f321cc-7f7d-5ddc-a436-8880b419f9a6",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Warehouse_StockUp Read",
+      "displayName": "warehouse.stock_up.read",
+      "isEnabled": true,
+      "value": "warehouse.stock_up.read"
+    },
+    {
+      "id": "f828013d-86e7-522c-b535-ae267f7f86dc",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Warehouse_StockUp Write",
+      "displayName": "warehouse.stock_up.write",
+      "isEnabled": true,
+      "value": "warehouse.stock_up.write"
+    },
+    {
+      "id": "16a28dc3-088b-57f3-8575-1bb19884ec19",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Article Read",
+      "displayName": "marketing.article.read",
+      "isEnabled": true,
+      "value": "marketing.article.read"
+    },
+    {
+      "id": "de046654-3d4d-57f5-82a1-4b7b42538924",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Article Write",
+      "displayName": "marketing.article.write",
+      "isEnabled": true,
+      "value": "marketing.article.write"
+    },
+    {
+      "id": "5c8f6827-5a56-5af6-a1aa-557296478bd3",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Leaflet Read",
+      "displayName": "marketing.leaflet.read",
+      "isEnabled": true,
+      "value": "marketing.leaflet.read"
+    },
+    {
+      "id": "83ec4154-bc43-5baf-b03a-c7fd6cb2eefd",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Leaflet Write",
+      "displayName": "marketing.leaflet.write",
+      "isEnabled": true,
+      "value": "marketing.leaflet.write"
+    },
+    {
+      "id": "470781be-515a-52b9-a52d-96dffa777b0b",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Photobank Read",
+      "displayName": "marketing.photobank.read",
+      "isEnabled": true,
+      "value": "marketing.photobank.read"
+    },
+    {
+      "id": "aa272d57-b343-5246-a9b9-277fc9072e18",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Photobank Write",
+      "displayName": "marketing.photobank.write",
+      "isEnabled": true,
+      "value": "marketing.photobank.write"
+    },
+    {
+      "id": "d354c585-c273-51c7-96d3-9500eb8cb4a9",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Photobank Admin",
+      "displayName": "marketing.photobank.admin",
+      "isEnabled": true,
+      "value": "marketing.photobank.admin"
+    },
+    {
+      "id": "326d40f4-e89a-5249-b1fa-0f5dd827e375",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_MarketingCalendar Read",
+      "displayName": "marketing.marketing_calendar.read",
+      "isEnabled": true,
+      "value": "marketing.marketing_calendar.read"
+    },
+    {
+      "id": "fac4bd10-c61d-5d9a-96ad-5ed6c8376605",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_MarketingCalendar Write",
+      "displayName": "marketing.marketing_calendar.write",
+      "isEnabled": true,
+      "value": "marketing.marketing_calendar.write"
+    },
+    {
+      "id": "b1762e2c-07ab-5bc8-999a-9c499bef77cc",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Anela_Meetings Read",
+      "displayName": "anela.meetings.read",
+      "isEnabled": true,
+      "value": "anela.meetings.read"
+    },
+    {
+      "id": "b5cb6f8e-1fb3-5528-9a0d-fbb36eee3da4",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Anela_Meetings Write",
+      "displayName": "anela.meetings.write",
+      "isEnabled": true,
+      "value": "anela.meetings.write"
+    },
+    {
+      "id": "6ffdbd82-4b2d-5193-85a6-e31c4f1d181d",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Anela_OrgChart Read",
+      "displayName": "anela.org_chart.read",
+      "isEnabled": true,
+      "value": "anela.org_chart.read"
+    },
+    {
+      "id": "1ac66a37-e738-5283-bbd0-7d65d2bbd41e",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Admin_DataQuality Read",
+      "displayName": "admin.data_quality.read",
+      "isEnabled": true,
+      "value": "admin.data_quality.read"
+    },
+    {
+      "id": "ac7dd752-b5e7-5940-886d-2ab756069f45",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Admin_DataQuality Write",
+      "displayName": "admin.data_quality.write",
+      "isEnabled": true,
+      "value": "admin.data_quality.write"
+    },
+    {
+      "id": "1279ba26-008d-59cb-b4e6-aff6447b86d6",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Admin_Administration Read",
+      "displayName": "admin.administration.read",
+      "isEnabled": true,
+      "value": "admin.administration.read"
+    },
+    {
+      "id": "616e1b57-b7b2-576c-97ae-78206beb69b6",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Admin_Administration Write",
+      "displayName": "admin.administration.write",
+      "isEnabled": true,
+      "value": "admin.administration.write"
+    },
+    {
+      "id": "b23d1e7a-cf0f-56ee-83f8-a52ed0082713",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Admin_FeatureFlags Read",
+      "displayName": "admin.feature_flags.read",
+      "isEnabled": true,
+      "value": "admin.feature_flags.read"
+    },
+    {
+      "id": "545b3ae1-acbc-5c06-adf0-5bac1cc402ff",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Admin_FeatureFlags Write",
+      "displayName": "admin.feature_flags.write",
+      "isEnabled": true,
+      "value": "admin.feature_flags.write"
+    },
+    {
+      "id": "52e9147e-b803-522c-8faa-dc5296fda879",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Jobs_Trigger Read",
+      "displayName": "jobs.trigger.read",
+      "isEnabled": true,
+      "value": "jobs.trigger.read"
+    },
+    {
+      "id": "7a33a913-ad91-59e2-a1ca-2ff17afdda50",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Jobs_Disable Read",
+      "displayName": "jobs.disable.read",
+      "isEnabled": true,
+      "value": "jobs.disable.read"
+    }
+  ],
+  "groups": [
+    {
+      "name": "Spravce",
+      "roles": [
+        "finance.financial_overview.read",
+        "finance.margin_analysis.read",
+        "products.product_margins.read",
+        "products.catalog.read",
+        "products.catalog.write",
+        "products.journal.read",
+        "products.journal.write",
+        "customer.bank_statements.read",
+        "customer.knowledge_base.read",
+        "customer.knowledge_base.write",
+        "customer.smartsupp.read",
+        "purchase.purchase_orders.read",
+        "purchase.purchase_orders.write",
+        "purchase.invoice_classification.read",
+        "purchase.invoice_classification.write",
+        "purchase.purchase_stock.read",
+        "manufacture.manufacture_orders.read",
+        "manufacture.manufacture_orders.write",
+        "manufacture.batch_planning.read",
+        "manufacture.batch_planning.write",
+        "manufacture.manufacture_output.read",
+        "manufacture.manufacture_stock.read",
+        "manufacture.material_inventory.read",
+        "manufacture.material_inventory.write",
+        "manufacture.product_inventory.read",
+        "manufacture.product_inventory.write",
+        "manufacture.material_containers.read",
+        "manufacture.material_containers.write",
+        "warehouse.logistics.read",
+        "warehouse.logistics.write",
+        "warehouse.expedition.read",
+        "warehouse.expedition.write",
+        "warehouse.packaging.read",
+        "warehouse.packaging.write",
+        "warehouse.stock_up.read",
+        "warehouse.stock_up.write",
+        "marketing.article.read",
+        "marketing.article.write",
+        "marketing.leaflet.read",
+        "marketing.leaflet.write",
+        "marketing.photobank.read",
+        "marketing.photobank.write",
+        "marketing.photobank.admin",
+        "marketing.marketing_calendar.read",
+        "marketing.marketing_calendar.write",
+        "anela.meetings.read",
+        "anela.meetings.write",
+        "anela.org_chart.read",
+        "admin.data_quality.read",
+        "admin.data_quality.write",
+        "admin.administration.read",
+        "admin.administration.write",
+        "admin.feature_flags.read",
+        "admin.feature_flags.write",
+        "jobs.trigger.read",
+        "jobs.disable.read"
+      ]
+    },
+    {
+      "name": "Vedeni",
+      "roles": [
+        "finance.financial_overview.read",
+        "finance.margin_analysis.read",
+        "products.product_margins.read",
+        "products.catalog.read",
+        "products.journal.read",
+        "customer.bank_statements.read",
+        "customer.knowledge_base.read",
+        "customer.smartsupp.read",
+        "purchase.purchase_orders.read",
+        "purchase.invoice_classification.read",
+        "purchase.purchase_stock.read",
+        "manufacture.manufacture_orders.read",
+        "manufacture.batch_planning.read",
+        "manufacture.manufacture_output.read",
+        "manufacture.manufacture_stock.read",
+        "manufacture.material_inventory.read",
+        "manufacture.product_inventory.read",
+        "manufacture.material_containers.read",
+        "warehouse.logistics.read",
+        "warehouse.expedition.read",
+        "warehouse.packaging.read",
+        "warehouse.stock_up.read",
+        "marketing.article.read",
+        "marketing.leaflet.read",
+        "marketing.photobank.read",
+        "marketing.marketing_calendar.read",
+        "anela.meetings.read",
+        "anela.org_chart.read",
+        "admin.data_quality.read",
+        "admin.administration.read",
+        "admin.feature_flags.read"
+      ]
+    },
+    {
+      "name": "Ucetni",
+      "roles": [
+        "finance.financial_overview.read",
+        "finance.margin_analysis.read",
+        "products.product_margins.read",
+        "customer.bank_statements.read",
+        "products.journal.read",
+        "products.journal.write",
+        "customer.smartsupp.read"
+      ]
+    },
+    {
+      "name": "Marketer",
+      "roles": [
+        "marketing.marketing_calendar.read",
+        "marketing.marketing_calendar.write",
+        "marketing.photobank.read",
+        "marketing.photobank.write",
+        "marketing.leaflet.read",
+        "marketing.leaflet.write",
+        "marketing.article.read",
+        "marketing.article.write"
+      ]
+    },
+    {
+      "name": "Nakupci",
+      "roles": [
+        "purchase.purchase_orders.read",
+        "purchase.purchase_orders.write",
+        "purchase.invoice_classification.read",
+        "purchase.invoice_classification.write",
+        "purchase.purchase_stock.read"
+      ]
+    },
+    {
+      "name": "Vedouci_vyroby",
+      "roles": [
+        "manufacture.manufacture_orders.read",
+        "manufacture.manufacture_orders.write",
+        "manufacture.manufacture_output.read",
+        "manufacture.manufacture_stock.read",
+        "manufacture.batch_planning.read",
+        "manufacture.batch_planning.write",
+        "manufacture.material_inventory.read",
+        "manufacture.material_inventory.write",
+        "manufacture.material_containers.read",
+        "manufacture.material_containers.write",
+        "manufacture.product_inventory.read",
+        "manufacture.product_inventory.write"
+      ]
+    },
+    {
+      "name": "Pracovnik_vyroby",
+      "roles": [
+        "manufacture.manufacture_orders.read",
+        "manufacture.material_inventory.read",
+        "manufacture.material_inventory.write",
+        "manufacture.product_inventory.read",
+        "manufacture.material_containers.read"
+      ]
+    },
+    {
+      "name": "Vedouci_skladu",
+      "roles": [
+        "anela.meetings.read",
+        "anela.meetings.write",
+        "products.catalog.write",
+        "products.journal.read",
+        "products.journal.write",
+        "warehouse.expedition.write",
+        "warehouse.logistics.write",
+        "warehouse.stock_up.write",
+        "jobs.trigger.read",
+        "jobs.disable.read"
+      ]
+    },
+    {
+      "name": "Skladnik",
+      "roles": [
+        "products.catalog.read",
+        "warehouse.logistics.read",
+        "warehouse.expedition.read",
+        "warehouse.packaging.read",
+        "warehouse.packaging.write",
+        "warehouse.stock_up.read",
+        "warehouse.stock_up.write",
+        "jobs.trigger.read"
+      ]
+    },
+    {
+      "name": "Poradenstvi",
+      "roles": [
+        "customer.knowledge_base.read",
+        "customer.knowledge_base.write"
+      ]
+    },
+    {
+      "name": "AccessManager",
+      "roles": [
+        "admin.administration.read",
+        "admin.administration.write"
+      ]
+    },
+    {
+      "name": "Zamestnanec",
+      "roles": [
+        "anela.org_chart.read",
+        "products.catalog.read"
+      ]
+    }
+  ]
+}

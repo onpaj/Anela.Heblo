@@ -1,16 +1,17 @@
 using Anela.Heblo.Application.Features.Bank.Contracts;
 using Anela.Heblo.Application.Features.Bank.UseCases.GetBankAccounts;
+using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementById;
 using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementList;
 using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[FeatureAuthorize(Feature.Customer_BankStatements)]
 [ApiController]
 [Route("api/bank-statements")]
-[Authorize]
 public class BankStatementsController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -139,32 +140,12 @@ public class BankStatementsController : BaseApiController
     /// <param name="id">Bank statement import ID</param>
     /// <returns>Bank statement import details</returns>
     [HttpGet("{id}")]
-    public async Task<ActionResult<BankStatementImportDto>> GetBankStatement(int id)
+    public async Task<ActionResult<BankStatementImportDto>> GetBankStatement(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            _logger.LogInformation("Getting bank statement with ID {Id}", id);
+        var response = await _mediator.Send(new GetBankStatementByIdRequest { Id = id }, cancellationToken);
 
-            var request = new GetBankStatementListRequest
-            {
-                Id = id,
-                Take = 1
-            };
-
-            var response = await _mediator.Send(request);
-            var statement = response.Items.FirstOrDefault();
-
-            if (statement == null)
-            {
-                return NotFound(new { message = $"Bank statement import with ID {id} not found" });
-            }
-
-            return Ok(statement);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred while retrieving bank statement {Id}", id);
-            return StatusCode(500, new { message = "An error occurred while retrieving bank statement" });
-        }
+        return response is null
+            ? NotFound(new { message = $"Bank statement import with ID {id} not found" })
+            : Ok(response);
     }
 }

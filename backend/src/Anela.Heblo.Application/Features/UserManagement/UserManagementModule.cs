@@ -1,7 +1,12 @@
+using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Article.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.Infrastructure;
 using Anela.Heblo.Application.Features.UserManagement.Services;
+using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
+using Anela.Heblo.Application.Features.UserManagement.Validators;
 using Anela.Heblo.Domain.Features.Configuration;
+using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Graph;
@@ -37,6 +42,11 @@ public static class UserManagementModule
         // Cross-module contract: UserManagement implements Article's IArticleUserResolver via adapter.
         // Works regardless of which IGraphService implementation (Mock vs real) is registered above.
         services.AddScoped<IArticleUserResolver, GraphArticleUserResolver>();
+
+        services.AddScoped<IValidator<GetGroupMembersRequest>, GetGroupMembersRequestValidator>();
+        services.AddScoped<
+            IPipelineBehavior<GetGroupMembersRequest, GetGroupMembersResponse>,
+            ValidationBehavior<GetGroupMembersRequest, GetGroupMembersResponse>>();
 
         // Note: HttpContextAccessor must be registered in the API layer
 

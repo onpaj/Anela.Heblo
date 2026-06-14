@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Anela.Heblo.Domain.Features.Users;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Identity.Web;
 
 namespace Anela.Heblo.API.Features.Users;
 
@@ -23,9 +24,18 @@ public class CurrentUserService : ICurrentUserService
                    ?? user?.FindFirst("name")?.Value
                    ?? (isAuthenticated ? "Unknown User" : "Anonymous");
 
-        var id = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                 ?? user?.FindFirst("sub")?.Value
-                 ?? user?.FindFirst("oid")?.Value;
+        // MUST match PermissionClaimsTransformation's lookup key: the tenant-wide Entra
+        // Object ID. EntraMemberSearch stores oid in AppUser.EntraObjectId, and the
+        // claims transformation resolves permissions by oid. If GetMe (which calls the
+        // resolver with this Id) keyed on NameIdentifier instead, it would find a
+        // different AppUser than [Authorize] checks, causing FE/BE permission
+        // divergence and unexplained 403s.
+        // GetObjectId() reads "oid" (raw JWT) or the URI-mapped form
+        // (http://schemas.microsoft.com/identity/claims/objectidentifier).
+        // NameIdentifier fallback covers mock auth and schemes without an oid claim.
+        var id = user?.GetObjectId()
+                 ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                 ?? user?.FindFirst("sub")?.Value;
 
         // Entra ID access tokens omit the `email` claim by default; the user's
         // email/UPN lives in `preferred_username` (and sometimes `upn`).

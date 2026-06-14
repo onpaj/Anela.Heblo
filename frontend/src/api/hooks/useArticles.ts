@@ -84,6 +84,7 @@ export interface ArticleFeedbackSummary {
   topic: string;
   title: string | null;
   requestedBy: string;
+  userName: string | null;
   createdAt: string | null;
   precisionScore: number | null;
   styleScore: number | null;
@@ -170,19 +171,15 @@ export const useGetArticleQuery = (id: string | null) => {
         generatedAt: response.generatedAt?.toISOString() ?? null,
         useKnowledgeBase: response.useKnowledgeBase ?? false,
         useWebSearch: response.useWebSearch ?? false,
-        sources: (response.sources ?? []).map((s) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const raw = s as any;
-          return {
-            title: s.title ?? '',
-            url: s.url ?? null,
-            type: s.type ?? '',
-            knowledgeBaseChunkId: (raw.knowledgeBaseChunkId as string | null) ?? null,
-            confidence: (raw.confidence as number | null) ?? null,
-            excerpt: (raw.excerpt as string | null) ?? null,
-            validationNote: (raw.validationNote as string | null) ?? null,
-          };
-        }),
+        sources: (response.sources ?? []).map((s) => ({
+          title: s.title ?? '',
+          url: s.url ?? null,
+          type: s.type ?? '',
+          knowledgeBaseChunkId: s.knowledgeBaseChunkId ?? null,
+          confidence: s.confidence ?? null,
+          excerpt: s.excerpt ?? null,
+          validationNote: s.validationNote ?? null,
+        })),
         precisionScore: response.precisionScore ?? null,
         styleScore: response.styleScore ?? null,
         feedbackComment: response.feedbackComment ?? null,
@@ -266,6 +263,7 @@ export const useArticleFeedbackListQuery = (params: ArticleFeedbackListParams = 
           topic: item.topic ?? '',
           title: item.title ?? null,
           requestedBy: item.requestedBy ?? '',
+          userName: item.userName ?? null,
           createdAt: item.createdAt?.toISOString() ?? null,
           precisionScore: item.precisionScore ?? null,
           styleScore: item.styleScore ?? null,

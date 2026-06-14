@@ -1,170 +1,195 @@
-Now I have a complete picture. Let me write the architecture review.
-
-# Architecture Review: GraphService HttpClientFactory Migration
+# Architecture Review: Refactor `GraphService.GetGroupMembersAsync` into Focused Helper Methods
 
 ## Skip Design: true
 
 ## Architectural Fit Assessment
 
-This change is a **textbook fit** for existing conventions. The codebase already has five modules that register and consume a `"MicrosoftGraph"` named client through `IHttpClientFactory`:
+This is a **strictly internal, behaviour-preserving refactor** of one method inside an existing Application-layer service. It does not touch any architectural seam: the public `IGraphService` contract, the `UserManagement` module boundary, MediatR handlers (`GetGroupMembersHandler`), `UserDto`, and the `MicrosoftGraph` named `HttpClient` registration all remain untouched. There is no new module, no new DI registration, no new file under `Features/UserManagement/`.
 
-- `MarketingModule` → `OutlookCalendarSyncService`
-- `MeetingTasksModule` → `GraphPlannerService`
-- `CatalogDocumentsModule` → `GraphCatalogDocumentsStorage`
-- `KnowledgeBaseModule` → `GraphOneDriveService`
-- `PhotobankModule` → `PhotobankGraphService`
+The refactor aligns well with existing patterns:
+- **File organisation** — `GraphService.cs` already lives in the correct place per `docs/architecture/filesystem.md` (`Features/UserManagement/Services/`). Helpers stay inside the same file as private members; no new files are warranted (KISS, YAGNI).
+- **Coding standards** — the global C# rules (`csharp-coding-style.md`, `coding-style.md`) call out the 50-line function ceiling, single-responsibility, and immutability. The current method violates the first two; the refactor fixes both without introducing mutation.
+- **Existing test patterns** — `GraphServiceTests` already exercises the HTTP path through `FakeHttpMessageHandler`. A new `ParseMembersFromJsonTests` fixture is the natural complement and matches the project's xUnit + FluentAssertions convention.
 
-`UserManagementModule.GraphService` is the **only Graph caller still on raw `new HttpClient()`**. Bringing it onto the existing pattern closes a known gap rather than introducing new architecture. The integration points are surgical: one constructor change, one DI registration, one client-acquisition line. Test patterns (`Mock<IHttpClientFactory>` + `FakeHttpMessageHandler`) are well-established in `backend/test/Anela.Heblo.Tests/Helpers/` and mirrored across the five sister services.
-
-One **latent issue** surfaced during exploration that the spec does not address (see Risks): multiple modules independently register `services.AddHttpClient("MicrosoftGraph")`, and `PhotobankModule` adds a custom `HttpClientHandler`. With named clients, last registration wins for handler config — registration order is not deterministic across modules. The UserManagement change does not worsen this, but the team should know.
+The one integration point worth naming: `GetAppRoleMembersAsync` (same file, lines 267–418) **calls `GetGroupMembersAsync` directly** at line 382 to expand nested-group members. The orchestrator's public signature and behaviour must remain identical or `GetAppRoleMembersAsync` regresses silently — the spec already requires this, but it is the single highest-stakes invariant.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-GetGroupMembersHandler (MediatR)
-        │ (unchanged)
-        ▼
-IGraphService  ── implemented by ──▶ GraphService (scoped)
-                                          │
-                                          ├─▶ ITokenAcquisition  (unchanged)
-                                          ├─▶ IMemoryCache       (unchanged)
-                                          ├─▶ ILogger<…>         (unchanged)
-                                          └─▶ IHttpClientFactory ◀── NEW
-                                                  │
-                                                  └─ CreateClient("MicrosoftGraph")
-                                                       │
-                                                       ▼
-                                              SocketsHttpHandler (pooled, default 2-min rotation)
-                                                       │
-                                                       ▼
-                                              graph.microsoft.com (per-request Bearer)
+┌──────────────────────────────────────────────────────────────────────┐
+│ GraphService (class, unchanged surface)                              │
+│                                                                       │
+│  public GetGroupMembersAsync(groupId, ct)  ◄── orchestrator (~30 LOC)│
+│    │                                                                  │
+│    ├─► IMemoryCache.TryGetValue / Set      (inline, unchanged)       │
+│    │                                                                  │
+│    ├─► AcquireGraphTokenAsync(groupId, ct)  ◄── NEW private instance │
+│    │     └─► ITokenAcquisition.GetAccessTokenForAppAsync             │
+│    │     └─► MsalException → rethrow (caught by outer handler)       │
+│    │                                                                  │
+│    ├─► HttpClient.SendAsync (inline, unchanged — see Out of Scope)   │
+│    │                                                                  │
+│    └─► ParseMembersFromJson(responseBody)   ◄── NEW private static   │
+│          └─► JsonDocument walk + @odata.type filter → List<UserDto>  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-DI wiring (production branch of `UserManagementModule.AddUserManagement`):
-
-```
-services.AddHttpClient("MicrosoftGraph");      // NEW — match sister modules
-services.AddScoped<IGraphService, GraphService>();  // existing
-```
+No public surface changes. No new types. No new DI registrations.
 
 ### Key Design Decisions
 
-#### Decision 1: Use the literal `"MicrosoftGraph"` — do **not** introduce a `GraphHttpClientName` constant on `GraphService`
-
+#### Decision 1: Keep helpers as private members of `GraphService`, not separate classes
 **Options considered:**
-- (A) Add `public const string GraphHttpClientName = "MicrosoftGraph"` on `GraphService` and reference it from `UserManagementModule` (the spec's NFR-3 proposal).
-- (B) Add a shared constant in a neutral location (e.g., `Anela.Heblo.Application.Common.HttpClientNames`).
-- (C) Duplicate the literal `"MicrosoftGraph"` in `GraphService` and `UserManagementModule`, matching the existing five-module convention exactly.
+- (A) Private helpers inside `GraphService.cs` — chosen.
+- (B) Extract `ParseMembersFromJson` into a separate internal static class `GraphMembersParser` in `Features/UserManagement/Services/`.
+- (C) Extract a full `IGraphTokenProvider` interface and `GraphMemberParser` interface for DI.
 
-**Chosen approach:** (C). Duplicate the literal in both places. Add a one-line comment in each cross-referencing the convention.
+**Chosen approach:** (A).
 
-**Rationale:** None of the five existing Graph-consuming modules use a constant. Introducing one only inside UserManagement would create asymmetric drift: future developers grepping for the convention would find six call sites using the literal and one using a constant, breaking the pattern they came to extend. Option (B) would be the *right* refactor — but it would require touching all five other modules to be consistent, which is explicitly out of scope. Option (A) couples the module's DI wiring to a public constant on a concrete service implementation, which is a worse coupling than two duplicated string literals. The spec should be amended (see Specification Amendments).
+**Rationale:** The brief and spec are explicit that this is **strictly internal**, two extractions only. Option (B) would create a one-call-site class for marginal benefit; option (C) is speculative DI generality (YAGNI). The parser remains testable as a `private static` via a tiny internal accessor *only if needed* — but the simpler path is to ship the parser as `private static`, write `ParseMembersFromJsonTests` against it via `InternalsVisibleTo` if absolutely required, or **prefer to make the parser `internal static` on a nested or partner static class only if the test project cannot otherwise reach it.** Given `GraphServiceTests` lives in `backend/test/Anela.Heblo.Tests`, check `Anela.Heblo.Application.csproj` for an existing `InternalsVisibleTo` to that test assembly; if present, declare the parser `internal static` on `GraphService`. If absent, the cleanest minimal-impact move is to mark the parser `internal static` and add the `InternalsVisibleTo` entry. **Do not change visibility to `public` solely for testing** — that violates the "no public surface change" requirement in FR-3.
 
-#### Decision 2: Per-request `HttpRequestMessage` instead of `DefaultRequestHeaders.Authorization`
+#### Decision 2: `AcquireGraphTokenAsync` stays instance, not static
+**Options considered:** Instance method (captures `_tokenAcquisition`, `_logger` via `this`) vs static method taking dependencies as parameters.
 
+**Chosen approach:** Instance method.
+
+**Rationale:** It depends on two injected fields and needs no parameters beyond the cancellation context. Making it static would force a longer parameter list with no testability gain — `AcquireGraphTokenAsync` is exercised through existing token-path tests (`GetGroupMembersAsync_TokenAcquisitionMsalException_Throws`), which already inject mocks at the constructor.
+
+#### Decision 3: Do NOT extract HTTP send block in this iteration
+**Options considered:** Extract a third helper `SendGraphRequestAsync` covering lines 84–104; defer it.
+
+**Chosen approach:** Defer (spec Out of Scope).
+
+**Rationale:** The brief says "exactly two extractions." Three would expand scope and risk subtle behaviour changes (e.g. who reads `errorContent`, where status logging lives). Leaving the HTTP block inline keeps the diff focused and reviewable. A follow-up arch-review can decide whether `SendGraphRequestAsync` carries its weight, especially given `SearchUsersAsync` and `GetAppRoleMembersAsync` duplicate the same pattern — that's the right time to extract, when there are three call sites instead of one.
+
+#### Decision 4: MSAL exception handling must move with the token call, not stay in the outer `try/catch`
 **Options considered:**
-- (A) Keep `httpClient.DefaultRequestHeaders.Authorization = …` per the spec.
-- (B) Build an `HttpRequestMessage` per call and set `request.Headers.Authorization`.
+- (A) `AcquireGraphTokenAsync` does not catch `MsalException`; the existing outer `catch (MsalException msalEx)` block at line 168 handles it as today.
+- (B) `AcquireGraphTokenAsync` catches `MsalException`, logs, and rethrows.
 
-**Chosen approach:** (B). Use a per-request `HttpRequestMessage`.
+**Chosen approach:** (A).
 
-**Rationale:** Factory-provided clients are recycled between scopes; the underlying handler chain is shared across consumers. Mutating `DefaultRequestHeaders` on a shared instance is a known footgun — today there is only one call site, but the moment another `GraphService` method is added (or someone reuses the same named client elsewhere in this module), tokens can leak across calls. The sister services (`OutlookCalendarSyncService`, `GraphCatalogDocumentsStorage`, `GraphPlannerService`) are split — some use `DefaultRequestHeaders`, some don't. Per-request headers cost one extra line and remove the entire class of cross-call header-leak bugs. The spec's NFR-3 explicitly leaves this open and recommends per-request as "defensive against future code changes" — adopt that recommendation.
-
-#### Decision 3: Register `AddHttpClient("MicrosoftGraph")` from `UserManagementModule` even though other modules already register it
-
-**Options considered:**
-- (A) Add `services.AddHttpClient("MicrosoftGraph")` in `UserManagementModule` (spec's FR-2).
-- (B) Skip registration in `UserManagementModule`, relying on the other five modules to have registered it.
-
-**Chosen approach:** (A). Register it locally, matching the existing convention.
-
-**Rationale:** Each Graph-consuming module today registers its own `AddHttpClient("MicrosoftGraph")` defensively. This makes module load order irrelevant and lets each module remain independently composable (e.g., a test that loads only `UserManagementModule` should still work). The cost is a duplicate registration in DI, which `AddHttpClient` tolerates idempotently for naming purposes — though handler config races, see Risks.
+**Rationale:** The current code does **not** catch and return null on `MsalException` — it lets the exception propagate to the outer catch at line 168, which logs and **rethrows**. The spec's FR-1 says "Catches `MsalException` and returns `null`," but the source code disagrees: today, the call fails the whole method with a rethrow. **Treat the spec language as an inaccuracy** (see Specification Amendments below) — preserving today's behaviour means the helper must NOT swallow `MsalException`. The outer catch at line 168 stays in `GetGroupMembersAsync` and continues to log + rethrow.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-No new directories. Files touched:
+No new files. All changes are within:
 
 ```
-backend/src/Anela.Heblo.Application/Features/UserManagement/
-  ├── Services/GraphService.cs          ← constructor + client acquisition
-  └── UserManagementModule.cs           ← AddHttpClient registration
-
-backend/test/Anela.Heblo.Tests/Features/UserManagement/
-  └── GraphServiceTests.cs              ← NEW
+backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs
+backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs        (no changes, must still pass)
+backend/test/Anela.Heblo.Tests/Features/UserManagement/ParseMembersFromJsonTests.cs  (NEW)
 ```
 
-The new test file is the first unit test against `GraphService` (currently only `MockGraphServiceTests` and `GetGroupMembersHandlerTests` exist for this namespace).
+If `InternalsVisibleTo("Anela.Heblo.Tests")` is not already declared on `Anela.Heblo.Application`, add it in `backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj` (or via `AssemblyInfo.cs`) — this is the only project-file change permitted by the refactor.
 
 ### Interfaces and Contracts
 
 **Unchanged:**
-- `IGraphService.GetGroupMembersAsync(string, CancellationToken)` — public contract preserved.
-- `UserDto` — response shape preserved.
-- `IMemoryCache` keying (`group_members_{groupId}`) and TTL (20 min) — preserved.
+- `IGraphService.GetGroupMembersAsync(string, CancellationToken)` — exact signature preserved.
+- `UserDto` — no field changes.
+- `GetGroupMembersHandler` / `GetGroupMembersRequest` / `GetGroupMembersResponse` — untouched.
 
-**Changed (internal):**
-- `GraphService` constructor adds `IHttpClientFactory httpClientFactory` as the **fourth** parameter (appended; do not reorder existing parameters to minimize diff blast radius and any reflection-based test wiring).
+**New (internal to `GraphService.cs`):**
+```csharp
+private async Task<string> AcquireGraphTokenAsync(string groupId, CancellationToken cancellationToken);
+internal static List<UserDto> ParseMembersFromJson(string json);
+```
+
+Note the token helper returns `string` (non-nullable), not `string?` as the spec suggests. The current code at line 70 assigns the result to `var graphToken` and the compiler does not flag a null dereference at line 85 — `GetAccessTokenForAppAsync` is declared as returning `Task<string>`. The spec's "returns `null` … with whatever sentinel the current code uses" is incorrect; there is no sentinel. The helper should mirror today's return type: `Task<string>`.
 
 ### Data Flow
 
-Cache miss path:
+For the cache-miss path:
 
 ```
-Handler.Handle
-  → GraphService.GetGroupMembersAsync(groupId, ct)
-    → _cache.TryGetValue("group_members_{groupId}") → miss
-    → _tokenAcquisition.GetAccessTokenForAppAsync("https://graph.microsoft.com/.default")
-    → _httpClientFactory.CreateClient("MicrosoftGraph")        // pooled handler
-    → new HttpRequestMessage(HttpMethod.Get, "<graph url>")
-        .Headers.Authorization = "Bearer <token>"               // per-request
-    → client.SendAsync(request, ct)
-    → parse JSON → List<UserDto>
-    → _cache.Set("group_members_{groupId}", members, 20 min)
-    → return members
+caller → GetGroupMembersAsync(groupId, ct)
+       │
+       ├── _cache.TryGetValue(cacheKey) ──► HIT: return cached, done
+       │
+       ├── validate groupId ──► empty: return empty list, done
+       │
+       ├── graphToken = await AcquireGraphTokenAsync(groupId, ct)
+       │     ├── stopwatch start
+       │     ├── _tokenAcquisition.GetAccessTokenForAppAsync(scope)
+       │     │     └── on MsalException: propagates → outer catch logs+rethrows
+       │     ├── stopwatch stop, log duration
+       │     └── return token
+       │
+       ├── httpClient = _httpClientFactory.CreateClient("MicrosoftGraph")
+       ├── build request with Bearer header
+       ├── response = await httpClient.SendAsync(request, ct)
+       ├── if !IsSuccessStatusCode: log + return empty list, done
+       ├── responseBody = await response.Content.ReadAsStringAsync(ct)
+       │
+       ├── members = ParseMembersFromJson(responseBody)
+       │     ├── JsonDocument.Parse(json) using
+       │     ├── if no "value" array: return new List<UserDto>()
+       │     ├── for each entry: if @odata.type contains "user" OR has userPrincipalName
+       │     │     ├── extract id, displayName, mail, userPrincipalName (each null-tolerant)
+       │     │     └── add UserDto { Id, DisplayName, Email = mail ?? upn ?? "" }
+       │     └── return list
+       │
+       ├── _cache.Set(cacheKey, members, _cacheExpiration)
+       └── return members
 ```
 
-Cache hit path: unchanged. Factory is **not** invoked on a hit.
+For the cache-hit path: returns at step 1, never touches token, HTTP, or parser — this is exercised by `GetGroupMembersAsync_CacheHit_DoesNotInvokeFactory` and must continue to pass without modification.
 
-Error paths (token failure, non-2xx, OData error, unauthorized, generic exception): unchanged — all five existing `catch` branches preserved verbatim with their structured log templates.
+**Logging-equivalence checkpoints** (FR-1 acceptance criterion):
+- The "Successfully acquired MS Graph application token in {Duration}ms" message at line 72 must be emitted by `AcquireGraphTokenAsync` with the same template, level (`Information`), and `Duration` value type.
+- The "Token acquired with length: {TokenLength}" message at line 75 must remain — decide whether it lives in the helper (preferred, since it logs the helper's output) or in the orchestrator (also acceptable). Either is fine as long as it fires under identical conditions.
+- The "Attempting to acquire MS Graph token with application scope: {Scope}" at line 67 belongs in the helper.
+
+**Parser-equivalence checkpoint** (FR-2 acceptance criterion):
+The current parser also emits per-member `LogDebug` messages at lines 135 and 148, and aggregate `LogInformation` at lines 117 and 152. The spec does not explicitly mention these. **Preserve them inside `ParseMembersFromJson`** by passing an `ILogger` parameter, OR — preferred for testability — emit aggregate counts only and let the orchestrator log them from the returned list. Decision: **drop the per-element `LogDebug` lines and the array-length `LogInformation` line into the parser as a static-method `ILogger` parameter, since they reference `groupId` (line 153) which is not available to a pure parser.** Either keep them as `private static` taking `ILogger` and `groupId`, or move all four log statements back into the orchestrator after the parse returns (recommended — keeps the parser pure for unit testing).
+
+If you move the logs into the orchestrator, you lose `totalMembers` vs `userMembers` distinction (the parser only returns `userMembers`). To preserve the existing log message at line 152, have `ParseMembersFromJson` return a small `(List<UserDto> users, int totalCount)` tuple — see Specification Amendments.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Multiple modules register `"MicrosoftGraph"` with conflicting handler configs (`PhotobankModule` adds `AllowAutoRedirect`); last registration wins, undefined load order. | Medium | Out of scope for this change but document as a known issue. Recommend a follow-up to consolidate Graph client registration in one place (e.g., a shared `AddMicrosoftGraphHttpClient()` extension) and to apply `SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }` uniformly, matching the `FileStorageModule` pattern. |
-| `DefaultRequestHeaders.Authorization` leaks across calls if the same named client is reused by future code. | Low | Decision 2 above — use per-request `HttpRequestMessage`. |
-| Disposing the factory-provided `HttpClient` (forgotten `using`) defeats pooling. | Low | Code review checks; the change explicitly removes the `using` keyword. Add a unit test that fails if `Dispose` is called on the SUT's client (spec FR-4 already requires this). |
-| Test using a real `HttpClient` over a stub handler accidentally hits the network. | Low | Use the existing `FakeHttpMessageHandler` helper from `backend/test/Anela.Heblo.Tests/Helpers/`; never construct a handler that defers to the default one. |
-| `Microsoft.Extensions.Http` package not directly referenced in `Anela.Heblo.Application.csproj`. | Negligible | Five existing modules already call `services.AddHttpClient(...)` from this project — the package is transitively present. No package change needed. Verify during implementation; if `AddHttpClient` resolves today, it will continue to. |
+| `GetAppRoleMembersAsync` (line 382) silently regresses because it calls the refactored `GetGroupMembersAsync` | HIGH | All existing `GraphServiceTests` must pass unchanged; add an integration smoke test if not already present that exercises the nested-group expansion path via `GetAppRoleMembersAsync`. |
+| Logging output drift — message templates, levels, or structured property names diverge from current output | MEDIUM | Before merging, diff the new code's log statements line-by-line against the current ones. The spec requires "byte-for-byte equivalent" for token-success and MSAL-exception paths. |
+| `ParseMembersFromJson` test access — making it `public` to satisfy NFR-3 would violate "no public surface change" in FR-3 | MEDIUM | Use `internal static` + `InternalsVisibleTo("Anela.Heblo.Tests")`. Verify the attribute exists on `Anela.Heblo.Application` before assuming it. |
+| Moving aggregate logs into the parser couples it to `ILogger<GraphService>` and to `groupId`, undermining the pure-parser testability win | MEDIUM | Keep `ParseMembersFromJson` pure (no `ILogger`). Return `(List<UserDto>, int totalCount)`, log totals in the orchestrator. |
+| Misreading the spec's "returns null on MsalException" as today's behaviour — risk of swallowing exceptions that today are rethrown | HIGH | Read lines 168–173 of the current implementation: `MsalException` is rethrown, not swallowed. Mirror that. |
+| Cache-hit short-circuit is broken if the cache `TryGetValue` is moved inside the helper | LOW | Spec FR-4 keeps cache read/write inline in the orchestrator. Verify `GetGroupMembersAsync_CacheHit_DoesNotInvokeFactory` and `GetGroupMembersAsync_EmptyGroupId_ReturnsEmptyList_WithoutTouchingFactory` still pass without changes. |
+| Allocation regression from incidental LINQ or `ToList()` introduced during extraction | LOW | NFR-1 requires ≤5% deviation. The parser must keep the `foreach` + index-style pattern; no `Select`/`Where`. |
 
 ## Specification Amendments
 
-1. **NFR-3 — drop the `GraphHttpClientName` constant requirement.** Use the literal `"MicrosoftGraph"` in both `GraphService` and `UserManagementModule` to match the existing five-module convention. Rationale: see Decision 1. If a shared constant is desired in the future, it should be introduced as a separate refactor that touches all six modules consistently. Add a one-line code comment in each location: `// Matches the shared "MicrosoftGraph" named client used by Marketing/MeetingTasks/CatalogDocuments/KnowledgeBase/Photobank modules.`
+The spec is largely accurate but contains three points that need correction or refinement before implementation:
 
-2. **FR-3 / NFR-3 — switch to per-request `HttpRequestMessage`.** The "either approach is acceptable" language should be tightened to **require** per-request headers. Replace the After block with:
+1. **FR-1 token return type and MSAL handling.** The spec says `AcquireGraphTokenAsync` returns `Task<string?>` and "catches `MsalException` and returns `null` (or whatever sentinel the current code uses)." This contradicts the current implementation: `GetAccessTokenForAppAsync` returns `Task<string>` (non-nullable), there is no sentinel, and `MsalException` is **not caught** at the call site — it propagates to the outer `catch (MsalException msalEx)` at line 168, which logs and **rethrows**. **Amend FR-1**: return type is `Task<string>`; the helper does not catch `MsalException`; logging on MSAL failure remains in the outer catch block of `GetGroupMembersAsync`.
 
+2. **FR-2 parser signature.** To preserve the aggregate log message at line 152 ("Processed {TotalMembers} total members, {UserMembers} user members for group {GroupId}") without polluting the parser with `ILogger` and `groupId`, **amend the parser signature** to:
    ```csharp
-   var httpClient = _httpClientFactory.CreateClient("MicrosoftGraph");
-   using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
-   request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", graphToken);
-   var response = await httpClient.SendAsync(request, cancellationToken);
+   internal static (List<UserDto> Users, int TotalCount) ParseMembersFromJson(string json);
    ```
+   The orchestrator then logs `result.TotalCount` and `result.Users.Count`. This keeps the parser pure for unit testing while preserving existing observability.
 
-   The `GetAsync(...)` call moves to `SendAsync(request, cancellationToken)`. Rationale: see Decision 2. This is a one-line cost for a meaningful safety improvement.
+3. **FR-2 visibility.** The spec says `private static`. NFR-3 requires direct unit testing of the parser, which is impossible with `private` from a separate test assembly. **Amend to `internal static`** and require `InternalsVisibleTo("Anela.Heblo.Tests")` on `Anela.Heblo.Application` (add if missing). This preserves the FR-3 "no public surface change" intent — internal is not part of the public API.
 
-3. **Open Question OQ-1 referenced in NFR-3 but the spec lists "Open Questions: None".** Resolve by adopting Decision 2 above.
-
-4. **Test plan — add follow-up note.** The "Multiple modules register `MicrosoftGraph`" race is not introduced by this change but is exposed by it. Add a `## Known Follow-ups` section to the spec noting the consolidation opportunity (single `AddMicrosoftGraphHttpClient()` extension with `PooledConnectionLifetime` and `AllowAutoRedirect`).
+4. **FR-2 per-element debug logs.** The spec is silent on the existing `LogDebug` calls at lines 135 ("Processing user member…") and 148 ("Skipping non-user member…"). Because moving them into the pure parser would force an `ILogger` dependency, **amend Out of Scope** to explicitly state: "Per-element `LogDebug` lines inside the parsed loop are removed in this refactor; aggregate counts remain via the parser's return-tuple, logged by the orchestrator." This is a minor observability change that should be called out — `LogDebug` lines are rarely enabled in production, so the impact is minimal, but the developer should not silently drop them without an explicit decision.
 
 ## Prerequisites
 
-None. All required infrastructure exists today:
+1. **Verify `InternalsVisibleTo` on `Anela.Heblo.Application`.** Grep `backend/src/Anela.Heblo.Application/` for `InternalsVisibleTo`. If `Anela.Heblo.Tests` is not listed, add it — either in `Anela.Heblo.Application.csproj`:
+   ```xml
+   <ItemGroup>
+     <InternalsVisibleTo Include="Anela.Heblo.Tests" />
+   </ItemGroup>
+   ```
+   or in a new `Properties/AssemblyInfo.cs`. This is the only prerequisite change outside the two files in scope.
 
-- `IHttpClientFactory` is registered globally by ASP.NET Core hosting (and bootstrapped by any of the five existing `AddHttpClient` calls).
-- `Microsoft.Extensions.Http` is transitively available in `Anela.Heblo.Application`.
-- Test helpers (`FakeHttpMessageHandler`) and patterns (`Mock<IHttpClientFactory>.Setup(f => f.CreateClient("MicrosoftGraph"))`) already exist in the test project.
-- No configuration, environment variable, migration, or infrastructure change is required.
+2. **Re-read the current logging template formats** before extracting, so the new helpers emit identical message templates, log levels, and structured property names (`Duration`, `TokenLength`, `Scope`, `GroupId`).
+
+3. **Run `GraphServiceTests` against `main` first** to capture the current pass-state baseline. All seven tests in that fixture must still pass after the refactor with no test code changes — this is the load-bearing safety net for behaviour preservation.
+
+4. **No infrastructure, configuration, migration, or feature-flag work is required.** No new packages. No DI registration changes. No `Program.cs` edits. No `appsettings.*.json` edits. No Key Vault secrets.
