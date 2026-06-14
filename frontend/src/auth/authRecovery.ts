@@ -66,17 +66,32 @@ const writeState = (state: RecoveryState): void => {
   }
 };
 
-/**
- * Clear the recovery counter. Call this when an authenticated request succeeds so the
- * next token expiry starts recovery again from the silent path.
- */
-export const clearAuthRecoveryState = (): void => {
-  redirectInFlight = false;
+const clearRecoveryCounter = (): void => {
   try {
     sessionStorage.removeItem(RECOVERY_KEY);
   } catch {
     // ignore
   }
+};
+
+/**
+ * Reset the recovery counter. Call this on a successful authenticated response so the
+ * next token expiry restarts recovery from the silent path.
+ * Does NOT touch redirectInFlight — that flag must stay true until the page reloads
+ * to prevent a concurrent successful response from re-enabling the burst-dedup guard
+ * while a redirect is already in flight.
+ */
+export const resetAuthRecoveryCounter = (): void => {
+  clearRecoveryCounter();
+};
+
+/**
+ * Full reset: clear both the sessionStorage counter and the in-flight flag.
+ * Call this only when recovery truly ends (e.g. before logoutRedirect or in tests).
+ */
+export const clearAuthRecoveryState = (): void => {
+  redirectInFlight = false;
+  clearRecoveryCounter();
 };
 
 const saveReturnUrl = (): void => {
