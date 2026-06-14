@@ -63,7 +63,7 @@ public class PrintPickingListJob : IRecurringJob
             var result = await _expeditionListService.PrintPickingListAsync(request, emailList, cancellationToken);
 
             _logger.LogInformation(
-                "{JobName} completed. Total orders: {TotalCount}, skipped (incomplete address): {SkippedCount}",
+                "{JobName} completed. Processed orders: {TotalCount}, skipped (incomplete address): {SkippedCount}",
                 Metadata.JobName, result.TotalCount, result.SkippedCount);
         }
         catch (Exception ex)
