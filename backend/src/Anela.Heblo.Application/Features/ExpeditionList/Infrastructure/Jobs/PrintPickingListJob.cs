@@ -51,6 +51,7 @@ public class PrintPickingListJob : IRecurringJob
                 Carriers = ExpeditionPickingRequest.DefaultCarriers,
                 SourceStateId = _options.Value.SourceStateId,
                 DesiredStateId = _options.Value.DesiredStateId,
+                NoteStateId = _options.Value.NoteStateId,
                 ChangeOrderState = _options.Value.ChangeOrderStateByDefault,
                 SendToPrinter = _options.Value.SendToPrinterByDefault,
             };

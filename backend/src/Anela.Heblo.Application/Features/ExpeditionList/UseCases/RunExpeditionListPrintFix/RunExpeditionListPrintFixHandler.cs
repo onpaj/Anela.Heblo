@@ -27,6 +27,7 @@ public class RunExpeditionListPrintFixHandler : IRequestHandler<RunExpeditionLis
             Carriers = ExpeditionPickingRequest.DefaultCarriers,
             SourceStateId = _options.Value.FixSourceStateId,
             DesiredStateId = _options.Value.DesiredStateId,
+            NoteStateId = _options.Value.NoteStateId,
             ChangeOrderState = _options.Value.ChangeOrderStateByDefault,
             SendToPrinter = _options.Value.SendToPrinterByDefault,
         };

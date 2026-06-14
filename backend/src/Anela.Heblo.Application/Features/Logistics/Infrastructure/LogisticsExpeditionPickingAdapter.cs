@@ -23,6 +23,7 @@ internal sealed class LogisticsExpeditionPickingAdapter : IExpeditionPickingSour
             Carriers = request.Carriers,
             SourceStateId = request.SourceStateId,
             DesiredStateId = request.DesiredStateId,
+            NoteStateId = request.NoteStateId,
             ChangeOrderState = request.ChangeOrderState,
             SendToPrinter = request.SendToPrinter,
         };
