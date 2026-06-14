@@ -1,239 +1,202 @@
-I have enough context to write the architecture review.
-
-```markdown
-# Architecture Review: Resolve Azure Blob Storage 409 Conflict Failures
+# Architecture Review: Eliminate Azure Blob 409 Conflict Failures
 
 ## Skip Design: true
 
-This is a backend telemetry/observability remediation with zero UI surface area — no new screens, components, or visual decisions are required.
+Backend-only telemetry/reliability work. No UI components, screens, or visual design decisions are introduced.
 
 ## Architectural Fit Assessment
 
-The codebase has **two distinct Azure Blob write paths**, both of which must be considered when identifying the 409 source:
+**The dominant fix is already in the codebase.** Two relevant components already exist on this branch:
 
-1. **`Anela.Heblo.Application.Features.FileStorage.Services.AzureBlobStorageService`** — implements `IBlobStorageService`. Used by `FileStorage`, `ExpeditionListArchive`, `KnowledgeBase`, `Catalog`, and `Invoices`. Registered as a singleton with a `ConcurrentDictionary<string,bool> _containerExists` cache that guards `CreateIfNotExistsAsync` once per process per container (`AzureBlobStorageService.cs:271-280`). Uses an **unconditional PUT** (`Conditions == null`) on upload (`AzureBlobStorageService.cs:91-94`) — intentionally chosen so re-uploads do not 409 (tests at `AzureBlobStorageServiceTests.cs:262-304` explicitly verify this).
-2. **`Anela.Heblo.Adapters.Azure.Features.ExpeditionList.AzureBlobPrintQueueSink`** — direct `BlobContainerClient` consumer for printer-queue sink. Uses `SemaphoreSlim`-gated `CreateIfNotExistsAsync` once per process (`AzureBlobPrintQueueSink.cs:54-71`) and `UploadAsync(..., overwrite: true)` (`AzureBlobPrintQueueSink.cs:46`).
+1. `Anela.Heblo.API/Infrastructure/Telemetry/BlobIdempotent409TelemetryProcessor.cs` — neutralises 409s on PUT container shapes, leaves blob-level 409s alone.
+2. `Anela.Heblo.Application/Features/FileStorage/Infrastructure/BlobContainerEnsurance.cs` — caches existence probes, swallows benign container-create races, evicts on failure. Used by both `AzureBlobStorageService` and `AzureBlobPrintQueueSink`.
 
-Both upload paths already use overwrite semantics, which matches the brief's observation that `InProc BlobClient.Upload` shows 0 failures across 160 calls. The 409s therefore almost certainly originate from **`BlobContainerClient.CreateIfNotExistsAsync`**: the Azure SDK issues an unconditional `PUT container` REST call that returns HTTP 409 `ContainerAlreadyExists` when the container exists, swallows the exception in user code, but Application Insights still records the underlying dependency call as a 409 failure. The 16/231 (≈6.9%) ratio is consistent with "one container-existence probe per (process, container) × deployment count over 7 days" against ongoing upload/list/download volume.
+Every current blob-write call site already either uses `overwrite: true` (no 409 possible) or goes through `BlobContainerEnsurance` (409 handled). The Photobank hypothesis in `brief.md` is **incorrect**: Photobank thumbnails are served by `PhotobankGraphService` (Microsoft Graph), not Azure Blob — there is no Photobank blob-write path to fix.
 
-Observability strategy is documented in `docs/architecture/observability.md`. Two telemetry processors already exist (`CostOptimizedTelemetryProcessor`, `CustomSamplingTelemetryProcessor`) — extending the processor pipeline is an established pattern.
+This means the spec's headline ask — "make blob writes idempotent against concurrent writers" — is largely satisfied for the population of call sites that actually exists. The remaining gaps are **verification and operational hardening**, not new write-path code. FR-4's `IIdempotentBlobUploader` is a solution looking for a problem until FR-1 is re-run and produces evidence of a hot blob-level (not container-level) 409 source.
+
+Integration points: Application Insights pipeline (`AddOptimizedApplicationInsights`), `IBlobStorageService` callers, the Adapters.Azure `AzureBlobPrintQueueSink`, and the Azure infra script (`scripts/create-azure-infrastructure.sh`) for the alert rule.
 
 ## Proposed Architecture
-
-The work splits cleanly along the spec's two phases. Phase 1 is a diagnostic deliverable (no code); Phase 2 is the remediation.
 
 ### Component Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│ Phase 1 — Diagnostic (no code; deliverable is documentation)    │
-│ ─────────────────────────────────────────────────────────────── │
-│ App Insights KQL → dependencies | type=="Azure blob"            │
-│                  | resultCode=="409"                            │
-│                  → name, target, operation_Name, cloud_RoleName │
-│ Output: confirmation that source is CreateIfNotExistsAsync      │
-│         (or, if not, the specific code path identified)         │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│ App Insights resource (aiHeblo / aiHeblo-test)                       │
+│                                                                       │
+│   ┌──────────────────┐    ┌──────────────────────┐    ┌──────────┐  │
+│   │ DependencyTrack  │ →  │ BlobIdempotent409    │ →  │ rest of  │  │
+│   │ (Azure SDK)      │    │ TelemetryProcessor   │    │ chain    │  │
+│   └──────────────────┘    │ (re-marks PUT-       │    └──────────┘  │
+│                            │  container 409→OK)  │                   │
+│                            └──────────────────────┘                   │
+└──────────────────────────────────────────────────────────────────────┘
+              ▲
+              │ dependency emissions
+              │
+┌─────────────┴────────────────────────────────────────────────────────┐
+│ Backend (Anela.Heblo)                                                │
+│                                                                       │
+│   AzureBlobStorageService ──┐                                        │
+│   AzureBlobPrintQueueSink ──┼──► BlobContainerEnsurance              │
+│   (any future blob writer) ─┘    (Exists → Create, swallow 409)      │
+│                                       │                              │
+│                                       └──► BlobContainerClient       │
+│                                                                       │
+└──────────────────────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────────────────────┐
-│ Phase 2 — Remediation (primary path: CreateIfNotExistsAsync)    │
-│ ─────────────────────────────────────────────────────────────── │
-│                                                                 │
-│  AzureBlobStorageService    AzureBlobPrintQueueSink             │
-│        │                            │                           │
-│        └─── EnsureContainerExistsAsync ────┐                    │
-│             (new shared helper or inlined) │                    │
-│                                            ▼                    │
-│                         BlobContainerClient.ExistsAsync()       │
-│                                  │                              │
-│                          exists? │ no → CreateAsync             │
-│                                  │ yes → no-op (no 409)         │
-│                                                                 │
-│  + Idempotent409TelemetryProcessor (defensive backstop)         │
-│    Marks 409 from BlobContainerClient PUT container as Success  │
-│    so future restart cycles do not pollute telemetry            │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│ Azure Monitor                                                         │
+│   ALERT: dependencies | type=="Azure blob" && success==false         │
+│           > N per hour → notification channel                        │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Design Decisions
 
-#### Decision 1: Use `ExistsAsync` + conditional `CreateAsync` instead of `CreateIfNotExistsAsync`
-
+#### Decision 1: Evidence-gate FR-4 (`IIdempotentBlobUploader`)
 **Options considered:**
-- **A. Pre-provision containers via Bicep/IaC, remove all `CreateIfNotExistsAsync` calls.** Cleanest long-term but expands scope beyond the spec — containers are currently created lazily by app code, no IaC manages them. Defer.
-- **B. Replace `CreateIfNotExistsAsync` with `ExistsAsync` + `CreateAsync` (only if missing).** One HEAD call when container exists (no 409), one HEAD + CreateAsync when missing. App Insights records a 200 (or 404 → 201), no 409 noise.
-- **C. Keep `CreateIfNotExistsAsync` but filter 409s in a telemetry processor.** Masks the symptom without fixing the underlying call shape; future readers will be misled by suppressed dependencies.
-- **D. Catch `RequestFailedException` with `Status == 409` and log-and-continue.** Already what the SDK does internally — does not help.
+- A. Build the helper, the analyzer rule, and migrate one call site as spec'd.
+- B. Re-run FR-1 first; only build the helper if a blob-level 409 source is found.
 
-**Chosen approach:** **B**, augmented with **C** as a defensive backstop for any code path still hitting the failing operation.
+**Chosen approach:** B — make FR-1 a hard prerequisite for FR-4.
 
-**Rationale:** B fixes the root cause: the SDK's `CreateIfNotExistsAsync` always issues a `PUT container` that returns 409 when the container exists, which AI records as a failed dependency regardless of whether user code sees the exception. Switching to `ExistsAsync` (HEAD container) turns the steady-state into a 200, eliminating the 409 telemetry signal. C as a backstop ensures any code path the diagnostic missed cannot continue polluting telemetry. Tests already explicitly validate the unconditional-PUT upload semantics (`AzureBlobStorageServiceTests.cs:253-260`), so the contract that "blobs overwrite freely" is preserved.
+**Rationale:** All current blob-write call sites use `overwrite: true` (unconditional PUT, 409-free) or `BlobContainerEnsurance` (handled). Introducing `IIdempotentBlobUploader` and an architecture test that bans `BlobClient.UploadAsync` would add abstraction without consumers, violating YAGNI. Mismatches between the brief's "Photobank thumbnails" hypothesis and the actual codebase (no Photobank blob writes) confirm we must measure before building. **Spec amendment required — see below.**
 
-#### Decision 2: Share the container-existence helper across `AzureBlobStorageService` and `AzureBlobPrintQueueSink`
-
+#### Decision 2: Suppression via telemetry processor, not custom dependency wrapping
 **Options considered:**
-- **A. Inline the fix in both classes.** Simple but duplicates the `Exists → Create` logic in two places, drifting over time.
-- **B. Extract an internal static helper `BlobContainerClientExtensions.EnsureExistsAsync(BlobContainerClient, ConcurrentDictionary<string,bool>, CancellationToken)` in `Anela.Heblo.Application/Features/FileStorage/Infrastructure/`.**
-- **C. Move `AzureBlobPrintQueueSink` onto `IBlobStorageService`.** Out of scope — sink lives in the Azure adapter for a reason (different DI lifecycle, container client is pre-resolved from options).
+- A. Existing `BlobIdempotent409TelemetryProcessor` — pattern-matches on `Data` URI shape.
+- B. `AsyncLocal<bool>` flag set inside the helper (as the spec suggests for FR-3).
 
-**Chosen approach:** **B** — one helper, two consumers.
+**Chosen approach:** A — keep the URI-shape processor, do not introduce `AsyncLocal` flags.
 
-**Rationale:** The two classes already implement near-identical "ensure-once-per-process" logic with subtly different patterns (`ConcurrentDictionary` vs `SemaphoreSlim`+`bool`). A single helper canonicalises the existence-check semantics and ensures both paths benefit from the same fix and the same test coverage. Place it in `Anela.Heblo.Application/Features/FileStorage/Infrastructure/` alongside `IDownloadResilienceService` and `FileDownloadOptions` — same module, same access tier.
+**Rationale:** The URI-shape match is local, observable, testable, and decouples telemetry filtering from call-site state. `AsyncLocal` ambient state is fragile under `Task.Run` boundaries, harder to reason about under DI lifetimes (the processor is singleton), and serves a hypothetical second helper that may never exist (Decision 1). If FR-1 surfaces a blob-level 409 that legitimately needs suppression, extend the processor with one more matcher rather than introducing ambient state.
 
-#### Decision 3: Add a `BlobIdempotent409TelemetryProcessor` as defensive backstop
-
+#### Decision 3: Alert wiring via existing infra script
 **Options considered:**
-- **A. No processor — rely on Decision 1 alone.** Risk: if a code path was missed in diagnosis, 409s continue.
-- **B. Add a processor that re-marks `Azure blob` dependencies as `Success=true` only when `Data` matches the `PUT container` shape (URI ends with the container name and no blob path) and `ResultCode == "409"`.** Targeted, auditable.
-- **C. Suppress all `Azure blob` 409s.** Hides genuine conflicts on non-idempotent paths — violates FR-4.
+- A. Configure the alert by hand in Azure Portal.
+- B. Add the alert rule to `scripts/create-azure-infrastructure.sh` (same script that already provisions `aiHeblo` / `aiHeblo-test`).
 
-**Chosen approach:** **B** — narrowly scoped to the `PUT container` shape.
+**Chosen approach:** B.
 
-**Rationale:** Belt-and-braces. The processor only neutralises the specific "container-already-exists" telemetry pattern. Real blob 409s (lease collisions, conditional puts) still surface. The processor lives next to the existing `CostOptimizedTelemetryProcessor` and follows its registration pattern (`AddApplicationInsightsTelemetryProcessor<T>()`).
+**Rationale:** Per `docs/architecture/observability.md`, App Insights resources are provisioned by `create-azure-infrastructure.sh`. Drift between staging and production is the documented failure mode the script exists to prevent. A portal-only alert is invisible to code review and disappears on resource rebuild.
+
+#### Decision 4: Helper placement (forward-looking — only if Decision 1 flips)
+**Chosen approach:** `Anela.Heblo.Application/Features/FileStorage/Infrastructure/IdempotentBlobUploader.cs`, mirroring `BlobContainerEnsurance`.
+
+**Rationale:** Matches the existing pattern. `FileStorage` already owns the blob abstraction (`IBlobStorageService`); a deeper home (e.g. `Anela.Heblo.Xcc`) would imply cross-module reuse that does not exist.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-**Phase 1 — diagnostic artefacts** (no code, documentation only):
-- `docs/features/azure-blob-409-diagnostic.md` — KQL query, raw results table (operation_Name → count), and the conclusion identifying the offending code path. This document satisfies the FR-1 acceptance criteria ("documented in the implementation PR").
+No new files are required by the **default** execution path (Decision 1 = B). The work is:
 
-**Phase 2 — remediation code** (Application layer + Azure adapter):
-```
-backend/src/
-├── Anela.Heblo.Application/
-│   └── Features/FileStorage/
-│       ├── Infrastructure/
-│       │   └── BlobContainerEnsurance.cs              ← NEW shared helper (Decision 2)
-│       ├── Services/
-│       │   └── AzureBlobStorageService.cs             ← MODIFY GetOrCreateContainerAsync
-│       └── FileStorageModule.cs                       ← no change unless processor goes here
-├── Anela.Heblo.API/
-│   └── Telemetry/  (existing folder pattern — confirm path during impl)
-│       └── BlobIdempotent409TelemetryProcessor.cs     ← NEW processor (Decision 3)
-└── Adapters/Anela.Heblo.Adapters.Azure/
-    └── Features/ExpeditionList/
-        └── AzureBlobPrintQueueSink.cs                 ← MODIFY EnsureContainerAsync
-```
+- **Edit** `docs/features/azure-blob-409-diagnostic.md` — fill in the "Raw results" table and "Conclusion" sections from the KQL output.
+- **Edit** `scripts/create-azure-infrastructure.sh` — add the Azure Monitor alert rule (FR-3).
+- **Edit** `docs/architecture/observability.md` — record the alert under "Critical Alerts".
 
-Tests follow the mirrored convention from `docs/architecture/filesystem.md`:
-```
-backend/test/Anela.Heblo.Tests/
-├── Features/FileStorage/
-│   ├── BlobContainerEnsuranceTests.cs                 ← NEW
-│   └── AzureBlobStorageServiceTests.cs                ← EXTEND with concurrent-write tests
-├── Features/ExpeditionList/
-│   └── AzureBlobPrintQueueSinkTests.cs                ← EXTEND
-└── Telemetry/
-    └── BlobIdempotent409TelemetryProcessorTests.cs    ← NEW
-```
+If — and only if — FR-1 reveals a non-container 409 source, then add:
+- `backend/src/Anela.Heblo.Application/Features/FileStorage/Infrastructure/IdempotentBlobUploader.cs`
+- `backend/test/Anela.Heblo.Tests/Features/FileStorage/IdempotentBlobUploaderTests.cs`
+- A new matcher branch (or a parallel processor) extending `BlobIdempotent409TelemetryProcessor`.
+- One migrated call site.
+- An architecture test (under `backend/test/Anela.Heblo.Tests/Architecture/`, following the `ModuleBoundariesTests` reflection pattern) banning direct `BlobClient.UploadAsync(..., overwrite: false, ...)` calls outside the helper.
 
 ### Interfaces and Contracts
 
-**New helper** (internal to the FileStorage infrastructure namespace):
+If FR-4 is built (conditional on FR-1):
 
 ```csharp
 namespace Anela.Heblo.Application.Features.FileStorage.Infrastructure;
 
-internal static class BlobContainerEnsurance
+public interface IIdempotentBlobUploader
 {
-    // Ensures the container exists without producing a 409 in App Insights telemetry.
-    // Caller supplies a process-scoped cache so each (instance, container) pair issues
-    // at most one ExistsAsync probe. A returned `false` from ExistsAsync issues CreateAsync;
-    // a 409 from CreateAsync is treated as "another writer won the race" and logged-and-continued.
-    public static Task EnsureExistsAsync(
-        BlobContainerClient client,
-        ConcurrentDictionary<string, bool> cache,
-        ILogger logger,
-        CancellationToken cancellationToken);
+    Task<BlobUploadOutcome> UploadIfAbsentAsync(
+        BlobClient blob,
+        Stream content,
+        BlobHttpHeaders? headers = null,
+        CancellationToken cancellationToken = default);
 }
+
+public enum BlobUploadOutcome { Uploaded, AlreadyExisted }
 ```
 
-**Telemetry processor contract** (mirrors `CostOptimizedTelemetryProcessor`):
+Implementation calls `blob.UploadAsync(content, new BlobUploadOptions { HttpHeaders = headers }, cancellationToken)` with no `Conditions` (a separate API call sets up `IfNoneMatch = ETag.All` only when needed). Catches `RequestFailedException` with `Status == 409` and `ErrorCode is "BlobAlreadyExists" or "ContainerAlreadyExists"`, returns `AlreadyExisted`, emits an `Information`-level log entry per NFR-3. Re-throws everything else.
 
-```csharp
-namespace Anela.Heblo.API.Telemetry;
+The processor must continue to recognise PUT-container 409s by URI shape (existing behaviour). If a blob-level 409 must be suppressed, add a second URI-shape branch that matches the specific operation path identified by FR-1 — **do not** broaden the processor to suppress all blob-level 409s, because that would mask lease violations and conditional-PUT failures (the very signal we want to keep, per the spec and the processor's existing XML doc).
 
-internal sealed class BlobIdempotent409TelemetryProcessor : ITelemetryProcessor
-{
-    public BlobIdempotent409TelemetryProcessor(ITelemetryProcessor next);
-    public void Process(ITelemetry item); // re-marks Success=true on PUT container 409s
-}
-```
-
-**No public API changes.** `IBlobStorageService`, all controller signatures, all MediatR command/query shapes remain unchanged. The fix is internal to the storage layer (NFR-4).
+No public API changes. No DI lifetime changes (helper is stateless, register as singleton).
 
 ### Data Flow
 
-**Steady-state upload (after first call has populated cache):**
+**Write path (existing, unchanged):**
 
 ```
-Caller → IBlobStorageService.UploadAsync
-       → AzureBlobStorageService.GetOrCreateContainerAsync
+Caller → AzureBlobStorageService.UploadAsync (or AzureBlobPrintQueueSink.SendAsync)
        → BlobContainerEnsurance.EnsureExistsAsync
-         (cache hit → no-op)
-       → BlobClient.UploadAsync (unconditional PUT, overwrite)
-       → return blob URL
+           → ExistsAsync (HEAD, never 409)
+           → CreateAsync only if missing; 409 swallowed (cache marked ok)
+       → blobClient.UploadAsync(stream, overwrite: true, ...)
+       → returns URL
 ```
 
-**First call per (process, container):**
+**Telemetry path (existing, unchanged):**
 
 ```
-Caller → IBlobStorageService.UploadAsync
-       → AzureBlobStorageService.GetOrCreateContainerAsync
-       → BlobContainerEnsurance.EnsureExistsAsync
-         → BlobContainerClient.ExistsAsync       (HTTP 200 — telemetry success)
-         → exists == true  → cache[name] = true; return
-                            (no CreateAsync, no 409)
-         OR
-         → exists == false → BlobContainerClient.CreateAsync (HTTP 201)
-                            cache[name] = true
-                            (if a competing writer beat us: 409 caught, logged as
-                             "idempotent 409 suppressed", cache populated, continue)
-       → BlobClient.UploadAsync
-       → return blob URL
+Azure SDK emits DependencyTelemetry (Type="Azure blob", ResultCode="409", Data=URI)
+       → BlobIdempotent409TelemetryProcessor inspects Data URI shape
+       → If PUT-container shape: Success=true, forward
+       → Else: forward unchanged (genuine 409 surfaces as failure)
+       → CostOptimizedTelemetryProcessor (must run after, registration order in
+         AddOptimizedApplicationInsights is correct today — preserve it)
 ```
 
-**Genuine 409 on a non-idempotent path (preserved):**
+**Verification path (new):**
 
 ```
-Caller → conditional upload with Conditions.IfNoneMatch = ETag.All
-       → BlobClient.UploadAsync → RequestFailedException(Status=409)
-       → propagates to caller (NOT caught by EnsureExistsAsync — that helper
-         only runs on PUT container, not on PUT blob)
-       → App Insights still records the 409 dependency call
-         (telemetry processor only filters PUT container, not PUT blob)
+Run KQL from docs/features/azure-blob-409-diagnostic.md against aiHeblo-test, then aiHeblo
+       → Record per-operation / per-container 409 counts
+       → Cross-reference cloud_RoleName and operation_Name to the originating C# call site
+       → If dominant cause = PUT container: existing fix sufficient; close FR-2 / FR-4 as
+         "already covered by BlobContainerEnsurance, no migration needed"
+       → If dominant cause = blob-level (e.g. CreateIfNotExists on blob, conditional PUT,
+         lease op): build IIdempotentBlobUploader, migrate the offending call site, extend
+         the telemetry processor's matcher, and add the architecture test.
 ```
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Diagnostic identifies an operation outside the two known paths (e.g. metadata update, lease conflict, container delete) | Medium | Spec already covers this — FR-1 lists the strategies by operation type. Architecture allows extending `BlobContainerEnsurance` or adding an analogous helper without touching public contracts. |
-| Telemetry processor masks a real ContainerBeingDeleted state | Low | Processor matches only on `PUT container` request shape returning 409 ContainerAlreadyExists. If we observe `ContainerBeingDeleted` (different error code, same HTTP 409), it would be a separate alert; document this in the processor's XML doc. |
-| `ExistsAsync` adds an extra HEAD call on hot paths | Low | The cache ensures one HEAD per (process, container). Steady-state cost is zero (cache hit). NFR-1 explicitly allows the HEAD probe. |
-| Race condition: two pods start, both probe `ExistsAsync`, container missing, both call `CreateAsync` → one 409 | Low | Helper catches the 409 from `CreateAsync` (genuine race), logs once at info level with `blobName=null, containerName=X, operationName=CreateContainer`, populates cache, and returns. Net effect: at most one telemetry-recorded 409 per cold deployment, which the telemetry processor then neutralises. |
-| 7-day verification window (FR-3) overlaps deployment churn from this very change | Low | Schedule the FR-3 verification 7 days after the merge merges to staging, not from PR open. Document the start time in the PR description. |
-| Diagnostic phase requires App Insights operator access | Low (operational) | Solo developer has access. Capture the raw KQL query and date range in `docs/features/azure-blob-409-diagnostic.md` so the run is reproducible. |
-| `_containerExists` cache currently uses `TryAdd` then runs `CreateIfNotExistsAsync` outside the lock — concurrent first-callers race; same race exists in the new helper unless we use a `Lazy<Task>` per container | Medium | Use `ConcurrentDictionary<string, Lazy<Task>>` keyed by container name with `GetOrAdd`, so all callers await the same in-flight check. This eliminates the existing race in `AzureBlobStorageService.cs:271-280` as a side benefit. |
+| FR-1 query returns zero 409s in the current window (because the existing fix already shipped to one or both environments) | Medium | Widen window to 30d and split by `cloud_RoleName` to separate pre-fix vs post-fix periods. Document the deployment timestamp in the diagnostic doc before relying on the window. |
+| FR-4 helper is built without a real consumer because the spec is followed literally | High | Adopt Decision 1: FR-1 is a hard gate for FR-4. State the gate explicitly in the spec amendment so an implementer cannot skip it. |
+| Telemetry processor over-suppresses genuine 409s (lease violations, conditional PUTs) | High | Preserve URI-shape narrowness: only one-segment paths are container PUTs. Existing test `Process_AzureBlob409OnPutBlob_DoesNotMarkSuccess` covers regression — keep it green for any matcher extension. |
+| Processor registration order regresses (`CostOptimized` runs before `BlobIdempotent409`, marking failed-409 deps as expensive failures) | Medium | The comment in `AddOptimizedApplicationInsights` already documents the ordering constraint. Add an integration test that resolves the configured chain and asserts `BlobIdempotent409TelemetryProcessor` precedes `CostOptimizedTelemetryProcessor`. |
+| Alert fires on benign 409s after a future Azure SDK change emits a new URI shape | Medium | Alert query filters on `success == false` (post-processor), so re-marking handles this. Re-run FR-1 quarterly (track in `memory/gotchas/` or as a recurring routine in `docs/routines/`). |
+| Performance regression from `ExistsAsync` HEAD probe on cold containers | Low | `BlobContainerEnsurance` caches the result per container per process — first call is HEAD+PUT, subsequent are no-ops. Existing tests `EnsureExistsAsync_CalledTwice_ProbesExistenceOnlyOnce` and `_FourParallelFirstCalls_ProbesExistenceAtMostOnce` cover the caching guarantee. NFR-1 budget (≤50ms p95) is preserved. |
+| Alert noise during the FR-1 measurement window itself (before the fix is verified) | Low | Set the alert threshold conservatively (default: 10 failures/hour) and tag as Warning, not Critical, until the post-deployment verification at FR-3 confirms ≤0.5%. Tighten thereafter. |
 
 ## Specification Amendments
 
-The spec is largely sound. Two refinements:
+1. **FR-1 must complete before FR-4.** Add to FR-4: "If FR-1 finds that ≥80% of 409s originate from PUT-container operations, the `IIdempotentBlobUploader` helper and its architecture test are deferred — the existing `BlobContainerEnsurance` helper satisfies the requirement. Record the FR-1 outcome and the decision in `docs/features/azure-blob-409-diagnostic.md` under the Conclusion section."
 
-1. **Add an architectural note that the most likely source is `CreateIfNotExistsAsync` (PUT container)**, supported by the InProc Upload 0-failure observation. The diagnostic phase remains required to confirm, but the proposed remediation (`BlobContainerEnsurance` helper) should be the default plan unless the diagnostic surfaces a different operation. This sets developer expectations without prejudging the diagnostic.
+2. **Remove the Photobank hypothesis from FR-2.** Photobank does not write to Azure Blob (it uses Microsoft Graph). Replace with: "Affected modules will be determined by FR-1 outputs. The current candidates are `Anela.Heblo.Application.Features.FileStorage.Services.AzureBlobStorageService` and `Anela.Heblo.Adapters.Azure.Features.ExpeditionList.AzureBlobPrintQueueSink`."
 
-2. **Extend FR-2's acceptance criteria** with a concurrency-race assertion: "A unit test asserts that two concurrent callers to the helper for the same container result in **at most one** `CreateAsync` call (verified with `Moq.Verify(..., Times.AtMostOnce())`)". This locks in the `Lazy<Task>` pattern called out in the risk table and prevents the existing `TryAdd` race from re-emerging.
+3. **Reject the `AsyncLocal<bool>` design in the FR-3 telemetry processor section.** Replace with: "Suppression is decided by `DependencyTelemetry.Data` URI shape inside `BlobIdempotent409TelemetryProcessor`. Do not introduce ambient state across the call site and the processor."
 
-3. **FR-3 verification clock**: clarify that the 7-day window starts from production deployment, not PR open. Add to acceptance: "The KQL query is re-run at deployment + 7d; the count and percentage are recorded in the PR comment thread (or follow-up issue)".
+4. **Add an explicit acceptance criterion for processor ordering** under FR-3: "An automated test resolves the configured telemetry processor chain and asserts that `BlobIdempotent409TelemetryProcessor` runs before `CostOptimizedTelemetryProcessor`."
+
+5. **Move the alert wiring into infrastructure code** (FR-3 acceptance): "The hourly failure alert is provisioned by `scripts/create-azure-infrastructure.sh` alongside the `aiHeblo` / `aiHeblo-test` resources, not by a manual Azure Portal change."
+
+6. **Acknowledge prior work in `Status`.** The spec currently reads `Status: COMPLETE` while the work is partially shipped. Update to `Status: VERIFICATION REQUIRED` until FR-1 is re-run and the diagnostic doc's "Raw results" / "Conclusion" / "FR-3 post-deployment verification" sections are filled in.
 
 ## Prerequisites
 
-None. All required pieces exist:
-- `BlobServiceClient` and `BlobContainerClient` are already singletons.
-- `IBlobStorageService` and `ExistsAsync` are already part of the contract (`IBlobStorageService.cs:42`).
-- The telemetry-processor pipeline is already wired up (`docs/architecture/observability.md:382-388`).
-- Test infrastructure (`Moq`, `xUnit`) already covers `BlobContainerClient` mocking patterns (see `AzureBlobStorageServiceTests.cs:443-524`).
-
-The only operational prerequisite is **access to Application Insights** to run the Phase 1 KQL query — already available to the solo developer.
-```
+- **Read access to App Insights** resources `aiHeblo` (production) and `aiHeblo-test` (staging) in resource group `rgHeblo`, German West Central region. Verify the executing identity can run KQL against both.
+- **Deployment timestamp of the existing `BlobIdempotent409TelemetryProcessor` + `BlobContainerEnsurance` work** to each environment — required to scope the FR-1 query window correctly (pre-fix vs post-fix). Search `git log --first-parent main -- backend/src/Anela.Heblo.Application/Features/FileStorage/Infrastructure/BlobContainerEnsurance.cs` and cross-reference to Azure deployment history.
+- **Azure CLI authenticated** against the `rgHeblo` subscription for the alert-rule changes to `scripts/create-azure-infrastructure.sh`.
+- **No infrastructure migrations or schema changes required.**
+- **No new NuGet packages required** — confirmed against the existing `Azure.Storage.Blobs` and `Microsoft.ApplicationInsights.AspNetCore` references.
+- **Notification channel for the alert** must already exist (`docs/architecture/observability.md` lists Teams/Email but flags alerting as "⏳ Not configured" — confirm the channel is provisioned before the alert rule references it, otherwise add channel creation as a prior step).
