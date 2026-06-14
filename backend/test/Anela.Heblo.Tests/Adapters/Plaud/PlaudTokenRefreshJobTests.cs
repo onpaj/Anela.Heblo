@@ -21,7 +21,8 @@ public sealed class PlaudTokenRefreshJobTests
     private static readonly PlaudTokens ValidNewTokens = new(
         AccessToken: "new-access",
         RefreshToken: "new-refresh",
-        ExpiresAt: 9999999999L);
+        ExpiresAt: 99999999999999L,
+        TokenType: "bearer");
 
     public PlaudTokenRefreshJobTests()
     {

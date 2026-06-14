@@ -48,7 +48,7 @@ public class PlaudTokenRefreshJob : IRecurringJob
             throw new InvalidOperationException(
                 "Plaud refresh response has empty tokens. Refusing to persist.");
 
-        if (newTokens.ExpiresAt <= DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+        if (newTokens.ExpiresAt <= DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
             throw new InvalidOperationException(
                 $"Plaud refresh response has expires_at={newTokens.ExpiresAt} in the past. Refusing to persist.");
 

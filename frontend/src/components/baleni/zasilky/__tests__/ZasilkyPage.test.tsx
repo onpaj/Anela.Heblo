@@ -30,7 +30,7 @@ const samplePackage: PackageDto = {
   id: 1,
   orderCode: "ORD-1",
   customerName: "Alice",
-  packageNumber: "PKG-1",
+  packageNumber: "1",
   trackingNumber: "TRK-1",
   shippingProviderCode: "6",
   shippingProviderName: "PPL",
@@ -113,7 +113,8 @@ describe("ZasilkyPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Tisk/ }));
     expect(mockPrintLabelPdf).toHaveBeenCalledWith(
       "ORD-1",
-      expect.objectContaining({ packageName: "PKG-1" }),
+      expect.objectContaining({ packageNumber: 1 }),
+      expect.any(Function),
       expect.any(Function),
     );
   });
@@ -157,7 +158,7 @@ describe("ZasilkyPage", () => {
     render(<ZasilkyPage />);
     fireEvent.click(screen.getAllByRole("button", { name: /Smazat/ })[0]);
     fireEvent.click(screen.getAllByRole("button", { name: /Smazat/ })[1]);
-    await waitFor(() => expect(mockShowSuccess).toHaveBeenCalledWith("Smazáno", expect.stringContaining("PKG-1")));
+    await waitFor(() => expect(mockShowSuccess).toHaveBeenCalledWith("Smazáno", expect.stringContaining("Zásilka 1")));
   });
 
   it("shows error toast when delete mutation throws", async () => {

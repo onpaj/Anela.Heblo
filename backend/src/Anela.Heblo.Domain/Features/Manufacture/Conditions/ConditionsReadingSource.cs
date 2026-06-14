@@ -5,4 +5,5 @@ public enum ConditionsReadingSource
     Live = 1,
     Partial = 2,
     Unavailable = 3,
+    Stale = 4,
 }
