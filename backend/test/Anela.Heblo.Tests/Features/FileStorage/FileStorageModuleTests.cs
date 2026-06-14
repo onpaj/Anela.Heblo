@@ -160,7 +160,7 @@ public class FileStorageModuleTests
         // Arrange — Development environment, no FileStorage:BlobConnectionString
         var services = new ServiceCollection();
         services.AddSingleton(Mock.Of<ITelemetryService>());
-        services.Configure<ProductExportOptions>(opts =>
+        services.Configure<FileDownloadOptions>(opts =>
         {
             opts.MaxRetryAttempts = 3;
             opts.DownloadTimeout = TimeSpan.FromSeconds(120);
