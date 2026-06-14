@@ -184,7 +184,8 @@ public class ShoptetStockClientResilienceTests
                 Microsoft.Extensions.Logging.EventId eventId,
                 TState state,
                 Exception? exception,
-                Func<TState, Exception?, string> formatter) { }
+                Func<TState, Exception?, string> formatter)
+            { }
         }
 
         private sealed class CapturingLogger : Microsoft.Extensions.Logging.ILogger
@@ -244,12 +245,12 @@ public class ShoptetStockClientResilienceTests
     public class RedactTokenTests
     {
         [Theory]
-        [InlineData("https://csv.example.com/export?token=abc",                    "https://csv.example.com/export?token=***")]
-        [InlineData("https://csv.example.com/export?other=1&token=abc&x=y",        "https://csv.example.com/export?other=1&token=***&x=y")]
-        [InlineData("https://csv.example.com/export?hash=zzz",                     "https://csv.example.com/export?hash=***")]
-        [InlineData("https://csv.example.com/export?TOKEN=upper",                  "https://csv.example.com/export?TOKEN=***")]
-        [InlineData("https://csv.example.com/export",                              "https://csv.example.com/export")]
-        [InlineData("",                                                            "")]
+        [InlineData("https://csv.example.com/export?token=abc", "https://csv.example.com/export?token=***")]
+        [InlineData("https://csv.example.com/export?other=1&token=abc&x=y", "https://csv.example.com/export?other=1&token=***&x=y")]
+        [InlineData("https://csv.example.com/export?hash=zzz", "https://csv.example.com/export?hash=***")]
+        [InlineData("https://csv.example.com/export?TOKEN=upper", "https://csv.example.com/export?TOKEN=***")]
+        [InlineData("https://csv.example.com/export", "https://csv.example.com/export")]
+        [InlineData("", "")]
         public void RedactToken_ReplacesSensitiveQueryValues(string input, string expected)
         {
             var actual = typeof(ShoptetStockClient)
