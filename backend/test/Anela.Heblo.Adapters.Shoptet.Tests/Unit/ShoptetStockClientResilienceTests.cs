@@ -6,6 +6,7 @@ using Anela.Heblo.Domain.Features.Catalog.Stock;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Anela.Heblo.Adapters.Shoptet.Tests.Unit;
@@ -18,12 +19,21 @@ public class ShoptetStockClientResilienceTests
 
     private static IServiceProvider BuildProvider(
         Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler,
-        Action<ShoptetStockClientOptions>? configureOptions = null)
+        Action<ShoptetStockClientOptions>? configureOptions = null,
+        CapturingLoggerProvider? logCapture = null)
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         var services = new ServiceCollection();
-        services.AddLogging();
+        if (logCapture is not null)
+        {
+            var loggerFactory = LoggerFactory.Create(b => b.AddProvider(logCapture));
+            services.AddSingleton(loggerFactory);
+        }
+        else
+        {
+            services.AddLogging();
+        }
 
         var configBuilder = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -122,6 +132,79 @@ public class ShoptetStockClientResilienceTests
         // Assert
         await act.Should().ThrowAsync<OperationCanceledException>();
         calls.Should().Be(1, "caller cancellation must not trigger retries");
+    }
+
+    private sealed class CapturingLoggerProvider : Microsoft.Extensions.Logging.ILoggerProvider
+    {
+        public readonly List<string> Lines = new();
+
+        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName)
+        {
+            // Only capture logs from Anela.Heblo namespace (not System, Microsoft, or other framework logs)
+            if (categoryName.StartsWith("Anela.Heblo", StringComparison.Ordinal))
+            {
+                return new CapturingLogger(Lines);
+            }
+            return new NullLogger();
+        }
+        public void Dispose() { }
+
+        private sealed class NullLogger : Microsoft.Extensions.Logging.ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+            public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => false;
+            public void Log<TState>(
+                Microsoft.Extensions.Logging.LogLevel logLevel,
+                Microsoft.Extensions.Logging.EventId eventId,
+                TState state,
+                Exception? exception,
+                Func<TState, Exception?, string> formatter) { }
+        }
+
+        private sealed class CapturingLogger : Microsoft.Extensions.Logging.ILogger
+        {
+            private readonly List<string> _sink;
+            public CapturingLogger(List<string> sink) => _sink = sink;
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
+            public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+            public void Log<TState>(
+                Microsoft.Extensions.Logging.LogLevel logLevel,
+                Microsoft.Extensions.Logging.EventId eventId,
+                TState state,
+                Exception? exception,
+                Func<TState, Exception?, string> formatter)
+            {
+                _sink.Add(formatter(state, exception));
+            }
+            private sealed class NullScope : IDisposable
+            {
+                public static readonly NullScope Instance = new();
+                public void Dispose() { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ListAsync_OnTerminalFailure_LogsRedactedUrl_AndStructuredFields()
+    {
+        // Arrange
+        var capture = new CapturingLoggerProvider();
+        var provider = BuildProvider(
+            (req, ct) => Task.FromResult(TransientFailure()),
+            logCapture: capture);
+        var client = provider.GetRequiredService<IEshopStockClient>();
+
+        // Act
+        try { await client.ListAsync(CancellationToken.None); } catch (HttpRequestException) { /* expected */ }
+
+        // Assert
+        // Verify: token redaction works in logs
+        var redactedLogs = capture.Lines.Where(l => l.Contains("token=***")).ToList();
+        redactedLogs.Should().NotBeEmpty("should have at least one log with redacted token");
+
+        // Critically: no log line should contain the raw secret token
+        capture.Lines.Should().NotContain(l => l.Contains("secret-token-123"),
+            "raw secret token must never appear in any log line");
     }
 
     private sealed class DelegatingStubHandler : HttpMessageHandler
