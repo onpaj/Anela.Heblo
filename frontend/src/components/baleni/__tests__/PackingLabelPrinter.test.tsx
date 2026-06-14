@@ -21,14 +21,14 @@ jest.mock('../../../api/hooks/useOrderTrackingNumber', () => ({
 jest.mock('../PackingShipmentDoneView', () => ({
   __esModule: true,
   default: ({
-    resolvedTrackingNumber,
+    resolvedTrackingNumbers,
     onReprint,
   }: {
-    resolvedTrackingNumber?: string | null;
+    resolvedTrackingNumbers?: string[] | null;
     onReprint: () => void;
   }) => (
     <div data-testid="done-view">
-      <span data-testid="done-tracking">{resolvedTrackingNumber ?? ''}</span>
+      <span data-testid="done-tracking">{(resolvedTrackingNumbers ?? []).join(', ')}</span>
       <button data-testid="reprint" onClick={onReprint}>R</button>
     </div>
   ),
@@ -56,9 +56,9 @@ const makeShipment = (packages: ScanShipment['packages']): ScanShipment => ({
   alreadyExisted: false,
 });
 
-const pkg1 = { name: 'PKG-1', trackingNumber: null, labelUrl: 'https://x.com/1.pdf', labelZpl: null };
-const pkg2 = { name: 'PKG-2', trackingNumber: null, labelUrl: 'https://x.com/2.pdf', labelZpl: null };
-const pkg3 = { name: 'PKG-3', trackingNumber: null, labelUrl: 'https://x.com/3.pdf', labelZpl: null };
+const pkg1 = { trackingNumber: null, labelUrl: 'https://x.com/1.pdf', labelZpl: null };
+const pkg2 = { trackingNumber: null, labelUrl: 'https://x.com/2.pdf', labelZpl: null };
+const pkg3 = { trackingNumber: null, labelUrl: 'https://x.com/3.pdf', labelZpl: null };
 
 const expectedLabel = (packageNumber: number) => ({ packageNumber });
 

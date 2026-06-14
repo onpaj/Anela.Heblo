@@ -151,6 +151,7 @@ public class ScanPackingOrderHandlerTests
             ShipmentGuid = shipmentGuid,
             OrderCode = "0001234",
             PackageName = "P1",
+            TrackingNumber = "TRK-P1",
             LabelUrl = "https://example.com/label.pdf",
             LabelZpl = "^XA...^XZ",
         };
@@ -173,7 +174,7 @@ public class ScanPackingOrderHandlerTests
         response.Shipment!.AlreadyExisted.Should().BeTrue();
         response.Shipment.ShipmentGuid.Should().Be(shipmentGuid);
         response.Shipment.Packages.Should().HaveCount(1);
-        response.Shipment.Packages[0].Name.Should().Be("P1");
+        response.Shipment.Packages[0].TrackingNumber.Should().Be("TRK-P1");
         response.Shipment.Packages[0].LabelUrl.Should().Be("https://example.com/label.pdf");
         response.Shipment.Packages[0].LabelZpl.Should().Be("^XA...^XZ");
 
@@ -557,9 +558,7 @@ public class ScanPackingOrderHandlerTests
         response.Success.Should().BeTrue();
         response.Shipment!.Packages.Should().HaveCount(3);
         response.Shipment.Packages[0].LabelUrl.Should().Be("https://c/1.pdf");
-        response.Shipment.Packages[1].Name.Should().Be("PKG-2");
         response.Shipment.Packages[1].LabelUrl.Should().BeNull();
-        response.Shipment.Packages[2].Name.Should().Be("PKG-3");
         response.Shipment.Packages[2].LabelUrl.Should().BeNull();
     }
 

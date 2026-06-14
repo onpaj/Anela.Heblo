@@ -32,9 +32,9 @@ const order: PackingOrder = {
 const shipment: ScanShipment = {
   shipmentGuid: 'guid-1',
   packages: [
-    { name: 'PKG-1', trackingNumber: null, labelUrl: null, labelZpl: null },
-    { name: 'PKG-2', trackingNumber: null, labelUrl: null, labelZpl: null },
-    { name: 'PKG-3', trackingNumber: null, labelUrl: null, labelZpl: null },
+    { trackingNumber: null, labelUrl: null, labelZpl: null },
+    { trackingNumber: null, labelUrl: null, labelZpl: null },
+    { trackingNumber: null, labelUrl: null, labelZpl: null },
   ],
   alreadyExisted: false,
   pendingCompletion: true,

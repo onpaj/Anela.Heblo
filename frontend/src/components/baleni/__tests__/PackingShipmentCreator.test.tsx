@@ -34,6 +34,10 @@ jest.mock('../../../api/hooks/useResetOrderShipment', () => ({
   useResetOrderShipment: () => mockResetState,
 }));
 
+jest.mock('../../../api/hooks/useOrderTrackingNumbers', () => ({
+  useOrderTrackingNumbers: () => ({ data: null }),
+}));
+
 const someOrder: PackingOrder = {
   code: 'ORD001',
   customerName: 'X',
@@ -50,7 +54,6 @@ const someOrder: PackingOrder = {
 const newShipment: ScanShipment = {
   shipmentGuid: 'guid-new',
   packages: [{
-    name: 'PKG-1',
     trackingNumber: null,
     labelUrl: 'https://carrier.example.com/new.pdf',
     labelZpl: null,
@@ -61,7 +64,6 @@ const newShipment: ScanShipment = {
 const existingShipment: ScanShipment = {
   shipmentGuid: 'guid-existing',
   packages: [{
-    name: 'PKG-1',
     trackingNumber: null,
     labelUrl: 'https://carrier.example.com/existing.pdf',
     labelZpl: null,
@@ -72,8 +74,8 @@ const existingShipment: ScanShipment = {
 const multiPackageShipment: ScanShipment = {
   shipmentGuid: 'guid-multi',
   packages: [
-    { name: 'PKG-1', trackingNumber: null, labelUrl: null, labelZpl: null },
-    { name: 'PKG-2', trackingNumber: null, labelUrl: null, labelZpl: null },
+    { trackingNumber: null, labelUrl: null, labelZpl: null },
+    { trackingNumber: null, labelUrl: null, labelZpl: null },
   ],
   alreadyExisted: false,
   pendingCompletion: true,
@@ -112,11 +114,26 @@ describe('PackingShipmentCreator', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('clicking invalidate calls resetMutation.mutate with orderCode', () => {
+  it('clicking invalidate calls resetMutation.mutate with orderCode and default count', () => {
     render(<PackingShipmentCreator order={someOrder} scanShipment={existingShipment} />);
     const newBtn = screen.getByRole('button', { name: /Vytvořit novou zásilku/i });
     fireEvent.click(newBtn);
-    expect(mockResetMutate).toHaveBeenCalledWith('ORD001', expect.any(Object));
+    expect(mockResetMutate).toHaveBeenCalledWith(
+      { orderCode: 'ORD001', numberOfPackages: 1 },
+      expect.any(Object),
+    );
+  });
+
+  it('passes the chosen package count to resetMutation.mutate when recreating', () => {
+    render(<PackingShipmentCreator order={someOrder} scanShipment={existingShipment} />);
+    fireEvent.click(screen.getByTestId('recreate-package-increment'));
+    fireEvent.click(screen.getByTestId('recreate-package-increment'));
+    expect(screen.getByTestId('recreate-package-count')).toHaveTextContent('3');
+    fireEvent.click(screen.getByRole('button', { name: /Vytvořit novou zásilku/i }));
+    expect(mockResetMutate).toHaveBeenCalledWith(
+      { orderCode: 'ORD001', numberOfPackages: 3 },
+      expect.any(Object),
+    );
   });
 
   it('shows spinner while resetMutation is pending', () => {

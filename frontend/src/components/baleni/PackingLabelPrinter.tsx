@@ -17,7 +17,6 @@ function toLabels(shipment: ScanShipment): ShipmentLabelDto[] {
     (pkg) =>
       ({
         shipmentGuid: shipment.shipmentGuid,
-        packageName: pkg.name,
         labelUrl: pkg.labelUrl ?? undefined,
         labelZpl: pkg.labelZpl ?? undefined,
       }) as ShipmentLabelDto
@@ -117,7 +116,7 @@ function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabe
       <PackingShipmentDoneView
         order={order}
         shipment={shipment}
-        resolvedTrackingNumber={trackingQuery.data ?? null}
+        resolvedTrackingNumbers={trackingQuery.data ? [trackingQuery.data] : null}
         onReprint={handleReprint}
       />
     );

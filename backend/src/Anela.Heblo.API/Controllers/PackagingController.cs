@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Authorization.UseCases.GetPackingUsers;
 using Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder;
 using Anela.Heblo.Application.Features.Packaging.UseCases.DeletePackage;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumber;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumbers;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
@@ -61,9 +62,12 @@ public class PackagingController : BaseApiController
     [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
     public async Task<ActionResult<ResetOrderShipmentResponse>> ResetShipment(
         [FromRoute] string orderCode,
-        CancellationToken cancellationToken)
+        [FromQuery] int numberOfPackages = 1,
+        CancellationToken cancellationToken = default)
     {
-        var response = await _mediator.Send(new ResetOrderShipmentRequest { OrderCode = orderCode }, cancellationToken);
+        var response = await _mediator.Send(
+            new ResetOrderShipmentRequest { OrderCode = orderCode, NumberOfPackages = numberOfPackages },
+            cancellationToken);
         return HandleResponse(response);
     }
 
@@ -108,6 +112,22 @@ public class PackagingController : BaseApiController
     {
         var response = await _mediator.Send(
             new GetOrderTrackingNumberRequest { OrderCode = orderCode },
+            cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Returns the per-package tracking numbers of the latest active (non-cancelled) shipment for
+    /// the order, in package order. Used by the kiosk confirmation screen to show each package's
+    /// tracking number once labels have printed. Returns an empty list when none are assigned yet.
+    /// </summary>
+    [HttpGet("orders/{orderCode}/tracking-numbers")]
+    public async Task<ActionResult<GetOrderTrackingNumbersResponse>> GetOrderTrackingNumbers(
+        [FromRoute] string orderCode,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(
+            new GetOrderTrackingNumbersRequest { OrderCode = orderCode },
             cancellationToken);
         return HandleResponse(response);
     }

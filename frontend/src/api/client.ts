@@ -504,6 +504,7 @@ export const QUERY_KEYS = {
   meetingTasks: ["meetingTasks"] as const,
   packingOrder: ["packingOrder"] as const,
   orderTrackingNumber: ["order-tracking-number"] as const,
+  orderTrackingNumbers: ["order-tracking-numbers"] as const,
   shipmentLabels: ["shipmentLabels"] as const,
   featureFlags: ["feature-flags"] as const,
   catalogDocuments: ["catalog-documents"] as const,

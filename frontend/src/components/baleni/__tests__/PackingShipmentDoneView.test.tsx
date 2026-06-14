@@ -27,8 +27,8 @@ function makeShipment(overrides: Partial<ScanShipment> = {}): ScanShipment {
   return {
     shipmentGuid: 'guid-1',
     packages: [
-      { name: 'PKG-1', trackingNumber: 'TR-1', labelUrl: null, labelZpl: null },
-      { name: 'PKG-2', trackingNumber: 'TR-2', labelUrl: null, labelZpl: null },
+      { trackingNumber: 'TR-1', labelUrl: null, labelZpl: null },
+      { trackingNumber: 'TR-2', labelUrl: null, labelZpl: null },
     ],
     alreadyExisted: false,
     ...overrides,
@@ -99,41 +99,57 @@ describe('PackingShipmentDoneView', () => {
     expect(onReprint).toHaveBeenCalledTimes(1);
   });
 
-  it('falls back to the package number when trackingNumber is null', () => {
+  it('joins only the packages that have a tracking number', () => {
     render(
       <PackingShipmentDoneView
         order={makeOrder()}
         shipment={makeShipment({
           packages: [
-            { name: 'Vlastní balení', trackingNumber: null, labelUrl: null, labelZpl: null },
-            { name: 'Vlastní balení', trackingNumber: 'TR-B', labelUrl: null, labelZpl: null },
+            { trackingNumber: null, labelUrl: null, labelZpl: null },
+            { trackingNumber: 'TR-B', labelUrl: null, labelZpl: null },
           ],
         })}
         onReprint={() => {}}
       />
     );
-    expect(screen.getByText('Balík 1, TR-B')).toBeInTheDocument();
+    expect(screen.getByText('TR-B')).toBeInTheDocument();
   });
 
-  it('shows resolvedTrackingNumber when provided, overriding the package summary', () => {
+  it('shows an em dash when no tracking number is available', () => {
+    render(
+      <PackingShipmentDoneView
+        order={makeOrder()}
+        shipment={makeShipment({
+          packages: [
+            { trackingNumber: null, labelUrl: null, labelZpl: null },
+            { trackingNumber: null, labelUrl: null, labelZpl: null },
+          ],
+        })}
+        onReprint={() => {}}
+      />
+    );
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('shows resolvedTrackingNumbers when provided, overriding the package summary', () => {
     render(
       <PackingShipmentDoneView
         order={makeOrder()}
         shipment={makeShipment()}
-        resolvedTrackingNumber="2421907688"
+        resolvedTrackingNumbers={['2421907688', '2421907689']}
         onReprint={() => {}}
       />
     );
-    expect(screen.getByText('2421907688')).toBeInTheDocument();
+    expect(screen.getByText('2421907688, 2421907689')).toBeInTheDocument();
     expect(screen.queryByText('TR-1, TR-2')).not.toBeInTheDocument();
   });
 
-  it('falls back to the package summary when resolvedTrackingNumber is null or empty', () => {
+  it('falls back to the package summary when resolvedTrackingNumbers is null or empty', () => {
     const { unmount } = render(
       <PackingShipmentDoneView
         order={makeOrder()}
         shipment={makeShipment()}
-        resolvedTrackingNumber={null}
+        resolvedTrackingNumbers={null}
         onReprint={() => {}}
       />
     );
@@ -144,7 +160,7 @@ describe('PackingShipmentDoneView', () => {
       <PackingShipmentDoneView
         order={makeOrder()}
         shipment={makeShipment()}
-        resolvedTrackingNumber=""
+        resolvedTrackingNumbers={[]}
         onReprint={() => {}}
       />
     );

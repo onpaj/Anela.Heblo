@@ -8517,11 +8517,15 @@ export class ApiClient {
         return Promise.resolve<ScanPackingOrderResponse>(null as any);
     }
 
-    packaging_ResetShipment(orderCode: string): Promise<ResetOrderShipmentResponse> {
-        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/shipment/reset";
+    packaging_ResetShipment(orderCode: string, numberOfPackages: number | undefined): Promise<ResetOrderShipmentResponse> {
+        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/shipment/reset?";
         if (orderCode === undefined || orderCode === null)
             throw new Error("The parameter 'orderCode' must be defined.");
         url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
+        if (numberOfPackages === null)
+            throw new Error("The parameter 'numberOfPackages' cannot be null.");
+        else if (numberOfPackages !== undefined)
+            url_ += "numberOfPackages=" + encodeURIComponent("" + numberOfPackages) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -8635,6 +8639,43 @@ export class ApiClient {
         return Promise.resolve<GetOrderTrackingNumberResponse>(null as any);
     }
 
+    packaging_GetOrderTrackingNumbers(orderCode: string): Promise<GetOrderTrackingNumbersResponse> {
+        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/tracking-numbers";
+        if (orderCode === undefined || orderCode === null)
+            throw new Error("The parameter 'orderCode' must be defined.");
+        url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_GetOrderTrackingNumbers(_response);
+        });
+    }
+
+    protected processPackaging_GetOrderTrackingNumbers(response: Response): Promise<GetOrderTrackingNumbersResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetOrderTrackingNumbersResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetOrderTrackingNumbersResponse>(null as any);
+    }
+
     packaging_GetDashboard(): Promise<GetPackingDashboardResponse> {
         let url_ = this.baseUrl + "/api/packaging/dashboard";
         url_ = url_.replace(/[?&]$/, "");
@@ -8668,7 +8709,6 @@ export class ApiClient {
         }
         return Promise.resolve<GetPackingDashboardResponse>(null as any);
     }
-
 
     packaging_GetPackages(orderCode: string | null | undefined, customerName: string | null | undefined, packageNumber: string | null | undefined, carrier: Carriers | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPackagesResponse> {
         let url_ = this.baseUrl + "/api/packaging/packages?";
@@ -32426,7 +32466,6 @@ export interface IScanShipmentData {
 }
 
 export class ScanShipmentPackage implements IScanShipmentPackage {
-    name?: string;
     trackingNumber?: string | undefined;
     labelUrl?: string | undefined;
     labelZpl?: string | undefined;
@@ -32442,7 +32481,6 @@ export class ScanShipmentPackage implements IScanShipmentPackage {
 
     init(_data?: any) {
         if (_data) {
-            this.name = _data["name"];
             this.trackingNumber = _data["trackingNumber"];
             this.labelUrl = _data["labelUrl"];
             this.labelZpl = _data["labelZpl"];
@@ -32458,7 +32496,6 @@ export class ScanShipmentPackage implements IScanShipmentPackage {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["name"] = this.name;
         data["trackingNumber"] = this.trackingNumber;
         data["labelUrl"] = this.labelUrl;
         data["labelZpl"] = this.labelZpl;
@@ -32467,7 +32504,6 @@ export class ScanShipmentPackage implements IScanShipmentPackage {
 }
 
 export interface IScanShipmentPackage {
-    name?: string;
     trackingNumber?: string | undefined;
     labelUrl?: string | undefined;
     labelZpl?: string | undefined;
@@ -32545,6 +32581,7 @@ export interface IResetOrderShipmentResponse extends IBaseResponse {
 export class ResetShipmentData implements IResetShipmentData {
     shipmentGuid?: string;
     packages?: ResetShipmentPackage[];
+    pendingCompletion?: boolean;
 
     constructor(data?: IResetShipmentData) {
         if (data) {
@@ -32563,6 +32600,7 @@ export class ResetShipmentData implements IResetShipmentData {
                 for (let item of _data["packages"])
                     this.packages!.push(ResetShipmentPackage.fromJS(item));
             }
+            this.pendingCompletion = _data["pendingCompletion"];
         }
     }
 
@@ -32581,6 +32619,7 @@ export class ResetShipmentData implements IResetShipmentData {
             for (let item of this.packages)
                 data["packages"].push(item.toJSON());
         }
+        data["pendingCompletion"] = this.pendingCompletion;
         return data;
     }
 }
@@ -32588,10 +32627,11 @@ export class ResetShipmentData implements IResetShipmentData {
 export interface IResetShipmentData {
     shipmentGuid?: string;
     packages?: ResetShipmentPackage[];
+    pendingCompletion?: boolean;
 }
 
 export class ResetShipmentPackage implements IResetShipmentPackage {
-    name?: string;
+    trackingNumber?: string | undefined;
     labelUrl?: string | undefined;
     labelZpl?: string | undefined;
 
@@ -32606,7 +32646,7 @@ export class ResetShipmentPackage implements IResetShipmentPackage {
 
     init(_data?: any) {
         if (_data) {
-            this.name = _data["name"];
+            this.trackingNumber = _data["trackingNumber"];
             this.labelUrl = _data["labelUrl"];
             this.labelZpl = _data["labelZpl"];
         }
@@ -32621,7 +32661,7 @@ export class ResetShipmentPackage implements IResetShipmentPackage {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["name"] = this.name;
+        data["trackingNumber"] = this.trackingNumber;
         data["labelUrl"] = this.labelUrl;
         data["labelZpl"] = this.labelZpl;
         return data;
@@ -32629,7 +32669,7 @@ export class ResetShipmentPackage implements IResetShipmentPackage {
 }
 
 export interface IResetShipmentPackage {
-    name?: string;
+    trackingNumber?: string | undefined;
     labelUrl?: string | undefined;
     labelZpl?: string | undefined;
 }
@@ -32665,6 +32705,47 @@ export class GetOrderTrackingNumberResponse extends BaseResponse implements IGet
 
 export interface IGetOrderTrackingNumberResponse extends IBaseResponse {
     trackingNumber?: string | undefined;
+}
+
+export class GetOrderTrackingNumbersResponse extends BaseResponse implements IGetOrderTrackingNumbersResponse {
+    trackingNumbers?: string[];
+
+    constructor(data?: IGetOrderTrackingNumbersResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["trackingNumbers"])) {
+                this.trackingNumbers = [] as any;
+                for (let item of _data["trackingNumbers"])
+                    this.trackingNumbers!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetOrderTrackingNumbersResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetOrderTrackingNumbersResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.trackingNumbers)) {
+            data["trackingNumbers"] = [];
+            for (let item of this.trackingNumbers)
+                data["trackingNumbers"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetOrderTrackingNumbersResponse extends IBaseResponse {
+    trackingNumbers?: string[];
 }
 
 export class GetPackingDashboardResponse extends BaseResponse implements IGetPackingDashboardResponse {

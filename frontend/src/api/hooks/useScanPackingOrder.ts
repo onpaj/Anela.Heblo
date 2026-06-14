@@ -42,7 +42,6 @@ export interface PackingOrder {
 }
 
 export interface ScanShipmentPackage {
-  name: string;
   trackingNumber: string | null;
   labelUrl: string | null;
   labelZpl: string | null;

@@ -88,7 +88,6 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
                 Packages = existingLabels
                     .Select(l => new ScanShipmentPackage
                     {
-                        Name = l.PackageName,
                         TrackingNumber = l.TrackingNumber,
                         LabelUrl = l.LabelUrl,
                         LabelZpl = l.LabelZpl,
@@ -151,10 +150,10 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             return new ScanPackingOrderResponse(ErrorCodes.ShipmentCreationFailed);
         }
 
-        // Single fetch for package names + carrier label URLs (FE prints directly from the CDN).
+        // Single fetch for carrier tracking numbers + label URLs (FE prints directly from the CDN).
         // Shoptet generates labels asynchronously, so the response may contain fewer labels than
         // the requested `n`. Always produce exactly `n` entries so the FE shows the correct
-        // "X/N" counter; packages with no label yet get placeholder names and null URLs
+        // "X/N" counter; packages with no label yet get null tracking + URLs
         // (the FE's 404 retry path handles the "carrier not ready" case).
         var newLabels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
         var packages = Enumerable.Range(1, n)
@@ -163,7 +162,6 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
                 var label = i <= newLabels.Count ? newLabels[i - 1] : null;
                 return new ScanShipmentPackage
                 {
-                    Name = label?.PackageName ?? $"PKG-{i}",
                     TrackingNumber = label?.TrackingNumber,
                     LabelUrl = label?.LabelUrl,
                     LabelZpl = label?.LabelZpl,
