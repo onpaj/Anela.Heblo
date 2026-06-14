@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.IndexDocument;
@@ -27,7 +28,7 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
         await request.FileStream.CopyToAsync(ms, cancellationToken);
         var fileBytes = ms.ToArray();
 
-        var contentType = ResolveContentType(request.ContentType, request.Filename);
+        var contentType = ContentTypeResolver.Resolve(request.ContentType, request.Filename);
 
         if (!_extractors.Any(e => e.CanHandle(contentType)))
         {
@@ -65,21 +66,4 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
             CreatedAt = response.CreatedAt,
             IndexedAt = response.IndexedAt,
         };
-
-    /// <summary>
-    /// Resolves the effective content type, falling back to file extension when the browser
-    /// reports a generic type (application/octet-stream) for drag-and-drop uploads.
-    /// </summary>
-    private static string ResolveContentType(string contentType, string filename) =>
-        string.IsNullOrEmpty(contentType) || contentType.Equals("application/octet-stream", StringComparison.OrdinalIgnoreCase)
-            ? Path.GetExtension(filename).ToLowerInvariant() switch
-            {
-                ".pdf" => "application/pdf",
-                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                ".doc" => "application/msword",
-                ".txt" => "text/plain",
-                ".md" => "text/markdown",
-                _ => contentType
-            }
-            : contentType;
 }
