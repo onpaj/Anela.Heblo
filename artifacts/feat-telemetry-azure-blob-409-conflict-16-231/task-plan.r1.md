@@ -1,16 +1,13 @@
-Plan saved to `artifacts/feat-telemetry-azure-blob-409-conflict-16-231/plan.r1.md`.
+The plan is saved. Per the pipeline note, I'm skipping the execution handoff prompt.
 
-**Summary of the plan:**
+**Plan saved:** `docs/superpowers/plans/2026-06-14-eliminate-azure-blob-409-conflicts.md`
 
-8 tasks split across the diagnostic and remediation phases:
+**Plan summary (7 tasks):**
 
-1. **Task 1 — Phase 1 diagnostic**: KQL query + populated `docs/features/azure-blob-409-diagnostic.md` confirming `BlobContainerClient.CreateIfNotExistsAsync` as the 409 source.
-2. **Task 2 — `BlobContainerEnsurance` helper (TDD)**: 6 unit tests covering cache-hit, missing-container, 4-way parallel race, benign 409 race, and non-409 failure → cache eviction.
-3. **Task 3 — Wire helper into `AzureBlobStorageService`**: replace `ConcurrentDictionary<string, bool>` with `ConcurrentDictionary<string, Lazy<Task>>`, update existing tests' `CreateIfNotExistsAsync` expectations to `ExistsAsync`-first.
-4. **Task 4 — Wire helper into `AzureBlobPrintQueueSink`**: drop the `SemaphoreSlim`/`bool` gate, route through helper, update gate-behaviour tests.
-5. **Task 5 — `BlobIdempotent409TelemetryProcessor` backstop (TDD)**: 5 unit tests asserting only `PUT container` 409s are re-marked, blob-path 409s pass through.
-6. **Task 6 — Register processor + update observability docs**: order matters (backstop before `CostOptimizedTelemetryProcessor`).
-7. **Task 7 — FR-3 verification queries**: 7-day post-deployment KQL for failure rate (≤0.5%) and latency (p50/p95/p99 thresholds).
-8. **Task 8 — Final validation**: full build, full test run, grep for stray `CreateIfNotExistsAsync` call sites.
-
-Every task is TDD-ordered (failing test → implementation → passing test → format → commit) with full code blocks inline. The acceptance summary table at the end maps each spec FR/NFR to its implementing task.
+1. **FR-1 diagnostic** (hard gate) — run KQL against staging + production App Insights, fill in `docs/features/azure-blob-409-diagnostic.md` with results, deployment timestamp, and a Conclusion paragraph that decides whether Task 6 fires.
+2. **Telemetry processor chain ordering test** — new xUnit test in `backend/test/Anela.Heblo.Tests/Telemetry/TelemetryProcessorChainOrderingTests.cs` that resolves the DI-configured chain and asserts `BlobIdempotent409TelemetryProcessor` runs before `CostOptimizedTelemetryProcessor`, with a sanity-check swap to prove the test fails when broken.
+3. **Alert as code** — extend `scripts/create-azure-infrastructure.sh` with idempotent provisioning of `ag-heblo-prod-default` action group + `alert-heblo-blob-409-failures` scheduled-query alert (>10 failed Azure Blob deps / 1h, severity 3).
+4. **Docs** — flip `observability.md` "Alerting" status row, append a new alert line, and mirror the alert into `infrastructure.md` next to the existing Npgsql alerts.
+5. **Spec status** — downgrade `Status: COMPLETE` → `Status: VERIFICATION REQUIRED` (only if the spec artifact is editable in-repo).
+6. **Conditional `IIdempotentBlobUploader`** — full TDD task (5 unit tests, helper implementation, DI registration, narrow URI-shape matcher extension to the telemetry processor, architecture test banning direct `BlobClient.UploadAsync(..., overwrite: false)` outside the helper) — gated on Task 1's Conclusion explicitly identifying a blob-level 409 source.
+7. **Validation** — full build/test/format gates plus a spec-coverage cross-check table mapping each arch-review amendment to a completed task.
