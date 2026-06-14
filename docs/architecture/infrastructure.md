@@ -294,6 +294,62 @@ permissions:
 
 ---
 
+## Database connection health alerts
+
+### Action Group
+
+The alert receiver is the `ag-heblo-prod-default` Azure Monitor Action Group in resource group `rgHeblo`. Single email receiver: `ondra@anela.cz`.
+
+Verify or create:
+
+```bash
+az monitor action-group show -g rgHeblo -n ag-heblo-prod-default || \
+az monitor action-group create \
+  -g rgHeblo -n ag-heblo-prod-default \
+  --short-name HebloProd \
+  --email-receivers name=primary email=ondra@anela.cz useCommonAlertSchema=true
+```
+
+### Alert rule — Npgsql exception spike
+
+Fires when Npgsql-originated exceptions exceed 10/hour for 2 consecutive hours.
+
+```bash
+az monitor scheduled-query create \
+  -g rgHeblo -n alert-heblo-db-npgsql-spike \
+  --scopes /subscriptions/<sub>/resourceGroups/rgHeblo/providers/microsoft.insights/components/aiHeblo \
+  --description "Npgsql / SocketException spike originating in the database driver" \
+  --severity 2 \
+  --evaluation-frequency 1h \
+  --window-size 1h \
+  --condition "count 'exceptions | where type startswith \"Npgsql.\" or (type == \"System.Net.Sockets.SocketException\" and outerAssembly startswith \"Npgsql\") | count' > 10" \
+  --auto-mitigate true
+```
+
+Number of evaluation periods required to fire: 2.
+
+### Alert rule — pool exhaustion
+
+Fires when pool exhaustion waits exceed 5 in any 5-minute window.
+
+```bash
+az monitor scheduled-query create \
+  -g rgHeblo -n alert-heblo-db-pool-exhaustion \
+  --scopes /subscriptions/<sub>/resourceGroups/rgHeblo/providers/microsoft.insights/components/aiHeblo \
+  --description "Npgsql connection pool exhaustion waits > 5/5m" \
+  --severity 2 \
+  --evaluation-frequency 5m \
+  --window-size 5m \
+  --condition "count 'customMetrics | where name == \"npgsql.pool.exhaustion_wait_seconds\" | count' > 5" \
+  --auto-mitigate true
+```
+
+Replace `<sub>` with the production Azure subscription ID (`az account show --query id -o tsv`).
+
+See `docs/integrations/db-connection-health-kql.md` for the underlying KQL.
+
+---
+
 ## ✅ Summary
 
 This document defines the project's infrastructure practices and expectations:
