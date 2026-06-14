@@ -254,3 +254,16 @@ This document covers:
 - **Azure Web App** infrastructure and configuration
 - **Deployment architectures** from development to production
 - **Environment-specific settings** for CI/CD automation
+
+---
+
+## 🔐 Module-owned Key Vault Secrets
+
+Modules read their own configuration sections only. Secret keys mirror the configuration path with `--` replacing `:` (the project convention). When adding a new secret-backed config key, list it here.
+
+| Module | Config key | Key Vault secret | Staging vault | Production vault |
+|--------|------------|------------------|---------------|------------------|
+| FileStorage | `FileStorage:BlobConnectionString` | `FileStorage--BlobConnectionString` | `kv-heblo-stg` | _(confirmed in PR)_ |
+| ExpeditionList | `ExpeditionList:BlobConnectionString` | `ExpeditionList--BlobConnectionString` | `kv-heblo-stg` | _(confirmed in PR)_ |
+
+**Rollout note (2026-06-12):** `FileStorage--BlobConnectionString` was introduced when `FileStorageModule` was decoupled from the `ExpeditionList` configuration namespace. The secret must be provisioned in every non-Development target environment **before** the code change is deployed — the module fails fast on missing values in non-Development environments (see `FileStorageModule.AddFileStorageModule`).

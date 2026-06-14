@@ -9,6 +9,17 @@ import {
 import { useStockUpOperationsSummary } from "../../../api/hooks/useStockUpOperations";
 import { TestRouterWrapper } from "../../../test-utils/router-wrapper";
 
+// Mock permissions context — tests target list functionality, not the stock-up gate
+jest.mock("../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+    hasPermission: () => true,
+  }),
+}));
+
 // Mock the hooks
 jest.mock("../../../api/hooks/useTransportBoxes", () => ({
   useTransportBoxesQuery: jest.fn(),

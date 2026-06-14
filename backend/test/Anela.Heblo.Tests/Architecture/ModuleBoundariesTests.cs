@@ -253,6 +253,15 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingLot",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingRequest",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
+
+        // Follow-up (same as ProductCatalogSnapshot): GetManufactureStockTakingHistoryHandler reads
+        // CatalogAggregate via IManufactureCatalogSource and projects StockTakingRecord. The DTO
+        // declares a StockTakingType property to match the Catalog DTO byte-for-byte (FR-6).
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingType",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.ManufactureStockTakingHistoryItemDto -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingType",
     };
 
     // Allowlist for ExpeditionList -> Logistics.
