@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
 using Anela.Heblo.Application.Shared.Printing;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Logging;
@@ -9,8 +11,7 @@ public class AzureBlobPrintQueueSink : IPrintQueueSink
     private readonly BlobContainerClient _containerClient;
     private readonly TimeProvider _clock;
     private readonly ILogger<AzureBlobPrintQueueSink> _logger;
-    private readonly SemaphoreSlim _ensureGate = new(1, 1);
-    private bool _containerEnsured;
+    private readonly ConcurrentDictionary<string, Lazy<Task>> _containerExistsCache = new();
 
     public AzureBlobPrintQueueSink(
         BlobContainerClient containerClient,
@@ -28,7 +29,7 @@ public class AzureBlobPrintQueueSink : IPrintQueueSink
         if (files.Count == 0)
             return;
 
-        await EnsureContainerAsync(cancellationToken);
+        await BlobContainerEnsurance.EnsureExistsAsync(_containerClient, _containerExistsCache, _logger, cancellationToken);
         var datePrefix = _clock.GetLocalNow().ToString("yyyy-MM-dd");
 
         foreach (var filePath in files)
@@ -45,28 +46,6 @@ public class AzureBlobPrintQueueSink : IPrintQueueSink
             var blobClient = _containerClient.GetBlobClient(blobName);
             await blobClient.UploadAsync(fileStream, overwrite: true, cancellationToken: cancellationToken);
             _logger.LogDebug("Uploaded {FileName} to blob {BlobName}", fileName, blobName);
-        }
-    }
-
-    // Verifies the target blob container exists at most once per process lifetime.
-    // The flag is set only after CreateIfNotExistsAsync returns successfully — a transient
-    // failure leaves _containerEnsured == false so the next SendAsync retries.
-    private async Task EnsureContainerAsync(CancellationToken cancellationToken)
-    {
-        if (_containerEnsured) return;
-
-        await _ensureGate.WaitAsync(cancellationToken);
-        try
-        {
-            if (_containerEnsured) return;
-
-            _logger.LogDebug("Ensuring blob container exists for print queue sink");
-            await _containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
-            _containerEnsured = true;
-        }
-        finally
-        {
-            _ensureGate.Release();
         }
     }
 }

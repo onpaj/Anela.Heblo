@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Azure.Features.ExpeditionList;
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -16,22 +17,18 @@ public class AzureBlobPrintQueueSinkTests : IDisposable
     public AzureBlobPrintQueueSinkTests()
     {
         Directory.CreateDirectory(_tempDir);
+        _containerClient.SetupGet(x => x.Name).Returns("print-queue");
+        _containerClient.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Response.FromValue(true, Mock.Of<Response>()));
         _containerClient
             .Setup(x => x.GetBlobClient(It.IsAny<string>()))
             .Returns(_blobClient.Object);
-        _containerClient
-            .Setup(x => x.CreateIfNotExistsAsync(
-                It.IsAny<PublicAccessType>(),
-                It.IsAny<IDictionary<string, string>>(),
-                It.IsAny<BlobContainerEncryptionScopeOptions>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Mock.Of<Azure.Response<BlobContainerInfo>>());
         _blobClient
             .Setup(x => x.UploadAsync(
                 It.IsAny<Stream>(),
                 It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Mock.Of<Azure.Response<BlobContentInfo>>());
+            .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
     }
 
     public void Dispose()
@@ -103,15 +100,13 @@ public class AzureBlobPrintQueueSinkTests : IDisposable
             It.IsAny<Stream>(),
             It.IsAny<bool>(),
             It.IsAny<CancellationToken>()), Times.Never);
-        _containerClient.Verify(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(),
-            It.IsAny<IDictionary<string, string>>(),
-            It.IsAny<BlobContainerEncryptionScopeOptions>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        _containerClient.Verify(
+            x => x.ExistsAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
-    public async Task SendAsync_CalledTwice_InvokesCreateIfNotExistsOnce()
+    public async Task SendAsync_CalledTwice_ProbesContainerExistenceOnce()
     {
         // Arrange
         var file = Path.Combine(_tempDir, "order1.pdf");
@@ -123,73 +118,57 @@ public class AzureBlobPrintQueueSinkTests : IDisposable
         await sink.SendAsync([file]);
         await sink.SendAsync([file]);
 
-        // Assert
-        _containerClient.Verify(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(),
-            It.IsAny<IDictionary<string, string>>(),
-            It.IsAny<BlobContainerEncryptionScopeOptions>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+        // Assert — ExistsAsync called once (cache hot after first call)
+        _containerClient.Verify(
+            x => x.ExistsAsync(It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task SendAsync_FourParallelFirstCalls_InvokesCreateIfNotExistsExactlyOnce()
+    public async Task SendAsync_FourParallelFirstCalls_ProbesContainerExistenceAtMostOnce()
     {
         // Arrange
         var file = Path.Combine(_tempDir, "order1.pdf");
         await File.WriteAllTextAsync(file, "pdf");
 
-        // Block CreateIfNotExistsAsync until released, so all 4 callers race to the gate
-        // at the same point in time. Without this, the first caller could complete before
-        // the others even enter the method and the test would not exercise the gate.
+        // Block ExistsAsync until released so all 4 callers race
         var release = new TaskCompletionSource();
         _containerClient
-            .Setup(x => x.CreateIfNotExistsAsync(
-                It.IsAny<PublicAccessType>(),
-                It.IsAny<IDictionary<string, string>>(),
-                It.IsAny<BlobContainerEncryptionScopeOptions>(),
-                It.IsAny<CancellationToken>()))
+            .Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
             .Returns(async () =>
             {
                 await release.Task;
-                return Mock.Of<Azure.Response<BlobContainerInfo>>();
+                return Response.FromValue(true, Mock.Of<Response>());
             });
 
         var sink = CreateSink();
 
-        // Act — fire 4 SendAsync calls in parallel, then release the gate
+        // Act — 4 concurrent SendAsync calls, then release the gate
         var calls = Enumerable.Range(0, 4)
             .Select(_ => Task.Run(() => sink.SendAsync([file])))
             .ToArray();
 
-        // Give the tasks time to converge on the semaphore before releasing
         await Task.Delay(50);
         release.SetResult();
-
         await Task.WhenAll(calls);
 
         // Assert
-        _containerClient.Verify(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(),
-            It.IsAny<IDictionary<string, string>>(),
-            It.IsAny<BlobContainerEncryptionScopeOptions>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+        _containerClient.Verify(
+            x => x.ExistsAsync(It.IsAny<CancellationToken>()),
+            Times.AtMostOnce());
     }
 
     [Fact]
-    public async Task SendAsync_FirstCreateIfNotExistsThrows_RetriesOnNextCall()
+    public async Task SendAsync_FirstExistsAsyncThrows_RetriesOnNextCall()
     {
         // Arrange
         var file = Path.Combine(_tempDir, "order1.pdf");
         await File.WriteAllTextAsync(file, "pdf");
 
-        // First call to CreateIfNotExistsAsync throws; subsequent calls succeed.
+        // First call to ExistsAsync throws; subsequent calls succeed.
         var attempt = 0;
         _containerClient
-            .Setup(x => x.CreateIfNotExistsAsync(
-                It.IsAny<PublicAccessType>(),
-                It.IsAny<IDictionary<string, string>>(),
-                It.IsAny<BlobContainerEncryptionScopeOptions>(),
-                It.IsAny<CancellationToken>()))
+            .Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
             .Returns(() =>
             {
                 attempt++;
@@ -197,7 +176,7 @@ public class AzureBlobPrintQueueSinkTests : IDisposable
                 {
                     throw new InvalidOperationException("transient failure");
                 }
-                return Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>());
+                return Task.FromResult(Response.FromValue(true, Mock.Of<Response>()));
             });
 
         var sink = CreateSink();
@@ -205,17 +184,15 @@ public class AzureBlobPrintQueueSinkTests : IDisposable
         // Act + Assert — first call throws
         await Assert.ThrowsAsync<InvalidOperationException>(() => sink.SendAsync([file]));
 
-        // Second call succeeds and triggers a retry of CreateIfNotExistsAsync
+        // Second call succeeds and triggers a retry of ExistsAsync (failed cache entry was evicted)
         await sink.SendAsync([file]);
 
-        // Third call should NOT re-invoke CreateIfNotExistsAsync (cache is now hot)
+        // Third call should NOT re-probe (cache is now hot)
         await sink.SendAsync([file]);
 
         // Assert — exactly 2 invocations total: the failed first, the successful second
-        _containerClient.Verify(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(),
-            It.IsAny<IDictionary<string, string>>(),
-            It.IsAny<BlobContainerEncryptionScopeOptions>(),
-            It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _containerClient.Verify(
+            x => x.ExistsAsync(It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
     }
 }
