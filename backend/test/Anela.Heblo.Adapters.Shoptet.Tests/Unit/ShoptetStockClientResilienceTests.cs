@@ -240,4 +240,23 @@ public class ShoptetStockClientResilienceTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => _handler(request, cancellationToken);
     }
+
+    public class RedactTokenTests
+    {
+        [Theory]
+        [InlineData("https://csv.example.com/export?token=abc",                    "https://csv.example.com/export?token=***")]
+        [InlineData("https://csv.example.com/export?other=1&token=abc&x=y",        "https://csv.example.com/export?other=1&token=***&x=y")]
+        [InlineData("https://csv.example.com/export?hash=zzz",                     "https://csv.example.com/export?hash=***")]
+        [InlineData("https://csv.example.com/export?TOKEN=upper",                  "https://csv.example.com/export?TOKEN=***")]
+        [InlineData("https://csv.example.com/export",                              "https://csv.example.com/export")]
+        [InlineData("",                                                            "")]
+        public void RedactToken_ReplacesSensitiveQueryValues(string input, string expected)
+        {
+            var actual = typeof(ShoptetStockClient)
+                .GetMethod("RedactToken", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(null, new object[] { input }) as string;
+
+            actual.Should().Be(expected);
+        }
+    }
 }
