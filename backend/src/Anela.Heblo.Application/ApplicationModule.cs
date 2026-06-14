@@ -80,7 +80,8 @@ public static class ApplicationModule
         services.AddBankModule(configuration);
         services.AddCatalogModule(configuration);
         services.AddDashboardModule();
-        services.AddFileStorageModule(configuration);
+        services.AddFileStorageModule(configuration, environment ?? throw new InvalidOperationException(
+            "IHostEnvironment must be supplied to AddApplicationServices so FileStorage can branch validation on Development."));
         services.AddPurchaseModule();
         services.AddFinancialOverviewModule(configuration);
         services.AddJournalModule();

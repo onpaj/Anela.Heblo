@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Text;
@@ -40,21 +41,55 @@ public class ShoptetStockClient : IEshopStockClient
 
     public async Task<List<EshopStock>> ListAsync(CancellationToken cancellationToken)
     {
-        var client = _httpClientFactory.CreateClient();
-        List<EshopStock> stockDataList = new List<EshopStock>();
-        using (HttpResponseMessage response = await client.GetAsync(_stockClientOptions.Value.Url, cancellationToken))
-        {
-            response.EnsureSuccessStatusCode();
-            using (Stream csvStream = await response.Content.ReadAsStreamAsync(cancellationToken))
-            using (StreamReader reader = new StreamReader(csvStream, Encoding.GetEncoding("windows-1250")))
-            using (CsvReader csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" }))
-            {
-                csv.Context.RegisterClassMap<StockDataMap>();
-                stockDataList = csv.GetRecords<EshopStock>().ToList();
-            }
-        }
+        const string OperationName = "ShoptetStockClient.ListAsync";
 
-        return stockDataList;
+        var url = _stockClientOptions.Value.Url;
+        var redactedUrl = RedactToken(url);
+        var client = _httpClientFactory.CreateClient("ShoptetStockCsv");
+        var stopwatch = Stopwatch.StartNew();
+
+        try
+        {
+            using HttpResponseMessage response = await client.GetAsync(url, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            using Stream csvStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using StreamReader reader = new StreamReader(csvStream, Encoding.GetEncoding("windows-1250"));
+            using CsvReader csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" });
+            csv.Context.RegisterClassMap<StockDataMap>();
+            return csv.GetRecords<EshopStock>().ToList();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex,
+                "Operation {Operation} failed. Url={Url} ExceptionType={ExceptionType} Message={Message} InnerExceptionType={InnerExceptionType} InnerMessage={InnerMessage} StatusCode={StatusCode} ElapsedMs={ElapsedMs}",
+                OperationName,
+                redactedUrl,
+                ex.GetType().FullName,
+                ex.Message,
+                ex.InnerException?.GetType().FullName,
+                ex.InnerException?.Message,
+                (int?)ex.StatusCode,
+                stopwatch.ElapsedMilliseconds);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Operation {Operation} failed. Url={Url} ExceptionType={ExceptionType} Message={Message} InnerExceptionType={InnerExceptionType} InnerMessage={InnerMessage} ElapsedMs={ElapsedMs}",
+                OperationName,
+                redactedUrl,
+                ex.GetType().FullName,
+                ex.Message,
+                ex.InnerException?.GetType().FullName,
+                ex.InnerException?.Message,
+                stopwatch.ElapsedMilliseconds);
+            throw;
+        }
     }
 
     public async Task UpdateStockAsync(string productCode, double amountChange, CancellationToken ct = default)
@@ -142,6 +177,40 @@ public class ShoptetStockClient : IEshopStockClient
             throw new HttpRequestException(
                 $"Shoptet stock set failed for {productCode}: [{error.ErrorCode}] {error.Message}");
         }
+    }
+
+    internal static string RedactToken(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+        {
+            return url;
+        }
+
+        var queryIndex = url.IndexOf('?');
+        if (queryIndex < 0)
+        {
+            return url;
+        }
+
+        var prefix = url.Substring(0, queryIndex + 1);
+        var query = url.Substring(queryIndex + 1);
+        var pairs = query.Split('&', StringSplitOptions.RemoveEmptyEntries);
+
+        for (var i = 0; i < pairs.Length; i++)
+        {
+            var equalsIndex = pairs[i].IndexOf('=');
+            var key = equalsIndex < 0 ? pairs[i] : pairs[i].Substring(0, equalsIndex);
+            if (key.Equals("token", StringComparison.OrdinalIgnoreCase) ||
+                key.Equals("hash", StringComparison.OrdinalIgnoreCase) ||
+                key.Equals("key", StringComparison.OrdinalIgnoreCase) ||
+                key.Equals("apiToken", StringComparison.OrdinalIgnoreCase) ||
+                key.Equals("access_token", StringComparison.OrdinalIgnoreCase))
+            {
+                pairs[i] = key + "=***";
+            }
+        }
+
+        return prefix + string.Join('&', pairs);
     }
 
     private class StockDataMap : ClassMap<EshopStock>

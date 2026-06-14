@@ -1,3 +1,4 @@
+using System.Globalization;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
@@ -43,6 +44,10 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
 
     public async Task<ScanPackingOrderResponse> Handle(ScanPackingOrderRequest request, CancellationToken ct)
     {
+        const int maxPackages = 10;
+        if (request.NumberOfPackages < 1 || request.NumberOfPackages > maxPackages)
+            return new ScanPackingOrderResponse(ErrorCodes.InvalidPackageCount);
+
         var order = await _orderClient.GetPackingOrderAsync(request.OrderCode, ct);
         if (order is null)
             return new ScanPackingOrderResponse(ErrorCodes.ShoptetOrderNotFound);
@@ -83,7 +88,6 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
                 Packages = existingLabels
                     .Select(l => new ScanShipmentPackage
                     {
-                        Name = l.PackageName,
                         TrackingNumber = l.TrackingNumber,
                         LabelUrl = l.LabelUrl,
                         LabelZpl = l.LabelZpl,
@@ -114,7 +118,8 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         if (totalWeightGrams == 0)
             return new ScanPackingOrderResponse(ErrorCodes.ShipmentOrderWeightUnavailable);
 
-        var weightGrams = Math.Max(totalWeightGrams, _shipmentSettings.MinPackageWeightGrams);
+        var n = request.NumberOfPackages;
+        var perPackageWeightGrams = Math.Max(totalWeightGrams / n, _shipmentSettings.MinPackageWeightGrams);
 
         var options = await _shipmentClient.GetShippingOptionsAsync(request.OrderCode, ct);
         if (options.Count == 0)
@@ -124,12 +129,13 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         {
             OrderCode = request.OrderCode,
             CarrierCode = options[0].CarrierCode,
+            PackageCount = n,
             Package = new ShipmentPackage
             {
                 WidthMm = _shipmentSettings.DefaultPackageWidthMm,
                 HeightMm = _shipmentSettings.DefaultPackageHeightMm,
                 DepthMm = _shipmentSettings.DefaultPackageDepthMm,
-                WeightGrams = weightGrams,
+                WeightGrams = perPackageWeightGrams,
             },
         };
 
@@ -144,17 +150,24 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             return new ScanPackingOrderResponse(ErrorCodes.ShipmentCreationFailed);
         }
 
-        // Single fetch for package names + carrier label URLs (FE prints directly from the CDN).
+        // Single fetch for carrier tracking numbers + label URLs (FE prints directly from the CDN).
+        // Shoptet generates labels asynchronously, so the response may contain fewer labels than
+        // the requested `n`. Always produce exactly `n` entries so the FE shows the correct
+        // "X/N" counter; packages with no label yet get null tracking + URLs
+        // (the FE's 404 retry path handles the "carrier not ready" case).
         var newLabels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
-        var packages = newLabels.Count > 0
-            ? newLabels.Select(l => new ScanShipmentPackage
+        var packages = Enumerable.Range(1, n)
+            .Select(i =>
             {
-                Name = l.PackageName,
-                TrackingNumber = l.TrackingNumber,
-                LabelUrl = l.LabelUrl,
-                LabelZpl = l.LabelZpl,
-            }).ToList()
-            : [new ScanShipmentPackage { Name = "PKG-1" }];
+                var label = i <= newLabels.Count ? newLabels[i - 1] : null;
+                return new ScanShipmentPackage
+                {
+                    TrackingNumber = label?.TrackingNumber,
+                    LabelUrl = label?.LabelUrl,
+                    LabelZpl = label?.LabelZpl,
+                };
+            })
+            .ToList();
 
         if (request.PackingUserId is { } requestedPackerId)
         {
@@ -173,12 +186,18 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             request.PackingUserId,
             ct);
 
-        await TryMarkAsPackedAsync(request.OrderCode, ct);
+        var pendingCompletion = n >= 2;
+        if (!pendingCompletion)
+        {
+            await TryMarkAsPackedAsync(request.OrderCode, ct);
+        }
+
         return new ScanPackingOrderResponse(orderData, new ScanShipmentData
         {
             ShipmentGuid = createdShipment.ShipmentGuid,
             Packages = packages,
             AlreadyExisted = false,
+            PendingCompletion = pendingCompletion,
         });
     }
 
@@ -281,34 +300,42 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         Guid? packingUserId,
         CancellationToken cancellationToken)
     {
+        if (labels.Count == 0)
+            return;
+
         var now = DateTimeOffset.UtcNow;
         var (packedByUserId, packedBy) = await ResolvePackerAsync(packingUserId, cancellationToken);
 
-        foreach (var label in labels)
+        // Carrier package names are not unique per package (custom-packaging shipments
+        // report the same "Vlastní balení" name for every package), so a 1-based index
+        // within the order is used as the unique PackageNumber. The carrier's real
+        // identifier is preserved in TrackingNumber.
+        var packages = labels
+            .Select((label, index) => new Package
+            {
+                OrderCode = orderCode,
+                CustomerName = customerName,
+                PackageNumber = (index + 1).ToString(CultureInfo.InvariantCulture),
+                TrackingNumber = label.TrackingNumber,
+                ShippingProviderCode = carrierCode,
+                ShippingProviderName = carrierName,
+                ShipmentGuid = shipmentGuid,
+                PackedAt = now,
+                PackedBy = packedBy,
+                PackedByUserId = packedByUserId,
+                CreatedAt = now,
+            })
+            .ToList();
+
+        try
         {
-            try
-            {
-                await _packageRepository.AddAsync(new Package
-                {
-                    OrderCode = orderCode,
-                    CustomerName = customerName,
-                    PackageNumber = label.PackageName,
-                    TrackingNumber = label.TrackingNumber,
-                    ShippingProviderCode = carrierCode,
-                    ShippingProviderName = carrierName,
-                    ShipmentGuid = shipmentGuid,
-                    PackedAt = now,
-                    PackedBy = packedBy,
-                    PackedByUserId = packedByUserId,
-                    CreatedAt = now,
-                }, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "Failed to persist Package row for order {OrderCode} package {PackageName}",
-                    orderCode, label.PackageName);
-            }
+            await _packageRepository.ReplacePackagesForOrderAsync(orderCode, packages, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Failed to persist {PackageCount} Package row(s) for order {OrderCode}",
+                packages.Count, orderCode);
         }
     }
 }

@@ -65,9 +65,10 @@ public class ScanPackingOrderPackerTests
             Id = packerId,
             DisplayName = "Pepa Balič",
             Email = "pepa@x.cz",
+            IsActive = true,
+            CanPack = true,
             Source = AppUserSource.Local,
             CreatedAt = DateTimeOffset.UtcNow,
-            CanPack = true,
         };
 
         _orderClient.Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
@@ -83,8 +84,9 @@ public class ScanPackingOrderPackerTests
             .ReturnsAsync(packer);
 
         Package? persisted = null;
-        _packageRepository.Setup(r => r.AddAsync(It.IsAny<Package>(), It.IsAny<CancellationToken>()))
-            .Callback<Package, CancellationToken>((p, _) => persisted = p)
+        _packageRepository.Setup(r => r.ReplacePackagesForOrderAsync(
+                It.IsAny<string>(), It.IsAny<IReadOnlyCollection<Package>>(), It.IsAny<CancellationToken>()))
+            .Callback<string, IReadOnlyCollection<Package>, CancellationToken>((_, packages, _) => persisted = packages.FirstOrDefault())
             .Returns(Task.CompletedTask);
 
         await CreateHandler().Handle(
@@ -112,8 +114,9 @@ public class ScanPackingOrderPackerTests
             .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "PKG-1" }]);
 
         Package? persisted = null;
-        _packageRepository.Setup(r => r.AddAsync(It.IsAny<Package>(), It.IsAny<CancellationToken>()))
-            .Callback<Package, CancellationToken>((p, _) => persisted = p)
+        _packageRepository.Setup(r => r.ReplacePackagesForOrderAsync(
+                It.IsAny<string>(), It.IsAny<IReadOnlyCollection<Package>>(), It.IsAny<CancellationToken>()))
+            .Callback<string, IReadOnlyCollection<Package>, CancellationToken>((_, packages, _) => persisted = packages.FirstOrDefault())
             .Returns(Task.CompletedTask);
 
         await CreateHandler().Handle(
@@ -147,7 +150,8 @@ public class ScanPackingOrderPackerTests
             CancellationToken.None);
 
         result.ErrorCode.Should().Be(ErrorCodes.PackingUserNotEligible);
-        _packageRepository.Verify(r => r.AddAsync(It.IsAny<Package>(), It.IsAny<CancellationToken>()), Times.Never);
+        _packageRepository.Verify(r => r.ReplacePackagesForOrderAsync(
+            It.IsAny<string>(), It.IsAny<IReadOnlyCollection<Package>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]
@@ -184,6 +188,7 @@ public class ScanPackingOrderPackerTests
             CancellationToken.None);
 
         result.ErrorCode.Should().Be(ErrorCodes.PackingUserNotEligible);
-        _packageRepository.Verify(r => r.AddAsync(It.IsAny<Package>(), It.IsAny<CancellationToken>()), Times.Never);
+        _packageRepository.Verify(r => r.ReplacePackagesForOrderAsync(
+            It.IsAny<string>(), It.IsAny<IReadOnlyCollection<Package>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

@@ -64,7 +64,7 @@ public class CreateManufactureOrderHandlerSinglePhaseTests
         var currentTime = new DateTime(2023, 10, 20);
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(new DateTimeOffset(currentTime));
 
-        _repositoryMock.Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+        _repositoryMock.Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("MO-2023-001");
 
         var catalogProduct = new CatalogAggregate
@@ -130,7 +130,7 @@ public class CreateManufactureOrderHandlerSinglePhaseTests
         var currentTime = new DateTime(2023, 10, 20);
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(new DateTimeOffset(currentTime));
 
-        _repositoryMock.Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+        _repositoryMock.Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("MO-2023-001");
 
         var catalogProduct = new CatalogAggregate

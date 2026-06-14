@@ -2,15 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import { useToast } from "../../contexts/ToastContext";
 import { toDateOnlyString, parseLocalDate } from "../../utils/dateUtils";
-import { 
+import {
   SubmitManufactureStockTakingRequest,
   SubmitManufactureStockTakingResponse,
-  GetStockTakingHistoryResponse,
+  GetManufactureStockTakingHistoryResponse,
   ManufactureStockTakingLotDto
 } from "../generated/api-client";
 
 // Custom interfaces for request handling
-export interface GetStockTakingHistoryRequest {
+export interface GetManufactureStockTakingHistoryRequest {
   productCode?: string;
   pageNumber?: number;
   pageSize?: number;
@@ -65,10 +65,10 @@ const submitManufactureStockTaking = async (
 
 // API function to get stock taking history
 const getStockTakingHistory = async (
-  request: GetStockTakingHistoryRequest
-): Promise<GetStockTakingHistoryResponse> => {
+  request: GetManufactureStockTakingHistoryRequest
+): Promise<GetManufactureStockTakingHistoryResponse> => {
   const apiClient = await getAuthenticatedApiClient();
-  
+
   return await apiClient.manufactureStockTaking_GetManufactureStockTakingHistory(
     request.productCode,
     request.pageNumber,
@@ -108,7 +108,7 @@ export const useSubmitManufactureStockTaking = () => {
 };
 
 // React Query hook for stock taking history
-export const useStockTakingHistory = (request: GetStockTakingHistoryRequest) => {
+export const useStockTakingHistory = (request: GetManufactureStockTakingHistoryRequest) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.stockTaking, "history", request.productCode, request.pageNumber, request.pageSize],
     queryFn: () => getStockTakingHistory(request),
