@@ -488,6 +488,8 @@ public class SalesCostProviderTests
         await provider.RefreshAsync();
 
         VerifyLog(loggerMock, LogLevel.Information, "refresh already in progress", Times.Never());
+        // Positive proof: second call entered the normal execution path twice (once before exception, once on success)
+        VerifyLog(loggerMock, LogLevel.Information, "Starting SalesCostCache refresh", Times.Exactly(2));
         cacheMock.Verify(
             c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -529,6 +531,8 @@ public class SalesCostProviderTests
         await provider.RefreshAsync();
 
         VerifyLog(loggerMock, LogLevel.Information, "refresh already in progress", Times.Never());
+        // Positive proof: second call entered the normal execution path twice (once before exception, once on success)
+        VerifyLog(loggerMock, LogLevel.Information, "Starting SalesCostCache refresh", Times.Exactly(2));
         cacheMock.Verify(
             c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()),
             Times.Once);
