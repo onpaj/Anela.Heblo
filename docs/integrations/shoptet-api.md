@@ -311,6 +311,31 @@ Returns the full product including a `variants[]` array with `code` fields — *
 
 The snapshot endpoint (`GET /api/products/snapshot`) exists but requires a registered webhook for `job:finished` — not usable without webhook infrastructure.
 
+### 4.4 Stock CSV export — resilience characteristics
+
+The stock CSV export URL is configured via `StockClient:Url` and **is not** on `api.myshoptet.com` — it is the per-store CSV export host (e.g. `https://<store>.myshoptet.com/action/...`). Two consequences:
+
+- The dependency tracker (which targets `api.myshoptet.com`) does **not** record these calls. Failures must be queried by exception name (`System.Net.Http.HttpRequestException` with `outerMethod contains "ShoptetStockClient.ListAsync"`).
+- The URL contains an access token as a query parameter (e.g. `?token=...` / `?hash=...`). Logging code redacts `token`, `hash`, `key`, `apiToken`, `access_token` keys to `***`.
+
+**Encoding:** `windows-1250`. **Delimiter:** `;`. Parsed via `CsvHelper` with `StockDataMap`.
+
+**Observed transient failure rate (baseline):** ~1.1 `HttpRequestException` / day across all callers (telemetry window 2026-06-05 → 2026-06-12).
+
+**Resilience policy (HTTP layer, registered against the named HttpClient `"ShoptetStockCsv"`):**
+
+| Property | Value | Configurable via |
+|---|---|---|
+| Per-attempt timeout | 8s (default) | `StockClient:TimeoutSeconds` |
+| Max retry attempts | 3 (default) | `StockClient:MaxRetryAttempts` |
+| Retry base delay | 1s exponential + jitter | `StockClient:RetryBaseDelaySeconds` |
+| Retry triggers | `HttpRequestException`, 5xx, 408, 429, `TimeoutRejectedException`, `OperationCanceledException` (only when caller's token has **not** requested cancellation) | — |
+| Outer `HttpClient.Timeout` | `TimeoutSeconds × (MaxRetryAttempts + 1) + 5` | derived |
+
+Worst-case wall clock with defaults: ≈ 8 + 1 + 8 + 2 + 8 + 4 + 8 ≈ 39 s — but `CatalogDataRefreshService` invocations are wrapped by `CatalogResilienceService` whose 30 s pipeline timeout will surface first. Tune `TimeoutSeconds` down if the outer pipeline still aborts retries; raise it for ad-hoc callers that do not use the outer pipeline.
+
+**Caller-side wrapping:** Both `CatalogDataRefreshService.RefreshEshopStockData` and `ProductPairingDqtComparer.CompareAsync` wrap `ListAsync` with `ICatalogResilienceService` for circuit-breaker + outer-timeout semantics. New callers must follow the same pattern.
+
 ---
 
 ## 6. ShoptetPay API
