@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockTakingHistory;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
@@ -43,8 +43,8 @@ public class ManufactureStockTakingController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated stock taking history</returns>
     [HttpGet("history")]
-    public async Task<ActionResult<GetStockTakingHistoryResponse>> GetManufactureStockTakingHistory(
-        [FromQuery] GetStockTakingHistoryRequest request,
+    public async Task<ActionResult<GetManufactureStockTakingHistoryResponse>> GetManufactureStockTakingHistory(
+        [FromQuery] GetManufactureStockTakingHistoryRequest request,
         CancellationToken cancellationToken = default)
     {
         Logger.LogInformation("Received manufacture stock taking history request for product code {ProductCode}, page {PageNumber}",
