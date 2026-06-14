@@ -80,6 +80,27 @@ public class ShoptetStockClientResilienceTests
         result[0].Code.Should().Be("P001");
     }
 
+    [Fact]
+    public async Task ListAsync_ExhaustsRetries_AndThrowsHttpRequestException()
+    {
+        // Arrange
+        var calls = 0;
+        var provider = BuildProvider((req, ct) =>
+        {
+            calls++;
+            return Task.FromResult(TransientFailure());
+        });
+        var client = provider.GetRequiredService<IEshopStockClient>();
+
+        // Act
+        Func<Task> act = async () => await client.ListAsync(CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>();
+        // 1 initial attempt + 3 retries = 4 total
+        calls.Should().Be(4);
+    }
+
     private sealed class DelegatingStubHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;
