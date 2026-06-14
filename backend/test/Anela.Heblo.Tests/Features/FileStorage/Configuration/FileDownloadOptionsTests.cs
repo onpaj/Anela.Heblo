@@ -4,13 +4,13 @@ using Microsoft.Extensions.Configuration;
 
 namespace Anela.Heblo.Tests.Features.FileStorage.Configuration;
 
-public sealed class ProductExportOptionsTests
+public sealed class FileDownloadOptionsTests
 {
     [Fact]
     public void Defaults_HeadTimeout_Is10Seconds()
     {
         // Arrange / Act
-        var options = new ProductExportOptions();
+        var options = new FileDownloadOptions();
 
         // Assert
         options.HeadTimeout.Should().Be(TimeSpan.FromSeconds(10));
@@ -20,7 +20,7 @@ public sealed class ProductExportOptionsTests
     public void Defaults_DownloadTimeout_Is120Seconds()
     {
         // Arrange / Act
-        var options = new ProductExportOptions();
+        var options = new FileDownloadOptions();
 
         // Assert
         options.DownloadTimeout.Should().Be(TimeSpan.FromSeconds(120));
@@ -30,7 +30,7 @@ public sealed class ProductExportOptionsTests
     public void Defaults_MaxRetryAttempts_Is3()
     {
         // Arrange / Act
-        var options = new ProductExportOptions();
+        var options = new FileDownloadOptions();
 
         // Assert
         options.MaxRetryAttempts.Should().Be(3);
@@ -40,7 +40,7 @@ public sealed class ProductExportOptionsTests
     public void Defaults_RetryBaseDelay_Is2Seconds()
     {
         // Arrange / Act
-        var options = new ProductExportOptions();
+        var options = new FileDownloadOptions();
 
         // Assert
         options.RetryBaseDelay.Should().Be(TimeSpan.FromSeconds(2));
@@ -58,7 +58,7 @@ public sealed class ProductExportOptionsTests
             .Build();
 
         // Act
-        var options = configuration.Get<ProductExportOptions>()!;
+        var options = configuration.Get<FileDownloadOptions>()!;
 
         // Assert
         options.HeadTimeout.Should().Be(TimeSpan.FromSeconds(30));
@@ -76,7 +76,7 @@ public sealed class ProductExportOptionsTests
             .Build();
 
         // Act
-        var options = configuration.Get<ProductExportOptions>()!;
+        var options = configuration.Get<FileDownloadOptions>()!;
 
         // Assert
         options.MaxRetryAttempts.Should().Be(5);
