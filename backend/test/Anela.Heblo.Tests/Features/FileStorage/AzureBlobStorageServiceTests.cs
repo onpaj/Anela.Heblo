@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.FileStorage.Services;
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
@@ -57,12 +58,10 @@ public class AzureBlobStorageServiceTests
             It.IsAny<BlobUploadOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+        mockContainerClient.SetupGet(x => x.Name).Returns(containerName);
+        mockContainerClient.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Response.FromValue(true, Mock.Of<Response>()));
         mockContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
-        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(),
-            It.IsAny<IDictionary<string, string>>(),
-            It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
         _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
 
         // Act
@@ -195,12 +194,10 @@ public class AzureBlobStorageServiceTests
             It.IsAny<BlobUploadOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+        mockContainerClient.SetupGet(x => x.Name).Returns(containerName);
+        mockContainerClient.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Response.FromValue(true, Mock.Of<Response>()));
         mockContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
-        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(),
-            It.IsAny<IDictionary<string, string>>(),
-            It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
         _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
 
         // Act
@@ -236,12 +233,10 @@ public class AzureBlobStorageServiceTests
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
 
+        mockContainerClient.SetupGet(x => x.Name).Returns(containerName);
+        mockContainerClient.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Response.FromValue(true, Mock.Of<Response>()));
         mockContainerClient.Setup(x => x.GetBlobClient(blobName)).Returns(mockBlobClient.Object);
-        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(),
-            It.IsAny<IDictionary<string, string>>(),
-            It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
 
         _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
 
@@ -281,12 +276,10 @@ public class AzureBlobStorageServiceTests
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
 
+        mockContainerClient.SetupGet(x => x.Name).Returns(containerName);
+        mockContainerClient.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Response.FromValue(true, Mock.Of<Response>()));
         mockContainerClient.Setup(x => x.GetBlobClient(blobName)).Returns(mockBlobClient.Object);
-        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(),
-            It.IsAny<IDictionary<string, string>>(),
-            It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
 
         _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
 
@@ -441,9 +434,9 @@ public class AzureBlobStorageServiceTests
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task UploadAsync_CalledMultipleTimes_ShouldCallCreateIfNotExistsOnlyOnce()
+    public async Task UploadAsync_CalledMultipleTimes_ProbesContainerExistenceOnlyOnce()
     {
-        // Arrange — fresh instance so _containerExists cache is empty
+        // Arrange — fresh instance so the cache is empty
         var mockBlobServiceClient = new Mock<BlobServiceClient>();
         var mockLogger = new Mock<ILogger<AzureBlobStorageService>>();
         var factory = new Mock<IHttpClientFactory>();
@@ -456,12 +449,13 @@ public class AzureBlobStorageServiceTests
         var mockContainerClient = new Mock<BlobContainerClient>();
         var mockBlobClient = new Mock<BlobClient>();
 
+        mockContainerClient.SetupGet(x => x.Name).Returns(containerName);
+        mockContainerClient.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Response.FromValue(true, Mock.Of<Response>()));
         mockBlobClient.Setup(x => x.Uri).Returns(new Uri($"https://test.blob.core.windows.net/{containerName}/file.txt"));
         mockBlobClient.Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobUploadOptions>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
         mockContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
-        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
         mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
 
         // Act — upload 3 times to the same container
@@ -469,16 +463,21 @@ public class AzureBlobStorageServiceTests
         await service.UploadAsync(new MemoryStream(new byte[] { 2 }), containerName, "file2.txt", "text/plain");
         await service.UploadAsync(new MemoryStream(new byte[] { 3 }), containerName, "file3.txt", "text/plain");
 
-        // Assert — CreateIfNotExistsAsync called exactly once despite 3 uploads
+        // Assert — ExistsAsync called exactly once (cache hot after first call); CreateAsync never called
+        mockContainerClient.Verify(x => x.ExistsAsync(It.IsAny<CancellationToken>()), Times.Once);
         mockContainerClient.Verify(
-            x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+            x => x.CreateAsync(
+                It.IsAny<PublicAccessType>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<BlobContainerEncryptionScopeOptions>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
-    public async Task UploadAsync_DifferentContainers_ShouldCallCreateIfNotExistsOncePerContainer()
+    public async Task UploadAsync_DifferentContainers_ProbesEachContainerOnce()
     {
-        // Arrange — fresh instance so _containerExists cache is empty
+        // Arrange — fresh instance so the cache is empty
         var mockBlobServiceClient = new Mock<BlobServiceClient>();
         var mockLogger = new Mock<ILogger<AzureBlobStorageService>>();
         var factory = new Mock<IHttpClientFactory>();
@@ -494,6 +493,13 @@ public class AzureBlobStorageServiceTests
         var mockContainerClientB = new Mock<BlobContainerClient>();
         var mockBlobClient = new Mock<BlobClient>();
 
+        mockContainerClientA.SetupGet(x => x.Name).Returns(containerA);
+        mockContainerClientA.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Response.FromValue(true, Mock.Of<Response>()));
+        mockContainerClientB.SetupGet(x => x.Name).Returns(containerB);
+        mockContainerClientB.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Response.FromValue(true, Mock.Of<Response>()));
+
         mockBlobClient.Setup(x => x.Uri).Returns(new Uri("https://test.blob.core.windows.net/container-a/file.txt"));
         mockBlobClient.Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobUploadOptions>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
@@ -501,8 +507,6 @@ public class AzureBlobStorageServiceTests
         foreach (var mock in new[] { mockContainerClientA, mockContainerClientB })
         {
             mock.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
-            mock.Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
         }
 
         mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerA)).Returns(mockContainerClientA.Object);
@@ -514,13 +518,23 @@ public class AzureBlobStorageServiceTests
         await service.UploadAsync(new MemoryStream(new byte[] { 3 }), containerB, "b1.txt", "text/plain");
         await service.UploadAsync(new MemoryStream(new byte[] { 4 }), containerB, "b2.txt", "text/plain");
 
-        // Assert — each container gets exactly one CreateIfNotExistsAsync call
+        // Assert — ExistsAsync called once per container (cache hot after first call each); CreateAsync never called
+        mockContainerClientA.Verify(x => x.ExistsAsync(It.IsAny<CancellationToken>()), Times.Once);
+        mockContainerClientB.Verify(x => x.ExistsAsync(It.IsAny<CancellationToken>()), Times.Once);
         mockContainerClientA.Verify(
-            x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+            x => x.CreateAsync(
+                It.IsAny<PublicAccessType>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<BlobContainerEncryptionScopeOptions>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
         mockContainerClientB.Verify(
-            x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+            x => x.CreateAsync(
+                It.IsAny<PublicAccessType>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<BlobContainerEncryptionScopeOptions>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -536,11 +550,9 @@ public class AzureBlobStorageServiceTests
         var mockContainerClient = new Mock<BlobContainerClient>();
         var mockBlobClient = new Mock<BlobClient>();
 
-        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(),
-            It.IsAny<IDictionary<string, string>>(),
-            It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
+        mockContainerClient.SetupGet(x => x.Name).Returns(containerName);
+        mockContainerClient.Setup(x => x.ExistsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Response.FromValue(true, Mock.Of<Response>()));
 
         mockBlobClient.Setup(x => x.UploadAsync(
             It.IsAny<Stream>(),
