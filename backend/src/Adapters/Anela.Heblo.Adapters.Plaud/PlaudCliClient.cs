@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Anela.Heblo.Application.Features.MeetingTasks.Services;
+using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -10,11 +11,24 @@ public sealed class PlaudCliClient : IPlaudClient
 {
     private readonly ILogger<PlaudCliClient> _logger;
     private readonly IOptions<PlaudOptions> _options;
+    private readonly IPlaudTokenManager? _tokenManager;
+    private readonly ITelemetryService? _telemetry;
 
     public PlaudCliClient(ILogger<PlaudCliClient> logger, IOptions<PlaudOptions> options)
+        : this(logger, options, tokenManager: null, telemetry: null)
+    {
+    }
+
+    internal PlaudCliClient(
+        ILogger<PlaudCliClient> logger,
+        IOptions<PlaudOptions> options,
+        IPlaudTokenManager? tokenManager,
+        ITelemetryService? telemetry)
     {
         _logger = logger;
         _options = options;
+        _tokenManager = tokenManager;
+        _telemetry = telemetry;
     }
 
     public async Task<List<PlaudRecordingSummary>> ListRecentAsync(int days, CancellationToken ct = default)
@@ -78,6 +92,36 @@ public sealed class PlaudCliClient : IPlaudClient
     }
 
     private async Task<string> RunCliAsync(string[] args, CancellationToken ct)
+    {
+        if (_tokenManager is not null)
+            await _tokenManager.EnsureFreshAsync(ct);
+
+        try
+        {
+            return await ExecuteCliAsync(args, ct);
+        }
+        catch (PlaudAuthExpiredException) when (_tokenManager is not null)
+        {
+            var refreshed = await _tokenManager.ForceRefreshAsync(ct);
+            if (!refreshed)
+            {
+                _telemetry?.TrackException(new PlaudAuthExpiredException("Refresh failed; runbook required"));
+                throw;
+            }
+
+            try
+            {
+                return await ExecuteCliAsync(args, ct);
+            }
+            catch (PlaudAuthExpiredException)
+            {
+                _telemetry?.TrackException(new PlaudAuthExpiredException("Retry after refresh still AUTH_FAILED"));
+                throw;
+            }
+        }
+    }
+
+    private async Task<string> ExecuteCliAsync(string[] args, CancellationToken ct)
     {
         var options = _options.Value;
         var psi = new ProcessStartInfo

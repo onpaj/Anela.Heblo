@@ -1,7 +1,5 @@
 using Anela.Heblo.Adapters.Plaud;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
-using Azure;
-using Azure.Security.KeyVault.Secrets;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -9,195 +7,131 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Adapters.Plaud;
 
-public sealed class PlaudTokenRefreshJobTests : IDisposable
+public sealed class PlaudTokenRefreshJobTests
 {
-    private readonly string _tempHome =
-        Path.Combine(Path.GetTempPath(), $"plaud_job_test_{Guid.NewGuid():N}");
-
     private readonly Mock<IPlaudTokenRefreshClient> _refreshClient = new();
-    private readonly Mock<SecretClient> _secretClient = new();
+    private readonly Mock<IPlaudTokenStore> _tokenStore = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
 
-    // expires_at is a Unix millisecond timestamp; use a far-future value so the past-check passes.
-    private static readonly PlaudTokens ValidTokens = new(
+    private static readonly PlaudTokens CurrentTokens = new(
+        AccessToken: "old-access",
+        RefreshToken: "old-refresh",
+        ExpiresAt: 9999999999L);
+
+    private static readonly PlaudTokens ValidNewTokens = new(
         AccessToken: "new-access",
         RefreshToken: "new-refresh",
         ExpiresAt: 99999999999999L,
         TokenType: "bearer");
 
-    private static readonly string CurrentTokensJson = """
-        {"access_token":"old-access","refresh_token":"old-refresh","expires_at":99999999999999,"token_type":"bearer"}
-        """;
-
     public PlaudTokenRefreshJobTests()
     {
-        Directory.CreateDirectory(Path.Combine(_tempHome, ".plaud"));
-    }
-
-    public void Dispose()
-    {
-        if (Directory.Exists(_tempHome))
-            Directory.Delete(_tempHome, recursive: true);
+        _tokenStore
+            .Setup(s => s.LoadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CurrentTokens);
+        _tokenStore
+            .Setup(s => s.SaveAsync(It.IsAny<PlaudTokens>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudTokenSaveResult(KeyVaultWriteFailed: false, KeyVaultError: null));
     }
 
     private PlaudTokenRefreshJob CreateJob() =>
         new(_refreshClient.Object,
-            _secretClient.Object,
+            _tokenStore.Object,
             _statusChecker.Object,
             NullLogger<PlaudTokenRefreshJob>.Instance);
 
-    private async Task RunWithTempHome(Func<Task> test)
-    {
-        var original = Environment.GetEnvironmentVariable("HOME");
-        Environment.SetEnvironmentVariable("HOME", _tempHome);
-        try { await test(); }
-        finally { Environment.SetEnvironmentVariable("HOME", original); }
-    }
-
-    [SkippableFact]
+    [Fact]
     public async Task ExecuteAsync_SkipsWhenJobDisabled()
     {
-        Skip.If(OperatingSystem.IsWindows(), "HOME override requires Unix");
-
         _statusChecker
             .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        await RunWithTempHome(async () => await CreateJob().ExecuteAsync(default));
+        await CreateJob().ExecuteAsync(default);
 
         _refreshClient.Verify(
             r => r.RefreshAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        _secretClient.Verify(
-            s => s.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+        _tokenStore.Verify(
+            s => s.SaveAsync(It.IsAny<PlaudTokens>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
-    [SkippableFact]
-    public async Task ExecuteAsync_ThrowsWhenDiskTokensMissing()
+    [Fact]
+    public async Task ExecuteAsync_ThrowsWhenResponseHasEmptyAccessToken()
     {
-        Skip.If(OperatingSystem.IsWindows(), "HOME override requires Unix");
-
-        _statusChecker
-            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        // No tokens.json written — the directory exists but the file does not.
-        Func<Task> act = () => RunWithTempHome(async () =>
-            await CreateJob().ExecuteAsync(default));
-
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*not found*");
-    }
-
-    [SkippableFact]
-    public async Task ExecuteAsync_DoesNotWriteKVWhenResponseHasEmptyAccessToken()
-    {
-        Skip.If(OperatingSystem.IsWindows(), "HOME override requires Unix");
-
         _statusChecker
             .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _refreshClient
             .Setup(r => r.RefreshAsync("old-refresh", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ValidTokens with { AccessToken = "" });
+            .ReturnsAsync(ValidNewTokens with { AccessToken = "" });
 
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempHome, ".plaud", "tokens.json"), CurrentTokensJson);
-
-        Func<Task> act = () => RunWithTempHome(async () =>
-            await CreateJob().ExecuteAsync(default));
+        Func<Task> act = () => CreateJob().ExecuteAsync(default);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*empty tokens*");
 
-        _secretClient.Verify(
-            s => s.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+        _tokenStore.Verify(
+            s => s.SaveAsync(It.IsAny<PlaudTokens>(), It.IsAny<CancellationToken>()),
             Times.Never);
-
-        var diskContent = await File.ReadAllTextAsync(Path.Combine(_tempHome, ".plaud", "tokens.json"));
-        diskContent.Should().Contain("old-refresh");
     }
 
-    [SkippableFact]
-    public async Task ExecuteAsync_DoesNotWriteKVWhenExpiresAtInPast()
+    [Fact]
+    public async Task ExecuteAsync_ThrowsWhenExpiresAtInPast()
     {
-        Skip.If(OperatingSystem.IsWindows(), "HOME override requires Unix");
-
         _statusChecker
             .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _refreshClient
             .Setup(r => r.RefreshAsync("old-refresh", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ValidTokens with { ExpiresAt = 1L }); // epoch 1 = in the past
+            .ReturnsAsync(ValidNewTokens with { ExpiresAt = 1L });
 
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempHome, ".plaud", "tokens.json"), CurrentTokensJson);
-
-        Func<Task> act = () => RunWithTempHome(async () =>
-            await CreateJob().ExecuteAsync(default));
+        Func<Task> act = () => CreateJob().ExecuteAsync(default);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*expires_at*past*");
 
-        _secretClient.Verify(
-            s => s.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+        _tokenStore.Verify(
+            s => s.SaveAsync(It.IsAny<PlaudTokens>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
-    [SkippableFact]
-    public async Task ExecuteAsync_WritesToDiskAndKVOnSuccess()
+    [Fact]
+    public async Task ExecuteAsync_CallsSaveOnSuccess()
     {
-        Skip.If(OperatingSystem.IsWindows(), "HOME override requires Unix");
-
         _statusChecker
             .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _refreshClient
             .Setup(r => r.RefreshAsync("old-refresh", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ValidTokens);
+            .ReturnsAsync(ValidNewTokens);
 
-        var tokensPath = Path.Combine(_tempHome, ".plaud", "tokens.json");
-        await File.WriteAllTextAsync(tokensPath, CurrentTokensJson);
+        await CreateJob().ExecuteAsync(default);
 
-        await RunWithTempHome(async () => await CreateJob().ExecuteAsync(default));
-
-        var diskContent = await File.ReadAllTextAsync(tokensPath);
-        diskContent.Should().Contain("new-refresh");
-
-        _secretClient.Verify(
-            s => s.SetSecretAsync(
-                "Plaud--TokensJson",
-                It.Is<string>(v => v.Contains("new-refresh")),
-                It.IsAny<CancellationToken>()),
+        _tokenStore.Verify(
+            s => s.SaveAsync(ValidNewTokens, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
-    [SkippableFact]
-    public async Task ExecuteAsync_WritesDiskBeforeKV_SoDiskPreservedOnKVFailure()
+    [Fact]
+    public async Task ExecuteAsync_CompletesWithoutThrowing_WhenKvWriteFails()
     {
-        Skip.If(OperatingSystem.IsWindows(), "HOME override requires Unix");
-
         _statusChecker
             .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _refreshClient
             .Setup(r => r.RefreshAsync("old-refresh", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ValidTokens);
-        _secretClient
-            .Setup(s => s.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new RequestFailedException("KV unavailable"));
+            .ReturnsAsync(ValidNewTokens);
+        _tokenStore
+            .Setup(s => s.SaveAsync(ValidNewTokens, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudTokenSaveResult(
+                KeyVaultWriteFailed: true,
+                KeyVaultError: new Exception("KV unavailable")));
 
-        var tokensPath = Path.Combine(_tempHome, ".plaud", "tokens.json");
-        await File.WriteAllTextAsync(tokensPath, CurrentTokensJson);
+        // The new job logs a warning but does NOT throw when KV write fails (disk succeeded).
+        Func<Task> act = () => CreateJob().ExecuteAsync(default);
 
-        Func<Task> act = () => RunWithTempHome(async () =>
-            await CreateJob().ExecuteAsync(default));
-
-        await act.Should().ThrowAsync<RequestFailedException>();
-
-        // Disk was written before KV — new token is on disk even though KV failed.
-        var diskContent = await File.ReadAllTextAsync(tokensPath);
-        diskContent.Should().Contain("new-refresh");
+        await act.Should().NotThrowAsync();
     }
 }
