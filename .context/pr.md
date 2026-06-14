@@ -1,22 +1,26 @@
 # PR Context
 
-- **PR**: #2963 — feat: Decouple FileStorage Module from ExpeditionList Configuration
-- **URL**: https://github.com/onpaj/Anela.Heblo/pull/2963
-- **Branch**: `feat-arch-review-filestorage-module-reads-exp` → `main`
+- **PR**: #3060 — feat: Harden ShoptetStockClient.ListAsync against transient HTTP failures
+- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3060
+- **Branch**: `feat-telemetry-shoptetstockclient-listasync-8` → `main`
 - **State**: open
 - **Author**: onpaj
-- **Changes**: +1643 / -23 across 19 files
-- **Absorbed**: backmerged with `main` (commit 6a24dcf1), frontend build passes, pushed
+- **Changes**: +2067 / -18 across 15 files
+- **Absorbed**: backmerged with `main`, all tests passing (4939 passed, 4 skipped), pushed
 
 ## Description
 
-Decouples `FileStorageModule` from the `ExpeditionList` configuration namespace. The module previously read `configuration["ExpeditionList:BlobConnectionString"]`, a hidden cross-module coupling flagged by the arch-review routine on 2026-06-05. The fix introduces a `FileStorageOptions` class, binds it via the standard options pattern, and adds fail-fast startup validation in non-Development environments so a missing `FileStorage:BlobConnectionString` key surfaces as an `OptionsValidationException` at boot rather than silently routing writes to the storage emulator in production.
+Hardens `ShoptetStockClient.ListAsync` against transient HTTP failures (~1.1 failures/day).
+Adds Polly retry policy, per-attempt timeout, token redaction in logs, and wraps
+`ProductPairingDqtComparer` stock calls with `ICatalogResilienceService`.
 
-**IMPORTANT: Key Vault secrets must be provisioned in staging (`kv-heblo-stg`) and production before this PR is merged.** The production vault name must be confirmed and recorded here. See the "Module-owned Key Vault Secrets" table in `docs/architecture/environments.md` for the exact secret names.
+Closes #3000.
 
 ## Absorb notes
 
-- CI was failing: 11 compile errors in Marketing test files (`UpdateMarketingActionHandlerTests`, `MarketingActionReplaceProductAssociationsTests`, `MarketingActionReplaceFolderLinksTests`) — all `MarketingAction.AssociateWithProduct` / `LinkToFolder` calls missing the `utcNow` parameter added to the domain on `main`.
-- Backmerge from `main` was clean (no conflicts); the merge itself brought in the corrected Marketing test files.
-- Backend tests could not be run locally (no .NET SDK in environment); CI will confirm.
-- Frontend build: passed. Frontend lint: 126 pre-existing errors (not CI-checked, unrelated to this PR).
+- Backmerged `origin/main` (150-file merge, clean — no conflicts)
+- Fixed: `ModuleBoundariesTests` (DataQuality -> Catalog rule) — updated `DataQualityCatalogAllowlist`
+  to cover `ICatalogResilienceService` (new Catalog dep in `ProductPairingDqtComparer`) and
+  replaced stale `<CompareAsync>d__5` EshopStock entry with a parent-type entry covering
+  the new `d__6`/`b__6_1>d` compiler-generated types introduced by the resilience wrapper
+- All CI-relevant tests pass locally (4939 passed, 4 skipped, Category!=Integration filter)
