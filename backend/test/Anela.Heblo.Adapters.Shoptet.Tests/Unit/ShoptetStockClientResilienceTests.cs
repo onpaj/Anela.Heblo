@@ -101,6 +101,29 @@ public class ShoptetStockClientResilienceTests
         calls.Should().Be(4);
     }
 
+    [Fact]
+    public async Task ListAsync_WhenCallerCancels_DoesNotRetry()
+    {
+        // Arrange
+        var calls = 0;
+        using var cts = new CancellationTokenSource();
+        var provider = BuildProvider(async (req, ct) =>
+        {
+            calls++;
+            cts.Cancel(); // simulate the caller cancelling between transport attempts
+            await Task.Delay(20, ct); // throws OperationCanceledException
+            return CsvOk();
+        });
+        var client = provider.GetRequiredService<IEshopStockClient>();
+
+        // Act
+        Func<Task> act = async () => await client.ListAsync(cts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        calls.Should().Be(1, "caller cancellation must not trigger retries");
+    }
+
     private sealed class DelegatingStubHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;
