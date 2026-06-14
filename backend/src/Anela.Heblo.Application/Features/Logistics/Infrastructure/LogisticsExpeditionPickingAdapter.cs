@@ -34,6 +34,7 @@ internal sealed class LogisticsExpeditionPickingAdapter : IExpeditionPickingSour
         {
             ExportedFiles = inner.ExportedFiles,
             TotalCount = inner.TotalCount,
+            SkippedCount = inner.SkippedCount,
         };
     }
 }

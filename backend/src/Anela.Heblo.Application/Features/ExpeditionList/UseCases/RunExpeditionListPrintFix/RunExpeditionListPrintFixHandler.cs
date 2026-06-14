@@ -39,6 +39,7 @@ public class RunExpeditionListPrintFixHandler : IRequestHandler<RunExpeditionLis
         return new RunExpeditionListPrintFixResponse
         {
             TotalCount = result.TotalCount,
+            SkippedCount = result.SkippedCount,
         };
     }
 }
