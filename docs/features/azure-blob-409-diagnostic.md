@@ -38,3 +38,44 @@ _(One paragraph naming the offending Azure SDK method — e.g. `BlobContainerCli
 ## Re-run schedule
 
 FR-3 acceptance requires re-running the query 7 days after production deployment. Record the deployment timestamp and the post-deployment counts in the PR comment thread.
+
+## FR-3 post-deployment verification
+
+Run **7 days after production deployment** (record deployment timestamp here: `__YYYY-MM-DDTHH:MM:SSZ__`).
+
+### Failure-rate query
+
+```kusto
+let deploymentTs = datetime("__YYYY-MM-DDTHH:MM:SSZ__");
+dependencies
+| where timestamp between (deploymentTs .. (deploymentTs + 7d))
+| where type == "Azure blob"
+| where target == "stheblo.blob.core.windows.net"
+| summarize
+    total = count(),
+    failures409 = countif(resultCode == "409"),
+    failure_rate_pct = round(100.0 * countif(resultCode == "409") / count(), 2)
+```
+
+**Acceptance:** `failure_rate_pct` ≤ 0.5%.
+
+### Latency-regression query
+
+```kusto
+let deploymentTs = datetime("__YYYY-MM-DDTHH:MM:SSZ__");
+dependencies
+| where timestamp between (deploymentTs .. (deploymentTs + 7d))
+| where type == "Azure blob"
+| where target == "stheblo.blob.core.windows.net"
+| where success == true
+| summarize
+    p50 = percentile(duration, 50),
+    p95 = percentile(duration, 95),
+    p99 = percentile(duration, 99)
+```
+
+**Acceptance:** p50 ≤ 50ms, p95 ≤ 300ms, p99 ≤ 600ms (matching or improving the pre-fix baseline of p50 26ms, p95 205ms, p99 446ms).
+
+### Recording results
+
+Paste the query outputs and pass/fail verdict into the merged PR comment thread (or a follow-up issue if the PR is too old to comment on).
