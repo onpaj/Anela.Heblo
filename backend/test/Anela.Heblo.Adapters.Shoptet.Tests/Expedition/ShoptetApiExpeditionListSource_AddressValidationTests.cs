@@ -64,6 +64,8 @@ public class ShoptetApiExpeditionListSource_AddressValidationTests
         }
         """;
 
+    // AbsolutePath excludes query string, so this also covers GET /api/orders/{code}?include=notes
+    // used by GetEshopRemarkAsync inside FlagIncompleteAddressAsync.
     private static void SetupDetail(Mock<HttpMessageHandler> handler, string code, string json) =>
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync",
