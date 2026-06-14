@@ -57,7 +57,9 @@ public static class ApplicationInsightsExtensions
         // Add telemetry initializer
         services.AddSingleton<ITelemetryInitializer, EnvironmentTelemetryInitializer>();
 
-        // Add telemetry processor for filtering
+        // Add telemetry processors for filtering — BlobIdempotent409 must run before CostOptimized
+        // so it re-marks PUT container 409s as success before CostOptimized skips fast-success deps.
+        services.AddApplicationInsightsTelemetryProcessor<BlobIdempotent409TelemetryProcessor>();
         services.AddApplicationInsightsTelemetryProcessor<CostOptimizedTelemetryProcessor>();
 
         // Configure sampling (more aggressive for cost savings)

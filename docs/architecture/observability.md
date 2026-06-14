@@ -383,9 +383,12 @@ Each alert includes:
 ```csharp
 // Extensions/ApplicationInsightsExtensions.cs
 services.AddOptimizedApplicationInsights(configuration, environment);
+services.AddApplicationInsightsTelemetryProcessor<BlobIdempotent409TelemetryProcessor>();
 services.AddApplicationInsightsTelemetryProcessor<CostOptimizedTelemetryProcessor>();
 services.AddApplicationInsightsTelemetryProcessor<CustomSamplingTelemetryProcessor>();
 ```
+
+> `BlobIdempotent409TelemetryProcessor` neutralises 409 noise from `BlobContainerClient.CreateAsync` while preserving genuine blob-level conflicts. See `docs/features/azure-blob-409-diagnostic.md`.
 
 #### 3. Health Checks (✅ Completed)
 Configured health check endpoints for database and external service monitoring.
