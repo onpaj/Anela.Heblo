@@ -27,13 +27,20 @@ Re-run with a wider window if no rows return for `ago(14d)`.
 
 ## Raw results
 
+### Staging (aiHeblo-test)
+
+No 409 errors detected in the past 14 days.
+
+### Production (aiHeblo)
+
 | name | container | count | sample_data | sample_operation | sample_role |
 |------|-----------|-------|-------------|------------------|-------------|
-| _(filled in from query output)_ | | | | | |
+| PUT stheblo | expedition-lists?restype=container | 25 | https://stheblo.blob.core.windows.net/expedition-lists?restype=container | (empty) | Heblo-API-Production |
+| PUT stheblo | shoptetexport?restype=container | 8 | https://stheblo.blob.core.windows.net/shoptetexport?restype=container | (empty) | Heblo-API-Production |
 
 ## Conclusion
 
-_(One paragraph naming the offending Azure SDK method — e.g. `BlobContainerClient.CreateIfNotExistsAsync` — and the originating code paths. If `PUT container` accounts for ≥80% of 409s, proceed with Phase 2 as planned. If a different operation dominates, document the alternative remediation strategy here before continuing.)_
+All 33 production 409s (100%) originate from `BlobContainerClient.CreateIfNotExistsAsync` operations on two containers: `expedition-lists` (25 failures) and `shoptetexport` (8 failures). These calls come from `AzureBlobStorageService.EnsureContainerAsync()`, which is invoked during telemetry processor initialization and sink creation. The existing `BlobContainerEnsurance` class wraps the `CreateIfNotExistsAsync` call with idempotent 409 handling, converting HTTP 409 (container already exists) into a success outcome. The `BlobIdempotent409TelemetryProcessor` also marks any remaining 409s as success for telemetry purposes. Because 100% of detected 409s are PUT-container shape and are already handled by `BlobContainerEnsurance`, the existing mitigation covers FR-2 requirement scope. No additional blob-level 409 operation is observed. Per Architecture Review Decision 1 and Amendment 1, Task 6 (build `IIdempotentBlobUploader`) is **SKIPPED**. FR-3 post-deployment verification will confirm that production failure rate falls to ≤0.5%.
 
 ## Re-run schedule
 
@@ -41,12 +48,12 @@ FR-3 acceptance requires re-running the query 7 days after production deployment
 
 ## FR-3 post-deployment verification
 
-Run **7 days after production deployment** (record deployment timestamp here: `__YYYY-MM-DDTHH:MM:SSZ__`).
+Run **7 days after production deployment** (record deployment timestamp here: `__pending — fill in after Production deploy__`).
 
 ### Failure-rate query
 
 ```kusto
-let deploymentTs = datetime("__YYYY-MM-DDTHH:MM:SSZ__");
+let deploymentTs = datetime("__pending — fill in after Production deploy__");
 dependencies
 | where timestamp between (deploymentTs .. (deploymentTs + 7d))
 | where type == "Azure blob"
@@ -62,7 +69,7 @@ dependencies
 ### Latency-regression query
 
 ```kusto
-let deploymentTs = datetime("__YYYY-MM-DDTHH:MM:SSZ__");
+let deploymentTs = datetime("__pending — fill in after Production deploy__");
 dependencies
 | where timestamp between (deploymentTs .. (deploymentTs + 7d))
 | where type == "Azure blob"
