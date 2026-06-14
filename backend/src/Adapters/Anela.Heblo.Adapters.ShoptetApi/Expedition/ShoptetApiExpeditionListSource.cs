@@ -53,6 +53,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
 
         var exportedFiles = new List<string>();
         var processedCodes = new List<string>();
+        var skippedCodes = new List<string>();
         var timestamp = _timeProvider.GetFilenameTimestamp();
 
         var allSettings = await _carrierCooling.GetAllAsync(cancellationToken);
@@ -68,7 +69,8 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
 
         foreach (var (method, orders) in ordersByMethod)
             await BatchAndFlushAsync(method, orders, coolingMatrix, coolingTextMatrix,
-                giftSetting, processor, timestamp, exportedFiles, processedCodes, onBatchFilesReady, cancellationToken);
+                giftSetting, processor, timestamp, request.NoteStateId, exportedFiles, processedCodes,
+                skippedCodes, onBatchFilesReady, cancellationToken);
 
         if (request.ChangeOrderState)
         {
@@ -80,6 +82,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         {
             ExportedFiles = exportedFiles,
             TotalCount = processedCodes.Count,
+            SkippedCount = skippedCodes.Count,
         };
     }
 
@@ -136,15 +139,30 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         GiftSetting giftSetting,
         PickingListBatchProcessor processor,
         string timestamp,
+        int noteStateId,
         List<string> exportedFiles,
         List<string> processedCodes,
+        List<string> skippedCodes,
         Func<IList<string>, Task>? onBatchFilesReady,
         CancellationToken cancellationToken)
     {
+        var validateAddress = ShippingMethodRegistry.ResolveDeliveryHandling(method) == DeliveryHandling.NaRuky;
         var allExpeditionOrders = new List<ExpeditionOrder>();
         foreach (var (code, shippingGuid, totalWithVat, currencyCode) in orders)
         {
             var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
+
+            if (validateAddress)
+            {
+                var missing = ExpeditionAddressValidator.GetMissingFields(detail.DeliveryAddress ?? detail.BillingAddress);
+                if (missing.Count > 0)
+                {
+                    await FlagIncompleteAddressAsync(code, missing, noteStateId, cancellationToken);
+                    skippedCodes.Add(code);
+                    continue;
+                }
+            }
+
             var expeditionOrder = MapToExpeditionOrder(detail);
             expeditionOrder.CarrierCooling = ResolveCarrierCooling(shippingGuid, coolingMatrix);
             expeditionOrder.CoolingText = ResolveCarrierCoolingText(shippingGuid, coolingTextMatrix);
@@ -180,6 +198,37 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             var finalPath = await processor.FlushAsync(
                 currentBatch, method, batchIndex, timestamp, onBatchFilesReady, cancellationToken);
             exportedFiles.Add(finalPath);
+        }
+    }
+
+    private async Task FlagIncompleteAddressAsync(
+        string code,
+        IReadOnlyList<string> missingFields,
+        int noteStateId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _client.UpdateStatusAsync(code, noteStateId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex,
+                "Failed to move order {Code} with incomplete address to note state {NoteStateId}",
+                code, noteStateId);
+        }
+
+        try
+        {
+            var note = $"Robot expedice: neúplná adresa – chybí: {string.Join(", ", missingFields)}.";
+            var current = await _client.GetEshopRemarkAsync(code, cancellationToken);
+            var updated = string.IsNullOrEmpty(current) ? note : $"{current}\n{note}";
+            await _client.UpdateEshopRemarkAsync(code, updated, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "Order {Code} flagged with incomplete address but the note could not be appended", code);
         }
     }
 
