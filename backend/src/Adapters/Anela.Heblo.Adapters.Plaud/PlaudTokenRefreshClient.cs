@@ -38,9 +38,10 @@ public sealed class PlaudTokenRefreshClient(HttpClient http) : IPlaudTokenRefres
 
         // The response returns expires_in (relative seconds), not expires_at. Compute the absolute
         // expiry as a Unix millisecond timestamp to match the format the CLI writes to disk.
-        var expiresAt = refreshed.ExpiresIn.HasValue
-            ? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + refreshed.ExpiresIn.Value * MillisecondsPerSecond
-            : 0;
+        if (!refreshed.ExpiresIn.HasValue)
+            throw new InvalidOperationException("Plaud API response missing expires_in.");
+
+        var expiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + refreshed.ExpiresIn.Value * MillisecondsPerSecond;
 
         return new PlaudTokens(
             AccessToken: refreshed.AccessToken ?? string.Empty,

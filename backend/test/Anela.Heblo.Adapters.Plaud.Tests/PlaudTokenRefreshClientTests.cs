@@ -58,6 +58,20 @@ public sealed class PlaudTokenRefreshClientTests
     }
 
     [Fact]
+    public async Task RefreshAsync_Throws_WhenResponseOmitsExpiresIn()
+    {
+        const string responseWithoutExpiry = """
+            { "access_token": "new-access", "refresh_token": "new-refresh", "token_type": "bearer" }
+            """;
+        var sut = CreateClient(HttpStatusCode.OK, responseWithoutExpiry);
+
+        var act = () => sut.RefreshAsync("old-refresh");
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*missing expires_in*");
+    }
+
+    [Fact]
     public async Task RefreshAsync_Throws_WhenResponseIsNonSuccess()
     {
         var sut = CreateClient(HttpStatusCode.Unauthorized, "Unauthorized");
