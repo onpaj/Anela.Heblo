@@ -3,6 +3,7 @@ import { ApiClient } from "./generated/api-client";
 import { getConfig, shouldUseMockAuth } from "../config/runtimeConfig";
 import { mockAuthService } from "../auth/mockAuth";
 import { isE2ETestMode, getE2EAccessToken } from "../auth/e2eAuth";
+import { resetAuthRecoveryCounter } from "../auth/authRecovery";
 
 /**
  * Global toast handler for API errors
@@ -288,6 +289,14 @@ export const getAuthenticatedApiClient = (
         // Include credentials (cookies) for E2E test mode
         credentials: isE2ETestMode() ? "include" : "same-origin",
       });
+
+      // A successful authenticated response means the token was accepted; reset the
+      // sessionStorage counter so a future token expiry recovers from the silent path.
+      // Uses resetAuthRecoveryCounter (not clearAuthRecoveryState) to avoid resetting
+      // redirectInFlight, which must stay true until the page reloads after a redirect.
+      if (response.ok) {
+        resetAuthRecoveryCounter();
+      }
 
       // Handle 401 Unauthorized errors with automatic redirect
       if (response.status === 401) {

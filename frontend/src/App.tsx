@@ -60,8 +60,8 @@ import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewP
 import SmartsuppChatsPage from "./components/customer-support/smartsupp/pages/SmartsuppChatsPage";
 import ExpeditionSettingsPage from "./pages/customer/ExpeditionSettingsPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
-import { UserStorage } from "./auth/userStorage";
 import { apiRequest } from "./auth/msalConfig";
+import { recoverAuth } from "./auth/authRecovery";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { isE2ETestMode, getE2EAccessToken } from "./auth/e2eAuth";
 import { ToastProvider } from "./contexts/ToastContext";
@@ -97,8 +97,6 @@ import { ZasilkyPage } from "./components/baleni/zasilky/ZasilkyPage";
 import "./i18n";
 import { initAppInsights, getAppInsights, setUserIdentity } from './telemetry/appInsights';
 import { AppInsightsProvider } from './telemetry/AppInsightsProvider';
-
-let isRedirecting = false;
 
 // Create a client
 const queryClient = new QueryClient({
@@ -245,39 +243,8 @@ function App() {
         if (!isE2ETestMode() && !appConfig.useMockAuth) {
           console.log("🔐 Setting up global authentication redirect handler");
           setGlobalAuthRedirectHandler(() => {
-            if (isRedirecting) return;
-            isRedirecting = true;
-
-            console.log("🔐 Executing automatic login redirect due to token expiration");
-
-            // Save current URL to localStorage so it can be restored after re-login
-            const returnUrl = window.location.pathname + window.location.search;
-            if (returnUrl && returnUrl !== '/') {
-              localStorage.setItem('auth.returnUrl', returnUrl);
-            }
-
-            // Clear app-level session data (preserve MSAL PKCE verifier for auth code exchange)
-            UserStorage.clearUserInfo();
-            clearTokenCache();
-
-            // Attempt silent SSO first — if Azure AD has a valid session the user won't see any UI.
-            // Only fall back to select_account if the silent attempt itself fails.
-            instance.loginRedirect({
-              ...apiRequest,
-              prompt: "none",
-            }).catch(() => {
-              console.warn("🔐 Silent SSO redirect failed, falling back to account picker");
-              instance.loginRedirect({
-                ...apiRequest,
-                prompt: "select_account",
-              }).catch((error) => {
-                console.error("❌ Automatic login redirect failed:", error);
-                isRedirecting = false;
-
-                // Fallback: redirect to root and let normal auth flow handle it
-                window.location.href = "/";
-              });
-            });
+            console.log("🔐 Executing automatic auth recovery due to 401");
+            recoverAuth(instance);
           });
         } else {
           console.log("🧪 Skipping auth redirect handler setup for mock/E2E mode");
