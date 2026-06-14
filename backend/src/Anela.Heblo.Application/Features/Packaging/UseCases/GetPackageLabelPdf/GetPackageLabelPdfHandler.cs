@@ -13,40 +13,41 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GetPackageLabelPdfHandler> _logger;
 
-    private const int LabelReadinessRetries = 5;
-    private readonly TimeSpan _labelReadinessDelay;
-
     public GetPackageLabelPdfHandler(
         IShipmentClient shipmentClient,
         IHttpClientFactory httpClientFactory,
-        ILogger<GetPackageLabelPdfHandler> logger,
-        TimeSpan? labelReadinessDelay = null)
+        ILogger<GetPackageLabelPdfHandler> logger)
     {
         _shipmentClient = shipmentClient;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _labelReadinessDelay = labelReadinessDelay ?? TimeSpan.FromSeconds(1);
     }
 
     public async Task<GetPackageLabelPdfResponse> Handle(GetPackageLabelPdfRequest request, CancellationToken ct)
     {
+        // Carrier package names are not unique per package (custom-packaging shipments report
+        // the same name for every package), so the package is resolved by its 1-based position
+        // in the order's labels — matching the PackageNumber persisted at scan time.
+        var index = request.PackageNumber - 1;
+
         var labels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
-        var label = labels.FirstOrDefault(l => l.PackageName == request.PackageName);
+        var label = labels.ElementAtOrDefault(index);
 
         if (label is null)
-            return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelNotFound);
-
-        // Carrier label generation may be briefly async after shipment creation — poll until ready.
-        for (var attempt = 0; attempt < LabelReadinessRetries && string.IsNullOrWhiteSpace(label.LabelUrl); attempt++)
         {
-            await Task.Delay(_labelReadinessDelay, ct);
-            labels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
-            label = labels.FirstOrDefault(l => l.PackageName == request.PackageName);
-            if (label is null) break;
+            _logger.LogWarning(
+                "Label not found for order {OrderCode} package {PackageNumber} (index {Index}): " +
+                "live shipment fetch returned {LabelCount} label(s) [{PackageNames}]",
+                request.OrderCode, request.PackageNumber, index, labels.Count,
+                string.Join(", ", labels.Select(l => $"{l.PackageName}(url={(string.IsNullOrWhiteSpace(l.LabelUrl) ? "none" : "yes")})")));
+            return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelNotFound);
         }
 
-        if (label is null || string.IsNullOrWhiteSpace(label.LabelUrl))
+        if (string.IsNullOrWhiteSpace(label.LabelUrl))
         {
+            _logger.LogWarning(
+                "Label URL unavailable for order {OrderCode} package {PackageNumber} (single-shot check, LabelUrl empty)",
+                request.OrderCode, request.PackageNumber);
             return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelNotFound);
         }
 
@@ -59,15 +60,15 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to download label PDF for order {OrderCode} package {PackageName} from {LabelUrl}",
-                request.OrderCode, request.PackageName, label.LabelUrl);
+            _logger.LogError(ex, "Failed to download label PDF for order {OrderCode} package {PackageNumber} from {LabelUrl}",
+                request.OrderCode, request.PackageNumber, label.LabelUrl);
             return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelDownloadFailed);
         }
 
         if (!carrierResponse.IsSuccessStatusCode)
         {
-            _logger.LogWarning("Carrier returned {StatusCode} for label PDF (order {OrderCode}, package {PackageName})",
-                (int)carrierResponse.StatusCode, request.OrderCode, request.PackageName);
+            _logger.LogWarning("Carrier returned {StatusCode} for label PDF (order {OrderCode}, package {PackageNumber})",
+                (int)carrierResponse.StatusCode, request.OrderCode, request.PackageNumber);
             carrierResponse.Dispose();
             return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelDownloadFailed);
         }
@@ -79,7 +80,7 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         {
             Content = stream,
             ContentType = contentType,
-            FileName = $"{request.OrderCode}-{request.PackageName}.pdf",
+            FileName = $"{request.OrderCode}-{request.PackageNumber}.pdf",
         };
     }
 }

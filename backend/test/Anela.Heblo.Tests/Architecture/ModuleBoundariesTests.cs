@@ -164,15 +164,18 @@ public class ModuleBoundariesTests
     // adapter that surfaces eshop/erp product snapshots without leaking Catalog types.
     private static readonly HashSet<string> DataQualityCatalogAllowlist = new(StringComparer.Ordinal)
     {
-        // ProductPairingDqtComparer reads eshop/erp catalog clients to compare product pairing.
+        // ProductPairingDqtComparer reads eshop/erp catalog clients to compare product pairing,
+        // wrapped in ICatalogResilienceService for transient-fault protection.
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.IEshopStockClient",
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.IErpStockClient",
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStock",
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.ProductType",
+        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Application.Features.Catalog.Infrastructure.ICatalogResilienceService",
 
-        // Compiler-generated async state machine <CompareAsync>d__5 captures EshopStock in local
-        // fields when comparing product pairings. Covered by the declaring-type check above.
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer+<CompareAsync>d__5 -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStock",
+        // Compiler-generated async state machines and lambdas for CompareAsync capture EshopStock.
+        // The declaring-type check covers nested types (<CompareAsync>d__6, <<CompareAsync>b__6_1>d)
+        // via this single parent entry.
+        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStock",
     };
 
     // Allowlist for DataQuality -> Invoices. The DataQuality module owns IInvoiceShoptetSource
@@ -298,6 +301,8 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrder",
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
+
+        "Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder.CompletePackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IEshopOrderClient",
 
         // GetPackingDashboardHandler consumes IPackingOrderClient to read the orders-being-packed
         // count for the dashboard (no ShoptetOrders DTOs cross the boundary — the call returns int?).

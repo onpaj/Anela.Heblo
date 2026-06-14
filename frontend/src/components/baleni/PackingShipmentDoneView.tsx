@@ -4,7 +4,7 @@ import type { PackingOrder, ScanShipment } from '../../api/hooks/useScanPackingO
 interface PackingShipmentDoneViewProps {
   order: PackingOrder;
   shipment: ScanShipment;
-  resolvedTrackingNumber?: string | null;
+  resolvedTrackingNumbers?: string[] | null;
   onReprint: () => void;
 }
 
@@ -25,14 +25,18 @@ function buildAddressLines(order: PackingOrder): AddressLines | null {
 function PackingShipmentDoneView({
   order,
   shipment,
-  resolvedTrackingNumber,
+  resolvedTrackingNumbers,
   onReprint,
 }: PackingShipmentDoneViewProps) {
   const addressLines = buildAddressLines(order);
-  const trackingSummary =
-    resolvedTrackingNumber && resolvedTrackingNumber.length > 0
-      ? resolvedTrackingNumber
-      : shipment.packages.map((p) => p.trackingNumber ?? p.name).join(', ');
+  const packageTrackingNumbers = shipment.packages
+    .map((p) => p.trackingNumber)
+    .filter((trackingNumber): trackingNumber is string => Boolean(trackingNumber));
+  const trackingNumbers =
+    resolvedTrackingNumbers && resolvedTrackingNumbers.length > 0
+      ? resolvedTrackingNumbers
+      : packageTrackingNumbers;
+  const trackingSummary = trackingNumbers.length > 0 ? trackingNumbers.join(', ') : '—';
 
   return (
     <div
