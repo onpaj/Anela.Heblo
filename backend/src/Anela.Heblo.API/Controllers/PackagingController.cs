@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetPackingUsers;
+using Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder;
 using Anela.Heblo.Application.Features.Packaging.UseCases.DeletePackage;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumber;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumbers;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
@@ -38,11 +40,17 @@ public class PackagingController : BaseApiController
     [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
     public async Task<ActionResult<ScanPackingOrderResponse>> ScanOrder(
         [FromRoute] string orderCode,
-        [FromBody] ScanOrderBody? body,
-        CancellationToken cancellationToken)
+        [FromQuery] int numberOfPackages = 1,
+        [FromBody] ScanOrderBody? body = null,
+        CancellationToken cancellationToken = default)
     {
         var response = await _mediator.Send(
-            new ScanPackingOrderRequest { OrderCode = orderCode, PackingUserId = body?.PackingUserId },
+            new ScanPackingOrderRequest
+            {
+                OrderCode = orderCode,
+                NumberOfPackages = numberOfPackages,
+                PackingUserId = body?.PackingUserId,
+            },
             cancellationToken);
         return HandleResponse(response);
     }
@@ -54,9 +62,12 @@ public class PackagingController : BaseApiController
     [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
     public async Task<ActionResult<ResetOrderShipmentResponse>> ResetShipment(
         [FromRoute] string orderCode,
-        CancellationToken cancellationToken)
+        [FromQuery] int numberOfPackages = 1,
+        CancellationToken cancellationToken = default)
     {
-        var response = await _mediator.Send(new ResetOrderShipmentRequest { OrderCode = orderCode }, cancellationToken);
+        var response = await _mediator.Send(
+            new ResetOrderShipmentRequest { OrderCode = orderCode, NumberOfPackages = numberOfPackages },
+            cancellationToken);
         return HandleResponse(response);
     }
 
@@ -64,14 +75,14 @@ public class PackagingController : BaseApiController
     /// Streams the carrier-issued label PDF for a single package through our own origin.
     /// The same-origin proxy lets the SPA silent-print the label without CORS errors.
     /// </summary>
-    [HttpGet("orders/{orderCode}/packages/{packageName}/label.pdf")]
+    [HttpGet("orders/{orderCode}/packages/{packageNumber:int}/label.pdf")]
     public async Task<ActionResult> GetPackageLabelPdf(
         [FromRoute] string orderCode,
-        [FromRoute] string packageName,
+        [FromRoute] int packageNumber,
         CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(
-            new GetPackageLabelPdfRequest { OrderCode = orderCode, PackageName = packageName },
+            new GetPackageLabelPdfRequest { OrderCode = orderCode, PackageNumber = packageNumber },
             cancellationToken);
 
         if (!response.Success || response.Content is null)
@@ -101,6 +112,22 @@ public class PackagingController : BaseApiController
     {
         var response = await _mediator.Send(
             new GetOrderTrackingNumberRequest { OrderCode = orderCode },
+            cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Returns the per-package tracking numbers of the latest active (non-cancelled) shipment for
+    /// the order, in package order. Used by the kiosk confirmation screen to show each package's
+    /// tracking number once labels have printed. Returns an empty list when none are assigned yet.
+    /// </summary>
+    [HttpGet("orders/{orderCode}/tracking-numbers")]
+    public async Task<ActionResult<GetOrderTrackingNumbersResponse>> GetOrderTrackingNumbers(
+        [FromRoute] string orderCode,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(
+            new GetOrderTrackingNumbersRequest { OrderCode = orderCode },
             cancellationToken);
         return HandleResponse(response);
     }
@@ -136,6 +163,21 @@ public class PackagingController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(new DeletePackageRequest { Id = id }, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Marks the order as packed after all multi-package labels have been printed.
+    /// </summary>
+    [HttpPost("orders/{orderCode}/packing/complete")]
+    [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
+    public async Task<ActionResult<CompletePackingOrderResponse>> CompletePacking(
+        [FromRoute] string orderCode,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(
+            new CompletePackingOrderRequest { OrderCode = orderCode },
+            cancellationToken);
         return HandleResponse(response);
     }
 }

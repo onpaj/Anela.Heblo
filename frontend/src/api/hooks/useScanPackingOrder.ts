@@ -42,7 +42,6 @@ export interface PackingOrder {
 }
 
 export interface ScanShipmentPackage {
-  name: string;
   trackingNumber: string | null;
   labelUrl: string | null;
   labelZpl: string | null;
@@ -52,6 +51,7 @@ export interface ScanShipment {
   shipmentGuid: string;
   packages: ScanShipmentPackage[];
   alreadyExisted: boolean;
+  pendingCompletion?: boolean;
 }
 
 export interface ScanPackingOrderResult {
@@ -69,13 +69,20 @@ const SCAN_ERROR_MESSAGES: Partial<Record<string, string>> = {
 
 const GENERIC_SCAN_ERROR = 'Chyba při skenování objednávky.';
 
-const scanPackingOrder = async (
-  orderCode: string,
-  packingUserId: string | null,
-): Promise<ScanPackingOrderResult> => {
+export type ScanPackingOrderVariables = {
+  orderCode: string;
+  numberOfPackages?: number;
+  packingUserId?: string | null;
+};
+
+const scanPackingOrder = async ({
+  orderCode,
+  numberOfPackages = 1,
+  packingUserId = null,
+}: ScanPackingOrderVariables): Promise<ScanPackingOrderResult> => {
   const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
   const response = await apiClient.http.fetch(
-    `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/scan`,
+    `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/scan?numberOfPackages=${numberOfPackages}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -97,6 +104,6 @@ const scanPackingOrder = async (
 };
 
 export const useScanPackingOrder = () =>
-  useMutation<ScanPackingOrderResult, Error, { orderCode: string; packingUserId: string | null }>({
-    mutationFn: ({ orderCode, packingUserId }) => scanPackingOrder(orderCode, packingUserId),
+  useMutation<ScanPackingOrderResult, Error, ScanPackingOrderVariables>({
+    mutationFn: scanPackingOrder,
   });

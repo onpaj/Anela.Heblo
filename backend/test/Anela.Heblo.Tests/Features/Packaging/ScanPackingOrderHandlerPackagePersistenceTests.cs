@@ -78,32 +78,39 @@ public class ScanPackingOrderHandlerPackagePersistenceTests
     };
 
     [Fact]
-    public async Task Handle_PersistsOnePackageRowPerCreatedLabel()
+    public async Task Handle_PersistsOnePackageRowPerCreatedLabel_WithSequentialPackageNumbers()
     {
         // Arrange
         var shipmentGuid = Guid.NewGuid();
+        // Both labels report the same carrier package name (custom-packaging shipments do
+        // this); the handler must still produce distinct, unique PackageNumbers.
         var newLabels = new List<ShipmentLabel>
         {
-            new() { PackageName = "PKG-1", ShipmentGuid = shipmentGuid, TrackingNumber = "TRK1" },
-            new() { PackageName = "PKG-2", ShipmentGuid = shipmentGuid, TrackingNumber = "TRK2" },
+            new() { PackageName = "Vlastní balení", ShipmentGuid = shipmentGuid, TrackingNumber = "TRK1" },
+            new() { PackageName = "Vlastní balení", ShipmentGuid = shipmentGuid, TrackingNumber = "TRK2" },
         };
         var shipmentClient = new Mock<IShipmentClient>();
         var orderClient = new Mock<IPackingOrderClient>();
         var sut = MakeSut(out var repo, shipmentClient, orderClient, MakeOrder(), newLabels: newLabels);
 
         // Act
-        var response = await sut.Handle(new ScanPackingOrderRequest { OrderCode = "ORD-1" }, CancellationToken.None);
+        var response = await sut.Handle(new ScanPackingOrderRequest { OrderCode = "ORD-1", NumberOfPackages = 2 }, CancellationToken.None);
 
         // Assert
         response.Success.Should().BeTrue();
-        repo.Verify(r => r.AddAsync(
-            It.Is<Package>(p =>
-                p.OrderCode == "ORD-1" &&
-                p.CustomerName == "Alice" &&
-                p.ShippingProviderCode == "PPL" &&
-                p.PackedBy == "op@example.com"),
+        repo.Verify(r => r.ReplacePackagesForOrderAsync(
+            "ORD-1",
+            It.Is<IReadOnlyCollection<Package>>(packages =>
+                packages.Count == 2 &&
+                packages.All(p =>
+                    p.OrderCode == "ORD-1" &&
+                    p.CustomerName == "Alice" &&
+                    p.ShippingProviderCode == "PPL" &&
+                    p.PackedBy == "op@example.com") &&
+                packages.Any(p => p.PackageNumber == "1" && p.TrackingNumber == "TRK1") &&
+                packages.Any(p => p.PackageNumber == "2" && p.TrackingNumber == "TRK2")),
             It.IsAny<CancellationToken>()),
-            Times.Exactly(2));
+            Times.Once);
     }
 
     [Fact]
@@ -152,6 +159,9 @@ public class ScanPackingOrderHandlerPackagePersistenceTests
         // Assert
         response.Success.Should().BeTrue();
         response.Shipment!.AlreadyExisted.Should().BeTrue();
+        repo.Verify(r => r.ReplacePackagesForOrderAsync(
+            It.IsAny<string>(), It.IsAny<IReadOnlyCollection<Package>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
         repo.Verify(r => r.AddMissingAsync(It.IsAny<IReadOnlyList<Package>>(), It.IsAny<CancellationToken>()), Times.Never);
         repo.Verify(r => r.AddAsync(It.IsAny<Package>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -184,7 +194,8 @@ public class ScanPackingOrderHandlerPackagePersistenceTests
             new() { PackageName = "PKG-1", ShipmentGuid = Guid.NewGuid(), TrackingNumber = "TRK1" },
         };
         var sut = MakeSut(out var repo, order: MakeOrder(), newLabels: newLabels);
-        repo.Setup(r => r.AddAsync(It.IsAny<Package>(), It.IsAny<CancellationToken>()))
+        repo.Setup(r => r.ReplacePackagesForOrderAsync(
+                It.IsAny<string>(), It.IsAny<IReadOnlyCollection<Package>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("duplicate key"));
 
         // Act

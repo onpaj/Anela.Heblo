@@ -160,9 +160,12 @@ Defined in `PrintPickingListOptions` and `ShoptetApiExpeditionListSource`:
 | ID | Name |
 |---|---|
 | -2 | Vyřizuje se (Processing) — source state for picking list |
-| 26 | Balí se (Packing) — PACK seed state; `PrintPickingListOptions.DesiredStateId` |
+| 26 | Balí se (Packing) — PACK seed state; `PrintPickingListOptions.DesiredStateId`. **Only orders in this state are eligible for packing** (`ScanPackingOrder` returns `isEligible: false` otherwise). |
+| 52 | Zabaleno (Packed) — order moves here after `MarkAsPacked` (single-package scan or `CompletePacking`). Confirmed live 2026-06-09. |
 | 70 | Předáno přepravci (Handed to carrier) — EXP seed state |
 | 73 | Oprava-robot — Fix source state (`FixSourceStateId`) |
+
+> **Reset a test order to packable:** `PATCH /api/orders/{code}/status` with `{"data":{"statusId":26}}` puts it back into "Balí se" so the packing flow can be re-run. Confirmed live 2026-06-09 on order 126000035.
 
 > **Note:** Status 55 ("K Expedici") referenced in `ShoptetApiExpeditionListSource.DesiredStateId` does **not exist** in the store (confirmed via `GET /api/eshop?include=orderStatuses`). Seeding EXP-category orders uses status 70 instead.
 > Custom status IDs for the hydration test are configurable: `Shoptet:StatusId:EXP` and `Shoptet:StatusId:PACK` in user secrets.
@@ -996,6 +999,7 @@ When Shoptet returns an error (non-2xx or populated `errors[]`):
 - `labelZpl` — Raw Zebra ZPL string for direct USB printing, may be `null`.
 - An order may have multiple shipments, each with multiple packages. All are returned; the kiosk prints each.
 - If both `labelUrl` and `labelZpl` are `null` for all packages, labels have not been generated yet.
+- **Generation latency is significant — confirmed minutes, not seconds (live, 2026-06-09).** A `POST /api/shipments` returns a shipment in `requested` state with `labelUrl: null` and `trackingNumber: null`; both populate (status → `created`) only once Balikobot/the carrier finalizes. For order 126000035 ("PPL na výdejní místo") this took **several minutes**. Implication: the `GetPackageLabelPdf` readiness poll (5×1s) will almost always 404 if a print is attempted immediately after scanning — the label must be re-fetched/reprinted once ready (from Zásilky), or the print retried.
 
 ### 11.5.1 Package `name` is NOT a stable match key — and shipments accumulate per order
 
@@ -1208,6 +1212,16 @@ After a successful `201` response, the shipment is in `requested` status. The la
 
 **Observed latency:** The test store has no Balikobot configured so label-ready latency was not directly measured. For the PPL carrier via Balikobot the expected flow is synchronous within the carrier call — label should be available within a few seconds of the `POST` completing. The `checkUrls` field (when non-null) provides a polling URL for async carriers.
 
+#### Multi-package carrier constraints (confirmed live 2026-06-10)
+
+**PPL "výdejní místo" (parcel box) does not support multi-package shipments.** Sending `packages: [{...}, {...}]` (2 items) succeeds with HTTP 201, but Balikobot/PPL silently creates only **1 package** — the returned label shows `1/1` and `GET /api/shipments?orderCode=...` returns a single package entry. No error is returned.
+
+Implication: if the operator selects "Více balíků" for a PPL parcel-box order, the backend produces N=2 `ScanShipmentPackage` entries (second one with `LabelUrl = null`), `pendingCompletion = true`, and the `PackingLabelPrintModal` opens for a 2-label sequence. Label 1 prints successfully after backoff. Label 2 never gets a URL — `printLabelWithReadiness` times out (30 s), operator sees the timeout screen, must cancel. Order stays unpacked.
+
+**Workaround (operator):** Do not use "Více balíků" for PPL výdejní místo. Use the standard single-scan flow.
+
+**Follow-up required:** Add a check after `CreateShipmentAsync` — compare the actual package count returned by `GET /api/shipments?orderCode=...` against the requested `n`. If fewer packages were created, surface a warning to the operator (e.g. "Dopravce vytvořil pouze X/N balíků").
+
 #### Test store limitation
 
 The staging store (780175 / `api.myshoptet.com` with token `Shoptet:ApiToken`) has **no Balikobot carriers configured** (`GET /api/shipments/carriers` returns `[]`). All `POST /api/shipments` calls in the test store will return `errorCode: invalid-request-data, instance: integration-call`. Integration tests for shipment creation must run against the production store or a store with Balikobot configured.
@@ -1262,3 +1276,17 @@ in_transit → (cancellation may be rejected by carrier with 422)
 - A `404` from cancel-request is treated as success — the shipment is already gone, no further action needed.
 
 `ShoptetShipmentClient.CancelShipmentAsync` returns silently on `404` and throws `HttpRequestException` on any other non-2xx status.
+
+---
+
+## Multi-package shipments (`POST /api/shipments`)
+
+The packaging scan can request **N parcels** for one order. We send the `data.packages`
+array with N entries (same width/height/depth; weight = order weight ÷ N, floored at
+`MinPackageWeightGrams`). Shoptet returns one shipment GUID with N distinct package names;
+`GET /api/shipments?orderCode={code}` then lists all N packages, each with its own label
+URL / tracking number once ready.
+
+**To verify on staging before relying on it:** create a multi-package shipment for a test
+order, confirm Shoptet returns N distinct package names and N printable labels, and that the
+order can still be marked packed (status 52) afterwards.
