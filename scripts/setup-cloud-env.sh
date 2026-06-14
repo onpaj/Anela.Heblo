@@ -25,7 +25,10 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 readonly DOTNET_CHANNEL="8.0"
 readonly NODE_MAJOR="20"
-readonly REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Prefer $CLAUDE_PROJECT_DIR (set in Claude Code SessionStart hooks) so the
+# repo-dependent steps resolve correctly even when this script is invoked from
+# outside the repo. Fall back to the script's own location for manual runs.
+readonly REPO_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 
 # Use sudo only when not already root (containers usually run as root).
 SUDO=""
@@ -123,6 +126,17 @@ install_gh() {
 # ---------------------------------------------------------------------------
 # 5. Restore project dependencies
 # ---------------------------------------------------------------------------
+require_repo() {
+  if [ ! -f "${REPO_ROOT}/Anela.Heblo.sln" ]; then
+    warn "Repository not found at REPO_ROOT='${REPO_ROOT}' (no Anela.Heblo.sln)."
+    warn "Repo-dependent steps (dotnet restore / npm install) need the checked-out"
+    warn "repo. This script must run from inside the repo or with \$CLAUDE_PROJECT_DIR"
+    warn "set — it cannot run as a cloud 'setup script' field (repo not yet present)."
+    warn "Use the SessionStart hook (scripts/cloud-session-setup.sh) for these steps."
+    exit 1
+  fi
+}
+
 restore_backend() {
   log "Restoring backend NuGet packages..."
   dotnet restore "${REPO_ROOT}/Anela.Heblo.sln"
@@ -158,6 +172,7 @@ main() {
   install_dotnet
   install_node
   install_gh
+  require_repo
   restore_backend
   restore_frontend
   install_playwright
