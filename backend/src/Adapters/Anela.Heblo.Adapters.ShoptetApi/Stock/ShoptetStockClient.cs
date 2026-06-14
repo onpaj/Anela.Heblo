@@ -51,14 +51,7 @@ public class ShoptetStockClient : IEshopStockClient
         try
         {
             using HttpResponseMessage response = await client.GetAsync(url, cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError(
-                    "Operation {Operation} failed. Url={Url} StatusCode={StatusCode} ElapsedMs={ElapsedMs}",
-                    OperationName, redactedUrl, (int)response.StatusCode, stopwatch.ElapsedMilliseconds);
-                response.EnsureSuccessStatusCode();
-            }
+            response.EnsureSuccessStatusCode();
 
             using Stream csvStream = await response.Content.ReadAsStreamAsync(cancellationToken);
             using StreamReader reader = new StreamReader(csvStream, Encoding.GetEncoding("windows-1250"));

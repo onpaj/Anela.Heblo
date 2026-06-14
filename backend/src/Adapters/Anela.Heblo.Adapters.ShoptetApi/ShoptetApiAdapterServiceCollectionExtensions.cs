@@ -80,7 +80,7 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
         services.AddHttpClient("ShoptetStockCsv", (sp, client) =>
         {
             var opts = sp.GetRequiredService<IOptions<ShoptetStockClientOptions>>().Value;
-            client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds * opts.MaxRetryAttempts + 5);
+            client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds * (opts.MaxRetryAttempts + 1) + 5);
         })
         .AddResilienceHandler("shoptet-stock-csv", (builder, context) =>
         {

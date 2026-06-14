@@ -327,7 +327,7 @@ The stock CSV export URL is configured via `StockClient:Url` and **is not** on `
 | Max retry attempts | 3 (default) | `StockClient:MaxRetryAttempts` |
 | Retry base delay | 1s exponential + jitter | `StockClient:RetryBaseDelaySeconds` |
 | Retry triggers | `HttpRequestException`, 5xx, 408, 429, `TimeoutRejectedException`, `OperationCanceledException` (only when caller's token has **not** requested cancellation) | — |
-| Outer `HttpClient.Timeout` | `TimeoutSeconds × MaxRetryAttempts + 5` | derived |
+| Outer `HttpClient.Timeout` | `TimeoutSeconds × (MaxRetryAttempts + 1) + 5` | derived |
 
 Worst-case wall clock with defaults: ≈ 8 + 1 + 8 + 2 + 8 + 4 + 8 ≈ 39 s — but `CatalogDataRefreshService` invocations are wrapped by `CatalogResilienceService` whose 30 s pipeline timeout will surface first. Tune `TimeoutSeconds` down if the outer pipeline still aborts retries; raise it for ad-hoc callers that do not use the outer pipeline.
 
