@@ -298,16 +298,16 @@ namespace Anela.Heblo.API.Controllers
         [FeatureAuthorize(Feature.Marketing_Photobank, AccessLevel.Admin)]
         public async Task<ActionResult<UpdateRuleResponse>> UpdateRule(
             int id,
-            [FromBody] UpdateRuleRequest request,
+            [FromBody] UpdateRuleBody body,
             CancellationToken cancellationToken = default)
         {
             var command = new UpdateRuleRequest
             {
                 Id = id,
-                PathPattern = request.PathPattern,
-                TagName = request.TagName,
-                IsActive = request.IsActive,
-                SortOrder = request.SortOrder,
+                PathPattern = body.PathPattern,
+                TagName = body.TagName,
+                IsActive = body.IsActive,
+                SortOrder = body.SortOrder,
             };
             var response = await _mediator.Send(command, cancellationToken);
             return HandleResponse(response);
