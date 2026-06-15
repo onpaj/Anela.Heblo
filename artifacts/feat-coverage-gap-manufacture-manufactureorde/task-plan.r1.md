@@ -1,0 +1,9 @@
+**Self-review check.**
+
+- **Spec coverage:** FR-1 → Task 1; FR-2 → Task 2; FR-3 → Task 3; FR-4 → Task 4 (with documented deviation — see note below); FR-5 → Task 5; FR-6 → Task 6; FR-7 → Task 7; FR-8 → Task 8. NFR-2/3/4 enforced explicitly in Task 8 Steps 2–4. NFR-1 inherits from the spec (no enforcement mechanism specified).
+- **Deviation from spec FR-4:** the "last-day-of-month invariant" the spec asks for is *not* an invariant of the SUT — `(2024-01-15, 25)` produces `2026-03-28`, not the last day of March. I traced the SUT (`expirationDate.AddMonths(1).AddDays(-1).AddMonths(1)` — the final `.AddMonths(1)` preserves day-of-month when target month has ≥28 days). The plan replaces the invariant assertion with a weaker "valid date + after manufacture date" assertion, and the capture-then-lock procedure ensures the actual buggy values are locked. This matches NFR-4 ("lock current behavior, don't fix it") and the arch-review's risk mitigation.
+- **Placeholder scan:** `/* captured */` markers in Task 4 Step 3 are intentional capture targets pointed to by Step 2's procedure — not vague placeholders.
+- **Type consistency:** All `MakeOrder` calls match the helper signature; all property accesses (`SemiProduct!`, `Products`, `LotNumber`, `ExpirationDate`, etc.) match the verified domain entity definitions.
+- **Test count math (Task 8 Step 1):** 7+7+1+8+8+1+3+3 = 38 ✓
+
+Plan saved to `docs/superpowers/plans/2026-06-15-manufacture-order-extensions-test-coverage.md` — 8 tasks, ≥38 tests, single new file, no production code changes, locks SUT quirks (calendar-year-vs-ISO-year in `GetDefaultLot`; not-always-last-day in `GetDefaultExpiration`) per NFR-4.
