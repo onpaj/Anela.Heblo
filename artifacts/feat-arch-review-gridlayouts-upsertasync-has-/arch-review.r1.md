@@ -1,156 +1,211 @@
-# Architecture Review: Atomic Upsert for GridLayoutRepository
+Now I have enough context. Let me write the architecture review.
+
+```markdown
+# Architecture Review: Atomic GridLayout Upsert
 
 ## Skip Design: true
 
-Backend-only persistence change with no UI surface impact. `SaveGridLayoutHandler`, DTOs, and the OpenAPI surface remain untouched.
+Backend-only persistence change. No UI components, screens, or layouts touched.
 
 ## Architectural Fit Assessment
 
-The change is a textbook fit. The repository already lives in `Anela.Heblo.Persistence.GridLayouts` (Clean Architecture's outer ring), already isolates Npgsql concerns behind `IGridLayoutRepository`, and already funnels driver failures through `PostgresExceptionTranslator` so the Application layer only sees `GridLayoutPersistenceException`. The fix consolidates two SQL round-trips into one and stops treating a benign concurrency event as an error — it doesn't reshape any boundaries.
+The change fits cleanly into the existing layering:
+- **Domain** (`Anela.Heblo.Domain/Features/GridLayouts`) — public contract on `IGridLayoutRepository` is unchanged. Domain stays driver-agnostic.
+- **Persistence** (`Anela.Heblo.Persistence/GridLayouts/GridLayoutRepository.cs`) — only the body of `UpsertAsync` is replaced. `GetAsync` and `DeleteAsync` are untouched.
+- **Application** (`SaveGridLayoutHandler`, `ResetGridLayoutHandler`) — unchanged. Their `GridLayoutPersistenceException → ErrorCodes.DatabaseError` flow continues to handle non-race errors.
+- **Existing raw-SQL precedent.** Two other repositories already use Postgres `INSERT … ON CONFLICT` against the same `ApplicationDbContext`: `LeafletDocumentRepository.AddChunksAsync` and `KnowledgeBaseRepository.AddChunksAsync`. They use direct `NpgsqlCommand` (chosen for batched loops). This change is a single-shot statement, so a higher-level `Database.ExecuteSqlInterpolatedAsync` is a better fit and stays consistent with EF Core conventions.
+- **Exception observability.** `PostgresExceptionLoggingInterceptor` (registered in `PersistenceModule.cs:118`) hooks `SaveChangesFailed` only — raw SQL bypasses it. This is acceptable because the existing `PostgresExceptionTranslator.TryTranslateGridLayout` call at the repository boundary already logs SqlState at `Warning` level for any `NpgsqlException`, and that catch block remains in place.
 
-Two integration points need attention but are accommodated by existing infrastructure:
-- **Translator contract** at `backend/src/Anela.Heblo.Persistence/Infrastructure/PostgresExceptionTranslator.cs` — already walks `InnerException` chains; works for both `DbUpdateException`-wrapped and direct `NpgsqlException` thrown by `ExecuteSqlInterpolatedAsync`.
-- **`PostgresExceptionLoggingInterceptor`** at `backend/src/Anela.Heblo.Persistence/Infrastructure/PostgresExceptionLoggingInterceptor.cs` is a `SaveChangesInterceptor`. The new upsert path bypasses `SaveChangesAsync`, so this interceptor will **no longer enrich logs for GridLayout failures** with `Severity`, `MessageText`, `Detail`, `TableName`, `ConstraintName`. The handler's own log line (with `SqlState`) survives; the richer interceptor data does not. This is a real, accepted reduction in observability — see "Risks" below.
-
-Testcontainers infrastructure already exists: `Testcontainers.PostgreSql 3.6.0` is referenced in `backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj`, and `KnowledgeBaseRepositoryIntegrationTests` provides a working pattern (Podman-safe, manual DDL setup, `IAsyncLifetime`).
+The proposal does not require new modules, new interfaces, or new DI registrations.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-SaveGridLayoutRequest (MediatR)
-  └─> SaveGridLayoutHandler                 [Application]
-        └─> IGridLayoutRepository.UpsertAsync   [Domain port]
-              └─> GridLayoutRepository           [Persistence adapter]
-                    ├─ TimeProvider.GetUtcNow()  [for LastModified]
-                    └─ ApplicationDbContext.Database
-                          .ExecuteSqlInterpolatedAsync(
-                             INSERT … ON CONFLICT (UserId, GridKey) DO UPDATE …)
-                          └─[on NpgsqlException]→
-                             PostgresExceptionTranslator.TryTranslateGridLayout
-                               → GridLayoutPersistenceException(SqlState, inner)
+SaveGridLayoutHandler (Application)
+        │  IGridLayoutRepository.UpsertAsync(userId, gridKey, layoutJson, ct)
+        ▼
+GridLayoutRepository (Persistence)
+   ├─ TimeProvider.GetUtcNow().DateTime  →  lastModified
+   ├─ try
+   │    └─ _context.Database.ExecuteSqlInterpolatedAsync($@"
+   │          INSERT INTO public.""GridLayouts""
+   │              (""UserId"", ""GridKey"", ""LayoutJson"", ""LastModified"")
+   │          VALUES ({userId}, {gridKey}, {layoutJson}, {lastModified})
+   │          ON CONFLICT (""UserId"", ""GridKey"") DO UPDATE
+   │             SET ""LayoutJson""   = EXCLUDED.""LayoutJson"",
+   │                 ""LastModified"" = EXCLUDED.""LastModified""", ct)
+   └─ catch (Exception ex)
+        └─ PostgresExceptionTranslator.TryTranslateGridLayout(ex, "UpsertAsync")
+              └─ Warning log {Operation, SqlState, Message}
+              └─ throw GridLayoutPersistenceException
+              └─ otherwise rethrow original
 ```
 
-No new types, no new interfaces. Only `GridLayoutRepository.UpsertAsync` and its tests change.
+Direction of dependencies and the public contract are unchanged.
 
 ### Key Design Decisions
 
-#### Decision 1: `ExecuteSqlInterpolatedAsync` over `ExecuteSqlRawAsync`
-
+#### Decision 1: SQL execution mechanism — `ExecuteSqlInterpolatedAsync` vs raw `NpgsqlCommand`
 **Options considered:**
-1. `ExecuteSqlInterpolatedAsync(FormattableString)` with C# raw-string interpolation
-2. `ExecuteSqlRawAsync(string, params object[])` with `{0}`-style placeholders
-3. A hand-rolled `NpgsqlCommand` with named parameters (as in `KnowledgeBaseRepository.AddChunksAsync`)
+- A. `_context.Database.ExecuteSqlInterpolatedAsync(FormattableString, ct)` — EF Core extension; treats interpolated holes as parameters; uses the context's existing connection/transaction.
+- B. Raw `NpgsqlCommand` on `_context.Database.GetDbConnection()` — pattern used by `LeafletDocumentRepository.AddChunksAsync` and `KnowledgeBaseRepository.AddChunksAsync`.
 
-**Chosen approach:** Option 1.
+**Chosen approach:** A — `ExecuteSqlInterpolatedAsync`.
 
-**Rationale:** `FormattableString` parameterization is checked by Roslyn analyzers (`EF1002`), is the most readable, and matches the spec. Option 2 is acceptable but easier to misuse (a future maintainer can slip into `string.Format` and lose parameterization). Option 3 is unnecessary ceremony for a four-parameter statement — reserve it for cases that need pgvector or other custom Npgsql features.
+**Rationale:**
+- One statement, one parameter set. The `NpgsqlCommand` pattern was chosen elsewhere because both call sites loop over chunks and open the connection once. There's no loop here.
+- No manual connection-state handling, fewer lines, fewer bug surfaces.
+- Compile-time parameterisation via `FormattableString` makes SQL injection impossible: `userId` and `gridKey` are user-controlled and will be passed as Npgsql parameters.
+- The `ApplicationDbContext` and any ambient transaction are honoured automatically.
+- Existing `PostgresExceptionTranslator` keeps working: Npgsql exceptions propagate through `ExecuteSqlInterpolatedAsync` unchanged.
 
-#### Decision 2: `DateTime.Kind` handling for the `LastModified` parameter
-
+#### Decision 2: `Id` column handling
 **Options considered:**
-1. Pass `_timeProvider.GetUtcNow().DateTime` (Kind=`Utc`) directly — relies on Npgsql parameter-type inference.
-2. Normalize kind: `DateTime.SpecifyKind(_timeProvider.GetUtcNow().UtcDateTime, DateTimeKind.Unspecified)` before interpolation.
-3. Add an explicit cast in SQL: `{now}::timestamp`.
+- A. Generate `Guid.NewGuid()` in code, include in INSERT, accept that `EXCLUDED.Id` is discarded on conflict (per spec assumption).
+- B. Omit `Id` from the INSERT column list and let PostgreSQL `IdentityByDefaultColumn` produce the value.
 
-**Chosen approach:** Option 2.
+**Chosen approach:** B — omit `Id`.
 
-**Rationale:** The `LastModified` column is `timestamp without time zone` (configured via `AsUtcTimestamp()` in `DateTimeConfigurationExtensions.cs`). Modern Npgsql maps `DateTime` with `Kind=Utc` to `timestamptz` and **throws** `InvalidCastException` ("Cannot write DateTime with Kind=UTC to PostgreSQL type 'timestamp without time zone'") unless the legacy timestamp behavior switch is set. No such `AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true)` exists in this codebase (grep confirms). EF Core hides this today because it materializes through the entity property + value converter; raw SQL does not. Normalizing to `Unspecified` (option 2) is the minimal, type-safe fix and keeps the SQL portable. Option 3 also works but mixes responsibilities.
+**Rationale:** The spec's assumption is wrong for this entity. `GridLayout.Id` is `int`, not `Guid` (verified in `GridLayout.cs:5`), and the migration declares it `GENERATED BY DEFAULT AS IDENTITY` (`20260409083238_AddGridLayouts.cs:19-20`). Including `Id` would force a value the caller does not have. The unique constraint that drives `ON CONFLICT` is `(UserId, GridKey)`, not `Id`, so omitting `Id` is correct and matches the existing pattern of `_context.GridLayouts.Add(new GridLayout { … })` letting EF/Postgres assign the id.
 
-#### Decision 3: Conflict target — `(UserId, GridKey)` not the constraint name
-
+#### Decision 3: Timestamp source
 **Options considered:**
-1. `ON CONFLICT ("UserId", "GridKey")` (column inference)
-2. `ON CONFLICT ON CONSTRAINT "IX_GridLayouts_UserId_GridKey"`
+- A. Compute `_timeProvider.GetUtcNow().DateTime` in code and pass as parameter.
+- B. Use SQL `NOW()` / `CURRENT_TIMESTAMP`.
 
-**Chosen approach:** Option 1.
+**Chosen approach:** A — compute in code.
 
-**Rationale:** The unique index is auto-named by EF Core. Hard-coding the constraint name in SQL would couple application code to a generated identifier that future migrations could rename. Column inference is stable as long as the index exists on `(UserId, GridKey)` — which is guaranteed by `GridLayoutConfiguration` at compile time.
+**Rationale:** Preserves `TimeProvider`-driven test control (FR-3). Matches the column type — `timestamp` without time zone via `AsUtcTimestamp()` (`GridLayoutConfiguration.cs:28`, `DateTimeConfigurationExtensions.cs:23-27`). `DateTime` values bind cleanly to Npgsql's `timestamp` mapping.
 
-#### Decision 4: Integration test schema bootstrap
-
+#### Decision 4: Where translation tests live
 **Options considered:**
-1. `Database.EnsureCreatedAsync()` — creates every table in `ApplicationDbContext`.
-2. `Database.MigrateAsync()` — replays all migrations.
-3. Manual DDL `CREATE TABLE` for `GridLayouts` only (matches `KnowledgeBaseRepositoryIntegrationTests`).
+- A. Keep `GridLayoutRepositoryTranslationTests` on `UseInMemoryDatabase` — currently exercises `Upsert` and asserts translator behaviour via an overridden `SaveChangesAsync`.
+- B. Move upsert-related translation coverage to a Postgres integration test fixture (`PostgresSharedContainerFixture`, already established in `Anela.Heblo.Tests/Common`).
 
-**Chosen approach:** Option 3.
+**Chosen approach:** B (for `UpsertAsync`-specific tests). Keep A for `DeleteAsync` since `DeleteAsync` stays on EF + `SaveChangesAsync` (FR-5).
 
-**Rationale:** Fastest startup (1 statement vs. dozens), no cross-feature coupling, mirrors the established pattern. `EnsureCreated` would force the test to compile against and provision the entire schema (50+ tables), making the test brittle to unrelated changes. `MigrateAsync` is even heavier and re-imports historical schemas. Manual DDL keeps the test focused on the unit under test.
+**Rationale:** `Database.ExecuteSqlInterpolatedAsync` is a no-op on the InMemory provider and cannot host the new exception surface. Two of the three existing translation tests target `UpsertAsync` via the overridden `SaveChangesAsync` hook — that hook is no longer on the upsert path. Real Postgres is the only way to assert the race-free behaviour required by FR-2 anyway.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
-No new files in production code. All changes live in:
+No new files in `src/`. Modify:
 
-- `backend/src/Anela.Heblo.Persistence/GridLayouts/GridLayoutRepository.cs` — replace body of `UpsertAsync`. `GetAsync` and `DeleteAsync` untouched.
+- `backend/src/Anela.Heblo.Persistence/GridLayouts/GridLayoutRepository.cs` — replace `UpsertAsync` body only. Constructor, fields, `GetAsync`, `DeleteAsync` stay identical.
 
-Test changes:
+Add / modify in `test/`:
 
-- `backend/test/Anela.Heblo.Tests/Persistence/GridLayouts/GridLayoutRepositoryTranslationTests.cs` — replace the three `UpsertAsync_*` tests so they exercise the new path. Recommended approach: keep the `ThrowingApplicationDbContext` pattern but switch the override from `SaveChangesAsync` to `Database.ExecuteSqlInterpolatedAsync`. Since `DatabaseFacade.ExecuteSqlInterpolatedAsync` is an extension method, override at the connection level instead — substitute the `RelationalConnection` via a fake `DbConnection` that throws on `OpenAsync` or `ExecuteReaderAsync`. **Simpler alternative**: move the three translation-contract cases into the new integration test class as parametrized cases, since translating thrown Npgsql exceptions requires a real provider anyway. Keep `DeleteAsync_WhenSaveChangesThrowsNpgsqlException_ThrowsGridLayoutPersistenceException` unchanged (still uses `SaveChangesAsync`).
-- `backend/test/Anela.Heblo.Tests/Persistence/GridLayouts/GridLayoutRepositoryUpsertIntegrationTests.cs` — **new file**. Testcontainers-based integration test class implementing `IAsyncLifetime`, following the layout of `KnowledgeBaseRepositoryIntegrationTests`. Trait `[Trait("Category", "Integration")]`. Disable `ResourceReaper` in a static ctor for Podman compatibility.
+- **Modify** `backend/test/Anela.Heblo.Tests/Persistence/GridLayouts/GridLayoutRepositoryTranslationTests.cs`
+  - Remove the two `UpsertAsync_*` tests that rely on `ThrowOnSaveChanges` (no longer reachable).
+  - Keep the `DeleteAsync_WhenSaveChangesThrowsNpgsqlException_*` test.
+- **Add** `backend/test/Anela.Heblo.Tests/Persistence/GridLayouts/GridLayoutRepositoryUpsertIntegrationTests.cs`
+  - `[Collection("PostgresIntegration")]`, `[Trait("Category", "Integration")]`, `IAsyncLifetime`.
+  - Constructor takes `PostgresSharedContainerFixture`.
+  - `InitializeAsync` creates the database and the `public."GridLayouts"` table + unique index manually (avoid `EnsureCreatedAsync` — same reason as `BankStatementImportRepositoryIntegrationTests.cs:36-60`: project schema requires the `vector` extension that the plain `postgres:16` image lacks).
+  - Test cases: insert-path, update-path, concurrent-insert (FR-2), concurrent-update, fake-`TimeProvider` (FR-3), cancellation, non-unique Postgres error → `GridLayoutPersistenceException` (FR-6, e.g. inject a too-long `GridKey` exceeding 100 chars).
+
+- Existing unit tests at the handler layer (`SaveGridLayoutHandlerTests`, `ResetGridLayoutHandlerTests`, `GetGridLayoutHandlerTests`, `GridLayoutHandlerTests`) mock `IGridLayoutRepository` and are unaffected.
 
 ### Interfaces and Contracts
 
-Unchanged. Verbatim from the spec:
+`IGridLayoutRepository` (`backend/src/Anela.Heblo.Domain/Features/GridLayouts/IGridLayoutRepository.cs`) is unchanged. Signature, XML doc, exception contract all stay.
 
-```csharp
-// Domain/Features/GridLayouts/IGridLayoutRepository.cs — no edit
-Task UpsertAsync(string userId, string gridKey, string layoutJson, CancellationToken cancellationToken = default);
+`GridLayoutPersistenceException`, `PostgresExceptionTranslator`, and `PostgresExceptionLoggingInterceptor` are unchanged.
+
+The SQL contract:
+
+```sql
+INSERT INTO public."GridLayouts" ("UserId", "GridKey", "LayoutJson", "LastModified")
+VALUES ({userId}, {gridKey}, {layoutJson}, {lastModified})
+ON CONFLICT ("UserId", "GridKey") DO UPDATE
+   SET "LayoutJson"   = EXCLUDED."LayoutJson",
+       "LastModified" = EXCLUDED."LastModified";
 ```
 
-Exception contract preserved: `GridLayoutPersistenceException` on Npgsql failure; rethrow otherwise; `OperationCanceledException` propagates uncaught-translated.
+Schema-coupled identifiers (table/column/schema names) are hardcoded literals. Only the four data values are parameterised. This matches the security posture and lint stance of the rest of the codebase.
 
 ### Data Flow
 
-**Happy path (insert):**
-1. Handler calls `UpsertAsync(userId, gridKey, json, ct)`.
-2. Repository computes `now = DateTime.SpecifyKind(_timeProvider.GetUtcNow().UtcDateTime, DateTimeKind.Unspecified)`.
-3. `ExecuteSqlInterpolatedAsync` issues one `INSERT … ON CONFLICT … DO UPDATE` round-trip with four parameters.
-4. PostgreSQL inserts; no conflict; returns affected rows (1).
-5. Repository returns; handler returns `SaveGridLayoutResponse()`.
+Concurrent debounced-resize race (the bug being fixed):
 
-**Happy path (update, same payload concurrent):**
-1–3 as above for both callers in parallel.
-4. PostgreSQL serializes the two `INSERT`s via the unique index; first wins the insert path, second hits `ON CONFLICT` and takes the `DO UPDATE` branch.
-5. Final row carries `LayoutJson`/`LastModified` of whichever transaction committed last. Both callers return success.
+```
+Browser  ──debounced PUT /api/grid-layouts/{key}──▶ MediatR ──▶ SaveGridLayoutHandler
+                                                                       │
+                                                                       ▼
+                                                         IGridLayoutRepository.UpsertAsync
+                                                                       │
+                                                  one SQL round-trip, parameterised
+                                                                       ▼
+                                                          public."GridLayouts"
+                                                       ┌──────────────────────────┐
+                                                       │ Concurrent T1 + T2 both  │
+                                                       │ run INSERT … ON CONFLICT │
+                                                       │ Postgres serialises on   │
+                                                       │ the unique index;        │
+                                                       │ both commit, last-write- │
+                                                       │ wins on LayoutJson +     │
+                                                       │ LastModified.            │
+                                                       └──────────────────────────┘
+```
 
-**Failure path:**
-1–2 as above.
-3. `ExecuteSqlInterpolatedAsync` throws (e.g. transient connection drop, `NpgsqlException` directly or wrapped in `DbUpdateException`).
-4. Catch block calls `PostgresExceptionTranslator.TryTranslateGridLayout(ex, nameof(UpsertAsync))`.
-5. If translation succeeds, throw `GridLayoutPersistenceException`; otherwise rethrow.
-6. Handler catches `GridLayoutPersistenceException`, logs with `SqlState`, returns `ErrorCodes.DatabaseError`.
+Failure flow (non-race Postgres error, e.g. dropped connection):
+
+```
+ExecuteSqlInterpolatedAsync  → Npgsql throws
+        │
+        ▼
+catch in GridLayoutRepository
+        │
+        ▼
+PostgresExceptionTranslator.TryTranslateGridLayout(ex, "UpsertAsync")
+        ├─ logs Warning {SqlState, Operation, Message}
+        └─ wraps in GridLayoutPersistenceException → rethrow
+        │
+        ▼
+SaveGridLayoutHandler.catch → LogError → SaveGridLayoutResponse(ErrorCodes.DatabaseError)
+```
+
+Cancellation flow: `CancellationToken` flows from controller → handler → `ExecuteSqlInterpolatedAsync`. A cancelled token surfaces as `OperationCanceledException` (or the EF-wrapped equivalent), which is not an `NpgsqlException` and therefore is **rethrown unchanged** by the translator. This matches FR-4.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| `DateTime.Kind=Utc` written to `timestamp` column throws via Npgsql parameter inference, breaking happy path. | HIGH | Decision 2: normalize via `DateTime.SpecifyKind(..., Unspecified)` before interpolation. Cover in a unit/integration test that asserts `LastModified` is persisted correctly. |
-| `PostgresExceptionLoggingInterceptor` no longer fires for upsert failures (it's a `SaveChangesInterceptor`), so Application Insights loses `Severity`/`Detail`/`ConstraintName` for this code path. | MEDIUM | Accept — the handler still logs `SqlState`, which is the field used to distinguish transient vs. application errors. If richer logging is required later, swap the interceptor for a `DbCommandInterceptor` (out of scope per Out of Scope §). Add a one-line comment in `UpsertAsync` flagging the trade-off. |
-| Existing in-memory translation tests (`UseInMemoryDatabase`) cannot exercise `ExecuteSqlInterpolatedAsync` — it throws `InvalidOperationException` on the in-memory provider. | MEDIUM | FR-6 already requires rewriting these. Recommended: move translation-contract assertions for `UpsertAsync` into the new Testcontainers integration class. Keep `PostgresExceptionTranslatorTests` as the pure unit-level proof for the translator itself. |
-| Test execution time grows because of Testcontainers warm-up (~3–8 s on first run per class). | LOW | Already accepted pattern in this codebase. Group all `UpsertAsync` cases (insert, update, concurrent, translated-exception) into one test class so the container starts once. Use `[Trait("Category", "Integration")]` so CI can filter. |
-| Future change moves `GridLayouts` table or unique-index columns. | LOW | The SQL is colocated with the entity configuration in `Anela.Heblo.Persistence/GridLayouts/`. A reviewer sees both files in the same folder. No additional mitigation. |
-| Roslyn might raise `EF1002` ("possible SQL injection") on raw-string interpolation. | LOW | `ExecuteSqlInterpolatedAsync(FormattableString)` is explicitly recognized by the analyzer as parameterized — no warning expected. If a future analyzer upgrade flags it, suppress at call site with a justification comment. |
+| Raw-SQL column list drifts from EF mapping if `GridLayout` ever gains a new required column (e.g. `LayoutVersion`) — silent data loss as documented in `memory/gotchas/raw-sql-insert-must-match-ef-mapping.md`. | Medium | Add `GridLayoutRepository.UpsertAsync` to the gotcha file's "Affected repositories" list. Add a one-line comment above the SQL in the repository pointing at that file (matches the comment style in `LeafletDocumentRepository.cs:34`). |
+| Existing `UpsertAsync` translation tests use `UseInMemoryDatabase` and override `SaveChangesAsync` — that seam is bypassed by raw SQL. | High | Delete the `UpsertAsync_*` tests in `GridLayoutRepositoryTranslationTests` and re-cover translation in the new Postgres-backed integration test (FR-6 acceptance). |
+| Spec assumed `Guid` Id and `Guid.NewGuid()` insert. Actual schema is `int` `GENERATED BY DEFAULT AS IDENTITY`. | High | Omit `Id` from INSERT column list — Postgres assigns it. See Decision 2. **Spec amendment required (below).** |
+| `PostgresExceptionLoggingInterceptor` does not see raw-SQL failures (only `SaveChanges`). | Low | Accept. The translator at the repo boundary already emits a structured Warning with `SqlState` + `Operation` for any `NpgsqlException`, covering the new path. |
+| Concurrent upserts on the same `(UserId, GridKey)` could in principle deadlock under heavier concurrency than the spec's "N≥5" minimum. | Low | Postgres serialises `ON CONFLICT` resolution on the unique index — no deadlocks expected for single-row upserts. If a future load test reveals contention, revisit with `FOR UPDATE` advisory locks; not needed now. |
+| `LastModified` column is `timestamp without time zone` — passing a `DateTimeOffset` instead of `DateTime` would either be rejected or implicitly lose offset info. | Low | Pass `_timeProvider.GetUtcNow().DateTime` (already done elsewhere in the repo). Verified via `AsUtcTimestamp()` extension and migration `column: type "timestamp"`. |
 
 ## Specification Amendments
 
-1. **FR-3 / API sketch — fix `DateTime.Kind`.** The spec's sample `var now = _timeProvider.GetUtcNow().DateTime;` will fail at runtime against the live PostgreSQL provider because the column is `timestamp without time zone` (see `GridLayoutConfiguration.cs:27-29` via `AsUtcTimestamp()`) and `GetUtcNow().DateTime` has `Kind=Utc`. Replace with:
-   ```csharp
-   var now = DateTime.SpecifyKind(_timeProvider.GetUtcNow().UtcDateTime, DateTimeKind.Unspecified);
+1. **FR-1 / API & Interface Design — `Id` handling.** The spec assumes `Guid.NewGuid()` for `Id`. `GridLayout.Id` is `int` with `IdentityByDefaultColumn` (see `GridLayout.cs:5` and `20260409083238_AddGridLayouts.cs:19-20`). Replace the SQL in the spec with the four-column form that omits `Id`:
+
+   ```sql
+   INSERT INTO public."GridLayouts" ("UserId", "GridKey", "LayoutJson", "LastModified")
+   VALUES (@userId, @gridKey, @layoutJson, @lastModified)
+   ON CONFLICT ("UserId", "GridKey") DO UPDATE
+      SET "LayoutJson"   = EXCLUDED."LayoutJson",
+          "LastModified" = EXCLUDED."LastModified";
    ```
-   Add an explicit acceptance criterion under FR-3: "`UpsertAsync` does not throw `InvalidCastException` ('Cannot write DateTime with Kind=UTC …') when executed against PostgreSQL with the column configured via `AsUtcTimestamp()`."
 
-2. **FR-6 — clarify the deletion of `UseInMemoryDatabase` tests.** State explicitly that the existing three `UpsertAsync_*` cases in `GridLayoutRepositoryTranslationTests` are to be **removed** and their assertions re-proven against the real provider in the new integration test class. Otherwise the spec leaves room to keep them and silently break (they would throw `InvalidOperationException` instead of the asserted types because the in-memory provider doesn't support `ExecuteSqlInterpolatedAsync`).
+   The fallback clause already anticipated this ("If the existing entity's `Id` is database-generated … drop `Id` from the column list"). Make it the primary instruction, not a fallback.
 
-3. **NFR-4 — disclose interceptor regression.** Add: "The `PostgresExceptionLoggingInterceptor` (a `SaveChangesInterceptor`) will no longer enrich logs for `UpsertAsync` failures, since the new path bypasses `SaveChangesAsync`. The handler-side log of `SqlState` is sufficient for the currently consumed observability signal; richer log enrichment is out of scope."
+2. **NFR-5 / FR-6 — translation test location.** The spec implies translation coverage stays at unit-test level. The current `GridLayoutRepositoryTranslationTests.UpsertAsync_*` tests use `UseInMemoryDatabase` and an overridden `SaveChangesAsync` — both bypassed by raw SQL. Amend NFR-5 to state explicitly: upsert translation coverage moves to an integration test against the `PostgresSharedContainerFixture`; the InMemory-based unit tests for `UpsertAsync` are removed.
 
-4. **FR-5 — add `LastModified` assertion.** The current criterion checks `LayoutJson`; add an assertion that `LastModified` matches the `TimeProvider`-injected instant (or one of two instants for the concurrent case), to lock in FR-3 against the integration provider.
+3. **FR-5 documentation note.** Spec says "A short note added to the repository (or PR description) records the rationale" for skipping `DeleteAsync`. Choose one: a single-line comment above `DeleteAsync` is preferred — it travels with the code and is auditable later; PR descriptions get lost.
+
+4. **NFR-3 / observability.** The interceptor (`PostgresExceptionLoggingInterceptor`) does not log failures from raw SQL, so the "non-race failures continue to be logged" claim relies entirely on the translator's Warning log. Make this explicit in NFR-3.
 
 ## Prerequisites
 
-- **None for production.** No schema migration, no infrastructure change. The unique index already exists.
-- **For tests:** `Testcontainers.PostgreSql 3.6.0` is already a `PackageReference`; Docker or Podman must be available on developer machines and CI runners (matches what `KnowledgeBaseRepositoryIntegrationTests` already requires). No additions to `Anela.Heblo.Tests.csproj` needed.
-- **CI awareness:** if integration-tagged tests are filtered out of the default `dotnet test` invocation, ensure the new class is picked up by whatever pipeline runs integration suites; otherwise the concurrency assertion will not be exercised in CI.
+- None at infrastructure level. The unique index `IX_GridLayouts_UserId_GridKey` (created in migration `20260409083238_AddGridLayouts.cs:31-35`) already exists in all environments.
+- No schema migration, no DI changes, no config changes, no NuGet additions.
+- No frontend changes.
+- Before implementation: confirm `Microsoft.EntityFrameworkCore.Relational` is referenced by the Persistence project (it already is — `ExecuteSqlInterpolatedAsync` is the same family used implicitly by the existing repositories).
+- Append `GridLayoutRepository.UpsertAsync` to the "Affected repositories" list in `memory/gotchas/raw-sql-insert-must-match-ef-mapping.md` as part of the change.
+```
