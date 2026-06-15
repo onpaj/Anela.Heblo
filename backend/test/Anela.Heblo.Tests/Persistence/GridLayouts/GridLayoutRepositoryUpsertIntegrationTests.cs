@@ -186,4 +186,74 @@ public class GridLayoutRepositoryUpsertIntegrationTests : IAsyncLifetime
             }
         }
     }
+
+    [Fact]
+    public async Task UpsertAsync_ConcurrentUpdatesForSameKey_AllSucceedAndProduceSingleRow()
+    {
+        // Arrange — seed an existing row so each task takes the UPDATE branch.
+        await CreateRepository().UpsertAsync("user-update", "grid-update", "{\"seed\":true}", CancellationToken.None);
+        var seededId = (await ReadRowAsync("user-update", "grid-update")).Id;
+
+        const int concurrency = 5;
+        var payloads = Enumerable.Range(0, concurrency)
+            .Select(i => $"{{\"u\":{i}}}")
+            .ToArray();
+
+        var contexts = new List<ApplicationDbContext>();
+        try
+        {
+            var tasks = payloads.Select(payload =>
+            {
+                var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                    .UseNpgsql(_connectionString)
+                    .Options;
+                var context = new ApplicationDbContext(options);
+                contexts.Add(context);
+                var repo = new GridLayoutRepository(context, TimeProvider.System, _translator);
+                return repo.UpsertAsync("user-update", "grid-update", payload, CancellationToken.None);
+            }).ToArray();
+
+            // Act
+            await Task.WhenAll(tasks);
+
+            // Assert
+            (await CountRowsAsync("user-update", "grid-update")).Should().Be(1);
+            var row = await ReadRowAsync("user-update", "grid-update");
+            row.Id.Should().Be(seededId);
+            payloads.Should().Contain(row.LayoutJson);
+        }
+        finally
+        {
+            foreach (var ctx in contexts)
+            {
+                await ctx.DisposeAsync();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task UpsertAsync_IssuesExactlyOneStatementPerCall()
+    {
+        // Arrange
+        var statements = new List<string>();
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseNpgsql(_connectionString)
+            .LogTo(message =>
+            {
+                if (message.Contains("Executed DbCommand", StringComparison.Ordinal))
+                {
+                    statements.Add(message);
+                }
+            }, new[] { Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.CommandExecuted })
+            .Options;
+        await using var context = new ApplicationDbContext(options);
+        var repository = new GridLayoutRepository(context, TimeProvider.System, _translator);
+
+        // Act
+        await repository.UpsertAsync("user-stmt", "grid-stmt", "{\"x\":1}", CancellationToken.None);
+
+        // Assert
+        statements.Should().HaveCount(1, "the upsert must be a single round-trip");
+        statements[0].Should().Contain("ON CONFLICT", "the statement must use the atomic upsert");
+    }
 }
