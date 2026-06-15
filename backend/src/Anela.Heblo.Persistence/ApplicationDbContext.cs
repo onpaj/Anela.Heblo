@@ -46,6 +46,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<IssuedInvoice> IssuedInvoices { get; set; } = null!;
     public DbSet<IssuedInvoiceSyncData> IssuedInvoiceSyncData { get; set; } = null!;
     public DbSet<BankStatementImport> BankStatements { get; set; } = null!;
+    public DbSet<BankImportState> BankImportStates { get; set; } = null!;
     //public DbSet<RecurringJob> Jobs { get; set; }
     public DbSet<TransportBox> TransportBoxes { get; set; }
     public DbSet<StockTakingRecord> StockTakings { get; set; }
