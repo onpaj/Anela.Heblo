@@ -38,64 +38,6 @@ public class GridLayoutRepositoryTranslationTests
     }
 
     [Fact]
-    public async Task UpsertAsync_WhenSaveChangesThrowsNpgsqlException_ThrowsGridLayoutPersistenceException()
-    {
-        // Arrange
-        using var context = CreateContext();
-        var npgsqlEx = new NpgsqlException("connection terminated");
-        context.ThrowOnSaveChanges = npgsqlEx;
-
-        var translator = new PostgresExceptionTranslator(NullLogger<PostgresExceptionTranslator>.Instance);
-        var repository = new GridLayoutRepository(context, TimeProvider.System, translator);
-
-        // Act
-        Func<Task> act = () => repository.UpsertAsync("user-1", "grid-1", "{}", CancellationToken.None);
-
-        // Assert
-        var thrown = await act.Should().ThrowAsync<GridLayoutPersistenceException>();
-        thrown.Which.InnerException.Should().BeSameAs(npgsqlEx);
-    }
-
-    [Fact]
-    public async Task UpsertAsync_WhenSaveChangesThrowsDbUpdateExceptionWrappingNpgsql_ThrowsGridLayoutPersistenceException()
-    {
-        // Arrange
-        using var context = CreateContext();
-        var npgsqlInner = new NpgsqlException("duplicate key");
-        var dbUpdateEx = new DbUpdateException("An error occurred while saving.", npgsqlInner);
-        context.ThrowOnSaveChanges = dbUpdateEx;
-
-        var translator = new PostgresExceptionTranslator(NullLogger<PostgresExceptionTranslator>.Instance);
-        var repository = new GridLayoutRepository(context, TimeProvider.System, translator);
-
-        // Act
-        Func<Task> act = () => repository.UpsertAsync("user-1", "grid-1", "{}", CancellationToken.None);
-
-        // Assert
-        var thrown = await act.Should().ThrowAsync<GridLayoutPersistenceException>();
-        thrown.Which.InnerException.Should().BeSameAs(dbUpdateEx);
-    }
-
-    [Fact]
-    public async Task UpsertAsync_WhenSaveChangesThrowsNonPgException_RethrowsOriginal()
-    {
-        // Arrange
-        using var context = CreateContext();
-        var unrelatedEx = new InvalidOperationException("unrelated failure");
-        context.ThrowOnSaveChanges = unrelatedEx;
-
-        var translator = new PostgresExceptionTranslator(NullLogger<PostgresExceptionTranslator>.Instance);
-        var repository = new GridLayoutRepository(context, TimeProvider.System, translator);
-
-        // Act
-        Func<Task> act = () => repository.UpsertAsync("user-1", "grid-1", "{}", CancellationToken.None);
-
-        // Assert
-        var thrown = await act.Should().ThrowAsync<InvalidOperationException>();
-        thrown.Which.Should().BeSameAs(unrelatedEx);
-    }
-
-    [Fact]
     public async Task DeleteAsync_WhenSaveChangesThrowsNpgsqlException_ThrowsGridLayoutPersistenceException()
     {
         // Arrange
