@@ -76,4 +76,24 @@ public class ManufactureOrderExtensionsTests
         result.Substring(2, 4).Should().Be(year.ToString());
         result.Substring(6, 2).Should().Be(month.ToString("D2"));
     }
+
+    [Fact]
+    public void GetDefaultLot_ForwardsToStaticOverload_WhenCalledOnSemiProduct()
+    {
+        // Arrange
+        var date = new DateTime(2024, 5, 29);
+        var semiProduct = new ManufactureOrderSemiProduct
+        {
+            ProductCode = "SP",
+            ProductName = "Some Semi-product",
+            ExpirationMonths = 12
+        };
+
+        // Act
+        var instanceResult = semiProduct.GetDefaultLot(date);
+        var staticResult = ManufactureOrderExtensions.GetDefaultLot(date);
+
+        // Assert
+        instanceResult.Should().Be(staticResult);
+    }
 }
