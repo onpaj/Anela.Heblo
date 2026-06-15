@@ -256,4 +256,37 @@ public class GridLayoutRepositoryUpsertIntegrationTests : IAsyncLifetime
         statements.Should().HaveCount(1, "the upsert must be a single round-trip");
         statements[0].Should().Contain("ON CONFLICT", "the statement must use the atomic upsert");
     }
+
+    [Fact]
+    public async Task UpsertAsync_WhenCancellationTokenAlreadyCancelled_ThrowsOperationCanceled()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act
+        Func<Task> act = () => repository.UpsertAsync("user-cancel", "grid-cancel", "{}", cts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        (await CountRowsAsync("user-cancel", "grid-cancel")).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task UpsertAsync_WhenPostgresRejectsValue_TranslatesToGridLayoutPersistenceException()
+    {
+        // Arrange — GridKey column is character varying(100); 101 chars triggers a Postgres
+        // 22001 string-data-right-truncation error, which is not a unique-violation and
+        // exercises the translator's non-race path.
+        var repository = CreateRepository();
+        var tooLongGridKey = new string('k', 101);
+
+        // Act
+        Func<Task> act = () => repository.UpsertAsync("user-bad", tooLongGridKey, "{}", CancellationToken.None);
+
+        // Assert
+        var thrown = await act.Should().ThrowAsync<GridLayoutPersistenceException>();
+        thrown.Which.InnerException.Should().NotBeNull();
+    }
 }
