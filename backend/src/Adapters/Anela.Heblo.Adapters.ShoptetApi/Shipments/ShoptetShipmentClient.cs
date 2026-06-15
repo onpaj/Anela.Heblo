@@ -140,22 +140,24 @@ public class ShoptetShipmentClient : IShipmentClient
         var weightKg = (command.Package.WeightGrams / 1000.0).ToString("F3",
             System.Globalization.CultureInfo.InvariantCulture);
 
+        var packageCount = command.PackageCount < 1 ? 1 : command.PackageCount;
+        var packages = Enumerable.Range(0, packageCount)
+            .Select(_ => new ShoptetCreatePackageDto
+            {
+                Width = command.Package.WidthMm,
+                Height = command.Package.HeightMm,
+                Depth = command.Package.DepthMm,
+                Weight = weightKg,
+            })
+            .ToList();
+
         var envelope = new ShoptetCreateShipmentRequestEnvelope
         {
             Data = new ShoptetCreateShipmentRequestData
             {
                 OrderCode = command.OrderCode,
                 ShippingId = shippingId,
-                Packages =
-                [
-                    new ShoptetCreatePackageDto
-                    {
-                        Width = command.Package.WidthMm,
-                        Height = command.Package.HeightMm,
-                        Depth = command.Package.DepthMm,
-                        Weight = weightKg,
-                    }
-                ],
+                Packages = packages,
             }
         };
 

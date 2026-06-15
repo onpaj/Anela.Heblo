@@ -31,10 +31,11 @@ public class LeafletDocumentRepository : ILeafletDocumentRepository
         foreach (var chunk in chunkList)
         {
             var embedding = new Vector(chunk.Embedding);
+            // Column list MUST mirror LeafletChunkConfiguration. See memory/gotchas/raw-sql-insert-must-match-ef-mapping.md
             await using var cmd = new NpgsqlCommand(
                 """
-                INSERT INTO "LeafletChunks" ("Id", "DocumentId", "ChunkIndex", "Content", "WordCount", "Embedding")
-                VALUES (@id, @documentId, @chunkIndex, @content, @wordCount, @embedding)
+                INSERT INTO "LeafletChunks" ("Id", "DocumentId", "ChunkIndex", "Content", "Summary", "WordCount", "Embedding")
+                VALUES (@id, @documentId, @chunkIndex, @content, @summary, @wordCount, @embedding)
                 ON CONFLICT ("Id") DO NOTHING
                 """,
                 connection);
@@ -43,6 +44,7 @@ public class LeafletDocumentRepository : ILeafletDocumentRepository
             cmd.Parameters.AddWithValue("documentId", chunk.DocumentId);
             cmd.Parameters.AddWithValue("chunkIndex", chunk.ChunkIndex);
             cmd.Parameters.AddWithValue("content", chunk.Content);
+            cmd.Parameters.AddWithValue("summary", chunk.Summary);
             cmd.Parameters.AddWithValue("wordCount", chunk.WordCount);
             cmd.Parameters.AddWithValue("embedding", embedding);
 
@@ -91,7 +93,7 @@ public class LeafletDocumentRepository : ILeafletDocumentRepository
         // CommandTimeout set to 120s — vector similarity search can be slow without a warm HNSW index.
         await using var cmd = new NpgsqlCommand(
             """
-            SELECT c."Id", c."DocumentId", c."ChunkIndex", c."Content", c."WordCount",
+            SELECT c."Id", c."DocumentId", c."ChunkIndex", c."Content", c."Summary", c."WordCount",
                    d."Filename", d."SourcePath",
                    1 - (c."Embedding" <=> @embedding) AS "Score"
             FROM "LeafletChunks" c
@@ -120,17 +122,18 @@ public class LeafletDocumentRepository : ILeafletDocumentRepository
                 DocumentId = documentId,
                 ChunkIndex = reader.GetInt32(2),
                 Content = reader.GetString(3),
-                WordCount = reader.GetInt32(4),
+                Summary = reader.GetString(4),
+                WordCount = reader.GetInt32(5),
                 Embedding = [],
                 Document = new LeafletDocument
                 {
                     Id = documentId,
-                    Filename = reader.GetString(5),
-                    SourcePath = reader.GetString(6),
+                    Filename = reader.GetString(6),
+                    SourcePath = reader.GetString(7),
                 }
             };
 
-            results.Add((chunk, reader.GetDouble(7)));
+            results.Add((chunk, reader.GetDouble(8)));
         }
 
         return results;

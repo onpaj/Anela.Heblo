@@ -55,11 +55,11 @@ public class ScanShipmentData
     public Guid ShipmentGuid { get; set; }
     public List<ScanShipmentPackage> Packages { get; set; } = [];
     public bool AlreadyExisted { get; set; }
+    public bool PendingCompletion { get; set; }
 }
 
 public class ScanShipmentPackage
 {
-    public string Name { get; set; } = null!;
     public string? TrackingNumber { get; set; }
     public string? LabelUrl { get; set; }
     public string? LabelZpl { get; set; }

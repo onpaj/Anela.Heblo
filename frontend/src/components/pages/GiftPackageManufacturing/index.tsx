@@ -7,6 +7,7 @@ import { useCreateGiftPackageManufacture, useEnqueueGiftPackageManufacture } fro
 import { useStockUpOperationsSummary } from '../../../api/hooks/useStockUpOperations';
 import { CreateGiftPackageManufactureRequest, EnqueueGiftPackageManufactureRequest, StockUpSourceType } from "../../../api/generated/api-client";
 import { useScreenView } from "../../../telemetry/useScreenView";
+import { usePermissionsContext } from '../../../auth/PermissionsContext';
 
 const GiftPackageManufacturing: React.FC = () => {
   // State for manufacturing modal 
@@ -30,13 +31,18 @@ const GiftPackageManufacturing: React.FC = () => {
   const createManufactureMutation = useCreateGiftPackageManufacture();
   const enqueueManufactureMutation = useEnqueueGiftPackageManufacture();
 
-  // Add summary hook for StockUpOperations status
+  // Gate StockUpOperations summary on the matching feature permission.
+  // Backend constant: AccessRoles.WarehouseStockUpRead = "warehouse.stock_up.read"
+  // (see backend/src/Anela.Heblo.Domain/Features/Authorization/AccessRoles.generated.cs).
+  const { hasPermission, isLoading: permsLoading } = usePermissionsContext();
+  const canSeeStockUp = !permsLoading && hasPermission('warehouse.stock_up.read');
+
   const { data: stockUpSummary } = useStockUpOperationsSummary(
-    StockUpSourceType.GiftPackageManufacture
+    StockUpSourceType.GiftPackageManufacture,
+    { enabled: canSeeStockUp },
   );
 
-  // Conditionally show indicator
-  const showIndicator = stockUpSummary &&
+  const showIndicator = canSeeStockUp && stockUpSummary &&
     ((stockUpSummary.totalInQueue ?? 0) > 0 || (stockUpSummary.failedCount ?? 0) > 0);
 
   // Manufacturing modal handlers

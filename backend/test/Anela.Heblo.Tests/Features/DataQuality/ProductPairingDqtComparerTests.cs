@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.DataQuality.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.DataQuality;
@@ -10,10 +11,31 @@ public class ProductPairingDqtComparerTests
 {
     private readonly Mock<IEshopStockClient> _eshopMock = new();
     private readonly Mock<IErpStockClient> _erpMock = new();
+    private readonly Mock<ICatalogResilienceService> _resilienceMock = new();
     private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.Today);
 
+    public ProductPairingDqtComparerTests()
+    {
+        // Pass-through resilience: invoke the inner operation directly.
+        _resilienceMock
+            .Setup(r => r.ExecuteWithResilienceAsync(
+                It.IsAny<Func<CancellationToken, Task<List<EshopStock>>>>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<List<EshopStock>>>, string, CancellationToken>(
+                (op, _, ct) => op(ct));
+
+        _resilienceMock
+            .Setup(r => r.ExecuteWithResilienceAsync(
+                It.IsAny<Func<CancellationToken, Task<IReadOnlyList<ErpStock>>>>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<IReadOnlyList<ErpStock>>>, string, CancellationToken>(
+                (op, _, ct) => op(ct));
+    }
+
     private ProductPairingDqtComparer CreateSut() =>
-        new(_eshopMock.Object, _erpMock.Object);
+        new(_eshopMock.Object, _erpMock.Object, _resilienceMock.Object);
 
     private void SetupEshop(params EshopStock[] products) =>
         _eshopMock.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
@@ -89,5 +111,27 @@ public class ProductPairingDqtComparerTests
         result.Mismatches[0].EntityKey.Should().Be("PROD001");
         ((ProductPairingMismatch)result.Mismatches[0].MismatchCode)
             .Should().HaveFlag(ProductPairingMismatch.MissingInShoptet);
+    }
+
+    [Fact]
+    public async Task CompareAsync_WrapsBothListCalls_WithResilience()
+    {
+        // Arrange
+        SetupEshop(new EshopStock { Code = "P001", PairCode = "", Name = "Product 1" });
+        SetupErp(new ErpStock { ProductCode = "P001", ProductName = "Product 1", ProductTypeId = 1 });
+
+        // Act
+        _ = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
+
+        // Assert
+        _resilienceMock.Verify(r => r.ExecuteWithResilienceAsync(
+            It.IsAny<Func<CancellationToken, Task<List<EshopStock>>>>(),
+            "ProductPairingDqtComparer.EshopList",
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        _resilienceMock.Verify(r => r.ExecuteWithResilienceAsync(
+            It.IsAny<Func<CancellationToken, Task<IReadOnlyList<ErpStock>>>>(),
+            "ProductPairingDqtComparer.ErpList",
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

@@ -6,6 +6,7 @@ namespace Anela.Heblo.Application.Features.Manufacture.DashboardTiles;
 public abstract class UpcomingProductionTile : ITile
 {
     private readonly IManufactureOrderRepository _repository;
+    private readonly TimeProvider _timeProvider;
 
     // Self-describing metadata
     public abstract string Title { get; }
@@ -18,9 +19,10 @@ public abstract class UpcomingProductionTile : ITile
 
     protected abstract DateOnly ReferenceDate { get; set; }
 
-    protected UpcomingProductionTile(IManufactureOrderRepository repository)
+    protected UpcomingProductionTile(IManufactureOrderRepository repository, TimeProvider timeProvider)
     {
         _repository = repository;
+        _timeProvider = timeProvider;
     }
 
     public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
@@ -47,7 +49,7 @@ public abstract class UpcomingProductionTile : ITile
             },
             metadata = new
             {
-                lastUpdated = DateTime.UtcNow,
+                lastUpdated = _timeProvider.GetUtcNow().UtcDateTime,
                 source = "ManufactureOrderRepository"
             },
             drillDown = new
@@ -61,12 +63,13 @@ public abstract class UpcomingProductionTile : ITile
 
     protected virtual object GenerateDrillDownFilters()
     {
+        var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().Date);
         var dateString = ReferenceDate.ToString("yyyy-MM-dd");
-        if (ReferenceDate == DateOnly.FromDateTime(DateTime.Today))
+        if (ReferenceDate == today)
         {
             return new { date = dateString, view = "weekly" };
         }
-        if (ReferenceDate == DateOnly.FromDateTime(DateTime.Today.AddDays(1)))
+        if (ReferenceDate == today.AddDays(1))
         {
             return new { date = dateString, view = "weekly" };
         }
