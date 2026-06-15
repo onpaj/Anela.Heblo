@@ -142,8 +142,8 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                 order.Notes.Add(new ManufactureOrderNote
                 {
                     Text = request.NewNote.Trim(),
-                    CreatedAt = DateTime.UtcNow,
-                    CreatedByUser = currentUser.Name
+                    CreatedAt = _timeProvider.GetUtcNow().DateTime,
+                    CreatedByUser = currentUser.GetDisplayName()
                 });
             }
 

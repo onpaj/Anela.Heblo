@@ -146,7 +146,7 @@ public class ExpeditionProtocolDocument : IDocument
             // Customer info — single right-aligned line
             orderCol.Item().AlignRight().Text(
                 $"{order.CustomerName}, {order.Address} {order.Phone}".Trim())
-                .FontSize(8);
+                .FontSize(11).Bold();
 
             // Items table
             BuildItemsTable(orderCol.Item(), order.Items);

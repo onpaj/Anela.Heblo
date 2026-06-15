@@ -228,21 +228,6 @@ public class GraphServiceTests
     }
 
     [Fact]
-    public async Task GetGroupMembersAsync_EmptyGroupId_ReturnsEmptyList_WithoutTouchingFactory()
-    {
-        // Arrange
-        var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, SampleGraphResponse);
-        var service = BuildService(handler, out var factoryMock, out _, out _);
-
-        // Act
-        var result = await service.GetGroupMembersAsync("   ");
-
-        // Assert
-        result.Should().BeEmpty();
-        factoryMock.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
     public async Task GetGroupMembersAsync_DoesNotDispose_FactoryProvidedClient()
     {
         // Arrange

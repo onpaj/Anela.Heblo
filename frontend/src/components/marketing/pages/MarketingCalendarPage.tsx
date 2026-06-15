@@ -17,15 +17,13 @@ import {
   useMarketingAction,
   useUpdateMarketingAction,
 } from '../../../api/hooks/useMarketingCalendar';
-import { ACTION_TYPE_TO_INT, formatDateStr } from '../calendar/fullcalendarAdapters';
+import { formatDateStr } from '../calendar/fullcalendarAdapters';
 import type { CalendarEvent } from '../calendar/fullcalendarAdapters';
 import { PAGE_CONTAINER_HEIGHT } from '../../../constants/layout';
-import { useAuth } from '../../../auth/useAuth';
+import { usePermissionsContext } from '../../../auth/PermissionsContext';
 import { useIsMobile } from '../../../hooks/useMediaQuery';
 import { MobileAgendaView } from '../calendar/MobileAgendaView';
 import { useScreenView } from '../../../telemetry/useScreenView';
-
-const MARKETING_IMPORT_ROLE = 'super_user';
 
 const CZECH_MONTHS = [
   'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
@@ -80,8 +78,8 @@ const MarketingCalendarPage: React.FC = () => {
     }
   };
 
-  const { getUserInfo } = useAuth();
-  const isAdmin = getUserInfo()?.roles?.includes(MARKETING_IMPORT_ROLE) ?? false;
+  const { hasPermission } = usePermissionsContext();
+  const isAdmin = hasPermission('marketing.marketing_calendar.write');
 
   const { startDate, endDate } = useMemo(() => {
     if (visibleRange) {
@@ -214,7 +212,7 @@ const MarketingCalendarPage: React.FC = () => {
         id,
         request: {
           title: event.title,
-          actionType: ACTION_TYPE_TO_INT[event.actionType] ?? 99,
+          actionType: event.actionType,
           startDate: new Date(dateFrom),
           endDate: new Date(dateTo),
           associatedProducts: event.associatedProducts,

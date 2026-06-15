@@ -164,15 +164,18 @@ public class ModuleBoundariesTests
     // adapter that surfaces eshop/erp product snapshots without leaking Catalog types.
     private static readonly HashSet<string> DataQualityCatalogAllowlist = new(StringComparer.Ordinal)
     {
-        // ProductPairingDqtComparer reads eshop/erp catalog clients to compare product pairing.
+        // ProductPairingDqtComparer reads eshop/erp catalog clients to compare product pairing,
+        // wrapped in ICatalogResilienceService for transient-fault protection.
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.IEshopStockClient",
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.IErpStockClient",
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStock",
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.ProductType",
+        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Application.Features.Catalog.Infrastructure.ICatalogResilienceService",
 
-        // Compiler-generated async state machine <CompareAsync>d__5 captures EshopStock in local
-        // fields when comparing product pairings. Covered by the declaring-type check above.
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer+<CompareAsync>d__5 -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStock",
+        // Compiler-generated async state machines and lambdas for CompareAsync capture EshopStock.
+        // The declaring-type check covers nested types (<CompareAsync>d__6, <<CompareAsync>b__6_1>d)
+        // via this single parent entry.
+        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStock",
     };
 
     // Allowlist for DataQuality -> Invoices. The DataQuality module owns IInvoiceShoptetSource
@@ -219,11 +222,11 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.Services.ResidueDistributionCalculator+<CalculateAsync>d__3 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient.CalculateBatchByIngredientHandler+<Handle>d__3 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize.CalculatedBatchSizeHandler+<Handle>d__3 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan.CalculateBatchPlanHandler+<Handle>d__6 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan.CalculateBatchPlanHandler+<Handle>d__7 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrder.CreateManufactureOrderHandler+<Handle>d__6 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<>c__DisplayClass4_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<>c__DisplayClass5_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<Handle>d__5 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf.GetSemiproductRecipePdfHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
@@ -253,6 +256,15 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingLot",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingRequest",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
+
+        // Follow-up (same as ProductCatalogSnapshot): GetManufactureStockTakingHistoryHandler reads
+        // CatalogAggregate via IManufactureCatalogSource and projects StockTakingRecord. The DTO
+        // declares a StockTakingType property to match the Catalog DTO byte-for-byte (FR-6).
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingType",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.ManufactureStockTakingHistoryItemDto -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingType",
     };
 
     // Allowlist for ExpeditionList -> Logistics.
@@ -289,6 +301,16 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrder",
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
+
+        "Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder.CompletePackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IEshopOrderClient",
+
+        // GetPackingDashboardHandler consumes IPackingOrderClient to read the orders-being-packed
+        // count for the dashboard (no ShoptetOrders DTOs cross the boundary — the call returns int?).
+        "Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard.GetPackingDashboardHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
+
+        // PackingStatsTile is a dashboard tile that mirrors GetPackingDashboardHandler's logic;
+        // it consumes only IPackingOrderClient (returns int?) — no ShoptetOrders DTOs cross the boundary.
+        "Anela.Heblo.Application.Features.Packaging.DashboardTiles.PackingStatsTile -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
     };
 
     public static TheoryData<ModuleBoundaryRule> Rules() => new()

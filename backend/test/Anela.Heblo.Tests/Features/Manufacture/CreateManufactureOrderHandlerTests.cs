@@ -17,7 +17,11 @@ public class CreateManufactureOrderHandlerTests
     private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<IProductNameFormatter> _productNameFormatterMock;
+    private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly CreateManufactureOrderHandler _handler;
+
+    private static readonly DateTimeOffset FixedNow =
+        new(2026, 6, 8, 10, 0, 0, TimeSpan.Zero);
 
     private const string ValidProductCode = "SEMI001";
     private const string ValidProductName = "Test Semi Product";
@@ -33,6 +37,8 @@ public class CreateManufactureOrderHandlerTests
         _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _productNameFormatterMock = new Mock<IProductNameFormatter>();
+        _timeProviderMock = new Mock<TimeProvider>();
+        _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(FixedNow);
 
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
@@ -44,7 +50,7 @@ public class CreateManufactureOrderHandlerTests
             _productNameFormatterMock.Object,
             _catalogRepositoryMock.Object,
             _currentUserServiceMock.Object,
-            TimeProvider.System);
+            _timeProviderMock.Object);
     }
 
     [Fact]
@@ -58,7 +64,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -88,7 +94,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -109,6 +115,8 @@ public class CreateManufactureOrderHandlerTests
         capturedOrder.PlannedDate.Should().Be(request.PlannedDate);
         capturedOrder.State.Should().Be(ManufactureOrderState.Draft);
         capturedOrder.StateChangedByUser.Should().Be("Test User");
+        capturedOrder.CreatedDate.Should().Be(FixedNow.UtcDateTime);
+        capturedOrder.StateChangedAt.Should().Be(FixedNow.UtcDateTime);
     }
 
     [Fact]
@@ -123,7 +131,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -163,7 +171,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -201,7 +209,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -248,7 +256,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -286,7 +294,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -300,7 +308,7 @@ public class CreateManufactureOrderHandlerTests
         await _handler.Handle(request, CancellationToken.None);
 
         _repositoryMock.Verify(
-            x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()),
+            x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -315,7 +323,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -353,7 +361,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -382,7 +390,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -406,7 +414,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Order number generation failed"));
 
         var action = async () => await _handler.Handle(request, CancellationToken.None);
@@ -525,7 +533,7 @@ public class CreateManufactureOrderHandlerTests
             .ReturnsAsync(CreateValidCatalogItem());
 
         _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(GeneratedOrderNumber);
 
         _repositoryMock
@@ -580,5 +588,116 @@ public class CreateManufactureOrderHandlerTests
                 ExpirationMonths = 12
             }
         };
+    }
+
+    [Fact]
+    public async Task Handle_AtYearEndUtc_PassesUtcYearToRepository()
+    {
+        // Arrange — fake clock at 2026-12-31 23:30 UTC; local time zone is irrelevant.
+        var yearEndUtc = new DateTimeOffset(2026, 12, 31, 23, 30, 0, TimeSpan.Zero);
+        _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(yearEndUtc);
+
+        int? capturedYear = null;
+        _repositoryMock
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            // Capture the year argument passed to the repository
+            .Callback<int, CancellationToken>((year, _) => capturedYear = year)
+            .ReturnsAsync("MO-2026-001");
+
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+
+        _repositoryMock
+            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken _) => { order.Id = 1; return order; });
+
+        // Act
+        var response = await _handler.Handle(CreateValidRequest(), CancellationToken.None);
+
+        // Assert — year must be 2026, regardless of the host time zone.
+        capturedYear.Should().Be(2026);
+        response.OrderNumber.Should().StartWith("MO-2026-");
+    }
+
+    [Fact]
+    public async Task Handle_AtYearStartUtc_PassesUtcYearToRepository()
+    {
+        // Arrange — fake clock at 2027-01-01 00:30 UTC.
+        var yearStartUtc = new DateTimeOffset(2027, 1, 1, 0, 30, 0, TimeSpan.Zero);
+        _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(yearStartUtc);
+
+        int? capturedYear = null;
+        _repositoryMock
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            // Capture the year argument passed to the repository
+            .Callback<int, CancellationToken>((year, _) => capturedYear = year)
+            .ReturnsAsync("MO-2027-001");
+
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+
+        _repositoryMock
+            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken _) => { order.Id = 1; return order; });
+
+        // Act
+        var response = await _handler.Handle(CreateValidRequest(), CancellationToken.None);
+
+        // Assert
+        capturedYear.Should().Be(2027);
+        response.OrderNumber.Should().StartWith("MO-2027-");
+    }
+
+    [Fact]
+    public async Task Handle_WhenClockCrossesYearBoundaryBetweenReads_KeepsYearAndCreatedDateConsistent()
+    {
+        // Arrange — first read just before midnight UTC on 2026-12-31; any subsequent read jumps to 2027-01-01.
+        var beforeMidnight = new DateTimeOffset(2026, 12, 31, 23, 59, 59, 999, TimeSpan.Zero);
+        var afterMidnight = new DateTimeOffset(2027, 1, 1, 0, 0, 0, 1, TimeSpan.Zero);
+
+        _timeProviderMock
+            .SetupSequence(x => x.GetUtcNow())
+            .Returns(beforeMidnight)
+            .Returns(afterMidnight)
+            .Returns(afterMidnight)
+            .Returns(afterMidnight)
+            .Returns(afterMidnight);
+
+        int? capturedYear = null;
+        ManufactureOrder? capturedOrder = null;
+
+        _repositoryMock
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            // Capture the year argument passed to the repository
+            .Callback<int, CancellationToken>((year, _) => capturedYear = year)
+            // Lambda form: return value reflects the actual year passed so the OrderNumber assertion is meaningful.
+            .ReturnsAsync((int year, CancellationToken _) => $"MO-{year}-001");
+
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+
+        _repositoryMock
+            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken _) =>
+            {
+                capturedOrder = order;
+                order.Id = 1;
+                return order;
+            });
+
+        // Act
+        var response = await _handler.Handle(CreateValidRequest(), CancellationToken.None);
+
+        // Assert — year used for the OrderNumber must match the row's CreatedDate year.
+        capturedYear.Should().Be(2026);
+        capturedOrder.Should().NotBeNull();
+        capturedOrder!.CreatedDate.Year.Should().Be(2026);
+        capturedOrder.StateChangedAt.Year.Should().Be(2026);
+        capturedOrder.OrderNumber.Should().StartWith("MO-2026-");
+        response.OrderNumber.Should().StartWith("MO-2026-");
+        response.OrderNumber.Should().Be(capturedOrder!.OrderNumber);
     }
 }

@@ -17,6 +17,9 @@ public class SmartsuppRepositoryContactConversationsTests
         return new ApplicationDbContext(options);
     }
 
+    private static SmartsuppRepository NewRepo(ApplicationDbContext db) =>
+        SmartsuppRepositoryTestFactory.New(db);
+
     private static SmartsuppConversation MakeConversation(string id, string? contactId, DateTime lastMessageAt) =>
         new()
         {
@@ -40,7 +43,7 @@ public class SmartsuppRepositoryContactConversationsTests
         db.SmartsuppConversations.AddRange(older, newer, current);
         await db.SaveChangesAsync();
 
-        var repo = new SmartsuppRepository(db);
+        var repo = NewRepo(db);
 
         // Act
         var result = await repo.ListConversationsForContactAsync("contact-1", "c-current", CancellationToken.None);
@@ -61,7 +64,7 @@ public class SmartsuppRepositoryContactConversationsTests
         db.SmartsuppConversations.AddRange(sibling, current);
         await db.SaveChangesAsync();
 
-        var repo = new SmartsuppRepository(db);
+        var repo = NewRepo(db);
 
         // Act
         var result = await repo.ListConversationsForContactAsync("contact-1", "c-current", CancellationToken.None);
@@ -82,7 +85,7 @@ public class SmartsuppRepositoryContactConversationsTests
         db.SmartsuppConversations.AddRange(mine, theirs, current);
         await db.SaveChangesAsync();
 
-        var repo = new SmartsuppRepository(db);
+        var repo = NewRepo(db);
 
         // Act
         var result = await repo.ListConversationsForContactAsync("contact-1", "c-current", CancellationToken.None);
@@ -102,7 +105,7 @@ public class SmartsuppRepositoryContactConversationsTests
         db.SmartsuppConversations.AddRange(conversations);
         await db.SaveChangesAsync();
 
-        var repo = new SmartsuppRepository(db);
+        var repo = NewRepo(db);
 
         // Act — "c-none" doesn't exist, so nothing is excluded
         var result = await repo.ListConversationsForContactAsync("contact-1", "c-none", CancellationToken.None);

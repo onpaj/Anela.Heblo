@@ -14,7 +14,6 @@ import {
   useReimportMeeting,
   useExplainMeetingSummary,
 } from '../../../../api/hooks/useMeetingTasks';
-import { useMeetingManagerPermission } from '../../../../api/hooks/useMeetingManagerPermission';
 import { useExplainSelection } from '../explain/useExplainSelection';
 import MeetingTaskDetailPage from '../MeetingTaskDetailPage';
 
@@ -24,7 +23,16 @@ jest.mock('react-markdown', () => ({ __esModule: true, default: ({ children }: {
 jest.mock('remark-gfm', () => ({ __esModule: true, default: () => {} }));
 
 jest.mock('../../../../api/hooks/useMeetingTasks');
-jest.mock('../../../../api/hooks/useMeetingManagerPermission');
+let mockHasPermission: (perm: string) => boolean = () => false;
+jest.mock('../../../../auth/PermissionsContext', () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+    hasPermission: (p: string) => mockHasPermission(p),
+  }),
+}));
 jest.mock('../explain/useExplainSelection');
 jest.mock('../explain/ExplainTooltip', () => ({ ExplainTooltip: () => null }));
 jest.mock('../explain/ExplainModal', () => ({ ExplainModal: () => null }));
@@ -82,13 +90,15 @@ function setupHooks(transcriptOverrides: Parameters<typeof buildTranscript>[0] =
   (useMeetingUsers as jest.Mock).mockReturnValue({ data: [] });
   (useReimportMeeting as jest.Mock).mockReturnValue(noopMutation);
   (useExplainMeetingSummary as jest.Mock).mockReturnValue(noopMutation);
-  (useMeetingManagerPermission as jest.Mock).mockReturnValue(false);
   (useExplainSelection as jest.Mock).mockReturnValue({ selectedText: null, clearSelection: jest.fn() });
 }
 
 // ---- Tests ----
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockHasPermission = () => false;
+});
 
 describe('download summary button', () => {
   it('is visible when summary is non-empty', () => {
@@ -137,5 +147,21 @@ describe('download transcript button', () => {
       'schůzka-s-týmem-transcript.txt',
       'text/plain',
     );
+  });
+});
+
+describe('manage access button', () => {
+  it('is hidden when user lacks anela.meetings.write', () => {
+    mockHasPermission = () => false;
+    setupHooks();
+    renderPage();
+    expect(screen.queryByRole('button', { name: /spravovat přístup/i })).not.toBeInTheDocument();
+  });
+
+  it('is visible when user has anela.meetings.write', () => {
+    mockHasPermission = (p) => p === 'anela.meetings.write';
+    setupHooks();
+    renderPage();
+    expect(screen.getByRole('button', { name: /spravovat přístup/i })).toBeInTheDocument();
   });
 });

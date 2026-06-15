@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Shared.Rag;
@@ -27,7 +28,7 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
     {
         _logger.LogInformation("Indexing document {Filename} from {SourcePath}", request.Filename, request.SourcePath);
 
-        var contentType = ResolveContentType(request.ContentType, request.Filename);
+        var contentType = ContentTypeResolver.Resolve(request.ContentType, request.Filename);
         var contentHash = Convert.ToHexString(SHA256.HashData(request.Content));
 
         var useGraphIdentity = !string.IsNullOrEmpty(request.GraphItemId) && !string.IsNullOrEmpty(request.DriveId);
@@ -133,21 +134,4 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
             IndexedAt = document.IndexedAt,
         };
     }
-
-    /// <summary>
-    /// Resolves the effective content type, falling back to file extension when the source
-    /// reports a generic type (application/octet-stream).
-    /// </summary>
-    private static string ResolveContentType(string contentType, string filename) =>
-        string.IsNullOrEmpty(contentType) || contentType.Equals("application/octet-stream", StringComparison.OrdinalIgnoreCase)
-            ? Path.GetExtension(filename).ToLowerInvariant() switch
-            {
-                ".pdf" => "application/pdf",
-                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                ".doc" => "application/msword",
-                ".txt" => "text/plain",
-                ".md" => "text/markdown",
-                _ => contentType
-            }
-            : contentType;
 }

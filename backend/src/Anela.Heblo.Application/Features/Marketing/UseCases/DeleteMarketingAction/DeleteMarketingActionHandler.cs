@@ -44,6 +44,8 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
                     new Dictionary<string, string> { { "resource", "marketing_action" } });
             }
 
+            var now = DateTime.UtcNow;
+
             var action = await _repository.GetByIdAsync(request.Id, cancellationToken);
             if (action == null)
             {
@@ -72,10 +74,12 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
                 }
             }
 
+            action.SoftDelete(currentUser.Id, currentUser.Name ?? "Unknown User", now);
+
             try
             {
-                await _repository.DeleteSoftAsync(
-                    request.Id, currentUser.Id, currentUser.Name ?? "Unknown User", cancellationToken);
+                await _repository.UpdateAsync(action, cancellationToken);
+                await _repository.SaveChangesAsync(cancellationToken);
             }
             catch (Exception ex)
             {

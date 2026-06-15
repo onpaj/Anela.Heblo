@@ -8,16 +8,18 @@ using Anela.Heblo.Application.Features.Authorization.UseCases.GetPermissionCatal
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetUserEffectivePermissions;
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetEntraAccessUsers;
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetUsers;
+using Anela.Heblo.Application.Features.Authorization.UseCases.CreateLocalUser;
 using Anela.Heblo.Application.Features.Authorization.UseCases.SetUserActive;
+using Anela.Heblo.Application.Features.Authorization.UseCases.SetUserCanPack;
 using Anela.Heblo.Application.Features.Authorization.UseCases.UpdateGroup;
+using Anela.Heblo.Application.Features.Authorization.UseCases.UpdateUser;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize(Roles = AccessRoles.AdministrationRead)]
+[FeatureAuthorize(Feature.Admin_Administration)]
 [ApiController]
 [Route("api/admin/authorization")]
 public class AuthorizationController : BaseApiController
@@ -38,12 +40,12 @@ public class AuthorizationController : BaseApiController
         => HandleResponse(await _mediator.Send(new GetGroupDetailRequest { Id = id }, ct));
 
     [HttpPost("groups")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult<CreateGroupResponse>> CreateGroup([FromBody] CreateGroupRequest request, CancellationToken ct)
         => HandleResponse(await _mediator.Send(request, ct));
 
     [HttpPut("groups/{id:guid}")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult<UpdateGroupResponse>> UpdateGroup([FromRoute] Guid id, [FromBody] UpdateGroupRequest request, CancellationToken ct)
     {
         request.Id = id;
@@ -51,12 +53,12 @@ public class AuthorizationController : BaseApiController
     }
 
     [HttpDelete("groups/{id:guid}")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult<DeleteGroupResponse>> DeleteGroup([FromRoute] Guid id, CancellationToken ct)
         => HandleResponse(await _mediator.Send(new DeleteGroupRequest { Id = id }, ct));
 
     [HttpPost("groups/{id:guid}/members")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult<AddGroupMemberResponse>> AddGroupMember([FromRoute] Guid id, [FromBody] AddGroupMemberRequest request, CancellationToken ct)
     {
         request.GroupId = id;
@@ -76,7 +78,7 @@ public class AuthorizationController : BaseApiController
         => HandleResponse(await _mediator.Send(new GetUserEffectivePermissionsRequest { UserId = id }, ct));
 
     [HttpPut("users/{id:guid}/groups")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult<AssignUserGroupsResponse>> AssignGroups([FromRoute] Guid id, [FromBody] AssignUserGroupsRequest request, CancellationToken ct)
     {
         request.UserId = id;
@@ -84,8 +86,29 @@ public class AuthorizationController : BaseApiController
     }
 
     [HttpPut("users/{id:guid}/active")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult<SetUserActiveResponse>> SetActive([FromRoute] Guid id, [FromBody] SetUserActiveRequest request, CancellationToken ct)
+    {
+        request.UserId = id;
+        return HandleResponse(await _mediator.Send(request, ct));
+    }
+
+    [HttpPut("users/{id:guid}")]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
+    public async Task<ActionResult<UpdateUserResponse>> UpdateUser([FromRoute] Guid id, [FromBody] UpdateUserRequest request, CancellationToken ct)
+    {
+        request.UserId = id;
+        return HandleResponse(await _mediator.Send(request, ct));
+    }
+
+    [HttpPost("users/local")]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
+    public async Task<ActionResult<CreateLocalUserResponse>> CreateLocalUser([FromBody] CreateLocalUserRequest request, CancellationToken ct)
+        => HandleResponse(await _mediator.Send(request, ct));
+
+    [HttpPut("users/{id:guid}/can-pack")]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
+    public async Task<ActionResult<SetUserCanPackResponse>> SetCanPack([FromRoute] Guid id, [FromBody] SetUserCanPackRequest request, CancellationToken ct)
     {
         request.UserId = id;
         return HandleResponse(await _mediator.Send(request, ct));

@@ -54,4 +54,69 @@ public class ShippingMethodCatalogTests
         result.Should().Contain((Carriers.PPL, DeliveryHandling.Box));
         result.Should().Contain((Carriers.GLS, DeliveryHandling.Box));
     }
+
+    [Fact]
+    public void GetShippingCodesForCarrier_Ppl_ReturnsAllPplShippingIds()
+    {
+        var result = _sut.GetShippingCodesForCarrier(Carriers.PPL);
+
+        // Legacy methods plus the 2025+ scheme (PPL box / výdejní místa / do ruky).
+        result.Should().BeEquivalentTo(new[] { "6", "80", "86", "358", "361", "379", "490", "496", "493" });
+    }
+
+    [Fact]
+    public void GetShippingCodesForCarrier_Zasilkovna_IncludesNewSchemeIds()
+    {
+        var result = _sut.GetShippingCodesForCarrier(Carriers.Zasilkovna);
+
+        result.Should().Contain(new[] { "502", "505" });
+    }
+
+    [Fact]
+    public void GetShippingCodesForCarrier_Gls_IncludesNewSchemeIds()
+    {
+        var result = _sut.GetShippingCodesForCarrier(Carriers.GLS);
+
+        result.Should().Contain(new[] { "511", "508" });
+    }
+
+    [Theory]
+    [InlineData("490", Carriers.PPL)]
+    [InlineData("496", Carriers.PPL)]
+    [InlineData("493", Carriers.PPL)]
+    [InlineData("502", Carriers.Zasilkovna)]
+    [InlineData("505", Carriers.Zasilkovna)]
+    [InlineData("511", Carriers.GLS)]
+    [InlineData("508", Carriers.GLS)]
+    public void ResolveCarrier_NewSchemeId_ReturnsCarrier(string code, Carriers expected)
+    {
+        _sut.ResolveCarrier(code).Should().Be(expected);
+    }
+
+    [Fact]
+    public void GetShippingCodesForCarrier_Osobak_ReturnsSingleId()
+    {
+        var result = _sut.GetShippingCodesForCarrier(Carriers.Osobak);
+
+        result.Should().BeEquivalentTo(new[] { "4" });
+    }
+
+    [Theory]
+    [InlineData("21", Carriers.Zasilkovna)]
+    [InlineData("6", Carriers.PPL)]
+    [InlineData("97", Carriers.GLS)]
+    [InlineData("4", Carriers.Osobak)]
+    public void ResolveCarrier_KnownId_ReturnsCarrier(string code, Carriers expected)
+    {
+        _sut.ResolveCarrier(code).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("999")]
+    [InlineData("abc")]
+    [InlineData("")]
+    public void ResolveCarrier_UnknownOrNonNumeric_ReturnsNull(string code)
+    {
+        _sut.ResolveCarrier(code).Should().BeNull();
+    }
 }

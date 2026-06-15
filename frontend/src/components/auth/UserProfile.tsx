@@ -27,6 +27,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
   const { permissions, groups, isSuperUser, isLoading: permissionsLoading } =
     usePermissionsContext();
 
+  const tokenRoles = userInfo?.roles ?? [];
+  const displayRoles = isSuperUser && !tokenRoles.includes("super_user")
+    ? ["super_user", ...tokenRoles]
+    : tokenRoles;
+
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
@@ -166,7 +171,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
             </div>
 
             {/* Roles */}
-            {userInfo?.roles && userInfo.roles.length > 0 && (
+            {displayRoles.length > 0 && (
               <div className="px-5 py-4 border-b border-gray-100">
                 <div className="flex items-center space-x-2 mb-3">
                   <ShieldCheck className="h-4 w-4 text-primary-blue" />
@@ -175,10 +180,14 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {userInfo.roles.map((role) => (
+                  {displayRoles.map((role) => (
                     <span
                       key={role}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary-blue-pale text-primary-blue"
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                        role === "super_user"
+                          ? "bg-amber-50 text-amber-700"
+                          : "bg-secondary-blue-pale text-primary-blue"
+                      }`}
                     >
                       {role}
                     </span>
@@ -196,21 +205,20 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     Oprávnění
                   </span>
                 </div>
+                {isSuperUser && (
+                  <p className="text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded-md mb-3">
+                    Super User · vše povoleno
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-2">
-                  {isSuperUser ? (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
-                      Super User · vše povoleno
+                  {permissions.map((perm) => (
+                    <span
+                      key={perm}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700"
+                    >
+                      {perm}
                     </span>
-                  ) : (
-                    permissions.map((perm) => (
-                      <span
-                        key={perm}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700"
-                      >
-                        {perm}
-                      </span>
-                    ))
-                  )}
+                  ))}
                 </div>
               </div>
             )}

@@ -41,6 +41,8 @@ public enum ErrorCodes
     Forbidden = 0014,
     [HttpStatusCode(HttpStatusCode.Unauthorized)]
     TokenExpired = 0015,
+    [HttpStatusCode(HttpStatusCode.Forbidden)]
+    InsufficientPermissions = 0016,
     [HttpStatusCode(HttpStatusCode.InternalServerError)]
     Exception = 0099,
 
@@ -371,6 +373,12 @@ public enum ErrorCodes
     PackageLabelDownloadFailed = 3005,
     [HttpStatusCode(HttpStatusCode.NotFound)]
     PackageNotFound = 3006,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidPackageCount = 3007,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    PackingCompletionFailed = 3008,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    PackingUserNotEligible = 3009,
 
     // CatalogDocuments module errors (31XX)
     [HttpStatusCode(HttpStatusCode.BadRequest)]

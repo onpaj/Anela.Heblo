@@ -37,6 +37,69 @@ public class GraphService : IGraphService
         _configuration = configuration;
     }
 
+    /// <summary>
+    /// Parses Microsoft Graph API response JSON to extract user members.
+    /// An entry is treated as a user if:
+    /// - @odata.type contains "user" (case-insensitive), OR
+    /// - userPrincipalName property exists
+    /// </summary>
+    internal static (List<UserDto> Users, int TotalCount) ParseMembersFromJson(string json)
+    {
+        using var jsonDocument = System.Text.Json.JsonDocument.Parse(json);
+
+        var members = new List<UserDto>();
+        var totalMembers = 0;
+
+        if (!jsonDocument.RootElement.TryGetProperty("value", out var valueElement) ||
+            valueElement.ValueKind != System.Text.Json.JsonValueKind.Array)
+        {
+            return (members, totalMembers);
+        }
+
+        foreach (var memberElement in valueElement.EnumerateArray())
+        {
+            totalMembers++;
+
+            // Discrimination rule: an entry is a user if:
+            // (@odata.type exists AND Contains("user", OrdinalIgnoreCase)) OR (userPrincipalName property exists)
+            if ((memberElement.TryGetProperty("@odata.type", out var odataType) &&
+                 odataType.GetString()?.Contains("user", StringComparison.OrdinalIgnoreCase) == true) ||
+                memberElement.TryGetProperty("userPrincipalName", out _))
+            {
+                var id = memberElement.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty;
+                var displayName = memberElement.TryGetProperty("displayName", out var nameProp) ? nameProp.GetString() ?? string.Empty : string.Empty;
+                var mail = memberElement.TryGetProperty("mail", out var mailProp) ? mailProp.GetString() : null;
+                var userPrincipalName = memberElement.TryGetProperty("userPrincipalName", out var upnProp) ? upnProp.GetString() : null;
+
+                members.Add(new UserDto
+                {
+                    Id = id,
+                    DisplayName = displayName,
+                    Email = mail ?? userPrincipalName ?? string.Empty
+                });
+            }
+        }
+
+        return (members, totalMembers);
+    }
+
+    private async Task<string> AcquireGraphTokenAsync(string groupId, CancellationToken cancellationToken)
+    {
+        // Acquire Graph API token using application permissions (not user context)
+        var scope = "https://graph.microsoft.com/.default";
+        _logger.LogInformation("Attempting to acquire MS Graph token with application scope: {Scope}", scope);
+
+        var tokenStart = DateTime.UtcNow;
+        var graphToken = await _tokenAcquisition.GetAccessTokenForAppAsync(scope);
+        var tokenDuration = DateTime.UtcNow - tokenStart;
+        _logger.LogInformation("Successfully acquired MS Graph application token in {Duration}ms", tokenDuration.TotalMilliseconds);
+
+        // Log token length for troubleshooting (not the actual token)
+        _logger.LogDebug("Token acquired with length: {TokenLength} characters", graphToken?.Length ?? 0);
+
+        return graphToken;
+    }
+
     public async Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Starting GetGroupMembersAsync for groupId: {GroupId}", groupId);
@@ -53,26 +116,7 @@ public class GraphService : IGraphService
 
         try
         {
-            // Validate groupId
-            if (string.IsNullOrWhiteSpace(groupId))
-            {
-                _logger.LogWarning("GroupId is null or empty for MS Entra group lookup");
-                return new List<UserDto>();
-            }
-
-            _logger.LogInformation("GroupId validation passed. GroupId: {GroupId}", groupId);
-
-            // Acquire Graph API token using application permissions (not user context)
-            var scope = "https://graph.microsoft.com/.default";
-            _logger.LogInformation("Attempting to acquire MS Graph token with application scope: {Scope}", scope);
-
-            var tokenStart = DateTime.UtcNow;
-            var graphToken = await _tokenAcquisition.GetAccessTokenForAppAsync(scope);
-            var tokenDuration = DateTime.UtcNow - tokenStart;
-            _logger.LogInformation("Successfully acquired MS Graph application token in {Duration}ms", tokenDuration.TotalMilliseconds);
-
-            // Log token length for troubleshooting (not the actual token)
-            _logger.LogDebug("Token acquired with length: {TokenLength} characters", graphToken?.Length ?? 0);
+            var graphToken = await AcquireGraphTokenAsync(groupId, cancellationToken);
 
             // Get group members from Microsoft Graph.
             // Matches the shared "MicrosoftGraph" named client used by Marketing/MeetingTasks/CatalogDocuments/KnowledgeBase/Photobank modules.
@@ -106,56 +150,9 @@ public class GraphService : IGraphService
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogDebug("MS Graph API response received. Content length: {ContentLength} characters", responseContent?.Length ?? 0);
 
-            using var jsonDocument = System.Text.Json.JsonDocument.Parse(responseContent);
-
-            var members = new List<UserDto>();
-            var totalMembers = 0;
-            var userMembers = 0;
-
-            if (jsonDocument.RootElement.TryGetProperty("value", out var valueElement) && valueElement.ValueKind == System.Text.Json.JsonValueKind.Array)
-            {
-                _logger.LogInformation("Processing MS Graph response array with {ArrayLength} total members", valueElement.GetArrayLength());
-
-                foreach (var memberElement in valueElement.EnumerateArray())
-                {
-                    totalMembers++;
-
-                    // Check if this is a user object (has userPrincipalName or @odata.type indicates user)
-                    if (memberElement.TryGetProperty("@odata.type", out var odataType) &&
-                        odataType.GetString()?.Contains("user", StringComparison.OrdinalIgnoreCase) == true ||
-                        memberElement.TryGetProperty("userPrincipalName", out _))
-                    {
-                        userMembers++;
-
-                        var id = memberElement.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty;
-                        var displayName = memberElement.TryGetProperty("displayName", out var nameProp) ? nameProp.GetString() ?? string.Empty : string.Empty;
-                        var mail = memberElement.TryGetProperty("mail", out var mailProp) ? mailProp.GetString() : null;
-                        var userPrincipalName = memberElement.TryGetProperty("userPrincipalName", out var upnProp) ? upnProp.GetString() : null;
-
-                        _logger.LogDebug("Processing user member: Id={UserId}, DisplayName={DisplayName}, HasMail={HasMail}, HasUPN={HasUPN}",
-                            id, displayName, !string.IsNullOrEmpty(mail), !string.IsNullOrEmpty(userPrincipalName));
-
-                        members.Add(new UserDto
-                        {
-                            Id = id,
-                            DisplayName = displayName,
-                            Email = mail ?? userPrincipalName ?? string.Empty
-                        });
-                    }
-                    else
-                    {
-                        var memberType = memberElement.TryGetProperty("@odata.type", out var type) ? type.GetString() : "unknown";
-                        _logger.LogDebug("Skipping non-user member with type: {MemberType}", memberType);
-                    }
-                }
-
-                _logger.LogInformation("Processed {TotalMembers} total members, {UserMembers} user members for group {GroupId}",
-                    totalMembers, userMembers, groupId);
-            }
-            else
-            {
-                _logger.LogWarning("MS Graph response does not contain expected 'value' array property for group {GroupId}", groupId);
-            }
+            var (members, totalMembers) = ParseMembersFromJson(responseContent);
+            _logger.LogInformation("Processed {TotalMembers} total members, {UserMembers} user members for group {GroupId}",
+                totalMembers, members.Count, groupId);
 
             // Cache the results
             _cache.Set(cacheKey, members, _cacheExpiration);

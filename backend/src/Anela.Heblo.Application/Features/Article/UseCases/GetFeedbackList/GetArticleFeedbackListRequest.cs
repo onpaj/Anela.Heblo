@@ -36,6 +36,7 @@ public class ArticleFeedbackSummary
     public string? Title { get; set; }
     public string Topic { get; set; } = string.Empty;
     public string? RequestedBy { get; set; }
+    public string? UserName { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public int? PrecisionScore { get; set; }
     public int? StyleScore { get; set; }

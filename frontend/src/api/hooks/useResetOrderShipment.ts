@@ -9,6 +9,7 @@ interface ApiClientWithInternals {
 
 const RESET_ERROR_MESSAGES: Partial<Record<string, string>> = {
   NoShipmentToReset: 'Žádná zásilka k invalidaci.',
+  InvalidPackageCount: 'Neplatný počet balíků.',
   ShipmentCancelFailed: 'Shoptet nemohl zrušit zásilku.',
   ShipmentCreationFailed: 'Shoptet nemohl vytvořit novou zásilku.',
   ShipmentCarrierNotResolved: 'Dopravce se nepodařilo určit.',
@@ -17,10 +18,18 @@ const RESET_ERROR_MESSAGES: Partial<Record<string, string>> = {
 
 const GENERIC_RESET_ERROR = 'Chyba při invalidaci zásilky.';
 
-const resetOrderShipment = async (orderCode: string): Promise<ScanShipment> => {
+export type ResetOrderShipmentVariables = {
+  orderCode: string;
+  numberOfPackages?: number;
+};
+
+const resetOrderShipment = async ({
+  orderCode,
+  numberOfPackages = 1,
+}: ResetOrderShipmentVariables): Promise<ScanShipment> => {
   const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
   const response = await apiClient.http.fetch(
-    `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/shipment/reset`,
+    `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/shipment/reset?numberOfPackages=${numberOfPackages}`,
     { method: 'POST' }
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,6 +44,6 @@ const resetOrderShipment = async (orderCode: string): Promise<ScanShipment> => {
 };
 
 export const useResetOrderShipment = () =>
-  useMutation<ScanShipment, Error, string>({
+  useMutation<ScanShipment, Error, ResetOrderShipmentVariables>({
     mutationFn: resetOrderShipment,
   });

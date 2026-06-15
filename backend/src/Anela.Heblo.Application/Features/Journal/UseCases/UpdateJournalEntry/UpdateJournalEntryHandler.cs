@@ -45,8 +45,12 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.UpdateJournalEntry
                 });
             }
 
-            // Check if user owns the entry (for now, allow all authenticated users to edit)
-            // In production, you might want to restrict this to the original author
+            if (string.IsNullOrWhiteSpace(request.Title))
+            {
+                return new UpdateJournalEntryResponse(
+                    ErrorCodes.InvalidJournalTitle,
+                    new Dictionary<string, string> { { "field", "title" } });
+            }
 
             entry.Update(
                 request.Title,

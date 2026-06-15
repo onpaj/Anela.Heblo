@@ -1,14 +1,13 @@
 using Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[FeatureAuthorize(Feature.Admin_Administration)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AccessRoles.AdministrationRead)]
 public class BackgroundRefreshController : ControllerBase
 {
     private readonly ILogger<BackgroundRefreshController> _logger;
@@ -59,7 +58,7 @@ public class BackgroundRefreshController : ControllerBase
     }
 
     [HttpPost("tasks/{taskId}/force-refresh")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult> ForceRefresh(string taskId, CancellationToken cancellationToken)
     {
         try
@@ -83,7 +82,7 @@ public class BackgroundRefreshController : ControllerBase
     }
 
     [HttpPost("tiers/{tier}/run")]
-    [Authorize(Roles = AccessRoles.AdministrationWrite)]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult> RunHydrationTier(int tier, CancellationToken cancellationToken)
     {
         var tasksInTier = _taskRegistry.GetRegisteredTasks()

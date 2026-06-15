@@ -45,10 +45,10 @@ const GenericFeedbackDetailModal: React.FC<Props> = ({ detail, onClose, primaryL
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Datum</p>
               <p className="text-gray-900">{formatDateTime(detail.createdAt)}</p>
             </div>
-            {detail.userId && (
+            {(detail.userName ?? detail.userId) && (
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Uživatel</p>
-                <p className="text-gray-900 break-all">{detail.userId}</p>
+                <p className="text-gray-900 break-all">{detail.userName ?? detail.userId}</p>
               </div>
             )}
           </div>

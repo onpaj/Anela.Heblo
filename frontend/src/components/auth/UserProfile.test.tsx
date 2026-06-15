@@ -3,6 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import UserProfile from "./UserProfile";
 
+let mockTokenRoles = ["super_user"];
+
 const mockBaseAuth = {
   isAuthenticated: true,
   login: jest.fn(),
@@ -12,7 +14,7 @@ const mockBaseAuth = {
     name: "Test User",
     email: "test@anela.cz",
     initials: "TU",
-    roles: ["super_user"],
+    roles: mockTokenRoles,
   }),
   getStoredUserInfo: () => null,
 };
@@ -49,6 +51,7 @@ const openPanel = async () => {
 
 describe("UserProfile permissions display", () => {
   beforeEach(() => {
+    mockTokenRoles = ["super_user"];
     mockCtx = {
       permissions: [],
       isSuperUser: false,
@@ -74,7 +77,7 @@ describe("UserProfile permissions display", () => {
     expect(screen.getByText("journal.read")).toBeInTheDocument();
   });
 
-  it("renders a single super-user badge when isSuperUser is true", async () => {
+  it("renders super-user banner alongside full permission list when isSuperUser is true", async () => {
     mockCtx = {
       permissions: ["catalog.read", "journal.read", "finance.read"],
       isSuperUser: true,
@@ -86,8 +89,25 @@ describe("UserProfile permissions display", () => {
     await openPanel();
 
     expect(screen.getByText("Super User · vše povoleno")).toBeInTheDocument();
-    expect(screen.queryByText("catalog.read")).not.toBeInTheDocument();
-    expect(screen.queryByText("journal.read")).not.toBeInTheDocument();
+    expect(screen.getByText("catalog.read")).toBeInTheDocument();
+    expect(screen.getByText("journal.read")).toBeInTheDocument();
+    expect(screen.getByText("finance.read")).toBeInTheDocument();
+  });
+
+  it("includes super_user role chip when isSuperUser is true but token roles omit it", async () => {
+    mockTokenRoles = ["heblo_user"];
+    mockCtx = {
+      permissions: ["catalog.read"],
+      isSuperUser: true,
+      groups: [],
+      isLoading: false,
+      hasPermission: () => true,
+    };
+
+    await openPanel();
+
+    expect(screen.getByText("super_user")).toBeInTheDocument();
+    expect(screen.getByText("heblo_user")).toBeInTheDocument();
   });
 
   it("renders Groups chips when user belongs to DB groups", async () => {

@@ -5,6 +5,7 @@ import { AlertTriangle, BarChart3 } from "lucide-react";
 import {
   useProductMarginSummaryQuery,
   ProductGroupingMode,
+  MarginLevel,
 } from "../../api/hooks/useProductMarginSummary";
 import { useScreenView } from '../../telemetry/useScreenView';
 
@@ -14,8 +15,6 @@ type TimeWindowType =
   | "last-6-months"
   | "last-12-months"
   | "last-24-months";
-
-type MarginLevelType = "M0" | "M1" | "M2";
 
 // Color palette for products (blue/green/purple theme, highest margin to lowest)
 const PRODUCT_COLORS = [
@@ -45,7 +44,7 @@ const ProductMarginSummary: React.FC = () => {
   const [selectedGroupingMode, setSelectedGroupingMode] =
     useState<ProductGroupingMode>(ProductGroupingMode.Products);
   const [selectedMarginLevel, setSelectedMarginLevel] =
-    useState<MarginLevelType>("M2");
+    useState<MarginLevel>(MarginLevel.M2);
 
   useScreenView('Finance', 'ProductMarginSummary');
 
@@ -377,7 +376,7 @@ const ProductMarginSummary: React.FC = () => {
               id="margin-level"
               value={selectedMarginLevel}
               onChange={(e) =>
-                setSelectedMarginLevel(e.target.value as MarginLevelType)
+                setSelectedMarginLevel(e.target.value as MarginLevel)
               }
               className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
             >

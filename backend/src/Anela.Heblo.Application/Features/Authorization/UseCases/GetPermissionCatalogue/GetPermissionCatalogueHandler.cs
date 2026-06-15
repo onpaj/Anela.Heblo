@@ -13,16 +13,11 @@ public class GetPermissionCatalogueHandler
             Permissions = AccessMatrix.AllRoleValues().ToList(),
             Features = AccessMatrix.Features.Select(f => new CatalogueFeatureDto
             {
-                Key = f.Key,
+                Key = PermissionString.Format(f.Key, AccessLevel.Read)[..^".read".Length],
                 Label = f.Label,
-                Section = f.Section,
+                Section = f.Key.ToString().Split('_')[0],
                 HasWrite = f.HasWrite,
                 HasAdmin = f.HasAdmin,
-            }).ToList(),
-            SystemGroups = AccessMatrix.Groups.Select(g => new CatalogueGroupDto
-            {
-                Name = g.Name,
-                Permissions = g.Roles.ToList(),
             }).ToList(),
         };
         return Task.FromResult(response);

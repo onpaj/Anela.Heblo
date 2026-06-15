@@ -1,5 +1,6 @@
 using Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
 using Anela.Heblo.Application.Features.ExpeditionList;
+using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared.Printing;
@@ -85,7 +86,7 @@ public class PickingListIntegrationTests
             {
                 SourceStateId = SourceStateId,
                 DesiredStateId = PrintPickingListRequest.DefaultDesiredStateId,
-                Carriers = PrintPickingListRequest.DefaultCarriers,
+                Carriers = ExpeditionPickingRequest.DefaultCarriers,
                 ChangeOrderState = false,
                 SendToPrinter = false,
             };

@@ -19,6 +19,8 @@ public class PackageConfiguration : IEntityTypeConfiguration<Package>
         builder.Property(p => p.ShipmentGuid).IsRequired();
         builder.Property(p => p.PackedAt).IsRequired();
         builder.Property(p => p.PackedBy).HasMaxLength(255);
+        builder.Property(p => p.PackedByUserId);
+        builder.HasIndex(p => p.PackedByUserId);
         builder.Property(p => p.CreatedAt).IsRequired();
         builder.HasIndex(p => p.OrderCode);
         builder.HasIndex(p => p.PackedAt);

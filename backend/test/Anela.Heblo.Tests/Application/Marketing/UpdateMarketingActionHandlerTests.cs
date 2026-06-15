@@ -40,6 +40,14 @@ public class UpdateMarketingActionHandlerTests
         return action;
     }
 
+    private static MarketingAction BuildExistingActionWithCollections()
+    {
+        var action = BuildExistingAction();
+        action.AssociateWithProduct("OLD-PROD", DateTime.UtcNow);
+        action.LinkToFolder("old-key", MarketingFolderType.General, DateTime.UtcNow);
+        return action;
+    }
+
     private static UpdateMarketingActionRequest BuildRequest(int id = 42) => new()
     {
         Id = id,
@@ -286,5 +294,55 @@ public class UpdateMarketingActionHandlerTests
         _outlookSync.Verify(
             x => x.UpdateEventAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ClearsCollections_WhenRequestListsAreNull()
+    {
+        _repository
+            .Setup(x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildExistingActionWithCollections());
+
+        var request = BuildRequest();
+        request.AssociatedProducts = null;
+        request.FolderLinks = null;
+
+        var result = await BuildHandler().Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        _repository.Verify(x => x.UpdateAsync(
+            It.Is<MarketingAction>(a =>
+                a.ProductAssociations.Count == 0 &&
+                a.FolderLinks.Count == 0),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ReplacesCollections_OnDeltaInput()
+    {
+        _repository
+            .Setup(x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildExistingActionWithCollections());
+
+        var request = BuildRequest();
+        request.AssociatedProducts = new List<string> { "OLD-PROD", "NEW-PROD" };
+        request.FolderLinks = new List<MarketingFolderLinkRequest>
+        {
+            new() { FolderKey = "old-key", FolderType = MarketingFolderType.General },
+            new() { FolderKey = "new-key", FolderType = MarketingFolderType.Seasonal },
+        };
+
+        var result = await BuildHandler().Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        _repository.Verify(x => x.UpdateAsync(
+            It.Is<MarketingAction>(a =>
+                a.ProductAssociations.Count == 2 &&
+                a.ProductAssociations.Any(p => p.ProductCodePrefix == "OLD-PROD") &&
+                a.ProductAssociations.Any(p => p.ProductCodePrefix == "NEW-PROD") &&
+                a.FolderLinks.Count == 2 &&
+                a.FolderLinks.Any(f => f.FolderKey == "old-key" && f.FolderType == MarketingFolderType.General) &&
+                a.FolderLinks.Any(f => f.FolderKey == "new-key" && f.FolderType == MarketingFolderType.Seasonal)),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

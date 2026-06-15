@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import UserDetailPage from "../UserDetailPage";
 
 const mockAssignUserGroups = jest.fn().mockResolvedValue({});
+const mockUpdateUser = jest.fn().mockResolvedValue({});
 const mockSetActive = jest.fn();
 const mockNavigate = jest.fn();
 
@@ -17,6 +18,7 @@ jest.mock("../../api/hooks/useAccessManagement", () => ({
           email: "alice@test.com",
           groupIds: ["g1"],
           isActive: true,
+          canPack: false,
           lastLoginAt: null,
         },
       ],
@@ -24,6 +26,7 @@ jest.mock("../../api/hooks/useAccessManagement", () => ({
     isLoading: false,
   }),
   useAssignUserGroups: () => ({ mutateAsync: mockAssignUserGroups, isPending: false }),
+  useUpdateUser: () => ({ mutateAsync: mockUpdateUser, isPending: false }),
   useSetUserActive: () => ({ mutateAsync: mockSetActive, isPending: false }),
   useUserPermissions: () => ({
     data: { permissions: ["catalog.read", "orders.write"] },
@@ -63,6 +66,7 @@ const renderWithRoute = (id: string) =>
 
 beforeEach(() => {
   mockAssignUserGroups.mockClear();
+  mockUpdateUser.mockClear();
   mockSetActive.mockClear();
   mockNavigate.mockClear();
 });
@@ -71,7 +75,7 @@ describe("UserDetailPage", () => {
   it("renders user displayName and email", async () => {
     renderWithRoute("user-1");
     expect(await screen.findByText("Alice")).toBeInTheDocument();
-    expect(screen.getByText("alice@test.com")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("alice@test.com")).toBeInTheDocument();
   });
 
   it("shows 'Never logged in' when lastLoginAt is null", async () => {
@@ -96,6 +100,45 @@ describe("UserDetailPage", () => {
     );
   });
 
+  it("Save calls updateUser with edited displayName, email and canPack", async () => {
+    renderWithRoute("user-1");
+    await screen.findByText("Alice");
+
+    fireEvent.change(screen.getByDisplayValue("Alice"), {
+      target: { value: "Alice Updated" },
+    });
+    fireEvent.change(screen.getByDisplayValue("alice@test.com"), {
+      target: { value: "alice2@test.com" },
+    });
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() =>
+      expect(mockUpdateUser).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "user-1",
+          request: expect.objectContaining({
+            userId: "user-1",
+            displayName: "Alice Updated",
+            email: "alice2@test.com",
+            canPack: true,
+          }),
+        })
+      )
+    );
+  });
+
+  it("blocks Save and does not call updateUser when displayName is blank", async () => {
+    renderWithRoute("user-1");
+    await screen.findByText("Alice");
+
+    fireEvent.change(screen.getByDisplayValue("Alice"), { target: { value: "  " } });
+    fireEvent.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() => expect(mockUpdateUser).not.toHaveBeenCalled());
+    expect(mockAssignUserGroups).not.toHaveBeenCalled();
+  });
+
   it("enable/disable button calls setActive with toggled isActive", async () => {
     renderWithRoute("user-1");
     await screen.findByText("Alice");
@@ -114,10 +157,39 @@ describe("UserDetailPage", () => {
     expect(screen.getByText("orders.write")).toBeInTheDocument();
   });
 
-  it("Cancel navigates back to access management", async () => {
+  it("Cancel with no changes navigates straight to the Users tab", async () => {
     renderWithRoute("user-1");
     await screen.findByText("Alice");
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-    expect(mockNavigate).toHaveBeenCalledWith("/admin/access");
+    expect(mockNavigate).toHaveBeenCalledWith("/admin/access/users");
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
+  });
+
+  it("Cancel with unsaved changes opens the dialog; Discard navigates to the Users tab", async () => {
+    renderWithRoute("user-1");
+    await screen.findByText("Alice");
+    fireEvent.change(screen.getByDisplayValue("Alice"), {
+      target: { value: "Alice Updated" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /discard changes/i }));
+    expect(mockNavigate).toHaveBeenCalledWith("/admin/access/users");
+  });
+
+  it("Keep editing dismisses the dialog without navigating", async () => {
+    renderWithRoute("user-1");
+    await screen.findByText("Alice");
+    fireEvent.change(screen.getByDisplayValue("Alice"), {
+      target: { value: "Alice Updated" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    fireEvent.click(screen.getByRole("button", { name: /keep editing/i }));
+
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

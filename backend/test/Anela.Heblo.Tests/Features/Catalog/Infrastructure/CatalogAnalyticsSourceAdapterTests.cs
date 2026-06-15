@@ -7,6 +7,7 @@ using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using FluentAssertions;
 using Moq;
+using CatalogMarginLevel = Anela.Heblo.Domain.Features.Catalog.MarginLevel;
 
 namespace Anela.Heblo.Tests.Features.Catalog.Infrastructure;
 
@@ -74,15 +75,15 @@ public sealed class CatalogAnalyticsSourceAdapterTests
         {
             [new DateTime(2024, 1, 1)] = new MarginData
             {
-                M0 = new MarginLevel(10m, 10m, 0m, 5m),
-                M1_A = new MarginLevel(15m, 20m, 0m, 7m),
-                M2 = new MarginLevel(20m, 30m, 0m, 0m)
+                M0 = new CatalogMarginLevel(10m, 10m, 0m, 5m),
+                M1_A = new CatalogMarginLevel(15m, 20m, 0m, 7m),
+                M2 = new CatalogMarginLevel(20m, 30m, 0m, 0m)
             },
             [new DateTime(2024, 6, 1)] = new MarginData
             {
-                M0 = new MarginLevel(12m, 12m, 0m, 6m),
-                M1_A = new MarginLevel(18m, 22m, 0m, 8m),
-                M2 = new MarginLevel(22m, 32m, 0m, 0m)
+                M0 = new CatalogMarginLevel(12m, 12m, 0m, 6m),
+                M1_A = new CatalogMarginLevel(18m, 22m, 0m, 8m),
+                M2 = new CatalogMarginLevel(22m, 32m, 0m, 0m)
             }
         };
 
@@ -296,9 +297,9 @@ public sealed class CatalogAnalyticsSourceAdapterTests
         {
             [new DateTime(2024, 6, 1)] = new MarginData
             {
-                M0 = new MarginLevel(20m, 20m, 0m, 25m),
-                M1_A = new MarginLevel(25m, 25m, 0m, 30m),
-                M2 = new MarginLevel(30m, 30m, 0m, 0m)
+                M0 = new CatalogMarginLevel(20m, 20m, 0m, 25m),
+                M1_A = new CatalogMarginLevel(25m, 25m, 0m, 30m),
+                M2 = new CatalogMarginLevel(30m, 30m, 0m, 0m)
             }
         };
 

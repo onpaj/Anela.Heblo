@@ -8,14 +8,13 @@ namespace Anela.Heblo.Tests.Authorization;
 public class GetPermissionCatalogueHandlerTests
 {
     [Fact]
-    public async Task Handle_ReturnsAllPermissionsAndSystemGroups()
+    public async Task Handle_ReturnsAllPermissionsAndFeatures()
     {
         var handler = new GetPermissionCatalogueHandler();
         var result = await handler.Handle(new GetPermissionCatalogueRequest(), default);
 
         result.Success.Should().BeTrue();
         result.Permissions.Should().BeEquivalentTo(AccessMatrix.AllRoleValues());
-        result.SystemGroups.Select(g => g.Name).Should().BeEquivalentTo(AccessMatrix.Groups.Select(g => g.Name));
-        result.Features.Should().Contain(f => f.Key == "catalog" && f.HasWrite);
+        result.Features.Should().Contain(f => f.Key == "products.catalog" && f.HasWrite);
     }
 }

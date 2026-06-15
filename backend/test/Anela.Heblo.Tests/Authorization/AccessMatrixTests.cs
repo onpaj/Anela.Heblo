@@ -50,20 +50,30 @@ public class AccessMatrixConsistencyTests
     }
 
     [Fact]
-    public void EveryGroupRole_ExistsInMatrix()
+    public void EveryMenuPath_PermissionsResolveToKnownRoles()
     {
-        var known = AccessMatrix.AllRoleValues().ToHashSet();
-        foreach (var group in AccessMatrix.Groups)
-            foreach (var role in group.Roles)
-                known.Should().Contain(role, $"group {group.Name} references unknown role {role}");
-    }
+        var defs = AccessMatrix.Features.ToDictionary(f => f.Key);
+        var problems = new List<string>();
 
-    [Fact]
-    public void EveryRole_IsBundledInAtLeastOneGroup()
-    {
-        var bundled = AccessMatrix.Groups.SelectMany(g => g.Roles).ToHashSet();
-        foreach (var role in AccessMatrix.AllRoleValues())
-            bundled.Should().Contain(role, $"role {role} is not assigned to any group (would be unreachable)");
+        foreach (var menu in AccessMatrix.MenuPaths)
+            foreach (var req in menu.Requires)
+            {
+                if (!defs.TryGetValue(req.Feature, out var def))
+                {
+                    problems.Add($"MenuPath '{menu.Key}' references unknown feature {req.Feature}");
+                    continue;
+                }
+                var ok = req.Level switch
+                {
+                    AccessLevel.Read => true,
+                    AccessLevel.Write => def.HasWrite,
+                    AccessLevel.Admin => def.HasAdmin,
+                    _ => false,
+                };
+                if (!ok)
+                    problems.Add($"MenuPath '{menu.Key}' requires {req.Feature}.{req.Level} but feature does not support that level");
+            }
+        problems.Should().BeEmpty();
     }
 }
 

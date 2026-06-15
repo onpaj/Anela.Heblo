@@ -57,7 +57,6 @@ public class LogisticsExpeditionPickingAdapterTests
         {
             ExportedFiles = new List<string> { "/tmp/a.pdf", "/tmp/b.pdf" },
             TotalCount = 12,
-            OrderIds = new List<int> { 1, 2, 3 },
         };
         _innerSource
             .Setup(x => x.CreatePickingList(

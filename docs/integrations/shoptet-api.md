@@ -136,6 +136,21 @@ Source of truth: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/ShoptetAp
 | 489 | `GLS_PARCELSHOP` | GLS | 8 |
 | 4 | `OSOBAK` | Osobak | 1 |
 
+**2025+ carrier scheme** (added when PPL/Zásilkovna/GLS introduced new "box & výdejní místa / do ruky" methods on anela.cz; GUIDs `*-11f1-9239-bc241122355e`). These coexist with the legacy methods above — both still receive orders during the transition. GUIDs discovered via `GET /api/eshop?include=shippingMethods` (production anela.cz, `retail` group); numeric IDs supplied from Shoptet admin (not returned by the REST API).
+
+| ID | Constant Name | Carrier | DisplayName | GUID |
+|---|---|---|---|---|
+| 490 | `PPL_BOX` | PPL | PPL přímo do PPL boxu | `6fc70492-6341-11f1-9239-bc241122355e` |
+| 496 | `PPL_VYDEJNI_MISTA` | PPL | PPL výdejní místa a Alzaboxy | `8e6313c7-6342-11f1-9239-bc241122355e` |
+| 493 | `PPL_DO_RUKY_NEW` | PPL | PPL do ruky | `53f8a8a5-6342-11f1-9239-bc241122355e` |
+| 502 | `ZASILKOVNA_BOXY_VYDEJNI` | Zásilkovna | Zásilkovna boxy a výdejní místa | `68201aa2-6343-11f1-9239-bc241122355e` |
+| 505 | `ZASILKOVNA_DO_RUKY_NEW` | Zásilkovna | Zásilkovna do ruky | `b1915a68-6343-11f1-9239-bc241122355e` |
+| 511 | `GLS_BOXY_VYDEJNI` | GLS | GLS boxy a výdejní místa | `8448f4b6-6344-11f1-9239-bc241122355e` |
+| 508 | `GLS_DO_RUKY_NEW` | GLS | GLS do ruky | `53db451b-6344-11f1-9239-bc241122355e` |
+
+> `ResolveDeliveryHandling` classifies these by `Name`: `*_DO_RUKY*` → `NaRuky`; names containing `BOX` or `VYDEJNI` → `Box`. The legacy `7878c138-…` method (`ZASILKOVNA_ZPOINT`, id 15) was renamed in Shoptet to "Zásilkovna – Výdejní místa a Z-boxy" — `DisplayName` updated to match.
+> ⚠️ The ID↔method pairing within each carrier was assigned from the order the methods appear in the `retail` response; confirm against Shoptet admin before relying on the picking-list filter.
+
 **Important:** These are Shoptet admin-internal numeric IDs used in URL filter params (`?f[shippingId]=21`), not the `shippingGuid` used in the REST API order creation body. When seeding test orders via `POST /api/orders`, use the corresponding `shippingGuid` from `GET /api/eshop?include=shippingMethods` that maps to the desired shipping ID.
 
 #### Order Statuses (known values from code)
@@ -145,9 +160,12 @@ Defined in `PrintPickingListOptions` and `ShoptetApiExpeditionListSource`:
 | ID | Name |
 |---|---|
 | -2 | Vyřizuje se (Processing) — source state for picking list |
-| 26 | Balí se (Packing) — PACK seed state; `PrintPickingListOptions.DesiredStateId` |
+| 26 | Balí se (Packing) — PACK seed state; `PrintPickingListOptions.DesiredStateId`. **Only orders in this state are eligible for packing** (`ScanPackingOrder` returns `isEligible: false` otherwise). |
+| 52 | Zabaleno (Packed) — order moves here after `MarkAsPacked` (single-package scan or `CompletePacking`). Confirmed live 2026-06-09. |
 | 70 | Předáno přepravci (Handed to carrier) — EXP seed state |
 | 73 | Oprava-robot — Fix source state (`FixSourceStateId`) |
+
+> **Reset a test order to packable:** `PATCH /api/orders/{code}/status` with `{"data":{"statusId":26}}` puts it back into "Balí se" so the packing flow can be re-run. Confirmed live 2026-06-09 on order 126000035.
 
 > **Note:** Status 55 ("K Expedici") referenced in `ShoptetApiExpeditionListSource.DesiredStateId` does **not exist** in the store (confirmed via `GET /api/eshop?include=orderStatuses`). Seeding EXP-category orders uses status 70 instead.
 > Custom status IDs for the hydration test are configurable: `Shoptet:StatusId:EXP` and `Shoptet:StatusId:PACK` in user secrets.
@@ -292,6 +310,31 @@ Returns the full product including a `variants[]` array with `code` fields — *
 **Do NOT use N+1 product detail calls.** Use the stock CSV export instead — it lists all variant codes in a single request and is already parsed by `IEshopStockClient.ListAsync()`. The `EshopStock.Code` field is the variant-level SKU accepted by `POST /api/orders`.
 
 The snapshot endpoint (`GET /api/products/snapshot`) exists but requires a registered webhook for `job:finished` — not usable without webhook infrastructure.
+
+### 4.4 Stock CSV export — resilience characteristics
+
+The stock CSV export URL is configured via `StockClient:Url` and **is not** on `api.myshoptet.com` — it is the per-store CSV export host (e.g. `https://<store>.myshoptet.com/action/...`). Two consequences:
+
+- The dependency tracker (which targets `api.myshoptet.com`) does **not** record these calls. Failures must be queried by exception name (`System.Net.Http.HttpRequestException` with `outerMethod contains "ShoptetStockClient.ListAsync"`).
+- The URL contains an access token as a query parameter (e.g. `?token=...` / `?hash=...`). Logging code redacts `token`, `hash`, `key`, `apiToken`, `access_token` keys to `***`.
+
+**Encoding:** `windows-1250`. **Delimiter:** `;`. Parsed via `CsvHelper` with `StockDataMap`.
+
+**Observed transient failure rate (baseline):** ~1.1 `HttpRequestException` / day across all callers (telemetry window 2026-06-05 → 2026-06-12).
+
+**Resilience policy (HTTP layer, registered against the named HttpClient `"ShoptetStockCsv"`):**
+
+| Property | Value | Configurable via |
+|---|---|---|
+| Per-attempt timeout | 8s (default) | `StockClient:TimeoutSeconds` |
+| Max retry attempts | 3 (default) | `StockClient:MaxRetryAttempts` |
+| Retry base delay | 1s exponential + jitter | `StockClient:RetryBaseDelaySeconds` |
+| Retry triggers | `HttpRequestException`, 5xx, 408, 429, `TimeoutRejectedException`, `OperationCanceledException` (only when caller's token has **not** requested cancellation) | — |
+| Outer `HttpClient.Timeout` | `TimeoutSeconds × (MaxRetryAttempts + 1) + 5` | derived |
+
+Worst-case wall clock with defaults: ≈ 8 + 1 + 8 + 2 + 8 + 4 + 8 ≈ 39 s — but `CatalogDataRefreshService` invocations are wrapped by `CatalogResilienceService` whose 30 s pipeline timeout will surface first. Tune `TimeoutSeconds` down if the outer pipeline still aborts retries; raise it for ad-hoc callers that do not use the outer pipeline.
+
+**Caller-side wrapping:** Both `CatalogDataRefreshService.RefreshEshopStockData` and `ProductPairingDqtComparer.CompareAsync` wrap `ListAsync` with `ICatalogResilienceService` for circuit-breaker + outer-timeout semantics. New callers must follow the same pattern.
 
 ---
 
@@ -981,6 +1024,19 @@ When Shoptet returns an error (non-2xx or populated `errors[]`):
 - `labelZpl` — Raw Zebra ZPL string for direct USB printing, may be `null`.
 - An order may have multiple shipments, each with multiple packages. All are returned; the kiosk prints each.
 - If both `labelUrl` and `labelZpl` are `null` for all packages, labels have not been generated yet.
+- **Generation latency is significant — confirmed minutes, not seconds (live, 2026-06-09).** A `POST /api/shipments` returns a shipment in `requested` state with `labelUrl: null` and `trackingNumber: null`; both populate (status → `created`) only once Balikobot/the carrier finalizes. For order 126000035 ("PPL na výdejní místo") this took **several minutes**. Implication: the `GetPackageLabelPdf` readiness poll (5×1s) will almost always 404 if a print is attempted immediately after scanning — the label must be re-fetched/reprinted once ready (from Zásilky), or the print retried.
+
+### 11.5.1 Package `name` is NOT a stable match key — and shipments accumulate per order
+
+> **Verified 2026-06-10 against the live test store (780175), order `126000035`.** A GET returned **12 shipments** for the single order.
+
+Hard-won findings from the FillTrackingNumbers backfill job — read before matching packages to DB rows:
+
+- **`packages[].name` is non-unique within an order.** Every package across all 12 shipments was named `"Vlastní balení"` ("custom packaging" — the packaging type, not an identifier). Building a `Dictionary` keyed by `name` will throw a duplicate-key exception the moment two non-dead packages share a name.
+- **`packages[].name` is NOT stable across label generation.** Immediately after `POST /api/shipments` (status `requested`, label not yet ready) the package name is a placeholder sequence (`"1"`, `"2"`, …). Once the carrier label generates, Shoptet **renames** the package to the packaging type (`"Vlastní balení"`). So a name persisted at scan time will not match the name read back later. **Never match a persisted package to a live label by name.**
+- **Shipments accumulate; `ResetOrderShipmentHandler` orphans the DB `ShipmentGuid`.** Each pack/reset cancels the old shipment (status → `canceled`/`deleted`) and creates a brand-new one. The Heblo `Package` row is **not** updated on reset, so its `ShipmentGuid` points at a now-cancelled shipment that still carries an (invalid) tracking number. The live, deliverable tracking number lives on a different, newer shipment.
+- **Latest active shipment = the last non-dead shipment in the response.** Shoptet returns shipments **oldest-first** (the `guid` is UUIDv7, time-ordered). "Active" = status not in `{canceled, cancel_requested, deleted, request_failed}`. To resolve the current tracking number for an order, take the **last** active shipment and read its package tracking number — ignore the persisted `ShipmentGuid` and all package names. Implemented as `IShipmentClient.GetLatestActiveTrackingNumberAsync` and used by `FillTrackingNumbersJob`.
+- Each Heblo-created shipment has **exactly one package** (`ScanPackingOrderHandler`/`ResetOrderShipmentHandler` always send a single `packages[]` entry), so an order's single tracking number maps to its single `Package` row.
 
 ### 11.6 Authentication
 
@@ -1181,6 +1237,16 @@ After a successful `201` response, the shipment is in `requested` status. The la
 
 **Observed latency:** The test store has no Balikobot configured so label-ready latency was not directly measured. For the PPL carrier via Balikobot the expected flow is synchronous within the carrier call — label should be available within a few seconds of the `POST` completing. The `checkUrls` field (when non-null) provides a polling URL for async carriers.
 
+#### Multi-package carrier constraints (confirmed live 2026-06-10)
+
+**PPL "výdejní místo" (parcel box) does not support multi-package shipments.** Sending `packages: [{...}, {...}]` (2 items) succeeds with HTTP 201, but Balikobot/PPL silently creates only **1 package** — the returned label shows `1/1` and `GET /api/shipments?orderCode=...` returns a single package entry. No error is returned.
+
+Implication: if the operator selects "Více balíků" for a PPL parcel-box order, the backend produces N=2 `ScanShipmentPackage` entries (second one with `LabelUrl = null`), `pendingCompletion = true`, and the `PackingLabelPrintModal` opens for a 2-label sequence. Label 1 prints successfully after backoff. Label 2 never gets a URL — `printLabelWithReadiness` times out (30 s), operator sees the timeout screen, must cancel. Order stays unpacked.
+
+**Workaround (operator):** Do not use "Více balíků" for PPL výdejní místo. Use the standard single-scan flow.
+
+**Follow-up required:** Add a check after `CreateShipmentAsync` — compare the actual package count returned by `GET /api/shipments?orderCode=...` against the requested `n`. If fewer packages were created, surface a warning to the operator (e.g. "Dopravce vytvořil pouze X/N balíků").
+
 #### Test store limitation
 
 The staging store (780175 / `api.myshoptet.com` with token `Shoptet:ApiToken`) has **no Balikobot carriers configured** (`GET /api/shipments/carriers` returns `[]`). All `POST /api/shipments` calls in the test store will return `errorCode: invalid-request-data, instance: integration-call`. Integration tests for shipment creation must run against the production store or a store with Balikobot configured.
@@ -1235,3 +1301,17 @@ in_transit → (cancellation may be rejected by carrier with 422)
 - A `404` from cancel-request is treated as success — the shipment is already gone, no further action needed.
 
 `ShoptetShipmentClient.CancelShipmentAsync` returns silently on `404` and throws `HttpRequestException` on any other non-2xx status.
+
+---
+
+## Multi-package shipments (`POST /api/shipments`)
+
+The packaging scan can request **N parcels** for one order. We send the `data.packages`
+array with N entries (same width/height/depth; weight = order weight ÷ N, floored at
+`MinPackageWeightGrams`). Shoptet returns one shipment GUID with N distinct package names;
+`GET /api/shipments?orderCode={code}` then lists all N packages, each with its own label
+URL / tracking number once ready.
+
+**To verify on staging before relying on it:** create a multi-package shipment for a test
+order, confirm Shoptet returns N distinct package names and N printable labels, and that the
+order can still be marked packed (status 52) afterwards.

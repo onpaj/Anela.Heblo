@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { useMsal } from "@azure/msal-react";
+import { usePermissionsContext } from "../../../auth/PermissionsContext";
 import { X, ExternalLink, Copy, Check, Plus, Tag, Sparkles } from "lucide-react";
 import PhotoThumbnail from "./PhotoThumbnail";
 import { TagBadge } from "../../../components/ui/TagBadge";
@@ -11,16 +11,14 @@ interface PhotoDrawerProps {
   onClose: () => void;
 }
 
-const ADMIN_ROLE = "marketing_writer";
 const DRAWER_WIDTH_PX = 280;
 
 const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
-  const { accounts } = useMsal();
+  const { hasPermission } = usePermissionsContext();
   const [newTagName, setNewTagName] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
 
-  const isAdmin =
-    (accounts[0]?.idTokenClaims as any)?.roles?.includes(ADMIN_ROLE) ?? false;
+  const canEditTags = hasPermission('marketing.photobank.write');
 
   const addTagMutation = useAddPhotoTag(photo.id);
   const removeTagMutation = useRemovePhotoTag(photo.id);
@@ -139,7 +137,7 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
             )}
           </button>
         )}
-        {isAdmin && (
+        {canEditTags && (
           <button
             onClick={() => void handleRetag()}
             disabled={retagMutation.isPending}
@@ -177,13 +175,13 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
               <TagBadge
                 key={tag.id}
                 name={tag.name}
-                onRemove={isAdmin && !removeTagMutation.isPending ? () => handleRemoveTag(tag.id) : undefined}
+                onRemove={canEditTags && !removeTagMutation.isPending ? () => handleRemoveTag(tag.id) : undefined}
               />
             ))}
           </div>
         )}
 
-        {isAdmin && (
+        {canEditTags && (
           <div className="relative">
             <Plus className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             <input

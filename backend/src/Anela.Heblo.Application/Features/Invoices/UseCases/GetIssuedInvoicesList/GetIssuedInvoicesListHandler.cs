@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Invoices.Contracts;
+using Anela.Heblo.Persistence.Invoices;
 using Anela.Heblo.Application.Shared;
 using AutoMapper;
 using MediatR;

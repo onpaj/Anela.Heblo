@@ -86,6 +86,8 @@ const resources = {
         ConfigurationError: "Chyba konfigurace",
         Unauthorized: "Neautorizovaný přístup",
         Forbidden: "Přístup zakázán",
+        InsufficientPermissions:
+          "Přístup zakázán. Chybí oprávnění: {requiredPermission}",
         TokenExpired: "Token vypršel",
         Exception: "Výjimka aplikace",
 
@@ -285,6 +287,9 @@ const resources = {
         PackageLabelNotFound: "Štítek pro tento balík nebyl nalezen.",
         PackageLabelDownloadFailed: "Stažení PDF štítku od dopravce se nezdařilo.",
         PackageNotFound: "Zásilka nebyla nalezena.",
+        InvalidPackageCount: "Neplatný počet balíků.",
+        PackingCompletionFailed: "Dokončení balení se nezdařilo.",
+        PackingUserNotEligible: "Zvolený pracovník není oprávněn k balení objednávek.",
 
         // CatalogDocuments module errors
         CatalogDocumentInvalidTypeCode: "Neplatný kód typu dokumentu katalogu.",

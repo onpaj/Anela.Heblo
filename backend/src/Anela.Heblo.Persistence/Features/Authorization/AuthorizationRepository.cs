@@ -25,6 +25,12 @@ public class AuthorizationRepository : IAuthorizationRepository
     public async Task<List<AppUser>> GetAllUsersAsync(CancellationToken ct = default) =>
         await _db.AppUsers.AsNoTracking().Include(u => u.UserGroups).ToListAsync(ct);
 
+    public async Task<List<AppUser>> GetActivePackingUsersAsync(CancellationToken ct = default) =>
+        await _db.AppUsers.AsNoTracking()
+            .Where(u => u.IsActive && u.CanPack)
+            .OrderBy(u => u.DisplayName)
+            .ToListAsync(ct);
+
     public async Task<List<PermissionGroup>> GetAllGroupsAsync(CancellationToken ct = default) =>
         await _db.PermissionGroups.AsNoTracking()
             .Include(g => g.Permissions).Include(g => g.Parents).Include(g => g.UserGroups)
@@ -60,6 +66,11 @@ public class AuthorizationRepository : IAuthorizationRepository
         foreach (var gid in groupIds.Distinct())
             _db.UserGroups.Add(new UserGroup { UserId = userId, GroupId = gid });
     }
+
+    public async Task<List<AppUser>> GetGroupMembersAsync(Guid groupId, CancellationToken ct = default) =>
+        await _db.AppUsers.AsNoTracking()
+            .Where(u => _db.UserGroups.Any(ug => ug.UserId == u.Id && ug.GroupId == groupId))
+            .ToListAsync(ct);
 
     public async Task<(List<GroupPermission> Permissions, List<GroupParent> Parents)> GetGroupGraphAsync(CancellationToken ct = default)
     {

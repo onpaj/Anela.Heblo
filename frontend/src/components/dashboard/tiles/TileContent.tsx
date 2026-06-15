@@ -1,6 +1,7 @@
 import React from 'react';
 import { DashboardTile as DashboardTileType } from '../../../api/hooks/useDashboard';
 import { LoadingTile } from './LoadingTile';
+import { UnauthorizedTile } from './UnauthorizedTile';
 import { BackgroundTasksTile } from './BackgroundTasksTile';
 import { ProductionTile } from './ProductionTile';
 import { CountTile } from './CountTile';
@@ -13,6 +14,7 @@ import { DataQualityTile } from './DataQualityTile';
 import { DqtYesterdayStatusTile } from './DqtYesterdayStatusTile';
 import { WeatherForecastTile } from './WeatherForecastTile';
 import { FailedJobsTile } from './FailedJobsTile';
+import { PackingStatsTile } from './PackingStatsTile';
 import { DefaultTile } from './DefaultTile';
 import { Truck, PackageCheck, Package, FileText, Landmark, ClipboardList, Beaker, AlertTriangle, Gift } from 'lucide-react';
 
@@ -21,6 +23,10 @@ interface TileContentProps {
 }
 
 export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
+  if (tile.isUnauthorized) {
+    return <UnauthorizedTile />;
+  }
+
   if (!tile.data) {
     return <LoadingTile />;
   }
@@ -81,6 +87,8 @@ export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
       return <WeatherForecastTile data={tile.data} />;
     case 'failedjobs':
       return <FailedJobsTile data={tile.data} />;
+    case 'packingstats':
+      return <PackingStatsTile data={tile.data} />;
     default:
       return <DefaultTile data={tile.data} />;
   }

@@ -30,7 +30,6 @@ jest.mock("../../api/hooks/useAccessManagement", () => ({
       features: [
         { key: "catalog", label: "Katalog", section: "Data", hasWrite: true, hasAdmin: false },
       ],
-      systemGroups: [],
     },
     isLoading: false,
   }),
@@ -197,11 +196,36 @@ describe("GroupDetailPage", () => {
     });
   });
 
-  it("Cancel navigates back to the access management list", async () => {
+  it("Cancel with no changes navigates straight to the Groups tab", async () => {
     renderWithRoute("group-1");
     await screen.findByDisplayValue("Test Group");
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-    expect(mockNavigate).toHaveBeenCalledWith("/admin/access");
+    expect(mockNavigate).toHaveBeenCalledWith("/admin/access/groups");
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
+  });
+
+  it("Cancel with unsaved changes opens the dialog; Discard navigates to the Groups tab", async () => {
+    renderWithRoute("group-1");
+    await screen.findByDisplayValue("Test Group");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Changed" } });
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /discard changes/i }));
+    expect(mockNavigate).toHaveBeenCalledWith("/admin/access/groups");
+  });
+
+  it("Keep editing dismisses the dialog without navigating", async () => {
+    renderWithRoute("group-1");
+    await screen.findByDisplayValue("Test Group");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Changed" } });
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    fireEvent.click(screen.getByRole("button", { name: /keep editing/i }));
+
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it("create mode (id=new) renders empty form and Save calls createGroup then navigates", async () => {

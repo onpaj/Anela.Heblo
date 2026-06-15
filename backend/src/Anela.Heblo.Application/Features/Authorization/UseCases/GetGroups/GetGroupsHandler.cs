@@ -22,6 +22,8 @@ public class GetGroupsHandler : IRequestHandler<GetGroupsRequest, GetGroupsRespo
                 PermissionCount = g.Permissions.Count,
                 ParentCount = g.Parents.Count,
                 MemberCount = g.UserGroups.Count,
+                Permissions = g.Permissions.Select(p => p.PermissionValue).OrderBy(v => v).ToList(),
+                ParentGroupIds = g.Parents.Select(p => p.ParentGroupId).ToList(),
             }).OrderBy(g => g.Name).ToList(),
         };
     }

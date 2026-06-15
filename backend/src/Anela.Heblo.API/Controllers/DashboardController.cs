@@ -5,14 +5,12 @@ using Anela.Heblo.Application.Features.Dashboard.UseCases.GetTileData;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.EnableTile;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.DisableTile;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class DashboardController : BaseApiController
 {
     private readonly IMediator _mediator;

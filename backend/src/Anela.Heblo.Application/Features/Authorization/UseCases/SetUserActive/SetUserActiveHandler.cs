@@ -23,7 +23,8 @@ public class SetUserActiveHandler : IRequestHandler<SetUserActiveRequest, SetUse
 
         user.IsActive = request.IsActive;
         await _repo.SaveChangesAsync(ct);
-        _resolver.InvalidateCache(user.EntraObjectId);
+        if (user.EntraObjectId is not null)
+            _resolver.InvalidateCache(user.EntraObjectId);
         return new SetUserActiveResponse();
     }
 }

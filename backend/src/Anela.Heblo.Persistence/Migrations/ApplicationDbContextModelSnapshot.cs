@@ -216,6 +216,9 @@ namespace Anela.Heblo.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("CanPack")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -230,7 +233,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<string>("EntraObjectId")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
@@ -240,10 +242,16 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<DateTimeOffset?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EntraObjectId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"EntraObjectId\" IS NOT NULL");
 
                     b.ToTable("AppUsers", "public");
                 });
@@ -1290,6 +1298,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<string>("Title")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
@@ -2770,6 +2779,9 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<Guid?>("PackedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ShipmentGuid")
                         .HasColumnType("uuid");
 
@@ -2791,6 +2803,8 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("OrderCode");
 
                     b.HasIndex("PackedAt");
+
+                    b.HasIndex("PackedByUserId");
 
                     b.HasIndex("OrderCode", "PackageNumber")
                         .IsUnique();

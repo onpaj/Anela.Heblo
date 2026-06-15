@@ -23,12 +23,12 @@ using Anela.Heblo.Adapters.Cups;
 using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.API.PDFPrints;
 using Anela.Heblo.Application.Features.BackgroundJobs.Services;
-using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Adapters.FileSystem;
 using Anela.Heblo.API.Features.ExpeditionList;
-using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf;
+using Anela.Heblo.Adapters.HomeAssistant.HealthChecks;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -105,7 +105,11 @@ public static class ServiceCollectionExtensions
             .AddCheck<DataQualitySchemaHealthCheck>(
                 name: "data-quality-schema",
                 failureStatus: HealthStatus.Unhealthy,
-                tags: new[] { "ready", "db", "schema" });
+                tags: new[] { "ready", "db", "schema" })
+            .AddCheck<HomeAssistantConditionsHealthCheck>(
+                name: "homeassistant-conditions",
+                failureStatus: HealthStatus.Degraded,
+                tags: new[] { "ready", "homeassistant" });
 
         // Add database health check via the shared NpgsqlDataSource so the probe
         // reuses the application connection pool instead of opening a fresh connection
@@ -362,7 +366,6 @@ public static class ServiceCollectionExtensions
 
         // Register configuration options
         services.Configure<HangfireOptions>(configuration.GetSection(HangfireOptions.ConfigurationKey));
-        services.Configure<ProductExportOptions>(configuration.GetSection("ProductExportOptions"));
 
         return services;
     }
@@ -425,7 +428,7 @@ public static class ServiceCollectionExtensions
                 });
                 break;
             default: // "FileSystem" or unset
-                services.AddScoped<IPrintQueueSink, FileSystemPrintQueueSink>();
+                services.AddFileSystemPrintQueueSink();
                 break;
         }
 

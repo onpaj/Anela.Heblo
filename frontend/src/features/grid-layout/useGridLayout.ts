@@ -77,7 +77,10 @@ export function useGridLayout<TRow>(gridKey: string, columns: GridColumn<TRow>[]
         setColumnState(state);
       } catch (error) {
         console.warn('Failed to load grid layout:', error);
-        if (!cancelled) setColumnState(buildDefaultState(columnsRef.current));
+        if (cancelled) return;
+        setColumnState((prev) =>
+          prev.length > 0 ? prev : buildDefaultState(columnsRef.current),
+        );
       } finally {
         if (!cancelled) setIsLoaded(true);
       }

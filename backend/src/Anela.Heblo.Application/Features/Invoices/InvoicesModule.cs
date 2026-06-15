@@ -1,8 +1,11 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
+using Anela.Heblo.Persistence.Invoices;
 using Anela.Heblo.Application.Features.Invoices.Services;
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Domain.Features.Analytics;
@@ -15,8 +18,18 @@ namespace Anela.Heblo.Application.Features.Invoices;
 /// </summary>
 public static class InvoicesModule
 {
-    public static IServiceCollection AddInvoicesModule(this IServiceCollection services)
+    public static IServiceCollection AddInvoicesModule(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
+        // Bind ProductMappingOptions from configuration and validate at startup so
+        // a missing or incomplete "ProductMapping" section fails fast instead of
+        // silently registering a transformation with empty codes.
+        services.AddOptions<ProductMappingOptions>()
+            .Bind(configuration.GetSection(ProductMappingOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         // Register repositories
         services.AddScoped<IIssuedInvoiceRepository, IssuedInvoiceRepository>();
 
@@ -49,13 +62,15 @@ public static class InvoicesModule
         // Register FlexiBee client (from SDK)
         // Note: IIssuedInvoiceClient registration should be done in Flexi adapter module
 
-        // Register transformations
+        // Register transformations — preserve registration order; the import pipeline
+        // enumerates IEnumerable<IIssuedInvoiceImportTransformation> in this order.
         services.AddTransient<IIssuedInvoiceImportTransformation, GiftWithoutVATIssuedInvoiceImportTransformation>();
         services.AddTransient<IIssuedInvoiceImportTransformation, RemoveDAtTheEndOfProductCodeIssuedInvoiceImportTransformation>();
-
-        // Product mapping transformations can be registered based on configuration
         services.AddTransient<IIssuedInvoiceImportTransformation>(provider =>
-            new ProductMappingIssuedInvoiceImportTransformation("1287", "SLU000001"));
+        {
+            var opts = provider.GetRequiredService<IOptions<ProductMappingOptions>>().Value;
+            return new ProductMappingIssuedInvoiceImportTransformation(opts.ShoptetCode, opts.ErpCode);
+        });
 
         // MediatR handlers are automatically registered by MediatR scan
 
