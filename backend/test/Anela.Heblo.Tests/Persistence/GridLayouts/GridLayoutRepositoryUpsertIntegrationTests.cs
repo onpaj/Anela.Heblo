@@ -100,4 +100,47 @@ public class GridLayoutRepositoryUpsertIntegrationTests : IAsyncLifetime
         }
         return (reader.GetInt32(0), reader.GetString(1), reader.GetDateTime(2));
     }
+
+    [Fact]
+    public async Task UpsertAsync_WhenRowDoesNotExist_InsertsNewRow()
+    {
+        // Arrange
+        var now = new DateTime(2026, 6, 15, 10, 0, 0, DateTimeKind.Utc);
+        var timeProvider = new FakeTimeProvider(new DateTimeOffset(now, TimeSpan.Zero));
+        var repository = CreateRepository(timeProvider);
+
+        // Act
+        await repository.UpsertAsync("user-1", "grid-1", "{\"col\":1}", CancellationToken.None);
+
+        // Assert
+        var row = await ReadRowAsync("user-1", "grid-1");
+        row.LayoutJson.Should().Be("{\"col\":1}");
+        row.LastModified.Should().Be(now);
+        row.Id.Should().BePositive();
+    }
+
+    [Fact]
+    public async Task UpsertAsync_WhenRowExists_UpdatesLayoutJsonAndTimestampWithoutChangingId()
+    {
+        // Arrange
+        var first = new DateTime(2026, 6, 15, 10, 0, 0, DateTimeKind.Utc);
+        var second = new DateTime(2026, 6, 15, 10, 5, 0, DateTimeKind.Utc);
+        var timeProvider = new FakeTimeProvider(new DateTimeOffset(first, TimeSpan.Zero));
+        var repository = CreateRepository(timeProvider);
+
+        await repository.UpsertAsync("user-1", "grid-1", "{\"col\":1}", CancellationToken.None);
+        var inserted = await ReadRowAsync("user-1", "grid-1");
+
+        timeProvider.SetUtcNow(new DateTimeOffset(second, TimeSpan.Zero));
+
+        // Act
+        await repository.UpsertAsync("user-1", "grid-1", "{\"col\":2}", CancellationToken.None);
+
+        // Assert
+        (await CountRowsAsync("user-1", "grid-1")).Should().Be(1);
+        var updated = await ReadRowAsync("user-1", "grid-1");
+        updated.Id.Should().Be(inserted.Id);
+        updated.LayoutJson.Should().Be("{\"col\":2}");
+        updated.LastModified.Should().Be(second);
+    }
 }
