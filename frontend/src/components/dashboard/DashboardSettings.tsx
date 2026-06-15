@@ -23,9 +23,11 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
   const [filter, setFilter] = useState('all'); // 'all', 'enabled', 'disabled'
 
   const isLoading = tilesLoading || settingsLoading;
+  const settingsTiles = Array.isArray(userSettings?.tiles) ? userSettings!.tiles : [];
+  const safeAvailableTiles = Array.isArray(availableTiles) ? availableTiles : [];
 
   const handleToggleTile = async (tile: DashboardTile) => {
-    const userTile = userSettings?.tiles.find(t => t.tileId === tile.tileId);
+    const userTile = settingsTiles.find(t => t.tileId === tile.tileId);
     const isEnabled = userTile?.isVisible || false;
 
     if (isEnabled) {
@@ -35,9 +37,9 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
     }
   };
 
-  const visibleTiles = userSettings?.tiles.filter(t => t.isVisible).map(t => t.tileId) || [];
+  const visibleTiles = settingsTiles.filter(t => t.isVisible).map(t => t.tileId);
 
-  const filteredTiles = availableTiles.filter(tile => {
+  const filteredTiles = safeAvailableTiles.filter(tile => {
     if (filter === 'enabled') {
       return visibleTiles.includes(tile.tileId);
     }
@@ -47,7 +49,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
     return true; // 'all'
   });
 
-  const newTilesCount = availableTiles.filter(tile =>
+  const newTilesCount = safeAvailableTiles.filter(tile =>
     !visibleTiles.includes(tile.tileId) && tile.defaultEnabled
   ).length;
 
@@ -101,9 +103,9 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
       <div className="px-6 py-3 border-b border-gray-100">
         <div className="flex space-x-1">
           {[
-            { key: 'all', label: 'Vše', count: availableTiles.length },
+            { key: 'all', label: 'Vše', count: safeAvailableTiles.length },
             { key: 'enabled', label: 'Aktivní', count: visibleTiles.length },
-            { key: 'disabled', label: 'Neaktivní', count: availableTiles.length - visibleTiles.length }
+            { key: 'disabled', label: 'Neaktivní', count: safeAvailableTiles.length - visibleTiles.length }
           ].map(tab => (
             <button
               key={tab.key}
@@ -126,7 +128,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
       <div className="px-6 py-4 flex-1 overflow-y-auto" data-testid="dashboard-settings-tiles">
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
           {filteredTiles.map(tile => {
-            const userTile = userSettings?.tiles.find(t => t.tileId === tile.tileId);
+            const userTile = settingsTiles.find(t => t.tileId === tile.tileId);
             const isEnabled = userTile?.isVisible || false;
             const isNew = !visibleTiles.includes(tile.tileId) && tile.defaultEnabled;
             

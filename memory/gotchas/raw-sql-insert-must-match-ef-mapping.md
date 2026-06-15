@@ -31,6 +31,11 @@ Two raw-SQL repositories are known to have INSERT paths that must be kept in syn
    - Inserts into `KnowledgeBaseChunks` (or equivalent) using raw `NpgsqlCommand`
    - Update this method whenever the `KnowledgeBaseChunk` entity gains a new column
 
+3. **`backend/src/Anela.Heblo.Persistence/GridLayouts/GridLayoutRepository.cs`**
+   - Method: `UpsertAsync()`
+   - Uses raw `INSERT ... ON CONFLICT ... DO UPDATE` via `ExecuteSqlInterpolatedAsync` to make the upsert atomic.
+   - If a new required column is added to `GridLayout`, both the INSERT column list and the `EXCLUDED` SET clause must be updated.
+
 ## Prevention checklist
 
 **When adding a column via migration:**
