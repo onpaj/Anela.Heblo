@@ -578,4 +578,268 @@ public class ManufactureBasedMaterialCostProviderTests
             c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    // ===== FR-9: GetCostsAsync filters by product codes when cache hydrated =====
+
+    [Fact]
+    internal async Task GetCostsAsync_ReturnsFullDictionary_WhenProductCodesAreNull()
+    {
+        var hydrated = BuildHydratedCacheData(new[] { "A", "B", "C" });
+        var cacheMock = new Mock<IMaterialCostCache>();
+        cacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>())).ReturnsAsync(hydrated);
+
+        var provider = CreateProvider(cacheMock: cacheMock);
+
+        var result = await provider.GetCostsAsync(null);
+
+        result.Should().HaveCount(3);
+        result.Keys.Should().BeEquivalentTo("A", "B", "C");
+    }
+
+    [Fact]
+    internal async Task GetCostsAsync_ReturnsFullDictionary_WhenProductCodesAreEmpty()
+    {
+        var hydrated = BuildHydratedCacheData(new[] { "A", "B", "C" });
+        var cacheMock = new Mock<IMaterialCostCache>();
+        cacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>())).ReturnsAsync(hydrated);
+
+        var provider = CreateProvider(cacheMock: cacheMock);
+
+        var result = await provider.GetCostsAsync(new List<string>());
+
+        result.Should().HaveCount(3);
+        result.Keys.Should().BeEquivalentTo("A", "B", "C");
+    }
+
+    [Fact]
+    internal async Task GetCostsAsync_ReturnsSubset_WhenProductCodesProvided()
+    {
+        var hydrated = BuildHydratedCacheData(new[] { "A", "B", "C" });
+        var cacheMock = new Mock<IMaterialCostCache>();
+        cacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>())).ReturnsAsync(hydrated);
+
+        var provider = CreateProvider(cacheMock: cacheMock);
+
+        var result = await provider.GetCostsAsync(new List<string> { "A", "C", "MISSING" });
+
+        result.Should().HaveCount(2);
+        result.Keys.Should().BeEquivalentTo("A", "C");
+    }
+
+    [Fact]
+    internal async Task GetCostsAsync_ReturnsEmptyDictionary_WhenRequestedProductCodeNotInCache()
+    {
+        var hydrated = BuildHydratedCacheData(new[] { "A", "B", "C" });
+        var cacheMock = new Mock<IMaterialCostCache>();
+        cacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>())).ReturnsAsync(hydrated);
+
+        var provider = CreateProvider(cacheMock: cacheMock);
+
+        var result = await provider.GetCostsAsync(new List<string> { "MISSING" });
+
+        result.Should().BeEmpty();
+    }
+
+    // ===== FR-10: GetCostsAsync returns empty + warning when cache not hydrated =====
+
+    [Fact]
+    internal async Task GetCostsAsync_ReturnsEmptyAndLogsWarning_WhenCacheNotHydrated()
+    {
+        // Arrange
+        var cacheMock = new Mock<IMaterialCostCache>();
+        cacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CostCacheData.Empty());
+
+        var repoMock = new Mock<ICatalogRepository>();
+        var loggerMock = new Mock<ILogger<ManufactureBasedMaterialCostProvider>>();
+
+        var provider = CreateProvider(cacheMock: cacheMock, repoMock: repoMock, loggerMock: loggerMock);
+
+        // Act
+        var result = await provider.GetCostsAsync();
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().BeEmpty();
+
+        VerifyLog(loggerMock, LogLevel.Warning, "MaterialCostCache not hydrated");
+
+        // Cache hydration miss must not trigger any repository work.
+        repoMock.VerifyNoOtherCalls();
+    }
+
+    // ===== FR-11: GetCostsAsync logs error and rethrows when cache throws =====
+
+    [Fact]
+    internal async Task GetCostsAsync_LogsErrorAndRethrows_WhenCacheReadFails()
+    {
+        // Arrange
+        var boom = new InvalidOperationException("boom");
+        var cacheMock = new Mock<IMaterialCostCache>();
+        cacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>())).ThrowsAsync(boom);
+
+        var loggerMock = new Mock<ILogger<ManufactureBasedMaterialCostProvider>>();
+
+        var provider = CreateProvider(cacheMock: cacheMock, loggerMock: loggerMock);
+
+        // Act
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(() => provider.GetCostsAsync());
+
+        // Assert
+        thrown.Should().BeSameAs(boom);
+        VerifyLog(loggerMock, LogLevel.Error, "Error getting material costs");
+    }
+
+    // ===== FR-12a: RefreshAsync populates cache on success =====
+
+    [Fact]
+    internal async Task RefreshAsync_PopulatesCache_OnSuccess_AndExcludesEmptyProductCodes()
+    {
+        // Arrange — three real products + two skip cases (empty + null code).
+        var products = new List<CatalogAggregate>
+        {
+            BuildNonManufacturedProduct("MAT-A", ProductType.Material, 10m),
+            BuildNonManufacturedProduct("MAT-B", ProductType.Material, 20m),
+            BuildNonManufacturedProduct("MAT-C", ProductType.Material, 30m),
+            BuildNonManufacturedProduct(string.Empty, ProductType.Material, 99m), // skipped
+            BuildNonManufacturedProduct(null!, ProductType.Material, 99m),         // skipped
+        };
+
+        var callOrder = new List<string>();
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("WaitForCurrentMergeAsync"))
+            .Returns(Task.CompletedTask);
+        repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("GetAllAsync"))
+            .ReturnsAsync(products);
+
+        var cacheMock = BuildCaptureCacheMock(out var subscribe);
+        CostCacheData? captured = null;
+        subscribe(d => captured = d);
+
+        var provider = CreateProvider(cacheMock: cacheMock, repoMock: repoMock, manufactureCostHistoryDays: 90);
+
+        var nowBefore = DateTime.UtcNow;
+
+        // Act
+        await provider.RefreshAsync();
+
+        var nowAfter = DateTime.UtcNow;
+
+        // Assert — cache populated with exactly the three non-empty product codes.
+        captured.Should().NotBeNull();
+        captured!.IsHydrated.Should().BeTrue();
+        captured.ProductCosts.Keys.Should().BeEquivalentTo("MAT-A", "MAT-B", "MAT-C");
+
+        // DataFrom/DataTo within tolerant window around UtcNow.
+        var expectedFromLower = DateOnly.FromDateTime(nowBefore.AddDays(-90));
+        var expectedFromUpper = DateOnly.FromDateTime(nowAfter.AddDays(-90));
+        captured.DataFrom.Should().BeOnOrAfter(expectedFromLower);
+        captured.DataFrom.Should().BeOnOrBefore(expectedFromUpper);
+
+        captured.DataTo.Should().BeOnOrAfter(DateOnly.FromDateTime(nowBefore));
+        captured.DataTo.Should().BeOnOrBefore(DateOnly.FromDateTime(nowAfter));
+
+        // Call order
+        callOrder.Should().Equal("WaitForCurrentMergeAsync", "GetAllAsync");
+    }
+
+    // ===== FR-12b: RefreshAsync skips concurrent second call =====
+
+    [Fact]
+    internal async Task RefreshAsync_SkipsSecondInvocation_WhenFirstStillRunning()
+    {
+        // Arrange — gate `GetAllAsync` with a TaskCompletionSource so the first refresh blocks
+        // inside ComputeAllCostsAsync, holding the static _refreshLock. The second refresh must
+        // detect WaitAsync(0) failure, log "refresh already in progress", and return.
+        var gate = new TaskCompletionSource<IEnumerable<CatalogAggregate>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).Returns(gate.Task);
+
+        var cacheMock = new Mock<IMaterialCostCache>();
+        cacheMock.Setup(c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var loggerMock = new Mock<ILogger<ManufactureBasedMaterialCostProvider>>();
+
+        var provider = CreateProvider(cacheMock: cacheMock, repoMock: repoMock, loggerMock: loggerMock);
+
+        // Act 1 — first refresh; blocks on gate after acquiring the lock.
+        var firstRefresh = provider.RefreshAsync();
+
+        while (!repoMock.Invocations.Any(i => i.Method.Name == nameof(ICatalogRepository.GetAllAsync)))
+        {
+            await Task.Yield();
+        }
+
+        // Act 2 — second refresh; sees lock held, short-circuits.
+        await provider.RefreshAsync();
+
+        // Assert intermediate
+        VerifyLog(loggerMock, LogLevel.Information, "refresh already in progress");
+        cacheMock.Verify(
+            c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        // Release gate, let first refresh finish.
+        gate.SetResult((IEnumerable<CatalogAggregate>)new List<CatalogAggregate>());
+        await firstRefresh;
+
+        cacheMock.Verify(
+            c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Act 3 — fresh refresh after lock released must proceed.
+        await provider.RefreshAsync();
+
+        cacheMock.Verify(
+            c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+    }
+
+    // ===== FR-12c: RefreshAsync releases lock when repository throws =====
+
+    [Fact]
+    internal async Task RefreshAsync_ReleasesLockOnRepositoryException_AndAllowsSubsequentRefresh()
+    {
+        // Arrange — first GetAllAsync throws, second succeeds. Lock must be released by the SUT's
+        // `finally` block so the second call proceeds rather than logging "refresh already in progress".
+        var boom = new InvalidOperationException("repo offline");
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repoMock.SetupSequence(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(boom)
+            .ReturnsAsync(new List<CatalogAggregate>());
+
+        var cacheMock = new Mock<IMaterialCostCache>();
+        cacheMock.Setup(c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var loggerMock = new Mock<ILogger<ManufactureBasedMaterialCostProvider>>();
+
+        var provider = CreateProvider(cacheMock: cacheMock, repoMock: repoMock, loggerMock: loggerMock);
+
+        // Act 1 — first call throws and logs.
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(() => provider.RefreshAsync());
+        thrown.Should().BeSameAs(boom);
+        VerifyLog(loggerMock, LogLevel.Error, "Failed to refresh MaterialCostCache");
+        cacheMock.Verify(
+            c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        // Act 2 — second call must proceed (lock released by finally).
+        await provider.RefreshAsync();
+
+        // Positive proof: the second call entered the normal execution path, never the "skip" branch.
+        VerifyLog(loggerMock, LogLevel.Information, "refresh already in progress", Times.Never());
+        VerifyLog(loggerMock, LogLevel.Information, "Starting MaterialCostCache refresh", Times.Exactly(2));
+        cacheMock.Verify(
+            c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }
