@@ -143,4 +143,47 @@ public class GridLayoutRepositoryUpsertIntegrationTests : IAsyncLifetime
         updated.LayoutJson.Should().Be("{\"col\":2}");
         updated.LastModified.Should().Be(second);
     }
+
+    [Fact]
+    public async Task UpsertAsync_ConcurrentInsertsForSameKey_AllSucceedAndProduceSingleRow()
+    {
+        // Arrange
+        const int concurrency = 5;
+        var payloads = Enumerable.Range(0, concurrency)
+            .Select(i => $"{{\"v\":{i}}}")
+            .ToArray();
+
+        // Build one repository per task, each backed by its own DbContext + connection.
+        // The shared in-test _context is single-threaded by design; concurrent SQL must
+        // come from independent connections to actually race on the unique index.
+        var contexts = new List<ApplicationDbContext>();
+        try
+        {
+            var tasks = payloads.Select(payload =>
+            {
+                var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                    .UseNpgsql(_connectionString)
+                    .Options;
+                var context = new ApplicationDbContext(options);
+                contexts.Add(context);
+                var repo = new GridLayoutRepository(context, TimeProvider.System, _translator);
+                return repo.UpsertAsync("user-race", "grid-race", payload, CancellationToken.None);
+            }).ToArray();
+
+            // Act
+            await Task.WhenAll(tasks);
+
+            // Assert
+            (await CountRowsAsync("user-race", "grid-race")).Should().Be(1);
+            var row = await ReadRowAsync("user-race", "grid-race");
+            payloads.Should().Contain(row.LayoutJson);
+        }
+        finally
+        {
+            foreach (var ctx in contexts)
+            {
+                await ctx.DisposeAsync();
+            }
+        }
+    }
 }
