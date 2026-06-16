@@ -10193,14 +10193,14 @@ export class ApiClient {
         return Promise.resolve<AddRuleResponse>(null as any);
     }
 
-    photobank_UpdateRule(id: number, request: UpdateRuleRequest): Promise<UpdateRuleResponse> {
+    photobank_UpdateRule(id: number, body: UpdateRuleBody): Promise<UpdateRuleResponse> {
         let url_ = this.baseUrl + "/api/photobank/settings/rules/{id}";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(request);
+        const content_ = JSON.stringify(body);
 
         let options_: RequestInit = {
             body: content_,
@@ -35393,14 +35393,13 @@ export class UpdateRuleResponse extends BaseResponse implements IUpdateRuleRespo
 export interface IUpdateRuleResponse extends IBaseResponse {
 }
 
-export class UpdateRuleRequest implements IUpdateRuleRequest {
-    id?: number;
+export class UpdateRuleBody implements IUpdateRuleBody {
     pathPattern?: string;
     tagName?: string;
     isActive?: boolean;
     sortOrder?: number;
 
-    constructor(data?: IUpdateRuleRequest) {
+    constructor(data?: IUpdateRuleBody) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -35411,7 +35410,6 @@ export class UpdateRuleRequest implements IUpdateRuleRequest {
 
     init(_data?: any) {
         if (_data) {
-            this.id = _data["id"];
             this.pathPattern = _data["pathPattern"];
             this.tagName = _data["tagName"];
             this.isActive = _data["isActive"];
@@ -35419,16 +35417,15 @@ export class UpdateRuleRequest implements IUpdateRuleRequest {
         }
     }
 
-    static fromJS(data: any): UpdateRuleRequest {
+    static fromJS(data: any): UpdateRuleBody {
         data = typeof data === 'object' ? data : {};
-        let result = new UpdateRuleRequest();
+        let result = new UpdateRuleBody();
         result.init(data);
         return result;
     }
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
         data["pathPattern"] = this.pathPattern;
         data["tagName"] = this.tagName;
         data["isActive"] = this.isActive;
@@ -35437,8 +35434,7 @@ export class UpdateRuleRequest implements IUpdateRuleRequest {
     }
 }
 
-export interface IUpdateRuleRequest {
-    id?: number;
+export interface IUpdateRuleBody {
     pathPattern?: string;
     tagName?: string;
     isActive?: boolean;
