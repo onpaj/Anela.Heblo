@@ -285,9 +285,15 @@ namespace Anela.Heblo.API.Controllers
         [ProducesResponseType(typeof(AddRuleResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<AddRuleResponse>> AddRule(
-            [FromBody] AddRuleRequest request,
+            [FromBody] AddRuleBody body,
             CancellationToken cancellationToken = default)
         {
+            var request = new AddRuleRequest
+            {
+                PathPattern = body.PathPattern,
+                TagName = body.TagName,
+                SortOrder = body.SortOrder,
+            };
             var response = await _mediator.Send(request, cancellationToken);
             if (response.Success)
                 return CreatedAtAction(nameof(GetRules), response);

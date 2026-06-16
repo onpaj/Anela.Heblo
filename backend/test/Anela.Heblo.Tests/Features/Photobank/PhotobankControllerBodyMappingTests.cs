@@ -1,6 +1,7 @@
 using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Application.Features.Photobank.Contracts;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
+using Anela.Heblo.Application.Features.Photobank.UseCases.AddRule;
 using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -68,5 +69,37 @@ public sealed class PhotobankControllerBodyMappingTests
         created.ActionName.Should().Be(nameof(PhotobankController.GetRoots));
         var payload = created.Value.Should().BeOfType<AddRootResponse>().Subject;
         payload.Id.Should().Be(42);
+    }
+
+    [Fact]
+    public async Task AddRule_MapsBodyToRequest_AndReturnsCreated()
+    {
+        // Arrange
+        var body = new AddRuleBody
+        {
+            PathPattern = "/sites/marketing/2026/**",
+            TagName = "marketing-2026",
+            SortOrder = 5,
+        };
+
+        AddRuleRequest? captured = null;
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<AddRuleRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<AddRuleResponse>, CancellationToken>((req, _) => captured = (AddRuleRequest)req)
+            .ReturnsAsync(new AddRuleResponse { Id = 7, Success = true });
+
+        // Act
+        var result = await _controller.AddRule(body, CancellationToken.None);
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.PathPattern.Should().Be(body.PathPattern);
+        captured.TagName.Should().Be(body.TagName);
+        captured.SortOrder.Should().Be(body.SortOrder);
+
+        var created = result.Result.Should().BeOfType<CreatedAtActionResult>().Subject;
+        created.ActionName.Should().Be(nameof(PhotobankController.GetRules));
+        var payload = created.Value.Should().BeOfType<AddRuleResponse>().Subject;
+        payload.Id.Should().Be(7);
     }
 }
