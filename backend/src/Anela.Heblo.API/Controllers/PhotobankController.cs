@@ -231,9 +231,15 @@ namespace Anela.Heblo.API.Controllers
         [ProducesResponseType(typeof(AddRootResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<AddRootResponse>> AddRoot(
-            [FromBody] AddRootRequest request,
+            [FromBody] AddRootBody body,
             CancellationToken cancellationToken = default)
         {
+            var request = new AddRootRequest
+            {
+                SharePointPath = body.SharePointPath,
+                DisplayName = body.DisplayName,
+                DriveId = body.DriveId,
+            };
             var response = await _mediator.Send(request, cancellationToken);
             if (response.Success)
                 return CreatedAtAction(nameof(GetRoots), response);
