@@ -45,7 +45,7 @@ public class SmartsuppPayloadMapperTests
         var longText = new string('x', 250);
         var json = $@"{{""id"":""c1"",""status"":""open"",""last_message_text"":""{longText}"",""created_at"":""2026-05-13T10:00:00Z"",""updated_at"":""2026-05-13T10:00:00Z""}}";
 
-        var result = SmartsuppPayloadMapper.MapConversation(Parse(json), DateTime.UtcNow);
+        var result = SmartsuppPayloadMapper.MapConversation(Parse(json), DateTime.UtcNow, Logger, Metrics);
 
         result.LastMessagePreview.Should().HaveLength(200);
     }
@@ -55,7 +55,7 @@ public class SmartsuppPayloadMapperTests
     {
         var json = @"{""id"":""c1"",""status"":""open"",""channel"":{""type"":""chat""},""created_at"":""2026-05-13T10:00:00Z"",""updated_at"":""2026-05-13T10:00:00Z""}";
 
-        var result = SmartsuppPayloadMapper.MapConversation(Parse(json), DateTime.UtcNow);
+        var result = SmartsuppPayloadMapper.MapConversation(Parse(json), DateTime.UtcNow, Logger, Metrics);
 
         result.Channel.Should().Be("chat");
     }
@@ -65,7 +65,7 @@ public class SmartsuppPayloadMapperTests
     {
         var json = @"{""id"":""c1"",""status"":""open"",""contact_id"":null,""visitor_id"":null,""created_at"":""2026-05-13T10:00:00Z"",""updated_at"":""2026-05-13T10:00:00Z""}";
 
-        var act = () => SmartsuppPayloadMapper.MapConversation(Parse(json), DateTime.UtcNow);
+        var act = () => SmartsuppPayloadMapper.MapConversation(Parse(json), DateTime.UtcNow, Logger, Metrics);
 
         act.Should().NotThrow();
     }
