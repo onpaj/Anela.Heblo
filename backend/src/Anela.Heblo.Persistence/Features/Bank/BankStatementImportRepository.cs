@@ -88,6 +88,37 @@ public class BankStatementImportRepository : IBankStatementImportRepository
         return bankStatement;
     }
 
+    public async Task<IReadOnlyDictionary<string, string>> GetExistingTransfersAsync(
+        string account, DateTime dateFrom, DateTime dateTo, CancellationToken cancellationToken = default)
+    {
+        return await _context.BankStatements
+            .AsNoTracking()
+            .Where(bs => bs.Account == account
+                && bs.StatementDate.Date >= dateFrom.Date
+                && bs.StatementDate.Date <= dateTo.Date)
+            .Select(bs => new { bs.TransferId, bs.ImportResult })
+            .ToDictionaryAsync(x => x.TransferId, x => x.ImportResult, cancellationToken);
+    }
+
+    public async Task<DateTime?> GetMaxStatementDateAsync(string account, CancellationToken cancellationToken = default)
+    {
+        var query = _context.BankStatements.AsNoTracking().Where(bs => bs.Account == account);
+        if (!await query.AnyAsync(cancellationToken))
+            return null;
+        return await query.MaxAsync(bs => bs.StatementDate, cancellationToken);
+    }
+
+    public async Task<BankStatementImport?> GetByTransferIdAsync(
+        string transferId, CancellationToken cancellationToken = default)
+        => await _context.BankStatements.FirstOrDefaultAsync(bs => bs.TransferId == transferId, cancellationToken);
+
+    public async Task<BankStatementImport> UpdateAsync(BankStatementImport bankStatement)
+    {
+        _context.BankStatements.Update(bankStatement);
+        await _context.SaveChangesAsync();
+        return bankStatement;
+    }
+
     private static string EscapeLike(string value) =>
         value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 }

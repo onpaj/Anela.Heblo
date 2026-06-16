@@ -52,4 +52,12 @@ public class BankStatementImport : IEntity<int>
         _itemCount = 0;
         _importResult = string.Empty;
     }
+
+    /// <summary>Re-stamp an existing row when a previously-failed statement is retried.</summary>
+    public void UpdateImportOutcome(int itemCount, string importResult)
+    {
+        ItemCount = itemCount;       // validated setter (>= 0)
+        ImportResult = importResult; // validated setter (non-null)
+        ImportDate = DateTime.UtcNow;
+    }
 }
