@@ -201,9 +201,14 @@ namespace Anela.Heblo.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<RetagPhotosResponse>> RetagPhotos(
-            [FromBody] RetagPhotosRequest request,
+            [FromBody] RetagPhotosBody body,
             CancellationToken cancellationToken = default)
         {
+            var request = new RetagPhotosRequest
+            {
+                PhotoIds = body.PhotoIds,
+                ClearExistingAiTags = body.ClearExistingAiTags,
+            };
             var result = await _mediator.Send(request, cancellationToken);
             return result.Success ? Accepted(result) : BadRequest(result);
         }

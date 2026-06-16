@@ -2,6 +2,7 @@ using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Application.Features.Photobank.Contracts;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRule;
+using Anela.Heblo.Application.Features.Photobank.UseCases.RetagPhotos;
 using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -101,5 +102,34 @@ public sealed class PhotobankControllerBodyMappingTests
         created.ActionName.Should().Be(nameof(PhotobankController.GetRules));
         var payload = created.Value.Should().BeOfType<AddRuleResponse>().Subject;
         payload.Id.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task RetagPhotos_MapsBodyToRequest_AndReturnsAccepted()
+    {
+        // Arrange
+        var body = new RetagPhotosBody
+        {
+            PhotoIds = new[] { 11, 22, 33 },
+            ClearExistingAiTags = true,
+        };
+
+        RetagPhotosRequest? captured = null;
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<RetagPhotosRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<RetagPhotosResponse>, CancellationToken>((req, _) => captured = (RetagPhotosRequest)req)
+            .ReturnsAsync(new RetagPhotosResponse { JobId = "job-abc", Success = true });
+
+        // Act
+        var result = await _controller.RetagPhotos(body, CancellationToken.None);
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.PhotoIds.Should().BeEquivalentTo(body.PhotoIds);
+        captured.ClearExistingAiTags.Should().Be(body.ClearExistingAiTags);
+
+        var accepted = result.Result.Should().BeOfType<AcceptedResult>().Subject;
+        var payload = accepted.Value.Should().BeOfType<RetagPhotosResponse>().Subject;
+        payload.JobId.Should().Be("job-abc");
     }
 }
