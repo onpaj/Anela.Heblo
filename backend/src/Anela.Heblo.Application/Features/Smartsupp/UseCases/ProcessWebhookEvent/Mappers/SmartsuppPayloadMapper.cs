@@ -1,14 +1,29 @@
 using System.Text.Json;
 using Anela.Heblo.Domain.Features.Smartsupp;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Mappers;
 
 public static class SmartsuppPayloadMapper
 {
+    private const int SubjectMaxLength = 2000;
+    private const int ContactAvatarUrlMaxLength = 2000;
+    private const int ContactNameMaxLength = 200;
+    private const int ContactEmailMaxLength = 200;
+    private const int DomainMaxLength = 200;
+    private const int LocationCountryMaxLength = 100;
+    private const int LocationCityMaxLength = 100;
+    private const int LocationIpMaxLength = 50;
+    private const int LocationCodeMaxLength = 10;
+    private const int CloseTypeMaxLength = 50;
+    private const int ChannelMaxLength = 50;
+    private const int RatingTextMaxLength = 1000;
     private const int LastMessagePreviewMaxLength = 200;
 
-    public static SmartsuppConversation MapConversation(JsonElement data, DateTime syncedAt)
+    public static SmartsuppConversation MapConversation(JsonElement data, DateTime syncedAt, ILogger logger, ISmartsuppWebhookMetrics metrics)
     {
+        var conversationId = data.GetProperty("id").GetString() ?? "";
+
         var statusStr = TryGetString(data, "status")?.ToLowerInvariant();
         var status = statusStr switch
         {
@@ -19,15 +34,18 @@ public static class SmartsuppPayloadMapper
         };
 
         var lastMessageText = TryGetString(data, "last_message_text");
-        var channel = data.TryGetProperty("channel", out var ch) && ch.ValueKind == JsonValueKind.Object
+        var channelRaw = data.TryGetProperty("channel", out var ch) && ch.ValueKind == JsonValueKind.Object
             ? TryGetString(ch, "type")
             : null;
 
+        string? Trunc(string? v, int max, string field) =>
+            StringTruncation.Truncate(v, max, field, conversationId, logger, metrics);
+
         return new SmartsuppConversation
         {
-            Id = data.GetProperty("id").GetString() ?? "",
+            Id = conversationId,
             ExtId = TryGetString(data, "ext_id"),
-            Subject = TryGetString(data, "subject"),
+            Subject = Trunc(TryGetString(data, "subject"), SubjectMaxLength, "subject"),
             Status = status,
             IsUnread = TryGetBool(data, "unread") ?? false,
             IsOffline = TryGetBool(data, "is_offline") ?? false,
@@ -35,9 +53,9 @@ public static class SmartsuppPayloadMapper
             ContactId = TryGetString(data, "contact_id"),
             VisitorId = TryGetString(data, "visitor_id"),
             FinishedAt = ReadOptionalUtc(data, "finished_at"),
-            Domain = TryGetString(data, "domain"),
+            Domain = Trunc(TryGetString(data, "domain"), DomainMaxLength, "domain"),
             Referer = TryGetString(data, "referer"),
-            Channel = channel,
+            Channel = Trunc(channelRaw, ChannelMaxLength, "channel"),
             LastMessageAt = ReadOptionalUtc(data, "last_message_at"),
             LastMessagePreview = lastMessageText?.Length > LastMessagePreviewMaxLength
                 ? lastMessageText[..LastMessagePreviewMaxLength]
@@ -46,17 +64,17 @@ public static class SmartsuppPayloadMapper
             VariablesJson = data.TryGetProperty("variables", out var vars) ? vars.GetRawText() : null,
             AssignedAgentIdsJson = data.TryGetProperty("assigned_agent_ids", out var agentIds) ? agentIds.GetRawText() : null,
             Rating = TryGetInt(data, "rating"),
-            RatingText = TryGetString(data, "rating_text"),
-            CloseType = TryGetString(data, "close_type"),
+            RatingText = Trunc(TryGetString(data, "rating_text"), RatingTextMaxLength, "rating_text"),
+            CloseType = Trunc(TryGetString(data, "close_type"), CloseTypeMaxLength, "close_type"),
             ClosedByAgentId = TryGetString(data, "closed_by_agent_id"),
             LastClosedAt = ReadOptionalUtc(data, "last_closed_at"),
-            ContactName = TryGetString(data, "contact_name"),
-            ContactEmail = TryGetString(data, "contact_email"),
-            ContactAvatarUrl = TryGetString(data, "contact_avatar_url"),
-            LocationCountry = TryGetString(data, "location_country"),
-            LocationCity = TryGetString(data, "location_city"),
-            LocationIp = TryGetString(data, "location_ip"),
-            LocationCode = TryGetString(data, "location_code"),
+            ContactName = Trunc(TryGetString(data, "contact_name"), ContactNameMaxLength, "contact_name"),
+            ContactEmail = Trunc(TryGetString(data, "contact_email"), ContactEmailMaxLength, "contact_email"),
+            ContactAvatarUrl = Trunc(TryGetString(data, "contact_avatar_url"), ContactAvatarUrlMaxLength, "contact_avatar_url"),
+            LocationCountry = Trunc(TryGetString(data, "location_country"), LocationCountryMaxLength, "location_country"),
+            LocationCity = Trunc(TryGetString(data, "location_city"), LocationCityMaxLength, "location_city"),
+            LocationIp = Trunc(TryGetString(data, "location_ip"), LocationIpMaxLength, "location_ip"),
+            LocationCode = Trunc(TryGetString(data, "location_code"), LocationCodeMaxLength, "location_code"),
             CreatedAt = ReadUtc(data, "created_at"),
             UpdatedAt = ReadUtc(data, "updated_at"),
             SyncedAt = syncedAt,
