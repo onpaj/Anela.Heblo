@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Re
 using Anela.Heblo.Domain.Features.Smartsupp;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Npgsql;
@@ -207,5 +208,54 @@ public class ProcessWebhookEventHandlerTests
         _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _repo.Verify(r => r.DiscardChanges(), Times.Never);
         _metrics.Verify(m => m.RecordReceived("conversation.opened", "error", It.IsAny<double>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("subject", 2500)]
+    [InlineData("contact_avatar_url", 2500)]
+    [InlineData("contact_name", 300)]
+    public async Task Handle_OversizedPayload_DoesNotThrow_AndPersistsTruncatedConversation(
+        string fieldName, int oversizeLength)
+    {
+        var capturedConversations = new List<SmartsuppConversation>();
+        var repoStub = new Mock<ISmartsuppRepository>();
+        repoStub
+            .Setup(r => r.UpsertConversationAsync(It.IsAny<SmartsuppConversation>(), It.IsAny<CancellationToken>()))
+            .Callback<SmartsuppConversation, CancellationToken>((c, _) => capturedConversations.Add(c))
+            .Returns(Task.CompletedTask);
+        repoStub
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var metrics = new Mock<ISmartsuppWebhookMetrics>();
+        var reaction = new ConversationOpenedReaction(
+            repoStub.Object,
+            metrics.Object,
+            NullLogger<ConversationOpenedReaction>.Instance);
+
+        var oversized = new string('x', oversizeLength);
+        var payload = $@"{{""conversation"":{{""id"":""c-os"",""status"":""open"",""{fieldName}"":""{oversized}"",""created_at"":""2026-06-13T12:25:00Z"",""updated_at"":""2026-06-13T12:25:00Z""}}}}";
+
+        var handler = new ProcessWebhookEventHandler(
+            new[] { (ISmartsuppWebhookReaction)reaction },
+            repoStub.Object,
+            _metrics.Object,
+            NullLogger<ProcessWebhookEventHandler>.Instance);
+
+        var response = await handler.Handle(MakeRequest("conversation.opened", payload), CancellationToken.None);
+
+        response.Handled.Should().BeTrue();
+        capturedConversations.Should().ContainSingle();
+        var conv = capturedConversations[0];
+        var entityProperty = fieldName switch
+        {
+            "subject" => "Subject",
+            "contact_avatar_url" => "ContactAvatarUrl",
+            "contact_name" => "ContactName",
+            _ => throw new InvalidOperationException("unexpected field"),
+        };
+        var actual = (string?)typeof(SmartsuppConversation).GetProperty(entityProperty)!.GetValue(conv);
+        actual.Should().NotBeNull();
+        actual!.Length.Should().BeLessThan(oversizeLength);
     }
 }

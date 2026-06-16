@@ -314,6 +314,71 @@ public class SmartsuppWebhookControllerTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
+
+    [Fact]
+    public async Task Receive_ReturnsOk_WhenSubjectExceedsLegacyFiveHundredCharLimit()
+    {
+        using var factory = new SmartsuppWebhookFactory();
+        var client = factory.CreateClient();
+        var longSubject = new string('s', 1500);
+        var body = $$"""
+            {
+              "event": "conversation.opened",
+              "timestamp": "2026-06-13T12:25:00Z",
+              "account_id": "acc-1",
+              "app_id": "app-1",
+              "data": {
+                "conversation": {
+                  "id": "c-os-1",
+                  "status": "open",
+                  "subject": "{{longSubject}}",
+                  "created_at": "2026-06-13T12:25:00Z",
+                  "updated_at": "2026-06-13T12:25:00Z"
+                }
+              }
+            }
+            """;
+
+        var response = await client.SendAsync(BuildRequest(body, Sign(body, Secret)));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().ContainSingle()
+            .Which.ProcessingStatus.Should().Be(SmartsuppWebhookProcessingStatus.Success);
+        entries[0].RawBody.Should().Contain(longSubject);
+    }
+
+    [Fact]
+    public async Task Receive_ReturnsOk_WhenRefererExceedsLegacyLimit()
+    {
+        using var factory = new SmartsuppWebhookFactory();
+        var client = factory.CreateClient();
+        var longReferer = "https://referer.example.com/?" + new string('q', 1500);
+        var body = $$"""
+            {
+              "event": "conversation.opened",
+              "timestamp": "2026-06-13T12:25:00Z",
+              "account_id": "acc-1",
+              "app_id": "app-1",
+              "data": {
+                "conversation": {
+                  "id": "c-os-2",
+                  "status": "open",
+                  "referer": "{{longReferer}}",
+                  "created_at": "2026-06-13T12:25:00Z",
+                  "updated_at": "2026-06-13T12:25:00Z"
+                }
+              }
+            }
+            """;
+
+        var response = await client.SendAsync(BuildRequest(body, Sign(body, Secret)));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().ContainSingle()
+            .Which.ProcessingStatus.Should().Be(SmartsuppWebhookProcessingStatus.Success);
+    }
 }
 
 public class SmartsuppWebhookFactory : HebloWebApplicationFactory
