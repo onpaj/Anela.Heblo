@@ -14,6 +14,7 @@ public sealed class SmartsuppWebhookMetrics : ISmartsuppWebhookMetrics, IDisposa
     private readonly Counter<long> _signatureFailures;
     private readonly Histogram<double> _handleDuration;
     private readonly Histogram<int> _payloadBytes;
+    private readonly Counter<long> _fieldTruncations;
     private readonly ITelemetryService _telemetry;
 
     public SmartsuppWebhookMetrics(IMeterFactory meterFactory, ITelemetryService telemetry)
@@ -38,6 +39,10 @@ public sealed class SmartsuppWebhookMetrics : ISmartsuppWebhookMetrics, IDisposa
             "smartsupp.webhook.payload_bytes",
             unit: "bytes",
             description: "Webhook payload size in bytes");
+
+        _fieldTruncations = _meter.CreateCounter<long>(
+            "smartsupp.webhook.field_truncations_total",
+            description: "Total times a bounded string field was truncated during payload mapping, tagged by field name");
     }
 
     public void RecordReceived(string eventName, string outcome, double durationMs)
@@ -70,6 +75,11 @@ public sealed class SmartsuppWebhookMetrics : ISmartsuppWebhookMetrics, IDisposa
     public void RecordPayloadBytes(int bytes)
     {
         _payloadBytes.Record(bytes);
+    }
+
+    public void RecordTruncation(string field)
+    {
+        _fieldTruncations.Add(1, new TagList { { "field", field } });
     }
 
     public void Dispose() => _meter.Dispose();

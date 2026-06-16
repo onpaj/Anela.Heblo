@@ -345,6 +345,7 @@ internal sealed class NoOpSmartsuppWebhookMetrics : ISmartsuppWebhookMetrics
     public void RecordReceived(string eventName, string outcome, double durationMs) { }
     public void RecordSignatureFailure(string reason) { }
     public void RecordPayloadBytes(int bytes) { }
+    public void RecordTruncation(string field) { }
 }
 
 internal sealed class ThrowingReaction
