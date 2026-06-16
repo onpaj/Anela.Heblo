@@ -120,6 +120,31 @@ public static class PersistenceModule
             }
         });
 
+        // Register DbContextFactory for services that need isolated DbContext instances
+        // (e.g., SmartsuppWebhookAuditWriter to prevent failed transactions from blocking subsequent operations)
+        services.AddDbContextFactory<ApplicationDbContext>((sp, options) =>
+        {
+            if (useInMemory || connectionString == "InMemory")
+            {
+                options.UseInMemoryDatabase("TestDatabase");
+            }
+            else
+            {
+                options.UseNpgsql(dataSource!, npgsql =>
+                {
+                    npgsql.ExecutionStrategy(deps =>
+                        new PollyExecutionStrategy(
+                            deps,
+                            sp.GetRequiredService<IDbResiliencePipelineProvider>(),
+                            sp.GetRequiredService<DbResilienceMetrics>(),
+                            sp.GetRequiredService<ILogger<PollyExecutionStrategy>>()));
+                });
+                options.AddInterceptors(
+                    sp.GetRequiredService<PostgresExceptionLoggingInterceptor>(),
+                    sp.GetRequiredService<NpgsqlConnectionInterceptor>());
+            }
+        }, lifetime: ServiceLifetime.Scoped);
+
         // Register telemetry services
         services.AddScoped<ITelemetryService, NoOpTelemetryService>(); // Default to NoOp, can be overridden by API layer
 

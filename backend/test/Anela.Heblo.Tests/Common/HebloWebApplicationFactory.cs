@@ -54,6 +54,16 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
                 options.UseInMemoryDatabase(_databaseName);
             });
 
+            // Remove any existing IDbContextFactory registration and register a test version
+            var factoryDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(IDbContextFactory<ApplicationDbContext>));
+            if (factoryDescriptor != null)
+            {
+                services.Remove(factoryDescriptor);
+            }
+            services.AddDbContextFactory<ApplicationDbContext>(options =>
+                options.UseInMemoryDatabase(_databaseName));
+
             // Remove any existing TelemetryClient registration
             var telemetryClientDescriptor = services.SingleOrDefault(
                 s => s.ServiceType == typeof(TelemetryClient));
