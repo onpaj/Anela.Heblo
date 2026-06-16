@@ -180,7 +180,7 @@ public sealed class CatalogMergeSchedulerTests
         var (sut, logger) = CreateScheduler(new CatalogCacheOptions
         {
             DebounceDelay = TimeSpan.FromSeconds(10),
-            MaxMergeInterval = TimeSpan.FromMilliseconds(50)
+            MaxMergeInterval = TimeSpan.FromMilliseconds(80)
         });
         using (sut)
         {
@@ -196,7 +196,7 @@ public sealed class CatalogMergeSchedulerTests
 
             // Act: seed _firstPendingInvalidation, wait past MaxMergeInterval, schedule again
             sut.ScheduleMerge("source-a");
-            await Task.Delay(80); // > MaxMergeInterval
+            await Task.Delay(120); // > MaxMergeInterval
             sut.ScheduleMerge("source-b");
 
             // Assert: callback fires via Task.Run force path within 1 s
@@ -252,7 +252,7 @@ public sealed class CatalogMergeSchedulerTests
 
             // The skip path waits up to 100 ms on the semaphore, then logs and returns.
             // Wait long enough for that path to complete before asserting.
-            await Task.Delay(300);
+            await Task.Delay(400);
 
             // Assert: callback was only invoked once (second invocation skipped)
             invocationCount.Should().Be(1);
@@ -315,7 +315,7 @@ public sealed class CatalogMergeSchedulerTests
 
             // Act: WaitForCurrentMergeAsync must not return while callback is blocked
             var waitTask = sut.WaitForCurrentMergeAsync();
-            await Task.Delay(100);
+            await Task.Delay(300);
             waitTask.IsCompleted.Should().BeFalse("merge is still in-flight");
 
             // Release the callback; the wait must complete within 1 s
@@ -488,7 +488,7 @@ public sealed class CatalogMergeSchedulerTests
                     LogLevel.Error,
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Background merge failed")),
-                    It.Is<Exception>(e => e is InvalidOperationException && e.Message == "boom"),
+                    It.Is<InvalidOperationException>(e => e.Message == "boom"),
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()!),
                 Times.Once);
 
