@@ -290,4 +290,65 @@ public class PhotobankAutoTagJobTests
             Times.Never);
         _repo.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
+
+    [Fact]
+    public async Task ExecuteForPhotosAsync_RunsEvenWhenStatusCheckerReturnsFalse()
+    {
+        // Arrange — recurring-schedule toggle is OFF, but ad-hoc retag must still run.
+        _statusChecker
+            .Setup(s => s.IsJobEnabledAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()))
+            .ReturnsAsync(false);
+
+        var candidates = new List<PhotoAutoTagCandidate>
+        {
+            new(Id: 7, FolderPath: "/photos", FileName: "ad-hoc.jpg"),
+        };
+
+        _repo
+            .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TagCount> { new(10, "kosmetika", 1) });
+
+        SetupChatResponse("""{"results":[{"id":7,"tags":["kosmetika"]}]}""");
+
+        _repo
+            .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _repo
+            .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _repo
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _repo
+            .Setup(r => r.StampAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var job = CreateJob();
+
+        // Act
+        await job.ExecuteForPhotosAsync(candidates, CancellationToken.None);
+
+        // Assert — LLM was invoked and the candidate was stamped, despite the recurring toggle being off.
+        _chat.Verify(
+            c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _repo.Verify(
+            r => r.StampAutoTaggedAtAsync(
+                It.Is<IReadOnlyList<int>>(ids => ids.Count == 1 && ids[0] == 7),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _statusChecker.Verify(
+            s => s.IsJobEnabledAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()),
+            Times.Never);
+    }
 }
