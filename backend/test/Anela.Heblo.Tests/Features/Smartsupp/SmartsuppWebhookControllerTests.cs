@@ -5,6 +5,7 @@ using Anela.Heblo.API.Webhooks.Smartsupp;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Persistence;
+using Anela.Heblo.Persistence.Smartsupp;
 using Anela.Heblo.Tests.Common;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
@@ -285,12 +286,41 @@ public class SmartsuppWebhookControllerTests
         entries.Should().ContainSingle()
             .Which.ProcessingStatus.Should().Be(SmartsuppWebhookProcessingStatus.MalformedJson);
     }
+
+    [Fact]
+    public async Task Receive_ReturnsOk_WhenAuditUpdateThrows()
+    {
+        using var factory = new SmartsuppWebhookFactory();
+        factory.ReplaceAuditWriterWithUpdateThrowing();
+        var client = factory.CreateClient();
+        var body = """
+            {
+              "event": "conversation.opened",
+              "timestamp": "2026-06-13T12:25:00Z",
+              "account_id": "acc-1",
+              "app_id": "app-1",
+              "data": {
+                "conversation": {
+                  "id": "c-int-audit",
+                  "status": "open",
+                  "created_at": "2026-06-13T12:25:00Z",
+                  "updated_at": "2026-06-13T12:25:00Z"
+                }
+              }
+            }
+            """;
+
+        var response = await client.SendAsync(BuildRequest(body, Sign(body, Secret)));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
 }
 
 public class SmartsuppWebhookFactory : HebloWebApplicationFactory
 {
     private string? _webhookAppId;
     private bool _replaceReactionsWithThrowing;
+    private bool _replaceAuditWriterUpdateThrowing;
     private List<string> _ignoredEventTypes = new();
 
     public SmartsuppWebhookFactory()
@@ -304,6 +334,8 @@ public class SmartsuppWebhookFactory : HebloWebApplicationFactory
     }
 
     public void ReplaceReactionsWithThrowing() => _replaceReactionsWithThrowing = true;
+
+    public void ReplaceAuditWriterWithUpdateThrowing() => _replaceAuditWriterUpdateThrowing = true;
 
     public void SetIgnoredEventTypes(IEnumerable<string> types) =>
         _ignoredEventTypes = types.ToList();
@@ -321,6 +353,12 @@ public class SmartsuppWebhookFactory : HebloWebApplicationFactory
             }
             services.AddScoped<Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions.ISmartsuppWebhookReaction,
                 ThrowingReaction>();
+        }
+        if (_replaceAuditWriterUpdateThrowing)
+        {
+            var d = services.SingleOrDefault(s => s.ServiceType == typeof(ISmartsuppWebhookAuditWriter));
+            if (d != null) services.Remove(d);
+            services.AddScoped<ISmartsuppWebhookAuditWriter, UpdateThrowingAuditWriter>();
         }
     }
 
@@ -355,4 +393,23 @@ internal sealed class ThrowingReaction
     public Task HandleAsync(
         Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions.WebhookEventContext ctx,
         CancellationToken cancellationToken) => throw new InvalidOperationException("boom");
+}
+
+internal sealed class UpdateThrowingAuditWriter : ISmartsuppWebhookAuditWriter
+{
+    public Task<Guid> CreateAsync(
+        SmartsuppWebhookAuditEntry entry,
+        CancellationToken cancellationToken)
+    {
+        if (entry.Id == Guid.Empty) entry.Id = Guid.NewGuid();
+        return Task.FromResult(entry.Id);
+    }
+
+    public Task UpdateOutcomeAsync(
+        Guid id,
+        SmartsuppWebhookProcessingStatus status,
+        string? error,
+        int durationMs,
+        CancellationToken cancellationToken)
+        => throw new InvalidOperationException("audit-update boom");
 }

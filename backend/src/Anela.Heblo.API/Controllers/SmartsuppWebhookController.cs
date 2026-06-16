@@ -149,19 +149,21 @@ public class SmartsuppWebhookController : ControllerBase
                 Data = data,
             }, cancellationToken);
             sw.Stop();
-            await _audit.UpdateOutcomeAsync(auditId,
+            await TryUpdateAuditOutcomeAsync(auditId,
                 SmartsuppWebhookProcessingStatus.Success,
                 error: null,
                 durationMs: (int)sw.ElapsedMilliseconds,
+                eventName,
                 cancellationToken);
         }
         catch (Exception ex)
         {
             sw.Stop();
-            await _audit.UpdateOutcomeAsync(auditId,
+            await TryUpdateAuditOutcomeAsync(auditId,
                 SmartsuppWebhookProcessingStatus.HandlerException,
                 error: ex.ToString(),
                 durationMs: (int)sw.ElapsedMilliseconds,
+                eventName,
                 cancellationToken);
             _logger.LogError(ex,
                 "smartsupp webhook downstream processing failed event={Event} app={AppId}",
@@ -169,6 +171,26 @@ public class SmartsuppWebhookController : ControllerBase
         }
 
         return Ok();
+    }
+
+    private async Task TryUpdateAuditOutcomeAsync(
+        Guid auditId,
+        SmartsuppWebhookProcessingStatus status,
+        string? error,
+        int durationMs,
+        string eventName,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _audit.UpdateOutcomeAsync(auditId, status, error, durationMs, cancellationToken);
+        }
+        catch (Exception auditEx)
+        {
+            _logger.LogError(auditEx,
+                "smartsupp webhook audit update failed auditId={AuditId} event={Event} status={Status}",
+                auditId, eventName, status);
+        }
     }
 
     private static string SerializeHeaders(HttpRequest request)
