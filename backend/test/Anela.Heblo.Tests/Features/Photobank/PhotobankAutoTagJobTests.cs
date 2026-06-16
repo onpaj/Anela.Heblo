@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Photobank.Services;
+using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Photobank;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -19,16 +20,29 @@ public class PhotobankAutoTagJobTests
     private readonly Mock<IPhotobankRepository> _repo = new();
     private readonly Mock<IChatClient> _chat = new();
     private readonly Mock<IPhotobankTagsCache> _cache = new();
+    private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
+
+    public PhotobankAutoTagJobTests()
+    {
+        // Default: job is enabled. Individual tests override as needed.
+        _statusChecker
+            .Setup(s => s.IsJobEnabledAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()))
+            .ReturnsAsync(true);
+    }
 
     private PhotobankAutoTagJob CreateJob(AutoTagOptions? options = null)
     {
-        var opts = options ?? new AutoTagOptions { Enabled = true, BatchSize = 50, MaxPhotosPerRun = 5_000 };
+        var opts = options ?? new AutoTagOptions { BatchSize = 50, MaxPhotosPerRun = 5_000 };
         return new PhotobankAutoTagJob(
             _repo.Object,
             _chat.Object,
             Options.Create(opts),
             NullLogger<PhotobankAutoTagJob>.Instance,
-            _cache.Object);
+            _cache.Object,
+            _statusChecker.Object);
     }
 
     private void SetupEmptyTags() =>
@@ -50,10 +64,16 @@ public class PhotobankAutoTagJobTests
             .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, json)]));
 
     [Fact]
-    public async Task ExecuteAsync_WhenDisabled_DoesNotCallLlmOrRepository()
+    public async Task ExecuteAsync_WhenStatusCheckerReturnsFalse_DoesNotCallLlmOrRepository()
     {
         // Arrange
-        var job = CreateJob(new AutoTagOptions { Enabled = false });
+        _statusChecker
+            .Setup(s => s.IsJobEnabledAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()))
+            .ReturnsAsync(false);
+        var job = CreateJob();
 
         // Act
         await job.ExecuteAsync(CancellationToken.None);
@@ -185,9 +205,10 @@ public class PhotobankAutoTagJobTests
         var jobWithCap = new PhotobankAutoTagJob(
             _repo.Object,
             _chat.Object,
-            Options.Create(new AutoTagOptions { Enabled = true, BatchSize = 50, MaxPhotosPerRun = 100, Model = "test-model", MaxTagsPerPhoto = 2 }),
+            Options.Create(new AutoTagOptions { BatchSize = 50, MaxPhotosPerRun = 100, Model = "test-model", MaxTagsPerPhoto = 2 }),
             NullLogger<PhotobankAutoTagJob>.Instance,
-            _cache.Object);
+            _cache.Object,
+            _statusChecker.Object);
 
         // Act
         await jobWithCap.ExecuteAsync(CancellationToken.None);
