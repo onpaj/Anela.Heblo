@@ -46,6 +46,7 @@ public class PhotobankAutoTagJob : IRecurringJob
 
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
+        // defaultIfMissing: false — LLM-cost job must stay off until an operator explicitly enables it in the DB.
         if (!await _statusChecker.IsJobEnabledAsync(
                 Metadata.JobName,
                 cancellationToken,
