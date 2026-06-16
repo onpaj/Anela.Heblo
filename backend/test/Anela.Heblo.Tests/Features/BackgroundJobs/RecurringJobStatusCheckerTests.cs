@@ -39,6 +39,28 @@ public class RecurringJobStatusCheckerTests
     }
 
     [Fact]
+    public async Task IsJobEnabledAsync_ReturnsTrue_WhenRowExistsAndEnabled()
+    {
+        // Arrange
+        _repo
+            .Setup(r => r.GetByJobNameAsync("job-enabled", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RecurringJobConfiguration(
+                jobName: "job-enabled",
+                displayName: "Job Enabled",
+                description: "Test job",
+                cronExpression: "0 * * * *",
+                isEnabled: true,
+                lastModifiedBy: "test"));
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.IsJobEnabledAsync("job-enabled", CancellationToken.None);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task IsJobEnabledAsync_ReturnsTrue_WhenRowMissing_AndDefaultIfMissingIsTrue()
     {
         // Arrange
