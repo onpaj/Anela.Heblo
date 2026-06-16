@@ -25,7 +25,7 @@ public sealed class BankImportJobBaseTests
     {
         // Arrange
         _statusChecker
-            .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>()))
+            .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(false);
         var job = CreateJob();
 
@@ -44,7 +44,7 @@ public sealed class BankImportJobBaseTests
     {
         // Arrange
         _statusChecker
-            .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>()))
+            .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
         ImportBankStatementRequest? captured = null;
         _mediator
@@ -69,7 +69,7 @@ public sealed class BankImportJobBaseTests
     {
         // Arrange
         _statusChecker
-            .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>()))
+            .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
         _mediator
             .Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
@@ -90,7 +90,7 @@ public sealed class BankImportJobBaseTests
         using var cts = new CancellationTokenSource();
         var token = cts.Token;
         _statusChecker
-            .Setup(c => c.IsJobEnabledAsync(TestJobName, token))
+            .Setup(c => c.IsJobEnabledAsync(TestJobName, token, true))
             .ReturnsAsync(true);
         _mediator
             .Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), token))
@@ -101,7 +101,7 @@ public sealed class BankImportJobBaseTests
         await job.ExecuteAsync(token);
 
         // Assert — overload with the exact token must have been called (any other token would not match)
-        _statusChecker.Verify(c => c.IsJobEnabledAsync(TestJobName, token), Times.Once);
+        _statusChecker.Verify(c => c.IsJobEnabledAsync(TestJobName, token, true), Times.Once);
         _mediator.Verify(
             m => m.Send(It.IsAny<ImportBankStatementRequest>(), token),
             Times.Once);
@@ -113,7 +113,7 @@ public sealed class BankImportJobBaseTests
         // Arrange
         var thrown = new InvalidOperationException("simulated handler failure");
         _statusChecker
-            .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>()))
+            .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
         _mediator
             .Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
