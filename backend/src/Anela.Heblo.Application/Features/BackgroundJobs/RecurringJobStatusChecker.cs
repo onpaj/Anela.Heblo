@@ -48,9 +48,10 @@ public class RecurringJobStatusChecker : IRecurringJobStatusChecker
         }
         catch (Exception ex)
         {
-            // Safety fallback - on error, use the caller-specified default to avoid blocking critical jobs
-            _logger.LogError(ex, "Error checking job enabled status for job: {JobName}. Returning default: {DefaultIfMissing}.", jobName, defaultIfMissing);
-            return defaultIfMissing;
+            // Safety fallback - on error, always allow job to run to avoid blocking critical jobs.
+            // Intentionally NOT gated by defaultIfMissing: a DB outage should not silently disable jobs.
+            _logger.LogError(ex, "Error checking job enabled status for job: {JobName}. Allowing job to run by default.", jobName);
+            return true;
         }
     }
 }
