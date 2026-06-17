@@ -47,8 +47,11 @@ namespace Anela.Heblo.Tests.Domain.Marketing
 
         public MarketingAction Build()
         {
-            // Construct via the public ctor (FR-1). Then layer modified-audit
-            // and Id/Outlook fields on top — the latter still expose public setters.
+            // Construct via the public ctor. Then layer modified-audit, Id, and
+            // Outlook fields on top. Id has a public setter; the Outlook fields use
+            // internal set and are assignable here via the InternalsVisibleTo grant
+            // to Anela.Heblo.Tests — this lets the builder express an arbitrary
+            // OutlookEventId with NotSynced status, a state no domain method produces.
             var action = new MarketingAction(
                 title: _title,
                 description: _description,
