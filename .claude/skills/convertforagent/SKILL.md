@@ -34,7 +34,7 @@ agentharness list 2>/dev/null | grep feat-
 Tell the user:
 - The **feature ID** printed by the command
 - That the feature is now visible in `agentharness watch`
-- Next command: `/implement <feature-id>` or `agentharness implement <feature-id>`
+- Next command: `/oneshot <feature-id>` or `agentharness implement <feature-id>`
 
 ## What the command does
 
