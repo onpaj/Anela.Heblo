@@ -153,19 +153,20 @@ restore_frontend() {
 # 6. AgentHarness (skill-based single-agent harness)
 # ---------------------------------------------------------------------------
 install_agentharness() {
-  if ! command -v agentharness >/dev/null 2>&1; then
-    log "Installing AgentHarness from GitHub feature branch..."
-    # Ubuntu Noble's system Python is externally managed (PEP 668), so
-    # --break-system-packages is required for a system-wide pip install.
-    pip install --break-system-packages \
-      "git+https://github.com/onpaj/harness.git@feature/skill-based-single-agent-harness"
-    ok "AgentHarness installed ($(agentharness --version 2>/dev/null || echo present))"
-  else
-    ok "AgentHarness already present"
-  fi
-  log "Running agentharness init..."
-  ( cd "${REPO_ROOT}" && agentharness init )
-  ok "agentharness init complete"
+  log "Installing AgentHarness from GitHub (main branch)..."
+  # Ubuntu Noble's system Python is externally managed (PEP 668), so
+  # --break-system-packages is required for a system-wide pip install.
+  # --upgrade so each cloud session picks up the latest master.
+  pip install --break-system-packages --upgrade \
+    "git+https://github.com/onpaj/harness.git@master"
+  ok "AgentHarness installed ($(agentharness --version 2>/dev/null || echo present))"
+
+  log "Running agentharness init --force..."
+  # init's env-setup prompts for GITHUB_OWNER / GITHUB_RUNS_REPO; both are
+  # auto-detected from the git remote, so feed blank lines to accept the
+  # defaults non-interactively (set -e would otherwise abort on the prompt).
+  ( cd "${REPO_ROOT}" && printf '\n\n\n\n' | agentharness init --force )
+  ok "agentharness init --force complete"
 }
 
 install_playwright() {
