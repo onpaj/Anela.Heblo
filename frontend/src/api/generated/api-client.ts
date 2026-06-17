@@ -9918,11 +9918,11 @@ export class ApiClient {
         return Promise.resolve<BulkAddPhotoTagByIdsResponse>(null as any);
     }
 
-    photobank_RetagPhotos(request: RetagPhotosRequest): Promise<RetagPhotosResponse> {
+    photobank_RetagPhotos(body: RetagPhotosBody): Promise<RetagPhotosResponse> {
         let url_ = this.baseUrl + "/api/photobank/photos/auto-tag";
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(request);
+        const content_ = JSON.stringify(body);
 
         let options_: RequestInit = {
             body: content_,
@@ -10011,11 +10011,11 @@ export class ApiClient {
         return Promise.resolve<GetRootsResponse>(null as any);
     }
 
-    photobank_AddRoot(request: AddRootRequest): Promise<AddRootResponse> {
+    photobank_AddRoot(body: AddRootBody): Promise<AddRootResponse> {
         let url_ = this.baseUrl + "/api/photobank/settings/roots";
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(request);
+        const content_ = JSON.stringify(body);
 
         let options_: RequestInit = {
             body: content_,
@@ -10148,11 +10148,11 @@ export class ApiClient {
         return Promise.resolve<GetRulesResponse>(null as any);
     }
 
-    photobank_AddRule(request: AddRuleRequest): Promise<AddRuleResponse> {
+    photobank_AddRule(body: AddRuleBody): Promise<AddRuleResponse> {
         let url_ = this.baseUrl + "/api/photobank/settings/rules";
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(request);
+        const content_ = JSON.stringify(body);
 
         let options_: RequestInit = {
             body: content_,
@@ -34939,11 +34939,11 @@ export interface IRetagPhotosResponse extends IBaseResponse {
     jobId?: string | undefined;
 }
 
-export class RetagPhotosRequest implements IRetagPhotosRequest {
+export class RetagPhotosBody implements IRetagPhotosBody {
     photoIds?: number[];
     clearExistingAiTags?: boolean;
 
-    constructor(data?: IRetagPhotosRequest) {
+    constructor(data?: IRetagPhotosBody) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -34963,9 +34963,9 @@ export class RetagPhotosRequest implements IRetagPhotosRequest {
         }
     }
 
-    static fromJS(data: any): RetagPhotosRequest {
+    static fromJS(data: any): RetagPhotosBody {
         data = typeof data === 'object' ? data : {};
-        let result = new RetagPhotosRequest();
+        let result = new RetagPhotosBody();
         result.init(data);
         return result;
     }
@@ -34982,7 +34982,7 @@ export class RetagPhotosRequest implements IRetagPhotosRequest {
     }
 }
 
-export interface IRetagPhotosRequest {
+export interface IRetagPhotosBody {
     photoIds?: number[];
     clearExistingAiTags?: boolean;
 }
@@ -35125,12 +35125,12 @@ export interface IAddRootResponse extends IBaseResponse {
     id?: number;
 }
 
-export class AddRootRequest implements IAddRootRequest {
+export class AddRootBody implements IAddRootBody {
     sharePointPath?: string;
     displayName?: string | undefined;
     driveId?: string;
 
-    constructor(data?: IAddRootRequest) {
+    constructor(data?: IAddRootBody) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -35147,9 +35147,9 @@ export class AddRootRequest implements IAddRootRequest {
         }
     }
 
-    static fromJS(data: any): AddRootRequest {
+    static fromJS(data: any): AddRootBody {
         data = typeof data === 'object' ? data : {};
-        let result = new AddRootRequest();
+        let result = new AddRootBody();
         result.init(data);
         return result;
     }
@@ -35163,7 +35163,7 @@ export class AddRootRequest implements IAddRootRequest {
     }
 }
 
-export interface IAddRootRequest {
+export interface IAddRootBody {
     sharePointPath?: string;
     displayName?: string | undefined;
     driveId?: string;
@@ -35322,12 +35322,12 @@ export interface IAddRuleResponse extends IBaseResponse {
     id?: number;
 }
 
-export class AddRuleRequest implements IAddRuleRequest {
+export class AddRuleBody implements IAddRuleBody {
     pathPattern?: string;
     tagName?: string;
     sortOrder?: number;
 
-    constructor(data?: IAddRuleRequest) {
+    constructor(data?: IAddRuleBody) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -35344,9 +35344,9 @@ export class AddRuleRequest implements IAddRuleRequest {
         }
     }
 
-    static fromJS(data: any): AddRuleRequest {
+    static fromJS(data: any): AddRuleBody {
         data = typeof data === 'object' ? data : {};
-        let result = new AddRuleRequest();
+        let result = new AddRuleBody();
         result.init(data);
         return result;
     }
@@ -35360,7 +35360,7 @@ export class AddRuleRequest implements IAddRuleRequest {
     }
 }
 
-export interface IAddRuleRequest {
+export interface IAddRuleBody {
     pathPattern?: string;
     tagName?: string;
     sortOrder?: number;
