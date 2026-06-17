@@ -52,11 +52,11 @@ require_debian() {
 # 1. Base apt packages
 # ---------------------------------------------------------------------------
 install_base() {
-  log "Installing base packages (curl, git, ca-certificates, SkiaSharp libs)..."
+  log "Installing base packages (curl, git, ca-certificates, SkiaSharp libs, python3)..."
   $SUDO apt-get update -y
   $SUDO apt-get install -y --no-install-recommends \
     curl wget git ca-certificates gnupg apt-transport-https \
-    libfontconfig1 libfreetype6
+    libfontconfig1 libfreetype6 python3 python3-pip
   ok "Base packages installed"
 }
 
@@ -149,6 +149,25 @@ restore_frontend() {
   ok "Frontend dependencies installed"
 }
 
+# ---------------------------------------------------------------------------
+# 6. AgentHarness (skill-based single-agent harness)
+# ---------------------------------------------------------------------------
+install_agentharness() {
+  if ! command -v agentharness >/dev/null 2>&1; then
+    log "Installing AgentHarness from GitHub feature branch..."
+    # Ubuntu Noble's system Python is externally managed (PEP 668), so
+    # --break-system-packages is required for a system-wide pip install.
+    pip install --break-system-packages \
+      "git+https://github.com/onpaj/harness.git@feature/skill-based-single-agent-harness"
+    ok "AgentHarness installed ($(agentharness --version 2>/dev/null || echo present))"
+  else
+    ok "AgentHarness already present"
+  fi
+  log "Running agentharness init..."
+  ( cd "${REPO_ROOT}" && agentharness init )
+  ok "agentharness init complete"
+}
+
 install_playwright() {
   if [ "${SKIP_PLAYWRIGHT:-0}" = "1" ]; then
     warn "SKIP_PLAYWRIGHT=1 set — skipping Playwright browser download"
@@ -175,6 +194,7 @@ main() {
   require_repo
   restore_backend
   restore_frontend
+  install_agentharness
   install_playwright
 
   echo

@@ -23,7 +23,7 @@ DOTNET_CHANNEL="8.0"
 # --- SkiaSharp native libs (PDF generation) --------------------------------
 apt-get update -y
 apt-get install -y --no-install-recommends \
-  curl ca-certificates gnupg libfontconfig1 libfreetype6 python3 python3-pip
+  curl ca-certificates gnupg libfontconfig1 libfreetype6
 
 # --- .NET 8 SDK (not pre-installed) ----------------------------------------
 # Install to /usr/local so `dotnet` is on PATH for the hook, Claude, and shells
@@ -45,15 +45,5 @@ if ! command -v gh >/dev/null 2>&1; then
   apt-get update -y
   apt-get install -y gh
 fi
-
-# --- AgentHarness (skill-based single-agent harness) -----------------------
-# Installed from the feature branch on GitHub. Ubuntu Noble's Python is
-# externally managed (PEP 668), so --break-system-packages is required for a
-# system-wide pip install.
-if ! command -v agentharness >/dev/null 2>&1; then
-  pip install --break-system-packages \
-    "git+https://github.com/onpaj/harness.git@feature/skill-based-single-agent-harness"
-fi
-agentharness init
 
 echo "cloud-env-bootstrap: system toolchain ready (dotnet $(dotnet --version), gh $(gh --version | head -1))"
