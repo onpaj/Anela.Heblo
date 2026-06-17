@@ -12,14 +12,14 @@ public sealed class SmartsuppConversationConfiguration : IEntityTypeConfiguratio
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasMaxLength(100);
         builder.Property(e => e.ExtId).HasMaxLength(100);
-        builder.Property(e => e.Subject).HasMaxLength(500);
+        builder.Property(e => e.Subject).HasColumnType("text");
         builder.Property(e => e.ContactId).HasMaxLength(100);
         builder.Property(e => e.ContactName).HasMaxLength(200);
         builder.Property(e => e.ContactEmail).HasMaxLength(200);
-        builder.Property(e => e.ContactAvatarUrl).HasMaxLength(500);
+        builder.Property(e => e.ContactAvatarUrl).HasColumnType("text");
         builder.Property(e => e.VisitorId).HasMaxLength(100);
         builder.Property(e => e.Domain).HasMaxLength(200);
-        builder.Property(e => e.Referer).HasMaxLength(500);
+        builder.Property(e => e.Referer).HasColumnType("text");
         builder.Property(e => e.LocationCountry).HasMaxLength(100);
         builder.Property(e => e.LocationCity).HasMaxLength(100);
         builder.Property(e => e.LocationIp).HasMaxLength(50);
