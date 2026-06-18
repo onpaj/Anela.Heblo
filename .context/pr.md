@@ -1,22 +1,42 @@
 # PR Context
 
-- **PR**: #3199 — feat-3080: add unit tests for DisassembleGiftPackageHandler
-- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3199
-- **Branch**: `feature/feat-3080` → `main`
+- **PR**: #3185 — fix: Widen SmartsuppConversations varchar(500) columns to text
+- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3185
+- **Branch**: `feature/fix/pr3161-extend-db-schema` → `main`
 - **State**: OPEN
 - **Author**: onpaj
-- **Changes**: +105 / -0 across 1 file
-- **Absorbed**: no backmerge needed (already up-to-date with main); CI fix pushed
+- **Changes**: +4367 / -17 across 5 files
+- **Absorbed**: backmerged with `main`, all tests passing (real failures resolved; remaining 57 failures are Docker/Testcontainers + live-API integration tests that cannot run in this sandbox)
 
 ## Description
 
-`DisassembleGiftPackageHandler` had 10.8% line coverage (threshold: 60%). Both exception-routing catch blocks were completely untested — an `InvalidOperationException` maps to `ErrorCodes.InvalidOperation` and an `ArgumentException` maps to `ErrorCodes.InvalidValue`. Because both catch blocks are structurally identical, a copy-paste regression would be silent without tests.
+## Problem
 
-Closes #3080
+`POST SmartsuppWebhook/Receive` returned HTTP 500 in bursts when Smartsupp sent content exceeding the `varchar(500)` column limit in the Smartsupp persistence schema (`Npgsql.PostgresException 22001`).
 
-## What the routine fixed
+PR #3161 attempted to fix this by widening some columns **and** adding app-layer string truncation. That premise is invalid — truncation causes silent data loss.
 
-The only failing CI check was **Claude Code Review**, which was failing with:
-> API Error: 404 — model: claude-sonnet-4-20250514 (not found)
+## Fix
 
-The pinned `claude-code-action` at `de8e0b9c` uses a retired model ID. Fix: added `model: claude-sonnet-4-6` to `.github/workflows/claude-review.yml` to override the default. All functional checks (Backend Tests, Frontend Tests, Docker Build) were already passing.
+Extend the DB schema only. Four columns in `SmartsuppConversations` widened from `varchar(500)` → `text`:
+
+- `Subject`
+- `Referer`
+- `ContactAvatarUrl`
+- `LastMessagePreview`
+
+Also removes the inline `LastMessagePreview` 200-char truncation that was in `SmartsuppPayloadMapper`.
+
+## Test plan
+
+- [ ] Run migration against staging: `dotnet ef database update`
+- [ ] Replay any failed webhook events via `tools/SmartsuppWebhookReplay`
+- [ ] Verify no 500s on `POST SmartsuppWebhook/Receive` in Application Insights
+
+Closes #3069
+
+## Absorb notes
+
+- Backmerge of `origin/main` merged cleanly (no conflicts).
+- One real test failure surfaced: `SmartsuppPayloadMapperTests.MapConversation_TruncatesLastMessagePreview_AtTwoHundredChars` — a stale test from `main` asserting the truncation this PR intentionally removed. Updated it to `MapConversation_PreservesFullLastMessagePreview_WithoutTruncation`, asserting the full preview is preserved.
+- Remaining 57 test failures are all `*IntegrationTests` requiring Docker/Testcontainers (Postgres) or live external services (Flexi ERP, Shoptet API) — environment limitations, not regressions.
