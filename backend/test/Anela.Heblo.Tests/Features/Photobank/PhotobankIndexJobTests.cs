@@ -22,7 +22,7 @@ public class PhotobankIndexJobTests
         _statusCheckerMock = new Mock<IRecurringJobStatusChecker>();
 
         _statusCheckerMock
-            .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
 
         _job = new PhotobankIndexJob(

@@ -42,7 +42,7 @@ public class LeafletIngestionJobTests
         opts ??= DefaultLeafletOptions();
 
         _statusChecker
-            .Setup(s => s.IsJobEnabledAsync("leaflet-ingestion", It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync("leaflet-ingestion", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
 
         return new LeafletIngestionJob(
@@ -180,7 +180,7 @@ public class LeafletIngestionJobTests
     public async Task Execute_does_nothing_when_job_is_disabled()
     {
         _statusChecker
-            .Setup(s => s.IsJobEnabledAsync("leaflet-ingestion", It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync("leaflet-ingestion", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(false);
 
         var job = new LeafletIngestionJob(

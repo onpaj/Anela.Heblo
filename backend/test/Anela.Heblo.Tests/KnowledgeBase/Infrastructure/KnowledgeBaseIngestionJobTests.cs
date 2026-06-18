@@ -23,7 +23,7 @@ public class KnowledgeBaseIngestionJobTests
 
     private KnowledgeBaseIngestionJob CreateJob(KnowledgeBaseOptions options)
     {
-        _statusChecker.Setup(s => s.IsJobEnabledAsync("knowledge-base-ingestion", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _statusChecker.Setup(s => s.IsJobEnabledAsync("knowledge-base-ingestion", It.IsAny<CancellationToken>(), true)).ReturnsAsync(true);
         return new KnowledgeBaseIngestionJob(
             _oneDrive.Object,
             _mediator.Object,

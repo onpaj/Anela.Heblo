@@ -35,4 +35,4 @@ This uploads the spec and returns a **feature ID** (e.g. `feat-20260425-abc123`)
 
 - The feature ID
 - They can review or edit the spec at `artifacts/<feature-id>/brief.md` before starting
-- When ready: `/implement <feature-id>` or `agentharness implement <feature-id>`
+- When ready: run `/oneshot <issue-number>` to start the pipeline

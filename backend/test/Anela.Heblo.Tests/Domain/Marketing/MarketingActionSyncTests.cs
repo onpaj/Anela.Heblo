@@ -37,7 +37,8 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.OutlookSyncError = "previous error";
+            action.MarkOutlookSynced("seed-event", new DateTime(2026, 4, 27, 9, 0, 0, DateTimeKind.Utc));
+            action.OutlookSyncError = "previous error"; // internal set: no domain method seeds an error value
             var utcNow = new DateTime(2026, 4, 27, 10, 0, 0, DateTimeKind.Utc);
 
             // Act
@@ -52,10 +53,8 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.OutlookEventId = "some-event-id";
-            action.OutlookLastAttemptAt = new DateTime(2026, 4, 27, 10, 0, 0, DateTimeKind.Utc);
-            action.OutlookSyncStatus = MarketingSyncStatus.Synced;
-            action.OutlookSyncError = "some error";
+            action.MarkOutlookSynced("some-event-id", new DateTime(2026, 4, 27, 10, 0, 0, DateTimeKind.Utc));
+            action.OutlookSyncError = "some error"; // internal set: seed an error to prove ClearOutlookLink resets it
 
             // Act
             action.ClearOutlookLink();
