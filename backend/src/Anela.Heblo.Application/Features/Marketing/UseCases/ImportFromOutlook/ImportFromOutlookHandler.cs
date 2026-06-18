@@ -59,6 +59,13 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
             var response = new ImportFromOutlookResponse();
             var unmappedAccumulator = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+            // Persistence is deferred until the loop completes so that a single
+            // SaveChangesAsync covers the whole import. Saving per-event used to
+            // leave the shared DbContext dirty after a failed save, poisoning
+            // every subsequent event in the run (and costing N round-trips).
+            var pendingCreates = new List<(MarketingAction action, OutlookEventDto evt)>();
+            var pendingUpdates = new List<(MarketingAction action, OutlookEventDto evt)>();
+
             foreach (var evt in events)
             {
                 try
@@ -92,16 +99,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
                         if (!request.DryRun)
                         {
                             await _repository.UpdateAsync(existing, cancellationToken);
-                            await _repository.SaveChangesAsync(cancellationToken);
-
-                            response.Updated++;
-                            response.Items.Add(new ImportedItemDto
-                            {
-                                OutlookEventId = evt.Id,
-                                Subject = evt.Subject,
-                                Status = ImportStatus.Updated,
-                                CreatedActionId = existing.Id,
-                            });
+                            pendingUpdates.Add((existing, evt));
                         }
                         else
                         {
@@ -120,17 +118,8 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
 
                         if (!request.DryRun)
                         {
-                            var created = await _repository.AddAsync(action, cancellationToken);
-                            await _repository.SaveChangesAsync(cancellationToken);
-
-                            response.Created++;
-                            response.Items.Add(new ImportedItemDto
-                            {
-                                OutlookEventId = evt.Id,
-                                Subject = evt.Subject,
-                                Status = ImportStatus.Created,
-                                CreatedActionId = created.Id,
-                            });
+                            await _repository.AddAsync(action, cancellationToken);
+                            pendingCreates.Add((action, evt));
                         }
                         else
                         {
@@ -160,6 +149,62 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
                         Error = ex.Message,
                     });
                 }
+            }
+
+            if (!request.DryRun && (pendingCreates.Count > 0 || pendingUpdates.Count > 0))
+            {
+                try
+                {
+                    await _repository.SaveChangesAsync(cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    // The batch is atomic: if the single save fails, none of the
+                    // staged creates/updates were persisted. Report them all as
+                    // failed instead of claiming success for unwritten rows.
+                    _logger.LogError(ex,
+                        "Failed to persist Outlook import batch of {Count} action(s); no changes were saved",
+                        pendingCreates.Count + pendingUpdates.Count);
+
+                    foreach (var (_, evt) in pendingCreates.Concat(pendingUpdates))
+                    {
+                        response.Failed++;
+                        response.Items.Add(new ImportedItemDto
+                        {
+                            OutlookEventId = evt.Id,
+                            Subject = evt.Subject,
+                            Status = ImportStatus.Failed,
+                            Error = ex.Message,
+                        });
+                    }
+
+                    pendingCreates.Clear();
+                    pendingUpdates.Clear();
+                }
+            }
+
+            foreach (var (action, evt) in pendingCreates)
+            {
+                response.Created++;
+                response.Items.Add(new ImportedItemDto
+                {
+                    OutlookEventId = evt.Id,
+                    Subject = evt.Subject,
+                    Status = ImportStatus.Created,
+                    CreatedActionId = action.Id,
+                });
+            }
+
+            foreach (var (action, evt) in pendingUpdates)
+            {
+                response.Updated++;
+                response.Items.Add(new ImportedItemDto
+                {
+                    OutlookEventId = evt.Id,
+                    Subject = evt.Subject,
+                    Status = ImportStatus.Updated,
+                    CreatedActionId = action.Id,
+                });
             }
 
             response.UnmappedCategories = unmappedAccumulator.ToList();
