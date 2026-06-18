@@ -174,7 +174,6 @@ public class ConfirmSemiProductManufactureWorkflow : IConfirmSemiProductManufact
                 : submitResult.UserMessage ?? submitResult.FullError(),
             SemiProductOrderCode = submitResult.ManufactureId,
             ProductOrderCode = null,
-            DiscardRedisueDocumentCode = null,
             ManualActionRequired = !submitResult.Success,
             WeightWithinTolerance = null,
             WeightDifference = null,
