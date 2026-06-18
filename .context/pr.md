@@ -1,26 +1,28 @@
 # PR Context
 
-- **PR**: #3060 — feat: Harden ShoptetStockClient.ListAsync against transient HTTP failures
-- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3060
-- **Branch**: `feat-telemetry-shoptetstockclient-listasync-8` → `main`
-- **State**: open
+- **PR**: #3196 — test(ManufactureOrderExtensions): add unit tests for lot number and expiration date
+- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3196
+- **Branch**: `feature/feat-3076` → `main`
+- **State**: OPEN
 - **Author**: onpaj
-- **Changes**: +2067 / -18 across 15 files
-- **Absorbed**: backmerged with `main`, all tests passing (4939 passed, 4 skipped), pushed
+- **Changes**: +136 / -0 across 1 file
+- **Absorbed**: already up to date with `main`; CI workflow fix committed and pushed
 
 ## Description
 
-Hardens `ShoptetStockClient.ListAsync` against transient HTTP failures (~1.1 failures/day).
-Adds Polly retry policy, per-attempt timeout, token redaction in logs, and wraps
-`ProductPairingDqtComparer` stock calls with `ICatalogResilienceService`.
+`ManufactureOrderExtensions.cs` had 49% line coverage (threshold: 60%). Added
+`ManufactureOrderExtensionsTests.cs` with 16 pure unit tests covering:
+- `GetDefaultLot` (5 Theory cases: week-padding, ISO-year-boundary, Sunday edge cases)
+- `GetDefaultExpiration` (5 Theory cases: leap year, 31→30-day transition, year-boundary)
+- `SetDefaultLot` / `SetDefaultExpiration` (6 Fact tests, one per entity type)
 
-Closes #3000.
+All 16 tests pass locally.
 
-## Absorb notes
+## CI fix applied
 
-- Backmerged `origin/main` (150-file merge, clean — no conflicts)
-- Fixed: `ModuleBoundariesTests` (DataQuality -> Catalog rule) — updated `DataQualityCatalogAllowlist`
-  to cover `ICatalogResilienceService` (new Catalog dep in `ProductPairingDqtComparer`) and
-  replaced stale `<CompareAsync>d__5` EshopStock entry with a parent-type entry covering
-  the new `d__6`/`b__6_1>d` compiler-generated types introduced by the resilience wrapper
-- All CI-relevant tests pass locally (4939 passed, 4 skipped, Category!=Integration filter)
+The `claude-review.yml` workflow was failing with HTTP 404 because the pinned
+action defaulted to the deprecated model `claude-sonnet-4-20250514`. Fixed by
+adding `anthropic_model: claude-sonnet-4-6` and removing the invalid `pr_number`
+input. Committed (`2d05f39b`) and pushed to `feature/feat-3076` to re-trigger CI.
+
+Closes #3076
