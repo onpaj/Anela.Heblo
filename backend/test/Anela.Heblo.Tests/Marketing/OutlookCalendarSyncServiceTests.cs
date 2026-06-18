@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Anela.Heblo.Adapters.Microsoft365;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Domain.Features.Marketing;

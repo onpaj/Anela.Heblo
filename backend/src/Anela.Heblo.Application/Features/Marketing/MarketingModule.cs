@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Services;
-using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Persistence.Marketing;
 using Microsoft.Extensions.Configuration;
@@ -32,22 +31,11 @@ namespace Anela.Heblo.Application.Features.Marketing
             // The mapper has no Graph dependencies — register in both auth modes.
             services.AddSingleton<IMarketingCategoryMapper, MarketingCategoryMapper>();
 
-            // Outlook calendar sync — use real Graph-backed service only when real Azure AD
-            // authentication is active. Mock auth has no ITokenAcquisition registered, so DI
-            // validation would fail; NoOpOutlookCalendarSync is used in those environments instead.
-            var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
-            var bypassJwt = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, false);
-
-            if (!useMockAuth && !bypassJwt)
-            {
-                // Graph HTTP client (safe to register multiple times — IHttpClientFactory deduplicates)
-                services.AddHttpClient("MicrosoftGraph");
-                services.AddScoped<IOutlookCalendarSync, OutlookCalendarSyncService>();
-            }
-            else
-            {
-                services.AddScoped<IOutlookCalendarSync, NoOpOutlookCalendarSync>();
-            }
+            // Graph HTTP client (safe to register multiple times — IHttpClientFactory deduplicates)
+            services.AddHttpClient("MicrosoftGraph");
+            // No-op fallback; AddMicrosoft365Adapter() (called from Program.cs) will override with
+            // the real OutlookCalendarSyncService in production (last registration wins).
+            services.AddScoped<IOutlookCalendarSync, NoOpOutlookCalendarSync>();
 
             // MediatR handlers are auto-registered by assembly scan
             return services;
