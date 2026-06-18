@@ -1,0 +1,36 @@
+{
+  "feature_id": "feat-3116",
+  "issue_number": 3116,
+  "created_at": "2026-06-18T07:03:02.869093Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-18T07:05:18.616459Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-18T07:07:55.225485Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-18T07:08:11.285195Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-18T07:10:22.485180Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-18T07:48:55.668982Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "encapsulate-state-transition",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-18T07:48:55.474707Z"
+    }
+  ]
+}
