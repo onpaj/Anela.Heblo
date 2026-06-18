@@ -9,6 +9,7 @@ import Select, {
 } from "react-select";
 import { User, AlertCircle, ChevronDown } from "lucide-react";
 import { useResponsiblePersonsQuery } from "../../api/hooks/useUserManagement";
+import { SwaggerException } from "../../api/generated/api-client";
 
 interface ResponsiblePersonComboboxProps {
   groupId: string;                   // Microsoft Entra group ID to fetch members from; combobox stays disabled when empty
@@ -40,7 +41,8 @@ const ResponsiblePersonCombobox: React.FC<ResponsiblePersonComboboxProps> = ({
   allowManualEntry = true,
 }) => {
   const [inputValue, setInputValue] = useState("");
-  const { data: response, isLoading, isError } = useResponsiblePersonsQuery(groupId);
+  const { data: response, isLoading, isError, error: queryError } = useResponsiblePersonsQuery(groupId);
+  const isForbidden = isError && SwaggerException.isSwaggerException(queryError) && queryError.status === 403;
 
   const options = useMemo((): ResponsiblePersonSelectOption[] => {
     const members = response?.members || [];
@@ -202,6 +204,9 @@ const ResponsiblePersonCombobox: React.FC<ResponsiblePersonComboboxProps> = ({
         menuShouldBlockScroll={false}
         closeMenuOnScroll={false}
         noOptionsMessage={() => {
+          if (isForbidden) {
+            return "Přístup odepřen";
+          }
           if (isError) {
             return "Failed to load team members";
           }
@@ -215,7 +220,14 @@ const ResponsiblePersonCombobox: React.FC<ResponsiblePersonComboboxProps> = ({
         }}
       />
       
-      {isError && (
+      {isForbidden && (
+        <div className="mt-1 flex items-center space-x-1 text-sm text-amber-600">
+          <AlertCircle className="h-4 w-4" />
+          <span>Přístup odepřen</span>
+        </div>
+      )}
+
+      {isError && !isForbidden && (
         <div className="mt-1 flex items-center space-x-1 text-sm text-amber-600">
           <AlertCircle className="h-4 w-4" />
           <span>Could not load team members. You can still enter names manually.</span>
