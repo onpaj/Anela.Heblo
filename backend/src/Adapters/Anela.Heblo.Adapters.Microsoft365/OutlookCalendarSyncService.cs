@@ -3,13 +3,14 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
+using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Domain.Features.Marketing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
 
-namespace Anela.Heblo.Application.Features.Marketing.Services
+namespace Anela.Heblo.Adapters.Microsoft365
 {
     // PushEnabled flag is enforced by the caller (handler) before invoking this service.
     // See Task 3 for the guard at the handler level.

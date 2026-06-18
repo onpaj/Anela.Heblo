@@ -42,7 +42,7 @@ namespace Anela.Heblo.Application.Features.Marketing
             {
                 // Graph HTTP client (safe to register multiple times — IHttpClientFactory deduplicates)
                 services.AddHttpClient("MicrosoftGraph");
-                services.AddScoped<IOutlookCalendarSync, OutlookCalendarSyncService>();
+                // OutlookCalendarSyncService registration moved to Anela.Heblo.Adapters.Microsoft365
             }
             else
             {
