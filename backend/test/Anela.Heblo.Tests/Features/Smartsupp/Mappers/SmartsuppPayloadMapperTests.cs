@@ -29,14 +29,14 @@ public class SmartsuppPayloadMapperTests
     }
 
     [Fact]
-    public void MapConversation_TruncatesLastMessagePreview_AtTwoHundredChars()
+    public void MapConversation_PreservesFullLastMessagePreview_WithoutTruncation()
     {
         var longText = new string('x', 250);
         var json = $@"{{""id"":""c1"",""status"":""open"",""last_message_text"":""{longText}"",""created_at"":""2026-05-13T10:00:00Z"",""updated_at"":""2026-05-13T10:00:00Z""}}";
 
         var result = SmartsuppPayloadMapper.MapConversation(Parse(json), DateTime.UtcNow);
 
-        result.LastMessagePreview.Should().HaveLength(200);
+        result.LastMessagePreview.Should().Be(longText);
     }
 
     [Fact]
