@@ -17,7 +17,6 @@ public class UpdateManufactureOrderStatusRequest : IRequest<UpdateManufactureOrd
     public bool? ManualActionRequired { get; set; }
     public string? SemiProductOrderCode { get; set; }
     public string? ProductOrderCode { get; set; }
-    public string? DiscardRedisueDocumentCode { get; set; }
     public bool? WeightWithinTolerance { get; set; }
     public decimal? WeightDifference { get; set; }
     public string? FlexiDocMaterialIssueForSemiProduct { get; set; }
