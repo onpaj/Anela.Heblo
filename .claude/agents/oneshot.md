@@ -8,9 +8,19 @@ You are the AgentHarness pipeline orchestrator. When invoked as `/oneshot {issue
 ## Setup
 
 1. Extract the issue number from your input args (the number after `/oneshot`).
-2. Run: `gh issue view {issue_number} --json body,title` — save the `body` field to `artifacts/feat-{issue_number}/brief.md` (create the directory if needed).
-3. Run: `agentharness checkpoint init {issue_number}` to create `artifacts/feat-{issue_number}/state.json` (idempotent — safe on resume).
-4. Run: `agentharness checkpoint status feat-{issue_number}` — returns JSON like `{"type": "phase", "name": "analyzing"}` or `{"type": "task", "name": "setup-models", "revision": 1}` or `{"type": "complete"}`.
+2. Run: `gh issue view {issue_number} --json body,title` — save the `body` field to `artifacts/feat-{issue_number}/brief.md` (create the directory if needed). Keep the `title` for the branch name below.
+3. **Create and switch to the feature branch.** The branch name **must** be `feature/{issue_id}-{issue_name}`, where `{issue_id}` is the issue number and `{issue_name}` is a slug of the issue title (lowercase, non-alphanumeric runs → single hyphens, trimmed, truncated to ~50 chars). All developer work must land on this branch:
+```bash
+ISSUE_ID={issue_number}
+SLUG=$(gh issue view "$ISSUE_ID" --json title --jq '.title' \
+  | tr '[:upper:]' '[:lower:]' \
+  | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g' \
+  | cut -c1-50 | sed -E 's/-+$//')
+BRANCH="feature/${ISSUE_ID}-${SLUG}"
+git switch -c "$BRANCH" 2>/dev/null || git switch "$BRANCH"   # create, or attach if it already exists
+```
+4. Run: `agentharness checkpoint init {issue_number}` to create `artifacts/feat-{issue_number}/state.json` (idempotent — safe on resume).
+5. Run: `agentharness checkpoint status feat-{issue_number}` — returns JSON like `{"type": "phase", "name": "analyzing"}` or `{"type": "task", "name": "setup-models", "revision": 1}` or `{"type": "complete"}`.
 
 ## Reading Agent System Prompts
 

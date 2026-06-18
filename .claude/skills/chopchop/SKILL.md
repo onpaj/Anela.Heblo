@@ -19,10 +19,12 @@ gh issue list --label agent --state open --json number,title,createdAt \
    waiting — you're all caught up.") and stop.
 
 2. **Find the oldest one without a PR.** Walk the list from oldest to newest. For
-   each issue number `N`, the oneshot pipeline uses the branch
-   `feature/feat-{N}`, so check whether a PR already exists for that branch:
+   each issue number `N`, the oneshot pipeline uses a branch named
+   `feature/{N}-{slug}`, so check whether any PR's head branch starts with
+   `feature/{N}-`:
 ```bash
-gh pr list --state all --head "feature/feat-{N}" --json number --jq 'length'
+gh pr list --state all --json number,headRefName \
+  --jq "[.[] | select(.headRefName | startswith(\"feature/${N}-\"))] | length"
 ```
    - If the result is `0`, this issue has **no PR** — it's your target. Stop
      walking.
@@ -36,9 +38,9 @@ gh pr list --state all --head "feature/feat-{N}" --json number --jq 'length'
    `Picking up the oldest unstarted issue: #{N} — {title}`.
 
 4. **Run oneshot on it.** Invoke the `oneshot` skill on the selected issue
-   number — this drives the full pipeline (worktree on `feature/feat-{N}`, label
-   lifecycle `agent` → `agent-wip` → `agent-completed`, tests, `@claude` commit,
-   push, and the `agent`-labelled PR):
+   number — this drives the full pipeline (worktree on `feature/{N}-{slug}`,
+   label lifecycle `agent` → `agent-wip` → `agent-completed`, tests, `@claude`
+   commit, push, and the `agent`-labelled PR):
 ```
 /oneshot {N}
 ```
@@ -50,6 +52,7 @@ gh pr list --state all --head "feature/feat-{N}" --json number --jq 'length'
 - Only **one** issue is picked per invocation — the oldest eligible one. Run the
   skill again to grab the next.
 - "Oldest" is by issue creation time (`createdAt`), ascending.
-- The PR check keys off the `feature/feat-{N}` branch convention that `oneshot`
-  uses. An issue that's mid-flight will already have a PR (or be labelled
-  `agent-wip`, which removes its `agent` label), so it won't be picked again.
+- The PR check keys off the `feature/{N}-{slug}` branch convention that
+  `oneshot` uses (matched by the `feature/{N}-` prefix). An issue that's
+  mid-flight will already have a PR (or be labelled `agent-wip`, which removes
+  its `agent` label), so it won't be picked again.
