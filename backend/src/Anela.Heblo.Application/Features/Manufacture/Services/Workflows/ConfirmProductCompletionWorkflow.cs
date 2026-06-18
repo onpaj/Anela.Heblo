@@ -285,7 +285,6 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
             Note = combined,
             SemiProductOrderCode = null,
             ProductOrderCode = submitResult.ManufactureId,
-            DiscardRedisueDocumentCode = null,
             ManualActionRequired = manualActionRequired,
             WeightWithinTolerance = distribution.IsWithinAllowedThreshold,
             WeightDifference = distribution.Difference,

@@ -133,7 +133,7 @@ public class PhotobankIndexJob : IRecurringJob
         photo.DriveId = driveId;
 
         if (pathChanged)
-            photo!.LastAutoTaggedAt = null;
+            photo.LastAutoTaggedAt = null;
 
         await _repo.SaveChangesAsync(ct);
 
@@ -145,6 +145,7 @@ public class PhotobankIndexJob : IRecurringJob
         foreach (var tagName in matchingTagNames)
         {
             var tag = await _repo.GetOrCreateTagAsync(tagName, ct);
+            if (await _repo.PhotoTagExistsAsync(photo.Id, tag!.Id, ct)) continue;
 
             await _repo.AddPhotoTagAsync(new PhotoTag
             {
