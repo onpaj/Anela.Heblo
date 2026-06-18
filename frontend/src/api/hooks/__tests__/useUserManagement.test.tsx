@@ -1,7 +1,8 @@
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import { useResponsiblePersonsQuery } from '../useUserManagement';
+import { SwaggerException } from '../../generated/api-client';
 
 const mockGetGroupMembers = jest.fn();
 
@@ -76,5 +77,65 @@ describe('useResponsiblePersonsQuery', () => {
         });
 
         expect(() => unmount()).not.toThrow();
+    });
+});
+
+describe('retry behavior', () => {
+    const createWrapperWithRetry = () => {
+        const queryClient = new QueryClient({
+            defaultOptions: {
+                queries: {
+                    retryDelay: 0,
+                },
+            },
+        });
+
+        return ({ children }: { children: ReactNode }) => (
+            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        );
+    };
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        // resetMocks: true clears jest.fn() implementations between tests;
+        // re-wire getAuthenticatedApiClient so the hook can reach the mock.
+        const { getAuthenticatedApiClient } = require('../../client');
+        (getAuthenticatedApiClient as jest.Mock).mockReturnValue({
+            userManagement_GetGroupMembers: mockGetGroupMembers,
+        });
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    it('should NOT retry on 403 SwaggerException (called exactly 1 time)', async () => {
+        mockGetGroupMembers.mockRejectedValue(
+            new SwaggerException('Forbidden', 403, '', {}, null)
+        );
+
+        const { result } = renderHook(() => useResponsiblePersonsQuery('test-group-id'), {
+            wrapper: createWrapperWithRetry(),
+        });
+
+        await waitFor(() => {
+            expect(result.current.isError).toBe(true);
+        });
+
+        expect(mockGetGroupMembers).toHaveBeenCalledTimes(1);
+    });
+
+    it('should retry up to 2 times on 500 error (called exactly 3 times total)', async () => {
+        mockGetGroupMembers.mockRejectedValue(new Error('server error'));
+
+        const { result } = renderHook(() => useResponsiblePersonsQuery('test-group-id'), {
+            wrapper: createWrapperWithRetry(),
+        });
+
+        await waitFor(() => {
+            expect(result.current.isError).toBe(true);
+        }, { timeout: 5000 });
+
+        expect(mockGetGroupMembers).toHaveBeenCalledTimes(3);
     });
 });
