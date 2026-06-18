@@ -6,7 +6,7 @@
 - **State**: OPEN
 - **Author**: onpaj
 - **Changes**: +1461 / -179 across 23 files
-- **Absorbed**: backmerged with `main` (one conflict in `.context/pr.md`, resolved), pushed. All PR tests passing (717 Manufacture tests in `Anela.Heblo.Tests`). The 7 `Anela.Heblo.Adapters.Flexi.Tests` failures are `FlexiIntegrationTestFixture` constructor errors requiring live FlexiBee config — environment-only, present on `main`, unrelated to this PR.
+- **Absorbed**: backmerged with `main` (recurring `.context/pr.md` artifact conflict, resolved), pushed. CI surfaced a real failure — `ModuleBoundariesTests` (rule `Manufacture -> Catalog`): the PR deleted `UpdateManufactureOrderStatusHandler.IsValidStateTransition`, which shifted the compiler-generated ordinals of the still-present `WriteDownInventoryAsync` `CatalogAggregate` leak from `d__10`/`DisplayClass10_0` to `d__9`/`DisplayClass9_0`. Updated the two allowlist entries to match (same sanctioned leak, renumbered). This test isn't matched by `~Manufacture` (FQN is `Architecture.ModuleBoundariesTests`), so it escaped the PR's original verification. The 7 `Anela.Heblo.Adapters.Flexi.Tests` failures are `FlexiIntegrationTestFixture` constructor errors requiring live FlexiBee config — environment-only, present on `main`, unrelated to this PR.
 
 ## Description
 

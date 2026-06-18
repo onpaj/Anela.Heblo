@@ -24,7 +24,7 @@ public sealed class SmartsuppConversationConfiguration : IEntityTypeConfiguratio
         builder.Property(e => e.LocationCity).HasMaxLength(100);
         builder.Property(e => e.LocationIp).HasMaxLength(50);
         builder.Property(e => e.LocationCode).HasMaxLength(10);
-        builder.Property(e => e.LastMessagePreview).HasMaxLength(500);
+        builder.Property(e => e.LastMessagePreview).HasColumnType("text");
         builder.Property(e => e.VariablesJson).HasColumnType("text");
         builder.Property(e => e.TagsJson).HasColumnType("text");
         builder.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
