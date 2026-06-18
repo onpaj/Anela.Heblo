@@ -6,6 +6,7 @@ using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 
@@ -249,4 +250,214 @@ public class SubmitManufactureHandlerTests
             new() { ProductCode = "PROD001", Name = "Test Product", Amount = 100 }
         }
     };
+
+    // ── CTS timeout branch ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CreateLinkedCts_WhenErpTimeoutConfigured_CtsIsArmedWithTimeout()
+    {
+        // Arrange — use 30s timeout so the test does not race with CI wall-clock.
+        CancellationToken capturedCt = default;
+        var handlerWithTimeout = new SubmitManufactureHandler(
+            _clientMock.Object,
+            _repositoryMock.Object,
+            _transformerMock.Object,
+            TimeProvider.System,
+            _loggerMock.Object,
+            Options.Create(new ManufactureErpOptions { ErpTimeoutSeconds = 30 }));
+
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<SubmitManufactureClientRequest, CancellationToken>((_, ct) => capturedCt = ct)
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-CTS" });
+
+        // Act
+        await handlerWithTimeout.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert — CancelAfter was called so the token can be canceled.
+        capturedCt.CanBeCanceled.Should().BeTrue();
+    }
+
+    // ── PersistDocCodesAsync branches ─────────────────────────────────────────
+
+    [Fact]
+    public async Task PersistDocCodes_WhenOrderIdIsZero_RepositoryIsNotCalled()
+    {
+        // Arrange — BuildRequest() has ManufactureOrderId = 0 by default.
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-ZERO" });
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _repositoryMock.Verify(
+            r => r.GetOrderByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task PersistDocCodes_WhenOrderNotFound_LogsWarningAndDoesNotCallUpdate()
+    {
+        // Arrange
+        var request = BuildRequest();
+        request.ManufactureOrderId = 42;
+
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-NOTFOUND" });
+
+        _repositoryMock
+            .Setup(r => r.GetOrderByIdAsync(42, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder?)null);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("42")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+        _repositoryMock.Verify(
+            r => r.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task PersistDocCodes_WhenAllDocCodesPresent_WritesAllSixFieldsWithTimestamp()
+    {
+        // Arrange
+        var fakeTime = new FakeTimeProvider(new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero));
+        var expectedNow = fakeTime.GetUtcNow().DateTime;
+
+        var handlerWithFakeTime = new SubmitManufactureHandler(
+            _clientMock.Object,
+            _repositoryMock.Object,
+            _transformerMock.Object,
+            fakeTime,
+            _loggerMock.Object,
+            Options.Create(new ManufactureErpOptions()));
+
+        var request = BuildRequest();
+        request.ManufactureOrderId = 10;
+
+        var order = new ManufactureOrder { Id = 10, OrderNumber = "MO-010", StateChangedByUser = "test" };
+
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SubmitManufactureClientResponse
+            {
+                ManufactureId = "MAN-ALL",
+                MaterialIssueForSemiProductDocCode = "V-MAT-001",
+                SemiProductReceiptDocCode = "V-POL-001",
+                SemiProductIssueForProductDocCode = "V-POLV-001",
+                MaterialIssueForProductDocCode = "V-MATV-001",
+                ProductReceiptDocCode = "V-PRIJEM-001",
+                DirectSemiProductOutputDocCode = "V-DIRECT-001",
+            });
+
+        _repositoryMock
+            .Setup(r => r.GetOrderByIdAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        _repositoryMock
+            .Setup(r => r.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        // Act
+        var result = await handlerWithFakeTime.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        order.DocMaterialIssueForSemiProduct.Should().Be("V-MAT-001");
+        order.DocMaterialIssueForSemiProductDate.Should().Be(expectedNow);
+        order.DocSemiProductReceipt.Should().Be("V-POL-001");
+        order.DocSemiProductReceiptDate.Should().Be(expectedNow);
+        order.DocSemiProductIssueForProduct.Should().Be("V-POLV-001");
+        order.DocSemiProductIssueForProductDate.Should().Be(expectedNow);
+        order.DocMaterialIssueForProduct.Should().Be("V-MATV-001");
+        order.DocMaterialIssueForProductDate.Should().Be(expectedNow);
+        order.DocProductReceipt.Should().Be("V-PRIJEM-001");
+        order.DocProductReceiptDate.Should().Be(expectedNow);
+        order.ErpDiscardResidueDocumentNumber.Should().Be("V-DIRECT-001");
+        order.ErpDiscardResidueDocumentNumberDate.Should().Be(expectedNow);
+
+        _repositoryMock.Verify(
+            r => r.UpdateOrderAsync(order, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task PersistDocCodes_WhenSomeDocCodesNull_WritesOnlyNonNullFields()
+    {
+        // Arrange — only MaterialIssueForSemiProductDocCode and ProductReceiptDocCode are set.
+        var fakeTime = new FakeTimeProvider(new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero));
+        var expectedNow = fakeTime.GetUtcNow().DateTime;
+
+        var handlerWithFakeTime = new SubmitManufactureHandler(
+            _clientMock.Object,
+            _repositoryMock.Object,
+            _transformerMock.Object,
+            fakeTime,
+            _loggerMock.Object,
+            Options.Create(new ManufactureErpOptions()));
+
+        var request = BuildRequest();
+        request.ManufactureOrderId = 20;
+
+        var order = new ManufactureOrder { Id = 20, OrderNumber = "MO-020", StateChangedByUser = "test" };
+
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SubmitManufactureClientResponse
+            {
+                ManufactureId = "MAN-PARTIAL",
+                MaterialIssueForSemiProductDocCode = "V-MAT-PARTIAL",
+                SemiProductReceiptDocCode = null,
+                SemiProductIssueForProductDocCode = null,
+                MaterialIssueForProductDocCode = null,
+                ProductReceiptDocCode = "V-PRIJEM-PARTIAL",
+                DirectSemiProductOutputDocCode = null,
+            });
+
+        _repositoryMock
+            .Setup(r => r.GetOrderByIdAsync(20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        _repositoryMock
+            .Setup(r => r.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        // Act
+        var result = await handlerWithFakeTime.Handle(request, CancellationToken.None);
+
+        // Assert — two non-null fields written
+        result.Success.Should().BeTrue();
+        order.DocMaterialIssueForSemiProduct.Should().Be("V-MAT-PARTIAL");
+        order.DocMaterialIssueForSemiProductDate.Should().Be(expectedNow);
+        order.DocProductReceipt.Should().Be("V-PRIJEM-PARTIAL");
+        order.DocProductReceiptDate.Should().Be(expectedNow);
+
+        // Assert — four null fields left untouched
+        order.DocSemiProductReceipt.Should().BeNull();
+        order.DocSemiProductReceiptDate.Should().BeNull();
+        order.DocSemiProductIssueForProduct.Should().BeNull();
+        order.DocSemiProductIssueForProductDate.Should().BeNull();
+        order.DocMaterialIssueForProduct.Should().BeNull();
+        order.DocMaterialIssueForProductDate.Should().BeNull();
+        order.ErpDiscardResidueDocumentNumber.Should().BeNull();
+        order.ErpDiscardResidueDocumentNumberDate.Should().BeNull();
+
+        _repositoryMock.Verify(
+            r => r.UpdateOrderAsync(order, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }
