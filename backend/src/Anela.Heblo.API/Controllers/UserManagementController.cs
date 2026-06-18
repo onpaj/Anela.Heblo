@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[FeatureAuthorize(Feature.Admin_Administration)]
 [ApiController]
 [Route("api/[controller]")]
 public class UserManagementController : BaseApiController
@@ -23,9 +22,11 @@ public class UserManagementController : BaseApiController
     /// Get members of a Microsoft Entra ID group.
     /// </summary>
     [HttpGet("group-members")]
+    [FeatureAuthorize(Feature.Admin_Administration, Feature.Manufacture_ManufactureOrders, Feature.Manufacture_BatchPlanning)]
     [ProducesResponseType(typeof(GetGroupMembersResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<GetGroupMembersResponse>> GetGroupMembers(
         [FromQuery, Required] string groupId,
         CancellationToken cancellationToken)
