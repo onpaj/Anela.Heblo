@@ -10,11 +10,21 @@ public sealed class PlaudCliClient : IPlaudClient
 {
     private readonly ILogger<PlaudCliClient> _logger;
     private readonly IOptions<PlaudOptions> _options;
+    private readonly IPlaudTokenRefreshClient _refreshClient;
+    private readonly string _tokensFilePath;
+    private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
-    public PlaudCliClient(ILogger<PlaudCliClient> logger, IOptions<PlaudOptions> options)
+    public PlaudCliClient(ILogger<PlaudCliClient> logger, IOptions<PlaudOptions> options, IPlaudTokenRefreshClient refreshClient)
+        : this(logger, options, refreshClient,
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".plaud", "tokens.json"))
+    { }
+
+    internal PlaudCliClient(ILogger<PlaudCliClient> logger, IOptions<PlaudOptions> options, IPlaudTokenRefreshClient refreshClient, string tokensFilePath)
     {
         _logger = logger;
         _options = options;
+        _refreshClient = refreshClient;
+        _tokensFilePath = tokensFilePath;
     }
 
     public async Task<List<PlaudRecordingSummary>> ListRecentAsync(int days, CancellationToken ct = default)
@@ -78,6 +88,60 @@ public sealed class PlaudCliClient : IPlaudClient
     }
 
     private async Task<string> RunCliAsync(string[] args, CancellationToken ct)
+    {
+        try
+        {
+            return await RunCliCoreAsync(args, ct);
+        }
+        catch (PlaudAuthExpiredException)
+        {
+            _logger.LogWarning("Plaud auth expired; attempting token refresh and retry.");
+            try
+            {
+                await RefreshTokensAsync(ct);
+                _logger.LogInformation("Plaud token refreshed; retrying CLI call.");
+                return await RunCliCoreAsync(args, ct);
+            }
+            catch (PlaudAuthExpiredException)
+            {
+                _logger.LogError("Plaud auth still expired after token refresh; giving up.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Plaud token refresh failed.");
+                throw new PlaudAuthExpiredException("token refresh failed", ex);
+            }
+        }
+    }
+
+    private async Task RefreshTokensAsync(CancellationToken ct)
+    {
+        await _refreshLock.WaitAsync(ct);
+        try
+        {
+            if (!File.Exists(_tokensFilePath))
+                throw new InvalidOperationException(
+                    $"Plaud tokens file not found at {_tokensFilePath}. Cannot refresh.");
+
+            var diskJson = await File.ReadAllTextAsync(_tokensFilePath, ct);
+            var diskTokens = JsonSerializer.Deserialize<PlaudTokens>(diskJson)
+                ?? throw new InvalidOperationException("Failed to deserialize Plaud tokens from disk.");
+
+            var newTokens = await _refreshClient.RefreshAsync(diskTokens.RefreshToken, ct);
+            var newJson = JsonSerializer.Serialize(newTokens);
+
+            await File.WriteAllTextAsync(_tokensFilePath, newJson, ct);
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(_tokensFilePath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
+        finally
+        {
+            _refreshLock.Release();
+        }
+    }
+
+    private async Task<string> RunCliCoreAsync(string[] args, CancellationToken ct)
     {
         var options = _options.Value;
         var psi = new ProcessStartInfo

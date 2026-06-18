@@ -15,15 +15,18 @@ public static class PlaudAdapterServiceCollectionExtensions
         services.AddSingleton<IPlaudClient, PlaudCliClient>();
         services.AddHostedService<PlaudTokenBootstrapper>();
 
+        // PlaudTokenRefreshClient is stateless (HTTP only) — always register so PlaudCliClient
+        // can auto-refresh on auth expiry regardless of environment.
+        services.AddHttpClient<PlaudTokenRefreshClient>();
+        services.AddTransient<IPlaudTokenRefreshClient>(
+            sp => sp.GetRequiredService<PlaudTokenRefreshClient>());
+
         // Token refresh job requires Key Vault write access.
         // Skip registration in local dev where KeyVault:Uri is unset.
         var keyVaultUri = configuration["KeyVault:Uri"];
         if (!string.IsNullOrWhiteSpace(keyVaultUri))
         {
             services.AddSingleton(new SecretClient(new Uri(keyVaultUri), new DefaultAzureCredential()));
-            services.AddHttpClient<PlaudTokenRefreshClient>();
-            services.AddScoped<IPlaudTokenRefreshClient>(
-                sp => sp.GetRequiredService<PlaudTokenRefreshClient>());
             services.AddScoped<IRecurringJob, PlaudTokenRefreshJob>();
         }
 
