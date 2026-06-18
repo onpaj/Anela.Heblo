@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.DataQuality;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.DataQuality.Services;
 
@@ -10,31 +11,58 @@ public class ProductPairingDqtComparer : IDriftDqtComparer
     private readonly IEshopStockClient _eshopStockClient;
     private readonly IErpStockClient _erpStockClient;
     private readonly ICatalogResilienceService _resilienceService;
+    private readonly ILogger<ProductPairingDqtComparer> _logger;
 
     public DqtTestType TestType => DqtTestType.ProductPairing;
 
     public ProductPairingDqtComparer(
         IEshopStockClient eshopStockClient,
         IErpStockClient erpStockClient,
-        ICatalogResilienceService resilienceService)
+        ICatalogResilienceService resilienceService,
+        ILogger<ProductPairingDqtComparer> logger)
     {
         _eshopStockClient = eshopStockClient;
         _erpStockClient = erpStockClient;
         _resilienceService = resilienceService;
+        _logger = logger;
     }
 
     public async Task<DriftComparisonResult> CompareAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
     {
         // Date range is intentionally unused — product pairing is a current-state snapshot
-        var eshopProducts = await _resilienceService.ExecuteWithResilienceAsync(
-            async cancellationToken => await _eshopStockClient.ListAsync(cancellationToken),
-            "ProductPairingDqtComparer.EshopList",
-            ct);
+        List<EshopStock> eshopProducts;
+        try
+        {
+            eshopProducts = await _resilienceService.ExecuteWithResilienceAsync(
+                async cancellationToken => await _eshopStockClient.ListAsync(cancellationToken),
+                "ProductPairingDqtComparer.EshopList",
+                ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "ProductPairingDqtComparer failed to fetch eshop products after resilience exhaustion. Operation={Operation} ExceptionType={ExceptionType}",
+                "ProductPairingDqtComparer.EshopList",
+                ex.GetType().Name);
+            throw;
+        }
 
-        var erpProducts = await _resilienceService.ExecuteWithResilienceAsync(
-            async cancellationToken => await _erpStockClient.ListAsync(cancellationToken),
-            "ProductPairingDqtComparer.ErpList",
-            ct);
+        IReadOnlyList<ErpStock> erpProducts;
+        try
+        {
+            erpProducts = await _resilienceService.ExecuteWithResilienceAsync(
+                async cancellationToken => await _erpStockClient.ListAsync(cancellationToken),
+                "ProductPairingDqtComparer.ErpList",
+                ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "ProductPairingDqtComparer failed to fetch ERP products after resilience exhaustion. Operation={Operation} ExceptionType={ExceptionType}",
+                "ProductPairingDqtComparer.ErpList",
+                ex.GetType().Name);
+            throw;
+        }
 
         var sellableErpProducts = erpProducts.Where(IsSellable).ToList();
 

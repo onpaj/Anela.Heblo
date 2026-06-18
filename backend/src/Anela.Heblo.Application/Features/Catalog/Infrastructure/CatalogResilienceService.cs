@@ -44,7 +44,7 @@ public class CatalogResilienceService : ICatalogResilienceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to execute {OperationName} after all retry attempts", operationName);
+            _logger.LogDebug(ex, "Failed to execute {OperationName} after all retry attempts", operationName);
             throw;
         }
         finally
