@@ -53,7 +53,7 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             var oldState = order.State;
 
             // Validate state transition (basic validation - can be extended)
-            if (!IsValidStateTransition(oldState, request.NewState))
+            if (!order.CanTransitionTo(request.NewState))
             {
                 return new UpdateManufactureOrderStatusResponse(Application.Shared.ErrorCodes.InvalidOperation,
                     new Dictionary<string, string>
@@ -66,9 +66,7 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             var currentUserName = _currentUserService.GetCurrentUser().GetDisplayName();
 
             // Update state
-            order.State = request.NewState;
-            order.StateChangedAt = _timeProvider.GetUtcNow().DateTime;
-            order.StateChangedByUser = currentUserName;
+            order.ChangeState(request.NewState, _timeProvider.GetUtcNow().DateTime, currentUserName);
 
             if (request.ManualActionRequired.HasValue)
                 order.ManualActionRequired = request.ManualActionRequired.Value;
@@ -157,20 +155,6 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             _logger.LogError(ex, "Error updating manufacture order status for order {OrderId}", request.Id);
             return new UpdateManufactureOrderStatusResponse(ErrorCodes.InternalServerError);
         }
-    }
-
-    private bool IsValidStateTransition(ManufactureOrderState fromState, ManufactureOrderState toState)
-    {
-        // Allow backward and forward state transitions - simplified business rules
-        return fromState switch
-        {
-            ManufactureOrderState.Draft => toState is ManufactureOrderState.Planned or ManufactureOrderState.Cancelled,
-            ManufactureOrderState.Planned => toState is ManufactureOrderState.Draft or ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Cancelled or ManufactureOrderState.Completed,
-            ManufactureOrderState.SemiProductManufactured => toState is ManufactureOrderState.Planned or ManufactureOrderState.Completed or ManufactureOrderState.Cancelled,
-            ManufactureOrderState.Completed => toState is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Cancelled or ManufactureOrderState.Planned, // Allow going back from completed
-            ManufactureOrderState.Cancelled => false, // Cannot change from cancelled state
-            _ => false
-        };
     }
 
     private async Task WriteDownInventoryAsync(ManufactureOrder order, string changedByUser, CancellationToken cancellationToken)

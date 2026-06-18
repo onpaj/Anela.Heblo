@@ -51,11 +51,9 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             CreatedByUser = currentUser.Name,
             ResponsiblePerson = request.ResponsiblePerson,
             PlannedDate = request.PlannedDate,
-            ManufactureType = request.ManufactureType,
-            State = ManufactureOrderState.Draft,
-            StateChangedAt = now.DateTime,
-            StateChangedByUser = currentUser.Name
+            ManufactureType = request.ManufactureType
         };
+        order.InitializeState(ManufactureOrderState.Draft, now.DateTime, currentUser.Name);
 
         var semiproduct = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
         if (semiproduct == null)
