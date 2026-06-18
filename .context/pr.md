@@ -5,8 +5,8 @@
 - **Branch**: `feature/3116-arch-review-manufacture-state-transition-rules-liv` → `main`
 - **State**: OPEN
 - **Author**: onpaj
-- **Changes**: +1437 / -162 across 22 files
-- **Absorbed**: backmerged with `main` (clean, no conflicts), all PR tests passing (693 Manufacture tests). Pre-existing FlexiBee integration-test failures are environment-only (require live FlexiBee config) and exist on `main` too — unrelated to this PR.
+- **Changes**: +1461 / -179 across 23 files
+- **Absorbed**: backmerged with `main` (one conflict in `.context/pr.md`, resolved), pushed. All PR tests passing (717 Manufacture tests in `Anela.Heblo.Tests`). The 7 `Anela.Heblo.Adapters.Flexi.Tests` failures are `FlexiIntegrationTestFixture` constructor errors requiring live FlexiBee config — environment-only, present on `main`, unrelated to this PR.
 
 ## Description
 
