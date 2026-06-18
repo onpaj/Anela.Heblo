@@ -367,6 +367,9 @@ public static class ServiceCollectionExtensions
         // Register configuration options
         services.Configure<HangfireOptions>(configuration.GetSection(HangfireOptions.ConfigurationKey));
 
+        // Register global job filter for Activity-based telemetry (App Insights correlation)
+        GlobalJobFilters.Filters.Add(new HangfireJobActivityFilter());
+
         return services;
     }
 
