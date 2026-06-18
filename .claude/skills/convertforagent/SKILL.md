@@ -39,7 +39,7 @@ Tell the user:
 ## What the command does
 
 | Action | Details |
-|--------|--------|
+|--------|---------|
 | Fetches issue title | Used to derive `feat-<slug>` feature ID (40 char max) |
 | Detects epic parent | Calls GitHub sub-issues API + body-marker fallback (`Epic: #N`) |
 | Creates branches | `epic-<slug>` off main (once, idempotent), then `feat-<slug>` off epic branch |
