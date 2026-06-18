@@ -60,7 +60,7 @@ public sealed class PlaudTokenRefreshJobTests : IDisposable
         Skip.If(OperatingSystem.IsWindows(), "HOME override requires Unix");
 
         _statusChecker
-            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(false);
 
         await RunWithTempHome(async () => await CreateJob().ExecuteAsync(default));
@@ -79,7 +79,7 @@ public sealed class PlaudTokenRefreshJobTests : IDisposable
         Skip.If(OperatingSystem.IsWindows(), "HOME override requires Unix");
 
         _statusChecker
-            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
 
         // No tokens.json written — the directory exists but the file does not.
@@ -96,7 +96,7 @@ public sealed class PlaudTokenRefreshJobTests : IDisposable
         Skip.If(OperatingSystem.IsWindows(), "HOME override requires Unix");
 
         _statusChecker
-            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
         _refreshClient
             .Setup(r => r.RefreshAsync("old-refresh", It.IsAny<CancellationToken>()))
@@ -125,7 +125,7 @@ public sealed class PlaudTokenRefreshJobTests : IDisposable
         Skip.If(OperatingSystem.IsWindows(), "HOME override requires Unix");
 
         _statusChecker
-            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
         _refreshClient
             .Setup(r => r.RefreshAsync("old-refresh", It.IsAny<CancellationToken>()))
@@ -151,7 +151,7 @@ public sealed class PlaudTokenRefreshJobTests : IDisposable
         Skip.If(OperatingSystem.IsWindows(), "HOME override requires Unix");
 
         _statusChecker
-            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
         _refreshClient
             .Setup(r => r.RefreshAsync("old-refresh", It.IsAny<CancellationToken>()))
@@ -179,7 +179,7 @@ public sealed class PlaudTokenRefreshJobTests : IDisposable
         Skip.If(OperatingSystem.IsWindows(), "HOME override requires Unix");
 
         _statusChecker
-            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync("plaud-token-refresh", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
         _refreshClient
             .Setup(r => r.RefreshAsync("old-refresh", It.IsAny<CancellationToken>()))

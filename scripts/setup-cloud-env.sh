@@ -52,11 +52,11 @@ require_debian() {
 # 1. Base apt packages
 # ---------------------------------------------------------------------------
 install_base() {
-  log "Installing base packages (curl, git, ca-certificates, SkiaSharp libs)..."
+  log "Installing base packages (curl, git, ca-certificates, SkiaSharp libs, python3)..."
   $SUDO apt-get update -y
   $SUDO apt-get install -y --no-install-recommends \
     curl wget git ca-certificates gnupg apt-transport-https \
-    libfontconfig1 libfreetype6
+    libfontconfig1 libfreetype6 python3 python3-pip
   ok "Base packages installed"
 }
 
@@ -149,6 +149,26 @@ restore_frontend() {
   ok "Frontend dependencies installed"
 }
 
+# ---------------------------------------------------------------------------
+# 6. AgentHarness (skill-based single-agent harness)
+# ---------------------------------------------------------------------------
+install_agentharness() {
+  log "Installing AgentHarness from GitHub (main branch)..."
+  # Ubuntu Noble's system Python is externally managed (PEP 668), so
+  # --break-system-packages is required for a system-wide pip install.
+  # --upgrade so each cloud session picks up the latest master.
+  pip install --break-system-packages --upgrade \
+    "git+https://github.com/onpaj/harness.git@master"
+  ok "AgentHarness installed ($(agentharness --version 2>/dev/null || echo present))"
+
+  log "Running agentharness init --force..."
+  # init's env-setup prompts for GITHUB_OWNER / GITHUB_RUNS_REPO; both are
+  # auto-detected from the git remote, so feed blank lines to accept the
+  # defaults non-interactively (set -e would otherwise abort on the prompt).
+  ( cd "${REPO_ROOT}" && printf '\n\n\n\n' | agentharness init --force )
+  ok "agentharness init --force complete"
+}
+
 install_playwright() {
   if [ "${SKIP_PLAYWRIGHT:-0}" = "1" ]; then
     warn "SKIP_PLAYWRIGHT=1 set — skipping Playwright browser download"
@@ -175,6 +195,7 @@ main() {
   require_repo
   restore_backend
   restore_frontend
+  install_agentharness
   install_playwright
 
   echo

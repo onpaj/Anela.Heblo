@@ -63,7 +63,7 @@ public sealed class ProductExportDownloadJobTests
     {
         var mock = new Mock<IRecurringJobStatusChecker>();
         mock
-            .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
         return mock;
     }
@@ -72,7 +72,7 @@ public sealed class ProductExportDownloadJobTests
     {
         var mock = new Mock<IRecurringJobStatusChecker>();
         mock
-            .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(false);
         return mock;
     }

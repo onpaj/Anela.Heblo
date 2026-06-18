@@ -1,0 +1,3 @@
+Plan saved to `artifacts/feat-coverage-gap-catalog-updatemanufacturedi/plan.r1.md`.
+
+**Summary:** 8-task TDD plan to add a single new test file `UpdateManufactureDifficultyHandlerTests.cs` covering all 7 functional requirements (not-found, invalid-range × 2, valid-boundary, overlap-conflict, happy-path with `excludeId` propagation) plus a final coverage-verification task. Each task ships its own commit. The plan bakes in every spec amendment from the arch review — corrected entity name (`ManufactureDifficultySetting`), the actual `InvalidValue` Params payload, the unused-but-required `TimeProvider` ctor parameter, flat folder location matching siblings, and a mapper `Callback` to make the FR-1 mutation assertion meaningful under a mocked `IMapper`.
