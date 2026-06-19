@@ -245,6 +245,54 @@ public class MetaAdsTransactionSourceTests
         transactions.Should().HaveCount(1);
         transactions[0].TransactionId.Should().Be("TX-001");
     }
+
+    [Fact]
+    public async Task GetTransactionsAsync_InitialUrl_ContainsTimeRange()
+    {
+        // Arrange
+        var capturedUrls = new List<string>();
+        var responseBody = """{"data":[],"paging":{"cursors":{"before":"","after":""}}}""";
+        var handler = new CapturingSequentialHandler(
+            capturedUrls,
+            (HttpStatusCode.OK, responseBody));
+
+        var source = CreateSource(handler);
+
+        var from = new DateTime(2024, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = new DateTime(2024, 3, 31, 0, 0, 0, DateTimeKind.Utc);
+
+        // Act
+        await source.GetTransactionsAsync(from, to, CancellationToken.None);
+
+        // Assert
+        capturedUrls.Should().HaveCount(1);
+        capturedUrls[0].Should().Contain("""time_range={"since":"2024-03-01","until":"2024-03-31"}""");
+    }
+
+    [Fact]
+    public async Task GetTransactionsAsync_PaginationUrl_UsedVerbatim()
+    {
+        // Arrange
+        var capturedUrls = new List<string>();
+        var firstPageBody = """{"data":[{"id":"1","time":1709251200,"amount":100,"currency":"CZK","payment_type":"card"}],"paging":{"next":"https://graph.facebook.com/next-page?cursor=abc123"}}""";
+        var secondPageBody = """{"data":[],"paging":{"cursors":{"before":"","after":""}}}""";
+        var handler = new CapturingSequentialHandler(
+            capturedUrls,
+            (HttpStatusCode.OK, firstPageBody),
+            (HttpStatusCode.OK, secondPageBody));
+
+        var source = CreateSource(handler);
+
+        var from = new DateTime(2024, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = new DateTime(2024, 3, 31, 0, 0, 0, DateTimeKind.Utc);
+
+        // Act
+        await source.GetTransactionsAsync(from, to, CancellationToken.None);
+
+        // Assert
+        capturedUrls.Should().HaveCount(2);
+        capturedUrls[1].Should().Be("https://graph.facebook.com/next-page?cursor=abc123");
+    }
 }
 
 /// <summary>Always returns the same response.</summary>
@@ -287,6 +335,30 @@ file sealed class SequentialResponseHandler : HttpMessageHandler
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         // Dequeue until the last entry; keep the last for any additional calls.
+        var (status, body) = _responses.Count > 1 ? _responses.Dequeue() : _responses.Peek();
+        var response = new HttpResponseMessage(status)
+        {
+            Content = new StringContent(body, Encoding.UTF8, "application/json")
+        };
+        return Task.FromResult(response);
+    }
+}
+
+/// <summary>Captures every request URL and returns responses in sequence; repeats the last on exhaustion.</summary>
+file sealed class CapturingSequentialHandler : HttpMessageHandler
+{
+    private readonly List<string> _capturedUrls;
+    private readonly Queue<(HttpStatusCode, string)> _responses;
+
+    public CapturingSequentialHandler(List<string> capturedUrls, params (HttpStatusCode, string)[] responses)
+    {
+        _capturedUrls = capturedUrls;
+        _responses = new Queue<(HttpStatusCode, string)>(responses);
+    }
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        _capturedUrls.Add(request.RequestUri?.ToString() ?? string.Empty);
         var (status, body) = _responses.Count > 1 ? _responses.Dequeue() : _responses.Peek();
         var response = new HttpResponseMessage(status)
         {

@@ -1,42 +1,33 @@
 # PR Context
 
-- **PR**: #3185 — fix: Widen SmartsuppConversations varchar(500) columns to text
-- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3185
-- **Branch**: `feature/fix/pr3161-extend-db-schema` → `main`
+- **PR**: #3204 — #3116: Encapsulate ManufactureOrder state transition rules in the domain entity
+- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3204
+- **Branch**: `feature/3116-arch-review-manufacture-state-transition-rules-liv` → `main`
 - **State**: OPEN
 - **Author**: onpaj
-- **Changes**: +4367 / -17 across 5 files
-- **Absorbed**: backmerged with `main`, all tests passing (real failures resolved; remaining 57 failures are Docker/Testcontainers + live-API integration tests that cannot run in this sandbox)
+- **Changes**: +1461 / -179 across 23 files
+- **Absorbed**: backmerged with `main` (recurring `.context/pr.md` artifact conflict, resolved), pushed. CI surfaced a real failure — `ModuleBoundariesTests` (rule `Manufacture -> Catalog`): the PR deleted `UpdateManufactureOrderStatusHandler.IsValidStateTransition`, which shifted the compiler-generated ordinals of the still-present `WriteDownInventoryAsync` `CatalogAggregate` leak from `d__10`/`DisplayClass10_0` to `d__9`/`DisplayClass9_0`. Updated the two allowlist entries to match (same sanctioned leak, renumbered). This test isn't matched by `~Manufacture` (FQN is `Architecture.ModuleBoundariesTests`), so it escaped the PR's original verification. The 7 `Anela.Heblo.Adapters.Flexi.Tests` failures are `FlexiIntegrationTestFixture` constructor errors requiring live FlexiBee config — environment-only, present on `main`, unrelated to this PR.
 
 ## Description
 
-## Problem
+## What the issue was
+`ManufactureOrder` exposed `State` as an unguarded public setter, and the legal state-transition table lived in `UpdateManufactureOrderStatusHandler.IsValidStateTransition`. Keeping the rule in the Application layer violated *business logic belongs in the domain*: any handler could assign an arbitrary state directly (`order.State = ...`) bypassing validation, and the rule could only be tested through the handler, never against the entity in isolation.
 
-`POST SmartsuppWebhook/Receive` returned HTTP 500 in bursts when Smartsupp sent content exceeding the `varchar(500)` column limit in the Smartsupp persistence schema (`Npgsql.PostgresException 22001`).
+## How it was fixed / handled
+Relocated the transition rules into the `ManufactureOrder` aggregate, following the existing `TransportBox` precedent — no runtime or HTTP-contract change.
 
-PR #3161 attempted to fix this by widening some columns **and** adding app-layer string truncation. That premise is invalid — truncation causes silent data loss.
+### Changes
+- **`ManufactureOrder.cs`** — `State`/`StateChangedAt`/`StateChangedByUser` setters tightened to `internal set`; added `InitializeState(...)` (sanctioned seeding path), `CanTransitionTo(...)` (pure predicate reproducing the existing matrix verbatim, type-agnostic), and a guarded `ChangeState(...)` that throws `ValidationException` on an illegal transition (validate-before-mutate, all three audit fields set atomically).
+- **`UpdateManufactureOrderStatusHandler.cs`** — pre-checks via `order.CanTransitionTo(...)` (identical `InvalidOperation { oldState, newState }` early return preserved — not a thrown-exception path), mutates via `order.ChangeState(...)`; the private `IsValidStateTransition` was deleted. All side effects and response shapes unchanged.
+- **`CreateManufactureOrderHandler.cs` / `DuplicateManufactureOrderHandler.cs`** — seed the initial `Draft` state via `InitializeState` (the latter also assigned `State` in an initializer and had to be redirected to compile under `internal set`).
+- **Tests** — `ManufactureOrderStateTransitionTests` rewritten: removed the three type-aware private mirror helpers and their theories (which never exercised production code and would have silently changed behaviour), replaced with an exhaustive `CanTransitionTo` matrix theory plus legal/illegal `ChangeState` tests against the real entity. Arrange-phase `State = ...` seeding across 8 affected fixtures routed through `InitializeState`; no expected outcomes changed.
 
-## Fix
+### Verification
+- `dotnet build` — succeeds (pre-existing warnings only).
+- `dotnet format --verify-no-changes` — clean.
+- `dotnet test --filter "FullyQualifiedName~Manufacture"` — **693 passed, 0 failed, 0 skipped** (includes EF materialization tests confirming `State` still binds under the non-public setter).
 
-Extend the DB schema only. Four columns in `SmartsuppConversations` widened from `varchar(500)` → `text`:
+## Artifacts
+- Brief, spec, arch review, design, task plan, impl, and review markdown are committed under `artifacts/feat-3116/` in this branch.
 
-- `Subject`
-- `Referer`
-- `ContactAvatarUrl`
-- `LastMessagePreview`
-
-Also removes the inline `LastMessagePreview` 200-char truncation that was in `SmartsuppPayloadMapper`.
-
-## Test plan
-
-- [ ] Run migration against staging: `dotnet ef database update`
-- [ ] Replay any failed webhook events via `tools/SmartsuppWebhookReplay`
-- [ ] Verify no 500s on `POST SmartsuppWebhook/Receive` in Application Insights
-
-Closes #3069
-
-## Absorb notes
-
-- Backmerge of `origin/main` merged cleanly (no conflicts).
-- One real test failure surfaced: `SmartsuppPayloadMapperTests.MapConversation_TruncatesLastMessagePreview_AtTwoHundredChars` — a stale test from `main` asserting the truncation this PR intentionally removed. Updated it to `MapConversation_PreservesFullLastMessagePreview_WithoutTruncation`, asserting the full preview is preserved.
-- Remaining 57 test failures are all `*IntegrationTests` requiring Docker/Testcontainers (Postgres) or live external services (Flexi ERP, Shoptet API) — environment limitations, not regressions.
+Closes #3116

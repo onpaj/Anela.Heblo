@@ -64,9 +64,5 @@ public class OrgChartService : IOrgChartService
         {
             throw new InvalidOperationException($"Failed to parse organizational structure: {ex.Message}", ex);
         }
-        catch (Exception)
-        {
-            throw;
-        }
     }
 }

@@ -45,7 +45,7 @@ const makeOrder = (code: string): PackingOrder => ({
   isCooled: false,
   customerNote: null,
   eshopNote: null,
-  eligibility: { isEligible: true, warningTitle: null, warningBody: null },
+  eligibility: { isEligible: true },
   items: [],
   shippingAddress: null,
 });

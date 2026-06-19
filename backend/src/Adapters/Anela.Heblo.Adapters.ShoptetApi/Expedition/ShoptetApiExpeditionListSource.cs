@@ -17,7 +17,7 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 
 public class ShoptetApiExpeditionListSource : IPickingListSource
 {
-    private readonly ShoptetOrderClient _client;
+    private readonly IShoptetExpeditionOrderSource _client;
     private readonly TimeProvider _timeProvider;
     private readonly ICatalogRepository _catalog;
     private readonly ICarrierCoolingRepository _carrierCooling;
@@ -26,7 +26,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
 
     public ShoptetApiExpeditionListSource(
-        ShoptetOrderClient client,
+        IShoptetExpeditionOrderSource client,
         TimeProvider timeProvider,
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling,

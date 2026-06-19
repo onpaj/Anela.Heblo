@@ -17,8 +17,6 @@ export interface PackingOrderItem {
 
 export interface PackingEligibility {
   isEligible: boolean;
-  warningTitle: string | null;
-  warningBody: string | null;
 }
 
 export interface ShippingAddress {

@@ -92,7 +92,6 @@ public class ScanPackingOrderHandlerTests
         response.Success.Should().BeTrue();
         response.Order.Should().NotBeNull();
         response.Order!.Eligibility.IsEligible.Should().BeFalse();
-        response.Order.Eligibility.WarningTitle.Should().NotBeNullOrEmpty();
         response.Shipment.Should().BeNull();
 
         _shipmentClient.Verify(

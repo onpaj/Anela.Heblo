@@ -40,7 +40,17 @@ public interface IPackingMaterialRepository : IRepository<PackingMaterial, int>
     Task<PackingMaterial?> GetByIdWithAllocationsAsync(int id, CancellationToken cancellationToken = default);
     Task AddConsumptionRowsAsync(IEnumerable<PackingMaterialConsumption> rows, CancellationToken cancellationToken = default);
     Task<IEnumerable<PackingMaterialConsumption>> GetConsumptionsByDateAsync(DateOnly date, CancellationToken cancellationToken = default);
-    Task AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Persists a <see cref="PackingMaterialDailyRun"/> record for the given date.
+    /// </summary>
+    /// <param name="run">The daily run record to insert.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// <c>true</c> when the row was inserted successfully;
+    /// <c>false</c> when a duplicate unique-violation was absorbed (a daily run for that date already exists).
+    /// Never throws on duplicate.
+    /// </returns>
+    Task<bool> AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default);
 
     Task<(IReadOnlyList<MaterialConsumptionHistoryRecord> Items, int TotalCount)> GetConsumptionHistoryAsync(
         MaterialConsumptionHistoryFilter filter,
