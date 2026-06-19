@@ -75,8 +75,6 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             Eligibility = new ScanOrderEligibility
             {
                 IsEligible = isEligible,
-                WarningTitle = isEligible ? null : "Objednávka není ve stavu „Balí se“",
-                WarningBody = isEligible ? null : "Tuto objednávku nezpracovávejte, dokud nebude ve správném stavu.",
             },
         };
 

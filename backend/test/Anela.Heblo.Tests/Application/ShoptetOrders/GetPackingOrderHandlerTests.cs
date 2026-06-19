@@ -60,7 +60,7 @@ public class GetPackingOrderHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenOrderIsInPackingState_ReturnsEligibleWithNullWarning()
+    public async Task Handle_WhenOrderIsInPackingState_ReturnsEligible()
     {
         _clientMock
             .Setup(c => c.GetPackingOrderAsync("ORD001", It.IsAny<CancellationToken>()))
@@ -79,15 +79,13 @@ public class GetPackingOrderHandlerTests
 
         result.Success.Should().BeTrue();
         result.Eligibility.IsEligible.Should().BeTrue();
-        result.Eligibility.WarningTitle.Should().BeNull();
-        result.Eligibility.WarningBody.Should().BeNull();
         result.ShippingStreet.Should().BeNull();
         result.ShippingCity.Should().BeNull();
         result.ShippingZip.Should().BeNull();
     }
 
     [Fact]
-    public async Task Handle_WhenOrderIsNotInPackingState_ReturnsIneligibleWithCzechWarning()
+    public async Task Handle_WhenOrderIsNotInPackingState_ReturnsIneligible()
     {
         _clientMock
             .Setup(c => c.GetPackingOrderAsync("ORD002", It.IsAny<CancellationToken>()))
@@ -106,8 +104,6 @@ public class GetPackingOrderHandlerTests
 
         result.Success.Should().BeTrue();
         result.Eligibility.IsEligible.Should().BeFalse();
-        result.Eligibility.WarningTitle.Should().Be("Objednávka není ve stavu „Balí se”");
-        result.Eligibility.WarningBody.Should().Be("Tuto objednávku nezpracovávejte, dokud nebude ve správném stavu.");
     }
 
     [Fact]
