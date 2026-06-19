@@ -45,6 +45,7 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
         });
         services.AddTransient<IEshopOrderClient>(sp => sp.GetRequiredService<ShoptetOrderClient>());
+        services.AddTransient<IShoptetExpeditionOrderSource>(sp => sp.GetRequiredService<ShoptetOrderClient>());
 
         services.AddHttpClient<IEshopStockClient, ShoptetStockClient>((sp, client) =>
         {
