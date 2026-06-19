@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Anela.Heblo.Domain.Features.Manufacture;
 
 public class ManufactureOrder
@@ -15,9 +17,9 @@ public class ManufactureOrder
     public DateOnly PlannedDate { get; set; }
 
     // State management
-    public ManufactureOrderState State { get; set; }
-    public DateTime StateChangedAt { get; set; }
-    public string StateChangedByUser { get; set; } = null!;
+    public ManufactureOrderState State { get; internal set; }
+    public DateTime StateChangedAt { get; internal set; }
+    public string StateChangedByUser { get; internal set; } = null!;
 
     // Collections
     public ManufactureOrderSemiProduct? SemiProduct { get; set; } = null!;
@@ -56,4 +58,44 @@ public class ManufactureOrder
     public bool? WeightWithinTolerance { get; set; }
     public decimal? WeightDifference { get; set; }   // positive = surplus, negative = deficit
 
+    /// <summary>
+    /// Sanctioned construction path that seeds the initial state and audit fields without
+    /// requiring an externally visible State setter. Use at creation time only.
+    /// </summary>
+    public void InitializeState(ManufactureOrderState initialState, DateTime changedAtUtc, string changedByUser)
+    {
+        State = initialState;
+        StateChangedAt = changedAtUtc;
+        StateChangedByUser = changedByUser;
+    }
+
+    /// <summary>
+    /// Pure predicate: true iff a transition from the current State to <paramref name="newState"/>
+    /// is legal. Reads State and the argument only; mutates nothing.
+    /// </summary>
+    public bool CanTransitionTo(ManufactureOrderState newState) => State switch
+    {
+        ManufactureOrderState.Draft => newState is ManufactureOrderState.Planned or ManufactureOrderState.Cancelled,
+        ManufactureOrderState.Planned => newState is ManufactureOrderState.Draft or ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Cancelled or ManufactureOrderState.Completed,
+        ManufactureOrderState.SemiProductManufactured => newState is ManufactureOrderState.Planned or ManufactureOrderState.Completed or ManufactureOrderState.Cancelled,
+        ManufactureOrderState.Completed => newState is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Cancelled or ManufactureOrderState.Planned,
+        ManufactureOrderState.Cancelled => false,
+        _ => false
+    };
+
+    /// <summary>
+    /// Guarded state mutation. Throws when the transition is illegal and leaves the entity
+    /// unchanged; on success sets State + audit fields atomically.
+    /// </summary>
+    public void ChangeState(ManufactureOrderState newState, DateTime changedAtUtc, string changedByUser)
+    {
+        if (!CanTransitionTo(newState))
+        {
+            throw new ValidationException($"Unable to change state from {State} to {newState}.");
+        }
+
+        State = newState;
+        StateChangedAt = changedAtUtc;
+        StateChangedByUser = changedByUser;
+    }
 }

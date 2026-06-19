@@ -51,11 +51,9 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
             CreatedDate = now.DateTime,
             CreatedByUser = currentUser.GetDisplayName(),
             ResponsiblePerson = sourceOrder.ResponsiblePerson,
-            PlannedDate = today,
-            State = ManufactureOrderState.Draft,
-            StateChangedAt = now.DateTime,
-            StateChangedByUser = currentUser.GetDisplayName()
+            PlannedDate = today
         };
+        duplicateOrder.InitializeState(ManufactureOrderState.Draft, now.DateTime, currentUser.GetDisplayName());
 
         var expirationDate = sourceOrder.SemiProduct != null
             ? ManufactureOrderExtensions.GetDefaultExpiration(now.DateTime, sourceOrder.SemiProduct.ExpirationMonths)
