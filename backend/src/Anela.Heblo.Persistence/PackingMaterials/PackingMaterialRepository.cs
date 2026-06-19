@@ -2,6 +2,7 @@ using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using Anela.Heblo.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Anela.Heblo.Persistence.PackingMaterials;
 
@@ -48,9 +49,20 @@ public class PackingMaterialRepository : BaseRepository<PackingMaterial, int>, I
             .AnyAsync(r => r.Date == date, cancellationToken);
     }
 
-    public async Task AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default)
+    public async Task<bool> AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default)
     {
         await Context.Set<PackingMaterialDailyRun>().AddAsync(run, cancellationToken);
+        try
+        {
+            await Context.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (DbUpdateException ex) when (IsDuplicateDailyRunViolation(ex))
+        {
+            // Detach the entity so the context is not left in a broken state after the failed save.
+            Context.Entry(run).State = EntityState.Detached;
+            return false;
+        }
     }
 
     public async Task<IEnumerable<PackingMaterial>> GetAllWithAllocationsAsync(CancellationToken cancellationToken = default)
@@ -78,6 +90,11 @@ public class PackingMaterialRepository : BaseRepository<PackingMaterial, int>, I
             .Where(c => c.Date == date)
             .ToListAsync(cancellationToken);
     }
+
+    private static bool IsDuplicateDailyRunViolation(DbUpdateException ex) =>
+        ex.InnerException is PostgresException pg
+        && pg.SqlState == PostgresErrorCodes.UniqueViolation
+        && string.Equals(pg.ConstraintName, "IX_PackingMaterialDailyRuns_Date", StringComparison.Ordinal);
 
     public async Task<(IReadOnlyList<MaterialConsumptionHistoryRecord> Items, int TotalCount)> GetConsumptionHistoryAsync(
         MaterialConsumptionHistoryFilter filter,
