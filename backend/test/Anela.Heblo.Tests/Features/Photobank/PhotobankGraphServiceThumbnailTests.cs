@@ -131,6 +131,30 @@ public sealed class PhotobankGraphServiceThumbnailTests
     }
 
     [Fact]
+    public async Task GetThumbnailAsync_ReturnsNull_WhenGraphReturns406()
+    {
+        // Arrange
+        var handlerMock = new Mock<HttpMessageHandler>();
+        var tokenMock = new Mock<ITokenAcquisition>();
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotAcceptable));
+
+        var service = CreateService(handlerMock, tokenMock);
+
+        // Act
+        var result = await service.GetThumbnailAsync(DriveId, FileId, ThumbnailSize.Medium);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
     public async Task GetThumbnailAsync_ThrowsGraphThrottledException_WhenGraphReturns429()
     {
         // Arrange
