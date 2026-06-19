@@ -15,7 +15,7 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 /// </summary>
 public class ShoptetApiPackingOrderClient : IPackingOrderClient
 {
-    private readonly ShoptetOrderClient _orderClient;
+    private readonly IShoptetExpeditionOrderSource _orderClient;
     private readonly ICatalogRepository _catalog;
     private readonly ICarrierCoolingRepository _carrierCooling;
     private readonly ILogger<ShoptetApiPackingOrderClient> _logger;
@@ -23,7 +23,7 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
     private readonly ShoptetOrdersSettings _orderSettings;
 
     public ShoptetApiPackingOrderClient(
-        ShoptetOrderClient orderClient,
+        IShoptetExpeditionOrderSource orderClient,
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling,
         ILogger<ShoptetApiPackingOrderClient> logger,
