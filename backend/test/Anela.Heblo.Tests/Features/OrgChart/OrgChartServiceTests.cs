@@ -1,8 +1,8 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Anela.Heblo.Adapters.OrgChart;
 using Anela.Heblo.Application.Features.OrgChart;
-using Anela.Heblo.Application.Features.OrgChart.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
