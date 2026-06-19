@@ -161,7 +161,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
             <select
               id="consumptionType"
               value={formData.consumptionType}
-              onChange={(e) => setFormData({ ...formData, consumptionType: parseInt(e.target.value) as ConsumptionType })}
+              onChange={(e) => setFormData({ ...formData, consumptionType: e.target.value as ConsumptionType })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               disabled={isPending}
             >
