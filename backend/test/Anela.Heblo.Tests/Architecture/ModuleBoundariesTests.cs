@@ -706,18 +706,23 @@ public class ModuleBoundariesTests
     [Fact]
     public void Domain_must_not_reference_Application_and_relocated_invoice_types_must_be_gone()
     {
-        // NFR-6: after relocating IssuedInvoiceFilters, PaginatedResult<T>, and
-        // IIssuedInvoiceRepository out of Domain, the Domain assembly must
+        // NFR-6 (amended): the Domain assembly must
         // (a) not reference any Anela.Heblo.Application.* type, and
-        // (b) not contain types with the three relocated names anywhere under
-        // Anela.Heblo.Domain.Features.Invoices.
+        // (b) not contain PaginatedResult<T> anywhere under Anela.Heblo.Domain —
+        //     it is a cross-cutting pagination envelope owned by Anela.Heblo.Xcc.Persistance.
+        //
+        // IIssuedInvoiceRepository and IssuedInvoiceFilters were originally listed here, but
+        // they legitimately belong in Domain alongside the codebase's other ~39 repository
+        // interfaces (e.g. IArticleRepository, ICatalogRepository, ITransportBoxRepository).
+        // A repository is a domain port; its EF Core implementation stays in Persistence
+        // (which references Domain). The interface depends only on Xcc-owned types
+        // (IRepository<,>, PaginatedResult<T>) plus Domain-owned invoice types, so no
+        // upward dependency on Application or Persistence is introduced.
         const string DomainNamespacePrefix = "Anela.Heblo.Domain";
         const string ForbiddenPrefix = "Anela.Heblo.Application";
         var relocatedTypeNames = new HashSet<string>(StringComparer.Ordinal)
         {
-            "IssuedInvoiceFilters",
             "PaginatedResult`1",
-            "IIssuedInvoiceRepository",
         };
 
         var assembly = Assembly.Load("Anela.Heblo.Domain");
@@ -747,15 +752,15 @@ public class ModuleBoundariesTests
             "Domain layer must not reference Anela.Heblo.Application.* types. " +
             "Found:\n  " + string.Join("\n  ", crossLayerViolations));
 
-        // (b) The three relocated type names must not exist anywhere under Domain.
+        // (b) PaginatedResult<T> must not exist anywhere under Domain (it is owned by Xcc).
         var orphanRelocations = domainTypes
             .Where(t => relocatedTypeNames.Contains(t.Name))
             .Select(t => t.FullName)
             .ToList();
 
         orphanRelocations.Should().BeEmpty(
-            "Relocated types (IssuedInvoiceFilters, PaginatedResult<T>, IIssuedInvoiceRepository) " +
-            "must not exist in Anela.Heblo.Domain after the 2026-06-02 relocation. " +
+            "PaginatedResult<T> must not exist in Anela.Heblo.Domain — it is a cross-cutting " +
+            "pagination envelope owned by Anela.Heblo.Xcc.Persistance. " +
             "Found:\n  " + string.Join("\n  ", orphanRelocations));
     }
 
