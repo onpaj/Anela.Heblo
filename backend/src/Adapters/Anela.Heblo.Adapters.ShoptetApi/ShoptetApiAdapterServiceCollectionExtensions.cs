@@ -52,36 +52,7 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
             client.BaseAddress = new Uri(settings.BaseUrl);
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
-        });
-
-        services.AddHttpClient<IShoptetInvoiceClient, ShoptetInvoiceClient>((sp, client) =>
-        {
-            var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
-            client.BaseAddress = new Uri(settings.BaseUrl);
-            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
-        });
-
-        services.AddHttpClient<IShipmentClient, ShoptetShipmentClient>((sp, client) =>
-        {
-            var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
-            client.BaseAddress = new Uri(settings.BaseUrl);
-            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
-        });
-
-        services.AddHttpClient<IShoptetCustomerClient, ShoptetCustomerClient>((sp, client) =>
-        {
-            var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
-            client.BaseAddress = new Uri(settings.BaseUrl);
-            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
-        });
-
-        services.Configure<ShoptetStockClientOptions>(
-            configuration.GetSection(ShoptetStockClientOptions.SettingsKey));
-
-        services.AddHttpClient("ShoptetStockCsv", (sp, client) =>
-        {
-            var opts = sp.GetRequiredService<IOptions<ShoptetStockClientOptions>>().Value;
-            client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds * (opts.MaxRetryAttempts + 1) + 5);
+            client.Timeout = Timeout.InfiniteTimeSpan;
         })
         .AddResilienceHandler("shoptet-stock-csv", (builder, context) =>
         {
@@ -119,6 +90,30 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
                 })
                 .AddTimeout(TimeSpan.FromSeconds(opts.TimeoutSeconds));
         });
+
+        services.AddHttpClient<IShoptetInvoiceClient, ShoptetInvoiceClient>((sp, client) =>
+        {
+            var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
+            client.BaseAddress = new Uri(settings.BaseUrl);
+            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
+        });
+
+        services.AddHttpClient<IShipmentClient, ShoptetShipmentClient>((sp, client) =>
+        {
+            var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
+            client.BaseAddress = new Uri(settings.BaseUrl);
+            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
+        });
+
+        services.AddHttpClient<IShoptetCustomerClient, ShoptetCustomerClient>((sp, client) =>
+        {
+            var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
+            client.BaseAddress = new Uri(settings.BaseUrl);
+            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
+        });
+
+        services.Configure<ShoptetStockClientOptions>(
+            configuration.GetSection(ShoptetStockClientOptions.SettingsKey));
 
         services.AddTransient<IPickingListSource, ShoptetApiExpeditionListSource>();
         services.AddTransient<IPackingOrderClient, ShoptetApiPackingOrderClient>();

@@ -6,7 +6,6 @@ using Anela.Heblo.Adapters.ShoptetApi.Stock;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Moq;
 
 namespace Anela.Heblo.Tests.Adapters.ShoptetApi;
 
@@ -22,8 +21,7 @@ public class ShoptetStockClientTests
         };
         var settings = Options.Create(new ShoptetApiSettings { StockId = stockId });
         var stockClientOptions = Options.Create(new ShoptetStockClientOptions());
-        var httpClientFactory = new Mock<IHttpClientFactory>().Object;
-        return new ShoptetStockClient(http, httpClientFactory, settings, stockClientOptions, NullLogger<ShoptetStockClient>.Instance);
+        return new ShoptetStockClient(http, settings, stockClientOptions, NullLogger<ShoptetStockClient>.Instance);
     }
 
     private static HttpResponseMessage Json(object obj, HttpStatusCode status = HttpStatusCode.OK)
@@ -220,21 +218,13 @@ public class ShoptetStockClientTests
         Func<HttpRequestMessage, HttpResponseMessage> handler,
         string csvUrl = "https://test.com/stock-export.csv")
     {
-        var dummyHttp = new HttpClient(new FakeDelegatingHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.OK)))
+        var http = new HttpClient(new FakeDelegatingHandler(handler))
         {
             BaseAddress = new Uri("https://fake.shoptet.cz"),
         };
-
-        var factoryMock = new Mock<IHttpClientFactory>();
-        factoryMock
-            .Setup(f => f.CreateClient(It.IsAny<string>()))
-            .Returns(new HttpClient(new FakeDelegatingHandler(handler)));
-
         var settings = Options.Create(new ShoptetApiSettings { StockId = 1 });
         var stockClientOptions = Options.Create(new ShoptetStockClientOptions { Url = csvUrl });
-
-        return new ShoptetStockClient(dummyHttp, factoryMock.Object, settings, stockClientOptions, NullLogger<ShoptetStockClient>.Instance);
+        return new ShoptetStockClient(http, settings, stockClientOptions, NullLogger<ShoptetStockClient>.Instance);
     }
 
     [Fact]

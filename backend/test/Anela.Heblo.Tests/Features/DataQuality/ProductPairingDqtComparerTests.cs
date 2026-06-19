@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.DataQuality.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.DataQuality;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace Anela.Heblo.Tests.Features.DataQuality;
@@ -35,7 +36,7 @@ public class ProductPairingDqtComparerTests
     }
 
     private ProductPairingDqtComparer CreateSut() =>
-        new(_eshopMock.Object, _erpMock.Object, _resilienceMock.Object);
+        new(_eshopMock.Object, _erpMock.Object, _resilienceMock.Object, NullLogger<ProductPairingDqtComparer>.Instance);
 
     private void SetupEshop(params EshopStock[] products) =>
         _eshopMock.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
