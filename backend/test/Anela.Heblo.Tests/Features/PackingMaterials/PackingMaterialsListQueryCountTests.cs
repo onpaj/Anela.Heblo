@@ -107,7 +107,7 @@ public class PackingMaterialsListQueryCountTests : IDisposable
         public Task<bool> HasDailyProcessingBeenRunAsync(DateOnly date, CancellationToken cancellationToken = default)
             => _inner.HasDailyProcessingBeenRunAsync(date, cancellationToken);
 
-        public Task AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default)
+        public Task<bool> AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default)
             => _inner.AddDailyRunAsync(run, cancellationToken);
 
         public Task<IEnumerable<PackingMaterial>> GetAllWithAllocationsAsync(CancellationToken cancellationToken = default)
