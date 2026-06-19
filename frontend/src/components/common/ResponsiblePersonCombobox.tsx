@@ -42,7 +42,7 @@ const ResponsiblePersonCombobox: React.FC<ResponsiblePersonComboboxProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState("");
   const { data: response, isLoading, isError, error: queryError } = useResponsiblePersonsQuery(groupId);
-  const isForbidden = isError && SwaggerException.isSwaggerException(queryError) && queryError.status === 403;
+  const isForbidden = isError && !!queryError && SwaggerException.isSwaggerException(queryError) && queryError.status === 403;
 
   const options = useMemo((): ResponsiblePersonSelectOption[] => {
     const members = response?.members || [];
