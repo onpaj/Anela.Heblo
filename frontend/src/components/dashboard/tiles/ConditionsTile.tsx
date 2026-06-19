@@ -33,7 +33,7 @@ export const ConditionsTile: React.FC<ConditionsTileProps> = ({ data }) => {
   const d = data.data;
   if (!d) return null;
 
-  const src = SOURCE_LABEL[d.source];
+  const src = SOURCE_LABEL[d.source] ?? { label: d.source, cls: 'bg-gray-100 text-gray-700' };
   const recorded = new Date(d.recordedAt);
 
   return (

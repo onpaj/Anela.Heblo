@@ -1,0 +1,60 @@
+{
+  "feature_id": "feat-3193",
+  "issue_number": 3193,
+  "created_at": "2026-06-18T18:14:17.165675Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-18T18:19:50.695783Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-18T18:25:09.491885Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-18T18:25:17.602477Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-18T18:31:29.113414Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-18T19:50:21.281453Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-automatic-retry-attribute",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-18T18:34:11.489966Z"
+    },
+    {
+      "name": "create-hangfire-activity-filter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-18T18:36:55.075123Z"
+    },
+    {
+      "name": "merge-named-client-into-typed-client",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-18T18:59:11.355752Z"
+    },
+    {
+      "name": "fix-log-levels",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-18T19:07:50.909572Z"
+    },
+    {
+      "name": "final-build-and-format",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-18T19:50:21.075758Z"
+    }
+  ]
+}

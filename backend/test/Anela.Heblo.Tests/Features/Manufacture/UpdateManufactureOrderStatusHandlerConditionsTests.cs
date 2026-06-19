@@ -56,18 +56,19 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
             _inventoryRepositoryMock.Object,
             _catalogRepositoryMock.Object);
 
-    private ManufactureOrder CreateOrderInState(ManufactureOrderState state) =>
-        new ManufactureOrder
+    private ManufactureOrder CreateOrderInState(ManufactureOrderState state)
+    {
+        var order = new ManufactureOrder
         {
             Id = 1,
             OrderNumber = "MO-2026-001",
-            State = state,
-            StateChangedAt = DateTime.UtcNow,
-            StateChangedByUser = "previous-user",
             CreatedByUser = "creator",
             CreatedDate = DateTime.UtcNow.AddDays(-1),
             PlannedDate = DateOnly.FromDateTime(DateTime.Today),
         };
+        order.InitializeState(state, DateTime.UtcNow, "previous-user");
+        return order;
+    }
 
     [Fact]
     public async Task Handle_TransitionToSemiProductManufactured_CapturesConditionsReadingWithLiveSource()

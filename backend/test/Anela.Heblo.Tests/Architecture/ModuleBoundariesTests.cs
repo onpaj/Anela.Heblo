@@ -235,8 +235,8 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler+<Handle>d__9 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus.UpdateManufactureOrderStatusHandler+<>c__DisplayClass10_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus.UpdateManufactureOrderStatusHandler+<WriteDownInventoryAsync>d__10 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus.UpdateManufactureOrderStatusHandler+<>c__DisplayClass9_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus.UpdateManufactureOrderStatusHandler+<WriteDownInventoryAsync>d__9 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
 
         // Domain enums/types reached via CatalogAggregate properties.
         // Same follow-up as above.
