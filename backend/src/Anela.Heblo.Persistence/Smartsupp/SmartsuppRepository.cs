@@ -56,32 +56,31 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         SmartsuppContact contact,
         CancellationToken cancellationToken)
     {
-        var existing = await _db.SmartsuppContacts
-            .FirstOrDefaultAsync(c => c.Id == contact.Id, cancellationToken);
-
-        if (existing is null)
-        {
-            _db.SmartsuppContacts.Add(contact);
-        }
-        else
-        {
-            if (existing.UpdatedAt > contact.UpdatedAt)
-            {
-                return;
-            }
-
-            existing.Email = contact.Email;
-            existing.Name = contact.Name;
-            existing.Phone = contact.Phone;
-            existing.Note = contact.Note;
-            existing.BannedAt = contact.BannedAt;
-            existing.BannedBy = contact.BannedBy;
-            existing.GdprApproved = contact.GdprApproved;
-            existing.TagsJson = contact.TagsJson;
-            existing.PropertiesJson = contact.PropertiesJson;
-            existing.UpdatedAt = contact.UpdatedAt;
-            existing.SyncedAt = contact.SyncedAt;
-        }
+        // Raw SQL: column list must match the EF mapping in SmartsuppContactConfiguration.
+        // See memory/gotchas/raw-sql-insert-must-match-ef-mapping.md when adding columns.
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $@"INSERT INTO public.""SmartsuppContacts"" (
+                    ""Id"", ""Email"", ""Name"", ""Phone"", ""Note"",
+                    ""BannedAt"", ""BannedBy"", ""GdprApproved"", ""TagsJson"", ""PropertiesJson"",
+                    ""CreatedAt"", ""UpdatedAt"", ""SyncedAt"")
+                VALUES (
+                    {contact.Id}, {contact.Email}, {contact.Name}, {contact.Phone}, {contact.Note},
+                    {contact.BannedAt}, {contact.BannedBy}, {contact.GdprApproved}, {contact.TagsJson}, {contact.PropertiesJson},
+                    {contact.CreatedAt}, {contact.UpdatedAt}, {contact.SyncedAt})
+                ON CONFLICT (""Id"") DO UPDATE
+                    SET ""Email""          = EXCLUDED.""Email"",
+                        ""Name""           = EXCLUDED.""Name"",
+                        ""Phone""          = EXCLUDED.""Phone"",
+                        ""Note""           = EXCLUDED.""Note"",
+                        ""BannedAt""       = EXCLUDED.""BannedAt"",
+                        ""BannedBy""       = EXCLUDED.""BannedBy"",
+                        ""GdprApproved""   = EXCLUDED.""GdprApproved"",
+                        ""TagsJson""       = EXCLUDED.""TagsJson"",
+                        ""PropertiesJson"" = EXCLUDED.""PropertiesJson"",
+                        ""UpdatedAt""      = EXCLUDED.""UpdatedAt"",
+                        ""SyncedAt""       = EXCLUDED.""SyncedAt""
+                WHERE EXCLUDED.""UpdatedAt"" >= ""SmartsuppContacts"".""UpdatedAt""",
+            cancellationToken);
     }
 
     public async Task UpsertConversationAsync(
