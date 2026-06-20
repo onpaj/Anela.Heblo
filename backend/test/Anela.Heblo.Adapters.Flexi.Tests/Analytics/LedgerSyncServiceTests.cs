@@ -80,7 +80,7 @@ public class LedgerSyncServiceTests
 
         // Assert — lastUpdateFrom should equal InitialBackfillFrom when no watermark
         client.Verify(c => c.GetChangedSinceAsync(
-            new DateTime(2024, 1, 1), 10, 0, It.IsAny<CancellationToken>()), Times.Once);
+            new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), 10, 0, It.IsAny<CancellationToken>()), Times.Once);
         result.IsSuccess.Should().BeTrue();
         result.RowsFetched.Should().Be(1);
     }
