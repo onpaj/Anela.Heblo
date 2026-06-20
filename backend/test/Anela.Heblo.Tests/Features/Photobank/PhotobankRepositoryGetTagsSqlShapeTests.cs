@@ -4,7 +4,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Application.Features.Photobank;
+using Anela.Heblo.Persistence.Photobank;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Tests.Common;
