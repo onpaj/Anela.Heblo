@@ -110,52 +110,80 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         conversation.ContactName ??= linkedContact?.Name;
         conversation.ContactEmail ??= linkedContact?.Email;
 
-        var existing = await _db.SmartsuppConversations
-            .FirstOrDefaultAsync(c => c.Id == conversation.Id, cancellationToken);
+        var status = conversation.Status.ToString();
 
-        if (existing is null)
-        {
-            _db.SmartsuppConversations.Add(conversation);
-            return;
-        }
-
-        if (existing.UpdatedAt > conversation.UpdatedAt)
-        {
-            // Out-of-order event: stored state is fresher — skip update.
-            return;
-        }
-
-        existing.Status = conversation.Status;
-        existing.IsUnread = conversation.IsUnread;
-        existing.IsOffline = conversation.IsOffline;
-        existing.IsServed = conversation.IsServed;
-        existing.ContactId = conversation.ContactId;
-        existing.Subject = conversation.Subject;
-        existing.ContactName = conversation.ContactName ?? existing.ContactName;
-        existing.ContactEmail = conversation.ContactEmail ?? existing.ContactEmail;
-        existing.ContactAvatarUrl = conversation.ContactAvatarUrl ?? existing.ContactAvatarUrl;
-        existing.VisitorId = conversation.VisitorId;
-        existing.ExtId = conversation.ExtId;
-        existing.FinishedAt = conversation.FinishedAt;
-        existing.Domain = conversation.Domain;
-        existing.Referer = conversation.Referer;
-        existing.LocationCountry = conversation.LocationCountry;
-        existing.LocationCity = conversation.LocationCity;
-        existing.LocationIp = conversation.LocationIp;
-        existing.LocationCode = conversation.LocationCode;
-        existing.VariablesJson = conversation.VariablesJson;
-        existing.TagsJson = conversation.TagsJson;
-        existing.LastMessageAt = conversation.LastMessageAt;
-        existing.LastMessagePreview = conversation.LastMessagePreview;
-        existing.UpdatedAt = conversation.UpdatedAt;
-        existing.SyncedAt = conversation.SyncedAt;
-        existing.Rating = conversation.Rating;
-        existing.RatingText = conversation.RatingText;
-        existing.CloseType = conversation.CloseType;
-        existing.ClosedByAgentId = conversation.ClosedByAgentId;
-        existing.AssignedAgentIdsJson = conversation.AssignedAgentIdsJson;
-        existing.Channel = conversation.Channel;
-        existing.LastClosedAt = conversation.LastClosedAt;
+        // Raw SQL: column list must match the EF mapping in SmartsuppConversationConfiguration.
+        // See memory/gotchas/raw-sql-insert-must-match-ef-mapping.md when adding columns.
+        // Status is stored as string (HasConversion<string>()) so must be passed as .ToString().
+        // COALESCE on ContactName/ContactEmail/ContactAvatarUrl preserves existing non-null values
+        // when the incoming event carries null for those fields.
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $@"INSERT INTO public.""SmartsuppConversations"" (
+                    ""Id"", ""ExtId"", ""Subject"", ""ContactId"",
+                    ""ContactName"", ""ContactEmail"", ""ContactAvatarUrl"", ""VisitorId"",
+                    ""Status"", ""IsUnread"", ""IsOffline"", ""IsServed"",
+                    ""FinishedAt"", ""Domain"", ""Referer"",
+                    ""LocationCountry"", ""LocationCity"", ""LocationIp"", ""LocationCode"",
+                    ""VariablesJson"", ""TagsJson"",
+                    ""LastMessageAt"", ""LastMessagePreview"",
+                    ""CreatedAt"", ""UpdatedAt"", ""SyncedAt"",
+                    ""Rating"", ""RatingText"", ""CloseType"", ""ClosedByAgentId"",
+                    ""AssignedAgentIdsJson"", ""Channel"", ""LastClosedAt"",
+                    ""VisitorUserAgent"", ""VisitorOs"", ""VisitorBrowser"",
+                    ""VisitorBrowserVersion"", ""VisitorVisitsCount"", ""VisitorInfoFetchedAt"")
+                VALUES (
+                    {conversation.Id}, {conversation.ExtId}, {conversation.Subject}, {conversation.ContactId},
+                    {conversation.ContactName}, {conversation.ContactEmail}, {conversation.ContactAvatarUrl}, {conversation.VisitorId},
+                    {status}, {conversation.IsUnread}, {conversation.IsOffline}, {conversation.IsServed},
+                    {conversation.FinishedAt}, {conversation.Domain}, {conversation.Referer},
+                    {conversation.LocationCountry}, {conversation.LocationCity}, {conversation.LocationIp}, {conversation.LocationCode},
+                    {conversation.VariablesJson}, {conversation.TagsJson},
+                    {conversation.LastMessageAt}, {conversation.LastMessagePreview},
+                    {conversation.CreatedAt}, {conversation.UpdatedAt}, {conversation.SyncedAt},
+                    {conversation.Rating}, {conversation.RatingText}, {conversation.CloseType}, {conversation.ClosedByAgentId},
+                    {conversation.AssignedAgentIdsJson}, {conversation.Channel}, {conversation.LastClosedAt},
+                    {conversation.VisitorUserAgent}, {conversation.VisitorOs}, {conversation.VisitorBrowser},
+                    {conversation.VisitorBrowserVersion}, {conversation.VisitorVisitsCount}, {conversation.VisitorInfoFetchedAt})
+                ON CONFLICT (""Id"") DO UPDATE
+                    SET ""ExtId""               = EXCLUDED.""ExtId"",
+                        ""Subject""             = EXCLUDED.""Subject"",
+                        ""ContactId""           = EXCLUDED.""ContactId"",
+                        ""ContactName""         = COALESCE(EXCLUDED.""ContactName"",    ""SmartsuppConversations"".""ContactName""),
+                        ""ContactEmail""        = COALESCE(EXCLUDED.""ContactEmail"",   ""SmartsuppConversations"".""ContactEmail""),
+                        ""ContactAvatarUrl""    = COALESCE(EXCLUDED.""ContactAvatarUrl"", ""SmartsuppConversations"".""ContactAvatarUrl""),
+                        ""VisitorId""           = EXCLUDED.""VisitorId"",
+                        ""Status""              = EXCLUDED.""Status"",
+                        ""IsUnread""            = EXCLUDED.""IsUnread"",
+                        ""IsOffline""           = EXCLUDED.""IsOffline"",
+                        ""IsServed""            = EXCLUDED.""IsServed"",
+                        ""FinishedAt""          = EXCLUDED.""FinishedAt"",
+                        ""Domain""              = EXCLUDED.""Domain"",
+                        ""Referer""             = EXCLUDED.""Referer"",
+                        ""LocationCountry""     = EXCLUDED.""LocationCountry"",
+                        ""LocationCity""        = EXCLUDED.""LocationCity"",
+                        ""LocationIp""          = EXCLUDED.""LocationIp"",
+                        ""LocationCode""        = EXCLUDED.""LocationCode"",
+                        ""VariablesJson""       = EXCLUDED.""VariablesJson"",
+                        ""TagsJson""            = EXCLUDED.""TagsJson"",
+                        ""LastMessageAt""       = EXCLUDED.""LastMessageAt"",
+                        ""LastMessagePreview""  = EXCLUDED.""LastMessagePreview"",
+                        ""UpdatedAt""           = EXCLUDED.""UpdatedAt"",
+                        ""SyncedAt""            = EXCLUDED.""SyncedAt"",
+                        ""Rating""              = EXCLUDED.""Rating"",
+                        ""RatingText""          = EXCLUDED.""RatingText"",
+                        ""CloseType""           = EXCLUDED.""CloseType"",
+                        ""ClosedByAgentId""     = EXCLUDED.""ClosedByAgentId"",
+                        ""AssignedAgentIdsJson"" = EXCLUDED.""AssignedAgentIdsJson"",
+                        ""Channel""             = EXCLUDED.""Channel"",
+                        ""LastClosedAt""        = EXCLUDED.""LastClosedAt"",
+                        ""VisitorUserAgent""    = EXCLUDED.""VisitorUserAgent"",
+                        ""VisitorOs""           = EXCLUDED.""VisitorOs"",
+                        ""VisitorBrowser""      = EXCLUDED.""VisitorBrowser"",
+                        ""VisitorBrowserVersion"" = EXCLUDED.""VisitorBrowserVersion"",
+                        ""VisitorVisitsCount""  = EXCLUDED.""VisitorVisitsCount"",
+                        ""VisitorInfoFetchedAt"" = EXCLUDED.""VisitorInfoFetchedAt""
+                WHERE EXCLUDED.""UpdatedAt"" >= ""SmartsuppConversations"".""UpdatedAt""",
+            cancellationToken);
     }
 
     public async Task UpsertMessagesAsync(
