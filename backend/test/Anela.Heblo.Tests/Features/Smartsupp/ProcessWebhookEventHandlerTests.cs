@@ -3,10 +3,8 @@ using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using Npgsql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Smartsupp;
@@ -39,20 +37,6 @@ public class ProcessWebhookEventHandlerTests
             _metrics.Object,
             NullLogger<ProcessWebhookEventHandler>.Instance);
     }
-
-    private static DbUpdateException MakeUniqueViolation() =>
-        new("duplicate key", new PostgresException(
-            "duplicate key value violates unique constraint",
-            "ERROR",
-            "ERROR",
-            PostgresErrorCodes.UniqueViolation));
-
-    private static DbUpdateException MakeFkViolation() =>
-        new("fk violation", new PostgresException(
-            "foreign key violation",
-            "ERROR",
-            "ERROR",
-            PostgresErrorCodes.ForeignKeyViolation));
 
     [Fact]
     public async Task Handle_KnownEvent_InvokesMatchingReaction_AndSavesChanges()
@@ -136,32 +120,7 @@ public class ProcessWebhookEventHandlerTests
     }
 
     [Fact]
-    public async Task Handle_UniqueViolationOnFirstSave_RetriesOnce_AndReturnsHandled()
-    {
-        // Arrange
-        var reaction = new Mock<ISmartsuppWebhookReaction>();
-        reaction.Setup(r => r.EventName).Returns("conversation.opened");
-
-        _repo.SetupSequence(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(MakeUniqueViolation())
-            .Returns(Task.CompletedTask);
-
-        var handler = CreateHandler(new[] { reaction.Object });
-
-        // Act
-        var response = await handler.Handle(MakeRequest("conversation.opened"), CancellationToken.None);
-
-        // Assert
-        response.Handled.Should().BeTrue();
-        reaction.Verify(r => r.HandleAsync(It.IsAny<WebhookEventContext>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-        _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
-        _repo.Verify(r => r.DiscardChanges(), Times.Once);
-        _metrics.Verify(m => m.RecordReceived("conversation.opened", "handled", It.IsAny<double>()), Times.Once);
-        _metrics.Verify(m => m.RecordReceived("conversation.opened", "error", It.IsAny<double>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_PersistentUniqueViolation_Rethrows_AfterOneRetry()
+    public async Task Handle_SaveChangesThrows_RethrowsImmediately()
     {
         // Arrange
         var reaction = new Mock<ISmartsuppWebhookReaction>();
@@ -170,7 +129,7 @@ public class ProcessWebhookEventHandlerTests
             .Returns(Task.CompletedTask);
 
         _repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(MakeUniqueViolation());
+            .ThrowsAsync(new InvalidOperationException("db error"));
 
         var handler = CreateHandler(new[] { reaction.Object });
 
@@ -178,34 +137,8 @@ public class ProcessWebhookEventHandlerTests
         var act = async () => await handler.Handle(MakeRequest("conversation.opened"), CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<DbUpdateException>();
-        _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
-        _repo.Verify(r => r.DiscardChanges(), Times.Once);
-        _metrics.Verify(m => m.RecordReceived("conversation.opened", "error", It.IsAny<double>()), Times.Once);
-        _metrics.Verify(m => m.RecordReceived("conversation.opened", "handled", It.IsAny<double>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_NonUniqueDbUpdateException_RethrowsImmediately_WithoutRetry()
-    {
-        // Arrange
-        var reaction = new Mock<ISmartsuppWebhookReaction>();
-        reaction.Setup(r => r.EventName).Returns("conversation.opened");
-        reaction.Setup(r => r.HandleAsync(It.IsAny<WebhookEventContext>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        _repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(MakeFkViolation());
-
-        var handler = CreateHandler(new[] { reaction.Object });
-
-        // Act
-        var act = async () => await handler.Handle(MakeRequest("conversation.opened"), CancellationToken.None);
-
-        // Assert
-        await act.Should().ThrowAsync<DbUpdateException>();
+        await act.Should().ThrowAsync<InvalidOperationException>();
         _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
-        _repo.Verify(r => r.DiscardChanges(), Times.Never);
         _metrics.Verify(m => m.RecordReceived("conversation.opened", "error", It.IsAny<double>()), Times.Once);
     }
 }
