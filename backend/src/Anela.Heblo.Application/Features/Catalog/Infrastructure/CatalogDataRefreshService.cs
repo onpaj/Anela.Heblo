@@ -9,8 +9,6 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-// Retained for ManufactureHistoryRecord return type used by ICatalogManufactureSource.GetManufactureHistoryAsync
-// and CatalogAggregate.ManufactureHistory. Track follow-up: introduce Catalog-owned DTO.
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.Services;
-using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
@@ -27,7 +27,7 @@ public class ProductionActivityAnalyzerTests
     public void IsInActiveProduction_WithRecentProduction_ReturnsTrue()
     {
         // Arrange
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = FrozenNowUtc.AddDays(-15), Amount = 10 }, // Within 30 days
             new() { Date = FrozenNowUtc.AddDays(-45), Amount = 5 }   // Outside 30 days
@@ -44,7 +44,7 @@ public class ProductionActivityAnalyzerTests
     public void IsInActiveProduction_WithOldProduction_ReturnsFalse()
     {
         // Arrange
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = FrozenNowUtc.AddDays(-45), Amount = 10 }, // Outside 30 days
             new() { Date = FrozenNowUtc.AddDays(-60), Amount = 5 }   // Outside 30 days
@@ -61,7 +61,7 @@ public class ProductionActivityAnalyzerTests
     public void IsInActiveProduction_WithZeroAmount_ReturnsFalse()
     {
         // Arrange
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = FrozenNowUtc.AddDays(-15), Amount = 0 } // Recent but zero quantity
         };
@@ -77,7 +77,7 @@ public class ProductionActivityAnalyzerTests
     public void IsInActiveProduction_WithNoHistory_ReturnsFalse()
     {
         // Arrange
-        var manufactureHistory = new List<ManufactureHistoryRecord>();
+        var manufactureHistory = new List<CatalogManufactureRecord>();
 
         // Act
         var result = _analyzer.IsInActiveProduction(manufactureHistory, dayThreshold: 30);
@@ -90,7 +90,7 @@ public class ProductionActivityAnalyzerTests
     public void IsInActiveProduction_WithCustomThreshold_RespectsThreshold()
     {
         // Arrange
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = FrozenNowUtc.AddDays(-8), Amount = 10 } // Within 10 days but outside 5 days
         };
@@ -107,7 +107,7 @@ public class ProductionActivityAnalyzerTests
         // m.Date >= cutoffDate, so equality is INCLUSIVE.
         const int dayThreshold = 30;
         var cutoffDate = FrozenNowUtc.AddDays(-dayThreshold);
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = cutoffDate, Amount = 10 }
         };
@@ -125,7 +125,7 @@ public class ProductionActivityAnalyzerTests
         // Arrange — one tick before the cutoff is OUTSIDE the inclusive window.
         const int dayThreshold = 30;
         var cutoffDate = FrozenNowUtc.AddDays(-dayThreshold);
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = cutoffDate.AddTicks(-1), Amount = 10 }
         };
@@ -142,7 +142,7 @@ public class ProductionActivityAnalyzerTests
     {
         // Arrange
         var expectedDate = FrozenNowUtc.AddDays(-10);
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = FrozenNowUtc.AddDays(-30), Amount = 5 },
             new() { Date = expectedDate, Amount = 10 }, // Latest
@@ -160,7 +160,7 @@ public class ProductionActivityAnalyzerTests
     public void GetLastProductionDate_WithNoHistory_ReturnsNull()
     {
         // Arrange
-        var manufactureHistory = new List<ManufactureHistoryRecord>();
+        var manufactureHistory = new List<CatalogManufactureRecord>();
 
         // Act
         var result = _analyzer.GetLastProductionDate(manufactureHistory);
@@ -173,7 +173,7 @@ public class ProductionActivityAnalyzerTests
     public void GetLastProductionDate_WithZeroAmountOnly_ReturnsNull()
     {
         // Arrange
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = FrozenNowUtc.AddDays(-10), Amount = 0 },
             new() { Date = FrozenNowUtc.AddDays(-5), Amount = 0 }
@@ -192,7 +192,7 @@ public class ProductionActivityAnalyzerTests
         // Arrange
         // Use relative dates to ensure test data falls within the analysis window
         var baseDate = FrozenNowUtc.AddMonths(-6); // Well within 12-month window
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = baseDate, Amount = 10 },
             new() { Date = baseDate.AddDays(10), Amount = 5 },    // 10 days gap
@@ -212,7 +212,7 @@ public class ProductionActivityAnalyzerTests
     public void CalculateAverageProductionFrequency_WithInsufficientData_ReturnsInfinity()
     {
         // Arrange
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = FrozenNowUtc.AddDays(-10), Amount = 10 }
         };
@@ -228,7 +228,7 @@ public class ProductionActivityAnalyzerTests
     public void CalculateAverageProductionFrequency_WithNoData_ReturnsInfinity()
     {
         // Arrange
-        var manufactureHistory = new List<ManufactureHistoryRecord>();
+        var manufactureHistory = new List<CatalogManufactureRecord>();
 
         // Act
         var result = _analyzer.CalculateAverageProductionFrequency(manufactureHistory, analysisMonths: 12);
@@ -243,7 +243,7 @@ public class ProductionActivityAnalyzerTests
         // Arrange
         var recentDate = FrozenNowUtc.AddMonths(-1);
         var oldDate = FrozenNowUtc.AddMonths(-24); // Outside 12-month analysis window
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = oldDate, Amount = 10 },                    // Should be ignored
             new() { Date = recentDate, Amount = 5 },
@@ -264,7 +264,7 @@ public class ProductionActivityAnalyzerTests
         // second record sits 15 days later (well inside the window). One interval, 15 days.
         const int analysisMonths = 12;
         var analysisStartDate = FrozenNowUtc.AddMonths(-analysisMonths);
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = analysisStartDate, Amount = 10 },
             new() { Date = analysisStartDate.AddDays(15), Amount = 5 }
@@ -285,7 +285,7 @@ public class ProductionActivityAnalyzerTests
         // insufficient for a frequency calculation, so the result is PositiveInfinity.
         const int analysisMonths = 12;
         var analysisStartDate = FrozenNowUtc.AddMonths(-analysisMonths);
-        var manufactureHistory = new List<ManufactureHistoryRecord>
+        var manufactureHistory = new List<CatalogManufactureRecord>
         {
             new() { Date = analysisStartDate.AddTicks(-1), Amount = 10 },
             new() { Date = analysisStartDate.AddDays(15), Amount = 5 }

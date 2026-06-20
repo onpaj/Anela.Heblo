@@ -6,8 +6,8 @@ using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
@@ -211,7 +211,7 @@ public sealed class CatalogMergeService
         CatalogAggregate product,
         IDictionary<string, List<ConsumedMaterialRecord>> consumedMap,
         IDictionary<string, List<CatalogPurchaseRecord>> purchaseMap,
-        IDictionary<string, List<ManufactureHistoryRecord>> manufactureMap,
+        IDictionary<string, List<CatalogManufactureRecord>> manufactureMap,
         IDictionary<string, List<StockTakingRecord>> stockTakingMap)
     {
         if (consumedMap.TryGetValue(product.ProductCode, out var consumed))

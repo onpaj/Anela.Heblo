@@ -12,6 +12,7 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
@@ -77,7 +78,7 @@ public class CatalogRepositoryTests
             .ReturnsAsync(new Dictionary<string, decimal>());
         _manufactureSourceMock
             .Setup(x => x.GetManufactureHistoryAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ManufactureHistoryRecord>());
+            .ReturnsAsync(new List<CatalogManufactureRecord>());
         _manufactureDifficultyRepositoryMock = new Mock<IManufactureDifficultyRepository>();
         _resilienceServiceMock = new Mock<ICatalogResilienceService>();
         _mergeSchedulerMock = new Mock<ICatalogMergeScheduler>();
