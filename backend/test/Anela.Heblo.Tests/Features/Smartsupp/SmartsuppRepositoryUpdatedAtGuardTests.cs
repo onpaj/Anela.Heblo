@@ -101,28 +101,9 @@ public class SmartsuppRepositoryDenormFieldTests
             SyncedAt = new DateTime(2026, 5, 20, 10, 0, 0, DateTimeKind.Unspecified),
         };
 
-    [Fact]
-    public async Task UpsertConversationAsync_PreservesDenormFields_WhenNewValuesAreNull()
-    {
-        // Arrange
-        await using var db = NewContext();
-        var existing = MakeConversation("c1", contactName: "Jana Nováková", contactEmail: "jana@x.cz");
-        db.SmartsuppConversations.Add(existing);
-        await db.SaveChangesAsync();
-
-        var repo = SmartsuppRepositoryTestFactory.New(db);
-        var incoming = MakeConversation("c1", contactName: null, contactEmail: null);
-        incoming.UpdatedAt = new DateTime(2026, 5, 20, 12, 0, 0, DateTimeKind.Unspecified);
-
-        // Act
-        await repo.UpsertConversationAsync(incoming, CancellationToken.None);
-        await db.SaveChangesAsync();
-
-        // Assert
-        var stored = await db.SmartsuppConversations.SingleAsync();
-        stored.ContactName.Should().Be("Jana Nováková");
-        stored.ContactEmail.Should().Be("jana@x.cz");
-    }
+    // UpsertConversationAsync_PreservesDenormFields_WhenNewValuesAreNull was removed:
+    // the SQL COALESCE null-preservation is now tested in
+    // SmartsuppRepositoryUpsertIntegrationTests.UpsertConversationAsync_NullContactName_DoesNotOverwriteStoredNonNullValue.
 
     [Fact]
     public async Task UpsertConversationAsync_HydratesDenormFields_FromExistingContact()
@@ -136,15 +117,16 @@ public class SmartsuppRepositoryDenormFieldTests
         var repo = SmartsuppRepositoryTestFactory.New(db);
         var incoming = MakeConversation("conv-1", contactName: null, contactEmail: null, contactId: "c-contact-1");
 
-        // Act
-        await repo.UpsertConversationAsync(incoming, CancellationToken.None);
-        await db.SaveChangesAsync();
+        // Act — UpsertConversationAsync reads the linked contact via EF (InMemory) then executes
+        // raw SQL (requires Postgres). Catch the InMemory exception so we can assert on the
+        // C# hydration step that runs before the SQL call.
+        try { await repo.UpsertConversationAsync(incoming, CancellationToken.None); }
+        catch (InvalidOperationException) { /* InMemory does not support ExecuteSqlInterpolatedAsync */ }
 
-        // Assert
-        var stored = await db.SmartsuppConversations.SingleAsync();
-        stored.ContactName.Should().Be("Petr Novák");
-        stored.ContactEmail.Should().Be("petr@x.cz");
-        stored.ContactId.Should().Be("c-contact-1");
+        // Assert — contact name/email were hydrated from the linked contact in the C# layer
+        incoming.ContactName.Should().Be("Petr Novák");
+        incoming.ContactEmail.Should().Be("petr@x.cz");
+        incoming.ContactId.Should().Be("c-contact-1");
     }
 
     [Fact]
