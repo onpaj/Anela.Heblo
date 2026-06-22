@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
-using Anela.Heblo.Application.Features.Purchase;
+using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.Services;
 using Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;

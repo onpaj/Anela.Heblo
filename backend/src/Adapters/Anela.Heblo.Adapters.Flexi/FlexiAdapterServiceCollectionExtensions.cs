@@ -15,7 +15,7 @@ using Anela.Heblo.Domain.Features.Catalog.Products;
 using Anela.Heblo.Adapters.Flexi.Purchase;
 using Anela.Heblo.Adapters.Flexi.Sales;
 using Anela.Heblo.Adapters.Flexi.Stock;
-using Anela.Heblo.Application.Features.Purchase;
+using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
