@@ -419,10 +419,6 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Account")
-                        .IsUnique()
-                        .HasDatabaseName("IX_BankImportStates_Account");
-
                     b.ToTable("BankImportStates", "public");
                 });
 

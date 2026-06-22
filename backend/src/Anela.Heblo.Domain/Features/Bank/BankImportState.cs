@@ -60,7 +60,7 @@ public class BankImportState : Entity<string>
         LastRunStartedAt = runStartedAt;
         LastRunFinishedAt = runFinishedAt;
         LastRunStatus = StatusError;
-        LastErrorMessage = error;
+        LastErrorMessage = error.Length > 2000 ? error[..2000] : error;
         ConsecutiveFailureCount += 1;
     }
 }

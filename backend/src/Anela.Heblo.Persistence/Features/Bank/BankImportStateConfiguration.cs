@@ -51,8 +51,6 @@ public class BankImportStateConfiguration : IEntityTypeConfiguration<BankImportS
             .HasColumnName("ConsecutiveFailureCount")
             .HasColumnType("integer");
 
-        builder.HasIndex(e => e.Account)
-            .IsUnique()
-            .HasDatabaseName("IX_BankImportStates_Account");
+
     }
 }

@@ -30,12 +30,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     table.PrimaryKey("PK_BankImportStates", x => x.Id);
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_BankImportStates_Account",
-                schema: "public",
-                table: "BankImportStates",
-                column: "Account",
-                unique: true);
         }
 
         /// <inheritdoc />

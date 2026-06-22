@@ -101,12 +101,11 @@ public class BankStatementImportRepository : IBankStatementImportRepository
     }
 
     public async Task<DateTime?> GetMaxStatementDateAsync(string account, CancellationToken cancellationToken = default)
-    {
-        var query = _context.BankStatements.AsNoTracking().Where(bs => bs.Account == account);
-        if (!await query.AnyAsync(cancellationToken))
-            return null;
-        return await query.MaxAsync(bs => bs.StatementDate, cancellationToken);
-    }
+        => await _context.BankStatements
+            .AsNoTracking()
+            .Where(bs => bs.Account == account)
+            .Select(bs => (DateTime?)bs.StatementDate)
+            .MaxAsync(cancellationToken);
 
     public async Task<BankStatementImport?> GetByTransferIdAsync(
         string transferId, CancellationToken cancellationToken = default)
