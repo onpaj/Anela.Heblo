@@ -152,21 +152,32 @@ restore_frontend() {
 # ---------------------------------------------------------------------------
 # 6. AgentHarness (skill-based single-agent harness)
 # ---------------------------------------------------------------------------
+# Two steps: the pip install is repo-independent (runs after install_gh), while
+# linking needs the checked-out repo (runs after require_repo).
 install_agentharness() {
   log "Installing AgentHarness from GitHub (main branch)..."
+  command -v pip >/dev/null 2>&1 || $SUDO apt-get install -y python3-pip || true
   # Ubuntu Noble's system Python is externally managed (PEP 668), so
   # --break-system-packages is required for a system-wide pip install.
-  # --upgrade so each cloud session picks up the latest master.
+  # --upgrade so each cloud session picks up the latest master (which also
+  # refreshes the symlinked agents/skills linked by init_agentharness below).
   pip install --break-system-packages --upgrade \
-    "git+https://github.com/onpaj/harness.git@master"
+    "git+https://github.com/onpaj/harness.git@master" || true
   ok "AgentHarness installed ($(agentharness --version 2>/dev/null || echo present))"
+}
 
-  log "Running agentharness init --force..."
-  # init's env-setup prompts for GITHUB_OWNER / GITHUB_RUNS_REPO; both are
-  # auto-detected from the git remote, so feed blank lines to accept the
-  # defaults non-interactively (set -e would otherwise abort on the prompt).
-  ( cd "${REPO_ROOT}" && printf '\n\n\n\n' | agentharness init --force )
-  ok "agentharness init --force complete"
+init_agentharness() {
+  log "Linking AgentHarness agents/skills into the repo (symlink mode)..."
+  # --symlink links each shipped item from the installed package and records the
+  # paths in a managed .gitignore block, so `pip install --upgrade` above keeps
+  # the repo current with nothing to re-commit. --force converts any leftover
+  # committed copies in place (git rm --cached + relink). The init also writes
+  # .env: GITHUB_TOKEN/OWNER/RUNS_REPO are auto-detected from gh auth + the git
+  # remote, so feed blank lines so an un-detected prompt can't stall under
+  # `set -e`. Tolerant (|| true): a missing --symlink option or symlink refusal
+  # must not abort the whole provisioning run.
+  printf '\n\n\n' | agentharness init --symlink --force --dir "${REPO_ROOT}" || true
+  ok "AgentHarness agents/skills linked"
 }
 
 install_playwright() {
@@ -192,10 +203,11 @@ main() {
   install_dotnet
   install_node
   install_gh
+  install_agentharness
   require_repo
+  init_agentharness
   restore_backend
   restore_frontend
-  install_agentharness
   install_playwright
 
   echo
