@@ -25,7 +25,7 @@ internal sealed class CatalogPackingProductSourceAdapter : IPackingProductSource
                 {
                     Cooling = a.Properties.Cooling,
                     WeightGrams = a.GrossWeight.HasValue ? (int?)((int)a.GrossWeight.Value)
-                                : a.NetWeight.HasValue  ? (int?)((int)a.NetWeight.Value)
+                                : a.NetWeight.HasValue ? (int?)((int)a.NetWeight.Value)
                                 : null,
                     ImageUrl = a.Image,
                 };
