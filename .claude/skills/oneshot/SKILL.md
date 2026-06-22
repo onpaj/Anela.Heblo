@@ -11,26 +11,30 @@ primary working tree stays clean.
 
 ## Naming convention
 
-Both the worktree directory and the branch it tracks **must** start with the
-`feature/` prefix and use the form `feature/{issue_id}-{issue_name}`, where:
+Both the worktree directory and the branch it tracks **must** use the strict,
+deterministic form `feature/{issue_id}-{Title-Slug}`, where:
 
-- `{issue_id}` is the GitHub issue number (e.g. `3001`)
-- `{issue_name}` is a slug of the issue **title** — lowercase, spaces and any
-  non-alphanumeric runs collapsed to single hyphens, leading/trailing hyphens
-  trimmed, truncated to ~50 chars.
+- `{issue_id}` is the GitHub issue **number** only (e.g. `9863`). Never the
+  `feat-…` feature id, and never any other prefix.
+- `{Title-Slug}` is the issue **title** rendered as Title-Case words joined by
+  single hyphens: apostrophes stripped, every other non-alphanumeric run
+  collapsed to a hyphen, each word capitalized, truncated to ~50 chars.
 
-So for issue #3001 titled "Fix blob 409 Conflict on upload":
+So for issue #9863 titled "What's This About?":
 
-- branch: `feature/3001-fix-blob-409-conflict`
-- worktree dir: `../worktrees/feature-3001-fix-blob-409-conflict` (basename
+- branch: `feature/9863-Whats-This-About`
+- worktree dir: `../worktrees/feature-9863-Whats-This-About` (basename
   starts with `feature-`)
 
-Derive the slug once with the `gh` CLI, e.g.:
+Derive the slug **only** with this exact `gh` + `awk` pipeline so the name is
+always identical for the same title — do not improvise the slug:
 ```bash
 ISSUE_ID={issue_number}
 SLUG=$(gh issue view "$ISSUE_ID" --json title --jq '.title' \
-  | tr '[:upper:]' '[:lower:]' \
-  | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g' \
+  | sed -E "s/['’]//g" \
+  | sed -E 's/[^A-Za-z0-9]+/ /g' \
+  | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2)); print}' \
+  | sed -E 's/ +/-/g; s/^-+|-+$//g' \
   | cut -c1-50 | sed -E 's/-+$//')
 BRANCH="feature/${ISSUE_ID}-${SLUG}"
 WORKTREE="../worktrees/feature-${ISSUE_ID}-${SLUG}"
@@ -54,7 +58,7 @@ gh issue edit {issue_number} --add-label agent-wip --remove-label agent
    If the issue has no `agent` label, the `--remove-label` is a harmless no-op;
    keep `--add-label agent-wip` regardless.
 
-4. Create and enter a dedicated worktree on the `feature/{issue_id}-{issue_name}`
+4. Create and enter a dedicated worktree on the `feature/{issue_id}-{Title-Slug}`
    branch (compute `BRANCH` and `WORKTREE` as shown in **Naming convention**):
 ```bash
 git worktree add -b "$BRANCH" "$WORKTREE"
@@ -66,8 +70,8 @@ git worktree add "$WORKTREE" "$BRANCH"
 ```
 
 5. Start the pipeline from inside the worktree. There is **no** `agentharness
-   implement` command — the pipeline is driven by the `oneshot` orchestrator
-   agent (`.claude/agents/oneshot.md`, installed by `agentharness init`). Follow
+   implement` command — the pipeline is driven by the `orchestrator`
+   agent (`.claude/agents/orchestrator.md`, installed by `agentharness init`). Follow
    that orchestrator end to end: it runs `agentharness checkpoint init
    {issue_number}` and then drives analyst → architect → designer → planner →
    developer(s) → reviewer via the Task tool, using `agentharness checkpoint`
@@ -111,9 +115,13 @@ artifacts/feat-{issue_id}/state.json          # checkpoint state
 ```bash
 git add -A artifacts/feat-{issue_id}    # ensure all generated .md artifacts are staged
 git add -A                              # stage code + everything else
-git commit -m "@claude implement feat-{issue_id}"
+git commit --allow-empty -m "implement feat-{issue_id} @claude"
 ```
-   The commit message **must** contain `@claude`.
+   The commit message **must end with** `@claude` (the trigger phrase goes at the
+   very end of the message, not the start). Use `--allow-empty` so this marker
+   commit always becomes `HEAD` — even when the orchestrator already committed
+   every artifact — otherwise the `@claude` trigger never reaches the tip of the
+   branch and the GitHub Claude review is not invoked.
 
 3. **Push** the branch:
 ```bash
