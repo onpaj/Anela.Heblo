@@ -58,7 +58,7 @@ const PackingMaterialDetailModal: React.FC<PackingMaterialDetailModalProps> = ({
                   <div>
                     <p className="text-sm font-medium text-gray-500">Aktuální množství</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      {material.currentQuantity.toLocaleString('cs-CZ', {
+                      {material.currentQuantity!.toLocaleString('cs-CZ', {
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 2
                       })}
@@ -67,7 +67,7 @@ const PackingMaterialDetailModal: React.FC<PackingMaterialDetailModalProps> = ({
                   <div>
                     <p className="text-sm font-medium text-gray-500">Spotřeba</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      {material.consumptionRate.toLocaleString('cs-CZ', {
+                      {material.consumptionRate!.toLocaleString('cs-CZ', {
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 2
                       })}
@@ -97,14 +97,14 @@ const PackingMaterialDetailModal: React.FC<PackingMaterialDetailModalProps> = ({
                   <h3 className="text-lg font-medium text-gray-900">Graf spotřeby za posledních 60 dní</h3>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <PackingMaterialConsumptionChart data={data.logs} />
+                  <PackingMaterialConsumptionChart data={data.logs ?? []} />
                 </div>
               </div>
 
               {/* Logs Grid */}
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Historie změn</h3>
-                <PackingMaterialLogsGrid logs={data.logs} />
+                <PackingMaterialLogsGrid logs={data.logs ?? []} />
               </div>
             </div>
           ) : null}
