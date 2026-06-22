@@ -58,7 +58,7 @@ public class PurchaseOrder : IEntity<int>
         AddHistoryEntry($"Order created", null, Status.ToString(), createdBy);
     }
 
-    public void AddLine(string materialId, string materialName, decimal quantity, decimal unitPrice, string? notes)
+    public void AddLine(string materialId, string materialName, decimal quantity, decimal unitPrice, string? notes, string updatedBy)
     {
         if (!IsEditable)
         {
@@ -68,11 +68,11 @@ public class PurchaseOrder : IEntity<int>
         var line = new PurchaseOrderLine(Id, materialId, materialName, quantity, unitPrice, notes);
         _lines.Add(line);
 
-        UpdatedBy = CreatedBy;
+        UpdatedBy = updatedBy;
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void RemoveLine(int lineId)
+    public void RemoveLine(int lineId, string updatedBy)
     {
         if (!IsEditable)
         {
@@ -83,12 +83,12 @@ public class PurchaseOrder : IEntity<int>
         if (line != null)
         {
             _lines.Remove(line);
-            UpdatedBy = CreatedBy;
+            UpdatedBy = updatedBy;
             UpdatedAt = DateTime.UtcNow;
         }
     }
 
-    public void UpdateLine(int lineId, string materialName, decimal quantity, decimal unitPrice, string? notes)
+    public void UpdateLine(int lineId, string materialName, decimal quantity, decimal unitPrice, string? notes, string updatedBy)
     {
         if (!IsEditable)
         {
@@ -99,12 +99,12 @@ public class PurchaseOrder : IEntity<int>
         if (line != null)
         {
             line.Update(materialName, quantity, unitPrice, notes);
-            UpdatedBy = CreatedBy;
+            UpdatedBy = updatedBy;
             UpdatedAt = DateTime.UtcNow;
         }
     }
 
-    public void ClearAllLines()
+    public void ClearAllLines(string updatedBy)
     {
         if (!IsEditable)
         {
@@ -112,7 +112,7 @@ public class PurchaseOrder : IEntity<int>
         }
 
         _lines.Clear();
-        UpdatedBy = CreatedBy;
+        UpdatedBy = updatedBy;
         UpdatedAt = DateTime.UtcNow;
     }
 

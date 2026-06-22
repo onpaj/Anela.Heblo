@@ -68,7 +68,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
             var linesToRemove = existingLineIds.Except(requestLineIds).ToList();
             foreach (var lineId in linesToRemove)
             {
-                purchaseOrder.RemoveLine(lineId);
+                purchaseOrder.RemoveLine(lineId, updatedBy);
             }
 
             // Batch-fetch every material referenced by the incoming request lines.
@@ -95,7 +95,8 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
                         materialName,
                         lineRequest.Quantity,
                         lineRequest.UnitPrice,
-                        lineRequest.Notes);
+                        lineRequest.Notes,
+                        updatedBy);
                 }
                 else
                 {
@@ -104,7 +105,8 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
                         materialName,
                         lineRequest.Quantity,
                         lineRequest.UnitPrice,
-                        lineRequest.Notes);
+                        lineRequest.Notes,
+                        updatedBy);
                 }
             }
 

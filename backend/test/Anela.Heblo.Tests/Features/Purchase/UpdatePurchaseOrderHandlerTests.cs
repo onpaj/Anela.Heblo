@@ -64,7 +64,7 @@ public sealed class UpdatePurchaseOrderHandlerTests
             "Test notes",
             "system");
 
-        existingOrder.AddLine(ValidMaterialId, ValidMaterialName, 10, 25.50m, "Line notes");
+        existingOrder.AddLine(ValidMaterialId, ValidMaterialName, 10, 25.50m, "Line notes", "system");
         var existingLineId = existingOrder.Lines.First().Id;
 
         _repositoryMock
