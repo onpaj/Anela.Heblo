@@ -21,16 +21,16 @@
       "updated_at": "2026-06-22T17:23:35.350409Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-22T17:23:47.522907Z"
     }
   },
   "tasks": [
     {
       "name": "write-handler-tests",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-22T17:32:49.775334Z"
     }
   ]
 }
