@@ -25,6 +25,32 @@ public class CarrierCoolingPackingCarrierCoolingAdapterTests
         result[0].Cooling.Should().Be(Cooling.L1);
     }
 
+    [Theory]
+    [InlineData(Carriers.Zasilkovna, DeliveryHandling.NaRuky, "Zasilkovna", "NaRuky")]
+    [InlineData(Carriers.Zasilkovna, DeliveryHandling.Box, "Zasilkovna", "Box")]
+    [InlineData(Carriers.PPL, DeliveryHandling.NaRuky, "PPL", "NaRuky")]
+    [InlineData(Carriers.PPL, DeliveryHandling.Box, "PPL", "Box")]
+    [InlineData(Carriers.GLS, DeliveryHandling.NaRuky, "GLS", "NaRuky")]
+    [InlineData(Carriers.GLS, DeliveryHandling.Box, "GLS", "Box")]
+    [InlineData(Carriers.Osobak, DeliveryHandling.NaRuky, "Osobak", "NaRuky")]
+    [InlineData(Carriers.Osobak, DeliveryHandling.Box, "Osobak", "Box")]
+    public async Task GetAllAsync_MapsEveryCarrierAndHandlingMemberToExpectedStringKey(
+        Carriers carrier, DeliveryHandling handling, string expectedCarrierName, string expectedHandlingName)
+    {
+        // Pins the string contract shared with ShoptetApiExpeditionListSource.ResolveCarrierCooling.
+        // A rename of any Carriers/DeliveryHandling member breaks the runtime lookup; this test fails it at CI time.
+        var repo = new Mock<ICarrierCoolingRepository>();
+        repo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { new CarrierCoolingSetting(carrier, handling, Cooling.L1, "test") });
+        var sut = new CarrierCoolingPackingCarrierCoolingAdapter(repo.Object);
+
+        var result = await sut.GetAllAsync();
+
+        result.Should().ContainSingle();
+        result[0].CarrierName.Should().Be(expectedCarrierName);
+        result[0].DeliveryHandlingName.Should().Be(expectedHandlingName);
+    }
+
     [Fact]
     public async Task GetAllAsync_ReturnsEmptyListWhenRepositoryEmpty()
     {
