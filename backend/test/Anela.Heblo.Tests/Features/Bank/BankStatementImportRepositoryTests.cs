@@ -2,6 +2,7 @@ using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Features.Bank;
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -439,6 +440,63 @@ public class BankStatementImportRepositoryTests : IDisposable
         import.ItemCount = 5;
         import.ImportResult = "Success";
         return import;
+    }
+
+    [Fact]
+    public async Task GetExistingTransfersAsync_ReturnsTransferIdToResultMap_InRangeForAccount()
+    {
+        await SeedAsync("OK1", "ComgateCZK", new DateTime(2026, 6, 10), ImportStatus.Success);
+        await SeedAsync("ERR1", "ComgateCZK", new DateTime(2026, 6, 11), $"{ImportStatus.ProcessingError}: x");
+        await SeedAsync("OUT", "ComgateCZK", new DateTime(2026, 6, 20), ImportStatus.Success); // out of range
+        await SeedAsync("OTHER", "ComgateEUR", new DateTime(2026, 6, 10), ImportStatus.Success); // other account
+
+        var map = await _repository.GetExistingTransfersAsync(
+            "ComgateCZK", new DateTime(2026, 6, 10), new DateTime(2026, 6, 12));
+
+        map.Should().HaveCount(2);
+        map["OK1"].Should().Be(ImportStatus.Success);
+        map["ERR1"].Should().StartWith(ImportStatus.ProcessingError);
+    }
+
+    [Fact]
+    public async Task GetMaxStatementDateAsync_ReturnsMax_OrNull()
+    {
+        (await _repository.GetMaxStatementDateAsync("ComgateCZK")).Should().BeNull();
+
+        await SeedAsync("A", "ComgateCZK", new DateTime(2026, 6, 10), ImportStatus.Success);
+        await SeedAsync("B", "ComgateCZK", new DateTime(2026, 6, 13), ImportStatus.Success);
+
+        (await _repository.GetMaxStatementDateAsync("ComgateCZK"))!.Value.Date
+            .Should().Be(new DateTime(2026, 6, 13));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_UpdatesExistingRow_InPlace()
+    {
+        var saved = await SeedAsync("RETRY", "ComgateCZK", new DateTime(2026, 6, 10),
+            $"{ImportStatus.ProcessingError}: first");
+
+        var existing = await _repository.GetByTransferIdAsync("RETRY");
+        existing!.UpdateImportOutcome(7, ImportStatus.Success);
+        await _repository.UpdateAsync(existing);
+
+        var reloaded = await _repository.GetByTransferIdAsync("RETRY");
+        reloaded!.Id.Should().Be(saved.Id); // same row, not a new insert
+        reloaded.ImportResult.Should().Be(ImportStatus.Success);
+        reloaded.ItemCount.Should().Be(7);
+    }
+
+    private async Task<BankStatementImport> SeedAsync(
+        string transferId, string account, DateTime statementDate, string result)
+    {
+        var import = new BankStatementImport(transferId, statementDate)
+        {
+            Account = account,
+            Currency = CurrencyCode.CZK,
+            ItemCount = 1,
+            ImportResult = result,
+        };
+        return await _repository.AddAsync(import);
     }
 
     public void Dispose()
