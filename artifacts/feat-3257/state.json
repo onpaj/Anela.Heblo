@@ -21,16 +21,16 @@
       "updated_at": "2026-06-22T11:21:36.984470Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-22T11:22:02.599890Z"
     }
   },
   "tasks": [
     {
       "name": "move-documentsummary-to-contracts",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-22T11:29:17.957219Z"
     }
   ]
 }
