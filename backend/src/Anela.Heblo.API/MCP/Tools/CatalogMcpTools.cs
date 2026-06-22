@@ -151,4 +151,51 @@ public class CatalogMcpTools
         var response = await _mediator.Send(request, cancellationToken);
         return JsonSerializer.Serialize(response);
     }
+
+    [McpServerTool]
+    public async Task<string> GetProductMargins(
+        [Description("Filter by product code (partial match)")]
+        string? productCode = null,
+        [Description("Filter by product name (partial match)")]
+        string? productName = null,
+        [Description("Filter by product type (Product, Material, SemiProduct)")]
+        ProductType? productType = null,
+        [Description("Page number for pagination (default: 1)")]
+        int pageNumber = 1,
+        [Description("Page size for pagination (default: 50)")]
+        int pageSize = 50,
+        [Description("Sort field: productcode, productname, pricewithoutvat, purchaseprice, " +
+                    "manufacturedifficulty, m0amount, m1amount, m2amount, m0percentage, m1percentage, m2percentage")]
+        string? sortBy = null,
+        [Description("Sort descending (default: false)")]
+        bool sortDescending = false,
+        CancellationToken cancellationToken = default)
+    {
+        var requiredRole = AccessRoles.For(Feature.Products_ProductMargins, AccessLevel.Read);
+        if (!_currentUserService.IsInRole(requiredRole))
+        {
+            throw new McpException(
+                $"[FORBIDDEN] You do not have permission to access Product Margins (requires {requiredRole}).");
+        }
+
+        var request = new GetProductMarginsRequest
+        {
+            ProductCode = productCode,
+            ProductName = productName,
+            ProductType = productType,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SortBy = sortBy,
+            SortDescending = sortDescending
+        };
+
+        var response = await _mediator.Send(request, cancellationToken);
+
+        if (!response.Success)
+        {
+            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
+        }
+
+        return JsonSerializer.Serialize(response);
+    }
 }

@@ -4,9 +4,11 @@ using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetMaterialForPurchase;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductMargins;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -317,5 +319,53 @@ public class CatalogMcpToolsTests
 
         var deserialized = JsonSerializer.Deserialize<GetWarehouseStatisticsResponse>(jsonResult);
         Assert.NotNull(deserialized);
+    }
+
+    [Fact]
+    public async Task GetProductMargins_ReturnsSerializedResponse_WhenAuthorized()
+    {
+        // Arrange
+        _currentUserServiceMock
+            .Setup(s => s.IsInRole(AccessRoles.ProductsProductMarginsRead))
+            .Returns(true);
+
+        var expectedResponse = new GetProductMarginsResponse
+        {
+            Items = new List<ProductMarginDto>
+            {
+                new() { ProductCode = "DEO001030", ProductName = "Důvěrný pan Jasmín 30ml" }
+            },
+            TotalCount = 1,
+            PageNumber = 1,
+            PageSize = 50
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetProductMarginsRequest>(), default))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var jsonResult = await _tools.GetProductMargins(
+            productCode: "DEO001030",
+            pageNumber: 1,
+            pageSize: 50,
+            sortBy: "m2percentage",
+            sortDescending: true);
+
+        // Assert
+        _mediatorMock.Verify(m => m.Send(
+            It.Is<GetProductMarginsRequest>(req =>
+                req.ProductCode == "DEO001030" &&
+                req.PageNumber == 1 &&
+                req.PageSize == 50 &&
+                req.SortBy == "m2percentage" &&
+                req.SortDescending == true),
+            default), Times.Once);
+
+        var deserialized = JsonSerializer.Deserialize<GetProductMarginsResponse>(jsonResult);
+        Assert.NotNull(deserialized);
+        Assert.Equal(1, deserialized.TotalCount);
+        Assert.Single(deserialized.Items);
+        Assert.Equal("DEO001030", deserialized.Items[0].ProductCode);
     }
 }
