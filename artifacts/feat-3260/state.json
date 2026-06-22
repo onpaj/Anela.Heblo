@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "define-contracts",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-22T14:36:58.449150Z"
+      "updated_at": "2026-06-22T14:39:15.794212Z"
     },
     {
       "name": "implement-catalog-adapter",
