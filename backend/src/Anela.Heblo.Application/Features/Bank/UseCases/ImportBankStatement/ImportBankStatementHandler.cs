@@ -78,58 +78,69 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
                     daysBehind, request.AccountName, state.LastValidImportDate.Value.Date);
         }
 
-        var client = _factory.GetClient(accountSetting);
-
-        var statements = await client.GetStatementsAsync(accountSetting.AccountNumber, request.DateFrom, request.DateTo);
-
-        _logger.LogInformation(
-            "Bank client returned {StatementCount} statements - Account: {AccountName}",
-            statements.Count, request.AccountName);
-
-        var existingTransfers = await _repository.GetExistingTransfersAsync(
-            accountSetting.Name, request.DateFrom, request.DateTo, cancellationToken);
-
-        var imports = new List<BankStatementImportDto>();
-        var skippedCount = 0;
-
-        foreach (var statement in statements)
+        try
         {
-            if (existingTransfers.TryGetValue(statement.StatementId, out var existingResult)
-                && existingResult == ImportStatus.Success)
+            var client = _factory.GetClient(accountSetting);
+
+            var statements = await client.GetStatementsAsync(accountSetting.AccountNumber, request.DateFrom, request.DateTo);
+
+            _logger.LogInformation(
+                "Bank client returned {StatementCount} statements - Account: {AccountName}",
+                statements.Count, request.AccountName);
+
+            var existingTransfers = await _repository.GetExistingTransfersAsync(
+                accountSetting.Name, request.DateFrom, request.DateTo, cancellationToken);
+
+            var imports = new List<BankStatementImportDto>();
+            var skippedCount = 0;
+
+            foreach (var statement in statements)
             {
-                skippedCount++;
-                _logger.LogDebug("Skipping already-imported statement {StatementId}", statement.StatementId);
-                continue;
+                if (existingTransfers.TryGetValue(statement.StatementId, out var existingResult)
+                    && existingResult == ImportStatus.Success)
+                {
+                    skippedCount++;
+                    _logger.LogDebug("Skipping already-imported statement {StatementId}", statement.StatementId);
+                    continue;
+                }
+
+                var isRetry = existingTransfers.ContainsKey(statement.StatementId);
+                imports.Add(await ProcessStatementAsync(client, statement, accountSetting, isRetry, cancellationToken));
             }
 
-            var isRetry = existingTransfers.ContainsKey(statement.StatementId);
-            imports.Add(await ProcessStatementAsync(client, statement, accountSetting, isRetry, cancellationToken));
+            totalSw.Stop();
+            var runFinishedAt = DateTime.UtcNow;
+
+            var successCount = imports.Count(i => i.ImportResult == ImportStatus.Success);
+            var errorCount = imports.Count - successCount;
+
+            if (errorCount == 0)
+                state.RecordSuccess(request.DateTo, runStartedAt, runFinishedAt);
+            else
+                state.RecordFailure($"{errorCount} statement(s) failed", runStartedAt, runFinishedAt);
+
+            await _stateRepository.UpsertAsync(state, cancellationToken);
+
+            _logger.LogInformation(
+                "Bank import COMPLETED - Account: {AccountName}, Attempted: {Attempted}, Success: {SuccessCount}, Errors: {ErrorCount}, Skipped: {SkippedCount}, Duration: {Duration}ms",
+                request.AccountName, imports.Count, successCount, errorCount, skippedCount, totalSw.ElapsedMilliseconds);
+
+            return new ImportBankStatementResponse
+            {
+                Statements = imports,
+                SuccessCount = successCount,
+                ErrorCount = errorCount,
+                SkippedCount = skippedCount,
+            };
         }
-
-        totalSw.Stop();
-        var runFinishedAt = DateTime.UtcNow;
-
-        var successCount = imports.Count(i => i.ImportResult == ImportStatus.Success);
-        var errorCount = imports.Count - successCount;
-
-        if (errorCount == 0)
-            state.RecordSuccess(request.DateTo, runStartedAt, runFinishedAt);
-        else
-            state.RecordFailure($"{errorCount} statement(s) failed", runStartedAt, runFinishedAt);
-
-        await _stateRepository.UpsertAsync(state, cancellationToken);
-
-        _logger.LogInformation(
-            "Bank import COMPLETED - Account: {AccountName}, Attempted: {Attempted}, Success: {SuccessCount}, Errors: {ErrorCount}, Skipped: {SkippedCount}, Duration: {Duration}ms",
-            request.AccountName, imports.Count, successCount, errorCount, skippedCount, totalSw.ElapsedMilliseconds);
-
-        return new ImportBankStatementResponse
+        catch (Exception ex)
         {
-            Statements = imports,
-            SuccessCount = successCount,
-            ErrorCount = errorCount,
-            SkippedCount = skippedCount,
-        };
+            state.RecordFailure(ex.Message, runStartedAt, DateTime.UtcNow);
+            await _stateRepository.UpsertAsync(state, cancellationToken);
+            _logger.LogError(
+                ex, "Bank import FAILED - Account: {AccountName}", request.AccountName);
+            throw;
+        }
     }
 
     private async Task<BankStatementImportDto> ProcessStatementAsync(
