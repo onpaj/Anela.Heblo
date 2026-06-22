@@ -102,28 +102,13 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
         _logger.LogInformation("Purchase order {OrderNumber} created successfully with ID {Id}. Lines in DB: {LineCount}",
             orderNumber, purchaseOrder.Id, purchaseOrder.Lines.Count);
 
-        return await MapToResponseAsync(purchaseOrder, request.SupplierId, cancellationToken);
+        return MapToResponse(purchaseOrder, request.SupplierId);
     }
 
 
-    private async Task<CreatePurchaseOrderResponse> MapToResponseAsync(PurchaseOrder purchaseOrder, long supplierId, CancellationToken cancellationToken)
+    private static CreatePurchaseOrderResponse MapToResponse(PurchaseOrder purchaseOrder, long supplierId)
     {
-        var lines = new List<PurchaseOrderLineDto>();
-
-        foreach (var line in purchaseOrder.Lines)
-        {
-            lines.Add(new PurchaseOrderLineDto
-            {
-                Id = line.Id,
-                MaterialId = line.MaterialId,
-                Code = line.MaterialId, // Code is same as MaterialId
-                MaterialName = line.MaterialName,
-                Quantity = line.Quantity,
-                UnitPrice = line.UnitPrice,
-                LineTotal = line.LineTotal,
-                Notes = line.Notes
-            });
-        }
+        var lines = purchaseOrder.Lines.Select(line => PurchaseOrderLineDto.FromLine(line)).ToList();
 
         var history = purchaseOrder.History.Select(h => new PurchaseOrderHistoryDto
         {
