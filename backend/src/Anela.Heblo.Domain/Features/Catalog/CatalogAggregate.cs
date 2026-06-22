@@ -5,7 +5,7 @@ using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Domain;
 
@@ -89,7 +89,7 @@ public class CatalogAggregate : Entity<string>
     private IList<CatalogSaleRecord> _salesHistory = new List<CatalogSaleRecord>();
     private IList<ConsumedMaterialRecord> _consumedHistory = new List<ConsumedMaterialRecord>();
     private IReadOnlyList<CatalogPurchaseRecord> _purchaseHistory = new List<CatalogPurchaseRecord>();
-    private IReadOnlyList<ManufactureHistoryRecord> _manufactureHistory = new List<ManufactureHistoryRecord>();
+    private IReadOnlyList<CatalogManufactureRecord> _manufactureHistory = new List<CatalogManufactureRecord>();
 
     public IList<CatalogSaleRecord> SalesHistory
     {
@@ -121,7 +121,7 @@ public class CatalogAggregate : Entity<string>
         }
     }
 
-    public IReadOnlyList<ManufactureHistoryRecord> ManufactureHistory
+    public IReadOnlyList<CatalogManufactureRecord> ManufactureHistory
     {
         get => _manufactureHistory;
         set

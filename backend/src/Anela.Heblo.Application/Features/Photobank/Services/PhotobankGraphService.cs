@@ -184,6 +184,20 @@ public class PhotobankGraphService : IPhotobankGraphService
             throw new GraphThrottledException(retryAfter);
         }
 
+        // Log a warning for any 4xx that is not 404 (already handled) or 429 (already handled).
+        if (!response.IsSuccessStatusCode
+            && response.StatusCode is not System.Net.HttpStatusCode.NotFound
+            && response.StatusCode is not System.Net.HttpStatusCode.TooManyRequests)
+        {
+            _logger.LogWarning(
+                "Graph thumbnail request returned {StatusCode} for drive {DriveId} item {FileId}. URL: {Url}",
+                (int)response.StatusCode, driveId, fileId, url);
+        }
+
+        // 406 means the item cannot be thumbnailed (permanent). Surface as null → 404 to caller.
+        if (response.StatusCode == System.Net.HttpStatusCode.NotAcceptable)
+            return null;
+
         response.EnsureSuccessStatusCode();
 
         var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";

@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.Infrastructure;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using FluentAssertions;
@@ -37,21 +38,29 @@ public class ManufactureCatalogSourceAdapterTests
     }
 
     [Fact]
-    public async Task GetManufactureHistoryAsync_DelegatesAndPassesNullProductCode()
+    public async Task GetManufactureHistoryAsync_MapsManufactureHistoryRecordToCatalogManufactureRecord()
     {
         var dateFrom = new DateTime(2026, 1, 1);
         var dateTo = new DateTime(2026, 2, 1);
-        var records = new List<ManufactureHistoryRecord>
+        var sourceRecords = new List<ManufactureHistoryRecord>
         {
-            new() { ProductCode = "PROD-A", Date = dateFrom, Amount = 5 },
+            new() { ProductCode = "PROD-A", Date = dateFrom, Amount = 5, PricePerPiece = 10m, PriceTotal = 50m, DocumentNumber = "DOC-001" },
         };
         _historyClientMock
             .Setup(c => c.GetHistoryAsync(dateFrom, dateTo, null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(records);
+            .ReturnsAsync(sourceRecords);
 
         var result = await _adapter.GetManufactureHistoryAsync(dateFrom, dateTo, CancellationToken.None);
 
-        result.Should().BeEquivalentTo(records);
+        result.Should().ContainSingle().Which.Should().BeEquivalentTo(new CatalogManufactureRecord
+        {
+            ProductCode = "PROD-A",
+            Date = dateFrom,
+            Amount = 5,
+            PricePerPiece = 10m,
+            PriceTotal = 50m,
+            DocumentNumber = "DOC-001",
+        });
         _historyClientMock.Verify(
             c => c.GetHistoryAsync(dateFrom, dateTo, null, It.IsAny<CancellationToken>()),
             Times.Once);

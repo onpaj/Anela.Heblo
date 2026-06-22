@@ -52,7 +52,7 @@ const PackingMaterialsSettingsTab: React.FC<PackingMaterialsSettingsTabProps> = 
   const handleDeleteMaterial = async (material: PackingMaterialDto) => {
     if (window.confirm(`Opravdu chcete smazat materiál "${material.name}"? Tato akce je nevratná.`)) {
       try {
-        await deletePackingMaterialMutation.mutateAsync(material.id);
+        await deletePackingMaterialMutation.mutateAsync(material.id!);
       } catch (error) {
         console.error('Chyba při mazání materiálu:', error);
         // Error is handled by the mutation and displayed via react-query
@@ -162,13 +162,13 @@ const PackingMaterialsSettingsTab: React.FC<PackingMaterialsSettingsTabProps> = 
                       <div className="text-sm font-medium text-gray-900">{material.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatQuantity(material.currentQuantity)}</div>
+                      <div className="text-sm text-gray-900">{formatQuantity(material.currentQuantity!)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatQuantity(material.consumptionRate)}</div>
+                      <div className="text-sm text-gray-900">{formatQuantity(material.consumptionRate!)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getConsumptionTypeColor(material.consumptionType)}`}>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getConsumptionTypeColor(material.consumptionType!)}`}>
                         {material.consumptionTypeText}
                       </span>
                     </td>

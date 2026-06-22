@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.Price;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
@@ -50,7 +51,7 @@ public class ManufactureBasedMaterialCostProviderTests
         if (history != null)
         {
             agg.ManufactureHistory = history
-                .Select(h => new ManufactureHistoryRecord
+                .Select(h => new CatalogManufactureRecord
                 {
                     Date = h.date,
                     PricePerPiece = h.pricePerPiece,

@@ -28,9 +28,9 @@ const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
   useEffect(() => {
     if (isOpen && material) {
       setFormData({
-        name: material.name,
-        consumptionRate: material.consumptionRate.toString(),
-        consumptionType: material.consumptionType,
+        name: material.name!,
+        consumptionRate: material.consumptionRate!.toString(),
+        consumptionType: material.consumptionType!,
       });
       setErrors({});
     }
@@ -59,7 +59,7 @@ const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
     }
 
     updateMaterial({
-      id: material.id,
+      id: material.id!,
       name: formData.name.trim(),
       consumptionRate: parseFloat(formData.consumptionRate),
       consumptionType: formData.consumptionType,
@@ -157,7 +157,7 @@ const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
             <select
               id="consumptionType"
               value={formData.consumptionType}
-              onChange={(e) => setFormData({ ...formData, consumptionType: parseInt(e.target.value) as ConsumptionType })}
+              onChange={(e) => setFormData({ ...formData, consumptionType: e.target.value as ConsumptionType })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               disabled={isPending}
             >
@@ -173,7 +173,7 @@ const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
           {material && (
             <div className="mb-6 p-3 bg-gray-50 rounded-md">
               <p className="text-sm text-gray-600">
-                <strong>Aktuální množství:</strong> {material.currentQuantity.toLocaleString('cs-CZ')}
+                <strong>Aktuální množství:</strong> {material.currentQuantity?.toLocaleString('cs-CZ')}
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 Množství lze upravit pomocí tlačítka "Upravit množství" v seznamu materiálů.
