@@ -27,7 +27,14 @@ public class BankImportStateRepository : IBankImportStateRepository
         {
             await _context.BankImportStates.AddAsync(state, cancellationToken);
         }
-        // When `state` was loaded via GetByAccountAsync it is already tracked; EF detects changes.
+        else if (!ReferenceEquals(existing, state))
+        {
+            throw new InvalidOperationException(
+                $"UpsertAsync requires a tracked entity for account '{state.Account}'. " +
+                "Load the existing state via GetByAccountAsync before mutating and upserting.");
+        }
+        // else: state is the tracked entity returned by GetByAccountAsync; EF snapshot change
+        // tracking detects mutations from RecordSuccess/RecordFailure automatically.
 
         await _context.SaveChangesAsync(cancellationToken);
     }

@@ -60,52 +60,30 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
 
         var client = _factory.GetClient(accountSetting);
 
-        _logger.LogInformation(
-            "Account config resolved - Account: {AccountName}, Provider: {Provider}, FlexiBeeId: {FlexiBeeId}",
-            request.AccountName, accountSetting.Provider, accountSetting.FlexiBeeId);
-
         var statements = await client.GetStatementsAsync(accountSetting.AccountNumber, request.DateFrom, request.DateTo);
 
         _logger.LogInformation(
             "Bank client returned {StatementCount} statements - Account: {AccountName}",
             statements.Count, request.AccountName);
 
+        var existingTransfers = await _repository.GetExistingTransfersAsync(
+            accountSetting.Name, request.DateFrom, request.DateTo, cancellationToken);
+
         var imports = new List<BankStatementImportDto>();
+        var skippedCount = 0;
 
         foreach (var statement in statements)
         {
-            try
+            if (existingTransfers.TryGetValue(statement.StatementId, out var existingResult)
+                && existingResult == ImportStatus.Success)
             {
-                _logger.LogInformation("Processing statement {StatementId}", statement.StatementId);
-
-                var aboData = await client.GetStatementAsync(statement.StatementId);
-                var import = new BankStatementImport(statement.StatementId, statement.Date);
-
-                var importResult = await _bankStatementImportService.ImportStatementAsync(accountSetting.FlexiBeeId, aboData.Data);
-
-                import.Account = accountSetting.Name;
-                import.Currency = accountSetting.Currency;
-                import.ItemCount = aboData.ItemCount;
-                import.ImportResult = importResult.IsSuccess ? ImportStatus.Success : importResult.ErrorMessage ?? ImportStatus.UnknownError;
-
-                var savedImport = await _repository.AddAsync(import);
-                imports.Add(_mapper.Map<BankStatementImportDto>(savedImport));
-
-                _logger.LogInformation("Successfully processed statement {StatementId} with result: {Result}",
-                    statement.StatementId, import.ImportResult);
+                skippedCount++;
+                _logger.LogDebug("Skipping already-imported statement {StatementId}", statement.StatementId);
+                continue;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing statement {StatementId}", statement.StatementId);
 
-                var failedImport = new BankStatementImport(statement.StatementId, statement.Date);
-                failedImport.Account = accountSetting.Name;
-                failedImport.Currency = accountSetting.Currency;
-                failedImport.ImportResult = $"{ImportStatus.ProcessingError}: {ex.Message}";
-
-                var savedFailedImport = await _repository.AddAsync(failedImport);
-                imports.Add(_mapper.Map<BankStatementImportDto>(savedFailedImport));
-            }
+            var isRetry = existingTransfers.ContainsKey(statement.StatementId);
+            imports.Add(await ProcessStatementAsync(client, statement, accountSetting, isRetry, cancellationToken));
         }
 
         totalSw.Stop();
@@ -114,9 +92,84 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
         var errorCount = imports.Count - successCount;
 
         _logger.LogInformation(
-            "Bank import COMPLETED - Account: {AccountName}, Total: {TotalCount}, Success: {SuccessCount}, Errors: {ErrorCount}, Duration: {Duration}ms",
-            request.AccountName, imports.Count, successCount, errorCount, totalSw.ElapsedMilliseconds);
+            "Bank import COMPLETED - Account: {AccountName}, Attempted: {Attempted}, Success: {SuccessCount}, Errors: {ErrorCount}, Skipped: {SkippedCount}, Duration: {Duration}ms",
+            request.AccountName, imports.Count, successCount, errorCount, skippedCount, totalSw.ElapsedMilliseconds);
 
-        return new ImportBankStatementResponse { Statements = imports };
+        return new ImportBankStatementResponse
+        {
+            Statements = imports,
+            SuccessCount = successCount,
+            ErrorCount = errorCount,
+            SkippedCount = skippedCount,
+        };
+    }
+
+    private async Task<BankStatementImportDto> ProcessStatementAsync(
+        IBankClient client,
+        BankStatementHeader statement,
+        BankAccountConfiguration accountSetting,
+        bool isRetry,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Processing statement {StatementId} (retry={IsRetry})", statement.StatementId, isRetry);
+
+            var aboData = await client.GetStatementAsync(statement.StatementId);
+            var importResult = await _bankStatementImportService.ImportStatementAsync(accountSetting.FlexiBeeId, aboData.Data);
+            var resultStatus = importResult.IsSuccess
+                ? ImportStatus.Success
+                : importResult.ErrorMessage ?? ImportStatus.UnknownError;
+
+            var saved = isRetry
+                ? await UpsertExistingAsync(statement, accountSetting, aboData.ItemCount, resultStatus, cancellationToken)
+                : await InsertNewAsync(statement, accountSetting, aboData.ItemCount, resultStatus);
+
+            _logger.LogInformation("Processed statement {StatementId} with result: {Result}",
+                statement.StatementId, resultStatus);
+            return _mapper.Map<BankStatementImportDto>(saved);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing statement {StatementId}", statement.StatementId);
+            var errorStatus = $"{ImportStatus.ProcessingError}: {ex.Message}";
+            var saved = isRetry
+                ? await UpsertExistingAsync(statement, accountSetting, 0, errorStatus, cancellationToken)
+                : await InsertNewAsync(statement, accountSetting, 0, errorStatus);
+            return _mapper.Map<BankStatementImportDto>(saved);
+        }
+    }
+
+    private async Task<BankStatementImport> InsertNewAsync(
+        BankStatementHeader statement,
+        BankAccountConfiguration accountSetting,
+        int itemCount,
+        string resultStatus)
+    {
+        var import = new BankStatementImport(statement.StatementId, statement.Date)
+        {
+            Account = accountSetting.Name,
+            Currency = accountSetting.Currency,
+            ItemCount = itemCount,
+            ImportResult = resultStatus,
+        };
+        return await _repository.AddAsync(import);
+    }
+
+    private async Task<BankStatementImport> UpsertExistingAsync(
+        BankStatementHeader statement,
+        BankAccountConfiguration accountSetting,
+        int itemCount,
+        string resultStatus,
+        CancellationToken cancellationToken)
+    {
+        var existing = await _repository.GetByTransferIdAsync(statement.StatementId, cancellationToken);
+        if (existing == null)
+            return await InsertNewAsync(statement, accountSetting, itemCount, resultStatus);
+
+        existing.Account = accountSetting.Name;
+        existing.Currency = accountSetting.Currency;
+        existing.UpdateImportOutcome(itemCount, resultStatus);
+        return await _repository.UpdateAsync(existing);
     }
 }

@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Shared;
 using AutoMapper;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -102,5 +103,69 @@ public class ImportBankStatementHandlerTests
 
         _mockFactory.Verify(x => x.GetClient(It.Is<BankAccountConfiguration>(c => c.Name == "ComgateCZK")), Times.Once);
         _mockBankClient.Verify(x => x.GetStatementsAsync("123456789", dateFrom, dateTo), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_SkipsAlreadySucceededStatements_NoFlexiBeePush()
+    {
+        var from = new DateTime(2026, 6, 10);
+        var to = new DateTime(2026, 6, 10);
+        var request = new ImportBankStatementRequest("ComgateCZK", from, to);
+
+        _mockBankClient.Setup(x => x.GetStatementsAsync("123456789", from, to))
+            .ReturnsAsync(new List<BankStatementHeader>
+            {
+                new BankStatementHeader { StatementId = "DONE", Date = from },
+            });
+        _mockRepository.Setup(r => r.GetExistingTransfersAsync("ComgateCZK", from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["DONE"] = ImportStatus.Success });
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.SkippedCount.Should().Be(1);
+        response.SuccessCount.Should().Be(0);
+        response.ErrorCount.Should().Be(0);
+        _mockBankClient.Verify(x => x.GetStatementAsync(It.IsAny<string>()), Times.Never);
+        _mockImportService.Verify(
+            x => x.ImportStatementAsync(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+        _mockRepository.Verify(r => r.AddAsync(It.IsAny<BankStatementImport>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_RetriesPreviouslyFailedStatement_ViaUpdateNotAdd()
+    {
+        var from = new DateTime(2026, 6, 10);
+        var to = new DateTime(2026, 6, 10);
+        var request = new ImportBankStatementRequest("ComgateCZK", from, to);
+        var existingRow = new BankStatementImport("RETRY", from);
+
+        _mockBankClient.Setup(x => x.GetStatementsAsync("123456789", from, to))
+            .ReturnsAsync(new List<BankStatementHeader>
+            {
+                new BankStatementHeader { StatementId = "RETRY", Date = from },
+            });
+        _mockRepository.Setup(r => r.GetExistingTransfersAsync("ComgateCZK", from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["RETRY"] = $"{ImportStatus.ProcessingError}: old" });
+        _mockBankClient.Setup(x => x.GetStatementAsync("RETRY"))
+            .ReturnsAsync(new BankStatementData { Data = "abo", ItemCount = 3 });
+        _mockImportService.Setup(x => x.ImportStatementAsync(1, "abo"))
+            .ReturnsAsync(Result<bool>.Success(true));
+        _mockRepository.Setup(r => r.GetByTransferIdAsync("RETRY", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingRow);
+        _mockRepository.Setup(r => r.UpdateAsync(It.IsAny<BankStatementImport>()))
+            .ReturnsAsync((BankStatementImport b) => b);
+        _mockMapper.Setup(m => m.Map<Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto>(
+                It.IsAny<BankStatementImport>()))
+            .Returns(new Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto
+            {
+                TransferId = "RETRY", ImportResult = ImportStatus.Success,
+            });
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.SuccessCount.Should().Be(1);
+        response.ErrorCount.Should().Be(0);
+        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<BankStatementImport>()), Times.Once);
+        _mockRepository.Verify(r => r.AddAsync(It.IsAny<BankStatementImport>()), Times.Never);
     }
 }
