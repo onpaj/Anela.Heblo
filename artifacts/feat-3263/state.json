@@ -21,28 +21,28 @@
       "updated_at": "2026-06-22T15:25:37.754700Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-06-22T15:52:45.950970Z"
     }
   },
   "tasks": [
     {
       "name": "create-domain-exceptions",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-22T15:32:16.811407Z"
     },
     {
       "name": "update-interface-and-adapter",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-22T15:34:37.967089Z"
     },
     {
       "name": "fix-handler-and-tests",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-22T15:52:42.030226Z"
     }
   ]
 }
