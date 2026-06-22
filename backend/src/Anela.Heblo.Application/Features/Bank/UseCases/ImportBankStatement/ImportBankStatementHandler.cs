@@ -136,7 +136,7 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
         catch (Exception ex)
         {
             state.RecordFailure(ex.Message, runStartedAt, DateTime.UtcNow);
-            await _stateRepository.UpsertAsync(state, cancellationToken);
+            await _stateRepository.UpsertAsync(state, CancellationToken.None);
             _logger.LogError(
                 ex, "Bank import FAILED - Account: {AccountName}", request.AccountName);
             throw;
