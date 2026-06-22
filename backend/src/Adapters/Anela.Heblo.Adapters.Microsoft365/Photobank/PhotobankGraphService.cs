@@ -1,15 +1,13 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
 
-namespace Anela.Heblo.Application.Features.Photobank.Services;
+namespace Anela.Heblo.Adapters.Microsoft365.Photobank;
 
-/// <summary>
-/// Microsoft Graph implementation of IPhotobankGraphService.
-/// Uses the Drive Items delta API to efficiently sync SharePoint photo libraries.
-/// </summary>
 public class PhotobankGraphService : IPhotobankGraphService
 {
     private readonly ITokenAcquisition _tokenAcquisition;
@@ -98,6 +96,101 @@ public class PhotobankGraphService : IPhotobankGraphService
         };
     }
 
+    public async Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken cancellationToken = default)
+    {
+        var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
+        using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
+
+        var encodedSegments = folderPath.Trim('/').Split('/').Select(Uri.EscapeDataString);
+        var encodedPath = string.Join("/", encodedSegments);
+        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:";
+
+        var request = CreateRequest(HttpMethod.Get, url, token);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        var response = await client.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var item = await DeserializeAsync<GraphItemWithId>(response, cancellationToken);
+        return item.Id;
+    }
+
+    public async Task<GetThumbnailResult> GetThumbnailAsync(
+        string driveId,
+        string fileId,
+        ThumbnailSize size,
+        CancellationToken cancellationToken = default)
+    {
+        string token;
+        try
+        {
+            token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
+        }
+        catch (MsalException ex)
+        {
+            _logger.LogError(ex, "Token acquisition failed for thumbnail. MSAL error: {ErrorCode}", ex.ErrorCode);
+            return new GetThumbnailResult.AuthUnavailable(ex);
+        }
+
+        var sizeSegment = size switch
+        {
+            ThumbnailSize.Medium => "medium",
+            ThumbnailSize.Large => "large",
+            _ => throw new ArgumentOutOfRangeException(nameof(size), size, null),
+        };
+        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{Uri.EscapeDataString(fileId)}/thumbnails/0/{sizeSegment}/content";
+
+        HttpResponseMessage response;
+        try
+        {
+            var client = _httpClientFactory.CreateClient("MicrosoftGraph");
+            var request = CreateRequest(HttpMethod.Get, url, token);
+            response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Upstream HTTP error fetching thumbnail for drive {DriveId} item {FileId}", driveId, fileId);
+            return new GetThumbnailResult.UpstreamError(ex);
+        }
+
+        using (response)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return new GetThumbnailResult.NotFound();
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotAcceptable)
+                return new GetThumbnailResult.NotFound();
+
+            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                TimeSpan? retryAfter = null;
+                if (response.Headers.TryGetValues("Retry-After", out var values))
+                {
+                    var headerValue = values.FirstOrDefault();
+                    if (headerValue != null && int.TryParse(headerValue, out var seconds))
+                        retryAfter = TimeSpan.FromSeconds(seconds);
+                }
+                _logger.LogWarning("Graph thumbnail request throttled for drive {DriveId} item {FileId}. RetryAfter: {RetryAfter}", driveId, fileId, retryAfter);
+                return new GetThumbnailResult.Throttled(retryAfter);
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var ex = new HttpRequestException($"Graph returned {(int)response.StatusCode} for thumbnail");
+                _logger.LogWarning(ex, "Graph thumbnail request returned {StatusCode} for drive {DriveId} item {FileId}", (int)response.StatusCode, driveId, fileId);
+                return new GetThumbnailResult.UpstreamError(ex);
+            }
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+            var contentLength = response.Content.Headers.ContentLength;
+
+            var ms = new MemoryStream();
+            await response.Content.CopyToAsync(ms, cancellationToken);
+            ms.Position = 0;
+
+            return new GetThumbnailResult.Success(new GraphThumbnail(ms, contentType, contentLength));
+        }
+    }
+
     private static GraphPhotoItem? MapItem(GraphDeltaItem item, string driveId)
     {
         // Deleted items — include them so the job can remove from DB
@@ -147,85 +240,6 @@ public class PhotobankGraphService : IPhotobankGraphService
             DriveId = item.ParentReference?.DriveId ?? driveId,
             IsDeleted = false,
         };
-    }
-
-    public async Task<GraphThumbnail?> GetThumbnailAsync(
-        string driveId,
-        string fileId,
-        ThumbnailSize size,
-        CancellationToken cancellationToken = default)
-    {
-        var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
-        var sizeSegment = size switch
-        {
-            ThumbnailSize.Medium => "medium",
-            ThumbnailSize.Large => "large",
-            _ => throw new ArgumentOutOfRangeException(nameof(size), size, null),
-        };
-        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{Uri.EscapeDataString(fileId)}/thumbnails/0/{sizeSegment}/content";
-
-        var client = _httpClientFactory.CreateClient("MicrosoftGraph");
-        var request = CreateRequest(HttpMethod.Get, url, token);
-        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            return null;
-
-        if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
-        {
-            TimeSpan? retryAfter = null;
-            if (response.Headers.TryGetValues("Retry-After", out var values))
-            {
-                var headerValue = values.FirstOrDefault();
-                if (headerValue != null && int.TryParse(headerValue, out var seconds))
-                    retryAfter = TimeSpan.FromSeconds(seconds);
-            }
-
-            throw new GraphThrottledException(retryAfter);
-        }
-
-        // Log a warning for any 4xx that is not 404 (already handled) or 429 (already handled).
-        if (!response.IsSuccessStatusCode
-            && response.StatusCode is not System.Net.HttpStatusCode.NotFound
-            && response.StatusCode is not System.Net.HttpStatusCode.TooManyRequests)
-        {
-            _logger.LogWarning(
-                "Graph thumbnail request returned {StatusCode} for drive {DriveId} item {FileId}. URL: {Url}",
-                (int)response.StatusCode, driveId, fileId, url);
-        }
-
-        // 406 means the item cannot be thumbnailed (permanent). Surface as null → 404 to caller.
-        if (response.StatusCode == System.Net.HttpStatusCode.NotAcceptable)
-            return null;
-
-        response.EnsureSuccessStatusCode();
-
-        var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
-        var contentLength = response.Content.Headers.ContentLength;
-
-        var ms = new MemoryStream();
-        await response.Content.CopyToAsync(ms, cancellationToken);
-        ms.Position = 0;
-
-        return new GraphThumbnail(ms, contentType, contentLength);
-    }
-
-    public async Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken cancellationToken = default)
-    {
-        var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
-        using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
-
-        var encodedSegments = folderPath.Trim('/').Split('/').Select(Uri.EscapeDataString);
-        var encodedPath = string.Join("/", encodedSegments);
-        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:";
-
-        var request = CreateRequest(HttpMethod.Get, url, token);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        var response = await client.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var item = await DeserializeAsync<GraphItemWithId>(response, cancellationToken);
-        return item.Id;
     }
 
     private static HttpRequestMessage CreateRequest(HttpMethod method, string url, string token)

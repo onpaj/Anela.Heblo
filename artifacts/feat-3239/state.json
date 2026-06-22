@@ -34,15 +34,15 @@
     },
     {
       "name": "update-mock-implementation",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-22T07:29:59.425743Z"
+      "updated_at": "2026-06-22T07:32:10.180105Z"
     },
     {
       "name": "move-photobankgraphservice-to-adapter",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-22T07:32:10.383195Z"
     },
     {
       "name": "wire-adapter-di-registration",
