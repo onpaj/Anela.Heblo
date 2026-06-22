@@ -40,15 +40,15 @@
     },
     {
       "name": "implement-carrier-cooling-adapter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-22T14:45:22.268958Z"
+      "updated_at": "2026-06-22T15:06:38.164596Z"
     },
     {
       "name": "update-packing-order-client",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-22T15:06:38.390540Z"
     },
     {
       "name": "add-boundary-tests",
