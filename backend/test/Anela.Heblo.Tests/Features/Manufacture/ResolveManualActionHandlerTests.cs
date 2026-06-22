@@ -230,6 +230,22 @@ public class ResolveManualActionHandlerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_WhenRepositoryThrows_ReturnsInternalServerError()
+    {
+        _repositoryMock
+            .Setup(r => r.GetOrderByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Database failure."));
+
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
+        _repositoryMock.Verify(
+            r => r.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     private static ManufactureOrder BuildOrder(bool manualActionRequired = false) =>
         new()
         {
