@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { getAuthenticatedApiClient } from '../client';
+import { startNewTelemetryOperation } from '../../telemetry/appInsights';
 
 interface ApiClientWithInternals {
   baseUrl: string;
@@ -104,4 +105,9 @@ const scanPackingOrder = async ({
 export const useScanPackingOrder = () =>
   useMutation<ScanPackingOrderResult, Error, ScanPackingOrderVariables>({
     mutationFn: scanPackingOrder,
+    onMutate: () => {
+      // Each scan is its own AI operation so repeated scans on the same page do
+      // not collapse into a single end-to-end transaction.
+      startNewTelemetryOperation('packaging-scan');
+    },
   });
