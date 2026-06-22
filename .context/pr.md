@@ -1,33 +1,29 @@
 # PR Context
 
-- **PR**: #3204 — #3116: Encapsulate ManufactureOrder state transition rules in the domain entity
-- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3204
-- **Branch**: `feature/3116-arch-review-manufacture-state-transition-rules-liv` → `main`
+- **PR**: #3212 — fix(invoices): move IIssuedInvoiceRepository and IssuedInvoiceFilters to Domain layer (#3155)
+- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3212
+- **Branch**: `feature/3155-fix-invoice-repo-interface-layer` → `main`
 - **State**: OPEN
 - **Author**: onpaj
-- **Changes**: +1461 / -179 across 23 files
-- **Absorbed**: backmerged with `main` (recurring `.context/pr.md` artifact conflict, resolved), pushed. CI surfaced a real failure — `ModuleBoundariesTests` (rule `Manufacture -> Catalog`): the PR deleted `UpdateManufactureOrderStatusHandler.IsValidStateTransition`, which shifted the compiler-generated ordinals of the still-present `WriteDownInventoryAsync` `CatalogAggregate` leak from `d__10`/`DisplayClass10_0` to `d__9`/`DisplayClass9_0`. Updated the two allowlist entries to match (same sanctioned leak, renumbered). This test isn't matched by `~Manufacture` (FQN is `Architecture.ModuleBoundariesTests`), so it escaped the PR's original verification. The 7 `Anela.Heblo.Adapters.Flexi.Tests` failures are `FlexiIntegrationTestFixture` constructor errors requiring live FlexiBee config — environment-only, present on `main`, unrelated to this PR.
+- **Changes**: +9 / -31 across 12 files
+- **Absorbed**: backmerged with `main`, all tests passing
 
 ## Description
 
-## What the issue was
-`ManufactureOrder` exposed `State` as an unguarded public setter, and the legal state-transition table lived in `UpdateManufactureOrderStatusHandler.IsValidStateTransition`. Keeping the rule in the Application layer violated *business logic belongs in the domain*: any handler could assign an arbitrary state directly (`order.State = ...`) bypassing validation, and the rule could only be tested through the handler, never against the entity in isolation.
+### What the issue was
 
-## How it was fixed / handled
-Relocated the transition rules into the `ManufactureOrder` aggregate, following the existing `TransportBox` precedent — no runtime or HTTP-contract change.
+`IIssuedInvoiceRepository` and `IssuedInvoiceFilters` were defined in the **Persistence** project (`Anela.Heblo.Persistence.Invoices`), violating Clean Architecture's Dependency Rule. Every Application-layer handler that queried invoices had to import `using Anela.Heblo.Persistence.Invoices`, creating an upward dependency from Application to Infrastructure. This also made it impossible to test Application handlers without the Persistence project.
 
-### Changes
-- **`ManufactureOrder.cs`** — `State`/`StateChangedAt`/`StateChangedByUser` setters tightened to `internal set`; added `InitializeState(...)` (sanctioned seeding path), `CanTransitionTo(...)` (pure predicate reproducing the existing matrix verbatim, type-agnostic), and a guarded `ChangeState(...)` that throws `ValidationException` on an illegal transition (validate-before-mutate, all three audit fields set atomically).
-- **`UpdateManufactureOrderStatusHandler.cs`** — pre-checks via `order.CanTransitionTo(...)` (identical `InvalidOperation { oldState, newState }` early return preserved — not a thrown-exception path), mutates via `order.ChangeState(...)`; the private `IsValidStateTransition` was deleted. All side effects and response shapes unchanged.
-- **`CreateManufactureOrderHandler.cs` / `DuplicateManufactureOrderHandler.cs`** — seed the initial `Draft` state via `InitializeState` (the latter also assigned `State` in an initializer and had to be redirected to compile under `internal set`).
-- **Tests** — `ManufactureOrderStateTransitionTests` rewritten: removed the three type-aware private mirror helpers and their theories (which never exercised production code and would have silently changed behaviour), replaced with an exhaustive `CanTransitionTo` matrix theory plus legal/illegal `ChangeState` tests against the real entity. Arrange-phase `State = ...` seeding across 8 affected fixtures routed through `InitializeState`; no expected outcomes changed.
+### How it was fixed
 
-### Verification
-- `dotnet build` — succeeds (pre-existing warnings only).
-- `dotnet format --verify-no-changes` — clean.
-- `dotnet test --filter "FullyQualifiedName~Manufacture"` — **693 passed, 0 failed, 0 skipped** (includes EF materialization tests confirming `State` still binds under the non-public setter).
+Pure file/namespace relocation — no logic changes:
 
-## Artifacts
-- Brief, spec, arch review, design, task plan, impl, and review markdown are committed under `artifacts/feat-3116/` in this branch.
+1. Moved `IIssuedInvoiceRepository.cs` from `Persistence/Invoices/` to `Domain/Features/Invoices/` (namespace: `Anela.Heblo.Domain.Features.Invoices`)
+2. Moved `IssuedInvoiceFilters.cs` from `Persistence/Invoices/` to `Domain/Features/Invoices/` (same namespace change)
+3. Updated `using` directives in 6 Application files to reference the Domain namespace instead of Persistence
+4. Updated `using` directives in 4 test files accordingly
+5. `IssuedInvoiceRepository` (the implementation) stays in Persistence — only the interface and filter type move
 
-Closes #3116
+All 76 invoice unit tests pass.
+
+Closes #3155
