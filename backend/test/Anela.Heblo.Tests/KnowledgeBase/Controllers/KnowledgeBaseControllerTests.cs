@@ -1,4 +1,5 @@
 using Anela.Heblo.API.Controllers;
+using Anela.Heblo.Application.Features.KnowledgeBase.Contracts;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.DeleteDocument;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetChunkDetail;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
