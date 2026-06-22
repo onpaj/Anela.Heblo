@@ -40,15 +40,15 @@
     },
     {
       "name": "move-photobankgraphservice-to-adapter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-22T07:32:10.383195Z"
+      "updated_at": "2026-06-22T07:37:37.919953Z"
     },
     {
       "name": "wire-adapter-di-registration",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-22T07:37:38.118290Z"
     },
     {
       "name": "rewrite-getthumbnailhandler",
