@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
-using Anela.Heblo.Application.Features.Purchase.Services;
 using Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrderById;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrders;
@@ -585,17 +584,6 @@ public class PurchaseOrdersTestFactory : HebloWebApplicationFactory
         // The PurchaseModule now only registers default implementations
         // Tests use the EF Core in-memory database from the base factory
         // This ensures data persists properly within each test
-
-        // Override the default number generator to use in-memory implementation
-        var numberGeneratorDescriptor = services.SingleOrDefault(
-            d => d.ServiceType == typeof(IPurchaseOrderNumberGenerator));
-        if (numberGeneratorDescriptor != null)
-        {
-            services.Remove(numberGeneratorDescriptor);
-        }
-
-        // Use in-memory number generator for testing
-        services.AddScoped<IPurchaseOrderNumberGenerator, InMemoryPurchaseOrderNumberGenerator>();
 
         // Add mock supplier repository
         services.AddScoped<ISupplierRepository, MockSupplierRepository>();
