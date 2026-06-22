@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using ModelContextProtocol;
 using Moq;
@@ -18,12 +19,14 @@ namespace Anela.Heblo.Tests.MCP.Tools;
 public class CatalogMcpToolsTests
 {
     private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly CatalogMcpTools _tools;
 
     public CatalogMcpToolsTests()
     {
         _mediatorMock = new Mock<IMediator>();
-        _tools = new CatalogMcpTools(_mediatorMock.Object);
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _tools = new CatalogMcpTools(_mediatorMock.Object, _currentUserServiceMock.Object);
     }
 
     [Fact]

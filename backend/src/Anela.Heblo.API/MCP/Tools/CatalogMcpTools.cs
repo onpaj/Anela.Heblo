@@ -6,7 +6,10 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetMaterialForPurchase;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductMargins;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
@@ -21,10 +24,12 @@ namespace Anela.Heblo.API.MCP.Tools;
 public class CatalogMcpTools
 {
     private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CatalogMcpTools(IMediator mediator)
+    public CatalogMcpTools(IMediator mediator, ICurrentUserService currentUserService)
     {
         _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     [McpServerTool]
