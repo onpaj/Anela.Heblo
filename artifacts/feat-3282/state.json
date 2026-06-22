@@ -21,16 +21,16 @@
       "updated_at": "2026-06-22T18:28:26.519507Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-22T18:28:38.851008Z"
     }
   },
   "tasks": [
     {
       "name": "write-calendar-view-handler-tests",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-22T19:24:03.526931Z"
     }
   ]
 }
