@@ -65,8 +65,17 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          use_sticky_comment: true
           prompt: |
-            Please review this pull request and provide feedback on:
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request and POST your feedback as a PR comment.
+            Use `gh pr comment` for the overall review summary, and
+            `mcp__github_inline_comment__create_inline_comment` (with confirmed: true)
+            for specific line-level issues.
+
+            Focus on:
             - Code quality, best practices and common patterns (DRY, YAGNI, SOLID, KISS)
             - Code complexity and maintainability
             - Domain and concerns separation (should that be on backend or frontend side?)
@@ -75,4 +84,6 @@ jobs:
             - Security concerns
             - Test coverage
 
-            Be constructive and helpful in your feedback.
+            Be constructive and helpful in your feedback. If the PR looks good, say so briefly.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
