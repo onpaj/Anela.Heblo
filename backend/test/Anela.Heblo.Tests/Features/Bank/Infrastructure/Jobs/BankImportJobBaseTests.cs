@@ -1,10 +1,12 @@
 using Anela.Heblo.Application.Features.Bank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.Bank;
 using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -14,188 +16,165 @@ public sealed class BankImportJobBaseTests
 {
     private const string TestJobName = "test-bank-import-job";
     private const string TestAccountName = "TestAccount";
-    private static readonly DateTime TestDateFrom = new(2026, 6, 1);
-    private static readonly DateTime TestDateTo = new(2026, 6, 2);
 
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
+    private readonly Mock<IBankImportStateRepository> _stateRepo = new();
+    private readonly Mock<IBankStatementImportRepository> _statementRepo = new();
+    private readonly BankImportWatermarkOptions _options = new() { MaxBackfillDays = 14, StaleWarningDays = 3 };
+
+    public BankImportJobBaseTests()
+    {
+        _statusChecker.Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+            .ReturnsAsync(true);
+        _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImportBankStatementResponse());
+    }
 
     [Fact]
     public async Task ExecuteAsync_ReturnsEarly_WhenJobIsDisabled()
     {
-        // Arrange
-        _statusChecker
-            .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>(), true))
+        _statusChecker.Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>(), It.IsAny<bool>()))
             .ReturnsAsync(false);
-        var job = CreateJob();
 
-        // Act
-        await job.ExecuteAsync(CancellationToken.None);
+        await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
 
-        // Assert
-        _mediator.Verify(
-            m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        job.GetParametersCallCount.Should().Be(0);
+        _mediator.Verify(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _stateRepo.Verify(r => r.UpsertAsync(It.IsAny<BankImportState>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task ExecuteAsync_SendsImportRequest_WithParametersFromSubclass()
+    public async Task ExecuteAsync_UsesWatermarkAsDateFrom_AndTargetAsDateTo()
     {
-        // Arrange
-        _statusChecker
-            .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>(), true))
-            .ReturnsAsync(true);
+        var state = new BankImportState(TestAccountName);
+        state.RecordSuccess(new DateTime(2026, 6, 10), DateTime.UtcNow, DateTime.UtcNow);
+        _stateRepo.Setup(r => r.GetByAccountAsync(TestAccountName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state);
+
         ImportBankStatementRequest? captured = null;
-        _mediator
-            .Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
-            .Callback<IRequest<ImportBankStatementResponse>, CancellationToken>((req, _) =>
-                captured = (ImportBankStatementRequest)req)
-            .ReturnsAsync(new ImportBankStatementResponse());
-        var job = CreateJob();
+        _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<ImportBankStatementResponse>, CancellationToken>((req, _) => captured = (ImportBankStatementRequest)req)
+            .ReturnsAsync(new ImportBankStatementResponse { SuccessCount = 1 });
 
-        // Act
-        await job.ExecuteAsync(CancellationToken.None);
+        await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
 
-        // Assert
-        captured.Should().NotBeNull();
         captured!.AccountName.Should().Be(TestAccountName);
-        captured.DateFrom.Should().Be(TestDateFrom);
-        captured.DateTo.Should().Be(TestDateTo);
+        captured.DateFrom.Should().Be(new DateTime(2026, 6, 10));
+        captured.DateTo.Should().Be(new DateTime(2026, 6, 14));
     }
 
     [Fact]
-    public async Task ExecuteAsync_CallsGetParameters_ExactlyOnce()
+    public async Task ExecuteAsync_Bootstraps_FromMaxStatementDate_WhenNoWatermark()
     {
-        // Arrange
-        _statusChecker
-            .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>(), true))
-            .ReturnsAsync(true);
-        _mediator
-            .Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
+        _stateRepo.Setup(r => r.GetByAccountAsync(TestAccountName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BankImportState?)null);
+        _statementRepo.Setup(r => r.GetMaxStatementDateAsync(TestAccountName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DateTime(2026, 6, 12));
+
+        ImportBankStatementRequest? captured = null;
+        _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<ImportBankStatementResponse>, CancellationToken>((req, _) => captured = (ImportBankStatementRequest)req)
             .ReturnsAsync(new ImportBankStatementResponse());
-        var job = CreateJob();
 
-        // Act
-        await job.ExecuteAsync(CancellationToken.None);
+        await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
 
-        // Assert
-        job.GetParametersCallCount.Should().Be(1);
+        captured!.DateFrom.Should().Be(new DateTime(2026, 6, 12));
     }
 
     [Fact]
-    public async Task ExecuteAsync_PropagatesCancellationToken_ToStatusCheckerAndMediator()
+    public async Task ExecuteAsync_ClampsDateFrom_ToMaxBackfillDays()
     {
-        // Arrange
-        using var cts = new CancellationTokenSource();
-        var token = cts.Token;
-        _statusChecker
-            .Setup(c => c.IsJobEnabledAsync(TestJobName, token, true))
-            .ReturnsAsync(true);
-        _mediator
-            .Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), token))
+        var state = new BankImportState(TestAccountName);
+        state.RecordSuccess(new DateTime(2026, 5, 1), DateTime.UtcNow, DateTime.UtcNow); // ~44 days behind
+        _stateRepo.Setup(r => r.GetByAccountAsync(TestAccountName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state);
+
+        ImportBankStatementRequest? captured = null;
+        _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<ImportBankStatementResponse>, CancellationToken>((req, _) => captured = (ImportBankStatementRequest)req)
             .ReturnsAsync(new ImportBankStatementResponse());
-        var job = CreateJob();
 
-        // Act
-        await job.ExecuteAsync(token);
+        await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
 
-        // Assert — overload with the exact token must have been called (any other token would not match)
-        _statusChecker.Verify(c => c.IsJobEnabledAsync(TestJobName, token, true), Times.Once);
-        _mediator.Verify(
-            m => m.Send(It.IsAny<ImportBankStatementRequest>(), token),
-            Times.Once);
+        captured!.DateFrom.Should().Be(new DateTime(2026, 6, 14).AddDays(-14)); // clamped
     }
 
     [Fact]
-    public async Task ExecuteAsync_LogsErrorAndRethrows_WhenMediatorThrows()
+    public async Task ExecuteAsync_AdvancesWatermark_OnZeroErrorRun()
     {
-        // Arrange
-        var thrown = new InvalidOperationException("simulated handler failure");
-        _statusChecker
-            .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>(), true))
-            .ReturnsAsync(true);
-        _mediator
-            .Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(thrown);
+        var state = new BankImportState(TestAccountName);
+        state.RecordSuccess(new DateTime(2026, 6, 10), DateTime.UtcNow, DateTime.UtcNow);
+        _stateRepo.Setup(r => r.GetByAccountAsync(TestAccountName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state);
+        _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImportBankStatementResponse { SuccessCount = 0, ErrorCount = 0 }); // 0 docs = valid
 
-        var logger = new ListLogger();
-        var loggerFactory = new SingleLoggerFactory(logger);
-        var job = new TestBankImportJob(
-            _mediator.Object,
-            loggerFactory,
-            _statusChecker.Object,
-            new BankImportJobParameters(TestAccountName, TestDateFrom, TestDateTo),
-            TestJobName);
+        BankImportState? saved = null;
+        _stateRepo.Setup(r => r.UpsertAsync(It.IsAny<BankImportState>(), It.IsAny<CancellationToken>()))
+            .Callback<BankImportState, CancellationToken>((s, _) => saved = s)
+            .Returns(Task.CompletedTask);
 
-        // Act
-        Func<Task> act = () => job.ExecuteAsync(CancellationToken.None);
+        await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
 
-        // Assert
-        var caught = await act.Should().ThrowAsync<InvalidOperationException>();
-        caught.Which.Should().BeSameAs(thrown);
-        logger.Entries.Should().Contain(e =>
-            e.Level == LogLevel.Error &&
-            e.Message.Contains(TestJobName) &&
-            e.Exception == thrown);
+        saved!.LastValidImportDate.Should().Be(new DateTime(2026, 6, 14));
+        saved.LastRunStatus.Should().Be(BankImportState.StatusOk);
     }
 
     [Fact]
-    public void Constructor_Throws_WhenMediatorIsNull()
+    public async Task ExecuteAsync_DoesNotAdvanceWatermark_OnErrorRun()
     {
-        var act = () => new TestBankImportJob(
-            mediator: null!,
-            loggerFactory: NullLoggerFactory.Instance,
-            statusChecker: _statusChecker.Object,
-            parameters: new BankImportJobParameters(TestAccountName, TestDateFrom, TestDateTo),
-            jobName: TestJobName);
-        act.Should().Throw<ArgumentNullException>().WithParameterName("mediator");
+        var state = new BankImportState(TestAccountName);
+        state.RecordSuccess(new DateTime(2026, 6, 10), DateTime.UtcNow, DateTime.UtcNow);
+        _stateRepo.Setup(r => r.GetByAccountAsync(TestAccountName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state);
+        _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImportBankStatementResponse { SuccessCount = 1, ErrorCount = 2 });
+
+        BankImportState? saved = null;
+        _stateRepo.Setup(r => r.UpsertAsync(It.IsAny<BankImportState>(), It.IsAny<CancellationToken>()))
+            .Callback<BankImportState, CancellationToken>((s, _) => saved = s)
+            .Returns(Task.CompletedTask);
+
+        await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
+
+        saved!.LastValidImportDate.Should().Be(new DateTime(2026, 6, 10)); // unchanged
+        saved.LastRunStatus.Should().Be(BankImportState.StatusError);
     }
 
     [Fact]
-    public void Constructor_Throws_WhenLoggerFactoryIsNull()
+    public void Constructor_Throws_WhenStateRepositoryIsNull()
     {
         var act = () => new TestBankImportJob(
-            mediator: _mediator.Object,
-            loggerFactory: null!,
-            statusChecker: _statusChecker.Object,
-            parameters: new BankImportJobParameters(TestAccountName, TestDateFrom, TestDateTo),
-            jobName: TestJobName);
-        act.Should().Throw<ArgumentNullException>().WithParameterName("loggerFactory");
+            _mediator.Object, NullLoggerFactory.Instance, _statusChecker.Object,
+            stateRepository: null!, _statementRepo.Object, Options.Create(_options),
+            TestAccountName, new DateTime(2026, 6, 14), TestJobName);
+        act.Should().Throw<ArgumentNullException>().WithParameterName("stateRepository");
     }
 
-    [Fact]
-    public void Constructor_Throws_WhenStatusCheckerIsNull()
-    {
-        var act = () => new TestBankImportJob(
-            mediator: _mediator.Object,
-            loggerFactory: NullLoggerFactory.Instance,
-            statusChecker: null!,
-            parameters: new BankImportJobParameters(TestAccountName, TestDateFrom, TestDateTo),
-            jobName: TestJobName);
-        act.Should().Throw<ArgumentNullException>().WithParameterName("statusChecker");
-    }
-
-    private TestBankImportJob CreateJob() => new(
-        _mediator.Object,
-        NullLoggerFactory.Instance,
-        _statusChecker.Object,
-        new BankImportJobParameters(TestAccountName, TestDateFrom, TestDateTo),
-        TestJobName);
+    private TestBankImportJob CreateJob(DateTime targetEnd) => new(
+        _mediator.Object, NullLoggerFactory.Instance, _statusChecker.Object,
+        _stateRepo.Object, _statementRepo.Object, Options.Create(_options),
+        TestAccountName, targetEnd, TestJobName);
 
     private sealed class TestBankImportJob : BankImportJobBase
     {
-        private readonly BankImportJobParameters _parameters;
+        private readonly string _accountName;
+        private readonly DateTime _targetEnd;
 
         public TestBankImportJob(
             IMediator mediator,
             ILoggerFactory loggerFactory,
             IRecurringJobStatusChecker statusChecker,
-            BankImportJobParameters parameters,
+            IBankImportStateRepository stateRepository,
+            IBankStatementImportRepository statementRepository,
+            IOptions<BankImportWatermarkOptions> options,
+            string accountName,
+            DateTime targetEnd,
             string jobName)
-            : base(mediator, loggerFactory, statusChecker)
+            : base(mediator, loggerFactory, statusChecker, stateRepository, statementRepository, options)
         {
-            _parameters = parameters;
+            _accountName = accountName;
+            _targetEnd = targetEnd;
             Metadata = new RecurringJobMetadata
             {
                 JobName = jobName,
@@ -207,44 +186,7 @@ public sealed class BankImportJobBaseTests
         }
 
         public override RecurringJobMetadata Metadata { get; }
-
-        public int GetParametersCallCount { get; private set; }
-
-        internal override BankImportJobParameters GetParameters()
-        {
-            GetParametersCallCount++;
-            return _parameters;
-        }
-    }
-
-    private sealed class SingleLoggerFactory : ILoggerFactory
-    {
-        private readonly ILogger _logger;
-        public SingleLoggerFactory(ILogger logger) => _logger = logger;
-        public void AddProvider(ILoggerProvider provider) { }
-        public ILogger CreateLogger(string categoryName) => _logger;
-        public void Dispose() { }
-    }
-
-    private sealed class ListLogger : ILogger
-    {
-        public List<(LogLevel Level, string Message, Exception? Exception)> Entries { get; } = new();
-        public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullDisposable.Instance;
-        public bool IsEnabled(LogLevel logLevel) => true;
-        public void Log<TState>(
-            LogLevel logLevel,
-            EventId eventId,
-            TState state,
-            Exception? exception,
-            Func<TState, Exception?, string> formatter)
-        {
-            Entries.Add((logLevel, formatter(state, exception), exception));
-        }
-
-        private sealed class NullDisposable : IDisposable
-        {
-            public static readonly NullDisposable Instance = new();
-            public void Dispose() { }
-        }
+        protected override string AccountName => _accountName;
+        protected override DateTime GetTargetEndDate(DateTime today) => _targetEnd;
     }
 }
