@@ -368,4 +368,49 @@ public class CatalogMcpToolsTests
         Assert.Single(deserialized.Items);
         Assert.Equal("DEO001030", deserialized.Items[0].ProductCode);
     }
+
+    [Fact]
+    public async Task GetProductMargins_ThrowsMcpException_WhenUserLacksFeature()
+    {
+        // Arrange — default mock: IsInRole returns false
+        _currentUserServiceMock
+            .Setup(s => s.IsInRole(It.IsAny<string>()))
+            .Returns(false);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<McpException>(
+            () => _tools.GetProductMargins(productCode: "DEO001030"));
+
+        Assert.Contains("FORBIDDEN", exception.Message);
+        Assert.Contains(AccessRoles.ProductsProductMarginsRead, exception.Message);
+        _mediatorMock.Verify(
+            m => m.Send(It.IsAny<GetProductMarginsRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetProductMargins_ThrowsMcpException_WhenResponseNotSuccess()
+    {
+        // Arrange
+        _currentUserServiceMock
+            .Setup(s => s.IsInRole(AccessRoles.ProductsProductMarginsRead))
+            .Returns(true);
+
+        var errorResponse = new GetProductMarginsResponse
+        {
+            Success = false,
+            ErrorCode = ErrorCodes.Exception,
+            Params = new Dictionary<string, string>()
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetProductMarginsRequest>(), default))
+            .ReturnsAsync(errorResponse);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<McpException>(
+            () => _tools.GetProductMargins(productCode: "DEO001030"));
+
+        Assert.Contains("Exception", exception.Message);
+    }
 }
