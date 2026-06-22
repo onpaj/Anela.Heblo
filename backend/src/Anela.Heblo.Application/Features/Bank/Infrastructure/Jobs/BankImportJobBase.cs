@@ -55,7 +55,6 @@ public abstract class BankImportJobBase : IRecurringJob
             return;
         }
 
-        var runStartedAt = DateTime.UtcNow;
         var targetEnd = GetTargetEndDate(DateTime.Today);
         var state = await _stateRepository.GetByAccountAsync(AccountName, cancellationToken)
                     ?? new BankImportState(AccountName);
@@ -72,27 +71,19 @@ public abstract class BankImportJobBase : IRecurringJob
 
             if (response.HasErrors)
             {
-                state.RecordFailure(
-                    $"{response.ErrorCount} statement(s) failed in range {dateFrom:yyyy-MM-dd}..{targetEnd:yyyy-MM-dd}",
-                    runStartedAt, DateTime.UtcNow);
                 _logger.LogError(
                     "{JobName} completed WITH ERRORS - Success: {Success}, Errors: {Errors}, Skipped: {Skipped}. Watermark NOT advanced (stuck at {Watermark:yyyy-MM-dd}).",
                     Metadata.JobName, response.SuccessCount, response.ErrorCount, response.SkippedCount, state.LastValidImportDate);
             }
             else
             {
-                state.RecordSuccess(targetEnd, runStartedAt, DateTime.UtcNow);
                 _logger.LogInformation(
                     "{JobName} completed - Success: {Success}, Skipped: {Skipped}. Watermark advanced to {Watermark:yyyy-MM-dd}.",
                     Metadata.JobName, response.SuccessCount, response.SkippedCount, targetEnd);
             }
-
-            await _stateRepository.UpsertAsync(state, cancellationToken);
         }
         catch (Exception ex)
         {
-            state.RecordFailure(ex.Message, runStartedAt, DateTime.UtcNow);
-            await _stateRepository.UpsertAsync(state, cancellationToken);
             _logger.LogError(ex, "{JobName} failed", Metadata.JobName);
             throw;
         }

@@ -100,8 +100,10 @@ public sealed class BankImportJobBaseTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_AdvancesWatermark_OnZeroErrorRun()
+    public async Task ExecuteAsync_DoesNotWriteState_OnZeroErrorRun()
     {
+        // The handler owns BankImportState; the job must not write it (regression guard
+        // against the double-write fixed in #3279).
         var state = new BankImportState(TestAccountName);
         state.RecordSuccess(new DateTime(2026, 6, 10), DateTime.UtcNow, DateTime.UtcNow);
         _stateRepo.Setup(r => r.GetByAccountAsync(TestAccountName, It.IsAny<CancellationToken>()))
@@ -109,19 +111,13 @@ public sealed class BankImportJobBaseTests
         _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ImportBankStatementResponse { SuccessCount = 0, ErrorCount = 0 }); // 0 docs = valid
 
-        BankImportState? saved = null;
-        _stateRepo.Setup(r => r.UpsertAsync(It.IsAny<BankImportState>(), It.IsAny<CancellationToken>()))
-            .Callback<BankImportState, CancellationToken>((s, _) => saved = s)
-            .Returns(Task.CompletedTask);
-
         await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
 
-        saved!.LastValidImportDate.Should().Be(new DateTime(2026, 6, 14));
-        saved.LastRunStatus.Should().Be(BankImportState.StatusOk);
+        _stateRepo.Verify(r => r.UpsertAsync(It.IsAny<BankImportState>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task ExecuteAsync_DoesNotAdvanceWatermark_OnErrorRun()
+    public async Task ExecuteAsync_DoesNotWriteState_OnErrorRun()
     {
         var state = new BankImportState(TestAccountName);
         state.RecordSuccess(new DateTime(2026, 6, 10), DateTime.UtcNow, DateTime.UtcNow);
@@ -130,15 +126,25 @@ public sealed class BankImportJobBaseTests
         _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ImportBankStatementResponse { SuccessCount = 1, ErrorCount = 2 });
 
-        BankImportState? saved = null;
-        _stateRepo.Setup(r => r.UpsertAsync(It.IsAny<BankImportState>(), It.IsAny<CancellationToken>()))
-            .Callback<BankImportState, CancellationToken>((s, _) => saved = s)
-            .Returns(Task.CompletedTask);
-
         await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
 
-        saved!.LastValidImportDate.Should().Be(new DateTime(2026, 6, 10)); // unchanged
-        saved.LastRunStatus.Should().Be(BankImportState.StatusError);
+        _stateRepo.Verify(r => r.UpsertAsync(It.IsAny<BankImportState>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_DoesNotWriteState_AndRethrows_WhenHandlerThrows()
+    {
+        var state = new BankImportState(TestAccountName);
+        state.RecordSuccess(new DateTime(2026, 6, 10), DateTime.UtcNow, DateTime.UtcNow);
+        _stateRepo.Setup(r => r.GetByAccountAsync(TestAccountName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state);
+        _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("bank client unavailable"));
+
+        var act = () => CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        _stateRepo.Verify(r => r.UpsertAsync(It.IsAny<BankImportState>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
