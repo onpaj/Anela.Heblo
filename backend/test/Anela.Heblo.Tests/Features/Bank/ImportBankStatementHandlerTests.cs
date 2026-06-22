@@ -264,4 +264,29 @@ public class ImportBankStatementHandlerTests
         captured.Should().BeSameAs(existingState);
         captured!.LastValidImportDate.Should().Be(to.Date);
     }
+
+    [Fact]
+    public async Task Handle_RecordsFailure_AndRethrows_WhenImportThrows()
+    {
+        var from = new DateTime(2026, 6, 10);
+        var to = new DateTime(2026, 6, 12);
+        var request = new ImportBankStatementRequest("ComgateCZK", from, to);
+
+        _mockBankClient.Setup(x => x.GetStatementsAsync("123456789", from, to))
+            .ThrowsAsync(new InvalidOperationException("bank client unavailable"));
+
+        BankImportState? captured = null;
+        _mockStateRepository
+            .Setup(r => r.UpsertAsync(It.IsAny<BankImportState>(), It.IsAny<CancellationToken>()))
+            .Callback<BankImportState, CancellationToken>((s, _) => captured = s);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _handler.Handle(request, CancellationToken.None));
+
+        _mockStateRepository.Verify(r => r.UpsertAsync(It.IsAny<BankImportState>(), It.IsAny<CancellationToken>()), Times.Once);
+        captured!.LastRunStatus.Should().Be(BankImportState.StatusError);
+        captured.LastValidImportDate.Should().BeNull();
+        captured.LastErrorMessage.Should().Be("bank client unavailable");
+        captured.ConsecutiveFailureCount.Should().Be(1);
+    }
 }
