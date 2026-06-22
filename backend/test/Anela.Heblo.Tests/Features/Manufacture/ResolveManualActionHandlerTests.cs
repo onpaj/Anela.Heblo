@@ -151,6 +151,7 @@ public class ResolveManualActionHandlerTests
         var order = BuildOrder();
         SetupFoundOrder(order);
         SetupCurrentUser("Ondra Novak");
+        var before = DateTime.UtcNow;
 
         await _handler.Handle(
             BuildRequest(note: "Please check the batch."),
@@ -159,6 +160,7 @@ public class ResolveManualActionHandlerTests
         order.Notes.Should().HaveCount(1);
         order.Notes[0].Text.Should().Be("Please check the batch.");
         order.Notes[0].CreatedByUser.Should().Be("Ondra Novak");
+        order.Notes[0].CreatedAt.Should().BeCloseTo(before, TimeSpan.FromSeconds(5));
     }
 
     [Fact]
@@ -169,6 +171,7 @@ public class ResolveManualActionHandlerTests
         _currentUserServiceMock
             .Setup(s => s.GetCurrentUser())
             .Returns((CurrentUser?)null!);
+        var before = DateTime.UtcNow;
 
         await _handler.Handle(
             BuildRequest(note: "Fallback note."),
@@ -177,6 +180,7 @@ public class ResolveManualActionHandlerTests
         order.Notes.Should().HaveCount(1);
         order.Notes[0].Text.Should().Be("Fallback note.");
         order.Notes[0].CreatedByUser.Should().Be("Unknown User");
+        order.Notes[0].CreatedAt.Should().BeCloseTo(before, TimeSpan.FromSeconds(5));
     }
 
     [Fact]
@@ -199,6 +203,7 @@ public class ResolveManualActionHandlerTests
         var order = BuildOrder(manualActionRequired: true);
         SetupFoundOrder(order);
         SetupCurrentUser("Ondra Novak");
+        var before = DateTime.UtcNow;
 
         var result = await _handler.Handle(
             new ResolveManualActionRequest
@@ -219,6 +224,7 @@ public class ResolveManualActionHandlerTests
         order.ErpDiscardResidueDocumentNumberDate.Should().NotBeNull();
         order.Notes.Should().HaveCount(1);
         order.Notes[0].CreatedByUser.Should().Be("Ondra Novak");
+        order.Notes[0].CreatedAt.Should().BeCloseTo(before, TimeSpan.FromSeconds(5));
         _repositoryMock.Verify(
             r => r.UpdateOrderAsync(order, It.IsAny<CancellationToken>()),
             Times.Once);
