@@ -165,7 +165,8 @@ public class ImportBankStatementHandlerTests
                 It.IsAny<BankStatementImport>()))
             .Returns(new Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto
             {
-                TransferId = "RETRY", ImportResult = ImportStatus.Success,
+                TransferId = "RETRY",
+                ImportResult = ImportStatus.Success,
             });
 
         var response = await _handler.Handle(request, CancellationToken.None);
@@ -221,7 +222,8 @@ public class ImportBankStatementHandlerTests
                 It.IsAny<BankStatementImport>()))
             .Returns(new Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto
             {
-                TransferId = "FAIL", ImportResult = $"{ImportStatus.ProcessingError}: bank unavailable",
+                TransferId = "FAIL",
+                ImportResult = $"{ImportStatus.ProcessingError}: bank unavailable",
             });
 
         BankImportState? captured = null;
