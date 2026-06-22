@@ -700,18 +700,17 @@ public class ModuleBoundariesTests
     [Fact]
     public void Domain_must_not_reference_Application_and_relocated_invoice_types_must_be_gone()
     {
-        // NFR-6: after relocating IssuedInvoiceFilters, PaginatedResult<T>, and
-        // IIssuedInvoiceRepository out of Domain, the Domain assembly must
+        // NFR-6: after relocating PaginatedResult<T> out of Domain, the Domain assembly must
         // (a) not reference any Anela.Heblo.Application.* type, and
-        // (b) not contain types with the three relocated names anywhere under
-        // Anela.Heblo.Domain.Features.Invoices.
+        // (b) not contain PaginatedResult<T> anywhere under Anela.Heblo.Domain.Features.Invoices.
+        // Note: IIssuedInvoiceRepository and IssuedInvoiceFilters were intentionally moved
+        // INTO Domain (from Persistence) by PR #3212 to fix the Clean Architecture dependency
+        // inversion — repository interfaces belong in Domain, not in Persistence.
         const string DomainNamespacePrefix = "Anela.Heblo.Domain";
         const string ForbiddenPrefix = "Anela.Heblo.Application";
         var relocatedTypeNames = new HashSet<string>(StringComparer.Ordinal)
         {
-            "IssuedInvoiceFilters",
             "PaginatedResult`1",
-            "IIssuedInvoiceRepository",
         };
 
         var assembly = Assembly.Load("Anela.Heblo.Domain");
