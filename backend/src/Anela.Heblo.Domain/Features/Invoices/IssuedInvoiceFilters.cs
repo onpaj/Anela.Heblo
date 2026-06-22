@@ -1,8 +1,5 @@
-namespace Anela.Heblo.Persistence.Invoices;
+namespace Anela.Heblo.Domain.Features.Invoices;
 
-/// <summary>
-/// Filter criteria for issued invoices
-/// </summary>
 public class IssuedInvoiceFilters
 {
     public int PageNumber { get; set; } = 1;
