@@ -46,15 +46,15 @@
     },
     {
       "name": "wire-adapter-di-registration",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-22T07:37:38.118290Z"
+      "updated_at": "2026-06-22T07:42:19.249128Z"
     },
     {
       "name": "rewrite-getthumbnailhandler",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-22T07:42:19.449322Z"
     },
     {
       "name": "update-handler-tests",
