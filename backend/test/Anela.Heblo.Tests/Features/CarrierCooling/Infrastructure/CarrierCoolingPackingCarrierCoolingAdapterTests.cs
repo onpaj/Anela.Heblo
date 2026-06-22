@@ -52,6 +52,30 @@ public class CarrierCoolingPackingCarrierCoolingAdapterTests
     }
 
     [Fact]
+    public async Task GetAllAsync_MapsEverySetting_WhenRepositoryReturnsMultiple()
+    {
+        // Guards against a regression that maps only the first item (e.g. accidental FirstOrDefault).
+        var repo = new Mock<ICarrierCoolingRepository>();
+        repo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new CarrierCoolingSetting(Carriers.PPL, DeliveryHandling.NaRuky, Cooling.L1, "test"),
+                new CarrierCoolingSetting(Carriers.GLS, DeliveryHandling.Box, Cooling.L2, "test"),
+                new CarrierCoolingSetting(Carriers.Zasilkovna, DeliveryHandling.NaRuky, Cooling.None, "test"),
+            });
+        var sut = new CarrierCoolingPackingCarrierCoolingAdapter(repo.Object);
+
+        var result = await sut.GetAllAsync();
+
+        result.Should().BeEquivalentTo(new[]
+        {
+            new PackingCarrierCoolingSetting { CarrierName = "PPL", DeliveryHandlingName = "NaRuky", Cooling = Cooling.L1 },
+            new PackingCarrierCoolingSetting { CarrierName = "GLS", DeliveryHandlingName = "Box", Cooling = Cooling.L2 },
+            new PackingCarrierCoolingSetting { CarrierName = "Zasilkovna", DeliveryHandlingName = "NaRuky", Cooling = Cooling.None },
+        });
+    }
+
+    [Fact]
     public async Task GetAllAsync_ReturnsEmptyListWhenRepositoryEmpty()
     {
         var repo = new Mock<ICarrierCoolingRepository>();
