@@ -52,9 +52,9 @@
     },
     {
       "name": "rewrite-getthumbnailhandler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-22T07:42:19.449322Z"
+      "updated_at": "2026-06-22T07:49:12.099961Z"
     },
     {
       "name": "update-handler-tests",
