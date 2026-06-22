@@ -35,16 +35,16 @@ public class MockPhotobankGraphService : IPhotobankGraphService
     public Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken cancellationToken = default)
         => Task.FromResult("mock-item-id");
 
-    public Task<GraphThumbnail?> GetThumbnailAsync(
+    public Task<GetThumbnailResult> GetThumbnailAsync(
         string driveId,
         string fileId,
         ThumbnailSize size,
         CancellationToken cancellationToken = default)
     {
-        GraphThumbnail? result = new GraphThumbnail(
+        var thumbnail = new GraphThumbnail(
             new MemoryStream(MinimalPng),
             "image/png",
             MinimalPng.Length);
-        return Task.FromResult<GraphThumbnail?>(result);
+        return Task.FromResult<GetThumbnailResult>(new GetThumbnailResult.Success(thumbnail));
     }
 }

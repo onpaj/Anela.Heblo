@@ -3,10 +3,7 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.GetThumbnail;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Photobank;
 using FluentAssertions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Identity.Client;
 using Moq;
-using System.Net.Http;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Photobank;
@@ -15,10 +12,9 @@ public sealed class GetThumbnailHandlerTests
 {
     private readonly Mock<IPhotobankRepository> _repositoryMock = new();
     private readonly Mock<IPhotobankGraphService> _graphServiceMock = new();
-    private readonly Mock<ILogger<GetThumbnailHandler>> _loggerMock = new();
 
     private GetThumbnailHandler CreateHandler() =>
-        new(_repositoryMock.Object, _graphServiceMock.Object, _loggerMock.Object);
+        new(_repositoryMock.Object, _graphServiceMock.Object);
 
     private static GetThumbnailRequest Request(int id = 1, ThumbnailSize size = ThumbnailSize.Medium) =>
         new() { Id = id, Size = size };
@@ -46,14 +42,14 @@ public sealed class GetThumbnailHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ReturnsNotFound_WhenGraphReturnsNull()
+    public async Task Handle_ReturnsNotFound_WhenGraphReturnsNotFound()
     {
         // Arrange
         var locator = new PhotoLocator("driveId", "fileId", DateTime.UtcNow);
         SetupLocator(locator);
         _graphServiceMock
             .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((GraphThumbnail?)null);
+            .ReturnsAsync(new GetThumbnailResult.NotFound());
 
         // Act
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
@@ -71,7 +67,7 @@ public sealed class GetThumbnailHandlerTests
         SetupLocator(locator);
         _graphServiceMock
             .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new GraphThrottledException(TimeSpan.FromSeconds(29.3)));
+            .ReturnsAsync(new GetThumbnailResult.Throttled(TimeSpan.FromSeconds(29.3)));
 
         // Act
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
@@ -90,7 +86,7 @@ public sealed class GetThumbnailHandlerTests
         SetupLocator(locator);
         _graphServiceMock
             .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new GraphThrottledException(null));
+            .ReturnsAsync(new GetThumbnailResult.Throttled(null));
 
         // Act
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
@@ -101,14 +97,14 @@ public sealed class GetThumbnailHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ReturnsUpstream_WhenHttpRequestExceptionThrown()
+    public async Task Handle_ReturnsUpstream_WhenGraphReturnsUpstreamError()
     {
         // Arrange
         var locator = new PhotoLocator("driveId", "fileId", DateTime.UtcNow);
         SetupLocator(locator);
         _graphServiceMock
             .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("upstream error"));
+            .ReturnsAsync(new GetThumbnailResult.UpstreamError(new Exception("upstream error")));
 
         // Act
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
@@ -119,14 +115,14 @@ public sealed class GetThumbnailHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ReturnsAuthUnavailable_WhenMsalExceptionThrown()
+    public async Task Handle_ReturnsAuthUnavailable_WhenGraphReturnsAuthUnavailable()
     {
         // Arrange
         var locator = new PhotoLocator("driveId", "fileId", DateTime.UtcNow);
         SetupLocator(locator);
         _graphServiceMock
             .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new MsalServiceException("invalid_client", "AADSTS7000215: Invalid client secret"));
+            .ReturnsAsync(new GetThumbnailResult.AuthUnavailable(new Exception("auth failure")));
 
         // Act
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
@@ -146,7 +142,7 @@ public sealed class GetThumbnailHandlerTests
         SetupLocator(locator);
         _graphServiceMock
             .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(thumbnail);
+            .ReturnsAsync(new GetThumbnailResult.Success(thumbnail));
 
         // Act
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
@@ -171,7 +167,7 @@ public sealed class GetThumbnailHandlerTests
             .ReturnsAsync(locator);
         _graphServiceMock
             .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, cts.Token))
-            .ReturnsAsync((GraphThumbnail?)null);
+            .ReturnsAsync(new GetThumbnailResult.NotFound());
 
         // Act
         await CreateHandler().Handle(Request(), cts.Token);

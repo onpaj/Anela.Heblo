@@ -42,16 +42,7 @@ public static class PhotobankModule
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
         var bypassJwtValidation = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, false);
 
-        if (!useMockAuth && !bypassJwtValidation)
-        {
-            services.AddHttpClient("MicrosoftGraph", _ => { })
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-            {
-                AllowAutoRedirect = true,
-            });
-            services.AddScoped<IPhotobankGraphService, PhotobankGraphService>();
-        }
-        else
+        if (useMockAuth || bypassJwtValidation)
         {
             services.AddScoped<IPhotobankGraphService, MockPhotobankGraphService>();
         }

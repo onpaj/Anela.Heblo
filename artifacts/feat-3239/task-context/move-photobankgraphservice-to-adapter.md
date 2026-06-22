@@ -1,10 +1,32 @@
+### task: move-photobankgraphservice-to-adapter
+
+Create the real Graph implementation in the adapter project, then delete the original file. The implementation itself does not change — only the namespace changes and the throttle logic now returns a `GetThumbnailResult` instead of throwing.
+
+**Files:**
+- `backend/src/Adapters/Anela.Heblo.Adapters.Microsoft365/Photobank/PhotobankGraphService.cs` (**create**)
+- `backend/src/Anela.Heblo.Application/Features/Photobank/Services/PhotobankGraphService.cs` (**delete**)
+
+**Steps:**
+
+1. Create the directory `backend/src/Adapters/Anela.Heblo.Adapters.Microsoft365/Photobank/` (it does not exist yet).
+
+2. Create `PhotobankGraphService.cs` in that directory with the content below. Key differences from the original:
+   - Namespace: `Anela.Heblo.Adapters.Microsoft365.Photobank` (not `Anela.Heblo.Application.Features.Photobank.Services`)
+   - Add `using Anela.Heblo.Application.Features.Photobank.Services;` to pull in the interface and shared types
+   - `GetThumbnailAsync` returns `Task<GetThumbnailResult>` and replaces the two `throw` sites with `return` of the appropriate DU case
+   - Remove `GraphThrottledException` — it no longer exists
+   - Catch `HttpRequestException` and `MsalException` inside the service and wrap in DU cases (these are infrastructure concerns the service owns)
+
+```csharp
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
 
-namespace Anela.Heblo.Application.Features.Photobank.Services;
+namespace Anela.Heblo.Adapters.Microsoft365.Photobank;
 
 /// <summary>
 /// Microsoft Graph implementation of IPhotobankGraphService.
@@ -55,7 +77,6 @@ public class PhotobankGraphService : IPhotobankGraphService
         var items = new List<GraphPhotoItem>();
         string newDeltaLink = string.Empty;
 
-        // First request: use deltaLink if available, otherwise start a fresh delta query
         string nextUrl = string.IsNullOrEmpty(deltaLink)
             ? $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{Uri.EscapeDataString(rootItemId)}/delta"
             : deltaLink;
@@ -100,7 +121,6 @@ public class PhotobankGraphService : IPhotobankGraphService
 
     private static GraphPhotoItem? MapItem(GraphDeltaItem item, string driveId)
     {
-        // Deleted items — include them so the job can remove from DB
         if (item.Deleted != null)
         {
             return new GraphPhotoItem
@@ -113,17 +133,13 @@ public class PhotobankGraphService : IPhotobankGraphService
             };
         }
 
-        // Skip folders (file facet absent or folder facet present)
         if (item.File is null || item.Folder is not null)
             return null;
 
-        // Only index allowed image extensions
         var ext = Path.GetExtension(item.Name ?? string.Empty);
         if (!AllowedExtensions.Contains(ext))
             return null;
 
-        // Extract folder path from parentReference.path
-        // Graph path looks like: /drives/{driveId}/root:/Fotky/Produkty
         var folderPath = string.Empty;
         if (!string.IsNullOrEmpty(item.ParentReference?.Path))
         {
@@ -149,13 +165,22 @@ public class PhotobankGraphService : IPhotobankGraphService
         };
     }
 
-    public async Task<GraphThumbnail?> GetThumbnailAsync(
+    public async Task<GetThumbnailResult> GetThumbnailAsync(
         string driveId,
         string fileId,
         ThumbnailSize size,
         CancellationToken cancellationToken = default)
     {
-        var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
+        string token;
+        try
+        {
+            token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
+        }
+        catch (MsalException ex)
+        {
+            return new GetThumbnailResult.AuthUnavailable(ex);
+        }
+
         var sizeSegment = size switch
         {
             ThumbnailSize.Medium => "medium",
@@ -164,50 +189,66 @@ public class PhotobankGraphService : IPhotobankGraphService
         };
         var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{Uri.EscapeDataString(fileId)}/thumbnails/0/{sizeSegment}/content";
 
-        var client = _httpClientFactory.CreateClient("MicrosoftGraph");
-        var request = CreateRequest(HttpMethod.Get, url, token);
-        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            return null;
-
-        if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        HttpResponseMessage response;
+        try
         {
-            TimeSpan? retryAfter = null;
-            if (response.Headers.TryGetValues("Retry-After", out var values))
+            var client = _httpClientFactory.CreateClient("MicrosoftGraph");
+            var request = CreateRequest(HttpMethod.Get, url, token);
+            response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        }
+        catch (HttpRequestException ex)
+        {
+            return new GetThumbnailResult.UpstreamError(ex);
+        }
+
+        using (response)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return new GetThumbnailResult.NotFound();
+
+            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
             {
-                var headerValue = values.FirstOrDefault();
-                if (headerValue != null && int.TryParse(headerValue, out var seconds))
-                    retryAfter = TimeSpan.FromSeconds(seconds);
+                TimeSpan? retryAfter = null;
+                if (response.Headers.TryGetValues("Retry-After", out var values))
+                {
+                    var headerValue = values.FirstOrDefault();
+                    if (headerValue != null && int.TryParse(headerValue, out var seconds))
+                        retryAfter = TimeSpan.FromSeconds(seconds);
+                }
+
+                return new GetThumbnailResult.Throttled(retryAfter);
             }
 
-            throw new GraphThrottledException(retryAfter);
+            if (!response.IsSuccessStatusCode
+                && response.StatusCode is not System.Net.HttpStatusCode.NotFound
+                && response.StatusCode is not System.Net.HttpStatusCode.TooManyRequests)
+            {
+                _logger.LogWarning(
+                    "Graph thumbnail request returned {StatusCode} for drive {DriveId} item {FileId}. URL: {Url}",
+                    (int)response.StatusCode, driveId, fileId, url);
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotAcceptable)
+                return new GetThumbnailResult.NotFound();
+
+            try
+            {
+                response.EnsureSuccessStatusCode();
+            }
+            catch (HttpRequestException ex)
+            {
+                return new GetThumbnailResult.UpstreamError(ex);
+            }
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+            var contentLength = response.Content.Headers.ContentLength;
+
+            var ms = new MemoryStream();
+            await response.Content.CopyToAsync(ms, cancellationToken);
+            ms.Position = 0;
+
+            return new GetThumbnailResult.Success(new GraphThumbnail(ms, contentType, contentLength));
         }
-
-        // Log a warning for any 4xx that is not 404 (already handled) or 429 (already handled).
-        if (!response.IsSuccessStatusCode
-            && response.StatusCode is not System.Net.HttpStatusCode.NotFound
-            && response.StatusCode is not System.Net.HttpStatusCode.TooManyRequests)
-        {
-            _logger.LogWarning(
-                "Graph thumbnail request returned {StatusCode} for drive {DriveId} item {FileId}. URL: {Url}",
-                (int)response.StatusCode, driveId, fileId, url);
-        }
-
-        // 406 means the item cannot be thumbnailed (permanent). Surface as null → 404 to caller.
-        if (response.StatusCode == System.Net.HttpStatusCode.NotAcceptable)
-            return null;
-
-        response.EnsureSuccessStatusCode();
-
-        var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
-        var contentLength = response.Content.Headers.ContentLength;
-
-        var ms = new MemoryStream();
-        await response.Content.CopyToAsync(ms, cancellationToken);
-        ms.Position = 0;
-
-        return new GraphThumbnail(ms, contentType, contentLength);
     }
 
     public async Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken cancellationToken = default)
@@ -242,14 +283,12 @@ public class PhotobankGraphService : IPhotobankGraphService
             ?? throw new InvalidOperationException($"Graph response deserialised to null for {typeof(T).Name}.");
     }
 
-    // Internal DTOs for Graph API response deserialization
     private class GraphItemWithId
     {
         [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
     }
 
-    // Internal DTOs for Graph delta API response deserialization
     private class GraphDeltaPage
     {
         [JsonPropertyName("value")]
@@ -319,3 +358,19 @@ public class PhotobankGraphService : IPhotobankGraphService
         public string? State { get; set; }
     }
 }
+```
+
+3. Delete the old file:
+
+```
+rm backend/src/Anela.Heblo.Application/Features/Photobank/Services/PhotobankGraphService.cs
+```
+
+4. Build the adapter project to confirm it compiles:
+
+```
+dotnet build backend/src/Adapters/Anela.Heblo.Adapters.Microsoft365/Anela.Heblo.Adapters.Microsoft365.csproj
+```
+
+---
+

@@ -18,14 +18,34 @@ public sealed class GraphThumbnail : IDisposable
     public void Dispose() => Content.Dispose();
 }
 
-public sealed class GraphThrottledException : Exception
+public abstract class GetThumbnailResult
 {
-    public TimeSpan? RetryAfter { get; }
+    private GetThumbnailResult() { }
 
-    public GraphThrottledException(TimeSpan? retryAfter)
-        : base("Microsoft Graph API rate limit exceeded (HTTP 429).")
+    public sealed class Success : GetThumbnailResult
     {
-        RetryAfter = retryAfter;
+        public GraphThumbnail Thumbnail { get; }
+        public Success(GraphThumbnail thumbnail) => Thumbnail = thumbnail;
+    }
+
+    public sealed class NotFound : GetThumbnailResult { }
+
+    public sealed class Throttled : GetThumbnailResult
+    {
+        public TimeSpan? RetryAfter { get; }
+        public Throttled(TimeSpan? retryAfter) => RetryAfter = retryAfter;
+    }
+
+    public sealed class UpstreamError : GetThumbnailResult
+    {
+        public Exception Cause { get; }
+        public UpstreamError(Exception cause) => Cause = cause;
+    }
+
+    public sealed class AuthUnavailable : GetThumbnailResult
+    {
+        public Exception Cause { get; }
+        public AuthUnavailable(Exception cause) => Cause = cause;
     }
 }
 
@@ -51,5 +71,5 @@ public interface IPhotobankGraphService
 {
     Task<GraphDeltaResult> GetDeltaAsync(string driveId, string rootItemId, string? deltaLink, CancellationToken cancellationToken = default);
     Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken cancellationToken = default);
-    Task<GraphThumbnail?> GetThumbnailAsync(string driveId, string fileId, ThumbnailSize size, CancellationToken cancellationToken = default);
+    Task<GetThumbnailResult> GetThumbnailAsync(string driveId, string fileId, ThumbnailSize size, CancellationToken cancellationToken = default);
 }
