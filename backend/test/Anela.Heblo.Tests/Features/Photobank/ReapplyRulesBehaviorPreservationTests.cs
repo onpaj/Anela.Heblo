@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Application.Features.Photobank;
+using Anela.Heblo.Persistence.Photobank;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules;
 using Anela.Heblo.Domain.Features.Photobank;

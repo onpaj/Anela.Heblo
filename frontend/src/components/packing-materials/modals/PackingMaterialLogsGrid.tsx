@@ -1,5 +1,5 @@
 import React from 'react';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { PackingMaterialLogDto, LogEntryType } from '../../../api/hooks/usePackingMaterials';
 
@@ -8,22 +8,23 @@ interface PackingMaterialLogsGridProps {
 }
 
 const PackingMaterialLogsGrid: React.FC<PackingMaterialLogsGridProps> = ({ logs }) => {
-  const formatQuantity = (quantity: number) => {
+  const formatQuantity = (quantity: number | undefined) => {
+    if (quantity === undefined) return '';
     return quantity.toLocaleString('cs-CZ', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
     });
   };
 
-  const formatDate = (dateString: string) => {
-    return format(parseISO(dateString), 'dd.MM.yyyy', { locale: cs });
+  const formatDate = (date: Date | undefined) => {
+    return date ? format(date, 'dd.MM.yyyy', { locale: cs }) : '';
   };
 
-  const formatDateTime = (dateString: string) => {
-    return format(parseISO(dateString), 'dd.MM.yyyy HH:mm', { locale: cs });
+  const formatDateTime = (date: Date | undefined) => {
+    return date ? format(date, 'dd.MM.yyyy HH:mm', { locale: cs }) : '';
   };
 
-  const getLogTypeColor = (type: LogEntryType) => {
+  const getLogTypeColor = (type: LogEntryType | undefined) => {
     switch (type) {
       case LogEntryType.Manual:
         return 'bg-green-100 text-green-800';
@@ -34,7 +35,8 @@ const PackingMaterialLogsGrid: React.FC<PackingMaterialLogsGridProps> = ({ logs 
     }
   };
 
-  const getChangeAmountColor = (change: number) => {
+  const getChangeAmountColor = (change: number | undefined) => {
+    if (change === undefined) return 'text-gray-600';
     if (change > 0) return 'text-green-600';
     if (change < 0) return 'text-red-600';
     return 'text-gray-600';
@@ -88,7 +90,7 @@ const PackingMaterialLogsGrid: React.FC<PackingMaterialLogsGridProps> = ({ logs 
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <span className={getChangeAmountColor(log.changeAmount)}>
-                    {log.changeAmount > 0 ? '+' : ''}{formatQuantity(log.changeAmount)}
+                    {(log.changeAmount ?? 0) > 0 ? '+' : ''}{formatQuantity(log.changeAmount)}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

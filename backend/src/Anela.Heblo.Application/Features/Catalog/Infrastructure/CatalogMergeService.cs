@@ -110,14 +110,16 @@ public sealed class CatalogMergeService
         var inQuarantineData = _cacheStore.GetInQuarantineData();
         var orderedData = _cacheStore.GetOrderedData();
         var plannedData = _cacheStore.GetPlannedData();
-        var salesData = _cacheStore.GetSalesData();
+        var salesMap = _cacheStore.GetSalesData()
+            .GroupBy(s => s.ProductCode)
+            .ToDictionary(k => k.Key, v => v.ToList());
         var manufactureDifficultyData = _cacheStore.GetManufactureDifficultySettingsData();
 
         // Merge data into each product
         foreach (var product in products)
         {
             MergeErpData(product, erpProductsMap);
-            MergeSalesHistory(product, salesData);
+            MergeSalesHistory(product, salesMap);
             MergeAttributes(product, attributesMap);
             MergeStockData(product, inTransportData, manufacturedData, inReserveData, inQuarantineData, orderedData, plannedData);
             MergeEshopData(product, eshopProductsMap);
@@ -153,9 +155,12 @@ public sealed class CatalogMergeService
         }
     }
 
-    private static void MergeSalesHistory(CatalogAggregate product, IList<CatalogSaleRecord> salesData)
+    private static void MergeSalesHistory(
+        CatalogAggregate product,
+        IDictionary<string, List<CatalogSaleRecord>> salesMap)
     {
-        product.SalesHistory = salesData.Where(w => w.ProductCode == product.ProductCode).ToList();
+        if (salesMap.TryGetValue(product.ProductCode, out var sales))
+            product.SalesHistory = sales.ToList();
     }
 
     private static void MergeAttributes(CatalogAggregate product, IDictionary<string, CatalogAttributes> attributesMap)

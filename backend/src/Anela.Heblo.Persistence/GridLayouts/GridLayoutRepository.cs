@@ -40,7 +40,11 @@ public class GridLayoutRepository : IGridLayoutRepository
 
     public async Task UpsertAsync(string userId, string gridKey, string layoutJson, CancellationToken cancellationToken = default)
     {
-        var lastModified = _timeProvider.GetUtcNow().DateTime;
+        // Npgsql rejects DateTime with Kind != Utc on 'timestamptz' columns (Npgsql 6+).
+        // Although GridLayouts.LastModified maps to 'timestamp' (without time zone),
+        // GetUtcNow().UtcDateTime is used here for semantic correctness and to be safe
+        // if the column type is ever changed to 'timestamptz'.
+        var lastModified = _timeProvider.GetUtcNow().UtcDateTime;
 
         try
         {
