@@ -21,16 +21,16 @@
       "updated_at": "2026-06-22T16:17:55.405114Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-22T16:17:59.216017Z"
+      "status": "completed",
+      "updated_at": "2026-06-22T16:22:19.736571Z"
     }
   },
   "tasks": [
     {
       "name": "write-validator-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-22T16:17:59.429663Z"
+      "updated_at": "2026-06-22T16:22:19.520334Z"
     }
   ]
 }
