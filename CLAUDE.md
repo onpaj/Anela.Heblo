@@ -34,7 +34,7 @@ Read the relevant doc **before** implementation work touches that area. No archi
 - `docs/testing/e2e-module-guide.md` — module boundaries for parallel E2E execution
 
 **Integrations**
-- `docs/integrations/mcp-server.md` — MCP tools, endpoints, client config (15 tools)
+- `docs/integrations/mcp-server.md` — MCP tools, endpoints, client config (16 tools)
 - `docs/integrations/shoptet-api.md` — Shoptet REST API findings
 
 **Features** — `docs/features/` has per-feature specs.

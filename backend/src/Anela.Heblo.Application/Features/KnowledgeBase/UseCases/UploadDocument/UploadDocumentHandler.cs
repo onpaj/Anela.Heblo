@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
-using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
+using Anela.Heblo.Application.Features.KnowledgeBase.Contracts;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.IndexDocument;
 using Anela.Heblo.Application.Shared;
 using MediatR;

@@ -116,10 +116,8 @@ public class ModuleBoundariesTests
     };
 
     // Allowlist for Catalog -> Manufacture. Pre-existing handler-level IManufactureClient injections
-    // and ManufactureHistoryRecord return-type leak from CatalogRepository/ICatalogManufactureSource
     // are out of scope for the 2026-06-01 CatalogRepository decoupling. Track as follow-ups:
     //   - Migrate the three handlers off IManufactureClient onto a Catalog-owned contract.
-    //   - Introduce a Catalog-owned CatalogManufactureHistoryRecord DTO and map in the adapter.
     private static readonly HashSet<string> CatalogManufactureAllowlist = new(StringComparer.Ordinal)
     {
         // Follow-up: migrate UpdateProductCompositionOrderHandler off IManufactureClient.
@@ -130,20 +128,6 @@ public class ModuleBoundariesTests
 
         // Follow-up: migrate GetProductUsageHandler off IManufactureClient.
         "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage.GetProductUsageHandler -> Anela.Heblo.Domain.Features.Manufacture.IManufactureClient",
-
-        // Deliberate pragmatic leak: ManufactureHistoryRecord flows through Catalog's cache layer.
-        // All entries below are tracked under the same follow-up: introduce Catalog-owned
-        // CatalogManufactureHistoryRecord DTO and map in the ManufactureCatalogSourceAdapter.
-        "Anela.Heblo.Application.Features.Catalog.CatalogRepository -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        "Anela.Heblo.Application.Features.Catalog.Contracts.ICatalogManufactureSource -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogCacheStore -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogDataRefreshService -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogMergeService -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        // Cost providers in Catalog.CostProviders compute costs from ManufactureHistoryRecord.
-        "Anela.Heblo.Application.Features.Catalog.CostProviders.FlatManufactureCostProvider -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        "Anela.Heblo.Application.Features.Catalog.CostProviders.ManufactureBasedMaterialCostProvider -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        // GetCatalogDetailHandler maps ManufactureHistoryRecord from CatalogAggregate into response DTOs.
-        "Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail.GetCatalogDetailHandler -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
 
         // GetProductUsageResponse holds ManufactureTemplate in its payload.
         // Follow-up: introduce Catalog-owned ManufactureTemplateDto.
@@ -265,6 +249,16 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingType",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.ManufactureStockTakingHistoryItemDto -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingType",
+
+        // ManufactureCatalogSourceAdapter produces CatalogManufactureRecord (the Catalog-owned DTO)
+        // in its GetManufactureHistoryAsync return type. IProductionActivityAnalyzer and
+        // ProductionActivityAnalyzer consume CatalogManufactureRecord as method parameters.
+        // These are deliberate: the adapter is the mapping boundary and the analyzer is a Manufacture
+        // service that operates on the mapped type. Track removal under the same ProductCatalogSnapshot
+        // follow-up: once a Manufacture-owned projection is introduced, remove these entries.
+        "Anela.Heblo.Application.Features.Manufacture.Infrastructure.ManufactureCatalogSourceAdapter -> Anela.Heblo.Domain.Features.Catalog.ManufactureHistory.CatalogManufactureRecord",
+        "Anela.Heblo.Application.Features.Manufacture.Services.IProductionActivityAnalyzer -> Anela.Heblo.Domain.Features.Catalog.ManufactureHistory.CatalogManufactureRecord",
+        "Anela.Heblo.Application.Features.Manufacture.Services.ProductionActivityAnalyzer -> Anela.Heblo.Domain.Features.Catalog.ManufactureHistory.CatalogManufactureRecord",
     };
 
     // Allowlist for ExpeditionList -> Logistics.
@@ -706,18 +700,17 @@ public class ModuleBoundariesTests
     [Fact]
     public void Domain_must_not_reference_Application_and_relocated_invoice_types_must_be_gone()
     {
-        // NFR-6: after relocating IssuedInvoiceFilters, PaginatedResult<T>, and
-        // IIssuedInvoiceRepository out of Domain, the Domain assembly must
+        // NFR-6: after relocating PaginatedResult<T> out of Domain, the Domain assembly must
         // (a) not reference any Anela.Heblo.Application.* type, and
-        // (b) not contain types with the three relocated names anywhere under
-        // Anela.Heblo.Domain.Features.Invoices.
+        // (b) not contain PaginatedResult<T> anywhere under Anela.Heblo.Domain.Features.Invoices.
+        // Note: IIssuedInvoiceRepository and IssuedInvoiceFilters were intentionally moved
+        // INTO Domain (from Persistence) by PR #3212 to fix the Clean Architecture dependency
+        // inversion — repository interfaces belong in Domain, not in Persistence.
         const string DomainNamespacePrefix = "Anela.Heblo.Domain";
         const string ForbiddenPrefix = "Anela.Heblo.Application";
         var relocatedTypeNames = new HashSet<string>(StringComparer.Ordinal)
         {
-            "IssuedInvoiceFilters",
             "PaginatedResult`1",
-            "IIssuedInvoiceRepository",
         };
 
         var assembly = Assembly.Load("Anela.Heblo.Domain");

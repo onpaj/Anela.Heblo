@@ -56,7 +56,7 @@ const ConsumptionHistoryTab: React.FC = () => {
       dateFrom: dateFromInput || undefined,
       dateTo: dateToInput || undefined,
       packingMaterialId: materialInput ? Number(materialInput) : undefined,
-      consumptionType: typeInput ? (Number(typeInput) as ConsumptionType) : undefined,
+      consumptionType: typeInput ? (typeInput as ConsumptionType) : undefined,
       productCode: productCodeInput || undefined,
       invoiceId: invoiceIdInput || undefined,
     });

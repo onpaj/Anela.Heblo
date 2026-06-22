@@ -4,7 +4,7 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 
 ## Available Tools
 
-**Catalog (7)**
+**Catalog (8)**
 - `GetCatalogList` — list products with filtering/pagination
 - `GetCatalogDetail` — detailed product information
 - `GetProductComposition` — product composition/ingredients
@@ -12,6 +12,7 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `GetAutocomplete` — product search for autocomplete
 - `GetProductUsage` — product usage in compositions
 - `GetWarehouseStatistics` — warehouse statistics
+- `GetProductMargins` — product margins (M0/M1/M2 + monthly history); requires the Products_ProductMargins permission
 
 **Manufacture Orders (3)**
 - `GetManufactureOrders` — list manufacture orders with filtering

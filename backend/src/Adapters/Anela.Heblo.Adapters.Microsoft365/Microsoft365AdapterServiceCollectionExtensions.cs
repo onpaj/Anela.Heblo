@@ -1,4 +1,6 @@
+using Anela.Heblo.Adapters.Microsoft365.Photobank;
 using Anela.Heblo.Application.Features.Marketing.Services;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Domain.Features.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +19,12 @@ public static class Microsoft365AdapterServiceCollectionExtensions
         if (!useMockAuth && !bypassJwt)
         {
             services.AddScoped<IOutlookCalendarSync, OutlookCalendarSyncService>();
+            services.AddHttpClient("MicrosoftGraph", _ => { })
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    AllowAutoRedirect = true,
+                });
+            services.AddScoped<IPhotobankGraphService, PhotobankGraphService>();
         }
 
         return services;

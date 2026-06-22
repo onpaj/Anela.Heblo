@@ -1,0 +1,36 @@
+{
+  "feature_id": "feat-3192",
+  "issue_number": 3192,
+  "created_at": "2026-06-19T16:14:57.164711Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-19T16:17:36.567645Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-19T16:20:39.839647Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-19T16:21:47.967811Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-19T16:24:08.080211Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-19T16:34:44.251768Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "create-adapter-project",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-19T16:34:38.786850Z"
+    }
+  ]
+}

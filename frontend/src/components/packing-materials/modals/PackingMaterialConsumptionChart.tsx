@@ -8,7 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { PackingMaterialLogDto, LogEntryType } from '../../../api/hooks/usePackingMaterials';
 
@@ -17,7 +17,7 @@ interface PackingMaterialConsumptionChartProps {
 }
 
 interface ChartDataPoint {
-  date: string;
+  date: Date;
   displayDate: string;
   newQuantity: number;
   changeAmount: number;
@@ -31,27 +31,23 @@ const PackingMaterialConsumptionChart: React.FC<PackingMaterialConsumptionChartP
     if (!data || data.length === 0) return [];
 
     // Sort data by date
-    const sortedData = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const sortedData = [...data].sort((a, b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0));
 
-    return sortedData.map((item) => {
-      const parsedDate = parseISO(item.date);
-      
-      return {
-        date: item.date,
-        displayDate: format(parsedDate, 'dd.MM.', { locale: cs }),
-        newQuantity: item.newQuantity,
-        changeAmount: item.changeAmount,
-        logType: item.logType,
-        logTypeText: item.logTypeText,
-      };
-    });
+    return sortedData.map((item) => ({
+      date: item.date ?? new Date(0),
+      displayDate: format(item.date ?? new Date(0), 'dd.MM.', { locale: cs }),
+      newQuantity: item.newQuantity ?? 0,
+      changeAmount: item.changeAmount ?? 0,
+      logType: item.logType!,
+      logTypeText: item.logTypeText ?? '',
+    }));
   }, [data]);
 
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
-      const fullDate = format(parseISO(data.date), 'dd. MMMM yyyy', { locale: cs });
+      const fullDate = format(data.date, 'dd. MMMM yyyy', { locale: cs });
       
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">

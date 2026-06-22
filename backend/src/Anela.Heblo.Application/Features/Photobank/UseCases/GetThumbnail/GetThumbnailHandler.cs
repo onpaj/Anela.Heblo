@@ -1,10 +1,7 @@
-using System.Net.Http;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Photobank;
 using MediatR;
-using Microsoft.Extensions.Logging;
-using Microsoft.Identity.Client;
 
 namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetThumbnail
 {
@@ -12,16 +9,13 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetThumbnail
     {
         private readonly IPhotobankRepository _repository;
         private readonly IPhotobankGraphService _graphService;
-        private readonly ILogger<GetThumbnailHandler> _logger;
 
         public GetThumbnailHandler(
             IPhotobankRepository repository,
-            IPhotobankGraphService graphService,
-            ILogger<GetThumbnailHandler> logger)
+            IPhotobankGraphService graphService)
         {
             _repository = repository;
             _graphService = graphService;
-            _logger = logger;
         }
 
         public async Task<GetThumbnailResponse> Handle(
@@ -34,46 +28,27 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetThumbnail
                 return new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailNotFound);
             }
 
-            GraphThumbnail? rawThumbnail;
-            try
+            var thumbnailResult = await _graphService.GetThumbnailAsync(
+                locator.DriveId, locator.SharePointFileId, request.Size, cancellationToken);
+
+            return thumbnailResult switch
             {
-                rawThumbnail = await _graphService.GetThumbnailAsync(
-                    locator.DriveId, locator.SharePointFileId, request.Size, cancellationToken);
-            }
-            catch (GraphThrottledException ex)
-            {
-                _logger.LogWarning("Microsoft Graph thumbnail request throttled for photo {PhotoId}. RetryAfter: {RetryAfter}",
-                    request.Id, ex.RetryAfter);
-                return new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailThrottled)
+                GetThumbnailResult.Success ok => new GetThumbnailResponse
                 {
-                    RetryAfterSeconds = ex.RetryAfter.HasValue
-                        ? (int)Math.Ceiling(ex.RetryAfter.Value.TotalSeconds)
+                    Content = ok.Thumbnail.Content,
+                    ContentType = ok.Thumbnail.ContentType,
+                    ContentLength = ok.Thumbnail.ContentLength,
+                },
+                GetThumbnailResult.NotFound => new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailNotFound),
+                GetThumbnailResult.Throttled throttled => new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailThrottled)
+                {
+                    RetryAfterSeconds = throttled.RetryAfter.HasValue
+                        ? (int)Math.Ceiling(throttled.RetryAfter.Value.TotalSeconds)
                         : null,
-                };
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogWarning(ex, "Upstream HTTP error fetching thumbnail for photo {PhotoId}", request.Id);
-                return new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailUpstream);
-            }
-            catch (MsalException ex)
-            {
-                _logger.LogError(ex, "Token acquisition failed for thumbnail {PhotoId}. MSAL error: {ErrorCode}", request.Id, ex.ErrorCode);
-                return new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailAuthUnavailable);
-            }
-
-            if (rawThumbnail is null)
-            {
-                return new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailNotFound);
-            }
-
-            // NFR-3: transfer stream ownership to the response. Do NOT dispose rawThumbnail
-            // (GraphThumbnail.Dispose() closes the underlying Stream); FileStreamResult disposes it after writing.
-            return new GetThumbnailResponse
-            {
-                Content = rawThumbnail.Content,
-                ContentType = rawThumbnail.ContentType,
-                ContentLength = rawThumbnail.ContentLength,
+                },
+                GetThumbnailResult.UpstreamError => new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailUpstream),
+                GetThumbnailResult.AuthUnavailable => new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailAuthUnavailable),
+                _ => throw new InvalidOperationException($"Unhandled GetThumbnailResult: {thumbnailResult.GetType().Name}"),
             };
         }
     }

@@ -379,6 +379,49 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("RecurringJobConfigurations", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Bank.BankImportState", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("Id");
+
+                    b.Property<string>("Account")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("Account");
+
+                    b.Property<int>("ConsecutiveFailureCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("ConsecutiveFailureCount");
+
+                    b.Property<string>("LastErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("LastErrorMessage");
+
+                    b.Property<DateTime?>("LastRunFinishedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("LastRunFinishedAt");
+
+                    b.Property<DateTime?>("LastRunStartedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("LastRunStartedAt");
+
+                    b.Property<string>("LastRunStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("LastRunStatus");
+
+                    b.Property<DateTime?>("LastValidImportDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("LastValidImportDate");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BankImportStates", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Bank.BankStatementImport", b =>
                 {
                     b.Property<int>("Id")

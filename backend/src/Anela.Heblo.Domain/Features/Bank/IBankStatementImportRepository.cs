@@ -12,4 +12,13 @@ public interface IBankStatementImportRepository
 
     Task<BankStatementImport?> GetByIdAsync(int id);
     Task<BankStatementImport> AddAsync(BankStatementImport bankStatement);
+
+    Task<IReadOnlyDictionary<string, string>> GetExistingTransfersAsync(
+        string account, DateTime dateFrom, DateTime dateTo, CancellationToken cancellationToken = default);
+
+    Task<DateTime?> GetMaxStatementDateAsync(string account, CancellationToken cancellationToken = default);
+
+    Task<BankStatementImport?> GetByTransferIdAsync(string transferId, CancellationToken cancellationToken = default);
+
+    Task<BankStatementImport> UpdateAsync(BankStatementImport bankStatement);
 }
