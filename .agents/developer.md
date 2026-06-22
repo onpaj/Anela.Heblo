@@ -11,7 +11,7 @@ allowed_tools:
   - task
 output_format: markdown
 visibility_timeout: 7200
-retry_limit: 1
+retry_limit: 2
 output_parsing: none
 context_files:
   - ~/.claude/plugins/cache/superpowers-marketplace/superpowers/*/skills/subagent-driven-development/SKILL.md
@@ -31,7 +31,30 @@ A single task context file containing:
 
 ## Execution
 
-Follow the subagent-driven-development skill exactly: read the task context, then per task dispatch implementer → spec compliance reviewer → code quality reviewer. Do not advance until both reviewers pass.
+You run **non-interactively** inside an automated pipeline. The current working
+directory is already a checkout of the feature branch — every change you make
+must land *there*, on the branch that is already checked out. The pipeline
+commits and pushes that branch and opens the PR for you.
+
+Follow the subagent-driven-development skill for the implement→review loop: read
+the task context, then per task dispatch implementer → spec compliance reviewer →
+code quality reviewer. Do not advance until both reviewers pass.
+
+**Hard constraints — these OVERRIDE anything a skill tells you to do:**
+
+1. **Do NOT create a git worktree, do NOT create a new branch, and do NOT switch
+   branches.** Implement directly in the current working directory on the branch
+   that is already checked out. Creating a worktree or branch puts your code
+   somewhere the pipeline never sees, so it silently vanishes from the PR.
+2. **Commit your work to the current branch.** After each task passes review, run
+   `git add -A && git commit` on the current branch so the code is part of the
+   branch history. Never leave the implementation only on a separate branch.
+3. **Do NOT run the `finishing-a-development-branch` skill and do NOT ask whether
+   to merge, push, or open a PR.** There is no human to answer — the pipeline
+   handles merging and PR creation. Stop as soon as your code is committed on the
+   current branch, then write the output summary below.
+4. **Never wait for interactive input.** If a skill would prompt you with a menu
+   or a question, take the non-interactive path (commit in place) and continue.
 
 ## When you receive review feedback (revision round)
 

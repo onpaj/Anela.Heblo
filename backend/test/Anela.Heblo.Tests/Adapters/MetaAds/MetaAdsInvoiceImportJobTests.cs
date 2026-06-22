@@ -21,7 +21,7 @@ public class MetaAdsInvoiceImportJobTests
     [Fact]
     public async Task ExecuteAsync_JobDisabled_DoesNotDispatch()
     {
-        _mockStatusChecker.Setup(c => c.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _mockStatusChecker.Setup(c => c.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), true)).ReturnsAsync(false);
         _mockMediator.Setup(m => m.Send(It.IsAny<ImportMarketingInvoicesRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ImportMarketingInvoicesResponse());
 
@@ -33,7 +33,7 @@ public class MetaAdsInvoiceImportJobTests
     [Fact]
     public async Task ExecuteAsync_JobEnabled_DispatchesMetaAdsRequestWithSevenDayWindow()
     {
-        _mockStatusChecker.Setup(c => c.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _mockStatusChecker.Setup(c => c.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), true)).ReturnsAsync(true);
         _mockMediator.Setup(m => m.Send(It.IsAny<ImportMarketingInvoicesRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ImportMarketingInvoicesResponse { Platform = "MetaAds", Imported = 3 });
 
@@ -51,7 +51,7 @@ public class MetaAdsInvoiceImportJobTests
     [Fact]
     public async Task ExecuteAsync_DispatchThrows_ExceptionIsRethrown()
     {
-        _mockStatusChecker.Setup(c => c.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _mockStatusChecker.Setup(c => c.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), true)).ReturnsAsync(true);
         _mockMediator.Setup(m => m.Send(It.IsAny<ImportMarketingInvoicesRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Meta API down"));
 

@@ -7,7 +7,7 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -264,10 +264,10 @@ public sealed class CatalogCacheStore
         SetLoadDateInCache(CachedPurchaseHistoryDataKey);
     }
 
-    public IList<ManufactureHistoryRecord> GetManufactureHistoryData() =>
-        _cache.Get<List<ManufactureHistoryRecord>>(CachedManufactureHistoryDataKey) ?? new List<ManufactureHistoryRecord>();
+    public IList<CatalogManufactureRecord> GetManufactureHistoryData() =>
+        _cache.Get<List<CatalogManufactureRecord>>(CachedManufactureHistoryDataKey) ?? new List<CatalogManufactureRecord>();
 
-    public void SetManufactureHistoryData(IList<ManufactureHistoryRecord> value)
+    public void SetManufactureHistoryData(IList<CatalogManufactureRecord> value)
     {
         _cache.Set(CachedManufactureHistoryDataKey, value);
         InvalidateSourceData(CachedManufactureHistoryDataKey);

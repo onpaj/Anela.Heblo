@@ -1,6 +1,6 @@
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Persistence;
-using Anela.Heblo.Application.Features.Photobank;
+using Anela.Heblo.Persistence.Photobank;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;

@@ -28,7 +28,7 @@ public class InvoiceDqtJobTests
     {
         // Arrange
         _statusCheckerMock
-            .Setup(s => s.IsJobEnabledAsync(_sut.Metadata.JobName, It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync(_sut.Metadata.JobName, It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
 
         var calls = new List<string>();
@@ -70,7 +70,7 @@ public class InvoiceDqtJobTests
     {
         // Arrange
         _statusCheckerMock
-            .Setup(s => s.IsJobEnabledAsync(_sut.Metadata.JobName, It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync(_sut.Metadata.JobName, It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(false);
 
         // Act
@@ -87,7 +87,7 @@ public class InvoiceDqtJobTests
     {
         // Arrange
         _statusCheckerMock
-            .Setup(s => s.IsJobEnabledAsync(_sut.Metadata.JobName, It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync(_sut.Metadata.JobName, It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
         _repositoryMock
             .Setup(r => r.AddAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()))

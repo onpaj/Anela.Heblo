@@ -64,7 +64,7 @@ agentharness submit brief.md
 This uploads the brief and returns a **feature ID**. Tell the user:
 - The feature ID (e.g. `feat-20260425-abc123`)
 - They can review/edit `brief.md` further before starting the pipeline
-- When ready to start: `/implement feat-20260425-abc123` or `agentharness implement feat-20260425-abc123`
+- When ready to start: run `/oneshot <issue-number>` to start the pipeline
 
 ## Tone
 

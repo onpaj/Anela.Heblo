@@ -21,7 +21,7 @@ public class FillTrackingNumbersJobTests
         var client = new Mock<IShipmentClient>();
         var statusChecker = new Mock<IRecurringJobStatusChecker>();
         statusChecker
-            .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(jobEnabled);
         var logger = NullLogger<FillTrackingNumbersJob>.Instance;
         var sut = new FillTrackingNumbersJob(repo.Object, client.Object, statusChecker.Object, logger);

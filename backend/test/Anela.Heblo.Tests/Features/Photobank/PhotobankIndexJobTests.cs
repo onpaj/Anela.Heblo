@@ -22,7 +22,7 @@ public class PhotobankIndexJobTests
         _statusCheckerMock = new Mock<IRecurringJobStatusChecker>();
 
         _statusCheckerMock
-            .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
 
         _job = new PhotobankIndexJob(
@@ -97,6 +97,10 @@ public class PhotobankIndexJobTests
             .Setup(r => r.GetOrCreateTagAsync("produkty", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tag);
 
+        _repoMock
+            .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
         PhotoTag? capturedPhotoTag = null;
         _repoMock
             .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
@@ -132,6 +136,92 @@ public class PhotobankIndexJobTests
 
         _repoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Once);
         _repoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpsertPhoto_WhenTagAlreadyExists_SkipsInsert()
+    {
+        // Arrange
+        var root = new PhotobankIndexRoot
+        {
+            Id = 1,
+            SharePointPath = "/sites/test/photos",
+            DriveId = "drive-1",
+            RootItemId = "root-item-1",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        var tagRule = new TagRule
+        {
+            PathPattern = "Fotky/Produkty",
+            TagName = "produkty",
+            IsActive = true,
+            SortOrder = 0,
+        };
+
+        var photoItem = new GraphPhotoItem
+        {
+            ItemId = "file-abc-123",
+            Name = "photo.jpg",
+            FolderPath = "Fotky/Produkty",
+            WebUrl = "https://sharepoint.example.com/photo.jpg",
+            FileSizeBytes = 1024,
+            LastModifiedAt = DateTime.UtcNow,
+            DriveId = "drive-1",
+            IsDeleted = false,
+        };
+
+        _repoMock
+            .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([root]);
+
+        _repoMock
+            .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([tagRule]);
+
+        _repoMock
+            .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-abc-123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Photo?)null);
+
+        _repoMock
+            .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        _repoMock
+            .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var tag = new Tag { Id = 42, Name = "produkty" };
+        _repoMock
+            .Setup(r => r.GetOrCreateTagAsync("produkty", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tag);
+
+        _repoMock
+            .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        _repoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _graphServiceMock
+            .Setup(g => g.GetDeltaAsync("drive-1", "root-item-1", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GraphDeltaResult
+            {
+                Items = [photoItem],
+                NewDeltaLink = "https://graph.microsoft.com/v1.0/drives/drive-1/items/root-item-1/delta?token=abc",
+            });
+
+        // Act
+        await _job.ExecuteAsync();
+
+        // Assert
+        _repoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

@@ -1,22 +1,33 @@
-# Plaud Token Auto-Refresh (Implemented 2026-05-28)
+# Plaud Token Auto-Refresh (Reactive — updated 2026-06-19)
 
-> **Status:** Implemented — weekly Hangfire job `plaud-token-refresh` rotates the token and
-> persists it to Key Vault `Plaud--TokensJson`. Job is disabled by default; enable via
-> Background Jobs admin UI after running the RBAC setup script.
+> **Status:** Implemented — token refresh is **reactive**. When any Plaud CLI call fails with
+> `AUTH_FAILED`, `PlaudCliClient` refreshes the token in-process, persists it to disk and (when
+> configured) Key Vault `Plaud--TokensJson`, then retries the call once. The previous standalone
+> weekly Hangfire job (`plaud-token-refresh`) has been **removed** — reactive refresh plus the
+> 5-minute `plaud-polling` job keeps the token alive and recovers within a single failed call.
 
 ## How It Works
 
-1. `PlaudTokenRefreshJob` (`backend/src/Adapters/Anela.Heblo.Adapters.Plaud/PlaudTokenRefreshJob.cs`)
-   runs weekly (Sunday 04:00 Europe/Prague, `0 4 * * 0`).
-2. Reads the current refresh token from `~/.plaud/tokens.json` on disk.
-3. Calls `PlaudTokenRefreshClient` → Plaud OAuth refresh endpoint.
-4. Validates the response: non-empty tokens, `expires_at` in the future. Throws if invalid — KV is
-   never overwritten with garbage.
-5. Writes new token JSON to disk first (with 0600 permissions), then to Key Vault `Plaud--TokensJson`.
-6. `PlaudTokenBootstrapper` picks up the fresh token on the next container restart via
-   `IConfiguration` (Key Vault is wired in Program.cs with 30-minute reload).
+1. A Plaud CLI invocation fails with `[AUTH_FAILED] Token invalid or expired`; `PlaudCliClient`
+   (`backend/src/Adapters/Anela.Heblo.Adapters.Plaud/PlaudCliClient.cs`) catches the resulting
+   `PlaudAuthExpiredException`.
+2. It calls `PlaudTokenRefresher` (`PlaudTokenRefresher.cs`), which:
+   - Reads the current refresh token from `~/.plaud/tokens.json` on disk.
+   - Calls `PlaudTokenRefreshClient` → Plaud OAuth refresh endpoint.
+   - Validates the response: non-empty tokens, `expires_at` in the future. Throws if invalid — disk
+     and KV are never overwritten with garbage.
+   - Writes new token JSON to disk first (0600 permissions), then to Key Vault `Plaud--TokensJson`
+     **best-effort** (a KV failure is logged, not thrown — disk already healed the running process).
+   - A `SemaphoreSlim` serializes concurrent refreshes so overlapping CLI calls don't double-refresh.
+3. `PlaudCliClient` retries the CLI call once. A second `AUTH_FAILED` (refresh token itself stale)
+   propagates as `PlaudAuthExpiredException` and fires the Azure Monitor alert.
+4. `PlaudTokenBootstrapper` re-seeds `~/.plaud/tokens.json` from Key Vault on the next container
+   restart, so the KV-persisted token survives restarts.
 
-**RBAC setup (once per env):**
+The refresh HTTP client is registered unconditionally; Key Vault persistence is wired only when
+`KeyVault:Uri` is set (production/staging). In local dev the refresher writes disk only.
+
+**RBAC setup (once per env)** — still required so the app's managed identity can write the KV secret:
 ```bash
 ./scripts/grant-plaud-token-refresh-permission.sh stg
 ./scripts/grant-plaud-token-refresh-permission.sh stg --phase=cleanup  # after verified

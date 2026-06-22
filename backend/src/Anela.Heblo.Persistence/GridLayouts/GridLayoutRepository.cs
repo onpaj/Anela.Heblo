@@ -40,28 +40,23 @@ public class GridLayoutRepository : IGridLayoutRepository
 
     public async Task UpsertAsync(string userId, string gridKey, string layoutJson, CancellationToken cancellationToken = default)
     {
+        // Npgsql rejects DateTime with Kind != Utc on 'timestamptz' columns (Npgsql 6+).
+        // Although GridLayouts.LastModified maps to 'timestamp' (without time zone),
+        // GetUtcNow().UtcDateTime is used here for semantic correctness and to be safe
+        // if the column type is ever changed to 'timestamptz'.
+        var lastModified = _timeProvider.GetUtcNow().UtcDateTime;
+
         try
         {
-            var existing = await _context.GridLayouts
-                .FirstOrDefaultAsync(x => x.UserId == userId && x.GridKey == gridKey, cancellationToken);
-
-            if (existing is not null)
-            {
-                existing.LayoutJson = layoutJson;
-                existing.LastModified = _timeProvider.GetUtcNow().DateTime;
-            }
-            else
-            {
-                _context.GridLayouts.Add(new GridLayout
-                {
-                    UserId = userId,
-                    GridKey = gridKey,
-                    LayoutJson = layoutJson,
-                    LastModified = _timeProvider.GetUtcNow().DateTime
-                });
-            }
-
-            await _context.SaveChangesAsync(cancellationToken);
+            // Raw SQL: column list must match the EF mapping in GridLayoutConfiguration.
+            // See memory/gotchas/raw-sql-insert-must-match-ef-mapping.md when adding columns.
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $@"INSERT INTO public.""GridLayouts"" (""UserId"", ""GridKey"", ""LayoutJson"", ""LastModified"")
+                   VALUES ({userId}, {gridKey}, {layoutJson}, {lastModified})
+                   ON CONFLICT (""UserId"", ""GridKey"") DO UPDATE
+                      SET ""LayoutJson""   = EXCLUDED.""LayoutJson"",
+                          ""LastModified"" = EXCLUDED.""LastModified""",
+                cancellationToken);
         }
         catch (Exception ex)
         {
@@ -74,6 +69,7 @@ public class GridLayoutRepository : IGridLayoutRepository
         }
     }
 
+    // DeleteAsync stays on the EF read-then-write path: a delete/delete race is benign (idempotent), so there is no defect to fix here.
     public async Task DeleteAsync(string userId, string gridKey, CancellationToken cancellationToken = default)
     {
         try

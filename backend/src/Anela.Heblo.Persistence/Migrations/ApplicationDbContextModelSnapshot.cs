@@ -3456,8 +3456,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<string>("ContactAvatarUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ContactEmail")
                         .HasMaxLength(200)
@@ -3501,8 +3500,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("LastMessagePreview")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<string>("LocationCity")
                         .HasMaxLength(100)
@@ -3528,8 +3526,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<string>("Referer")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -3537,8 +3534,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.Property<string>("Subject")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("SyncedAt")
                         .HasColumnType("timestamp without time zone");

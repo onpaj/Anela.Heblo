@@ -4,6 +4,8 @@ using Anela.Heblo.Adapters.Anthropic;
 using Anela.Heblo.Adapters.Smartsupp;
 using Anela.Heblo.Adapters.Azure;
 using Anela.Heblo.Adapters.HomeAssistant;
+using Anela.Heblo.Adapters.Microsoft365;
+using Anela.Heblo.Adapters.OrgChart;
 using Anela.Heblo.Adapters.OpenMeteo;
 using Anela.Heblo.Adapters.Plaud;
 using Anela.Heblo.Adapters.SendGrid;
@@ -115,6 +117,8 @@ public partial class Program
         builder.Services.AddHomeAssistantAdapter(builder.Configuration);
         builder.Services.AddOpenMeteoAdapter(builder.Configuration);
         builder.Services.AddPlaudAdapter(builder.Configuration);
+        builder.Services.AddMicrosoft365Adapter(builder.Configuration);
+        builder.Services.AddOrgChartAdapter(builder.Configuration);
 
         builder.Services.AddSingleton<IIssuedInvoiceSource>(sp => sp.GetRequiredService<ShoptetApiInvoiceSource>());
 

@@ -1,18 +1,15 @@
-using System.Net;
-using System.Text;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
+using Anela.Heblo.Adapters.ShoptetApi.Expedition.Model;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
+using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
+using Anela.Heblo.Application.Features.Logistics.Picking;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
-using Anela.Heblo.Application.Features.Logistics.Picking;
-using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
-using Moq.Protected;
 using Xunit;
 
 namespace Anela.Heblo.Adapters.Shoptet.Tests.Expedition;
@@ -25,158 +22,128 @@ public class ShoptetApiExpeditionListSource_CoolingMarkerTests
     private const string CooledProductCode = "PROD-COOL";
     private const string NormalProductCode = "PROD-NORMAL";
 
-    private static HttpResponseMessage OkJson(string json) =>
-        new(HttpStatusCode.OK)
-        {
-            Content = new StringContent(json, Encoding.UTF8, "application/json"),
-        };
-
-    private static readonly string OrderListJson = $$"""
-        {
-          "data": {
-            "orders": [
-              {
-                "code": "{{CooledOrderCode}}",
-                "status": { "id": -2 },
-                "shipping": { "guid": "{{ZasilkovnaDoRukyGuid}}", "name": "Zásilkovna (do ruky)" },
-                "price": { "withVat": "500.00", "currencyCode": "CZK" }
-              },
-              {
-                "code": "{{NormalOrderCode}}",
-                "status": { "id": -2 },
-                "shipping": { "guid": "{{ZasilkovnaDoRukyGuid}}", "name": "Zásilkovna (do ruky)" },
-                "price": { "withVat": "300.00", "currencyCode": "CZK" }
-              }
-            ],
-            "paginator": { "totalCount": 2, "page": 1, "pageCount": 1 }
-          }
-        }
-        """;
-
-    private static readonly string CooledOrderDetailJson = $$"""
-        {
-          "data": {
-            "order": {
-              "code": "{{CooledOrderCode}}",
-              "fullName": "Cooled Customer",
-              "phone": "+420111222333",
-              "billingAddress": {
-                "fullName": "Cooled Customer",
-                "street": "Chladna",
-                "houseNumber": "1",
-                "city": "Praha",
-                "zip": "10000"
-              },
-              "items": [
-                {
-                  "itemType": "product",
-                  "itemId": 1,
-                  "code": "{{CooledProductCode}}",
-                  "name": "Cooled Product",
-                  "amount": 1.000,
-                  "unit": "ks",
-                  "itemPriceWithVat": "100.00"
-                }
-              ],
-              "completion": []
-            }
-          }
-        }
-        """;
-
-    private static readonly string NormalOrderDetailJson = $$"""
-        {
-          "data": {
-            "order": {
-              "code": "{{NormalOrderCode}}",
-              "fullName": "Normal Customer",
-              "phone": "+420444555666",
-              "billingAddress": {
-                "fullName": "Normal Customer",
-                "street": "Normalni",
-                "houseNumber": "2",
-                "city": "Brno",
-                "zip": "60200"
-              },
-              "items": [
-                {
-                  "itemType": "product",
-                  "itemId": 2,
-                  "code": "{{NormalProductCode}}",
-                  "name": "Normal Product",
-                  "amount": 1.000,
-                  "unit": "ks",
-                  "itemPriceWithVat": "80.00"
-                }
-              ],
-              "completion": []
-            }
-          }
-        }
-        """;
-
-    private Mock<HttpMessageHandler> BuildHandler(bool patchShouldThrow = false)
+    private static Mock<IShoptetExpeditionOrderSource> BuildOrderSource(bool patchShouldThrow = false)
     {
-        var handler = new Mock<HttpMessageHandler>();
+        var mock = new Mock<IShoptetExpeditionOrderSource>();
 
-        handler.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync",
-                ItExpr.Is<HttpRequestMessage>(r =>
-                    r.Method == HttpMethod.Get &&
-                    r.RequestUri!.AbsolutePath == "/api/orders" &&
-                    r.RequestUri.Query.Contains("statusId")),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(OkJson(OrderListJson));
+        // GetOrdersByStatusAsync — return two orders on page 1
+        mock.Setup(x => x.GetOrdersByStatusAsync(-2, 1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OrderListResponse
+            {
+                Data = new OrderListData
+                {
+                    Orders =
+                    [
+                        new OrderSummary
+                        {
+                            Code = CooledOrderCode,
+                            Status = new OrderStatusSummary { Id = -2 },
+                            Shipping = new OrderShippingSummary { Guid = ZasilkovnaDoRukyGuid, Name = "Zásilkovna (do ruky)" },
+                            Price = new OrderPriceSummary { WithVat = 500.00m, CurrencyCode = "CZK" },
+                        },
+                        new OrderSummary
+                        {
+                            Code = NormalOrderCode,
+                            Status = new OrderStatusSummary { Id = -2 },
+                            Shipping = new OrderShippingSummary { Guid = ZasilkovnaDoRukyGuid, Name = "Zásilkovna (do ruky)" },
+                            Price = new OrderPriceSummary { WithVat = 300.00m, CurrencyCode = "CZK" },
+                        },
+                    ],
+                    Paginator = new Paginator { TotalCount = 2, Page = 1, PageCount = 1 },
+                },
+            });
 
-        handler.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync",
-                ItExpr.Is<HttpRequestMessage>(r =>
-                    r.Method == HttpMethod.Get &&
-                    r.RequestUri!.AbsolutePath == $"/api/orders/{CooledOrderCode}"),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(OkJson(CooledOrderDetailJson));
+        // GetExpeditionOrderDetailAsync — cooled order
+        mock.Setup(x => x.GetExpeditionOrderDetailAsync(CooledOrderCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ExpeditionOrderDetail
+            {
+                Code = CooledOrderCode,
+                FullName = "Cooled Customer",
+                Phone = "+420111222333",
+                BillingAddress = new ExpeditionAddress
+                {
+                    FullName = "Cooled Customer",
+                    Street = "Chladna",
+                    HouseNumber = "1",
+                    City = "Praha",
+                    Zip = "10000",
+                },
+                Items =
+                [
+                    new ExpeditionOrderItemDto
+                    {
+                        ItemType = "product",
+                        ItemId = 1,
+                        Code = CooledProductCode,
+                        Name = "Cooled Product",
+                        Amount = 1m,
+                        Unit = "ks",
+                        ItemPriceWithVat = "100.00",
+                    },
+                ],
+                Completion = [],
+            });
 
-        handler.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync",
-                ItExpr.Is<HttpRequestMessage>(r =>
-                    r.Method == HttpMethod.Get &&
-                    r.RequestUri!.AbsolutePath == $"/api/orders/{NormalOrderCode}"),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(OkJson(NormalOrderDetailJson));
+        // GetExpeditionOrderDetailAsync — normal order
+        mock.Setup(x => x.GetExpeditionOrderDetailAsync(NormalOrderCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ExpeditionOrderDetail
+            {
+                Code = NormalOrderCode,
+                FullName = "Normal Customer",
+                Phone = "+420444555666",
+                BillingAddress = new ExpeditionAddress
+                {
+                    FullName = "Normal Customer",
+                    Street = "Normalni",
+                    HouseNumber = "2",
+                    City = "Brno",
+                    Zip = "60200",
+                },
+                Items =
+                [
+                    new ExpeditionOrderItemDto
+                    {
+                        ItemType = "product",
+                        ItemId = 2,
+                        Code = NormalProductCode,
+                        Name = "Normal Product",
+                        Amount = 1m,
+                        Unit = "ks",
+                        ItemPriceWithVat = "80.00",
+                    },
+                ],
+                Completion = [],
+            });
 
+        // SetAdditionalFieldAsync
         if (patchShouldThrow)
         {
-            handler.Protected()
-                .Setup<Task<HttpResponseMessage>>("SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(r =>
-                        r.Method == HttpMethod.Patch &&
-                        r.RequestUri!.AbsolutePath == $"/api/orders/{CooledOrderCode}/notes"),
-                    ItExpr.IsAny<CancellationToken>())
+            mock.Setup(x => x.SetAdditionalFieldAsync(
+                    CooledOrderCode,
+                    It.IsAny<int>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new HttpRequestException("Simulated Shoptet PATCH failure"));
         }
         else
         {
-            handler.Protected()
-                .Setup<Task<HttpResponseMessage>>("SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(r =>
-                        r.Method == HttpMethod.Patch &&
-                        r.RequestUri!.AbsolutePath == $"/api/orders/{CooledOrderCode}/notes"),
-                    ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(OkJson("""{"data":null,"errors":null}"""));
+            mock.Setup(x => x.SetAdditionalFieldAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<int>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
         }
 
-        return handler;
+        return mock;
     }
 
-    private ShoptetApiExpeditionListSource BuildSource(
-        Mock<HttpMessageHandler> handler,
+    private static ShoptetApiExpeditionListSource BuildSource(
+        Mock<IShoptetExpeditionOrderSource> orderSource,
         ILogger<ShoptetApiExpeditionListSource>? logger = null,
         string? coolingText = null,
         Action<ExpeditionProtocolData>? captureData = null)
     {
-        var http = new HttpClient(handler.Object) { BaseAddress = new Uri("https://test.myshoptet.com") };
-        var client = new ShoptetOrderClient(http, Options.Create(new ShoptetOrdersSettings()));
-
         var catalog = new Mock<ICatalogRepository>();
         catalog.Setup(x => x.GetByIdAsync(CooledProductCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new CatalogAggregate
@@ -205,7 +172,7 @@ public class ShoptetApiExpeditionListSource_CoolingMarkerTests
             .ReturnsAsync(GiftSetting.CreateDefault());
 
         return new ShoptetApiExpeditionListSource(
-            client,
+            orderSource.Object,
             TimeProvider.System,
             catalog.Object,
             carrierCooling.Object,
@@ -229,43 +196,43 @@ public class ShoptetApiExpeditionListSource_CoolingMarkerTests
     [Fact]
     public async Task CreatePickingList_CooledOrder_PatchesShoptetAdditionalField()
     {
-        var handler = BuildHandler();
-        var source = BuildSource(handler);
+        var orderSource = BuildOrderSource();
+        var source = BuildSource(orderSource);
 
         await source.CreatePickingList(BuildRequest(), null, CancellationToken.None);
 
-        handler.Protected().Verify(
-            "SendAsync",
-            Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(r =>
-                r.Method == HttpMethod.Patch &&
-                r.RequestUri!.AbsolutePath == $"/api/orders/{CooledOrderCode}/notes"),
-            ItExpr.IsAny<CancellationToken>());
+        orderSource.Verify(
+            x => x.SetAdditionalFieldAsync(
+                CooledOrderCode,
+                PickingListBatchProcessor.CoolingAdditionalFieldIndex,
+                PickingListBatchProcessor.CoolingMarkerValue,
+                It.IsAny<CancellationToken>()),
+            Times.Once());
     }
 
     [Fact]
     public async Task CreatePickingList_NonCooledOrder_DoesNotPatchAdditionalField()
     {
-        var handler = BuildHandler();
-        var source = BuildSource(handler);
+        var orderSource = BuildOrderSource();
+        var source = BuildSource(orderSource);
 
         await source.CreatePickingList(BuildRequest(), null, CancellationToken.None);
 
-        handler.Protected().Verify(
-            "SendAsync",
-            Times.Never(),
-            ItExpr.Is<HttpRequestMessage>(r =>
-                r.Method == HttpMethod.Patch &&
-                r.RequestUri!.AbsolutePath == $"/api/orders/{NormalOrderCode}/notes"),
-            ItExpr.IsAny<CancellationToken>());
+        orderSource.Verify(
+            x => x.SetAdditionalFieldAsync(
+                NormalOrderCode,
+                It.IsAny<int>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never());
     }
 
     [Fact]
     public async Task CreatePickingList_PatchFails_PdfStillCompletes()
     {
         var logger = new Mock<ILogger<ShoptetApiExpeditionListSource>>();
-        var handler = BuildHandler(patchShouldThrow: true);
-        var source = BuildSource(handler, logger.Object);
+        var orderSource = BuildOrderSource(patchShouldThrow: true);
+        var source = BuildSource(orderSource, logger.Object);
 
         var result = await source.CreatePickingList(BuildRequest(), null, CancellationToken.None);
 
@@ -285,8 +252,8 @@ public class ShoptetApiExpeditionListSource_CoolingMarkerTests
     public async Task CreatePickingList_CooledOrder_UsesCustomCoolingTextFromSetting()
     {
         ExpeditionProtocolData? captured = null;
-        var handler = BuildHandler();
-        var source = BuildSource(handler, coolingText: "MRAZ", captureData: d => captured = d);
+        var orderSource = BuildOrderSource();
+        var source = BuildSource(orderSource, coolingText: "MRAZ", captureData: d => captured = d);
 
         await source.CreatePickingList(BuildRequest(), null, CancellationToken.None);
 
@@ -295,91 +262,67 @@ public class ShoptetApiExpeditionListSource_CoolingMarkerTests
         cooledOrder.CoolingText.Should().Be("MRAZ");
     }
 
-    private Mock<HttpMessageHandler> BuildTwoBatchHandler()
-    {
-        var handler = new Mock<HttpMessageHandler>();
-
-        // Two orders, 7 items each = 14 total items > MaxItems (13), forcing a mid-loop overflow flush
-        var orderCodes = new[] { "BATCH-ORDER-A", "BATCH-ORDER-B" };
-
-        var twoOrderList = $$"""
-            {
-              "data": {
-                "orders": [
-                  {
-                    "code": "{{orderCodes[0]}}",
-                    "status": { "id": -2 },
-                    "shipping": { "guid": "{{ZasilkovnaDoRukyGuid}}", "name": "Zásilkovna (do ruky)" },
-                    "price": { "withVat": "300.00", "currencyCode": "CZK" }
-                  },
-                  {
-                    "code": "{{orderCodes[1]}}",
-                    "status": { "id": -2 },
-                    "shipping": { "guid": "{{ZasilkovnaDoRukyGuid}}", "name": "Zásilkovna (do ruky)" },
-                    "price": { "withVat": "300.00", "currencyCode": "CZK" }
-                  }
-                ],
-                "paginator": { "totalCount": 2, "page": 1, "pageCount": 1 }
-              }
-            }
-            """;
-
-        handler.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync",
-                ItExpr.Is<HttpRequestMessage>(r =>
-                    r.Method == HttpMethod.Get &&
-                    r.RequestUri!.AbsolutePath == "/api/orders" &&
-                    r.RequestUri.Query.Contains("statusId")),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(OkJson(twoOrderList));
-
-        // 7 items per order JSON builder (inline)
-        foreach (var code in orderCodes)
-        {
-            var items = string.Join(",\n", Enumerable.Range(1, 7).Select(i =>
-                $"{{ \"itemType\": \"product\", \"itemId\": {i}, \"code\": \"{NormalProductCode}\", \"name\": \"Item{i}\", \"amount\": 1, \"unit\": \"ks\", \"itemPriceWithVat\": \"10.00\" }}"));
-
-            var orderJson = $@"{{
-  ""data"": {{
-    ""order"": {{
-      ""code"": ""{code}"",
-      ""fullName"": ""Customer {code}"",
-      ""phone"": ""+420000000000"",
-      ""billingAddress"": {{
-        ""fullName"": ""Customer {code}"",
-        ""street"": ""Test"",
-        ""houseNumber"": ""1"",
-        ""city"": ""Praha"",
-        ""zip"": ""10000""
-      }},
-      ""items"": [
-        {items}
-      ],
-      ""completion"": []
-    }}
-  }}
-}}";
-
-            handler.Protected()
-                .Setup<Task<HttpResponseMessage>>("SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(r =>
-                        r.Method == HttpMethod.Get &&
-                        r.RequestUri!.AbsolutePath == $"/api/orders/{code}"),
-                    ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(OkJson(orderJson));
-        }
-
-        return handler;
-    }
-
     [Fact]
     public async Task CreatePickingList_MultipleBatches_FilenamesContainSequentialBatchIndex()
     {
-        // Two orders with 7 items each = 14 total items, exceeding MaxItems=13, forcing a mid-loop overflow flush.
-        // This locks in the batchIndex pass-through behavior after the PickingListBatchProcessor refactor.
-        var handler = BuildTwoBatchHandler();
-        var source = BuildSource(handler);
+        // Two orders with 7 items each = 14 total items, exceeding MaxItems=13 for Zásilkovna,
+        // forcing a mid-loop overflow flush. Locks in batchIndex pass-through behavior.
+        var orderSource = new Mock<IShoptetExpeditionOrderSource>();
 
+        var orderCodes = new[] { "BATCH-ORDER-A", "BATCH-ORDER-B" };
+
+        orderSource.Setup(x => x.GetOrdersByStatusAsync(-2, 1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OrderListResponse
+            {
+                Data = new OrderListData
+                {
+                    Orders = orderCodes.Select(code => new OrderSummary
+                    {
+                        Code = code,
+                        Status = new OrderStatusSummary { Id = -2 },
+                        Shipping = new OrderShippingSummary { Guid = ZasilkovnaDoRukyGuid, Name = "Zásilkovna (do ruky)" },
+                        Price = new OrderPriceSummary { WithVat = 300.00m, CurrencyCode = "CZK" },
+                    }).ToList(),
+                    Paginator = new Paginator { TotalCount = 2, Page = 1, PageCount = 1 },
+                },
+            });
+
+        foreach (var code in orderCodes)
+        {
+            var capturedCode = code;
+            orderSource.Setup(x => x.GetExpeditionOrderDetailAsync(capturedCode, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ExpeditionOrderDetail
+                {
+                    Code = capturedCode,
+                    FullName = $"Customer {capturedCode}",
+                    Phone = "+420000000000",
+                    BillingAddress = new ExpeditionAddress
+                    {
+                        FullName = $"Customer {capturedCode}",
+                        Street = "Test",
+                        HouseNumber = "1",
+                        City = "Praha",
+                        Zip = "10000",
+                    },
+                    Items = Enumerable.Range(1, 7).Select(i => new ExpeditionOrderItemDto
+                    {
+                        ItemType = "product",
+                        ItemId = i,
+                        Code = NormalProductCode,
+                        Name = $"Item{i}",
+                        Amount = 1m,
+                        Unit = "ks",
+                        ItemPriceWithVat = "10.00",
+                    }).ToList(),
+                    Completion = [],
+                });
+        }
+
+        orderSource.Setup(x => x.SetAdditionalFieldAsync(
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var source = BuildSource(orderSource);
         var result = await source.CreatePickingList(BuildRequest(), null, CancellationToken.None);
 
         result.ExportedFiles.Should().HaveCount(2);

@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 
-public class ShoptetOrderClient : IEshopOrderClient
+public class ShoptetOrderClient : IEshopOrderClient, IShoptetExpeditionOrderSource
 {
     private readonly HttpClient _http;
     private readonly ShoptetOrdersSettings _orderSettings;

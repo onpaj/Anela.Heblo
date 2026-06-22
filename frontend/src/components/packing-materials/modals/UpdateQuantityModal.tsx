@@ -28,7 +28,7 @@ const UpdateQuantityModal: React.FC<UpdateQuantityModalProps> = ({
     if (isOpen && material) {
       const today = new Date().toISOString().split('T')[0];
       setFormData({
-        newQuantity: material.currentQuantity.toString(),
+        newQuantity: material.currentQuantity!.toString(),
         date: today,
       });
       setErrors({});
@@ -58,9 +58,9 @@ const UpdateQuantityModal: React.FC<UpdateQuantityModalProps> = ({
     }
 
     updateQuantity({
-      id: material.id,
+      id: material.id!,
       newQuantity: parseFloat(formData.newQuantity),
-      date: formData.date, // Will be converted to DateOnly on backend
+      date: formData.date,
     }, {
       onSuccess: () => {
         onSuccess?.();
@@ -81,7 +81,7 @@ const UpdateQuantityModal: React.FC<UpdateQuantityModalProps> = ({
 
   if (!isOpen || !material) return null;
 
-  const currentQuantity = material.currentQuantity;
+  const currentQuantity = material.currentQuantity!;
   const newQuantity = parseFloat(formData.newQuantity) || 0;
   const difference = newQuantity - currentQuantity;
 

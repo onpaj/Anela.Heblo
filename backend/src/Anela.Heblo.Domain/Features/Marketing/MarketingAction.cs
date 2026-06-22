@@ -43,25 +43,25 @@ namespace Anela.Heblo.Domain.Features.Marketing
         [MaxLength(100)]
         public string? ModifiedByUsername { get; private set; }
 
-        public bool IsDeleted { get; set; }
-        public DateTime? DeletedAt { get; set; }
+        public bool IsDeleted { get; internal set; }
+        public DateTime? DeletedAt { get; internal set; }
 
         [MaxLength(100)]
-        public string? DeletedByUserId { get; set; }
+        public string? DeletedByUserId { get; internal set; }
 
         [MaxLength(100)]
-        public string? DeletedByUsername { get; set; }
+        public string? DeletedByUsername { get; internal set; }
 
         // Outlook sync fields
         [MaxLength(500)]
-        public string? OutlookEventId { get; set; }
+        public string? OutlookEventId { get; internal set; }
 
-        public DateTime? OutlookLastAttemptAt { get; set; }
+        public DateTime? OutlookLastAttemptAt { get; internal set; }
 
-        public MarketingSyncStatus OutlookSyncStatus { get; set; } = MarketingSyncStatus.NotSynced;
+        public MarketingSyncStatus OutlookSyncStatus { get; internal set; } = MarketingSyncStatus.NotSynced;
 
         [MaxLength(1000)]
-        public string? OutlookSyncError { get; set; }
+        public string? OutlookSyncError { get; internal set; }
 
         // Navigation properties
         public virtual ICollection<MarketingActionProduct> ProductAssociations { get; set; } = new List<MarketingActionProduct>();

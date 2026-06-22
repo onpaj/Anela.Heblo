@@ -10,11 +10,13 @@ public sealed class PlaudCliClient : IPlaudClient
 {
     private readonly ILogger<PlaudCliClient> _logger;
     private readonly IOptions<PlaudOptions> _options;
+    private readonly IPlaudTokenRefresher _tokenRefresher;
 
-    public PlaudCliClient(ILogger<PlaudCliClient> logger, IOptions<PlaudOptions> options)
+    public PlaudCliClient(ILogger<PlaudCliClient> logger, IOptions<PlaudOptions> options, IPlaudTokenRefresher tokenRefresher)
     {
         _logger = logger;
         _options = options;
+        _tokenRefresher = tokenRefresher;
     }
 
     public async Task<List<PlaudRecordingSummary>> ListRecentAsync(int days, CancellationToken ct = default)
@@ -78,6 +80,31 @@ public sealed class PlaudCliClient : IPlaudClient
     }
 
     private async Task<string> RunCliAsync(string[] args, CancellationToken ct)
+    {
+        try
+        {
+            return await RunCliCoreAsync(args, ct);
+        }
+        catch (PlaudAuthExpiredException)
+        {
+            _logger.LogWarning("Plaud auth expired; attempting token refresh and retry.");
+            try
+            {
+                await _tokenRefresher.RefreshAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Plaud token refresh failed.");
+                throw new PlaudAuthExpiredException("token refresh failed", ex);
+            }
+
+            _logger.LogInformation("Plaud token refreshed; retrying CLI call.");
+            // A second AUTH_FAILED here means the refreshed token is still rejected — surface it.
+            return await RunCliCoreAsync(args, ct);
+        }
+    }
+
+    private async Task<string> RunCliCoreAsync(string[] args, CancellationToken ct)
     {
         var options = _options.Value;
         var psi = new ProcessStartInfo

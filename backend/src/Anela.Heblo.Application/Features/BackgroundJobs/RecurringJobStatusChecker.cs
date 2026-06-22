@@ -16,7 +16,10 @@ public class RecurringJobStatusChecker : IRecurringJobStatusChecker
         _logger = logger;
     }
 
-    public async Task<bool> IsJobEnabledAsync(string jobName, CancellationToken cancellationToken = default)
+    public async Task<bool> IsJobEnabledAsync(
+        string jobName,
+        CancellationToken cancellationToken = default,
+        bool defaultIfMissing = true)
     {
         try
         {
@@ -24,9 +27,16 @@ public class RecurringJobStatusChecker : IRecurringJobStatusChecker
 
             if (configuration == null)
             {
-                // Safety fallback - if configuration doesn't exist, allow job to run
-                _logger.LogWarning("Job configuration not found for job: {JobName}. Allowing job to run by default.", jobName);
-                return true;
+                // Return the caller-specified default when no configuration row exists
+                if (defaultIfMissing)
+                {
+                    _logger.LogWarning("Job configuration not found for job: {JobName}. Allowing job to run by default.", jobName);
+                }
+                else
+                {
+                    _logger.LogWarning("Job configuration not found for job: {JobName}. Disabling job by caller request.", jobName);
+                }
+                return defaultIfMissing;
             }
 
             if (!configuration.IsEnabled)
@@ -38,7 +48,8 @@ public class RecurringJobStatusChecker : IRecurringJobStatusChecker
         }
         catch (Exception ex)
         {
-            // Safety fallback - on error, allow job to run to avoid blocking critical jobs
+            // Safety fallback - on error, always allow job to run to avoid blocking critical jobs.
+            // Intentionally NOT gated by defaultIfMissing: a DB outage should not silently disable jobs.
             _logger.LogError(ex, "Error checking job enabled status for job: {JobName}. Allowing job to run by default.", jobName);
             return true;
         }

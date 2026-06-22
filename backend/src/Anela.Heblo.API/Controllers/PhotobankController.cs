@@ -201,9 +201,14 @@ namespace Anela.Heblo.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<RetagPhotosResponse>> RetagPhotos(
-            [FromBody] RetagPhotosRequest request,
+            [FromBody] RetagPhotosBody body,
             CancellationToken cancellationToken = default)
         {
+            var request = new RetagPhotosRequest
+            {
+                PhotoIds = body.PhotoIds,
+                ClearExistingAiTags = body.ClearExistingAiTags,
+            };
             var result = await _mediator.Send(request, cancellationToken);
             return result.Success ? Accepted(result) : BadRequest(result);
         }
@@ -231,9 +236,15 @@ namespace Anela.Heblo.API.Controllers
         [ProducesResponseType(typeof(AddRootResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<AddRootResponse>> AddRoot(
-            [FromBody] AddRootRequest request,
+            [FromBody] AddRootBody body,
             CancellationToken cancellationToken = default)
         {
+            var request = new AddRootRequest
+            {
+                SharePointPath = body.SharePointPath,
+                DisplayName = body.DisplayName,
+                DriveId = body.DriveId,
+            };
             var response = await _mediator.Send(request, cancellationToken);
             if (response.Success)
                 return CreatedAtAction(nameof(GetRoots), response);
@@ -279,9 +290,15 @@ namespace Anela.Heblo.API.Controllers
         [ProducesResponseType(typeof(AddRuleResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<AddRuleResponse>> AddRule(
-            [FromBody] AddRuleRequest request,
+            [FromBody] AddRuleBody body,
             CancellationToken cancellationToken = default)
         {
+            var request = new AddRuleRequest
+            {
+                PathPattern = body.PathPattern,
+                TagName = body.TagName,
+                SortOrder = body.SortOrder,
+            };
             var response = await _mediator.Send(request, cancellationToken);
             if (response.Success)
                 return CreatedAtAction(nameof(GetRules), response);
@@ -298,16 +315,16 @@ namespace Anela.Heblo.API.Controllers
         [FeatureAuthorize(Feature.Marketing_Photobank, AccessLevel.Admin)]
         public async Task<ActionResult<UpdateRuleResponse>> UpdateRule(
             int id,
-            [FromBody] UpdateRuleRequest request,
+            [FromBody] UpdateRuleBody body,
             CancellationToken cancellationToken = default)
         {
             var command = new UpdateRuleRequest
             {
                 Id = id,
-                PathPattern = request.PathPattern,
-                TagName = request.TagName,
-                IsActive = request.IsActive,
-                SortOrder = request.SortOrder,
+                PathPattern = body.PathPattern,
+                TagName = body.TagName,
+                IsActive = body.IsActive,
+                SortOrder = body.SortOrder,
             };
             var response = await _mediator.Send(command, cancellationToken);
             return HandleResponse(response);

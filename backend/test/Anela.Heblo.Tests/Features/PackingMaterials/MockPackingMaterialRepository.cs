@@ -9,6 +9,7 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
     private List<PackingMaterial> _materials = new();
     private readonly Dictionary<DateOnly, bool> _dailyProcessingStatus = new();
     private Exception? _saveChangesException;
+    private readonly Dictionary<DateOnly, bool> _addDailyRunResults = new();
 
     public List<PackingMaterial> UpdatedMaterials { get; } = new();
     public IReadOnlyList<PackingMaterial> Materials => _materials;
@@ -27,6 +28,11 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
     public void SetSaveChangesException(Exception ex)
     {
         _saveChangesException = ex;
+    }
+
+    public void SetAddDailyRunReturns(DateOnly date, bool result)
+    {
+        _addDailyRunResults[date] = result;
     }
 
     public Task<IEnumerable<PackingMaterial>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -171,10 +177,11 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
     public Task<IEnumerable<PackingMaterialConsumption>> GetConsumptionsByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
         => Task.FromResult<IEnumerable<PackingMaterialConsumption>>(ConsumptionRowsByDate.TryGetValue(date, out var rows) ? rows : new List<PackingMaterialConsumption>());
 
-    public Task AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default)
+    public Task<bool> AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default)
     {
         AddedDailyRuns.Add(run);
-        return Task.CompletedTask;
+        var result = !_addDailyRunResults.TryGetValue(run.Date, out var configured) || configured;
+        return Task.FromResult(result);
     }
 
     public Task<(IReadOnlyList<MaterialConsumptionHistoryRecord> Items, int TotalCount)> GetConsumptionHistoryAsync(
