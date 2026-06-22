@@ -1,6 +1,4 @@
-using Anela.Heblo.Domain.Features.Purchase;
-
-namespace Anela.Heblo.Application.Features.Purchase;
+namespace Anela.Heblo.Domain.Features.Purchase;
 
 public interface ISupplierRepository
 {

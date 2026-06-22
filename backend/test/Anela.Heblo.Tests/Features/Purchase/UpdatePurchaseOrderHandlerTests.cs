@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Purchase;
+using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 using Anela.Heblo.Domain.Features.Purchase;
