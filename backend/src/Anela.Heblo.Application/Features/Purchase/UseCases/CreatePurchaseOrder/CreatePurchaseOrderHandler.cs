@@ -89,7 +89,8 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
                     materialName,
                     lineRequest.Quantity,
                     lineRequest.UnitPrice,
-                    lineRequest.Notes);
+                    lineRequest.Notes,
+                    createdBy);
             }
         }
 
