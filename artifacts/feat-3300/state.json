@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "implement-batch-resolution",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-23T07:25:08.648140Z"
+      "updated_at": "2026-06-23T07:30:31.565657Z"
     },
     {
       "name": "add-batch-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T07:30:36.724999Z"
     }
   ]
 }
