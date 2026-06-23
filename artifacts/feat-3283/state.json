@@ -25,5 +25,12 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "write-product-filter-service-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
