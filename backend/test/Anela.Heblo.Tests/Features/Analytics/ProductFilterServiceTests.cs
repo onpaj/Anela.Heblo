@@ -23,6 +23,7 @@ public class ProductFilterServiceTests
     private static async IAsyncEnumerable<AnalyticsProduct> MakeStreamAsync(
         params AnalyticsProduct[] products)
     {
+        await Task.CompletedTask;
         foreach (var p in products)
             yield return p;
     }
@@ -31,6 +32,7 @@ public class ProductFilterServiceTests
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default,
         params AnalyticsProduct[] products)
     {
+        await Task.CompletedTask;
         foreach (var p in products)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -64,8 +66,8 @@ public class ProductFilterServiceTests
     [Fact]
     public void PassesFilters_NullProductFilter_SkipsNameCheck()
     {
-        var product = MakeProduct("Night Serum");
-        _service.PassesFilters(product, null, null).Should().BeTrue();
+        var product = MakeProduct("Night Serum", "Skincare");
+        _service.PassesFilters(product, null, "Skincare").Should().BeTrue();
     }
 
     [Fact]
@@ -109,7 +111,7 @@ public class ProductFilterServiceTests
     public void PassesFilters_NullCategoryFilter_SkipsCategoryCheck()
     {
         var product = MakeProduct("Cream A", "Bodycare");
-        _service.PassesFilters(product, null, null).Should().BeTrue();
+        _service.PassesFilters(product, "cream", null).Should().BeTrue();
     }
 
     [Fact]
@@ -117,6 +119,13 @@ public class ProductFilterServiceTests
     {
         var product = MakeProduct("Cream A", "Bodycare");
         _service.PassesFilters(product, null, "  ").Should().BeTrue();
+    }
+
+    [Fact]
+    public void PassesFilters_NullProductCategory_WithCategoryFilter_ReturnsFalse()
+    {
+        var product = MakeProduct("Cream A", category: null);
+        _service.PassesFilters(product, null, "Skincare").Should().BeFalse();
     }
 
     // --- PassesFilters: combined filters ---
