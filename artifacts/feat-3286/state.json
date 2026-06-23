@@ -52,15 +52,15 @@
     },
     {
       "name": "fr4-contenttype-from-extension-all-arms",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-23T03:56:03.762386Z"
+      "updated_at": "2026-06-23T04:12:42.326823Z"
     },
     {
       "name": "fr5-container-cache-download-path",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T04:12:42.528857Z"
     },
     {
       "name": "fr6-virtual-directories-trailing-slash",
