@@ -21,16 +21,16 @@
       "updated_at": "2026-06-23T07:24:27.935935Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-23T07:25:08.441241Z"
     }
   },
   "tasks": [
     {
       "name": "implement-batch-resolution",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T07:25:08.648140Z"
     },
     {
       "name": "add-batch-tests",
