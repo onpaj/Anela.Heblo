@@ -162,7 +162,8 @@ public class HomeAssistantRetryPipelineTests
     private sealed class SequencedHandler : HttpMessageHandler
     {
         private readonly Queue<Func<HttpResponseMessage>> _responses;
-        public int CallCount { get; private set; }
+        private int _callCount;
+        public int CallCount => _callCount;
 
         public SequencedHandler(params Func<HttpResponseMessage>[] responses)
         {
@@ -171,7 +172,7 @@ public class HomeAssistantRetryPipelineTests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            CallCount++;
+            Interlocked.Increment(ref _callCount);
             if (_responses.Count == 0)
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
             var factory = _responses.Dequeue();
@@ -183,7 +184,8 @@ public class HomeAssistantRetryPipelineTests
     private sealed class StatefulHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _handler;
-        public int CallCount { get; private set; }
+        private int _callCount;
+        public int CallCount => _callCount;
 
         public StatefulHandler(Func<HttpRequestMessage, HttpResponseMessage> handler)
         {
@@ -192,7 +194,7 @@ public class HomeAssistantRetryPipelineTests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            CallCount++;
+            Interlocked.Increment(ref _callCount);
             try
             {
                 return Task.FromResult(_handler(request));

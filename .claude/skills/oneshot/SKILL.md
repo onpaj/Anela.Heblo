@@ -115,13 +115,12 @@ artifacts/feat-{issue_id}/state.json          # checkpoint state
 ```bash
 git add -A artifacts/feat-{issue_id}    # ensure all generated .md artifacts are staged
 git add -A                              # stage code + everything else
-git commit --allow-empty -m "implement feat-{issue_id} @claude"
+git commit --allow-empty -m "implement feat-{issue_id}"
 ```
-   The commit message **must end with** `@claude` (the trigger phrase goes at the
-   very end of the message, not the start). Use `--allow-empty` so this marker
-   commit always becomes `HEAD` — even when the orchestrator already committed
-   every artifact — otherwise the `@claude` trigger never reaches the tip of the
-   branch and the GitHub Claude review is not invoked.
+   Use `--allow-empty` so this commit always becomes `HEAD`, capturing any
+   remaining artifacts. The whole-branch code review already ran inside the
+   pipeline (see the orchestrator's Code Review phase), so no external review
+   trigger is needed.
 
 3. **Push** the branch:
 ```bash
@@ -135,15 +134,39 @@ git push -u origin "$BRANCH"
    - **What the issue / feature was** — the problem or request being addressed.
    - **How it was fixed / handled** — the approach taken and the key changes.
 
-   Open the PR (base = the repository default branch, head = `$BRANCH`) and add
-   the `agent` label to it:
+   **The PR body MUST link the tracking issue with a `Closes #{issue_id}`
+   line** (using the GitHub issue number from `ISSUE_ID`). This is mandatory —
+   it is what makes GitHub auto-close the issue when the PR merges. Never open a
+   feature PR without it.
+
+   Open the PR (base = the repository default branch, head = `$BRANCH`). Capture
+   the PR URL, then run `.claude/skills/oneshot/ensure_pr_linked.sh "$PR_URL" "{issue_id}"`
+   — this script ships beside this skill, so it is always present wherever the skill
+   is installed. It is the guarantee for **both** requirements above. Do not rely on `--label` or the
+   `Closes` template line on `gh pr create` alone; the LLM-filled body and the
+   `--label` flag are both sometimes dropped. The script adds the `agent` label,
+   injects `Closes #{issue_id}` if missing, then hard-fails if it cannot confirm
+   either.
+
+   First capture the pipeline's final code review so it can be surfaced on the PR.
+   The `## Code review` section carries the whole-branch review run inside the
+   pipeline — advisory cleanups and any unresolved correctness findings:
 ```bash
-gh pr create \
+# Most recent code-review artifact (highest revision), if any.
+REVIEW_FILE=$(ls -1 artifacts/feat-{issue_id}/code-review.r*.md 2>/dev/null | sort -V | tail -n1)
+REVIEW_SECTION=""
+if [ -n "$REVIEW_FILE" ]; then
+  REVIEW_SECTION=$(printf '\n## Code review\n\n%s\n' "$(cat "$REVIEW_FILE")")
+fi
+
+PR_URL=$(gh pr create \
   --base master \
   --head "$BRANCH" \
   --label agent \
   --title "#{issue_id}: implementation" \
-  --body "$(cat <<'EOF'
+  --body "$(cat <<EOF
+Closes #{issue_id}
+
 ## What the issue was
 <description of the feature/problem from the brief>
 
@@ -152,9 +175,16 @@ gh pr create \
 
 ## Artifacts
 - Brief, spec, design, task plan, impl, and review markdown are committed in this branch.
+${REVIEW_SECTION}
 EOF
-)"
+)")
+
+# MANDATORY: guarantee the `agent` label AND the `Closes #{issue_id}` link.
+# Auto-repairs both if the agent dropped them, then hard-fails if it cannot.
+.claude/skills/oneshot/ensure_pr_linked.sh "$PR_URL" "{issue_id}"
 ```
+   Substitute the real GitHub issue number for `{issue_id}` in both the title
+   and the `Closes #{issue_id}` line (same number used for `ISSUE_ID` above).
 
 5. **Mark the issue completed.** Using the `gh` CLI, remove the `agent-wip`
    label and add the `agent-completed` label to the feature's issue:

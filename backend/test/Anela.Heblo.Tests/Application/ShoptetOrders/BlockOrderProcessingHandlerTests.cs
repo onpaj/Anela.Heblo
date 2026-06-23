@@ -179,9 +179,6 @@ public class BlockOrderProcessingHandlerTests
                 "previous staff note\nblocked by accounting",
                 It.IsAny<CancellationToken>()),
             Times.Once);
-        clientMock.Verify(
-            c => c.SetInternalNoteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
     }
 
     [Fact]

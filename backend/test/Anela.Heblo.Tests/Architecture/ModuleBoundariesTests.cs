@@ -271,6 +271,61 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.ExpeditionList.Contracts.ExpeditionPickingRequest -> Anela.Heblo.Domain.Features.Logistics.Carriers",
     };
 
+    // Allowlist for ShoptetApi Adapters -> Catalog.
+    // ShoptetApiExpeditionListSource retains ICatalogRepository injection — out of scope.
+    // Track as follow-up; remove when ShoptetApiExpeditionListSource is decoupled.
+    private static readonly HashSet<string> ShoptetApiAdaptersCatalogAllowlist =
+        new(StringComparer.Ordinal)
+        {
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Catalog.ICatalogRepository",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Catalog.CatalogProperties",
+
+            // PickingListBatchProcessor retains ICatalogRepository injection (used in EnrichBatchAsync).
+            // Out of scope; remove when PickingListBatchProcessor is decoupled.
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.PickingListBatchProcessor -> Anela.Heblo.Domain.Features.Catalog.ICatalogRepository",
+            // Compiler-generated async state machine <EnrichBatchAsync>d__8 captures CatalogAggregate;
+            // covered by declaring-type entry for PickingListBatchProcessor -> CatalogAggregate.
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.PickingListBatchProcessor -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+
+            // ShoptetStockClient implements IEshopStockClient and returns Catalog.Stock types directly.
+            // The adapter is the mapping boundary; out of scope for this PR.
+            "Anela.Heblo.Adapters.ShoptetApi.Stock.ShoptetStockClient -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStock",
+            "Anela.Heblo.Adapters.ShoptetApi.Stock.ShoptetStockClient -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStockSupply",
+
+            // HeurekaProductFeedClient implements IProductEshopUrlSource and returns ProductEshopUrl.
+            // The adapter is the mapping boundary; out of scope for this PR.
+            "Anela.Heblo.Adapters.ShoptetApi.EshopUrl.HeurekaProductFeedClient -> Anela.Heblo.Domain.Features.Catalog.EshopUrl.ProductEshopUrl",
+        };
+
+    // Allowlist for ShoptetApi Adapters -> Logistics.
+    // ShoptetApiExpeditionListSource retains ICarrierCoolingRepository — out of scope.
+    // ShippingMethodRegistry/ShippingMethod reference Carriers/DeliveryHandling by design.
+    private static readonly HashSet<string> ShoptetApiAdaptersLogisticsAllowlist =
+        new(StringComparer.Ordinal)
+        {
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Logistics.ICarrierCoolingRepository",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Logistics.CarrierCoolingSetting",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Logistics.Carriers",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Logistics.DeliveryHandling",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShippingMethodRegistry -> Anela.Heblo.Domain.Features.Logistics.Carriers",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShippingMethodRegistry -> Anela.Heblo.Domain.Features.Logistics.DeliveryHandling",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShippingMethod -> Anela.Heblo.Domain.Features.Logistics.Carriers",
+
+            // ShippingMethodCatalog implements IShippingMethodCatalog and exposes Carriers/DeliveryHandling
+            // directly on its public API surface (method return types and parameters).
+            // Out of scope for this PR; remove when ShippingMethodCatalog uses a Logistics-owned contract.
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShippingMethodCatalog -> Anela.Heblo.Domain.Features.Logistics.Carriers",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShippingMethodCatalog -> Anela.Heblo.Domain.Features.Logistics.DeliveryHandling",
+
+            // ShoptetApiExpeditionListSource retains IGiftSettingRepository/GiftSetting — out of scope.
+            // Also implements IPickingListSource which surface PrintPickingListResult/Request.
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Logistics.GiftSettings.IGiftSettingRepository",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Logistics.GiftSettings.GiftSetting",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Application.Features.Logistics.Picking.PrintPickingListResult",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Application.Features.Logistics.Picking.PrintPickingListRequest",
+        };
+
     // Allowlist for Packaging -> ShoptetOrders. The Packaging module legitimately consumes
     // the IPackingOrderClient / IEshopOrderClient contracts (and their DTOs) defined in
     // Anela.Heblo.Application.Features.ShoptetOrders. Everything else — particularly
@@ -540,6 +595,30 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Application.Features.ShoptetOrders",
             },
             Allowlist: PackagingShoptetOrdersAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "ShoptetApi Adapters -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Adapters.ShoptetApi",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: ShoptetApiAdaptersCatalogAllowlist,
+            InspectedAssembly: "Anela.Heblo.Adapters.ShoptetApi"),
+
+        new ModuleBoundaryRule(
+            Name: "ShoptetApi Adapters -> Logistics",
+            InspectedNamespacePrefix: "Anela.Heblo.Adapters.ShoptetApi",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Logistics",
+                "Anela.Heblo.Application.Features.Logistics",
+                "Anela.Heblo.Persistence.Logistics",
+            },
+            Allowlist: ShoptetApiAdaptersLogisticsAllowlist,
+            InspectedAssembly: "Anela.Heblo.Adapters.ShoptetApi"),
     };
 
     [Theory]

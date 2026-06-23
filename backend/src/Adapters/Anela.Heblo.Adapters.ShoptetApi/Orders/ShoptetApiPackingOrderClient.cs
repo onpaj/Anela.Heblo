@@ -2,37 +2,32 @@ using System.Net;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition.Model;
 using Anela.Heblo.Application.Features.ShoptetOrders;
-using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Application.Features.ShoptetOrders.Contracts;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 
-/// <summary>
-/// Loads a single Shoptet order for the Balení packing screen. Reuses the expedition
-/// mapper to expand product sets and compute carrier-aware cooling status.
-/// </summary>
 public class ShoptetApiPackingOrderClient : IPackingOrderClient
 {
     private readonly IShoptetExpeditionOrderSource _orderClient;
-    private readonly ICatalogRepository _catalog;
-    private readonly ICarrierCoolingRepository _carrierCooling;
+    private readonly IPackingProductSource _productSource;
+    private readonly IPackingCarrierCoolingSource _carrierCoolingSource;
     private readonly ILogger<ShoptetApiPackingOrderClient> _logger;
     private readonly int _defaultItemWeightGrams;
     private readonly ShoptetOrdersSettings _orderSettings;
 
     public ShoptetApiPackingOrderClient(
         IShoptetExpeditionOrderSource orderClient,
-        ICatalogRepository catalog,
-        ICarrierCoolingRepository carrierCooling,
+        IPackingProductSource productSource,
+        IPackingCarrierCoolingSource carrierCoolingSource,
         ILogger<ShoptetApiPackingOrderClient> logger,
         IOptions<ShoptetApiSettings> settings,
         IOptions<ShoptetOrdersSettings> orderSettings)
     {
         _orderClient = orderClient;
-        _catalog = catalog;
-        _carrierCooling = carrierCooling;
+        _productSource = productSource;
+        _carrierCoolingSource = carrierCoolingSource;
         _logger = logger;
         _defaultItemWeightGrams = settings.Value.DefaultItemWeightGrams;
         _orderSettings = orderSettings.Value;
@@ -62,29 +57,18 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             return null;
         }
 
-        // Read the order status via the base detail endpoint. The status object is not
-        // reliably present on the ?include= expedition response, so reuse the proven
-        // path used by the order-blocking feature.
         var statusId = await _orderClient.GetOrderStatusIdAsync(code, ct);
-
         var order = ShoptetApiExpeditionListSource.MapToExpeditionOrder(detail);
 
-        // Carrier cooling — resolve from the (carrier, delivery handling) matrix.
-        var settings = await _carrierCooling.GetAllAsync(ct);
-        var matrix = settings.ToDictionary(s => (s.Carrier, s.DeliveryHandling), s => s.Cooling);
+        var coolingSettings = await _carrierCoolingSource.GetAllAsync(ct);
+        var coolingMatrix = coolingSettings.ToDictionary(
+            s => (s.CarrierName, s.DeliveryHandlingName), s => s.Cooling);
         order.CarrierCooling = ShoptetApiExpeditionListSource.ResolveCarrierCooling(
-            detail.Shipping?.Guid ?? string.Empty, matrix);
+            detail.Shipping?.Guid ?? string.Empty, coolingMatrix);
 
-        // Per-product cooling and images from the catalog.
         var productCodes = order.Items.Select(i => i.ProductCode).Distinct().ToList();
-        var catalogItems = await _catalog.GetByIdsAsync(productCodes, ct);
-        var coolingByCode = catalogItems.ToDictionary(kv => kv.Key, kv => kv.Value.Properties.Cooling);
-
-        var weightByCode = catalogItems.ToDictionary(
-            kv => kv.Key,
-            kv => kv.Value.GrossWeight.HasValue ? (int?)((int)kv.Value.GrossWeight.Value)
-                : kv.Value.NetWeight.HasValue ? (int)kv.Value.NetWeight.Value
-                : (int?)null);
+        var catalogItems = await _productSource.GetByCodesAsync(productCodes, ct);
+        var coolingByCode = catalogItems.ToDictionary(kv => kv.Key, kv => kv.Value.Cooling);
 
         ShoptetApiExpeditionListSource.ApplyEnrichment(
             order.Items,
@@ -94,7 +78,9 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
 
         var items = order.Items.Select(i =>
         {
-            if (!weightByCode.TryGetValue(i.ProductCode, out var w) || w is null)
+            catalogItems.TryGetValue(i.ProductCode, out var info);
+            var w = info?.WeightGrams;
+            if (w is null)
             {
                 _logger.LogWarning(
                     "Product {ProductCode} has no weight in catalog; using default {Default}g",
@@ -105,7 +91,7 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             {
                 Name = i.Name,
                 Quantity = i.Quantity,
-                ImageUrl = catalogItems.TryGetValue(i.ProductCode, out var c) ? c.Image : null,
+                ImageUrl = info?.ImageUrl,
                 SetName = i.IsFromSet ? i.SetName : null,
                 WeightGrams = w ?? _defaultItemWeightGrams,
             };
