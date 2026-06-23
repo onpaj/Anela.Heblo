@@ -200,7 +200,7 @@ public class GetCalendarViewHandlerTests
     public async Task Handle_WithNullProducts_SetsEventProductsToEmptyList()
     {
         var order = CreateOrder(1, "MO-2025-001", new DateOnly(2025, 6, 15));
-        order.Products = null!;
+        order.Products = null!; // Products defaults to new List<>; force null to exercise the null-fallback branch
         SetupRepository(new List<ManufactureOrder> { order });
 
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
