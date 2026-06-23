@@ -127,22 +127,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
 
     private static UpdatePurchaseOrderResponse MapToResponse(PurchaseOrder purchaseOrder, long supplierId)
     {
-        var lines = new List<PurchaseOrderLineDto>();
-
-        foreach (var line in purchaseOrder.Lines)
-        {
-            lines.Add(new PurchaseOrderLineDto
-            {
-                Id = line.Id,
-                MaterialId = line.MaterialId,
-                Code = line.MaterialId,
-                MaterialName = line.MaterialName,
-                Quantity = line.Quantity,
-                UnitPrice = line.UnitPrice,
-                LineTotal = line.LineTotal,
-                Notes = line.Notes
-            });
-        }
+        var lines = purchaseOrder.Lines.Select(line => PurchaseOrderLineDto.FromLine(line)).ToList();
 
         return new UpdatePurchaseOrderResponse
         {
