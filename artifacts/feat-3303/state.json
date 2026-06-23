@@ -21,16 +21,16 @@
       "updated_at": "2026-06-23T09:38:15.207255Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-23T09:38:45.710834Z"
     }
   },
   "tasks": [
     {
       "name": "verify-existing-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T09:38:45.964548Z"
     }
   ]
 }
