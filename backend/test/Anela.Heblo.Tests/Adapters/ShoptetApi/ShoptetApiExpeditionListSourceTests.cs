@@ -1199,6 +1199,71 @@ public class ShoptetApiExpeditionListSourceTests
     }
 
     [Fact]
+    public async Task CreatePickingList_WithOrderCode_PrintsSingleOrderAndChangesStateTo26()
+    {
+        // Arrange
+        // URLs issued during a single-order run:
+        //   GET  /api/orders/0001234                          → summary (GetOrderByCodeAsync)
+        //   GET  /api/orders/0001234?include=stockLocation,notes → detail (GetExpeditionOrderDetailAsync)
+        //   PATCH /api/orders/0001234/status                  → status update (UpdateStatusAsync)
+        // AbsolutePath does NOT include query string, so we check PathAndQuery for "include=" to
+        // distinguish detail from summary, and use Method+path suffix for PATCH /status.
+        var statusUpdates = new List<(string code, int statusId)>();
+        var client = BuildClient(req =>
+        {
+            var pathAndQuery = req.RequestUri!.PathAndQuery;
+            var path = req.RequestUri.AbsolutePath;
+
+            // PATCH /api/orders/0001234/status — must come before the GET checks
+            if (req.Method == HttpMethod.Patch && path.EndsWith("/status"))
+            {
+                var code = req.RequestUri.Segments[^2].TrimEnd('/');
+                statusUpdates.Add((code, 26));
+                return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+            }
+
+            // Detail GET: /api/orders/0001234?include=stockLocation,notes
+            if (pathAndQuery.Contains("include="))
+                return Json(DetailFor("0001234"));
+
+            // Summary GET: /api/orders/0001234 (no query string)
+            return Json(new CreateOrderResponse
+            {
+                Data = new CreateOrderData
+                {
+                    Order = new OrderSummary
+                    {
+                        Code = "0001234",
+                        Shipping = new OrderShippingSummary { Guid = ZasilkovnaDoRukyGuid },
+                    },
+                },
+            });
+        });
+        var source = BuildSource(client, generateDocument: _ => new byte[] { 1, 2, 3 });
+
+        // Act
+        var result = await source.CreatePickingList(
+            new PrintPickingListRequest
+            {
+                OrderCode = "0001234",
+                Carriers = new List<Carriers>(), // no carrier filter → all carriers pass
+                ChangeOrderState = true,
+                DesiredStateId = 26,
+                SendToPrinter = false,
+            },
+            onBatchFilesReady: null,
+            CancellationToken.None);
+
+        // Assert
+        result.TotalCount.Should().Be(1);
+        statusUpdates.Should().ContainSingle().Which.Should().Be(("0001234", 26));
+
+        // Cleanup
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
+            File.Delete(file);
+    }
+
+    [Fact]
     public async Task CreatePickingList_LoadsGiftSettingOnce_AcrossMultipleBatches()
     {
         // 3 orders → greedy batcher splits into 2 batches (Z001 has 10 items, exceeds maxItems on add of Z002)
