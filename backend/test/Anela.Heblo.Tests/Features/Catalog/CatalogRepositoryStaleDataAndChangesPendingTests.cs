@@ -48,6 +48,7 @@ public class CatalogRepositoryStaleDataAndChangesPendingTests
     private readonly IMemoryCache _cache;
     private readonly CatalogRepository _repository;
 
+    // Must stay in sync with the loadDates array inside CatalogRepository.ChangesPendingForMerge.
     private static readonly string[] AllLoadDateKeys =
     [
         "CachedInTransportData", "CachedManufacturedData", "CachedInReserveData",
@@ -180,6 +181,17 @@ public class CatalogRepositoryStaleDataAndChangesPendingTests
         var lastMerge = DateTime.UtcNow;
         _cache.Set("LastMergeDateTime", (DateTime?)lastMerge);
         SetAllLoadDates(lastMerge.AddMinutes(-5));
+
+        _repository.ChangesPendingForMerge.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ChangesPendingForMerge_WhenMaxLoadDateEqualsLastMerge_ReturnsFalse()
+    {
+        var lastMerge = DateTime.UtcNow;
+        _cache.Set("LastMergeDateTime", (DateTime?)lastMerge);
+        SetAllLoadDates(lastMerge.AddMinutes(-5));
+        _cache.Set("CachedSalesData_LoadDate", (DateTime?)lastMerge);
 
         _repository.ChangesPendingForMerge.Should().BeFalse();
     }
