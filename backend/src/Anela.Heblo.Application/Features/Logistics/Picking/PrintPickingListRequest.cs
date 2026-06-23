@@ -13,4 +13,5 @@ public class PrintPickingListRequest
     public int DesiredStateId { get; set; } = DefaultDesiredStateId;
     public bool ChangeOrderState { get; set; }
     public bool SendToPrinter { get; set; }
+    public string? OrderCode { get; set; }
 }

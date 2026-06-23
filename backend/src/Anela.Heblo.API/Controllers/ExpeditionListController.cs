@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.ExpeditionList.UseCases.PrintExpeditionOrder;
 using Anela.Heblo.Application.Features.ExpeditionList.UseCases.RunExpeditionListPrintFix;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
@@ -22,6 +23,16 @@ public class ExpeditionListController : BaseApiController
     public async Task<ActionResult<RunExpeditionListPrintFixResponse>> RunFix(CancellationToken cancellationToken)
     {
         var request = new RunExpeditionListPrintFixRequest();
+        var response = await _mediator.Send(request, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPost("print-order")]
+    [FeatureAuthorize(Feature.Warehouse_Expedition, AccessLevel.Write)]
+    public async Task<ActionResult<PrintExpeditionOrderResponse>> PrintOrder(
+        [FromBody] PrintExpeditionOrderRequest request,
+        CancellationToken cancellationToken)
+    {
         var response = await _mediator.Send(request, cancellationToken);
         return Ok(response);
     }

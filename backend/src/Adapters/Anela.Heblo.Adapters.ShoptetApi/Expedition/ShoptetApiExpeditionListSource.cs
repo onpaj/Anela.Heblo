@@ -48,7 +48,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         Func<IList<string>, Task>? onBatchFilesReady,
         CancellationToken cancellationToken = default)
     {
-        var allOrders = await FetchAllOrdersAsync(request.SourceStateId, cancellationToken);
+        var allOrders = string.IsNullOrEmpty(request.OrderCode)
+            ? await FetchAllOrdersAsync(request.SourceStateId, cancellationToken)
+            : await FetchSingleOrderAsync(request.OrderCode, cancellationToken);
         var ordersByMethod = BuildOrdersByMethod(allOrders, request.Carriers);
 
         var exportedFiles = new List<string>();
@@ -81,6 +83,12 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             ExportedFiles = exportedFiles,
             TotalCount = processedCodes.Count,
         };
+    }
+
+    private async Task<List<OrderSummary>> FetchSingleOrderAsync(string code, CancellationToken ct)
+    {
+        var order = await _client.GetOrderByCodeAsync(code, ct);
+        return order is null ? new List<OrderSummary>() : new List<OrderSummary> { order };
     }
 
     private async Task<List<OrderSummary>> FetchAllOrdersAsync(int statusId, CancellationToken ct)

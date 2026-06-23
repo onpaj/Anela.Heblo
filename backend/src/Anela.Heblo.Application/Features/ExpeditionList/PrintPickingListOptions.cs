@@ -9,7 +9,6 @@ public class PrintPickingListOptions
     public List<string> DefaultEmailRecipients { get; set; } = new();
     public int SourceStateId { get; set; } = -2;
     public int FixSourceStateId { get; set; } = 73;
-    public int AutoPrintSourceStateId { get; set; } = 85; // Tisk-Robot
     public int DesiredStateId { get; set; } = 26;
     public bool SendToPrinterByDefault { get; set; } = false;
     public bool ChangeOrderStateByDefault { get; set; } = true;
