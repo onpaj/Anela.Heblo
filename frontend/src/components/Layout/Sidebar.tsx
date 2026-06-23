@@ -71,6 +71,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     window.open("https://orgchart.anela.cz", "_blank", "noopener,noreferrer");
   };
 
+  const openTerminal = () => {
+    window.open(`${window.location.origin}/terminal`, "_blank", "noopener,noreferrer");
+  };
+
   // Navigation sections - only implemented pages
   const navigationSections = [
     {
@@ -116,6 +120,31 @@ const Sidebar: React.FC<SidebarProps> = ({
                 id: "naklady",
                 name: "Náklady",
                 href: "/marketing/costs",
+              },
+              {
+                id: "marketing-calendar",
+                name: "Kalendář",
+                href: "/marketing/calendar",
+              },
+              {
+                id: "photobank",
+                name: "Fotobanka",
+                href: "/marketing/photobank",
+              },
+              {
+                id: "leaflet-generator",
+                name: "Generátor letáků",
+                href: "/leaflet-generator",
+              },
+              {
+                id: "articles",
+                name: "Generátor článků",
+                href: "/articles",
+              },
+              {
+                id: "marketing-feedback",
+                name: "Feedback",
+                href: "/marketing/feedback",
               },
             ],
           },
@@ -259,9 +288,16 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Sledování materiálů",
           href: "/logistics/packing-materials",
         },
+        {
+          id: "terminal",
+          name: "Terminál",
+          href: "#",
+          onClick: openTerminal,
+          isExternal: true,
+        },
       ],
     },
-    
+
     {
       id: "personalni",
       name: "Personální",
@@ -303,7 +339,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Hangfire",
           href: "#",
           onClick: openHangfireDashboard,
-        }
+        },
+        {
+          id: "data-quality",
+          name: "Kvalita dat",
+          href: "/automation/data-quality",
+        },
       ],
     },
     {
