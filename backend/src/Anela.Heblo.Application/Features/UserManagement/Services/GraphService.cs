@@ -22,6 +22,7 @@ public class GraphService : IGraphService
     private readonly IConfiguration _configuration;
     private readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(20);
     private const int SearchResultLimit = 25;
+    private const int GraphBatchSize = 20;
 
     public GraphService(
         ITokenAcquisition tokenAcquisition,
@@ -382,25 +383,59 @@ public class GraphService : IGraphService
                         directUserIds.Add(member.Id);
             }
 
-            // Step 5: resolve display name + email for each user id
+            // Step 5: resolve display name + email for each user id using Graph $batch
             var users = new List<UserDto>();
-            foreach (var userId in directUserIds)
+            var userIdList = directUserIds.ToList();
+            for (var chunkStart = 0; chunkStart < userIdList.Count; chunkStart += GraphBatchSize)
             {
-                var userUrl = $"https://graph.microsoft.com/v1.0/users/{userId}?$select=id,displayName,mail,userPrincipalName";
-                using var userRequest = new HttpRequestMessage(HttpMethod.Get, userUrl);
-                userRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
-                var userResponse = await httpClient.SendAsync(userRequest, cancellationToken);
-                if (!userResponse.IsSuccessStatusCode)
+                var chunk = userIdList.Skip(chunkStart).Take(GraphBatchSize).ToList();
+
+                var batchRequests = chunk.Select((uid, i) => new
                 {
-                    _logger.LogWarning("Could not resolve user {UserId}", userId);
-                    continue;
+                    id = i.ToString(),
+                    method = "GET",
+                    url = $"/users/{uid}?$select=id,displayName,mail,userPrincipalName"
+                }).ToList();
+
+                var batchBody = System.Text.Json.JsonSerializer.Serialize(new { requests = batchRequests });
+                using var batchRequest = new HttpRequestMessage(HttpMethod.Post, "https://graph.microsoft.com/v1.0/$batch");
+                batchRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
+                batchRequest.Content = new StringContent(batchBody, System.Text.Encoding.UTF8, "application/json");
+
+                var batchResponse = await httpClient.SendAsync(batchRequest, cancellationToken);
+                var batchJson = await batchResponse.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!batchResponse.IsSuccessStatusCode)
+                {
+                    _logger.LogError("Graph $batch request failed. Status: {Status}, Body: {Body}", batchResponse.StatusCode, batchJson);
+                    return new List<UserDto>();
                 }
-                var userJson = await userResponse.Content.ReadAsStringAsync(cancellationToken);
-                using var userDoc = System.Text.Json.JsonDocument.Parse(userJson);
-                var displayName = userDoc.RootElement.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? "" : "";
-                var mail = userDoc.RootElement.TryGetProperty("mail", out var m) ? m.GetString() : null;
-                var upn = userDoc.RootElement.TryGetProperty("userPrincipalName", out var u) ? u.GetString() : null;
-                users.Add(new UserDto { Id = userId, DisplayName = displayName, Email = mail ?? upn ?? "" });
+
+                using var batchDoc = System.Text.Json.JsonDocument.Parse(batchJson);
+                if (!batchDoc.RootElement.TryGetProperty("responses", out var responses))
+                    continue;
+
+                foreach (var response in responses.EnumerateArray())
+                {
+                    var status = response.TryGetProperty("status", out var st) ? st.GetInt32() : 0;
+                    if (status != 200)
+                    {
+                        var responseId = response.TryGetProperty("id", out var rid) ? rid.GetString() : "?";
+                        var failedUserId = int.TryParse(responseId, out var idx) && idx < chunk.Count ? chunk[idx] : responseId;
+                        _logger.LogWarning("Could not resolve user {UserId} — batch sub-response status {Status}", failedUserId, status);
+                        continue;
+                    }
+
+                    if (!response.TryGetProperty("body", out var body))
+                        continue;
+
+                    var displayName = body.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? "" : "";
+                    var mail = body.TryGetProperty("mail", out var m) ? m.GetString() : null;
+                    var upn = body.TryGetProperty("userPrincipalName", out var u) ? u.GetString() : null;
+                    var resolvedId = body.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "";
+                    if (!string.IsNullOrEmpty(resolvedId))
+                        users.Add(new UserDto { Id = resolvedId, DisplayName = displayName, Email = mail ?? upn ?? "" });
+                }
             }
 
             _cache.Set(cacheKey, users, _cacheExpiration);
