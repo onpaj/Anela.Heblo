@@ -247,6 +247,22 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             : Cooling.None;
     }
 
+    internal static Cooling ResolveCarrierCooling(
+        string shippingGuid,
+        IReadOnlyDictionary<(string CarrierName, string DeliveryHandlingName), Cooling> matrix)
+    {
+        if (!ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method))
+            return Cooling.None;
+
+        var handling = ShippingMethodRegistry.ResolveDeliveryHandling(method);
+        if (!handling.HasValue)
+            return Cooling.None;
+
+        return matrix.TryGetValue((method.Carrier.ToString(), handling.Value.ToString()), out var cooling)
+            ? cooling
+            : Cooling.None;
+    }
+
     internal static string? ResolveCarrierCoolingText(
         string shippingGuid,
         IReadOnlyDictionary<(Carriers, DeliveryHandling), string?> matrix)
@@ -303,7 +319,6 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             }
             else if (string.Equals(item.ItemType, "product-set", StringComparison.OrdinalIgnoreCase))
             {
-                var setQuantity = (int)(item.Amount ?? 1);
                 if (!setItemsByParentId.TryGetValue(item.ItemId, out var setComponents))
                     continue;
 
@@ -315,7 +330,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                         Name = component.Name ?? string.Empty,
                         Variant = component.VariantName ?? string.Empty,
                         WarehousePosition = string.Empty, // Shoptet completion API does not return stock locations for set components
-                        Quantity = (int)(component.Amount ?? 0) * setQuantity,
+                        // Shoptet's completion amount is already the order total
+                        // (component-per-set * set count), so it is used as-is.
+                        Quantity = (int)(component.Amount ?? 0),
                         Unit = component.Unit ?? string.Empty,
                         UnitPrice = 0m,
                         IsFromSet = true,

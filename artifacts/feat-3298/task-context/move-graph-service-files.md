@@ -1,3 +1,16 @@
+### task: move-graph-service-files
+
+Move the two concrete service files to the adapter project with updated namespaces. The interface (`IGraphService.cs`) is NOT touched.
+
+**Files:**
+- Create: `backend/src/Adapters/Anela.Heblo.Adapters.Microsoft365/UserManagement/GraphService.cs`
+- Create: `backend/src/Adapters/Anela.Heblo.Adapters.Microsoft365/UserManagement/MockGraphService.cs`
+- Delete: `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs`
+- Delete: `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/MockGraphService.cs`
+
+- [ ] Create `backend/src/Adapters/Anela.Heblo.Adapters.Microsoft365/UserManagement/GraphService.cs` with the content below. The only difference from the original is the `namespace` declaration and the `using` for the contract (`IGraphService` and `UserDto` still live in `Anela.Heblo.Application`):
+
+```csharp
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -6,7 +19,7 @@ using Microsoft.Identity.Web;
 using Microsoft.Identity.Client;
 using System.Net.Http;
 
-namespace Anela.Heblo.Application.Features.UserManagement.Services;
+namespace Anela.Heblo.Adapters.Microsoft365.UserManagement;
 
 /// <summary>
 /// Service for accessing Microsoft Graph API to retrieve group members.
@@ -83,7 +96,7 @@ public class GraphService : IGraphService
         return (members, totalMembers);
     }
 
-    private async Task<string> AcquireGraphTokenAsync(CancellationToken cancellationToken)
+    private async Task<string> AcquireGraphTokenAsync(string groupId, CancellationToken cancellationToken)
     {
         // Acquire Graph API token using application permissions (not user context)
         var scope = "https://graph.microsoft.com/.default";
@@ -116,7 +129,7 @@ public class GraphService : IGraphService
 
         try
         {
-            var graphToken = await AcquireGraphTokenAsync(cancellationToken);
+            var graphToken = await AcquireGraphTokenAsync(groupId, cancellationToken);
 
             // Get group members from Microsoft Graph.
             // Matches the shared "MicrosoftGraph" named client used by Marketing/MeetingTasks/CatalogDocuments/KnowledgeBase/Photobank modules.
@@ -414,3 +427,49 @@ public class GraphService : IGraphService
         }
     }
 }
+```
+
+- [ ] Create `backend/src/Adapters/Anela.Heblo.Adapters.Microsoft365/UserManagement/MockGraphService.cs`. Only the namespace changes from the original:
+
+```csharp
+using Anela.Heblo.Application.Features.UserManagement.Contracts;
+using Microsoft.Extensions.Logging;
+
+namespace Anela.Heblo.Adapters.Microsoft365.UserManagement;
+
+public class MockGraphService : IGraphService
+{
+    private readonly ILogger<MockGraphService> _logger;
+
+    public MockGraphService(ILogger<MockGraphService> logger)
+    {
+        _logger = logger;
+    }
+
+    public Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Mock GraphService: GetGroupMembersAsync called for group {GroupId}", groupId);
+        return Task.FromResult(new List<UserDto>());
+    }
+
+    public Task<List<UserDto>> SearchUsersAsync(string query, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Mock GraphService: SearchUsersAsync called for query '{Query}'", query);
+        return Task.FromResult(new List<UserDto>());
+    }
+
+    public Task<List<UserDto>> GetAppRoleMembersAsync(string appRoleValue, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Mock GraphService: GetAppRoleMembersAsync called for role '{AppRoleValue}'", appRoleValue);
+        return Task.FromResult(new List<UserDto>());
+    }
+}
+```
+
+- [ ] Delete `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs` (use `git rm` or simply delete the file — the build will fail if it stays).
+
+- [ ] Delete `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/MockGraphService.cs`.
+
+- [ ] Verify: `dotnet build backend/src/Adapters/Anela.Heblo.Adapters.Microsoft365/Anela.Heblo.Adapters.Microsoft365.csproj` compiles cleanly (the Application project is already a ProjectReference).
+
+---
