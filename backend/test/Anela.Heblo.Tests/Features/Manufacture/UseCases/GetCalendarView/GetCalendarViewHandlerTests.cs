@@ -36,7 +36,7 @@ public class GetCalendarViewHandlerTests
             OrderNumber = orderNumber,
             PlannedDate = plannedDate
         };
-        order.InitializeState(state, DateTime.UtcNow, "Test User");
+        order.InitializeState(state, new DateTime(2025, 6, 1), "Test User");
         return order;
     }
 
