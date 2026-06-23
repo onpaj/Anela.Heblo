@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "add-shared-test-helpers",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-23T03:27:57.280189Z"
+      "updated_at": "2026-06-23T03:32:58.131936Z"
     },
     {
       "name": "fr1-blobname-from-url-path",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T03:33:02.579586Z"
     },
     {
       "name": "fr2-generated-blobname-extension",
