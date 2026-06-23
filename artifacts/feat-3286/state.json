@@ -58,15 +58,15 @@
     },
     {
       "name": "fr5-container-cache-download-path",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-23T04:12:42.528857Z"
+      "updated_at": "2026-06-23T04:15:48.746488Z"
     },
     {
       "name": "fr6-virtual-directories-trailing-slash",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T04:15:48.974403Z"
     },
     {
       "name": "full-suite-verification",
