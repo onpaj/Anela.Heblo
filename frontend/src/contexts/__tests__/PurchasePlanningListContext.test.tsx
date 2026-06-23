@@ -26,6 +26,9 @@ const TestComponent: React.FC = () => {
             <span data-testid={`item-${item.productCode}-supplierCode`}>
               {item.supplierCode}
             </span>
+            <span data-testid={`item-${item.productCode}-addedAt`}>
+              {item.addedAt instanceof Date ? "date" : "not-date"}
+            </span>
             <button onClick={() => removeItem(item.productCode)}>Remove</button>
           </li>
         ))}
@@ -122,6 +125,7 @@ describe("PurchasePlanningListContext", () => {
     expect(screen.getByTestId("item-MAT01-supplierCode")).toHaveTextContent(
       "SC-MAT01"
     );
+    expect(screen.getByTestId("item-MAT01-addedAt")).toHaveTextContent("date");
   });
 
   it("should remove an existing item from the list", () => {
