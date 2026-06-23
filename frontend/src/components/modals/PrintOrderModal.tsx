@@ -80,13 +80,14 @@ function PrintOrderModal({ isOpen, onClose, onSuccess }: PrintOrderModalProps) {
           </p>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="order-code-input" className="block text-sm font-medium text-gray-700 mb-1">
               <div className="flex items-center space-x-1">
                 <Hash className="h-4 w-4" />
                 <span>Číslo zakázky</span>
               </div>
             </label>
             <input
+              id="order-code-input"
               type="text"
               value={orderCode}
               onChange={(e) => setOrderCode(e.target.value)}
