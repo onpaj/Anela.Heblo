@@ -40,15 +40,15 @@
     },
     {
       "name": "fr2-generated-blobname-extension",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-23T03:47:11.921314Z"
+      "updated_at": "2026-06-23T03:50:32.923876Z"
     },
     {
       "name": "fr3-extension-from-contenttype-all-arms",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T03:50:33.117007Z"
     },
     {
       "name": "fr4-contenttype-from-extension-all-arms",
