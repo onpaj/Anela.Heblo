@@ -141,6 +141,40 @@ public class ShoptetApiExpeditionListSourceTests
     // ─── Tests ────────────────────────────────────────────────────────────────
 
     [Fact]
+    public async Task GetOrderByCodeAsync_ReturnsOrder_WhenFound()
+    {
+        // Arrange
+        var client = BuildClient(req => Json(new CreateOrderResponse
+        {
+            Data = new CreateOrderData
+            {
+                Order = new OrderSummary { Code = "0001234", Shipping = new OrderShippingSummary { Guid = ZasilkovnaDoRukyGuid } },
+            },
+        }));
+
+        // Act
+        var order = await client.GetOrderByCodeAsync("0001234", CancellationToken.None);
+
+        // Assert
+        order.Should().NotBeNull();
+        order!.Code.Should().Be("0001234");
+        order.Shipping!.Guid.Should().Be(ZasilkovnaDoRukyGuid);
+    }
+
+    [Fact]
+    public async Task GetOrderByCodeAsync_ReturnsNull_WhenNotFound()
+    {
+        // Arrange
+        var client = BuildClient(_ => new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
+
+        // Act
+        var order = await client.GetOrderByCodeAsync("nope", CancellationToken.None);
+
+        // Assert
+        order.Should().BeNull();
+    }
+
+    [Fact]
     public async Task CreatePickingList_GroupsByCarrier_OnlyZasilkovnaReturned_WhenFilterSet()
     {
         // Arrange — list has one Zasilkovna and one PPL order (identified by shipping GUID)
