@@ -438,6 +438,32 @@ public class AzureBlobStorageServiceTests
     }
 
     // ---------------------------------------------------------------------------
+    // FR-1: blobName derived from the URL path filename
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task DownloadFromUrlAsync_UrlWithFilename_UsesBlobNameFromPath()
+    {
+        // Arrange
+        var fileUrl = "https://example.com/folder/report.pdf";
+        var containerName = "documents";
+
+        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, "test content");
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+        _mockHttpClientFactory
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
+            .Returns(client);
+
+        SetupContainerAndBlobClient(containerName, out _, out _, out var capturedBlobNames);
+
+        // Act
+        await _service.DownloadFromUrlAsync(fileUrl, containerName);
+
+        // Assert — blob name comes from the URL path filename, not a generated GUID
+        Assert.Contains("report.pdf", capturedBlobNames);
+    }
+
+    // ---------------------------------------------------------------------------
     // UploadAsync — container cache behaviour
     // ---------------------------------------------------------------------------
 
