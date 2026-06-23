@@ -33,9 +33,7 @@ public static class Microsoft365AdapterServiceCollectionExtensions
                 });
             services.AddScoped<IPhotobankGraphService, PhotobankGraphService>();
 
-            // Register real GraphService for production authentication
-            // Note: GraphServiceClient must be registered in the API layer with proper authentication
-            // through Microsoft.Identity.Web's AddMicrosoftGraph() method
+            // Note: GraphServiceClient must be registered in the API layer via Microsoft.Identity.Web's AddMicrosoftGraph()
             services.AddScoped<IGraphService, GraphService>();
         }
 
