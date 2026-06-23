@@ -247,6 +247,22 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             : Cooling.None;
     }
 
+    internal static Cooling ResolveCarrierCooling(
+        string shippingGuid,
+        IReadOnlyDictionary<(string CarrierName, string DeliveryHandlingName), Cooling> matrix)
+    {
+        if (!ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method))
+            return Cooling.None;
+
+        var handling = ShippingMethodRegistry.ResolveDeliveryHandling(method);
+        if (!handling.HasValue)
+            return Cooling.None;
+
+        return matrix.TryGetValue((method.Carrier.ToString(), handling.Value.ToString()), out var cooling)
+            ? cooling
+            : Cooling.None;
+    }
+
     internal static string? ResolveCarrierCoolingText(
         string shippingGuid,
         IReadOnlyDictionary<(Carriers, DeliveryHandling), string?> matrix)

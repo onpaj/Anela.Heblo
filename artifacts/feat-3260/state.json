@@ -1,0 +1,66 @@
+{
+  "feature_id": "feat-3260",
+  "issue_number": 3260,
+  "created_at": "2026-06-22T14:14:03.867014Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-22T14:22:28.738260Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-22T14:26:22.959577Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-22T14:29:19.198337Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-22T14:36:32.672341Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-06-22T14:36:58.248267Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "define-contracts",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T14:39:15.794212Z"
+    },
+    {
+      "name": "implement-catalog-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T14:45:21.877613Z"
+    },
+    {
+      "name": "implement-carrier-cooling-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T15:06:38.164596Z"
+    },
+    {
+      "name": "update-packing-order-client",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T15:20:52.679334Z"
+    },
+    {
+      "name": "add-boundary-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T15:57:05.052318Z"
+    },
+    {
+      "name": "verify-build",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T16:18:40.195812Z"
+    }
+  ]
+}
