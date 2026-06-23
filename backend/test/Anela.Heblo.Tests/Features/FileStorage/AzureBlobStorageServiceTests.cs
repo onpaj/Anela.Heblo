@@ -62,6 +62,7 @@ public class AzureBlobStorageServiceTests
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
             It.IsAny<PublicAccessType>(),
             It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
         _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
@@ -249,6 +250,7 @@ public class AzureBlobStorageServiceTests
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
             It.IsAny<PublicAccessType>(),
             It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
         _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
@@ -290,6 +292,7 @@ public class AzureBlobStorageServiceTests
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
             It.IsAny<PublicAccessType>(),
             It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
 
@@ -335,6 +338,7 @@ public class AzureBlobStorageServiceTests
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
             It.IsAny<PublicAccessType>(),
             It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
 
@@ -824,6 +828,7 @@ public class AzureBlobStorageServiceTests
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
             It.IsAny<PublicAccessType>(),
             It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
 
