@@ -34,15 +34,15 @@
     },
     {
       "name": "update-di-registrations",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-23T05:36:40.528014Z"
+      "updated_at": "2026-06-23T05:46:06.126647Z"
     },
     {
       "name": "update-project-files",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T05:46:12.278220Z"
     },
     {
       "name": "fix-unit-tests",
