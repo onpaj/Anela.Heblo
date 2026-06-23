@@ -1,7 +1,8 @@
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
+using Anela.Heblo.Application.Features.UserManagement.Services;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.UserManagement.Services;
+namespace Anela.Heblo.Adapters.Microsoft365.UserManagement;
 
 public class MockGraphService : IGraphService
 {

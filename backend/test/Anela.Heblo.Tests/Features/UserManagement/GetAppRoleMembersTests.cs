@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Anela.Heblo.Adapters.Microsoft365.UserManagement;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using FluentAssertions;
