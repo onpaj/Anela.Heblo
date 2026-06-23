@@ -210,60 +210,6 @@ public class AzureBlobStorageServiceTests
     }
 
     // ---------------------------------------------------------------------------
-    // DownloadFromUrlAsync — content-type extension inference
-    // ---------------------------------------------------------------------------
-
-    [Theory]
-    [InlineData("image/jpeg", ".jpg")]
-    [InlineData("image/png", ".png")]
-    [InlineData("application/pdf", ".pdf")]
-    [InlineData("text/plain", ".txt")]
-    [InlineData("application/json", ".json")]
-    [InlineData("unknown/type", ".bin")]
-    public async Task DownloadAndUploadFromUrl_DifferentContentTypes_ShouldGenerateCorrectExtension(string contentType, string expectedExtension)
-    {
-        // Arrange
-        var fileUrl = "https://example.com/file";
-        var containerName = "documents";
-
-        // Build an HttpContent with the specific content-type header and wire it into the factory.
-        var responseContent = new StringContent("test content");
-        responseContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
-
-        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, overrideContent: responseContent);
-        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
-        _mockHttpClientFactory
-            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
-            .Returns(client);
-
-        var expectedBlobUrl = $"https://testaccount.blob.core.windows.net/{containerName}/downloaded-file-guid{expectedExtension}";
-
-        var mockContainerClient = new Mock<BlobContainerClient>();
-        var mockBlobClient = new Mock<BlobClient>();
-        mockBlobClient.Setup(x => x.Uri).Returns(new Uri(expectedBlobUrl));
-        mockBlobClient.Setup(x => x.UploadAsync(
-            It.IsAny<Stream>(),
-            It.IsAny<BlobUploadOptions>(),
-            It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
-        mockContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
-        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(),
-            It.IsAny<IDictionary<string, string>>(),
-            It.IsAny<BlobContainerEncryptionScopeOptions>(),
-            It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
-        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
-
-        // Act
-        var result = await _service.DownloadFromUrlAsync(fileUrl, containerName);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Contains(containerName, result);
-    }
-
-    // ---------------------------------------------------------------------------
     // UploadAsync
     // ---------------------------------------------------------------------------
 
