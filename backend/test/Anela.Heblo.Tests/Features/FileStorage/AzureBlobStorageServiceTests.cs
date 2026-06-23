@@ -662,6 +662,66 @@ public class AzureBlobStorageServiceTests
     }
 
     // ---------------------------------------------------------------------------
+    // FR-6: ListVirtualDirectoriesAsync — trailing-slash trimming
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task ListVirtualDirectoriesAsync_TrimsTrailingSlash_FromPrefixes()
+    {
+        // Arrange
+        var containerName = "documents";
+        var mockContainerClient = new Mock<BlobContainerClient>();
+
+        var items = new[]
+        {
+            BlobsModelFactory.BlobHierarchyItem("invoices/", null),
+            BlobsModelFactory.BlobHierarchyItem("reports/", null),
+        };
+
+        mockContainerClient.Setup(x => x.GetBlobsByHierarchyAsync(
+                It.IsAny<BlobTraits>(),
+                It.IsAny<BlobStates>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(CreateAsyncPageable(items));
+        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName))
+            .Returns(mockContainerClient.Object);
+
+        // Act
+        var result = await _service.ListVirtualDirectoriesAsync(containerName);
+
+        // Assert — each prefix has exactly one trailing slash trimmed
+        Assert.Equal(2, result.Count);
+        Assert.Contains("invoices", result);
+        Assert.Contains("reports", result);
+    }
+
+    [Fact]
+    public async Task ListVirtualDirectoriesAsync_EmptyContainer_ReturnsEmptyList()
+    {
+        // Arrange
+        var containerName = "documents";
+        var mockContainerClient = new Mock<BlobContainerClient>();
+
+        mockContainerClient.Setup(x => x.GetBlobsByHierarchyAsync(
+                It.IsAny<BlobTraits>(),
+                It.IsAny<BlobStates>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(CreateAsyncPageable(Array.Empty<BlobHierarchyItem>()));
+        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName))
+            .Returns(mockContainerClient.Object);
+
+        // Act
+        var result = await _service.ListVirtualDirectoriesAsync(containerName);
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    // ---------------------------------------------------------------------------
     // UploadAsync — container cache behaviour
     // ---------------------------------------------------------------------------
 
