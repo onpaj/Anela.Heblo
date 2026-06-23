@@ -14,11 +14,9 @@ public static class UserManagementModule
 {
     public static IServiceCollection AddUserManagement(this IServiceCollection services, IConfiguration configuration)
     {
-        // IGraphService (GraphService / MockGraphService) is registered by the adapter layer
-        // via Microsoft365AdapterServiceCollectionExtensions.AddMicrosoft365Adapter().
+        // IGraphService is registered by the adapter layer via AddMicrosoft365Adapter(), not here.
 
-        // Cross-module contract: UserManagement implements Article's IArticleUserResolver via adapter.
-        // Works regardless of which IGraphService implementation (Mock vs real) is registered above.
+        // Cross-module: IArticleUserResolver delegates to IGraphService (Mock or real) from adapter layer.
         services.AddScoped<IArticleUserResolver, GraphArticleUserResolver>();
 
         services.AddScoped<IValidator<GetGroupMembersRequest>, GetGroupMembersRequestValidator>();
