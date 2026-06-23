@@ -77,15 +77,27 @@ public class PrintExpeditionOrderHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OrderLookupThrows_ReturnsNotFoundError()
+    public async Task Handle_OrderLookupReturns404_ReturnsNotFoundError()
     {
         _client.Setup(c => c.GetOrderStatusIdAsync("nope", It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("404"));
+            .ThrowsAsync(new HttpRequestException(null, null, System.Net.HttpStatusCode.NotFound));
 
         var result = await CreateHandler().Handle(
             new PrintExpeditionOrderRequest { OrderCode = "nope" }, CancellationToken.None);
 
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.ShoptetOrderNotFound);
+    }
+
+    [Fact]
+    public async Task Handle_OrderLookupReturns500_PropagatesException()
+    {
+        _client.Setup(c => c.GetOrderStatusIdAsync("0001234", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException(null, null, System.Net.HttpStatusCode.InternalServerError));
+
+        var act = () => CreateHandler().Handle(
+            new PrintExpeditionOrderRequest { OrderCode = "0001234" }, CancellationToken.None);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
     }
 }

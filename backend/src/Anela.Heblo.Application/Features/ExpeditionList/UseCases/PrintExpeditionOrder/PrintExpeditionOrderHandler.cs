@@ -41,9 +41,9 @@ public class PrintExpeditionOrderHandler : IRequestHandler<PrintExpeditionOrderR
         {
             currentStatusId = await _eshopOrderClient.GetOrderStatusIdAsync(request.OrderCode, cancellationToken);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            _logger.LogWarning(ex, "Order {OrderCode} status lookup failed", request.OrderCode);
+            _logger.LogWarning(ex, "Order {OrderCode} not found in Shoptet", request.OrderCode);
             return new PrintExpeditionOrderResponse(
                 ErrorCodes.ShoptetOrderNotFound,
                 new Dictionary<string, string> { { "orderCode", request.OrderCode } });
