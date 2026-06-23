@@ -3521,6 +3521,44 @@ export class ApiClient {
         return Promise.resolve<RunExpeditionListPrintFixResponse>(null as any);
     }
 
+    expeditionList_PrintOrder(request: PrintExpeditionOrderRequest): Promise<PrintExpeditionOrderResponse> {
+        let url_ = this.baseUrl + "/api/expedition-list/print-order";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processExpeditionList_PrintOrder(_response);
+        });
+    }
+
+    protected processExpeditionList_PrintOrder(response: Response): Promise<PrintExpeditionOrderResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PrintExpeditionOrderResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PrintExpeditionOrderResponse>(null as any);
+    }
+
     featureFlags_Get(): Promise<EvaluateFlagsForClientResponse> {
         let url_ = this.baseUrl + "/api/feature-flags";
         url_ = url_.replace(/[?&]$/, "");
@@ -13177,6 +13215,8 @@ export enum ErrorCodes {
     KnowledgeBaseAiUnavailable = "KnowledgeBaseAiUnavailable",
     ShoptetOrderInvalidSourceState = "ShoptetOrderInvalidSourceState",
     ShoptetOrderNotFound = "ShoptetOrderNotFound",
+    ExpeditionOrderInvalidState = "ExpeditionOrderInvalidState",
+    ExpeditionOrderNotPrinted = "ExpeditionOrderNotPrinted",
     DqtRunNotFound = "DqtRunNotFound",
     DqtInvalidDateRange = "DqtInvalidDateRange",
     DqtExternalServiceError = "DqtExternalServiceError",
@@ -19919,6 +19959,69 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
 
 export interface IRunExpeditionListPrintFixResponse extends IBaseResponse {
     totalCount?: number;
+}
+
+export class PrintExpeditionOrderResponse extends BaseResponse implements IPrintExpeditionOrderResponse {
+
+    constructor(data?: IPrintExpeditionOrderResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): PrintExpeditionOrderResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new PrintExpeditionOrderResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IPrintExpeditionOrderResponse extends IBaseResponse {
+}
+
+export class PrintExpeditionOrderRequest implements IPrintExpeditionOrderRequest {
+    orderCode?: string;
+
+    constructor(data?: IPrintExpeditionOrderRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.orderCode = _data["orderCode"];
+        }
+    }
+
+    static fromJS(data: any): PrintExpeditionOrderRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new PrintExpeditionOrderRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["orderCode"] = this.orderCode;
+        return data;
+    }
+}
+
+export interface IPrintExpeditionOrderRequest {
+    orderCode?: string;
 }
 
 export class EvaluateFlagsForClientResponse extends BaseResponse implements IEvaluateFlagsForClientResponse {
@@ -28119,7 +28222,6 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
     manualActionRequired?: boolean | undefined;
     semiProductOrderCode?: string | undefined;
     productOrderCode?: string | undefined;
-    discardRedisueDocumentCode?: string | undefined;
     weightWithinTolerance?: boolean | undefined;
     weightDifference?: number | undefined;
     flexiDocMaterialIssueForSemiProduct?: string | undefined;
@@ -28146,7 +28248,6 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
             this.manualActionRequired = _data["manualActionRequired"];
             this.semiProductOrderCode = _data["semiProductOrderCode"];
             this.productOrderCode = _data["productOrderCode"];
-            this.discardRedisueDocumentCode = _data["discardRedisueDocumentCode"];
             this.weightWithinTolerance = _data["weightWithinTolerance"];
             this.weightDifference = _data["weightDifference"];
             this.flexiDocMaterialIssueForSemiProduct = _data["flexiDocMaterialIssueForSemiProduct"];
@@ -28173,7 +28274,6 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
         data["manualActionRequired"] = this.manualActionRequired;
         data["semiProductOrderCode"] = this.semiProductOrderCode;
         data["productOrderCode"] = this.productOrderCode;
-        data["discardRedisueDocumentCode"] = this.discardRedisueDocumentCode;
         data["weightWithinTolerance"] = this.weightWithinTolerance;
         data["weightDifference"] = this.weightDifference;
         data["flexiDocMaterialIssueForSemiProduct"] = this.flexiDocMaterialIssueForSemiProduct;
@@ -28193,7 +28293,6 @@ export interface IUpdateManufactureOrderStatusRequest {
     manualActionRequired?: boolean | undefined;
     semiProductOrderCode?: string | undefined;
     productOrderCode?: string | undefined;
-    discardRedisueDocumentCode?: string | undefined;
     weightWithinTolerance?: boolean | undefined;
     weightDifference?: number | undefined;
     flexiDocMaterialIssueForSemiProduct?: string | undefined;
@@ -32311,8 +32410,6 @@ export interface IShippingAddress {
 
 export class ScanOrderEligibility implements IScanOrderEligibility {
     isEligible?: boolean;
-    warningTitle?: string | undefined;
-    warningBody?: string | undefined;
 
     constructor(data?: IScanOrderEligibility) {
         if (data) {
@@ -32326,8 +32423,6 @@ export class ScanOrderEligibility implements IScanOrderEligibility {
     init(_data?: any) {
         if (_data) {
             this.isEligible = _data["isEligible"];
-            this.warningTitle = _data["warningTitle"];
-            this.warningBody = _data["warningBody"];
         }
     }
 
@@ -32341,16 +32436,12 @@ export class ScanOrderEligibility implements IScanOrderEligibility {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["isEligible"] = this.isEligible;
-        data["warningTitle"] = this.warningTitle;
-        data["warningBody"] = this.warningBody;
         return data;
     }
 }
 
 export interface IScanOrderEligibility {
     isEligible?: boolean;
-    warningTitle?: string | undefined;
-    warningBody?: string | undefined;
 }
 
 export class ScanPackingOrderItemDto implements IScanPackingOrderItemDto {
@@ -37912,8 +38003,6 @@ export interface IGetPackingOrderResponse extends IBaseResponse {
 
 export class PackingEligibility implements IPackingEligibility {
     isEligible?: boolean;
-    warningTitle?: string | undefined;
-    warningBody?: string | undefined;
 
     constructor(data?: IPackingEligibility) {
         if (data) {
@@ -37927,8 +38016,6 @@ export class PackingEligibility implements IPackingEligibility {
     init(_data?: any) {
         if (_data) {
             this.isEligible = _data["isEligible"];
-            this.warningTitle = _data["warningTitle"];
-            this.warningBody = _data["warningBody"];
         }
     }
 
@@ -37942,16 +38029,12 @@ export class PackingEligibility implements IPackingEligibility {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["isEligible"] = this.isEligible;
-        data["warningTitle"] = this.warningTitle;
-        data["warningBody"] = this.warningBody;
         return data;
     }
 }
 
 export interface IPackingEligibility {
     isEligible?: boolean;
-    warningTitle?: string | undefined;
-    warningBody?: string | undefined;
 }
 
 export class PackingOrderItemDto implements IPackingOrderItemDto {

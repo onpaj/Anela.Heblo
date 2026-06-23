@@ -231,6 +231,11 @@ public enum ErrorCodes
     ShoptetOrderInvalidSourceState = 2101,
     [HttpStatusCode(HttpStatusCode.NotFound)]
     ShoptetOrderNotFound = 2102,
+    // Manual expedition single-order print
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ExpeditionOrderInvalidState = 2103,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ExpeditionOrderNotPrinted = 2104,
 
     // DataQuality module errors (22XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

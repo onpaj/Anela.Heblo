@@ -26,6 +26,7 @@ internal sealed class LogisticsExpeditionPickingAdapter : IExpeditionPickingSour
             NoteStateId = request.NoteStateId,
             ChangeOrderState = request.ChangeOrderState,
             SendToPrinter = request.SendToPrinter,
+            OrderCode = request.OrderCode,
         };
 
         var inner = await _inner.CreatePickingList(innerRequest, onBatchFilesReady, cancellationToken);

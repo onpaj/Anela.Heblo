@@ -15,4 +15,5 @@ public class PrintPickingListRequest
     public int NoteStateId { get; set; } = DefaultNoteStateId;
     public bool ChangeOrderState { get; set; }
     public bool SendToPrinter { get; set; }
+    public string? OrderCode { get; set; }
 }

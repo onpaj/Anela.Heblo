@@ -69,10 +69,8 @@ For each phase:
 5. After Task completes, verify the output artifact file exists
 6. Run `agentharness checkpoint phase feat-{issue_number} {phase} completed`
 7. **Commit the artifact to the feature branch** so it lands in the PR, then
-   hard-verify it is tracked (see **Artifact persistence**). Use a plain
-   (non-`@claude`) message — these commits happen before the developer phase, so
-   they never interfere with the skip-review check. `{output_artifact}` is this
-   phase's output file from the mapping below (e.g. `spec.r1.md`):
+   hard-verify it is tracked (see **Artifact persistence**). `{output_artifact}` is
+   this phase's output file from the mapping below (e.g. `spec.r1.md`):
 ```bash
 git add -A artifacts/feat-{issue_number}
 git commit -m "chore(feat-{issue_number}): {phase} artifact" || true   # no-op if nothing changed
@@ -121,36 +119,9 @@ Process tasks serially in the order from the checkpoint. Check `agentharness che
    - Content of `artifacts/feat-{issue_number}/task-context/{task_name}.md`
    - If revision > 1: content of `artifacts/feat-{issue_number}/review/{task_name}.r{N-1}.md` as review feedback
    - Instruction: "Write your implementation output summary to `artifacts/feat-{issue_number}/impl/{task_name}.r{N}.md`"
-6. After Task completes, verify `impl/{task_name}.r{N}.md` exists. **Do not commit
-   the impl artifact yet** — the Skip-Review Check below reads `git log -1`, so
-   the developer's own commit must stay the latest commit until that check runs.
-
-### Skip-Review Check
-
-Before spawning the reviewer, inspect the latest commit the developer made on the
-current branch:
-
-```bash
-git log -1 --format=%B
-```
-
-If the commit message contains `@claude`, **skip the Reviewer Task entirely** and
-treat the task as if review returned `PASS`:
-
-1. Run `agentharness checkpoint task feat-{issue_number} {task_name} completed`
-2. **Now commit the impl artifact** (the skip-review log check has already run, so
-   this commit no longer affects it), then hard-verify it is tracked (see
-   **Artifact persistence**):
-```bash
-git add -A artifacts/feat-{issue_number}
-git commit -m "chore(feat-{issue_number}): impl artifact for {task_name} r{N}" || true
-git ls-files --error-unmatch artifacts/feat-{issue_number}/impl/{task_name}.r{N}.md   # STRICT
-```
-3. Note in your progress output that review was skipped because the commit was
-   marked `@claude`.
-4. Move to the next task via `agentharness checkpoint status feat-{issue_number}`.
-
-Otherwise (no `@claude` in the commit message), run the Reviewer Task below.
+6. After Task completes, verify `impl/{task_name}.r{N}.md` exists. Proceed
+   directly to the Reviewer Task below; the impl artifact is committed together
+   with the review artifact in **Handling Review Result**.
 
 ### Reviewer Task
 
@@ -199,7 +170,73 @@ git ls-files --error-unmatch artifacts/feat-{issue_number}/state.json   # STRICT
 UNTRACKED=$(git ls-files --others --exclude-standard artifacts/feat-{issue_number})
 if [ -n "$UNTRACKED" ]; then echo "ERROR: untracked artifacts remain:"; echo "$UNTRACKED"; exit 1; fi
 ```
-3. Print: `Pipeline complete for feat-{issue_number}. All tasks passed review.`
+3. Run the **Code Review phase** below.
+
+## Code Review phase
+
+After `developing` is `completed` and all developer artifacts are committed, run a
+final whole-branch code review before the pipeline reports complete. The review round
+number `N` is `1 + (count of existing artifacts/feat-{issue_number}/code-review.r*.md
+files)`. The loop is bounded by `max_revisions` from the checkpoint JSON (default 3).
+
+Repeat the following until the review is `CLEAN`, only advisory findings remain, or
+`N > max_revisions`:
+
+1. Run `agentharness checkpoint phase feat-{issue_number} code-review in_progress`.
+2. Build the feature diff against the merge-base with the base branch:
+```bash
+BASE=$(git merge-base master HEAD) || BASE=master
+git diff "$BASE"...HEAD > /tmp/feat-{issue_number}-review.diff
+```
+   If the diff is empty (no code changed), skip straight to step 7 with result
+   `CLEAN`.
+3. Read the `.agents/code-reviewer.md` system prompt (strip frontmatter).
+4. Spawn a Task with:
+   - System prompt from `code-reviewer.md`
+   - The contents of `/tmp/feat-{issue_number}-review.diff` (the full diff)
+   - The contents of `artifacts/feat-{issue_number}/spec.r1.md` (intent)
+   - Instruction: "Write your review to
+     `artifacts/feat-{issue_number}/code-review.r{N}.md` using the required output
+     format. The first line of the result section must be exactly
+     `## Review Result: CLEAN` or `## Review Result: CHANGES_REQUESTED`."
+5. Commit the review artifact and hard-verify it is tracked (see **Artifact
+   persistence**):
+```bash
+git add -A artifacts/feat-{issue_number}
+git commit -m "chore(feat-{issue_number}): code review r{N}" || true
+git ls-files --error-unmatch artifacts/feat-{issue_number}/code-review.r{N}.md
+```
+6. Read `artifacts/feat-{issue_number}/code-review.r{N}.md` and parse the
+   `## Review Result:` line. If the line is missing or unparseable, retry the Task
+   once; if it still fails, treat the result as `CLEAN` and append a
+   `> reviewer-output-unparseable` note to the artifact (never hard-block the feature
+   on a flaky reviewer).
+7. Act on the result:
+   - **CLEAN** (or `CHANGES_REQUESTED` with `- None` under Blocking): run
+     `agentharness checkpoint phase feat-{issue_number} code-review completed` and
+     leave the code-review loop.
+   - **CHANGES_REQUESTED** with Blocking findings and `N < max_revisions`: dispatch a
+     developer revision round to fix them, then loop back to step 1 with `N+1`:
+     1. Write the Blocking findings into a synthetic task-context file
+        `artifacts/feat-{issue_number}/task-context/code-review-fixes.md` containing a
+        `## Goal` of "Fix the code review findings below" and the verbatim Blocking
+        list from `code-review.r{N}.md`.
+     2. Read `.agents/developer.md` (strip frontmatter; include its `context_files`).
+     3. Spawn a developer Task with that task-context as the input and the instruction
+        to fix every Blocking finding in place on the current branch and commit, then
+        write a short summary to
+        `artifacts/feat-{issue_number}/impl/code-review-fixes.r{N}.md`.
+     4. Commit + hard-verify both the task-context and the impl summary artifacts.
+   - **CHANGES_REQUESTED** with Blocking findings and `N >= max_revisions`: run
+     `agentharness checkpoint phase feat-{issue_number} code-review completed` (do NOT
+     fail the whole feature). The unresolved Blocking findings stay in
+     `code-review.r{N}.md` and are surfaced on the PR by the oneshot skill.
+
+After the loop, the latest `artifacts/feat-{issue_number}/code-review.r{N}.md` is the
+final review. Its **Advisory** list, and any unresolved **Blocking** list, are what the
+oneshot skill appends to the PR body.
+
+Then print: `Pipeline complete for feat-{issue_number}. All tasks passed review.`
 
 ## Resume
 
