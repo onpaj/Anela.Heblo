@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.FileStorage.Services;
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
@@ -556,6 +557,59 @@ public class AzureBlobStorageServiceTests
             _service.UploadAsync(stream, containerName, blobName, contentType));
 
         Assert.Equal("Storage error", exception.Message);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Shared test helpers
+    // ---------------------------------------------------------------------------
+
+    private void SetupContainerAndBlobClient(
+        string containerName,
+        out Mock<BlobContainerClient> containerMock,
+        out Mock<BlobClient> blobMock,
+        out List<string> capturedBlobNames)
+    {
+        var names = new List<string>();
+        capturedBlobNames = names;
+
+        var container = new Mock<BlobContainerClient>();
+        var blob = new Mock<BlobClient>();
+
+        blob.Setup(x => x.Uri)
+            .Returns(new Uri($"https://testaccount.blob.core.windows.net/{containerName}/blob"));
+        blob.Setup(x => x.UploadAsync(
+                It.IsAny<Stream>(),
+                It.IsAny<BlobUploadOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+
+        container.Setup(x => x.GetBlobClient(It.IsAny<string>()))
+            .Callback<string>(name => names.Add(name))
+            .Returns(blob.Object);
+        container.Setup(x => x.CreateIfNotExistsAsync(
+                It.IsAny<PublicAccessType>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<BlobContainerEncryptionScopeOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
+
+        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName))
+            .Returns(container.Object);
+
+        containerMock = container;
+        blobMock = blob;
+    }
+
+    private static StubHttpMessageHandler BuildNoContentTypeHandler(string responseBody = "test content")
+    {
+        var content = new ByteArrayContent(Encoding.UTF8.GetBytes(responseBody));
+        return new StubHttpMessageHandler(HttpStatusCode.OK, overrideContent: content);
+    }
+
+    private static AsyncPageable<T> CreateAsyncPageable<T>(IEnumerable<T> items) where T : notnull
+    {
+        var page = Page<T>.FromValues(items.ToList(), continuationToken: null, response: Mock.Of<Azure.Response>());
+        return AsyncPageable<T>.FromPages(new[] { page });
     }
 
     // ---------------------------------------------------------------------------
