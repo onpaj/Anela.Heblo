@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
+using Anela.Heblo.Application.Features.UserManagement.Services;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -6,7 +7,7 @@ using Microsoft.Identity.Web;
 using Microsoft.Identity.Client;
 using System.Net.Http;
 
-namespace Anela.Heblo.Application.Features.UserManagement.Services;
+namespace Anela.Heblo.Adapters.Microsoft365.UserManagement;
 
 /// <summary>
 /// Service for accessing Microsoft Graph API to retrieve group members.
