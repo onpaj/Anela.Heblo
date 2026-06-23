@@ -34,9 +34,9 @@
     },
     {
       "name": "update-call-site",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T06:23:23.895612Z"
     }
   ]
 }
