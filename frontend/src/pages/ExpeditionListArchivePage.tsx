@@ -18,6 +18,7 @@ import {
 import { usePermissionsContext } from "../auth/PermissionsContext";
 import { useToast } from "../contexts/ToastContext";
 import { useScreenView } from "../telemetry/useScreenView";
+import PrintOrderModal from "../components/modals/PrintOrderModal";
 
 const PAGE_SIZE = 20;
 const PRINT_JOB_NAME = "print-picking-list";
@@ -49,6 +50,7 @@ const ExpeditionListArchivePage: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [reprintConfirm, setReprintConfirm] = useState<ExpeditionListItemDto | null>(null);
+  const [isPrintOrderModalOpen, setIsPrintOrderModalOpen] = useState(false);
 
   useScreenView('Logistics', 'ExpeditionArchive');
 
@@ -132,6 +134,12 @@ const ExpeditionListArchivePage: React.FC = () => {
     }
   };
 
+  const handlePrintOrderSuccess = async (orderCode: string) => {
+    setIsPrintOrderModalOpen(false);
+    showSuccess("Zakázka vytištěna", `Zakázka ${orderCode} byla odeslána na tisk a převedena do stavu „Balí se".`);
+    await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expeditionListArchive });
+  };
+
   const handleReprintConfirm = async () => {
     if (!reprintConfirm) return;
     try {
@@ -192,6 +200,13 @@ const ExpeditionListArchivePage: React.FC = () => {
           >
             <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
             Obnovit
+          </button>
+          <button
+            onClick={() => setIsPrintOrderModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+          >
+            <Printer size={14} />
+            Tisknout zakázku
           </button>
           <button
             onClick={handleRunFix}
@@ -345,6 +360,12 @@ const ExpeditionListArchivePage: React.FC = () => {
           )}
         </div>
       </div>
+
+      <PrintOrderModal
+        isOpen={isPrintOrderModalOpen}
+        onClose={() => setIsPrintOrderModalOpen(false)}
+        onSuccess={handlePrintOrderSuccess}
+      />
 
       {/* Reprint confirmation dialog */}
       {reprintConfirm && (

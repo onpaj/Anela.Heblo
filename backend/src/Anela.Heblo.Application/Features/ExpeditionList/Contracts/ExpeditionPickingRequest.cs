@@ -13,6 +13,13 @@ public class ExpeditionPickingRequest
     public bool ChangeOrderState { get; set; }
     public bool SendToPrinter { get; set; }
 
+    /// <summary>
+    /// When set, the picking list is built for this single order code instead of
+    /// fetching all orders in <see cref="SourceStateId"/>. Used by the manual
+    /// "Tisknout zakázku" action.
+    /// </summary>
+    public string? OrderCode { get; set; }
+
     public static IList<Carriers> DefaultCarriers { get; } = new List<Carriers>
     {
         Anela.Heblo.Domain.Features.Logistics.Carriers.Zasilkovna,

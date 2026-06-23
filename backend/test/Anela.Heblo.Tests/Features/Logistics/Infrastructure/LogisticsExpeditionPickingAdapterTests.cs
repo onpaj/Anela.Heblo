@@ -122,4 +122,27 @@ public class LogisticsExpeditionPickingAdapterTests
         // Assert
         captured.Should().Be(cts.Token);
     }
+
+    [Fact]
+    public async Task CreatePickingListAsync_ForwardsOrderCode_ToInnerRequest()
+    {
+        // Arrange
+        PrintPickingListRequest? captured = null;
+        var inner = new Mock<IPickingListSource>();
+        inner.Setup(s => s.CreatePickingList(
+                It.IsAny<PrintPickingListRequest>(),
+                It.IsAny<Func<IList<string>, Task>?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<PrintPickingListRequest, Func<IList<string>, Task>?, CancellationToken>(
+                (req, _, _) => captured = req)
+            .ReturnsAsync(new PrintPickingListResult { ExportedFiles = new List<string>(), TotalCount = 0 });
+        var adapter = new LogisticsExpeditionPickingAdapter(inner.Object);
+
+        // Act
+        await adapter.CreatePickingListAsync(
+            new ExpeditionPickingRequest { OrderCode = "0001234" }, null, CancellationToken.None);
+
+        // Assert
+        captured!.OrderCode.Should().Be("0001234");
+    }
 }

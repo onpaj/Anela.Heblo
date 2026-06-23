@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -203,6 +204,17 @@ public class ShoptetOrderClient : IEshopOrderClient, IShoptetExpeditionOrderSour
 
         var data = await response.Content.ReadFromJsonAsync<ExpeditionOrderDetailResponse>(JsonOptions, ct);
         return data!.Data.Order;
+    }
+
+    public async Task<OrderSummary?> GetOrderByCodeAsync(string code, CancellationToken ct = default)
+    {
+        var response = await _http.GetAsync($"/api/orders/{code}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<CreateOrderResponse>(JsonOptions, ct);
+        return data?.Data.Order;
     }
 
     public async Task SetAdditionalFieldAsync(
