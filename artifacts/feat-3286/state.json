@@ -64,15 +64,15 @@
     },
     {
       "name": "fr6-virtual-directories-trailing-slash",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-23T04:15:48.974403Z"
+      "updated_at": "2026-06-23T04:19:16.925978Z"
     },
     {
       "name": "full-suite-verification",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T04:19:17.123262Z"
     }
   ]
 }
