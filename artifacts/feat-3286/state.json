@@ -21,16 +21,16 @@
       "updated_at": "2026-06-23T03:27:22.994816Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-23T03:27:57.072552Z"
     }
   },
   "tasks": [
     {
       "name": "add-shared-test-helpers",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T03:27:57.280189Z"
     },
     {
       "name": "fr1-blobname-from-url-path",
