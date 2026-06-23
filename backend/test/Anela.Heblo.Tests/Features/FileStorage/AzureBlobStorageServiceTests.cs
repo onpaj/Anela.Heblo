@@ -112,25 +112,74 @@ public class AzureBlobStorageServiceTests
     }
 
     // ---------------------------------------------------------------------------
-    // GetContentTypeFromExtension (tested indirectly)
+    // FR-4: GetContentTypeFromExtension — all switch arms (via UploadAsync BlobUploadOptions)
     // ---------------------------------------------------------------------------
 
     [Theory]
-    [InlineData(".jpg", "image/jpeg")]
-    [InlineData(".jpeg", "image/jpeg")]
-    [InlineData(".png", "image/png")]
-    [InlineData(".pdf", "application/pdf")]
-    [InlineData(".txt", "text/plain")]
-    [InlineData(".json", "application/json")]
-    [InlineData(".unknown", "application/octet-stream")]
-    public void GetContentTypeFromExtension_DifferentExtensions_ShouldReturnCorrectContentType(string extension, string expectedContentType)
+    [InlineData("file.jpg", "image/jpeg")]
+    [InlineData("file.jpeg", "image/jpeg")]
+    [InlineData("file.png", "image/png")]
+    [InlineData("file.gif", "image/gif")]
+    [InlineData("file.webp", "image/webp")]
+    [InlineData("file.pdf", "application/pdf")]
+    [InlineData("file.txt", "text/plain")]
+    [InlineData("file.json", "application/json")]
+    [InlineData("file.xml", "application/xml")]
+    [InlineData("file.zip", "application/zip")]
+    [InlineData("file.doc", "application/msword")]
+    [InlineData("file.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")]
+    [InlineData("file.xls", "application/vnd.ms-excel")]
+    [InlineData("file.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
+    [InlineData("file.unknown", "application/octet-stream")]
+    public async Task DownloadFromUrlAsync_NoResponseContentType_InfersContentTypeFromExtension(
+        string blobName, string expectedContentType)
     {
-        // This test would require making the private method internal or using reflection
-        // For now, we'll test it indirectly through other methods
-        var fileName = $"test{extension}";
-        // The GetContentTypeFromExtension method is private, so we test it indirectly
-        Assert.NotEmpty(fileName); // Placeholder assertion
-        Assert.NotEmpty(expectedContentType); // Verify expected content type is provided
+        // Arrange — response has NO Content-Type header (ByteArrayContent), so production code
+        // falls back to GetContentTypeFromExtension(blobName).
+        var fileUrl = "https://example.com/file";
+        var containerName = "documents";
+
+        var handler = BuildNoContentTypeHandler();
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+        _mockHttpClientFactory
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
+            .Returns(client);
+
+        SetupContainerAndBlobClient(containerName, out _, out var blobMock, out _);
+
+        // Act — pass explicit blobName so extension is known
+        await _service.DownloadFromUrlAsync(fileUrl, containerName, blobName);
+
+        // Assert — UploadAsync received the content type inferred from the extension
+        blobMock.Verify(x => x.UploadAsync(
+            It.IsAny<Stream>(),
+            It.Is<BlobUploadOptions>(opts => opts.HttpHeaders.ContentType == expectedContentType),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DownloadFromUrlAsync_NoResponseContentType_UppercaseExtension_InfersContentType()
+    {
+        // Arrange — GetContentTypeFromExtension lowercases the extension before matching.
+        var fileUrl = "https://example.com/file";
+        var containerName = "documents";
+
+        var handler = BuildNoContentTypeHandler();
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+        _mockHttpClientFactory
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
+            .Returns(client);
+
+        SetupContainerAndBlobClient(containerName, out _, out var blobMock, out _);
+
+        // Act — uppercase extension must still resolve to image/jpeg
+        await _service.DownloadFromUrlAsync(fileUrl, containerName, "PHOTO.JPG");
+
+        // Assert
+        blobMock.Verify(x => x.UploadAsync(
+            It.IsAny<Stream>(),
+            It.Is<BlobUploadOptions>(opts => opts.HttpHeaders.ContentType == "image/jpeg"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ---------------------------------------------------------------------------
