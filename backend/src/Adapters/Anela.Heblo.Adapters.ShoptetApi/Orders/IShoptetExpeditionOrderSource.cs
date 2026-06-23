@@ -7,5 +7,6 @@ public interface IShoptetExpeditionOrderSource
 {
     Task<OrderListResponse> GetOrdersByStatusAsync(int statusId, int page, CancellationToken ct = default);
     Task<ExpeditionOrderDetail> GetExpeditionOrderDetailAsync(string code, CancellationToken ct = default);
+    Task<OrderSummary?> GetOrderByCodeAsync(string code, CancellationToken ct = default);
     Task SetAdditionalFieldAsync(string orderCode, int index, string? text, CancellationToken ct = default);
 }

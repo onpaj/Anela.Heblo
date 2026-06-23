@@ -51,7 +51,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         Func<IList<string>, Task>? onBatchFilesReady,
         CancellationToken cancellationToken = default)
     {
-        var allOrders = await FetchAllOrdersAsync(request.SourceStateId, cancellationToken);
+        var allOrders = string.IsNullOrEmpty(request.OrderCode)
+            ? await FetchAllOrdersAsync(request.SourceStateId, cancellationToken)
+            : await FetchSingleOrderAsync(request.OrderCode, cancellationToken);
         var ordersByMethod = BuildOrdersByMethod(allOrders, request.Carriers);
 
         var exportedFiles = new List<string>();
@@ -84,6 +86,12 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             ExportedFiles = exportedFiles,
             TotalCount = processedCodes.Count,
         };
+    }
+
+    private async Task<List<OrderSummary>> FetchSingleOrderAsync(string code, CancellationToken ct)
+    {
+        var order = await _client.GetOrderByCodeAsync(code, ct);
+        return order is null ? new List<OrderSummary>() : new List<OrderSummary> { order };
     }
 
     private async Task<List<OrderSummary>> FetchAllOrdersAsync(int statusId, CancellationToken ct)
@@ -322,7 +330,6 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             }
             else if (string.Equals(item.ItemType, "product-set", StringComparison.OrdinalIgnoreCase))
             {
-                var setQuantity = (int)(item.Amount ?? 1);
                 if (!setItemsByParentId.TryGetValue(item.ItemId, out var setComponents))
                     continue;
 
@@ -334,7 +341,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                         Name = component.Name ?? string.Empty,
                         Variant = component.VariantName ?? string.Empty,
                         WarehousePosition = string.Empty, // Shoptet completion API does not return stock locations for set components
-                        Quantity = (int)(component.Amount ?? 0) * setQuantity,
+                        // Shoptet's completion amount is already the order total
+                        // (component-per-set * set count), so it is used as-is.
+                        Quantity = (int)(component.Amount ?? 0),
                         Unit = component.Unit ?? string.Empty,
                         UnitPrice = 0m,
                         IsFromSet = true,
