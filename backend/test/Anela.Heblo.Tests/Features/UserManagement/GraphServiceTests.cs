@@ -114,7 +114,7 @@ public class GraphServiceTests
     }
 
     [Fact]
-    public void AddUserManagement_ProductionBranch_RegistersMicrosoftGraphNamedClient_AndResolvesGraphService()
+    public void AddMicrosoft365Adapter_ProductionBranch_RegistersMicrosoftGraphNamedClient_AndResolvesGraphService()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -139,7 +139,7 @@ public class GraphServiceTests
     }
 
     [Fact]
-    public void AddUserManagement_MockBranch_RegistersMockGraphService()
+    public void AddMicrosoft365Adapter_MockBranch_RegistersMockGraphService()
     {
         // Arrange
         var services = new ServiceCollection();
