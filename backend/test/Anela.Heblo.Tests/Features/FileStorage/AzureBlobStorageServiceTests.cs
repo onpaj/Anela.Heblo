@@ -509,7 +509,7 @@ public class AzureBlobStorageServiceTests
         await _service.DownloadFromUrlAsync(fileUrl, containerName);
 
         // Assert — blob name comes from the URL path filename, not a generated GUID
-        Assert.Contains("report.pdf", capturedBlobNames);
+        Assert.Equal("report.pdf", Assert.Single(capturedBlobNames));
     }
 
     // ---------------------------------------------------------------------------
