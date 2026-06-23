@@ -18,6 +18,7 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 public class ShoptetApiExpeditionListSource : IPickingListSource
 {
     private readonly IShoptetExpeditionOrderSource _client;
+    private readonly IEshopOrderClient _eshopOrderClient;
     private readonly TimeProvider _timeProvider;
     private readonly ICatalogRepository _catalog;
     private readonly ICarrierCoolingRepository _carrierCooling;
@@ -27,6 +28,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
 
     public ShoptetApiExpeditionListSource(
         IShoptetExpeditionOrderSource client,
+        IEshopOrderClient eshopOrderClient,
         TimeProvider timeProvider,
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling,
@@ -35,6 +37,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
     {
         _client = client;
+        _eshopOrderClient = eshopOrderClient;
         _timeProvider = timeProvider;
         _catalog = catalog;
         _carrierCooling = carrierCooling;
@@ -73,7 +76,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         if (request.ChangeOrderState)
         {
             foreach (var code in processedCodes)
-                await _client.UpdateStatusAsync(code, request.DesiredStateId, cancellationToken);
+                await _eshopOrderClient.UpdateStatusAsync(code, request.DesiredStateId, cancellationToken);
         }
 
         return new PrintPickingListResult

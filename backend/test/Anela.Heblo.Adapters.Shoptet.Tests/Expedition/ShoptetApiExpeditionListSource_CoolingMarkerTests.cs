@@ -3,6 +3,7 @@ using Anela.Heblo.Adapters.ShoptetApi.Expedition.Model;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Application.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
@@ -173,6 +174,7 @@ public class ShoptetApiExpeditionListSource_CoolingMarkerTests
 
         return new ShoptetApiExpeditionListSource(
             orderSource.Object,
+            Mock.Of<IEshopOrderClient>(),
             TimeProvider.System,
             catalog.Object,
             carrierCooling.Object,
