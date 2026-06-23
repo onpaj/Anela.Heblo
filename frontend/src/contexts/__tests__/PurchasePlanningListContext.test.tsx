@@ -51,6 +51,12 @@ const TestComponent: React.FC = () => {
       <button data-testid="clear-list" onClick={clearList}>
         Clear List
       </button>
+      <button
+        data-testid="remove-unknown"
+        onClick={() => removeItem("UNKNOWN")}
+      >
+        Remove Unknown
+      </button>
     </div>
   );
 };
@@ -142,9 +148,11 @@ describe("PurchasePlanningListContext", () => {
     fireEvent.click(screen.getByTestId("add-item"));
     expect(screen.getByTestId("items-count")).toHaveTextContent("1");
 
-    // No Remove button exists for "UNKNOWN" — the list stays untouched.
-    expect(screen.queryByTestId("item-UNKNOWN")).not.toBeInTheDocument();
+    // Invoke removeItem with a code not in the list — exercises the no-op branch.
+    fireEvent.click(screen.getByTestId("remove-unknown"));
+
     expect(screen.getByTestId("items-count")).toHaveTextContent("1");
+    expect(screen.getByTestId("item-MAT01")).toBeInTheDocument();
   });
 
   it("should clear all items from the list", () => {
