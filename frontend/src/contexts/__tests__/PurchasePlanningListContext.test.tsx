@@ -179,12 +179,14 @@ describe("PurchasePlanningListContext", () => {
       .spyOn(console, "error")
       .mockImplementation(() => {});
 
-    expect(() => {
-      render(<TestComponent />);
-    }).toThrow(
-      "usePurchasePlanningList must be used within a PurchasePlanningListProvider"
-    );
-
-    consoleSpy.mockRestore();
+    try {
+      expect(() => {
+        render(<TestComponent />);
+      }).toThrow(
+        "usePurchasePlanningList must be used within a PurchasePlanningListProvider"
+      );
+    } finally {
+      consoleSpy.mockRestore();
+    }
   });
 });
