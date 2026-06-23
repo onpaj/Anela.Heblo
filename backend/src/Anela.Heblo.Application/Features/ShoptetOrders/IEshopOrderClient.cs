@@ -5,8 +5,6 @@ public interface IEshopOrderClient
     Task<string> CreateOrderAsync(CreateEshopOrderRequest request, CancellationToken ct = default);
     Task<int> GetOrderStatusIdAsync(string orderCode, CancellationToken ct = default);
     Task UpdateStatusAsync(string orderCode, int statusId, CancellationToken ct = default);
-    Task SetInternalNoteAsync(string orderCode, string note, CancellationToken ct = default);
-
     /// <summary>
     /// Returns the current internal (staff-facing) remark for the given order,
     /// as returned by GET /api/orders/{code}?include=notes → data.order.notes.eshopRemark.
@@ -24,17 +22,6 @@ public interface IEshopOrderClient
     Task DeleteOrderAsync(string orderCode, CancellationToken ct = default);
     Task<List<EshopOrderSummary>> GetRecentOrdersAsync(int count = 20, CancellationToken ct = default);
     Task<List<EshopOrderSummary>> ListByExternalCodePrefixAsync(string prefix, string? emailFilter = null, CancellationToken ct = default);
-
-    /// <summary>
-    /// Gets the first <paramref name="count"/> orders for the given email from the most recent page.
-    /// Filters in-memory (Shoptet API does not support email filter on list endpoint).
-    /// </summary>
-    Task<List<EshopOrderInfo>> GetRecentOrdersByEmailAsync(string email, int count, CancellationToken ct = default);
-
-    /// <summary>
-    /// Returns a map of status id → status name from GET /api/eshop?include=orderStatuses.
-    /// </summary>
-    Task<Dictionary<int, string>> GetOrderStatusNamesAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Transitions the order to the configured "packed" state

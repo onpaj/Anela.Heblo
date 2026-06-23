@@ -39,8 +39,8 @@ gh pr list --state all --json number,headRefName \
 
 4. **Run oneshot on it.** Invoke the `oneshot` skill on the selected issue
    number — this drives the full pipeline (worktree on `feature/{N}-{slug}`,
-   label lifecycle `agent` → `agent-wip` → `agent-completed`, tests, `@claude`
-   commit, push, and the `agent`-labelled PR):
+   label lifecycle `agent` → `agent-wip` → `agent-completed`, tests, in-pipeline
+   code review, push, and the `agent`-labelled PR):
 ```
 /oneshot {N}
 ```

@@ -1,5 +1,6 @@
 using System.Net;
-using Anela.Heblo.Application.Features.UserManagement;
+using Anela.Heblo.Adapters.Microsoft365;
+using Anela.Heblo.Adapters.Microsoft365.UserManagement;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Tests.Helpers;
@@ -345,7 +346,7 @@ public class GraphServiceTests
     }
 
     [Fact]
-    public void AddUserManagement_ProductionBranch_RegistersMicrosoftGraphNamedClient_AndResolvesGraphService()
+    public void AddMicrosoft365Adapter_ProductionBranch_RegistersMicrosoftGraphNamedClient_AndResolvesGraphService()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -355,8 +356,8 @@ public class GraphServiceTests
         var configuration = new ConfigurationBuilder().Build(); // no mock-auth keys => production branch
         services.AddSingleton<IConfiguration>(configuration);
 
-        // Act
-        services.AddUserManagement(configuration);
+        // Act — IGraphService is registered by the adapter layer, not UserManagement
+        services.AddMicrosoft365Adapter(configuration);
 
         // Assert
         using var provider = services.BuildServiceProvider();
@@ -370,7 +371,7 @@ public class GraphServiceTests
     }
 
     [Fact]
-    public void AddUserManagement_MockBranch_RegistersMockGraphService()
+    public void AddMicrosoft365Adapter_MockBranch_RegistersMockGraphService()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -383,8 +384,8 @@ public class GraphServiceTests
             })
             .Build();
 
-        // Act
-        services.AddUserManagement(configuration);
+        // Act — IGraphService is registered by the adapter layer, not UserManagement
+        services.AddMicrosoft365Adapter(configuration);
 
         // Assert
         using var provider = services.BuildServiceProvider();

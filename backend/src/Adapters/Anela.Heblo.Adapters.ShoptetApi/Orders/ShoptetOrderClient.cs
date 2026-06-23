@@ -160,22 +160,6 @@ public class ShoptetOrderClient : IEshopOrderClient, IShoptetExpeditionOrderSour
         }
     }
 
-    public async Task SetInternalNoteAsync(string orderCode, string note, CancellationToken ct = default)
-    {
-        var body = new CreateOrderRemarkRequest
-        {
-            Data = new CreateOrderRemarkData { Text = note, Type = "system" },
-        };
-
-        var response = await _http.PostAsJsonAsync($"/api/orders/{orderCode}/history", body, JsonOptions, ct);
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync(ct);
-            throw new HttpRequestException(
-                $"POST /api/orders/{orderCode}/history returned {(int)response.StatusCode}: {errorBody}");
-        }
-    }
-
     public async Task UpdateEshopRemarkAsync(string orderCode, string eshopRemark, CancellationToken ct = default)
     {
         var body = new UpdateEshopRemarkRequest
@@ -196,33 +180,6 @@ public class ShoptetOrderClient : IEshopOrderClient, IShoptetExpeditionOrderSour
     {
         var response = await _http.DeleteAsync($"/api/orders/{orderCode}", ct);
         response.EnsureSuccessStatusCode();
-    }
-
-    // NOTE: Fetches only page 1. For high-volume stores the matching orders may not appear on the first page,
-    // which can cause the email-fallback resolution path to under-return results or miss the customer GUID.
-    public async Task<List<EshopOrderInfo>> GetRecentOrdersByEmailAsync(string email, int count, CancellationToken ct = default)
-    {
-        var itemsPerPage = Math.Min(count, 50);
-        var response = await _http.GetAsync($"/api/orders?page=1&itemsPerPage={itemsPerPage}", ct);
-        response.EnsureSuccessStatusCode();
-
-        var data = await response.Content.ReadFromJsonAsync<OrderListResponse>(JsonOptions, ct);
-        return (data?.Data.Orders ?? [])
-            .Where(o => string.Equals(o.Email, email, StringComparison.OrdinalIgnoreCase))
-            .Take(count)
-            .Select(MapToOrderInfo)
-            .ToList();
-    }
-
-    public async Task<Dictionary<int, string>> GetOrderStatusNamesAsync(CancellationToken ct = default)
-    {
-        var response = await _http.GetAsync("/api/eshop?include=orderStatuses", ct);
-        response.EnsureSuccessStatusCode();
-
-        var data = await response.Content.ReadFromJsonAsync<ShoptetEshopResponse>(JsonOptions, ct);
-        return (data?.Data?.Eshop?.OrderStatuses ?? [])
-            .Where(s => !string.IsNullOrWhiteSpace(s.Name))
-            .ToDictionary(s => s.Id, s => s.Name!);
     }
 
     public Task MarkAsPackedAsync(string orderCode, CancellationToken ct = default) =>
@@ -297,17 +254,6 @@ public class ShoptetOrderClient : IEshopOrderClient, IShoptetExpeditionOrderSour
             Email = order.Email,
             StatusId = order.Status.Id,
         };
-
-    private static EshopOrderInfo MapToOrderInfo(OrderSummary o) => new()
-    {
-        Code = o.Code,
-        CustomerGuid = o.CustomerGuid,
-        TotalWithVat = o.Price?.WithVat,
-        CurrencyCode = o.Price?.CurrencyCode,
-        StatusId = o.Status.Id,
-        AdminUrl = o.AdminUrl,
-        OrderDate = o.CreationTime is { } t && DateTime.TryParse(t, out var dt) ? dt : null,
-    };
 }
 
 /// <summary>
