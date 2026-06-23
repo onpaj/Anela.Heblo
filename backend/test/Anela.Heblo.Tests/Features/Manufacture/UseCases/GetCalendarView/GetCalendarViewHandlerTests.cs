@@ -124,6 +124,7 @@ public class GetCalendarViewHandlerTests
 
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
 
+        result.Success.Should().BeTrue();
         result.Events.Should().HaveCount(1);
         var ev = result.Events[0];
         ev.SemiProduct.Should().BeNull();
@@ -145,6 +146,7 @@ public class GetCalendarViewHandlerTests
 
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
 
+        result.Success.Should().BeTrue();
         result.Events[0].Title.Should().Be("Argan Cream");
     }
 
@@ -163,6 +165,7 @@ public class GetCalendarViewHandlerTests
 
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
 
+        result.Success.Should().BeTrue();
         result.Events[0].Title.Should().Be("Plain Name");
     }
 
@@ -182,6 +185,7 @@ public class GetCalendarViewHandlerTests
 
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
 
+        result.Success.Should().BeTrue();
         result.Events.Should().HaveCount(1);
         var sp = result.Events[0].SemiProduct;
         sp.Should().NotBeNull();
@@ -201,6 +205,7 @@ public class GetCalendarViewHandlerTests
 
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
 
+        result.Success.Should().BeTrue();
         result.Events.Should().HaveCount(1);
         var ev = result.Events[0];
         ev.Products.Should().NotBeNull();
@@ -231,6 +236,7 @@ public class GetCalendarViewHandlerTests
 
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
 
+        result.Success.Should().BeTrue();
         result.Events.Should().HaveCount(1);
         var products = result.Events[0].Products;
         products.Should().HaveCount(2);
@@ -271,6 +277,7 @@ public class GetCalendarViewHandlerTests
 
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
 
+        result.Success.Should().BeTrue();
         result.Events.Should().HaveCount(2);
         result.Events[0].Date.Should().BeBefore(result.Events[1].Date);
     }
