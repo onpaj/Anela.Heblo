@@ -21,16 +21,16 @@
       "updated_at": "2026-06-23T06:19:21.352004Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-23T06:19:39.768909Z"
     }
   },
   "tasks": [
     {
       "name": "remove-groupid-parameter-from-signature",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T06:22:34.076910Z"
     },
     {
       "name": "update-call-site",
