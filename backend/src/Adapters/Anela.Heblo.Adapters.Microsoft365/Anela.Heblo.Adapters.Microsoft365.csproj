@@ -16,4 +16,8 @@
     <ProjectReference Include="..\..\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Anela.Heblo.Tests" />
+  </ItemGroup>
+
 </Project>
