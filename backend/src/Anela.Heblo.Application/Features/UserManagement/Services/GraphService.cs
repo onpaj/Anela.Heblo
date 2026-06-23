@@ -83,7 +83,7 @@ public class GraphService : IGraphService
         return (members, totalMembers);
     }
 
-    private async Task<string> AcquireGraphTokenAsync(string groupId, CancellationToken cancellationToken)
+    private async Task<string> AcquireGraphTokenAsync(CancellationToken cancellationToken)
     {
         // Acquire Graph API token using application permissions (not user context)
         var scope = "https://graph.microsoft.com/.default";
@@ -116,7 +116,7 @@ public class GraphService : IGraphService
 
         try
         {
-            var graphToken = await AcquireGraphTokenAsync(groupId, cancellationToken);
+            var graphToken = await AcquireGraphTokenAsync(cancellationToken);
 
             // Get group members from Microsoft Graph.
             // Matches the shared "MicrosoftGraph" named client used by Marketing/MeetingTasks/CatalogDocuments/KnowledgeBase/Photobank modules.
