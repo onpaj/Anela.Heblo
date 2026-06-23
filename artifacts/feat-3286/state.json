@@ -34,15 +34,15 @@
     },
     {
       "name": "fr1-blobname-from-url-path",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-23T03:33:02.579586Z"
+      "updated_at": "2026-06-23T03:47:11.730463Z"
     },
     {
       "name": "fr2-generated-blobname-extension",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-23T03:47:11.921314Z"
     },
     {
       "name": "fr3-extension-from-contenttype-all-arms",
