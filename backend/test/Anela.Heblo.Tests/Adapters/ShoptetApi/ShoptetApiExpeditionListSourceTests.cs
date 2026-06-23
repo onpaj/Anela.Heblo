@@ -141,6 +141,40 @@ public class ShoptetApiExpeditionListSourceTests
     // ─── Tests ────────────────────────────────────────────────────────────────
 
     [Fact]
+    public async Task GetOrderByCodeAsync_ReturnsOrder_WhenFound()
+    {
+        // Arrange
+        var client = BuildClient(req => Json(new CreateOrderResponse
+        {
+            Data = new CreateOrderData
+            {
+                Order = new OrderSummary { Code = "0001234", Shipping = new OrderShippingSummary { Guid = ZasilkovnaDoRukyGuid } },
+            },
+        }));
+
+        // Act
+        var order = await client.GetOrderByCodeAsync("0001234", CancellationToken.None);
+
+        // Assert
+        order.Should().NotBeNull();
+        order!.Code.Should().Be("0001234");
+        order.Shipping!.Guid.Should().Be(ZasilkovnaDoRukyGuid);
+    }
+
+    [Fact]
+    public async Task GetOrderByCodeAsync_ReturnsNull_WhenNotFound()
+    {
+        // Arrange
+        var client = BuildClient(_ => new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
+
+        // Act
+        var order = await client.GetOrderByCodeAsync("nope", CancellationToken.None);
+
+        // Assert
+        order.Should().BeNull();
+    }
+
+    [Fact]
     public async Task CreatePickingList_GroupsByCarrier_OnlyZasilkovnaReturned_WhenFilterSet()
     {
         // Arrange — list has one Zasilkovna and one PPL order (identified by shipping GUID)
@@ -1162,6 +1196,71 @@ public class ShoptetApiExpeditionListSourceTests
         await source.CreatePickingList(DefaultRequest(), null);
 
         capturedData[0].Orders[0].GiftBadgeText.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CreatePickingList_WithOrderCode_PrintsSingleOrderAndChangesStateTo26()
+    {
+        // Arrange
+        // URLs issued during a single-order run:
+        //   GET  /api/orders/0001234                          → summary (GetOrderByCodeAsync)
+        //   GET  /api/orders/0001234?include=stockLocation,notes → detail (GetExpeditionOrderDetailAsync)
+        //   PATCH /api/orders/0001234/status                  → status update (UpdateStatusAsync)
+        // AbsolutePath does NOT include query string, so we check PathAndQuery for "include=" to
+        // distinguish detail from summary, and use Method+path suffix for PATCH /status.
+        var statusUpdates = new List<(string code, int statusId)>();
+        var client = BuildClient(req =>
+        {
+            var pathAndQuery = req.RequestUri!.PathAndQuery;
+            var path = req.RequestUri.AbsolutePath;
+
+            // PATCH /api/orders/0001234/status — must come before the GET checks
+            if (req.Method == HttpMethod.Patch && path.EndsWith("/status"))
+            {
+                var code = req.RequestUri.Segments[^2].TrimEnd('/');
+                statusUpdates.Add((code, 26));
+                return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+            }
+
+            // Detail GET: /api/orders/0001234?include=stockLocation,notes
+            if (pathAndQuery.Contains("include="))
+                return Json(DetailFor("0001234"));
+
+            // Summary GET: /api/orders/0001234 (no query string)
+            return Json(new CreateOrderResponse
+            {
+                Data = new CreateOrderData
+                {
+                    Order = new OrderSummary
+                    {
+                        Code = "0001234",
+                        Shipping = new OrderShippingSummary { Guid = ZasilkovnaDoRukyGuid },
+                    },
+                },
+            });
+        });
+        var source = BuildSource(client, generateDocument: _ => new byte[] { 1, 2, 3 });
+
+        // Act
+        var result = await source.CreatePickingList(
+            new PrintPickingListRequest
+            {
+                OrderCode = "0001234",
+                Carriers = new List<Carriers>(), // no carrier filter → all carriers pass
+                ChangeOrderState = true,
+                DesiredStateId = 26,
+                SendToPrinter = false,
+            },
+            onBatchFilesReady: null,
+            CancellationToken.None);
+
+        // Assert
+        result.TotalCount.Should().Be(1);
+        statusUpdates.Should().ContainSingle().Which.Should().Be(("0001234", 26));
+
+        // Cleanup
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
+            File.Delete(file);
     }
 
     [Fact]
