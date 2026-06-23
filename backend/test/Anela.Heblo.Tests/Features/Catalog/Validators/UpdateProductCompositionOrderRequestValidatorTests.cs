@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder;
-using FluentAssertions;
 using FluentValidation.TestHelper;
 using Xunit;
 
@@ -112,9 +111,8 @@ public class UpdateProductCompositionOrderRequestValidatorTests
 
         var result = _validator.TestValidate(request);
 
-        result.Errors.Should().Contain(e =>
-            e.PropertyName == "Order[0].IngredientProductCode" &&
-            e.ErrorMessage == "Ingredient product code is required");
+        result.ShouldHaveValidationErrorFor("Order[0].IngredientProductCode")
+            .WithErrorMessage("Ingredient product code is required");
     }
 
     [Fact]
@@ -131,9 +129,8 @@ public class UpdateProductCompositionOrderRequestValidatorTests
 
         var result = _validator.TestValidate(request);
 
-        result.Errors.Should().Contain(e =>
-            e.PropertyName == "Order[0].IngredientProductCode" &&
-            e.ErrorMessage == "Ingredient product code cannot exceed 50 characters");
+        result.ShouldHaveValidationErrorFor("Order[0].IngredientProductCode")
+            .WithErrorMessage("Ingredient product code cannot exceed 50 characters");
     }
 
     [Fact]
@@ -150,7 +147,7 @@ public class UpdateProductCompositionOrderRequestValidatorTests
 
         var result = _validator.TestValidate(request);
 
-        result.Errors.Should().NotContain(e => e.PropertyName == "Order[0].IngredientProductCode");
+        result.ShouldNotHaveValidationErrorFor("Order[0].IngredientProductCode");
     }
 
     [Theory]
@@ -170,9 +167,8 @@ public class UpdateProductCompositionOrderRequestValidatorTests
 
         var result = _validator.TestValidate(request);
 
-        result.Errors.Should().Contain(e =>
-            e.PropertyName == "Order[0].SortOrder" &&
-            e.ErrorMessage == "Sort order must be greater than 0");
+        result.ShouldHaveValidationErrorFor("Order[0].SortOrder")
+            .WithErrorMessage("Sort order must be greater than 0");
     }
 
     [Theory]
@@ -192,13 +188,14 @@ public class UpdateProductCompositionOrderRequestValidatorTests
 
         var result = _validator.TestValidate(request);
 
-        result.Errors.Should().NotContain(e => e.PropertyName == "Order[0].SortOrder");
+        result.ShouldNotHaveValidationErrorFor("Order[0].SortOrder");
     }
 
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void ProductCode_EmptyOrNull_FailsValidation(string? productCode)
+    [InlineData("   ")]
+    public void ProductCode_EmptyOrNullOrWhitespace_FailsValidation(string? productCode)
     {
         var request = ValidRequest();
         request.ProductCode = productCode!;
@@ -236,9 +233,9 @@ public class UpdateProductCompositionOrderRequestValidatorTests
 
         var result = _validator.TestValidate(request);
 
-        result.Errors.Should().Contain(e => e.PropertyName == "Order[0].IngredientProductCode");
-        result.Errors.Should().Contain(e => e.PropertyName == "Order[0].SortOrder");
-        result.Errors.Should().NotContain(e => e.PropertyName == "Order[1].IngredientProductCode");
-        result.Errors.Should().NotContain(e => e.PropertyName == "Order[1].SortOrder");
+        result.ShouldHaveValidationErrorFor("Order[0].IngredientProductCode");
+        result.ShouldHaveValidationErrorFor("Order[0].SortOrder");
+        result.ShouldNotHaveValidationErrorFor("Order[1].IngredientProductCode");
+        result.ShouldNotHaveValidationErrorFor("Order[1].SortOrder");
     }
 }
