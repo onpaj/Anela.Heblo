@@ -212,7 +212,7 @@ const resources = {
         // ShoptetOrders module errors
         ShoptetOrderInvalidSourceState: "Objednávku nelze zablokovat – není ve povoleném stavu",
         ShoptetOrderNotFound: "Objednávka nebyla nalezena",
-        ExpeditionOrderInvalidState: "Zakázku nelze vytisknout – je ve stavu {currentStatusId}",
+        ExpeditionOrderInvalidState: "Zakázku nelze vytisknout – je ve stavu {currentStatusName}",
         ExpeditionOrderNotPrinted: "Zakázku se nepodařilo vytisknout – zkontrolujte způsob dopravy",
 
         // Marketing Calendar module errors

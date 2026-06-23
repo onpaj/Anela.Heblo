@@ -23,11 +23,11 @@ public class PrintExpeditionOrderHandlerTests
         new Mock<ILogger<PrintExpeditionOrderHandler>>().Object);
 
     [Theory]
-    [InlineData(-3)]
-    [InlineData(26)]
-    [InlineData(52)]
-    [InlineData(70)]
-    public async Task Handle_OrderInNonPrintableState_ReturnsInvalidStateError(int statusId)
+    [InlineData(-3, "zrušeno/blokováno")]
+    [InlineData(26, "Balí se")]
+    [InlineData(52, "Zabaleno")]
+    [InlineData(70, "Předáno přepravci")]
+    public async Task Handle_OrderInNonPrintableState_ReturnsInvalidStateError(int statusId, string expectedName)
     {
         _client.Setup(c => c.GetOrderStatusIdAsync("0001234", It.IsAny<CancellationToken>()))
             .ReturnsAsync(statusId);
@@ -37,6 +37,7 @@ public class PrintExpeditionOrderHandlerTests
 
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.ExpeditionOrderInvalidState);
+        result.Params!["currentStatusName"].Should().Be(expectedName);
         _service.Verify(s => s.PrintPickingListAsync(It.IsAny<ExpeditionPickingRequest>(), It.IsAny<IList<string>?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
