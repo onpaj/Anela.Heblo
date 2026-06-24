@@ -377,9 +377,11 @@ public class ScanPackingOrderHandlerTests
             Times.Once);
     }
 
-    // MarkAsPackedAsync: called when new shipment is created on eligible order
+    // New single-package shipment: the "Zabaleno" transition is DEFERRED to the FE
+    // (PendingCompletion = true) and NOT marked at scan time — the carrier label is
+    // generated asynchronously and may not exist yet.
     [Fact]
-    public async Task Handle_NewShipmentCreated_MarksOrderAsPacked()
+    public async Task Handle_NewSinglePackageShipment_DefersMarkAsPacked()
     {
         var shipmentGuid = Guid.NewGuid();
 
@@ -405,9 +407,10 @@ public class ScanPackingOrderHandlerTests
             CancellationToken.None);
 
         response.Success.Should().BeTrue();
+        response.Shipment!.PendingCompletion.Should().BeTrue();
         _eshopOrderClient.Verify(
-            c => c.MarkAsPackedAsync("0001234", It.IsAny<CancellationToken>()),
-            Times.Once);
+            c => c.MarkAsPackedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     // MarkAsPackedAsync: failure is non-fatal — scan still returns success
@@ -612,39 +615,4 @@ public class ScanPackingOrderHandlerTests
         captured!.Package.WeightGrams.Should().Be(100);
     }
 
-    // Single package (default): still marks packed, PendingCompletion = false
-    [Fact]
-    public async Task Handle_SinglePackage_MarksPacked_AndPendingCompletionFalse()
-    {
-        var shipmentGuid = Guid.NewGuid();
-
-        _orderClient
-            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
-
-        _shipmentClient
-            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([])
-            .ReturnsAsync(new List<ShipmentLabel>
-            {
-                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://c/1.pdf" },
-            });
-
-        _shipmentClient
-            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new ShippingOption { CarrierCode = "1", Name = "PPL" }]);
-
-        _shipmentClient
-            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
-
-        var response = await CreateHandler().Handle(
-            new ScanPackingOrderRequest { OrderCode = "0001234", NumberOfPackages = 1 },
-            CancellationToken.None);
-
-        response.Shipment!.PendingCompletion.Should().BeFalse();
-        _eshopOrderClient.Verify(
-            c => c.MarkAsPackedAsync("0001234", It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
 }

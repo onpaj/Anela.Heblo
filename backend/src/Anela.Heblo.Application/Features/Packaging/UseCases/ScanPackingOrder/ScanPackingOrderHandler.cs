@@ -190,18 +190,18 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             request.PackingUserId,
             ct);
 
-        var pendingCompletion = n >= 2;
-        if (!pendingCompletion)
-        {
-            await TryMarkAsPackedAsync(request.OrderCode, ct);
-        }
-
+        // The Shoptet "Zabaleno" (52) transition is deferred to the FE, which calls
+        // .../packing/complete only after every carrier label is confirmed fetched & printed.
+        // CreateShipmentAsync succeeding means Shoptet accepted the request, NOT that a usable
+        // label was produced (labels generate asynchronously and can fail). Marking here would
+        // move the order to "Zabaleno" even when no label exists. Single- and multi-package
+        // orders share this deferred path.
         return new ScanPackingOrderResponse(orderData, new ScanShipmentData
         {
             ShipmentGuid = createdShipment.ShipmentGuid,
             Packages = packages,
             AlreadyExisted = false,
-            PendingCompletion = pendingCompletion,
+            PendingCompletion = true,
         });
     }
 
