@@ -83,19 +83,32 @@ public class BankStatementImportRepository : IBankStatementImportRepository
 
     public async Task<BankStatementImport> AddAsync(BankStatementImport bankStatement)
     {
-        _context.BankStatements.Add(bankStatement);
-        await _context.SaveChangesAsync();
+        var entry = _context.BankStatements.Add(bankStatement);
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // A failed INSERT leaves the entity tracked as Added; detach it so it cannot
+            // be re-attempted by a later SaveChanges on the shared scoped DbContext.
+            entry.State = EntityState.Detached;
+            throw;
+        }
         return bankStatement;
     }
 
-    public async Task<IReadOnlyDictionary<string, string>> GetExistingTransfersAsync(
-        string account, DateTime dateFrom, DateTime dateTo, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyDictionary<string, string>> GetExistingResultsByTransferIdsAsync(
+        IReadOnlyCollection<string> transferIds, CancellationToken cancellationToken = default)
     {
+        if (transferIds.Count == 0)
+            return new Dictionary<string, string>();
+
+        // Dedup against the GLOBAL unique constraint (IX_BankStatements_TransferId), not by
+        // account/date, so a statement already stored under a different window is still detected.
         return await _context.BankStatements
             .AsNoTracking()
-            .Where(bs => bs.Account == account
-                && bs.StatementDate.Date >= dateFrom.Date
-                && bs.StatementDate.Date <= dateTo.Date)
+            .Where(bs => transferIds.Contains(bs.TransferId))
             .Select(bs => new { bs.TransferId, bs.ImportResult })
             .ToDictionaryAsync(x => x.TransferId, x => x.ImportResult, cancellationToken);
     }
@@ -113,8 +126,16 @@ public class BankStatementImportRepository : IBankStatementImportRepository
 
     public async Task<BankStatementImport> UpdateAsync(BankStatementImport bankStatement)
     {
-        _context.BankStatements.Update(bankStatement);
-        await _context.SaveChangesAsync();
+        var entry = _context.BankStatements.Update(bankStatement);
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            entry.State = EntityState.Detached;
+            throw;
+        }
         return bankStatement;
     }
 

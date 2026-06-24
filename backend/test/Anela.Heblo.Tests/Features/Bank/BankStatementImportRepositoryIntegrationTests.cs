@@ -165,6 +165,42 @@ public class BankStatementImportRepositoryIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AddAsync_OnDuplicateTransferId_DetachesEntity_LeavingContextClean()
+    {
+        // Arrange - an existing row claims the TransferId.
+        await SeedAsync("DUP-1", "ShoptetPay-CZK");
+
+        var clashing = new BankStatementImport("DUP-1", DateTime.UtcNow);
+        clashing.Account = "ShoptetPay-CZK";
+        clashing.Currency = CurrencyCode.CZK;
+        var prop = typeof(BankStatementImport).GetProperty("ImportResult");
+        prop?.SetValue(clashing, "OK");
+
+        // Act - the insert violates IX_BankStatements_TransferId.
+        var act = async () => await _repository.AddAsync(clashing);
+        await act.Should().ThrowAsync<DbUpdateException>();
+
+        // Assert - the failed entity was detached, so a later save on the same context succeeds
+        // (it does NOT re-attempt the poisoned insert).
+        _context.Entry(clashing).State.Should().Be(EntityState.Detached);
+        var saved = await SeedAsync("CLEAN-1", "ShoptetPay-CZK");
+        saved.Id.Should().NotBe(0);
+    }
+
+    [Fact]
+    public async Task GetExistingResultsByTransferIdsAsync_MatchesByTransferId_AcrossAccounts()
+    {
+        await SeedAsync("A-1", "ShoptetPay-CZK", "OK");
+        await SeedAsync("B-1", "Comgate-EUR", $"{ImportStatus.ProcessingError}: x");
+
+        var map = await _repository.GetExistingResultsByTransferIdsAsync(new[] { "A-1", "B-1", "NOPE" });
+
+        map.Should().HaveCount(2);
+        map["A-1"].Should().Be("OK");
+        map["B-1"].Should().StartWith(ImportStatus.ProcessingError);
+    }
+
+    [Fact]
     public async Task GetFilteredAsync_TransferIdAndAccount_CombineWithAndSemantics()
     {
         // Arrange
