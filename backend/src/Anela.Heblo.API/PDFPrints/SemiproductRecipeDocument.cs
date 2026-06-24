@@ -3,6 +3,9 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipe
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using SkiaSharp;
+using ZXing;
+using ZXing.Common;
 
 namespace Anela.Heblo.API.PDFPrints;
 
@@ -42,11 +45,38 @@ public class SemiproductRecipeDocument : IDocument
                     row.RelativeItem()
                         .Text($"{_data.ProductCode}  –  {_data.ProductName}")
                         .FontSize(18).Bold();
-                    row.AutoItem()
-                        .AlignBottom()
-                        .Text($"Tisk: {_data.PrintedAt:dd.MM.yyyy HH:mm}")
-                        .FontSize(11)
-                        .FontColor(Colors.Grey.Darken1);
+                    row.ConstantItem(150).Column(rightCol =>
+                    {
+                        var productCode = _data.ProductCode;
+                        rightCol.Item()
+                            .Height(32)
+                            .Canvas((canvas, size) =>
+                            {
+                                var hints = new Dictionary<EncodeHintType, object>
+                                {
+                                    { EncodeHintType.MARGIN, 0 }
+                                };
+                                var matrix = new MultiFormatWriter()
+                                    .encode(productCode, BarcodeFormat.CODE_128, (int)size.Width, (int)size.Height, hints);
+
+                                canvas.Clear(SKColors.White);
+                                using var paint = new SKPaint { Color = SKColors.Black };
+                                int midRow = matrix.Height / 2;
+                                float scaleX = size.Width / matrix.Width;
+
+                                for (int x = 0; x < matrix.Width; x++)
+                                {
+                                    if (matrix[x, midRow])
+                                        canvas.DrawRect(x * scaleX, 0, scaleX, size.Height, paint);
+                                }
+                            });
+                        rightCol.Item()
+                            .AlignRight()
+                            .PaddingTop(2)
+                            .Text($"Tisk: {_data.PrintedAt:dd.MM.yyyy HH:mm}")
+                            .FontSize(11)
+                            .FontColor(Colors.Grey.Darken1);
+                    });
                 });
                 header.Item().Row(row =>
                 {
