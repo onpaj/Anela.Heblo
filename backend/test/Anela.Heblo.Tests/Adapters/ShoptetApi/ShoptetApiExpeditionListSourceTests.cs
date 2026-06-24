@@ -86,6 +86,14 @@ public class ShoptetApiExpeditionListSourceTests
                     Code = code,
                     FullName = $"Customer {code}",
                     Phone = "123",
+                    DeliveryAddress = new ExpeditionAddress
+                    {
+                        FullName = $"Customer {code}",
+                        Street = "Testovací",
+                        HouseNumber = "1",
+                        City = "Praha",
+                        Zip = "10000",
+                    },
                     Items = Enumerable.Range(1, itemCount).Select(i => new ExpeditionOrderItemDto
                     {
                         ItemType = "product",
@@ -107,7 +115,7 @@ public class ShoptetApiExpeditionListSourceTests
     {
         var coolingRepo = carrierCooling ?? BuildEmptyCoolingRepo();
         var giftRepo = giftSettings ?? BuildGiftRepo();
-        return new ShoptetApiExpeditionListSource(client, TimeProvider.System, new Mock<ICatalogRepository>().Object, coolingRepo, giftRepo, new Mock<Microsoft.Extensions.Logging.ILogger<ShoptetApiExpeditionListSource>>().Object, generateDocument);
+        return new ShoptetApiExpeditionListSource(client, client, TimeProvider.System, new Mock<ICatalogRepository>().Object, coolingRepo, giftRepo, new Mock<Microsoft.Extensions.Logging.ILogger<ShoptetApiExpeditionListSource>>().Object, generateDocument);
     }
 
     private static ICarrierCoolingRepository BuildEmptyCoolingRepo()
@@ -696,7 +704,7 @@ public class ShoptetApiExpeditionListSourceTests
                 Properties = new CatalogProperties { Cooling = Cooling.L1 },
             });
 
-        var source = new ShoptetApiExpeditionListSource(client, TimeProvider.System, catalogMock.Object, BuildEmptyCoolingRepo(), BuildGiftRepo(), new Mock<Microsoft.Extensions.Logging.ILogger<ShoptetApiExpeditionListSource>>().Object);
+        var source = new ShoptetApiExpeditionListSource(client, client, TimeProvider.System, catalogMock.Object, BuildEmptyCoolingRepo(), BuildGiftRepo(), new Mock<Microsoft.Extensions.Logging.ILogger<ShoptetApiExpeditionListSource>>().Object);
 
         // Act
         var result = await source.CreatePickingList(DefaultRequest(), null);

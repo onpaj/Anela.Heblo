@@ -11,6 +11,7 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 public class ShoptetApiPackingOrderClient : IPackingOrderClient
 {
     private readonly IShoptetExpeditionOrderSource _orderClient;
+    private readonly IEshopOrderClient _eshopOrderClient;
     private readonly IPackingProductSource _productSource;
     private readonly IPackingCarrierCoolingSource _carrierCoolingSource;
     private readonly ILogger<ShoptetApiPackingOrderClient> _logger;
@@ -19,6 +20,7 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
 
     public ShoptetApiPackingOrderClient(
         IShoptetExpeditionOrderSource orderClient,
+        IEshopOrderClient eshopOrderClient,
         IPackingProductSource productSource,
         IPackingCarrierCoolingSource carrierCoolingSource,
         ILogger<ShoptetApiPackingOrderClient> logger,
@@ -26,6 +28,7 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
         IOptions<ShoptetOrdersSettings> orderSettings)
     {
         _orderClient = orderClient;
+        _eshopOrderClient = eshopOrderClient;
         _productSource = productSource;
         _carrierCoolingSource = carrierCoolingSource;
         _logger = logger;
@@ -57,7 +60,7 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             return null;
         }
 
-        var statusId = await _orderClient.GetOrderStatusIdAsync(code, ct);
+        var statusId = await _eshopOrderClient.GetOrderStatusIdAsync(code, ct);
         var order = ShoptetApiExpeditionListSource.MapToExpeditionOrder(detail);
 
         var coolingSettings = await _carrierCoolingSource.GetAllAsync(ct);
