@@ -95,14 +95,16 @@ describe("UsersGrid — mobile cards", () => {
     );
   });
 
-  it("omits the make-packer action on the card", () => {
+  it("toggles can-pack from the card", () => {
     mockUsersData = {
       users: [user({ id: "a", displayName: "Alice", canPack: false })],
     };
     renderGrid();
 
-    expect(
-      screen.queryByRole("button", { name: /toggle can pack alice/i }),
-    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: /toggle can pack alice/i }),
+    );
+
+    expect(mockSetCanPackMutate).toHaveBeenCalledWith({ id: "a", canPack: true });
   });
 });
