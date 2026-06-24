@@ -121,7 +121,7 @@ public class ShoptetApiExpeditionListSource_AddressValidationTests
             .ReturnsAsync(GiftSetting.CreateDefault());
 
         return new ShoptetApiExpeditionListSource(
-            client, TimeProvider.System, catalog.Object, carrierCooling.Object, giftSettings.Object,
+            client, client, TimeProvider.System, catalog.Object, carrierCooling.Object, giftSettings.Object,
             Mock.Of<ILogger<ShoptetApiExpeditionListSource>>(),
             data => { captured.Add(data); return new byte[] { 0x25, 0x50, 0x44, 0x46 }; });
     }

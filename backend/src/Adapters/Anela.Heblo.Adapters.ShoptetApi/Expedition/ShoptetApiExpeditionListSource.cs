@@ -220,7 +220,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     {
         try
         {
-            await _client.UpdateStatusAsync(code, noteStateId, cancellationToken);
+            await _eshopOrderClient.UpdateStatusAsync(code, noteStateId, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
