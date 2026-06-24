@@ -443,19 +443,33 @@ public class BankStatementImportRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task GetExistingTransfersAsync_ReturnsTransferIdToResultMap_InRangeForAccount()
+    public async Task GetExistingResultsByTransferIdsAsync_MatchesByTransferId_IgnoringAccountAndDate()
     {
         await SeedAsync("OK1", "ComgateCZK", new DateTime(2026, 6, 10), ImportStatus.Success);
         await SeedAsync("ERR1", "ComgateCZK", new DateTime(2026, 6, 11), $"{ImportStatus.ProcessingError}: x");
-        await SeedAsync("OUT", "ComgateCZK", new DateTime(2026, 6, 20), ImportStatus.Success); // out of range
-        await SeedAsync("OTHER", "ComgateEUR", new DateTime(2026, 6, 10), ImportStatus.Success); // other account
+        // Stored under a different account and far outside any single import window - must still match.
+        await SeedAsync("OLD", "ComgateEUR", new DateTime(2025, 1, 1), ImportStatus.Success);
+        await SeedAsync("UNREQUESTED", "ComgateCZK", new DateTime(2026, 6, 10), ImportStatus.Success);
 
-        var map = await _repository.GetExistingTransfersAsync(
-            "ComgateCZK", new DateTime(2026, 6, 10), new DateTime(2026, 6, 12));
+        var map = await _repository.GetExistingResultsByTransferIdsAsync(
+            new[] { "OK1", "ERR1", "OLD", "MISSING" });
 
-        map.Should().HaveCount(2);
+        map.Should().HaveCount(3);
         map["OK1"].Should().Be(ImportStatus.Success);
         map["ERR1"].Should().StartWith(ImportStatus.ProcessingError);
+        map["OLD"].Should().Be(ImportStatus.Success);
+        map.Should().NotContainKey("UNREQUESTED");
+        map.Should().NotContainKey("MISSING");
+    }
+
+    [Fact]
+    public async Task GetExistingResultsByTransferIdsAsync_WithEmptyInput_ReturnsEmpty()
+    {
+        await SeedAsync("OK1", "ComgateCZK", new DateTime(2026, 6, 10), ImportStatus.Success);
+
+        var map = await _repository.GetExistingResultsByTransferIdsAsync(Array.Empty<string>());
+
+        map.Should().BeEmpty();
     }
 
     [Fact]
