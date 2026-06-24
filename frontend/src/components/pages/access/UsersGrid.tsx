@@ -263,6 +263,16 @@ const UsersGrid: React.FC = () => {
                   </button>
                   <button
                     onClick={() =>
+                      u.id && setCanPack.mutate({ id: u.id, canPack: !u.canPack })
+                    }
+                    disabled={setCanPack.isPending && setCanPack.variables?.id === u.id}
+                    className={`text-sm ${u.canPack ? "text-indigo-600" : "text-gray-500"} hover:underline`}
+                    aria-label={`Toggle can pack ${u.displayName}`}
+                  >
+                    {u.canPack ? "Packer ✓" : "Make packer"}
+                  </button>
+                  <button
+                    onClick={() =>
                       u.id &&
                       setActive.mutate({
                         id: u.id,
