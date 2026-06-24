@@ -21,16 +21,16 @@
       "updated_at": "2026-06-24T05:25:06.111650Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-24T05:25:16.809488Z"
+      "status": "completed",
+      "updated_at": "2026-06-24T05:31:38.081354Z"
     }
   },
   "tasks": [
     {
       "name": "fix-user-detail-error-states",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-24T05:25:17.022227Z"
+      "updated_at": "2026-06-24T05:31:28.987825Z"
     }
   ]
 }
