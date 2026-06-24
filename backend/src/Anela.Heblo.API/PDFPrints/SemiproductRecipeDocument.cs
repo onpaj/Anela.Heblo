@@ -5,7 +5,6 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using SkiaSharp;
 using ZXing;
-using ZXing.Common;
 
 namespace Anela.Heblo.API.PDFPrints;
 
@@ -47,29 +46,10 @@ public class SemiproductRecipeDocument : IDocument
                         .FontSize(18).Bold();
                     row.ConstantItem(150).Column(rightCol =>
                     {
-                        var productCode = _data.ProductCode;
                         rightCol.Item()
                             .Height(32)
-                            .Canvas((canvas, size) =>
-                            {
-                                var hints = new Dictionary<EncodeHintType, object>
-                                {
-                                    { EncodeHintType.MARGIN, 0 }
-                                };
-                                var matrix = new MultiFormatWriter()
-                                    .encode(productCode, BarcodeFormat.CODE_128, (int)size.Width, (int)size.Height, hints);
-
-                                canvas.Clear(SKColors.White);
-                                using var paint = new SKPaint { Color = SKColors.Black };
-                                int midRow = matrix.Height / 2;
-                                float scaleX = size.Width / matrix.Width;
-
-                                for (int x = 0; x < matrix.Width; x++)
-                                {
-                                    if (matrix[x, midRow])
-                                        canvas.DrawRect(x * scaleX, 0, scaleX, size.Height, paint);
-                                }
-                            });
+                            .Image(RenderBarcodePng(_data.ProductCode))
+                            .FitWidth();
                         rightCol.Item()
                             .AlignRight()
                             .PaddingTop(2)
@@ -154,6 +134,43 @@ public class SemiproductRecipeDocument : IDocument
                 t.TotalPages();
             });
         });
+    }
+
+    private const int BarcodeWidth = 300;
+    private const int BarcodeHeight = 64;
+
+    /// <summary>
+    /// Encodes the product code as a Code128 barcode and renders it to PNG bytes.
+    /// QuestPDF 2024.x does not expose a public SkiaSharp canvas, so the barcode is
+    /// produced as an image and embedded via the public <c>.Image()</c> API.
+    /// </summary>
+    private static byte[] RenderBarcodePng(string productCode)
+    {
+        var hints = new Dictionary<EncodeHintType, object>
+        {
+            { EncodeHintType.MARGIN, 0 }
+        };
+        var matrix = new MultiFormatWriter()
+            .encode(productCode, BarcodeFormat.CODE_128, BarcodeWidth, BarcodeHeight, hints);
+
+        using var bitmap = new SKBitmap(matrix.Width, matrix.Height);
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            canvas.Clear(SKColors.White);
+            using var paint = new SKPaint { Color = SKColors.Black, IsAntialias = false };
+            int midRow = matrix.Height / 2;
+            for (int x = 0; x < matrix.Width; x++)
+            {
+                if (matrix[x, midRow])
+                {
+                    canvas.DrawRect(x, 0, 1, matrix.Height, paint);
+                }
+            }
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
     }
 
     private static string FormatAmount(double value) =>
