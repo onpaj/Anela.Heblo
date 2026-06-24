@@ -182,24 +182,40 @@ public class ScanPackingOrderHandlerTests
             Times.Never);
     }
 
-    // Test 4: All items have WeightGrams = 0 → weight unavailable error
+    // Test 4: All items have WeightGrams = 0 → carriers reject 0 kg, so fall back to default package weight
     [Fact]
-    public async Task Handle_AllItemsHaveZeroWeight_ReturnsShipmentOrderWeightUnavailable()
+    public async Task Handle_AllItemsHaveZeroWeight_UsesFallbackPackageWeight()
     {
+        var shipmentGuid = Guid.NewGuid();
+        CreateShipmentCommand? captured = null;
+
         _orderClient
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
             .ReturnsAsync(EligibleOrder(("P001", 2, 0), ("P002", 1, 0)));
 
         _shipmentClient
-            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([])
+            .ReturnsAsync(new List<ShipmentLabel>
+            {
+                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1" },
+            });
+
+        _shipmentClient
+            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "1", Name = "PPL" }]);
+
+        _shipmentClient
+            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .Callback<CreateShipmentCommand, CancellationToken>((cmd, _) => captured = cmd)
+            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
 
         var response = await CreateHandler().Handle(
             new ScanPackingOrderRequest { OrderCode = "0001234" },
             CancellationToken.None);
 
-        response.Success.Should().BeFalse();
-        response.ErrorCode.Should().Be(ErrorCodes.ShipmentOrderWeightUnavailable);
+        response.Success.Should().BeTrue();
+        captured!.Package.WeightGrams.Should().Be(1000); // FallbackPackageWeightGrams
     }
 
     // Test 5: No shipping options returned → carrier not resolved error

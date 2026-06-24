@@ -259,6 +259,36 @@ public class CreateOrderShipmentHandlerTests
     }
 
     [Fact]
+    public async Task Handle_AllItemsHaveZeroWeight_UsesFallbackPackageWeight()
+    {
+        var shipmentGuid = Guid.NewGuid();
+        _shipmentClientMock
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([])
+            .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://x.com" }]);
+
+        _orderClientMock
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PackingOrderWith(("P001", 3, 0)));
+
+        _shipmentClientMock
+            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "123", Name = "PPL" }]);
+
+        CreateShipmentCommand? capturedCommand = null;
+        _shipmentClientMock
+            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .Callback<CreateShipmentCommand, CancellationToken>((cmd, _) => capturedCommand = cmd)
+            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
+
+        await CreateHandler().Handle(
+            new CreateOrderShipmentRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        capturedCommand!.Package.WeightGrams.Should().Be(1000); // FallbackPackageWeightGrams
+    }
+
+    [Fact]
     public async Task Handle_CreateShipmentThrows_ReturnsShipmentCreationFailed()
     {
         _shipmentClientMock
