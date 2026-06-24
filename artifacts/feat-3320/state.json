@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3320",
+  "issue_number": 3320,
+  "created_at": "2026-06-24T06:15:13.061561Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-24T06:16:16.213832Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-24T06:16:16.527160Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-24T06:16:16.764315Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-24T06:16:16.995816Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-24T06:22:45.283221Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-06-24T06:22:44.817426Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-set-active-error",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-24T06:22:45.050715Z"
+    }
+  ]
+}
