@@ -80,7 +80,7 @@ public class ShoptetApiPackingOrderClientTests
         ShoptetOrderClient orderClient,
         IPackingProductSource productSource,
         IPackingCarrierCoolingSource coolingSource,
-        int defaultWeightGrams = 500)
+        int defaultWeightGrams = 0)
     {
         var settings = Options.Create(new ShoptetApiSettings { DefaultItemWeightGrams = defaultWeightGrams });
         var orderSettings = Options.Create(new ShoptetOrdersSettings());
@@ -229,7 +229,7 @@ public class ShoptetApiPackingOrderClientTests
         var result = await sut.GetPackingOrderAsync("250008", CancellationToken.None);
 
         // Assert
-        result!.Items[0].WeightGrams.Should().Be(500); // DefaultItemWeightGrams fallback
+        result!.Items[0].WeightGrams.Should().Be(0); // DefaultItemWeightGrams fallback (weightless)
     }
 
     [Fact]
@@ -244,7 +244,7 @@ public class ShoptetApiPackingOrderClientTests
         var result = await sut.GetPackingOrderAsync("250009", CancellationToken.None);
 
         // Assert
-        result!.Items[0].WeightGrams.Should().Be(500); // DefaultItemWeightGrams fallback
+        result!.Items[0].WeightGrams.Should().Be(0); // DefaultItemWeightGrams fallback (weightless)
     }
 
     [Fact]
