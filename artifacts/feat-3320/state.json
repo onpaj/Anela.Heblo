@@ -21,20 +21,20 @@
       "updated_at": "2026-06-24T06:16:16.995816Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-24T06:20:53.212957Z"
+      "status": "completed",
+      "updated_at": "2026-06-24T06:22:45.283221Z"
     },
     "code-review": {
-      "status": "in_progress",
-      "updated_at": "2026-06-24T06:21:45.688912Z"
+      "status": "completed",
+      "updated_at": "2026-06-24T06:22:44.817426Z"
     }
   },
   "tasks": [
     {
       "name": "fix-set-active-error",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-24T06:20:53.480860Z"
+      "updated_at": "2026-06-24T06:22:45.050715Z"
     }
   ]
 }
