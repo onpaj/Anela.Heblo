@@ -21,16 +21,16 @@
       "updated_at": "2026-06-24T06:16:16.995816Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-24T06:20:53.212957Z"
     }
   },
   "tasks": [
     {
       "name": "fix-set-active-error",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-24T06:20:53.480860Z"
     }
   ]
 }
