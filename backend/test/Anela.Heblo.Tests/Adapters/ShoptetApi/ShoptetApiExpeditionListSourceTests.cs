@@ -86,6 +86,14 @@ public class ShoptetApiExpeditionListSourceTests
                     Code = code,
                     FullName = $"Customer {code}",
                     Phone = "123",
+                    DeliveryAddress = new ExpeditionAddress
+                    {
+                        FullName = $"Customer {code}",
+                        Street = "Testovací",
+                        HouseNumber = "1",
+                        City = "Praha",
+                        Zip = "10000",
+                    },
                     Items = Enumerable.Range(1, itemCount).Select(i => new ExpeditionOrderItemDto
                     {
                         ItemType = "product",

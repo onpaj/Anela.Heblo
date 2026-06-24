@@ -120,7 +120,7 @@ export default function UserDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-8 max-w-5xl mx-auto">
+      <div className="p-3 sm:p-8 max-w-5xl mx-auto">
         <div className="text-gray-500">Loading user…</div>
       </div>
     );
@@ -160,8 +160,8 @@ export default function UserDetailPage() {
     : "Never logged in";
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
-      <div className="flex items-center gap-4">
+    <div className="p-3 sm:p-8 max-w-5xl mx-auto space-y-8">
+      <div className="flex flex-wrap items-center gap-4 min-w-0">
         <button
           type="button"
           onClick={() => requestNavigation("/admin/access/users")}

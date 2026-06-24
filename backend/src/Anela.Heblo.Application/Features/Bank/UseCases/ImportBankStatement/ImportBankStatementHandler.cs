@@ -88,13 +88,22 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
                 "Bank client returned {StatementCount} statements - Account: {AccountName}",
                 statements.Count, request.AccountName);
 
-            var existingTransfers = await _repository.GetExistingTransfersAsync(
-                accountSetting.Name, request.DateFrom, request.DateTo, cancellationToken);
+            // Collapse statements the bank returned more than once in a single response so we never
+            // attempt to insert the same TransferId twice within one run.
+            var uniqueStatements = statements
+                .GroupBy(s => s.StatementId)
+                .Select(g => g.First())
+                .ToList();
+
+            // Dedup against the GLOBAL unique constraint on TransferId (IX_BankStatements_TransferId).
+            // Scoping by account/date would miss statements already stored under a different window.
+            var existingTransfers = await _repository.GetExistingResultsByTransferIdsAsync(
+                uniqueStatements.Select(s => s.StatementId).ToList(), cancellationToken);
 
             var imports = new List<BankStatementImportDto>();
             var skippedCount = 0;
 
-            foreach (var statement in statements)
+            foreach (var statement in uniqueStatements)
             {
                 if (existingTransfers.TryGetValue(statement.StatementId, out var existingResult)
                     && existingResult == ImportStatus.Success)
@@ -150,33 +159,35 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
         bool isRetry,
         CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Processing statement {StatementId} (retry={IsRetry})", statement.StatementId, isRetry);
+
+        int itemCount;
+        string resultStatus;
         try
         {
-            _logger.LogInformation("Processing statement {StatementId} (retry={IsRetry})", statement.StatementId, isRetry);
-
             var aboData = await client.GetStatementAsync(statement.StatementId);
             var importResult = await _bankStatementImportService.ImportStatementAsync(accountSetting.FlexiBeeId, aboData.Data);
-            var resultStatus = importResult.IsSuccess
+            itemCount = aboData.ItemCount;
+            resultStatus = importResult.IsSuccess
                 ? ImportStatus.Success
                 : importResult.ErrorMessage ?? ImportStatus.UnknownError;
-
-            var saved = isRetry
-                ? await UpsertExistingAsync(statement, accountSetting, aboData.ItemCount, resultStatus, cancellationToken)
-                : await InsertNewAsync(statement, accountSetting, aboData.ItemCount, resultStatus);
-
-            _logger.LogInformation("Processed statement {StatementId} with result: {Result}",
-                statement.StatementId, resultStatus);
-            return _mapper.Map<BankStatementImportDto>(saved);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing statement {StatementId}", statement.StatementId);
-            var errorStatus = $"{ImportStatus.ProcessingError}: {ex.Message}";
-            var saved = isRetry
-                ? await UpsertExistingAsync(statement, accountSetting, 0, errorStatus, cancellationToken)
-                : await InsertNewAsync(statement, accountSetting, 0, errorStatus);
-            return _mapper.Map<BankStatementImportDto>(saved);
+            itemCount = 0;
+            resultStatus = $"{ImportStatus.ProcessingError}: {ex.Message}";
         }
+
+        // Persist exactly once. A persistence failure propagates to Handle's catch and must NOT
+        // trigger a second insert, which would poison the shared DbContext change tracker.
+        var saved = isRetry
+            ? await UpsertExistingAsync(statement, accountSetting, itemCount, resultStatus, cancellationToken)
+            : await InsertNewAsync(statement, accountSetting, itemCount, resultStatus);
+
+        _logger.LogInformation("Processed statement {StatementId} with result: {Result}",
+            statement.StatementId, resultStatus);
+        return _mapper.Map<BankStatementImportDto>(saved);
     }
 
     private async Task<BankStatementImport> InsertNewAsync(

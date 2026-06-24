@@ -271,6 +271,16 @@ describe('PackingLabelPrinter', () => {
     expect(mockComplete).not.toHaveBeenCalled();
   });
 
+  it('fires completion once for a single-package pendingCompletion shipment after the label prints', () => {
+    const shipment = { ...makeShipment([pkg1]), pendingCompletion: true };
+    render(<PackingLabelPrinter order={makeOrder('250001')} shipment={shipment} />);
+
+    fireAck(0); // the only label acknowledged → done
+
+    expect(mockComplete).toHaveBeenCalledTimes(1);
+    expect(mockComplete).toHaveBeenCalledWith('250001', expect.objectContaining({ onError: expect.any(Function) }));
+  });
+
   it('does NOT fire completion a second time when the user reprints a pendingCompletion shipment', () => {
     const shipment = { ...makeShipment([pkg1, pkg2]), pendingCompletion: true };
     render(<PackingLabelPrinter order={makeOrder('250001')} shipment={shipment} />);
