@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Search } from "lucide-react";
 import {
   DndContext,
@@ -11,6 +11,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import { useIsMobile } from "../../hooks/useMediaQuery";
 
 export type TransferItem = {
   id: string;
@@ -186,6 +187,7 @@ function TransferList({
   highlightedIds,
   highlightLabel,
 }: TransferListProps) {
+  const isMobile = useIsMobile();
   const highlighted = new Set(highlightedIds);
   // A small activation distance keeps the per-row +/− button clicks from being
   // swallowed by the drag sensor — a plain click no longer starts a drag.
@@ -195,6 +197,10 @@ function TransferList({
   );
 
   const [query, setQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"available" | "assigned">(
+    "available",
+  );
+  const listRef = useRef<HTMLDivElement>(null);
   const trimmedQuery = query.trim().toLowerCase();
 
   const availableItems = available
@@ -222,24 +228,115 @@ function TransferList({
 
   const availableGroups = groupBy ? buildGroups(availableItems, groupBy) : null;
 
+  const renderRows = (
+    rowItems: TransferItem[],
+    direction: "assign" | "remove",
+    grouped: Map<string, TransferItem[]> | null,
+  ) => {
+    const row = (item: TransferItem) => (
+      <ItemRow
+        key={item.id}
+        item={item}
+        direction={direction}
+        onMove={() =>
+          direction === "assign"
+            ? handleAssign(item.id)
+            : handleRemove(item.id)
+        }
+        highlighted={highlighted.has(item.id)}
+        highlightLabel={highlightLabel}
+      />
+    );
+    if (!grouped) return rowItems.map(row);
+    return Array.from(grouped.entries()).map(([section, sectionItems]) => (
+      <div key={section}>
+        <div className="text-xs font-medium text-gray-500 px-1 pt-3 pb-0.5 first:pt-0">
+          {section}
+        </div>
+        {sectionItems.map(row)}
+      </div>
+    ));
+  };
+
+  const searchBar = searchable && (
+    <div className="relative mb-3 flex-shrink-0">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <Search className="h-4 w-4 text-gray-400" />
+      </div>
+      <input
+        type="text"
+        aria-label={searchPlaceholder}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={searchPlaceholder}
+        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md"
+      />
+    </div>
+  );
+
+  if (isMobile) {
+    const showAvailable = activeTab === "available";
+    const paneItems = showAvailable ? availableItems : assignedItems;
+    const direction: "assign" | "remove" = showAvailable ? "assign" : "remove";
+    const grouped = showAvailable ? availableGroups : null;
+    const emptyMessage = showAvailable ? "All items assigned" : "None assigned";
+
+    const switchTab = (tab: "available" | "assigned") => {
+      setActiveTab(tab);
+      if (listRef.current) listRef.current.scrollTop = 0;
+    };
+
+    const tabClass = (active: boolean) =>
+      `flex-1 px-3 py-2 text-sm font-medium border-b-2 ${
+        active
+          ? "border-indigo-600 text-indigo-600"
+          : "border-transparent text-gray-500 hover:text-gray-700"
+      }`;
+
+    return (
+      <div className={fillHeight ? "flex flex-col h-full min-h-0" : ""}>
+        {searchBar}
+        <div className="flex flex-shrink-0 mb-2" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={showAvailable}
+            onClick={() => switchTab("available")}
+            className={tabClass(showAvailable)}
+          >
+            {labels.available ?? "Available"} ({availableItems.length})
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!showAvailable}
+            onClick={() => switchTab("assigned")}
+            className={tabClass(!showAvailable)}
+          >
+            {labels.assigned ?? "Assigned"} ({assignedItems.length})
+          </button>
+        </div>
+        <div
+          ref={listRef}
+          className={`space-y-1 ${
+            fillHeight ? "flex-1 min-h-0 overflow-y-auto" : "min-h-48"
+          }`}
+        >
+          {renderRows(paneItems, direction, grouped)}
+          {paneItems.length === 0 && (
+            <div className="text-sm text-gray-400 text-center py-6">
+              {emptyMessage}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className={fillHeight ? "flex flex-col h-full min-h-0" : ""}>
-        {searchable && (
-          <div className="relative mb-3 flex-shrink-0">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              aria-label={searchPlaceholder}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={searchPlaceholder}
-              className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md"
-            />
-          </div>
-        )}
+        {searchBar}
         <div
           className={`grid grid-cols-2 gap-4${fillHeight ? " flex-1 min-h-0" : ""}`}
         >
@@ -251,36 +348,7 @@ function TransferList({
             variant="left"
             fillHeight={fillHeight}
           >
-            {availableGroups
-              ? Array.from(availableGroups.entries()).map(
-                  ([section, sectionItems]) => (
-                    <div key={section}>
-                      <div className="text-xs font-medium text-gray-500 px-1 pt-3 pb-0.5 first:pt-0">
-                        {section}
-                      </div>
-                      {sectionItems.map((item) => (
-                        <ItemRow
-                          key={item.id}
-                          item={item}
-                          direction="assign"
-                          onMove={() => handleAssign(item.id)}
-                          highlighted={highlighted.has(item.id)}
-                          highlightLabel={highlightLabel}
-                        />
-                      ))}
-                    </div>
-                  ),
-                )
-              : availableItems.map((item) => (
-                  <ItemRow
-                    key={item.id}
-                    item={item}
-                    direction="assign"
-                    onMove={() => handleAssign(item.id)}
-                    highlighted={highlighted.has(item.id)}
-                    highlightLabel={highlightLabel}
-                  />
-                ))}
+            {renderRows(availableItems, "assign", availableGroups)}
           </DropZone>
 
           <DropZone
@@ -291,16 +359,7 @@ function TransferList({
             variant="right"
             fillHeight={fillHeight}
           >
-            {assignedItems.map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                direction="remove"
-                onMove={() => handleRemove(item.id)}
-                highlighted={highlighted.has(item.id)}
-                highlightLabel={highlightLabel}
-              />
-            ))}
+            {renderRows(assignedItems, "remove", null)}
           </DropZone>
         </div>
       </div>
