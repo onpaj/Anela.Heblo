@@ -248,7 +248,7 @@ export default function GroupDetailPage() {
 
   return (
     <div className="flex flex-col h-full w-full p-3 md:p-4">
-      <div className="flex-shrink-0 flex items-center justify-between gap-4 mb-3">
+      <div className="flex-shrink-0 flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">
         <div className="flex items-center gap-4 min-w-0">
           <button
             type="button"
@@ -261,7 +261,7 @@ export default function GroupDetailPage() {
             {isCreateMode ? "New group" : "Edit group"}
           </h1>
         </div>
-        <div className="flex gap-3 flex-shrink-0">
+        <div className="flex gap-3 w-full justify-end md:w-auto md:ml-auto">
           <button
             type="button"
             onClick={onSave}
