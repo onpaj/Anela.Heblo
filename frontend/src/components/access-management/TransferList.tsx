@@ -294,7 +294,7 @@ function TransferList({
       }`;
 
     return (
-      <div className={fillHeight ? "flex flex-col h-full min-h-0" : ""}>
+      <div>
         {searchBar}
         <div className="flex flex-shrink-0 mb-2" role="tablist">
           <button
@@ -318,8 +318,8 @@ function TransferList({
         </div>
         <div
           ref={listRef}
-          className={`space-y-1 ${
-            fillHeight ? "flex-1 min-h-0 overflow-y-auto" : "min-h-48"
+          className={`space-y-1 overflow-y-auto ${
+            fillHeight ? "max-h-[60vh]" : "min-h-48"
           }`}
         >
           {renderRows(paneItems, direction, grouped)}

@@ -247,7 +247,7 @@ export default function GroupDetailPage() {
   if (!draft) return null;
 
   return (
-    <div className="flex flex-col h-full w-full p-3 md:p-4">
+    <div className="flex flex-col h-full w-full p-3 md:p-4 overflow-y-auto md:overflow-visible">
       <div className="flex-shrink-0 flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">
         <div className="flex items-center gap-4 min-w-0">
           <button
@@ -318,7 +318,7 @@ export default function GroupDetailPage() {
       </div>
 
       <div
-        className={`flex-1 min-h-0 grid gap-4 ${
+        className={`grid gap-4 md:flex-1 md:min-h-0 ${
           isCreateMode
             ? "grid-cols-1 grid-rows-1"
             : "grid-cols-1 xl:grid-cols-3 xl:grid-rows-1"
