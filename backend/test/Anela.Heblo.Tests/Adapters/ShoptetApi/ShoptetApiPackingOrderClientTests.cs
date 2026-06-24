@@ -85,7 +85,7 @@ public class ShoptetApiPackingOrderClientTests
         var settings = Options.Create(new ShoptetApiSettings { DefaultItemWeightGrams = defaultWeightGrams });
         var orderSettings = Options.Create(new ShoptetOrdersSettings());
         var logger = NullLogger<ShoptetApiPackingOrderClient>.Instance;
-        return new ShoptetApiPackingOrderClient(orderClient, productSource, coolingSource, logger, settings, orderSettings);
+        return new ShoptetApiPackingOrderClient(orderClient, orderClient, productSource, coolingSource, logger, settings, orderSettings);
     }
 
     [Fact]
