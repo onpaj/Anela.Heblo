@@ -84,7 +84,7 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange, onPrin
   }
 
   if (shipmentForPrint) {
-    if (shipmentForPrint.pendingCompletion) {
+    if (shipmentForPrint.pendingCompletion && shipmentForPrint.packages.length >= 2) {
       return (
         <PackingLabelPrintModal
           order={order}
