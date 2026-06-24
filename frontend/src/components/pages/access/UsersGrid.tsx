@@ -200,6 +200,9 @@ const UsersGrid: React.FC = () => {
         {setCanPack.isError && (
           <p className="text-sm text-red-600">Failed to update packing permission. Please try again.</p>
         )}
+        {setActive.isError && (
+          <p className="text-sm text-red-600">Failed to update user status. Please try again.</p>
+        )}
       </div>
 
       {/* Grid (table on desktop, cards on mobile) */}

@@ -1,29 +1,22 @@
 # PR Context
 
-- **PR**: #3212 — fix(invoices): move IIssuedInvoiceRepository and IssuedInvoiceFilters to Domain layer (#3155)
-- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3212
-- **Branch**: `feature/3155-fix-invoice-repo-interface-layer` → `main`
-- **State**: OPEN
+- **PR**: #3312 — #3300: Eliminate N+1 Graph API calls in GetAppRoleMembersAsync
+- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3312
+- **Branch**: `feature/3300-Arch-Review-Usermanagement-N-1-Graph-Api-Calls-In` → `main`
+- **State**: open
 - **Author**: onpaj
-- **Changes**: +9 / -31 across 12 files
-- **Absorbed**: backmerged with `main`, all tests passing
+- **Changes**: +1949 / -14 across 13 files
+- **Absorbed**: backmerged with `main`, pushed
 
 ## Description
 
-### What the issue was
+`GraphService.GetAppRoleMembersAsync` resolved display name and email for directly-assigned users with a separate HTTP call per user — an O(N) chattiness problem. For a role with 10 directly-assigned users, this produced 10 sequential Graph round-trips, each 100–300 ms, stacking latency linearly on every cold-cache request.
 
-`IIssuedInvoiceRepository` and `IssuedInvoiceFilters` were defined in the **Persistence** project (`Anela.Heblo.Persistence.Invoices`), violating Clean Architecture's Dependency Rule. Every Application-layer handler that queried invoices had to import `using Anela.Heblo.Persistence.Invoices`, creating an upward dependency from Application to Infrastructure. This also made it impossible to test Application handlers without the Persistence project.
+Replaced the per-user `foreach`/`await` loop (Step 5, lines 385–404) with Microsoft Graph's `$batch` endpoint (`POST /v1.0/$batch`). User IDs are grouped into chunks of up to 20, and each chunk is resolved in a single HTTP call. For the common case of ≤ 20 directly-assigned users, this reduces Step 5 from N calls to 1 call.
 
-### How it was fixed
+- Added `private const int GraphBatchSize = 20;` (hard Graph API limit, matches the existing `SearchResultLimit` constant pattern)
+- Sub-response failures (non-200) are logged as `LogWarning` and skipped — same as before
+- Batch-level HTTP failure logs `LogError` and returns an empty list — consistent with surrounding error handling
+- No public interfaces, caching logic, or API contracts changed
 
-Pure file/namespace relocation — no logic changes:
-
-1. Moved `IIssuedInvoiceRepository.cs` from `Persistence/Invoices/` to `Domain/Features/Invoices/` (namespace: `Anela.Heblo.Domain.Features.Invoices`)
-2. Moved `IssuedInvoiceFilters.cs` from `Persistence/Invoices/` to `Domain/Features/Invoices/` (same namespace change)
-3. Updated `using` directives in 6 Application files to reference the Domain namespace instead of Persistence
-4. Updated `using` directives in 4 test files accordingly
-5. `IssuedInvoiceRepository` (the implementation) stays in Persistence — only the interface and filter type move
-
-All 76 invoice unit tests pass.
-
-Closes #3155
+Artifacts committed under `artifacts/feat-3300/`.

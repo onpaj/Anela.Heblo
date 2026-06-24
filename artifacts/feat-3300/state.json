@@ -1,0 +1,42 @@
+{
+  "feature_id": "feat-3300",
+  "issue_number": 3300,
+  "created_at": "2026-06-23T07:14:38.192994Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-23T07:17:20.676536Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-23T07:20:22.092857Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-23T07:20:34.884622Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-23T07:24:27.935935Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-23T07:49:00.832026Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "implement-batch-resolution",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-23T07:30:31.565657Z"
+    },
+    {
+      "name": "add-batch-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-23T07:48:52.992227Z"
+    }
+  ]
+}
