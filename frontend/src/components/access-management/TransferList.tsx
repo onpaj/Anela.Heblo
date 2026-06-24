@@ -294,42 +294,44 @@ function TransferList({
       }`;
 
     return (
-      <div>
-        {searchBar}
-        <div className="flex flex-shrink-0 mb-2" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={showAvailable}
-            onClick={() => switchTab("available")}
-            className={tabClass(showAvailable)}
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div>
+          {searchBar}
+          <div className="flex flex-shrink-0 mb-2" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={showAvailable}
+              onClick={() => switchTab("available")}
+              className={tabClass(showAvailable)}
+            >
+              {labels.available ?? "Available"} ({availableItems.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!showAvailable}
+              onClick={() => switchTab("assigned")}
+              className={tabClass(!showAvailable)}
+            >
+              {labels.assigned ?? "Assigned"} ({assignedItems.length})
+            </button>
+          </div>
+          <div
+            ref={listRef}
+            className={`space-y-1 overflow-y-auto ${
+              fillHeight ? "max-h-[60vh]" : "min-h-48"
+            }`}
           >
-            {labels.available ?? "Available"} ({availableItems.length})
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={!showAvailable}
-            onClick={() => switchTab("assigned")}
-            className={tabClass(!showAvailable)}
-          >
-            {labels.assigned ?? "Assigned"} ({assignedItems.length})
-          </button>
+            {renderRows(paneItems, direction, grouped)}
+            {paneItems.length === 0 && (
+              <div className="text-sm text-gray-400 text-center py-6">
+                {emptyMessage}
+              </div>
+            )}
+          </div>
         </div>
-        <div
-          ref={listRef}
-          className={`space-y-1 overflow-y-auto ${
-            fillHeight ? "max-h-[60vh]" : "min-h-48"
-          }`}
-        >
-          {renderRows(paneItems, direction, grouped)}
-          {paneItems.length === 0 && (
-            <div className="text-sm text-gray-400 text-center py-6">
-              {emptyMessage}
-            </div>
-          )}
-        </div>
-      </div>
+      </DndContext>
     );
   }
 
