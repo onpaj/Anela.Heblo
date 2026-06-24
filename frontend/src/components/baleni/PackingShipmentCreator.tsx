@@ -55,10 +55,11 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange, onPrin
     onDoneStateChange?.(isShowingDoneView);
   }, [isShowingDoneView, onDoneStateChange]);
 
-  const isPrintModalOpen = shipmentForPrint?.pendingCompletion === true;
+  const isMultiPackageModalOpen =
+    shipmentForPrint?.pendingCompletion === true && (shipmentForPrint?.packages.length ?? 0) >= 2;
   useEffect(() => {
-    onPrintModalOpenChange?.(isPrintModalOpen);
-  }, [isPrintModalOpen, onPrintModalOpenChange]);
+    onPrintModalOpenChange?.(isMultiPackageModalOpen);
+  }, [isMultiPackageModalOpen, onPrintModalOpenChange]);
 
   function handleReprint() {
     setShowDialog(false);
@@ -84,7 +85,7 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange, onPrin
   }
 
   if (shipmentForPrint) {
-    if (shipmentForPrint.pendingCompletion && shipmentForPrint.packages.length >= 2) {
+    if (isMultiPackageModalOpen) {
       return (
         <PackingLabelPrintModal
           order={order}
