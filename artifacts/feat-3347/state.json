@@ -21,16 +21,20 @@
       "updated_at": "2026-06-25T15:25:23.292776Z"
     },
     "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T15:28:51.104237Z"
+    },
+    "code-review": {
       "status": "in_progress",
-      "updated_at": "2026-06-25T15:25:58.660564Z"
+      "updated_at": "2026-06-25T15:28:55.679167Z"
     }
   },
   "tasks": [
     {
       "name": "fix-recurring-jobs-test-assertions",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-25T15:25:58.858426Z"
+      "updated_at": "2026-06-25T15:28:50.916537Z"
     }
   ]
 }
