@@ -10,7 +10,7 @@ import {
   ReferenceLine,
   ReferenceArea,
 } from 'recharts';
-import { format, parseISO, isWeekend } from 'date-fns';
+import { format, isWeekend } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { DailyInvoiceCount } from '../../api/hooks/useInvoiceImportStatistics';
 
@@ -21,7 +21,7 @@ interface InvoiceImportChartProps {
 }
 
 interface ChartDataPoint {
-  date: string;
+  date: Date;
   displayDate: string;
   count: number;
   isBelowThreshold: boolean;
@@ -38,19 +38,19 @@ export const InvoiceImportChart: React.FC<InvoiceImportChartProps> = ({
 }) => {
   // Transform data for chart
   const chartData: ChartDataPoint[] = data.map((item) => ({
-    date: item.date,
-    displayDate: format(parseISO(item.date), 'dd.MM.', { locale: cs }),
+    date: item.date!,
+    displayDate: format(item.date!, 'dd.MM.', { locale: cs }),
     count: item.count,
     isBelowThreshold: item.isBelowThreshold,
-    isWeekend: isWeekend(parseISO(item.date)),
+    isWeekend: isWeekend(item.date!),
   }));
 
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
-      const fullDate = format(parseISO(data.date), 'dd. MMMM yyyy', { locale: cs });
-      const dayOfWeek = format(parseISO(data.date), 'EEEE', { locale: cs });
+      const fullDate = format(data.date!, 'dd. MMMM yyyy', { locale: cs });
+      const dayOfWeek = format(data.date!, 'EEEE', { locale: cs });
       
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
