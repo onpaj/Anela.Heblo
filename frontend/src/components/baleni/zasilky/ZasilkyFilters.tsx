@@ -43,27 +43,27 @@ export function ZasilkyFilters({ value, onChange }: Props) {
 
   return (
     <form aria-label="Filtry zásilek" onSubmit={handleSubmit}>
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 p-4 bg-slate-50 border-b">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 p-4 bg-slate-50 dark:bg-graphite-surface-2 border-b dark:border-graphite-border">
         <input
-          className="px-3 py-2 border rounded"
+          className="px-3 py-2 border rounded dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text dark:placeholder-graphite-faint"
           placeholder="Objednávka"
           value={local.orderCode}
           onChange={update("orderCode")}
         />
         <input
-          className="px-3 py-2 border rounded"
+          className="px-3 py-2 border rounded dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text dark:placeholder-graphite-faint"
           placeholder="Zákazník"
           value={local.customerName}
           onChange={update("customerName")}
         />
         <input
-          className="px-3 py-2 border rounded"
+          className="px-3 py-2 border rounded dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text dark:placeholder-graphite-faint"
           placeholder="Číslo balíku"
           value={local.packageNumber}
           onChange={update("packageNumber")}
         />
         <select
-          className="px-3 py-2 border rounded bg-white"
+          className="px-3 py-2 border rounded bg-white dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text"
           value={local.carrier}
           onChange={update("carrier")}
         >
@@ -78,7 +78,7 @@ export function ZasilkyFilters({ value, onChange }: Props) {
         </select>
         <input
           type="date"
-          className="px-3 py-2 border rounded"
+          className="px-3 py-2 border rounded dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text"
           value={local.date}
           onChange={update("date")}
         />
@@ -92,7 +92,7 @@ export function ZasilkyFilters({ value, onChange }: Props) {
           <button
             type="button"
             onClick={handleClear}
-            className="flex-1 px-4 py-2 rounded border border-slate-300 bg-white text-slate-700 font-medium hover:bg-slate-50 active:bg-slate-100"
+            className="flex-1 px-4 py-2 rounded border border-slate-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-slate-700 dark:text-graphite-muted font-medium hover:bg-slate-50 dark:hover:bg-white/5 active:bg-slate-100"
           >
             Vymazat
           </button>

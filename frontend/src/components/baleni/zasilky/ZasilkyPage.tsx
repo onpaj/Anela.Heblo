@@ -98,12 +98,12 @@ export function ZasilkyPage() {
   }, [deleteMutation, pendingDelete, showSuccess, showError]);
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-white dark:bg-graphite-surface">
       <ZasilkyFilters value={filters} onChange={handleFiltersChange} />
       <div className="flex-1 overflow-auto">
-        {isLoading && <div className="p-8 text-center text-slate-500">Načítám…</div>}
+        {isLoading && <div className="p-8 text-center text-slate-500 dark:text-graphite-muted">Načítám…</div>}
         {isError && (
-          <div className="p-8 text-center text-red-600">Nepodařilo se načíst zásilky.</div>
+          <div className="p-8 text-center text-red-600 dark:text-red-400">Nepodařilo se načíst zásilky.</div>
         )}
         {data && (
           <ZasilkyTable

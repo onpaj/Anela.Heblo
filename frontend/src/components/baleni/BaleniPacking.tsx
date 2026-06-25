@@ -15,7 +15,7 @@ import { usePackingUser } from './packingUser/PackingUserContext';
 
 function CenteredMessage({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center text-neutral-gray">
+    <div className="flex flex-col items-center justify-center py-24 text-center text-neutral-gray dark:text-graphite-muted">
       {children}
     </div>
   );
@@ -56,7 +56,7 @@ function OrderBody({ order, shipment, isShowingDoneView, onDoneStateChange, onPr
       />
       {!isShowingDoneView && (
         <>
-          <p className="text-xs uppercase tracking-wide text-neutral-gray">
+          <p className="text-xs uppercase tracking-wide text-neutral-gray dark:text-graphite-muted">
             Položky ({order.items.length})
           </p>
           <PackingItems items={order.items} />
@@ -105,7 +105,7 @@ function BaleniPacking() {
       const notFound = isOrderNotFoundError(scanMutation.error);
       return (
         <CenteredMessage>
-          <p className="text-base font-semibold text-neutral-slate">
+          <p className="text-base font-semibold text-neutral-slate dark:text-graphite-text">
             {notFound ? 'Objednávka nenalezena' : 'Nepodařilo se načíst objednávku'}
           </p>
           <p className="text-sm mt-1">Naskenujte objednávku znovu.</p>
@@ -128,7 +128,7 @@ function BaleniPacking() {
     return (
       <CenteredMessage>
         <ScanLine className="h-10 w-10 mb-3" />
-        <p className="text-base font-semibold text-neutral-slate">Naskenujte číslo objednávky</p>
+        <p className="text-base font-semibold text-neutral-slate dark:text-graphite-text">Naskenujte číslo objednávky</p>
       </CenteredMessage>
     );
   };
@@ -141,7 +141,7 @@ function BaleniPacking() {
           data-testid="multi-package-button"
           aria-label="Více balíků"
           onClick={() => setIsMultiModalOpen(true)}
-          className="flex h-14 items-center gap-2 rounded-xl border-2 border-neutral-300 bg-white px-4 text-base font-semibold text-neutral-slate shadow active:scale-95"
+          className="flex h-14 items-center gap-2 rounded-xl border-2 border-neutral-300 dark:border-graphite-border bg-white dark:bg-graphite-surface px-4 text-base font-semibold text-neutral-slate dark:text-graphite-text shadow dark:shadow-soft-dark active:scale-95"
         >
           <PackagePlus className="h-5 w-5" />
           Více balíků

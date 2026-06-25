@@ -140,15 +140,15 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange, onPrin
         data-testid="shipment-creating-spinner"
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
       >
-        <div className="flex w-full max-w-md flex-col items-center gap-6 rounded-2xl bg-white p-10 shadow-2xl">
-          <p className="text-2xl font-bold text-neutral-slate">Vytvářím novou zásilku…</p>
-          <div className="relative h-4 w-full overflow-hidden rounded-full bg-neutral-200">
+        <div className="flex w-full max-w-md flex-col items-center gap-6 rounded-2xl bg-white dark:bg-graphite-surface p-10 shadow-2xl">
+          <p className="text-2xl font-bold text-neutral-slate dark:text-graphite-text">Vytvářím novou zásilku…</p>
+          <div className="relative h-4 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-graphite-surface-2">
             <div
               className="absolute h-full rounded-full bg-primary-blue"
               style={{ animation: 'indeterminate-progress 1.5s ease-in-out infinite' }}
             />
           </div>
-          <p className="text-sm text-neutral-gray">Prosím čekejte</p>
+          <p className="text-sm text-neutral-gray dark:text-graphite-muted">Prosím čekejte</p>
         </div>
       </div>
     );
@@ -158,7 +158,7 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange, onPrin
     return (
       <div
         data-testid="shipment-error-banner"
-        className="rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700"
+        className="rounded border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm text-red-700 dark:text-red-300"
       >
         {resetMutation.error?.message ?? 'Zásilku se nepodařilo vytvořit'}
       </div>
@@ -171,24 +171,24 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange, onPrin
         data-testid="existing-shipment-modal"
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
       >
-        <div className="flex w-full max-w-sm flex-col gap-6 rounded-2xl bg-white p-8 shadow-2xl">
-          <p className="text-center text-2xl font-bold text-amber-700">
+        <div className="flex w-full max-w-sm flex-col gap-6 rounded-2xl bg-white dark:bg-graphite-surface p-8 shadow-2xl">
+          <p className="text-center text-2xl font-bold text-amber-700 dark:text-amber-400">
             Zásilka pro tuto objednávku již existuje.
           </p>
           <div className="flex flex-col gap-4">
             <button
-              className="w-full rounded-xl border-2 border-neutral-300 bg-white py-5 text-lg font-semibold shadow active:scale-95"
+              className="w-full rounded-xl border-2 border-neutral-300 dark:border-graphite-border bg-white dark:bg-graphite-surface py-5 text-lg font-semibold text-neutral-slate dark:text-graphite-text shadow dark:shadow-soft-dark active:scale-95"
               onClick={handleReprint}
             >
               Použít existující zásilku
               {scanShipment && (
-                <span className="block text-sm font-normal text-neutral-gray">
+                <span className="block text-sm font-normal text-neutral-gray dark:text-graphite-muted">
                   {scanShipment.packages.map((p, index) => p.trackingNumber ?? `Balík ${index + 1}`).join(', ')}
                 </span>
               )}
             </button>
-            <div className="flex flex-col gap-3 rounded-xl border-2 border-neutral-200 p-4">
-              <span className="text-center text-sm font-medium text-neutral-gray">Počet balíků</span>
+            <div className="flex flex-col gap-3 rounded-xl border-2 border-neutral-200 dark:border-graphite-border p-4">
+              <span className="text-center text-sm font-medium text-neutral-gray dark:text-graphite-muted">Počet balíků</span>
               <div className="flex items-center justify-center gap-6">
                 <button
                   type="button"
@@ -196,13 +196,13 @@ function PackingShipmentCreator({ order, scanShipment, onDoneStateChange, onPrin
                   data-testid="recreate-package-decrement"
                   disabled={recreateCount <= MIN_PACKAGES}
                   onClick={() => setRecreateCount((c) => Math.max(MIN_PACKAGES, c - 1))}
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-neutral-300 bg-white text-neutral-slate shadow active:scale-95 disabled:opacity-40"
+                  className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-neutral-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-neutral-slate dark:text-graphite-text shadow dark:shadow-soft-dark active:scale-95 disabled:opacity-40"
                 >
                   <Minus className="h-7 w-7" />
                 </button>
                 <span
                   data-testid="recreate-package-count"
-                  className="w-12 text-center text-4xl font-bold text-neutral-slate"
+                  className="w-12 text-center text-4xl font-bold text-neutral-slate dark:text-graphite-text"
                 >
                   {recreateCount}
                 </span>
