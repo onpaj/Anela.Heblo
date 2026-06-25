@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "gate-hook",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-25T09:26:20.807853Z"
+      "updated_at": "2026-06-25T09:29:40.303462Z"
     },
     {
       "name": "guard-component",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T09:29:46.080537Z"
     }
   ]
 }
