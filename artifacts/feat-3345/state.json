@@ -21,8 +21,8 @@
       "updated_at": "2026-06-25T13:21:01.040779Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-25T13:21:33.362536Z"
+      "status": "completed",
+      "updated_at": "2026-06-25T13:25:10.845787Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "fix-leaflet-generator-timeout",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-25T13:23:42.414063Z"
+      "updated_at": "2026-06-25T13:25:10.651815Z"
     }
   ]
 }
