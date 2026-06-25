@@ -51,6 +51,7 @@ public class ShoptetApiPackingOrderClientTests
                     Code = code,
                     FullName = "Jan Novák",
                     Shipping = new OrderShippingSummary { Guid = shippingGuid, Name = shippingName },
+                    Status = new OrderStatusSummary { Id = 26 },
                     Items = new List<ExpeditionOrderItemDto>
                     {
                         new() { ItemType = "product", Code = "P001", Name = "Krém", Amount = 2m },
@@ -85,7 +86,7 @@ public class ShoptetApiPackingOrderClientTests
         var settings = Options.Create(new ShoptetApiSettings { DefaultItemWeightGrams = defaultWeightGrams });
         var orderSettings = Options.Create(new ShoptetOrdersSettings());
         var logger = NullLogger<ShoptetApiPackingOrderClient>.Instance;
-        return new ShoptetApiPackingOrderClient(orderClient, orderClient, productSource, coolingSource, logger, settings, orderSettings);
+        return new ShoptetApiPackingOrderClient(orderClient, productSource, coolingSource, logger, settings, orderSettings);
     }
 
     [Fact]
@@ -184,19 +185,25 @@ public class ShoptetApiPackingOrderClientTests
     }
 
     [Fact]
-    public async Task GetPackingOrderAsync_MapsOrderStatusId()
+    public async Task GetPackingOrderAsync_MapsOrderStatusId_FromSingleIncludeResponse()
     {
-        // The status is read from the base /api/orders/{code} endpoint (no ?include=),
-        // so route the fake handler: ?include= -> expedition detail, plain -> status.
+        // status is a base field returned on the ?include=stockLocation,notes response,
+        // so the packing flow reads it from that single call — no second/plain request.
+        var requestCount = 0;
+        var detail = DetailResponse("250006", PplDoRukyGuid, "PPL (do ruky)");
+        detail.Data.Order.Status = new OrderStatusSummary { Id = 26 };
         var orderClient = BuildOrderClient(req =>
-            req.RequestUri!.Query.Contains("include")
-                ? Json(DetailResponse("250006", PplDoRukyGuid, "PPL (do ruky)"))
-                : Json(new { data = new { order = new { code = "250006", status = new { id = 26 } } } }));
+        {
+            requestCount++;
+            req.RequestUri!.Query.Should().Contain("include");
+            return Json(detail);
+        });
         var sut = BuildSut(orderClient, ProductSourceWith(), CoolingSourceWith());
 
         var result = await sut.GetPackingOrderAsync("250006", CancellationToken.None);
 
         result!.StatusId.Should().Be(26);
+        requestCount.Should().Be(1);
     }
 
     [Fact]
