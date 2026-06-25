@@ -10,10 +10,10 @@ const ScoreBadge: React.FC<{ score: number }> = ({ score }) => {
   const pct = Math.round(score * 100);
   const color =
     pct >= 80
-      ? 'bg-green-100 text-green-800'
+      ? 'bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300'
       : pct >= 60
-      ? 'bg-yellow-100 text-yellow-800'
-      : 'bg-gray-100 text-gray-600';
+      ? 'bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300'
+      : 'bg-gray-100 text-gray-600 dark:bg-graphite-surface-2 dark:text-graphite-muted';
   return (
     <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${color}`}>
       {pct}%
@@ -27,14 +27,14 @@ interface ChunkCardProps {
 }
 
 const ChunkCard: React.FC<ChunkCardProps> = ({ chunk, onViewSource }) => (
-  <div className="border border-gray-200 rounded-lg p-4 space-y-2">
+  <div className="border border-gray-200 dark:border-graphite-border rounded-lg p-4 space-y-2">
     <div className="flex items-center justify-between">
-      <span className="text-sm font-medium text-gray-700">{chunk.sourceFilename}</span>
+      <span className="text-sm font-medium text-gray-700 dark:text-graphite-muted">{chunk.sourceFilename}</span>
       <div className="flex items-center gap-2">
         <ScoreBadge score={chunk.score} />
         <button
           onClick={() => onViewSource(chunk.chunkId, chunk.score)}
-          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+          className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800"
           aria-label={`Zobrazit zdroj ${chunk.sourceFilename}`}
         >
           <ExternalLink className="w-3 h-3" />
@@ -42,7 +42,7 @@ const ChunkCard: React.FC<ChunkCardProps> = ({ chunk, onViewSource }) => (
         </button>
       </div>
     </div>
-    <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-5">{chunk.content}</p>
+    <p className="text-sm text-gray-600 dark:text-graphite-muted whitespace-pre-wrap line-clamp-5">{chunk.content}</p>
   </div>
 );
 
@@ -81,7 +81,7 @@ const KnowledgeBaseSearchTab: React.FC = () => {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Hledat v znalostní bázi..."
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           onClick={handleSearch}
@@ -96,19 +96,19 @@ const KnowledgeBaseSearchTab: React.FC = () => {
       {search.isPending && (
         <div className="space-y-2 animate-pulse">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 bg-gray-100 rounded-lg" />
+            <div key={i} className="h-24 bg-gray-100 dark:bg-graphite-surface-2 rounded-lg" />
           ))}
         </div>
       )}
 
       {search.isError && (
-        <div className="text-red-600 text-sm">Vyhledávání se nezdařilo. Zkuste to znovu.</div>
+        <div className="text-red-600 dark:text-red-400 text-sm">Vyhledávání se nezdařilo. Zkuste to znovu.</div>
       )}
 
       {search.data && (
         <div className="space-y-3">
           {search.data.chunks.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-6">
+            <p className="text-sm text-gray-500 dark:text-graphite-muted text-center py-6">
               Žádné výsledky pro „{query}".
             </p>
           ) : (

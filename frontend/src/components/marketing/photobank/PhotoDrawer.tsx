@@ -70,15 +70,15 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
   };
 
   return (
-    <aside className="flex flex-col border-l border-gray-200 bg-white overflow-hidden flex-shrink-0" style={{ width: DRAWER_WIDTH_PX }}>
+    <aside className="flex flex-col border-l border-gray-200 dark:border-graphite-border bg-white dark:bg-graphite-surface overflow-hidden flex-shrink-0" style={{ width: DRAWER_WIDTH_PX }}>
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-200">
-        <h2 className="text-sm font-semibold text-gray-700 truncate" title={photo.name}>
+      <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-graphite-border">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-graphite-muted truncate" title={photo.name}>
           {photo.name}
         </h2>
         <button
           onClick={onClose}
-          className="flex-shrink-0 ml-2 p-1 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          className="flex-shrink-0 ml-2 p-1 rounded text-gray-400 dark:text-graphite-faint hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-600"
           aria-label="Zavřít detail"
         >
           <X className="w-4 h-4" />
@@ -86,7 +86,7 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
       </div>
 
       {/* Thumbnail */}
-      <div className="p-3 border-b border-gray-100">
+      <div className="p-3 border-b border-gray-100 dark:border-graphite-border">
         <PhotoThumbnail
           photoId={photo.id}
           modifiedAt={photo.lastModifiedAt}
@@ -97,7 +97,7 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
       </div>
 
       {/* Metadata */}
-      <div className="p-3 border-b border-gray-100 space-y-1.5">
+      <div className="p-3 border-b border-gray-100 dark:border-graphite-border space-y-1.5">
         <DetailRow label="Složka" value={photo.folderPath} />
         <DetailRow label="Velikost" value={formatFileSize(photo.fileSizeBytes)} />
         <DetailRow
@@ -107,7 +107,7 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
       </div>
 
       {/* Actions */}
-      <div className="p-3 border-b border-gray-100 flex flex-col gap-2">
+      <div className="p-3 border-b border-gray-100 dark:border-graphite-border flex flex-col gap-2">
         {photo.sharePointWebUrl && (
           <a
             href={photo.sharePointWebUrl}
@@ -122,12 +122,12 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
         {photo.sharePointWebUrl && (
           <button
             onClick={handleCopyLink}
-            className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-graphite-muted hover:text-gray-900"
           >
             {copySuccess ? (
               <>
-                <Check className="w-3.5 h-3.5 text-green-500" />
-                <span className="text-green-600">Zkopírováno!</span>
+                <Check className="w-3.5 h-3.5 text-green-500 dark:text-emerald-400" />
+                <span className="text-green-600 dark:text-emerald-400">Zkopírováno!</span>
               </>
             ) : (
               <>
@@ -141,12 +141,12 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
           <button
             onClick={() => void handleRetag()}
             disabled={retagMutation.isPending}
-            className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-graphite-muted hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {retagSuccess ? (
               <>
-                <Check className="w-3.5 h-3.5 text-green-500" />
-                <span className="text-green-600">Přetagováno!</span>
+                <Check className="w-3.5 h-3.5 text-green-500 dark:text-emerald-400" />
+                <span className="text-green-600 dark:text-emerald-400">Přetagováno!</span>
               </>
             ) : (
               <>
@@ -161,14 +161,14 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
       {/* Tags */}
       <div className="flex-1 overflow-y-auto p-3">
         <div className="flex items-center gap-1.5 mb-2">
-          <Tag className="w-3.5 h-3.5 text-gray-400" />
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <Tag className="w-3.5 h-3.5 text-gray-400 dark:text-graphite-faint" />
+          <span className="text-xs font-semibold text-gray-500 dark:text-graphite-muted uppercase tracking-wide">
             Štítky
           </span>
         </div>
 
         {photo.tags.length === 0 ? (
-          <p className="text-xs text-gray-400 mb-2">Žádné štítky</p>
+          <p className="text-xs text-gray-400 dark:text-graphite-faint mb-2">Žádné štítky</p>
         ) : (
           <div className="flex flex-wrap gap-1.5 mb-3">
             {photo.tags.map((tag) => (
@@ -183,14 +183,14 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
 
         {canEditTags && (
           <div className="relative">
-            <Plus className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            <Plus className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-graphite-faint pointer-events-none" />
             <input
               type="text"
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
               onKeyDown={handleAddTag}
               placeholder="Přidat štítek (Enter)"
-              className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+              className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
               disabled={addTagMutation.isPending}
               aria-label="Přidat nový štítek"
             />
@@ -208,8 +208,8 @@ interface DetailRowProps {
 
 const DetailRow: React.FC<DetailRowProps> = ({ label, value }) => (
   <div className="flex items-start gap-2 text-xs">
-    <span className="text-gray-400 flex-shrink-0 w-16">{label}</span>
-    <span className="text-gray-700 break-all">{value}</span>
+    <span className="text-gray-400 dark:text-graphite-faint flex-shrink-0 w-16">{label}</span>
+    <span className="text-gray-700 dark:text-graphite-muted break-all">{value}</span>
   </div>
 );
 

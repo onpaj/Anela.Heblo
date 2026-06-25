@@ -145,20 +145,20 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-[98vw] xl:max-w-[1600px] h-[95vh] sm:h-[85vh] flex flex-col">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark w-full max-w-[98vw] xl:max-w-[1600px] h-[95vh] sm:h-[85vh] flex flex-col">
         {/* Header - Compact */}
-        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg flex-shrink-0">
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2 rounded-t-lg flex-shrink-0">
           <div className="flex-1 min-w-0">
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-graphite-text truncate">
               {selectedPackage.name}
             </h2>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-gray-600 dark:text-graphite-muted">
               Kód: {selectedPackage.code}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="ml-4 flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors touch-manipulation"
+            className="ml-4 flex-shrink-0 p-2 text-gray-400 dark:text-graphite-faint hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors touch-manipulation"
             aria-label="Zavřít"
           >
             <X className="h-5 w-5" />
@@ -168,13 +168,13 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
         {/* Main Content - Horizontal Layout */}
         <div className="flex-1 flex flex-col lg:flex-row min-h-0">
           {/* Left Panel - Components List */}
-          <div className="flex-1 lg:flex-none lg:w-3/4 border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col min-h-0">
-            <div className="p-3 sm:p-4 bg-gray-50 border-b border-gray-200">
-              <h3 className="text-sm sm:text-base font-medium text-gray-900 flex items-center">
+          <div className="flex-1 lg:flex-none lg:w-3/4 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-graphite-border flex flex-col min-h-0">
+            <div className="p-3 sm:p-4 bg-gray-50 dark:bg-graphite-surface-2 border-b border-gray-200 dark:border-graphite-border">
+              <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-graphite-text flex items-center">
                 <Package className="h-4 w-4 mr-2" />
                 Složení balíčku
                 {giftPackageDetail?.giftPackage?.ingredients && (
-                  <span className="ml-2 text-xs text-gray-600">
+                  <span className="ml-2 text-xs text-gray-600 dark:text-graphite-muted">
                     ({giftPackageDetail.giftPackage.ingredients.length} položek)
                   </span>
                 )}
@@ -184,13 +184,13 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
             <div className="flex-1 overflow-auto">
               {detailLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <RefreshCw className="h-6 w-6 animate-spin text-gray-400 mr-2" />
-                  <span className="text-gray-600">Načítání komponent...</span>
+                  <RefreshCw className="h-6 w-6 animate-spin text-gray-400 dark:text-graphite-faint mr-2" />
+                  <span className="text-gray-600 dark:text-graphite-muted">Načítání komponent...</span>
                 </div>
               ) : validationResults.insufficientIngredients.length > 0 ? (
-                <div className="bg-white">
+                <div className="bg-white dark:bg-graphite-surface">
                   {/* Grid Header */}
-                  <div className="grid gap-2 px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider" style={{gridTemplateColumns: '1fr 80px 80px 80px 80px'}}>
+                  <div className="grid gap-2 px-3 py-2 bg-gray-50 dark:bg-graphite-surface-2 border-b border-gray-200 dark:border-graphite-border text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider" style={{gridTemplateColumns: '1fr 80px 80px 80px 80px'}}>
                     <div className="">Komponenta</div>
                     <div className="text-center">Na kus</div>
                     <div className="text-center">Celkem ({quantity}x)</div>
@@ -199,20 +199,20 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                   </div>
                   
                   {/* Grid Body */}
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-gray-100 dark:divide-graphite-border">
                     {validationResults.insufficientIngredients.map((ingredient, index) => (
                       <div key={index}>
                         {/* Main Row */}
-                        <div className={`grid gap-2 px-3 py-3 hover:bg-gray-50 transition-colors ${ingredient.isInsufficient ? 'bg-red-50/30' : ''}`} style={{gridTemplateColumns: '1fr 80px 80px 80px 80px'}}>
+                        <div className={`grid gap-2 px-3 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${ingredient.isInsufficient ? 'bg-red-50/30 dark:bg-red-900/10' : ''}`} style={{gridTemplateColumns: '1fr 80px 80px 80px 80px'}}>
                           {/* Product Info */}
                           <div className="min-w-0">
-                            <div className="text-sm font-medium text-gray-900 truncate">
+                            <div className="text-sm font-medium text-gray-900 dark:text-graphite-text truncate">
                               {ingredient.productName}
                             </div>
-                            <div className="text-xs text-gray-500 mt-1">
+                            <div className="text-xs text-gray-500 dark:text-graphite-muted mt-1">
                               {ingredient.productCode}
                               {(ingredient as any).location && (
-                                <span className="ml-2 text-gray-400">
+                                <span className="ml-2 text-gray-400 dark:text-graphite-faint">
                                   • {(ingredient as any).location}
                                 </span>
                               )}
@@ -220,37 +220,37 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                           </div>
                           
                           {/* Quantity per unit */}
-                          <div className="text-sm text-gray-900 flex items-center justify-center">
+                          <div className="text-sm text-gray-900 dark:text-graphite-text flex items-center justify-center">
                             {(ingredient.requiredQuantity || 0).toFixed(1)}
                           </div>
-                          
+
                           {/* Total required */}
-                          <div className="text-sm font-medium text-gray-900 flex items-center justify-center">
+                          <div className="text-sm font-medium text-gray-900 dark:text-graphite-text flex items-center justify-center">
                             {ingredient.requiredTotal.toFixed(1)}
                           </div>
-                          
+
                           {/* Available stock */}
-                          <div className={`text-sm font-medium flex items-center justify-center ${ingredient.isInsufficient ? 'text-red-600' : 'text-gray-900'}`}>
+                          <div className={`text-sm font-medium flex items-center justify-center ${ingredient.isInsufficient ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-graphite-text'}`}>
                             {ingredient.availableStock.toFixed(1)}
                           </div>
-                          
+
                           {/* Status */}
                           <div className="flex items-center justify-center">
                             {ingredient.isInsufficient ? (
-                              <span className="text-red-500 text-lg" title="Nedostatečné zásoby">⚠</span>
+                              <span className="text-red-500 dark:text-red-400 text-lg" title="Nedostatečné zásoby">⚠</span>
                             ) : (
-                              <span className="text-green-500 text-lg" title="Dostatečné zásoby">✓</span>
+                              <span className="text-green-500 dark:text-emerald-400 text-lg" title="Dostatečné zásoby">✓</span>
                             )}
                           </div>
                         </div>
-                        
+
                         {/* Sub-row for shortage info */}
                         {ingredient.isInsufficient && (
-                          <div className="flex px-3 py-2 bg-red-50/50 border-l-4 border-red-200">
-                            <div className="flex-1 text-xs text-red-600">
+                          <div className="flex px-3 py-2 bg-red-50/50 dark:bg-red-900/10 border-l-4 border-red-200 dark:border-graphite-border">
+                            <div className="flex-1 text-xs text-red-600 dark:text-red-400">
                               ⚠ Nedostatečné zásoby
                             </div>
-                            <div className="text-xs text-red-600">
+                            <div className="text-xs text-red-600 dark:text-red-400">
                               Chybí: {ingredient.shortage.toFixed(1)} ks
                             </div>
                           </div>
@@ -260,7 +260,7 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-center py-8 text-gray-500">
+                <div className="flex items-center justify-center py-8 text-gray-500 dark:text-graphite-muted">
                   <Package className="h-8 w-8 mr-3" />
                   <span>Komponenty nejsou k dispozici</span>
                 </div>
@@ -271,32 +271,32 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
           {/* Right Panel - Statistics & Controls */}
           <div className="flex-shrink-0 lg:w-1/4 flex flex-col">
             {/* Statistics */}
-            <div className="p-3 sm:p-4 bg-gray-50 border-b border-gray-200">
-              <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-3">
+            <div className="p-3 sm:p-4 bg-gray-50 dark:bg-graphite-surface-2 border-b border-gray-200 dark:border-graphite-border">
+              <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-graphite-text mb-3">
                 Statistiky balíčku
               </h3>
               <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white rounded-md p-2 text-center border">
-                  <div className="text-xs text-gray-500">Aktuální sklad</div>
-                  <div className="text-base font-bold text-gray-900">{selectedPackage.availableStock.toFixed(0)}</div>
-                  <div className="text-xs text-gray-500">ks</div>
+                <div className="bg-white dark:bg-graphite-surface rounded-md p-2 text-center border dark:border-graphite-border">
+                  <div className="text-xs text-gray-500 dark:text-graphite-muted">Aktuální sklad</div>
+                  <div className="text-base font-bold text-gray-900 dark:text-graphite-text">{selectedPackage.availableStock.toFixed(0)}</div>
+                  <div className="text-xs text-gray-500 dark:text-graphite-muted">ks</div>
                 </div>
-                <div className="bg-white rounded-md p-2 text-center border">
-                  <div className="text-xs text-gray-500">Doporučeno</div>
-                  <div className="text-base font-bold text-orange-600">{selectedPackage.suggestedQuantity}</div>
-                  <div className="text-xs text-gray-500">ks</div>
+                <div className="bg-white dark:bg-graphite-surface rounded-md p-2 text-center border dark:border-graphite-border">
+                  <div className="text-xs text-gray-500 dark:text-graphite-muted">Doporučeno</div>
+                  <div className="text-base font-bold text-orange-600 dark:text-orange-400">{selectedPackage.suggestedQuantity}</div>
+                  <div className="text-xs text-gray-500 dark:text-graphite-muted">ks</div>
                 </div>
               </div>
             </div>
 
             {/* Tab Headers */}
-            <div className="flex border-b border-gray-200">
+            <div className="flex border-b border-gray-200 dark:border-graphite-border">
               <button
                 onClick={() => setActiveTab('manufacture')}
                 className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === 'manufacture'
-                    ? 'text-indigo-700 bg-indigo-50 border-b-2 border-indigo-600'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    ? 'text-indigo-700 dark:text-graphite-accent bg-indigo-50 dark:bg-graphite-accent/10 border-b-2 border-indigo-600 dark:border-graphite-accent'
+                    : 'text-gray-500 dark:text-graphite-muted hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-white/5'
                 }`}
               >
                 <Package className="h-4 w-4 inline-block mr-2" />
@@ -306,8 +306,8 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                 onClick={() => setActiveTab('disassemble')}
                 className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === 'disassemble'
-                    ? 'text-red-700 bg-red-50 border-b-2 border-red-600'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 border-b-2 border-red-600 dark:border-red-500'
+                    : 'text-gray-500 dark:text-graphite-muted hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-white/5'
                 }`}
               >
                 <PackageOpen className="h-4 w-4 inline-block mr-2" />
@@ -317,21 +317,21 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
 
             {/* Manufacturing Controls - Shown when activeTab === 'manufacture' */}
             {activeTab === 'manufacture' && (
-              <div className="flex-1 p-3 sm:p-4 bg-indigo-50">
-              <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-4 flex items-center">
+              <div className="flex-1 p-3 sm:p-4 bg-indigo-50 dark:bg-graphite-accent/10">
+              <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-graphite-text mb-4 flex items-center">
                 <Package className="h-4 w-4 mr-2" />
                 Výrobní příkaz
               </h3>
-              
+
               {/* Quantity Input - Touch Friendly */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
                   Množství k výrobě (ks)
                 </label>
                 <div className="flex items-center space-x-2 mb-3">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-16 h-16 flex items-center justify-center bg-white border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400 active:bg-gray-100 touch-manipulation text-3xl font-bold transition-all duration-150 shadow-sm"
+                    className="w-16 h-16 flex items-center justify-center bg-white dark:bg-graphite-surface border-2 border-gray-300 dark:border-graphite-border rounded-xl text-gray-700 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-graphite-text hover:border-gray-400 active:bg-gray-100 touch-manipulation text-3xl font-bold transition-all duration-150 shadow-sm dark:shadow-soft-dark"
                     type="button"
                   >
                     -
@@ -341,11 +341,11 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                     min="1"
                     value={quantity}
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="flex-1 text-center border-2 border-gray-300 rounded-xl px-3 py-4 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 touch-manipulation shadow-sm min-w-0"
+                    className="flex-1 text-center border-2 border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-xl px-3 py-4 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 touch-manipulation shadow-sm dark:shadow-soft-dark min-w-0"
                   />
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-16 h-16 flex items-center justify-center bg-white border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400 active:bg-gray-100 touch-manipulation text-3xl font-bold transition-all duration-150 shadow-sm"
+                    className="w-16 h-16 flex items-center justify-center bg-white dark:bg-graphite-surface border-2 border-gray-300 dark:border-graphite-border rounded-xl text-gray-700 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-graphite-text hover:border-gray-400 active:bg-gray-100 touch-manipulation text-3xl font-bold transition-all duration-150 shadow-sm dark:shadow-soft-dark"
                     type="button"
                   >
                     +
@@ -359,14 +359,14 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                       const neededQuantity = Math.max(0, selectedPackage.suggestedQuantity - selectedPackage.availableStock);
                       setQuantity(Math.max(1, neededQuantity));
                     }}
-                    className="px-3 py-2 text-sm bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors touch-manipulation text-center"
+                    className="px-3 py-2 text-sm bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors touch-manipulation text-center"
                     type="button"
                   >
                     Potřebné<br/>({Math.max(1, Math.max(0, selectedPackage.suggestedQuantity - selectedPackage.availableStock))})
                   </button>
                   <button
                     onClick={() => setQuantity(Math.ceil(selectedPackage.dailySales * 7))}
-                    className="px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors touch-manipulation text-center"
+                    className="px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors touch-manipulation text-center"
                     type="button"
                   >
                     Týdenní<br/>({Math.ceil(selectedPackage.dailySales * 7)})
@@ -376,19 +376,19 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
 
               {/* Validation Status */}
               {validationResults.insufficientIngredients.length > 0 && (
-                <div className={`p-3 rounded-lg mb-4 ${validationResults.isValid ? 'bg-green-100 border border-green-200' : 'bg-red-100 border border-red-200'}`}>
+                <div className={`p-3 rounded-lg mb-4 ${validationResults.isValid ? 'bg-green-100 dark:bg-emerald-900/30 border border-green-200 dark:border-graphite-border' : 'bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-graphite-border'}`}>
                   <div className="flex items-center">
                     {validationResults.isValid ? (
                       <>
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-                        <span className="text-sm font-medium text-green-800">
+                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-emerald-400 mr-2" />
+                        <span className="text-sm font-medium text-green-800 dark:text-emerald-300">
                           Všechny komponenty jsou dostupné
                         </span>
                       </>
                     ) : (
                       <>
-                        <AlertTriangle className="h-4 w-4 text-red-600 mr-2" />
-                        <span className="text-sm font-medium text-red-800">
+                        <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 mr-2" />
+                        <span className="text-sm font-medium text-red-800 dark:text-red-300">
                           Nedostatečné zásoby ({validationResults.insufficientIngredients.filter(ing => ing.isInsufficient).length} položek)
                         </span>
                       </>
@@ -406,7 +406,7 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                   className={`w-full flex items-center justify-center px-6 py-4 text-lg font-semibold rounded-lg transition-colors touch-manipulation ${
                     validationResults.isValid
                       ? 'text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                      : 'text-gray-400 bg-gray-200 cursor-not-allowed'
+                      : 'text-gray-400 dark:text-graphite-faint bg-gray-200 dark:bg-graphite-hover cursor-not-allowed'
                   }`}
                 >
                   <RefreshCw className="h-5 w-5 mr-2" />
@@ -417,7 +417,7 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                 <button
                   onClick={handleViewStockUpOperations}
                   disabled={!selectedPackage?.code}
-                  className="w-full flex items-center justify-center px-4 py-3 text-sm font-medium text-indigo-600 bg-white border-2 border-indigo-200 rounded-lg hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                  className="w-full flex items-center justify-center px-4 py-3 text-sm font-medium text-indigo-600 dark:text-graphite-accent bg-white dark:bg-graphite-surface border-2 border-indigo-200 dark:border-graphite-border rounded-lg hover:bg-indigo-50 dark:hover:bg-graphite-accent/10 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Zobrazit operace naskladnění

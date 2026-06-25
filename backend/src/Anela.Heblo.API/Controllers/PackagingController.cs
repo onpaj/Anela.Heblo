@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumber
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumbers;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingStatistics;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
@@ -136,6 +137,19 @@ public class PackagingController : BaseApiController
     public async Task<ActionResult<GetPackingDashboardResponse>> GetDashboard(CancellationToken ct)
     {
         var response = await _mediator.Send(new GetPackingDashboardRequest(), ct);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Aggregated packing statistics over a local-day window (defaults to the last 30 days).
+    /// Read-only, derived solely from persisted package rows.
+    /// </summary>
+    [HttpGet("statistics")]
+    public async Task<ActionResult<GetPackingStatisticsResponse>> GetStatistics(
+        [FromQuery] GetPackingStatisticsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }
 

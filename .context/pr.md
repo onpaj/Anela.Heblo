@@ -1,33 +1,40 @@
 # PR Context
 
-- **PR**: #3342 — #3339: Add admin permission guard to ResponsiblePersonCombobox
-- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3342
-- **Branch**: `feature/3339-Add-Admin-Permission-Guard-To-Responsiblepersoncom` → `main`
+- **PR**: #3340 — #3333: migrate analytics hooks to generated API client
+- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3340
+- **Branch**: `feature/3333-Arch-Review-Analytics-Two-Frontend-Hooks-Bypass-Ge` → `main`
 - **State**: OPEN
 - **Author**: onpaj
-- **Changes**: +1178 / -3 across 16 files
-- **Absorbed**: backmerged with `main` (clean merge, no conflicts), branch pushed
+- **Changes**: +1095 / -128 across 32 files
+- **Absorbed**: backmerged with `main` (clean), test fix applied, all tests passing, pushed
 
-## Test status
+## Absorb notes
 
-- **Frontend**: `npm run build` ✅, PR-touched files lint clean (146 pre-existing lint errors in unrelated test files, identical to `main`), `useUserManagement` + `ResponsiblePersonCombobox` tests ✅ (16 passed)
-- **Backend**: `dotnet build` ✅, full suite 5395 passed / 15 failed. The 15 failures are all `KnowledgeBaseRepositoryIntegrationTests` failing in `InitializeAsync` with EF Core `ManyServiceProvidersCreatedWarning` (>20 IServiceProvider instances). Pre-existing test-pollution: the class passes 15/15 in isolation. Unrelated to this frontend-only PR.
+- Backmerge of `origin/main` was clean (no conflicts).
+- `npm run build` passes. `npm run lint` has 146 pre-existing errors (identical on `origin/main`) — none in PR-touched files; PR introduces no new lint errors.
+- **Test fix**: `useInvoiceImportStatistics.test.ts` still mocked the old `http.fetch` path while the migrated hook now calls `apiClient.analytics_GetInvoiceImportStatistics(...)` directly. Updated the test to mock the generated client method and assert on `('InvoiceDate', null)` / `('LastSyncTime', 7)` style arguments. Committed as `fix: update useInvoiceImportStatistics test to mock generated client method`.
+- No other test files reference the migrated hooks/types or removed interfaces.
 
 ## Description
 
-Closes #3339
+Closes #3333
 
-### What the issue was
+## What the issue was
 
-`ResponsiblePersonCombobox` unconditionally fired `GET /api/UserManagement/group-members` regardless of the caller's permissions, producing 113 avoidable 403 responses per week from non-admin Manufacture users. The endpoint is correctly protected by `[FeatureAuthorize(Feature.Admin_Administration)]` — the backend policy is fine. The bug was entirely on the frontend: the hook was called with no permission check, triggering the request (plus 2 retries) for every non-admin user who opened a Manufacture screen.
+Two React Query hooks in the Analytics frontend module — `useInvoiceImportStatistics` and `useBankStatementImportStatistics` — bypassed the generated OpenAPI TypeScript client by using raw `(apiClient as any).http.fetch(...)` calls and redefining types already exported by the generated client. This meant backend contract changes (field renames, type changes) would silently drift rather than producing compile-time errors, and auth header injection / retry logic provided by the generated client was being bypassed.
 
-### How it was fixed / handled
+## How it was fixed
 
-Two minimal, backwards-compatible changes:
+Replaced the raw fetch calls with typed generated-client method invocations in both hooks, removed the duplicate hand-written interfaces, and re-exported the generated types from the hook files so chart consumers needed no import-path changes.
 
-**`useResponsiblePersonsQuery` (`useUserManagement.ts`)** — added an optional `options?: { enabled?: boolean }` second argument. The internal `enabled` is now `Boolean(groupId) && (options?.enabled ?? true)`. Omitting the option preserves existing behavior for all other call sites.
+### Changes
+- `frontend/src/api/hooks/useInvoiceImportStatistics.ts` — replaced `(apiClient as any).http.fetch(...)` with `apiClient.analytics_GetInvoiceImportStatistics(...)`; removed duplicate `DailyInvoiceCount` and `InvoiceImportStatisticsResponse` interfaces; re-exported generated equivalents
+- `frontend/src/api/hooks/useBankStatements.ts` — replaced raw fetch in `useBankStatementImportStatistics` with `apiClient.analytics_GetBankStatementImportStatistics(...)`; removed duplicate interfaces; retained `GetBankStatementImportStatisticsRequest` with string dates (converting to `Date` inside `queryFn`); other hooks in the file untouched
+- `frontend/src/components/charts/InvoiceImportChart.tsx` — updated `date: string` → `date: Date` (the generated type); replaced `parseISO(item.date)` with `item.date!`; added `?? 0` / `?? false` fallbacks for optional generated type fields
+- `frontend/src/components/charts/BankStatementImportChart.tsx` — same `date` type update + `parseISO` removal; renamed `BankStatementImportStatisticsDto` → `DailyBankStatementStatistics`; added `?? 0` fallbacks
+- `frontend/src/components/pages/automation/InvoiceImportStatistics.tsx` — added `?? []` / `?? 0` fallbacks for optional fields from generated response type; `?? 0` on summary stat calculations
+- `frontend/src/components/pages/BankStatementImportChart.tsx` — added `?? []` on `data.statistics` and `?? 0` on summary stat calculations
+- `frontend/src/components/customer/tabs/StatisticsTab.tsx` — added `?? 0` fallbacks on `importCount`/`totalItemCount` usages
 
-**`ResponsiblePersonCombobox`** — added a single `usePermissionsContext().hasPermission('admin.administration.read')` check internally and passed the result as `enabled` to the hook. No new props; no changes to the three Manufacture call sites (`CreateManufactureOrderModal`, `BasicInfoSection`, `ManufactureOrderFilters`). For non-admins the query stays idle and the combobox degrades to the existing `allowManualEntry` free-text path — no error banner shown.
-
-### Artifacts
-- Brief, spec, arch-review, task-plan, impl, and review markdown are committed in this branch under `artifacts/feat-3339/`.
+## Artifacts
+- Brief, spec, arch-review, task-plan, impl, and review markdown are committed in this branch under `artifacts/feat-3333/`.

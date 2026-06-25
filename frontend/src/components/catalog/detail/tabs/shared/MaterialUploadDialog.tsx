@@ -61,17 +61,17 @@ export default function MaterialUploadDialog({ isOpen, productCode, onClose, onS
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Nahrát dokument</h2>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 dark:bg-graphite-surface dark:shadow-soft-dark">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text mb-4">Nahrát dokument</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Soubor</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Soubor</label>
             <input
               ref={fileInputRef}
               type="file"
               onChange={handleFileChange}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:text-graphite-muted dark:file:bg-graphite-accent/10 dark:file:text-graphite-accent"
             />
           </div>
 
@@ -81,9 +81,9 @@ export default function MaterialUploadDialog({ isOpen, productCode, onClose, onS
               type="checkbox"
               checked={uploadAsIs}
               onChange={(e) => setUploadAsIs(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600"
+              className="h-4 w-4 rounded border-gray-300 text-indigo-600 dark:border-graphite-border"
             />
-            <label htmlFor="upload-as-is" className="text-sm text-gray-700">
+            <label htmlFor="upload-as-is" className="text-sm text-gray-700 dark:text-graphite-muted">
               Nahrát beze změny názvu
             </label>
           </div>
@@ -91,14 +91,14 @@ export default function MaterialUploadDialog({ isOpen, productCode, onClose, onS
           {!uploadAsIs && (
             <>
               <div>
-                <label htmlFor="doc-type" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="doc-type" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                   Typ dokumentu
                 </label>
                 <select
                   id="doc-type"
                   value={documentTypeCode}
                   onChange={(e) => { setDocumentTypeCode(e.target.value); setLot(''); }}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                 >
                   <option value="">— Vyberte typ —</option>
                   {documentTypes.map((t) => (
@@ -109,7 +109,7 @@ export default function MaterialUploadDialog({ isOpen, productCode, onClose, onS
 
               {selectedType?.lotRequired && (
                 <div>
-                  <label htmlFor="lot" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="lot" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                     Šarže
                   </label>
                   <input
@@ -117,14 +117,14 @@ export default function MaterialUploadDialog({ isOpen, productCode, onClose, onS
                     type="text"
                     value={lot}
                     onChange={(e) => setLot(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                     placeholder="např. 2024-001"
                   />
                 </div>
               )}
 
               <div>
-                <label htmlFor="common-name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="common-name" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                   Název
                 </label>
                 <input
@@ -132,21 +132,21 @@ export default function MaterialUploadDialog({ isOpen, productCode, onClose, onS
                   type="text"
                   value={commonName}
                   onChange={(e) => setCommonName(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                 />
               </div>
             </>
           )}
 
           {(uploadMutation.isError || uploadMutation.data?.success === false) && (
-            <p className="text-sm text-red-600">Nahrání selhalo. Zkuste to znovu.</p>
+            <p className="text-sm text-red-600 dark:text-red-400">Nahrání selhalo. Zkuste to znovu.</p>
           )}
 
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 dark:text-graphite-muted dark:border-graphite-border dark:hover:bg-white/5"
             >
               Zrušit
             </button>

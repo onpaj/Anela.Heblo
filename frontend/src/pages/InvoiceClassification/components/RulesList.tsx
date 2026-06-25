@@ -72,26 +72,26 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+      className="bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-lg p-4 shadow-sm dark:shadow-soft-dark hover:shadow-md transition-shadow"
     >
       <div className="flex items-center gap-4">
         <div
           {...attributes}
           {...listeners}
-          className="cursor-grab hover:cursor-grabbing text-gray-400 hover:text-gray-600"
+          className="cursor-grab hover:cursor-grabbing text-gray-400 dark:text-graphite-faint hover:text-gray-600"
         >
           <GripVertical className="w-5 h-5" />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-4 mb-2">
-            <h3 className="text-lg font-medium text-gray-900 truncate">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text truncate">
               {rule.name}
             </h3>
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              rule.isActive 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-gray-100 text-gray-800'
+              rule.isActive
+                ? 'bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                : 'bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted'
             }`}>
               {rule.isActive 
                 ? 'Aktivní' 
@@ -100,7 +100,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
             </span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600 dark:text-graphite-muted">
             <div>
               <span className="font-medium">
                 Typ:
@@ -111,7 +111,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
               <span className="font-medium">
                 Vzor:
               </span>{' '}
-              <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">
+              <code className="bg-gray-100 dark:bg-graphite-surface-2 px-1 py-0.5 rounded text-xs">
                 {rule.pattern}
               </code>
             </div>
@@ -119,7 +119,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
               <span className="font-medium">
                 Předpis:
               </span>{' '}
-              <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">
+              <code className="bg-gray-100 dark:bg-graphite-surface-2 px-1 py-0.5 rounded text-xs">
                 {rule.accountingTemplateCode}
               </code>
             </div>
@@ -128,7 +128,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
                 Oddělení:
               </span>{' '}
               {getDepartmentName(rule.department) || (
-                <span className="italic text-gray-400">Nenastaveno</span>
+                <span className="italic text-gray-400 dark:text-graphite-faint">Nenastaveno</span>
               )}
             </div>
           </div>
@@ -137,7 +137,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
         <div className="flex items-center gap-2">
           <button
             onClick={() => onEdit(rule)}
-            className="p-2 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-gray-50"
+            className="p-2 text-gray-400 dark:text-graphite-faint hover:text-indigo-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5"
             title="Upravit"
           >
             <Edit className="w-4 h-4" />
@@ -145,7 +145,7 @@ const SortableRuleItem: React.FC<SortableRuleItemProps> = ({ rule, onEdit, onDel
           <button
             onClick={() => rule.id && onDelete(rule.id)}
             disabled={isDeleting}
-            className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            className="p-2 text-gray-400 dark:text-graphite-faint hover:text-red-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
             title="Smazat"
           >
             <Trash2 className="w-4 h-4" />
@@ -188,7 +188,7 @@ const RulesList: React.FC<RulesListProps> = ({
   if (rules.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500 text-lg">
+        <p className="text-gray-500 dark:text-graphite-muted text-lg">
           Nebyla nalezena žádná pravidla klasifikace. Vytvořte své první pravidlo pro začátek.
         </p>
       </div>
@@ -198,10 +198,10 @@ const RulesList: React.FC<RulesListProps> = ({
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">
           Pravidla klasifikace
         </h2>
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-gray-500 dark:text-graphite-muted">
           {rules.length} pravidel
         </span>
       </div>
@@ -227,7 +227,7 @@ const RulesList: React.FC<RulesListProps> = ({
       </div>
 
       {isReordering && (
-        <div className="mt-4 text-center text-sm text-gray-500">
+        <div className="mt-4 text-center text-sm text-gray-500 dark:text-graphite-muted">
           {t('invoiceClassification.reordering', 'Updating rule order...')}
         </div>
       )}

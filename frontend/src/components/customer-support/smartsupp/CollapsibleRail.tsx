@@ -22,14 +22,14 @@ const CollapsibleRail: React.FC<CollapsibleRailProps> = ({
   const actionLabel = `${isOpen ? "Sbalit" : "Rozbalit"} ${label}`;
 
   return (
-    <div className="flex w-8 flex-shrink-0 items-start justify-center border-x border-gray-200 bg-gray-50 pt-3">
+    <div className="flex w-8 flex-shrink-0 items-start justify-center border-x border-gray-200 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2 pt-3">
       <button
         type="button"
         onClick={onToggle}
         data-testid={`collapsible-rail-${side}`}
         aria-label={actionLabel}
         title={actionLabel}
-        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-700"
+        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-500 dark:text-graphite-muted hover:bg-gray-200 dark:hover:bg-graphite-hover hover:text-gray-700"
       >
         <Chevron className="h-4 w-4" />
       </button>

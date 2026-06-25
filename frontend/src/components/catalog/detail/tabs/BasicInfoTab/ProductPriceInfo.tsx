@@ -9,31 +9,31 @@ interface ProductPriceInfoProps {
 const ProductPriceInfo: React.FC<ProductPriceInfoProps> = ({ item }) => {
   return (
     <div className="space-y-3">
-      <h3 className="text-lg font-medium text-gray-900 flex items-center">
-        <DollarSign className="h-5 w-5 mr-2 text-gray-500" />
+      <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text flex items-center">
+        <DollarSign className="h-5 w-5 mr-2 text-gray-500 dark:text-graphite-muted" />
         Cenové informace
       </h3>
 
-      <div className="bg-gray-50 rounded-lg p-3">
+      <div className="bg-gray-50 dark:bg-graphite-surface-2 rounded-lg p-3">
         {/* Check if we have any price data */}
         {item.price?.eshopPrice || item.price?.erpPrice ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-white">
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 pr-4 font-medium text-gray-700"></th>
-                  <th className="text-center py-2 px-2 font-medium text-gray-700">
+              <thead className="sticky top-0 z-10 bg-white dark:bg-graphite-surface">
+                <tr className="border-b border-gray-200 dark:border-graphite-border">
+                  <th className="text-left py-2 pr-4 font-medium text-gray-700 dark:text-graphite-muted"></th>
+                  <th className="text-center py-2 px-2 font-medium text-gray-700 dark:text-graphite-muted">
                     Shoptet
                   </th>
-                  <th className="text-center py-2 pl-2 font-medium text-gray-700">
+                  <th className="text-center py-2 pl-2 font-medium text-gray-700 dark:text-graphite-muted">
                     ABRA
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-graphite-border">
                 {/* Selling price with VAT row */}
                 <tr>
-                  <td className="py-2 pr-4 font-medium text-gray-600">
+                  <td className="py-2 pr-4 font-medium text-gray-600 dark:text-graphite-muted">
                     Prodejní s DPH:
                   </td>
                   <td className="text-center py-2 px-2">
@@ -50,7 +50,7 @@ const ProductPriceInfo: React.FC<ProductPriceInfoProps> = ({ item }) => {
 
                 {/* Selling price without VAT row */}
                 <tr>
-                  <td className="py-2 pr-4 font-medium text-gray-600">
+                  <td className="py-2 pr-4 font-medium text-gray-600 dark:text-graphite-muted">
                     Prodejní bez DPH:
                   </td>
                   <td className="text-center py-2 px-2">-</td>
@@ -63,7 +63,7 @@ const ProductPriceInfo: React.FC<ProductPriceInfoProps> = ({ item }) => {
 
                 {/* Purchase price row */}
                 <tr>
-                  <td className="py-2 pr-4 font-medium text-gray-600">
+                  <td className="py-2 pr-4 font-medium text-gray-600 dark:text-graphite-muted">
                     Nákupní:
                   </td>
                   <td className="text-center py-2 px-2">
@@ -81,7 +81,7 @@ const ProductPriceInfo: React.FC<ProductPriceInfoProps> = ({ item }) => {
             </table>
           </div>
         ) : (
-          <div className="text-center text-gray-500 py-4">
+          <div className="text-center text-gray-500 dark:text-graphite-muted py-4">
             <span className="text-sm">Cenové informace nejsou k dispozici</span>
           </div>
         )}

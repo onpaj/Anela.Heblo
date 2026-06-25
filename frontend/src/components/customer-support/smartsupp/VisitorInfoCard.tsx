@@ -35,7 +35,7 @@ function VisitorInfoCard({ conversationId }: VisitorInfoCardProps) {
     <>
       {deviceLabel && (
         <Section title="Zařízení">
-          <div className="text-sm text-gray-700">{deviceLabel}</div>
+          <div className="text-sm text-gray-700 dark:text-graphite-muted">{deviceLabel}</div>
         </Section>
       )}
 
@@ -48,7 +48,7 @@ function VisitorInfoCard({ conversationId }: VisitorInfoCardProps) {
                 href={p.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block text-xs text-blue-600 hover:underline truncate"
+                className="block text-xs text-blue-600 dark:text-blue-400 hover:underline truncate"
                 title={p.url}
               >
                 {p.url}
@@ -57,7 +57,7 @@ function VisitorInfoCard({ conversationId }: VisitorInfoCardProps) {
             {!expanded && hiddenCount > 0 && (
               <button
                 onClick={() => setExpanded(true)}
-                className="text-xs text-gray-500 hover:text-gray-700 mt-0.5"
+                className="text-xs text-gray-500 dark:text-graphite-muted hover:text-gray-700 mt-0.5"
               >
                 + {hiddenCount} stránky
               </button>

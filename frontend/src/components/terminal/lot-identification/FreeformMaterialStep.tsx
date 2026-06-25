@@ -15,7 +15,7 @@ const FreeformMaterialStep = () => {
 
   return (
     <div className="space-y-4 pt-2">
-      <h2 className="text-lg font-semibold text-neutral-slate">Kód materiálu</h2>
+      <h2 className="text-lg font-semibold text-neutral-slate dark:text-graphite-text">Kód materiálu</h2>
       <ScanInput label="Naskenujte nebo zadejte kód materiálu" onScan={handleScan} />
     </div>
   );

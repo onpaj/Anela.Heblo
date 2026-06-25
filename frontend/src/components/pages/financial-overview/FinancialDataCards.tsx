@@ -13,9 +13,9 @@ interface LabeledRowProps {
   valueClassName?: string
 }
 
-const LabeledRow: React.FC<LabeledRowProps> = ({ label, value, valueClassName = 'text-gray-900' }) => (
+const LabeledRow: React.FC<LabeledRowProps> = ({ label, value, valueClassName = 'text-gray-900 dark:text-graphite-text' }) => (
   <div className="flex justify-between py-1">
-    <span className="text-sm text-gray-500">{label}</span>
+    <span className="text-sm text-gray-500 dark:text-graphite-muted">{label}</span>
     <span className={`text-sm font-medium ${valueClassName}`}>{value}</span>
   </div>
 )
@@ -25,9 +25,9 @@ export const FinancialDataCards: React.FC<FinancialDataCardsProps> = ({ data, in
     {data.map((item) => (
       <div
         key={`${item.year}-${item.month}`}
-        className="bg-white shadow rounded-lg px-4 py-3"
+        className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg px-4 py-3"
       >
-        <h4 className="text-sm font-semibold text-gray-900 mb-2 border-b border-gray-100 pb-1">
+        <h4 className="text-sm font-semibold text-gray-900 dark:text-graphite-text mb-2 border-b border-gray-100 dark:border-graphite-border pb-1">
           {item.monthYearDisplay}
         </h4>
         <LabeledRow label="Příjmy" value={formatCurrency(item.income)} />
@@ -35,7 +35,7 @@ export const FinancialDataCards: React.FC<FinancialDataCardsProps> = ({ data, in
         <LabeledRow
           label="Účetní bilance"
           value={formatCurrency(item.financialBalance)}
-          valueClassName={item.financialBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}
+          valueClassName={item.financialBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}
         />
         {includeStockData && (
           <>
@@ -43,7 +43,7 @@ export const FinancialDataCards: React.FC<FinancialDataCardsProps> = ({ data, in
               label="Změna skladu"
               value={formatCurrency(item.totalStockValueChange || 0)}
               valueClassName={
-                (item.totalStockValueChange || 0) >= 0 ? 'text-purple-600' : 'text-orange-600'
+                (item.totalStockValueChange || 0) >= 0 ? 'text-purple-600 dark:text-purple-400' : 'text-orange-600 dark:text-amber-400'
               }
             />
             <LabeledRow
@@ -51,8 +51,8 @@ export const FinancialDataCards: React.FC<FinancialDataCardsProps> = ({ data, in
               value={formatCurrency(item.totalBalance || item.financialBalance)}
               valueClassName={
                 (item.totalBalance || item.financialBalance) >= 0
-                  ? 'text-emerald-600'
-                  : 'text-red-600'
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-red-600 dark:text-red-400'
               }
             />
           </>
