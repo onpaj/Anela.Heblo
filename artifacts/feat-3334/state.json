@@ -40,15 +40,15 @@
     },
     {
       "name": "inject-timewindowparser-into-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-25T08:30:19.588143Z"
+      "updated_at": "2026-06-25T08:32:08.833745Z"
     },
     {
       "name": "update-handler-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T08:32:15.708905Z"
     }
   ]
 }
