@@ -11,7 +11,7 @@ test.describe('Marketing Calendar — Page Loading', () => {
     await marketingSection.click();
 
     // Click the Kalendář sub-item
-    const calendarLink = page.locator('a[href="/marketing/calendar"], text="Kalendář"').first();
+    const calendarLink = page.locator('text="Kalendář"').first();
     await expect(calendarLink).toBeVisible({ timeout: 5000 });
     await calendarLink.click();
 
