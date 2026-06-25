@@ -54,13 +54,6 @@ export const BankStatementImportChart: React.FC<BankStatementImportChartProps> =
     };
   });
 
-  // Debug: log weekend data
-  console.log('Bank statements chart data:', chartData.map(d => ({ 
-    date: d.displayDate, 
-    isWeekend: d.isWeekend,
-    dayOfWeek: format(d.date, 'EEEE', { locale: cs })
-  })));
-
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
