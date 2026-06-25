@@ -22,7 +22,7 @@ public class GetPackingStatisticsHandler
         GetPackingStatisticsRequest request,
         CancellationToken cancellationToken)
     {
-        var localZone = TimeZoneInfo.Local;
+        var localZone = _timeProvider.LocalTimeZone;
         var today = DateOnly.FromDateTime(_timeProvider.GetLocalNow().Date);
 
         var toDate = request.ToDate.HasValue ? DateOnly.FromDateTime(request.ToDate.Value) : today;
