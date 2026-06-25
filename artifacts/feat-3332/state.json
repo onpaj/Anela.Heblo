@@ -21,16 +21,16 @@
       "updated_at": "2026-06-25T06:20:57.803338Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-25T06:21:40.433835Z"
     }
   },
   "tasks": [
     {
       "name": "remove-gc-collect",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T06:21:40.657237Z"
     }
   ]
 }
