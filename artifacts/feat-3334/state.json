@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "update-timewindowparser",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-25T08:25:29.702194Z"
+      "updated_at": "2026-06-25T08:29:35.695384Z"
     },
     {
       "name": "register-timewindowparser-in-analyticsmodule",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T08:29:35.947822Z"
     },
     {
       "name": "inject-timewindowparser-into-handler",
