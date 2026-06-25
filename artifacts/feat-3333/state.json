@@ -21,16 +21,16 @@
       "updated_at": "2026-06-25T07:21:46.624061Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-25T07:22:33.910311Z"
     }
   },
   "tasks": [
     {
       "name": "migrate-invoice-import-statistics-hook",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T07:22:34.141178Z"
     },
     {
       "name": "update-invoice-import-chart",
