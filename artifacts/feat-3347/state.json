@@ -21,16 +21,16 @@
       "updated_at": "2026-06-25T15:25:23.292776Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-25T15:25:58.660564Z"
     }
   },
   "tasks": [
     {
       "name": "fix-recurring-jobs-test-assertions",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T15:25:58.858426Z"
     }
   ]
 }
