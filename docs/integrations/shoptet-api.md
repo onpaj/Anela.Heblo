@@ -189,6 +189,8 @@ Optional `include` sections: `notes`, `images`, `shippingDetails`, `stockLocatio
 
 **`shipping` object on `GET /api/orders/{code}`** — the single-order detail base response (no `include` needed) returns a `shipping` object with the same shape as the list endpoint, exposing `shipping.guid` and `shipping.name`. The Balení packing flow (`GET /api/orders/{code}?include=stockLocation,notes`) relies on these two fields to resolve the order's shipping method and derive carrier cooling.
 
+**`status` object on `GET /api/orders/{code}`** — `status` (`{ "id": int, "name": string }`) is a **base field**, not an `include` section (there is no `status` include — see the include list above). It is present on every order response, including the `?include=stockLocation,notes` expedition/packing response. Confirmed live 2026-06-25 on order `126000040` (returned `status.id`). The Balení packing flow reads the order status from this single response — it does **not** need a second `GET /api/orders/{code}` round-trip.
+
 ### 3.6 PATCH /api/orders/{code}/notes — Update Remarks (operationId: updateRemarksForOrder)
 
 Updates the order's remark/note slots. Any property omitted from the body is left unchanged on the server — the endpoint is a partial update.
