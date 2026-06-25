@@ -445,7 +445,7 @@ const StockOperationsPage: React.FC = () => {
                 <select
                   value={stateInput}
                   onChange={(e) => setStateInput(e.target.value)}
-                  className="w-full border border-gray-300 dark:border-graphite-border rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="All">Všechny</option>
                   <option value="Active">Aktivní</option>
@@ -517,7 +517,7 @@ const StockOperationsPage: React.FC = () => {
                   type="date"
                   value={dateFromInput}
                   onChange={(e) => setDateFromInput(e.target.value)}
-                  className="w-full border border-gray-300 dark:border-graphite-border rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -529,7 +529,7 @@ const StockOperationsPage: React.FC = () => {
                   type="date"
                   value={dateToInput}
                   onChange={(e) => setDateToInput(e.target.value)}
-                  className="w-full border border-gray-300 dark:border-graphite-border rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -544,7 +544,7 @@ const StockOperationsPage: React.FC = () => {
                     value={documentNumberInput}
                     onChange={(e) => setDocumentNumberInput(e.target.value)}
                     placeholder="Hledat číslo dokladu..."
-                    className="pl-8 pr-8 w-full border border-gray-300 dark:border-graphite-border rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="pl-8 pr-8 w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   {documentNumberInput && (
                     <button
