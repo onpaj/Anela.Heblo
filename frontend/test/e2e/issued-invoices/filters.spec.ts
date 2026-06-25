@@ -176,9 +176,7 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
   // Unskipped: navigation helper fixed in e2e-auth-helper.ts — re-validate on staging per e2e-test-map.md audit.
   test("8: Show Only Unsynced checkbox", async ({ page }) => {
 
-    const unsyncedCheckbox = page
-      .locator('input[type="checkbox"]')
-      .filter({ hasText: "Nesync" });
+    const unsyncedCheckbox = page.getByLabel("Nesync");
     const tableRows = page.locator("tbody tr");
 
     // Check the checkbox
@@ -201,9 +199,7 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
   // Note: if "Show Only With Errors" checkbox element is still missing from UI, re-skip and update selector or remove test.
   test("9: Show Only With Errors checkbox", async ({ page }) => {
 
-    const errorsCheckbox = page
-      .locator('input[type="checkbox"]')
-      .filter({ hasText: "Chyby" });
+    const errorsCheckbox = page.getByLabel("Chyby");
     const tableRows = page.locator("tbody tr");
 
     // Check the checkbox
