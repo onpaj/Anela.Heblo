@@ -91,7 +91,7 @@ import FinishPoStep from "./components/terminal/lot-identification/FinishPoStep"
 import FreeformMaterialStep from "./components/terminal/lot-identification/FreeformMaterialStep";
 import BaleniLayout from "./components/baleni/BaleniLayout";
 import BaleniHome from "./components/baleni/BaleniHome";
-import BaleniPlaceholder from "./components/baleni/BaleniPlaceholder";
+import BaleniStatistics from "./components/baleni/statistics/BaleniStatistics";
 import BaleniPacking from "./components/baleni/BaleniPacking";
 import { ZasilkyPage } from "./components/baleni/zasilky/ZasilkyPage";
 import "./i18n";
@@ -399,7 +399,7 @@ function App() {
                         <Route index element={<BaleniHome />} />
                         <Route path="baleni" element={<BaleniPacking />} />
                         <Route path="zasilky" element={<ZasilkyPage />} />
-                        <Route path="statistiky" element={<BaleniPlaceholder title="Statistiky" />} />
+                        <Route path="statistiky" element={<BaleniStatistics />} />
                       </Route>
 
                       {/* Desktop app — full Layout with sidebar (pathless layout route) */}
