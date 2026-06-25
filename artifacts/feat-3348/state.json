@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "fix-catalog-pagination-race",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-e2e-test-assertions",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
