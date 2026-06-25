@@ -17,13 +17,20 @@
       "updated_at": "2026-06-25T14:18:53.877528Z"
     },
     "planning": {
-      "status": "in_progress",
-      "updated_at": "2026-06-25T14:18:54.074289Z"
+      "status": "completed",
+      "updated_at": "2026-06-25T14:20:03.925966Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "fix-sidebar-section-label-and-ordering-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
