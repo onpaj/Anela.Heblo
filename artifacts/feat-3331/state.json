@@ -21,16 +21,16 @@
       "updated_at": "2026-06-25T05:22:30.336701Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-25T05:23:20.231177Z"
     }
   },
   "tasks": [
     {
       "name": "fix-exception-leakage",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T05:23:20.454528Z"
     }
   ]
 }
