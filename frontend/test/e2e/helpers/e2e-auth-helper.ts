@@ -267,7 +267,7 @@ export async function navigateToStockOperations(page: any): Promise<void> {
 
   // Direct navigation to stock operations
   const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
-  await page.goto(`${baseUrl}/stock-operations`);
+  await page.goto(`${baseUrl}/stock-up-operations`);
   await page.waitForLoadState('domcontentloaded');
   await waitForLoadingComplete(page);
 

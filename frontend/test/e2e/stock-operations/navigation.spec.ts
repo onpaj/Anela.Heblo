@@ -10,7 +10,7 @@ test.describe('Stock Operations - Navigation & Initial Load', () => {
     await navigateToStockOperations(page);
 
     // Verify URL
-    expect(page.url()).toContain('/stock-operations');
+    expect(page.url()).toContain('/stock-up-operations');
 
     // Verify page title
     const title = await page.locator('h1').textContent();
@@ -92,8 +92,8 @@ test.describe('Stock Operations - Navigation & Initial Load', () => {
     });
 
     // Navigate to stock operations page (will trigger failed API call)
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
-    await page.goto(`${baseUrl}/stock-operations`);
+    const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+    await page.goto(`${baseUrl}/stock-up-operations`);
     await page.waitForTimeout(3000);
 
     // Check for error message
