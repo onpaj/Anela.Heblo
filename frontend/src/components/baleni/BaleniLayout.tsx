@@ -12,6 +12,7 @@ const BaleniLayout: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const isHome = pathname === BALENI_ROOT || pathname === `${BALENI_ROOT}/`;
+  const isWide = pathname === `${BALENI_ROOT}/zasilky`;
 
   useEffect(() => {
     const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
@@ -42,7 +43,7 @@ const BaleniLayout: React.FC = () => {
         </header>
 
         <main className="flex-1 overflow-y-auto p-4">
-          <div className="max-w-5xl mx-auto w-full">
+          <div className={isWide ? 'w-full' : 'max-w-5xl mx-auto w-full'}>
             <Outlet />
           </div>
         </main>
