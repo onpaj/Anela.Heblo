@@ -34,15 +34,15 @@
     },
     {
       "name": "register-timewindowparser-in-analyticsmodule",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-25T08:29:35.947822Z"
+      "updated_at": "2026-06-25T08:30:14.897235Z"
     },
     {
       "name": "inject-timewindowparser-into-handler",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T08:30:19.588143Z"
     },
     {
       "name": "update-handler-tests",
