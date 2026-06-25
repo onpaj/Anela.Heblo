@@ -40,15 +40,15 @@
     },
     {
       "name": "migrate-bank-statement-import-statistics-hook",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-25T07:26:49.834722Z"
+      "updated_at": "2026-06-25T07:29:23.805614Z"
     },
     {
       "name": "update-bank-statement-import-chart",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T07:29:24.001224Z"
     }
   ]
 }
