@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 
@@ -17,17 +18,20 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
     private readonly IProductFilterService _productFilterService;
     private readonly IReportBuilderService _reportBuilderService;
     private readonly IMarginCalculator _marginCalculator;
+    private readonly ILogger<GetMarginReportHandler> _logger;
 
     public GetMarginReportHandler(
         IAnalyticsRepository analyticsRepository,
         IProductFilterService productFilterService,
         IReportBuilderService reportBuilderService,
-        IMarginCalculator marginCalculator)
+        IMarginCalculator marginCalculator,
+        ILogger<GetMarginReportHandler> logger)
     {
         _analyticsRepository = analyticsRepository;
         _productFilterService = productFilterService;
         _reportBuilderService = reportBuilderService;
         _marginCalculator = marginCalculator;
+        _logger = logger;
     }
 
     public async Task<GetMarginReportResponse> Handle(GetMarginReportRequest request, CancellationToken cancellationToken)
@@ -71,7 +75,8 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
         }
         catch (Exception ex)
         {
-            return CreateErrorResponse(ErrorCodes.InternalServerError, ("details", ex.Message));
+            _logger.LogError(ex, "Unhandled exception in GetMarginReportHandler");
+            return CreateErrorResponse(ErrorCodes.InternalServerError);
         }
     }
 

@@ -267,7 +267,7 @@ export async function navigateToStockOperations(page: any): Promise<void> {
 
   // Direct navigation to stock operations
   const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
-  await page.goto(`${baseUrl}/stock-operations`);
+  await page.goto(`${baseUrl}/stock-up-operations`);
   await page.waitForLoadState('domcontentloaded');
   await waitForLoadingComplete(page);
 
@@ -421,11 +421,14 @@ export async function navigateToMarketingCalendar(page: any): Promise<void> {
       await marketingSection.click();
       await waitForLoadingComplete(page);
 
+      // Note: 'Kalendář' here is the sidebar <a> link text, not the view-toggle button
       const calendarLink = page.locator('text="Kalendář"').first();
       if (await calendarLink.isVisible({ timeout: 5000 })) {
         await calendarLink.click();
         await page.waitForLoadState('domcontentloaded');
         await waitForLoadingComplete(page);
+        // Wait for the page heading to confirm calendar page is loaded
+        await page.locator('h1').filter({ hasText: 'Marketingový kalendář' }).waitFor({ timeout: 15000 });
         console.log('✅ UI navigation to marketing calendar successful');
         return;
       }
@@ -439,6 +442,8 @@ export async function navigateToMarketingCalendar(page: any): Promise<void> {
   await page.goto(`${baseUrl}/marketing/calendar`);
   await page.waitForLoadState('domcontentloaded');
   await waitForLoadingComplete(page);
+  // Wait for the page heading to confirm calendar page is loaded
+  await page.locator('h1').filter({ hasText: 'Marketingový kalendář' }).waitFor({ timeout: 15000 });
 
   console.log('✅ Direct navigation to marketing calendar completed');
 }
