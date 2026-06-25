@@ -57,4 +57,15 @@ public interface IPackageRepository
 
     Task<(int TotalDistinctOrders, IReadOnlyList<PackerPackingSummary> ByPacker)>
         GetPackedTodayByPackerAsync(DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct = default);
+
+    /// <summary>
+    /// Aggregates packing activity in the half-open window [fromUtc, toUtc) into a
+    /// <see cref="PackingStatistics"/>. Day-of-week and hour-of-day buckets are computed
+    /// in <paramref name="localZone"/> so they reflect the warehouse's local working hours.
+    /// </summary>
+    Task<PackingStatistics> GetPackingStatisticsAsync(
+        DateTimeOffset fromUtc,
+        DateTimeOffset toUtc,
+        TimeZoneInfo localZone,
+        CancellationToken ct = default);
 }
