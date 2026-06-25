@@ -25,5 +25,30 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "migrate-invoice-import-statistics-hook",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-invoice-import-chart",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "migrate-bank-statement-import-statistics-hook",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-bank-statement-import-chart",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
