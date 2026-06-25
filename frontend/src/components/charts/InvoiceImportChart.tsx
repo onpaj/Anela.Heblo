@@ -40,8 +40,8 @@ export const InvoiceImportChart: React.FC<InvoiceImportChartProps> = ({
   const chartData: ChartDataPoint[] = data.map((item) => ({
     date: item.date!,
     displayDate: format(item.date!, 'dd.MM.', { locale: cs }),
-    count: item.count,
-    isBelowThreshold: item.isBelowThreshold,
+    count: item.count ?? 0,
+    isBelowThreshold: item.isBelowThreshold ?? false,
     isWeekend: isWeekend(item.date!),
   }));
 

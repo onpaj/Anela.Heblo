@@ -42,13 +42,13 @@ export const BankStatementImportChart: React.FC<BankStatementImportChartProps> =
   // Transform data for chart
   const chartData: ChartDataPoint[] = data.map((item) => {
     const isWeekendDay = isWeekend(item.date!);
-    const currentCount = viewType === 'ImportCount' ? item.importCount : item.totalItemCount;
+    const currentCount = (viewType === 'ImportCount' ? item.importCount : item.totalItemCount) ?? 0;
 
     return {
       date: item.date!,
       displayDate: format(item.date!, 'dd.MM.', { locale: cs }),
-      count: item.importCount,
-      itemCount: item.totalItemCount,
+      count: item.importCount ?? 0,
+      itemCount: item.totalItemCount ?? 0,
       isBelowThreshold: currentCount < minimumThreshold,
       isWeekend: isWeekendDay,
     };

@@ -47,8 +47,8 @@ export const useBankStatementImportStatistics = (
 ) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.bankStatements, 'import-statistics', request],
-    queryFn: async (): Promise<GetBankStatementImportStatisticsResponse> => {
-      const apiClient = await getAuthenticatedApiClient();
+    queryFn: (): Promise<GetBankStatementImportStatisticsResponse> => {
+      const apiClient = getAuthenticatedApiClient();
       return apiClient.analytics_GetBankStatementImportStatistics(
         request.startDate ? new Date(request.startDate) : null,
         request.endDate ? new Date(request.endDate) : null,
