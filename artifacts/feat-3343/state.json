@@ -21,8 +21,8 @@
       "updated_at": "2026-06-25T11:22:03.940432Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-25T11:23:06.341103Z"
+      "status": "completed",
+      "updated_at": "2026-06-25T11:30:22.912913Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "verify-no-remaining-occurrences",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-25T11:28:55.605307Z"
+      "updated_at": "2026-06-25T11:30:22.667999Z"
     }
   ]
 }
