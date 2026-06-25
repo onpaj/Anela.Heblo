@@ -253,7 +253,7 @@ export default function JournalEntryForm({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Zadejte název záznamu"
-                  className={`block w-full pl-10 pr-3 py-2 border ${errors.title ? "border-red-300" : "border-gray-300"} dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+                  className={`block w-full pl-10 pr-3 py-2 border ${errors.title ? "border-red-300 dark:border-red-500" : "border-gray-300 dark:border-graphite-border"} dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
                 />
               </div>
               {errors.title && (
@@ -276,7 +276,7 @@ export default function JournalEntryForm({
                   id="entryDate"
                   value={entryDate}
                   onChange={(e) => setEntryDate(e.target.value)}
-                  className={`block w-full pl-10 pr-3 py-2 border ${errors.entryDate ? "border-red-300" : "border-gray-300"} dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+                  className={`block w-full pl-10 pr-3 py-2 border ${errors.entryDate ? "border-red-300 dark:border-red-500" : "border-gray-300 dark:border-graphite-border"} dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
                 />
               </div>
               {errors.entryDate && (
@@ -299,7 +299,7 @@ export default function JournalEntryForm({
               onChange={(e) => setContent(e.target.value)}
               rows={6}
               placeholder="Zadejte obsah záznamu..."
-              className={`block w-full px-3 py-2 border ${errors.content ? "border-red-300" : "border-gray-300"} dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+              className={`block w-full px-3 py-2 border ${errors.content ? "border-red-300 dark:border-red-500" : "border-gray-300 dark:border-graphite-border"} dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
             />
             {errors.content && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.content}</p>
