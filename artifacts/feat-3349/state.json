@@ -17,13 +17,26 @@
       "updated_at": "2026-06-25T17:19:58.655204Z"
     },
     "planning": {
-      "status": "in_progress",
-      "updated_at": "2026-06-25T17:20:11.657340Z"
+      "status": "completed",
+      "updated_at": "2026-06-25T17:21:24.160908Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "fix-checkbox-locators",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "fix-invoice-id-filter-assertion",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
