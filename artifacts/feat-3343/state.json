@@ -5,12 +5,12 @@
   "max_revisions": 3,
   "phases": {
     "analyzing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-25T11:15:25.421383Z"
+      "status": "completed",
+      "updated_at": "2026-06-25T11:17:11.861419Z"
     },
     "architecting": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-25T11:17:21.124405Z"
     },
     "designing": {
       "status": "pending",
