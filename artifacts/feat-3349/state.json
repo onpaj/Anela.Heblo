@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "fix-checkbox-locators",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-25T17:22:05.810466Z"
+      "updated_at": "2026-06-25T17:25:36.228167Z"
     },
     {
       "name": "fix-invoice-id-filter-assertion",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T17:25:40.636290Z"
     }
   ]
 }
