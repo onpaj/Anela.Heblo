@@ -9,7 +9,7 @@ test.describe('Marketing Calendar — Mobile Agenda View', () => {
   });
 
   test('renders the mobile agenda view, not the desktop calendar grid', async ({ page }) => {
-    await expect(page.locator('h1').filter({ hasText: 'Kalendář' })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1').filter({ hasText: 'Marketingový kalendář' })).toBeVisible({ timeout: 10000 });
     // Desktop month calendar must NOT be present
     await expect(page.locator('[data-testid="marketing-month-calendar"]')).not.toBeVisible();
     // Desktop view toggle buttons must NOT be present

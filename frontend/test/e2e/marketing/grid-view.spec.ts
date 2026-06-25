@@ -12,7 +12,7 @@ test.describe('Marketing Calendar — Grid (List) View', () => {
   });
 
   test('should deactivate calendar toggle when switching to grid view', async ({ page }) => {
-    const calendarToggle = page.locator('button').filter({ hasText: 'Kalendář' }).first();
+    const calendarToggle = page.locator('button').filter({ hasText: '5 týdnů' }).first();
     await expect(calendarToggle).not.toHaveClass(/bg-indigo-600/);
   });
 

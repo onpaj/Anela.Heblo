@@ -6,7 +6,7 @@ test.describe('Marketing Calendar — Calendar View', () => {
     await navigateToMarketingCalendar(page);
 
     // Ensure calendar view is active (it is the default, but be explicit)
-    const calendarToggle = page.locator('button').filter({ hasText: 'Kalendář' }).first();
+    const calendarToggle = page.locator('button').filter({ hasText: '5 týdnů' }).first();
     await calendarToggle.click();
     await expect(calendarToggle).toHaveClass(/bg-indigo-600/);
   });
