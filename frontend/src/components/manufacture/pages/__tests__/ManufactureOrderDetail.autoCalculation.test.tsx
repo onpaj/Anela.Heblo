@@ -15,6 +15,18 @@ jest.mock("react-i18next", () => ({
   }),
 }));
 
+// Mock PermissionsContext (ManufactureOrderDetail renders ResponsiblePersonCombobox,
+// which calls usePermissionsContext and would otherwise throw outside a PermissionsProvider)
+jest.mock("../../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    hasPermission: () => true,
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+  }),
+}));
+
 // Mock the API client
 jest.mock("../../../../api/generated/api-client", () => ({
   ...jest.requireActual("../../../../api/generated/api-client"),
