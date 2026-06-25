@@ -60,9 +60,9 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
       await expect(emptyMessage).toBeVisible();
     } else {
       // Verify filtered results contain the search term
-      const firstRowText = await tableRows.first().textContent();
+      const firstCellText = await tableRows.first().locator("td").first().textContent();
       // eslint-disable-next-line jest/no-conditional-expect
-      expect(firstRowText).toContain("2024");
+      expect(firstCellText).toContain("2024");
     }
   });
 
@@ -176,9 +176,7 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
   // Unskipped: navigation helper fixed in e2e-auth-helper.ts — re-validate on staging per e2e-test-map.md audit.
   test("8: Show Only Unsynced checkbox", async ({ page }) => {
 
-    const unsyncedCheckbox = page
-      .locator('input[type="checkbox"]')
-      .filter({ hasText: "Nesync" });
+    const unsyncedCheckbox = page.getByLabel("Nesync");
     const tableRows = page.locator("tbody tr");
 
     // Check the checkbox
@@ -201,9 +199,7 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
   // Note: if "Show Only With Errors" checkbox element is still missing from UI, re-skip and update selector or remove test.
   test("9: Show Only With Errors checkbox", async ({ page }) => {
 
-    const errorsCheckbox = page
-      .locator('input[type="checkbox"]')
-      .filter({ hasText: "Chyby" });
+    const errorsCheckbox = page.getByLabel("Chyby");
     const tableRows = page.locator("tbody tr");
 
     // Check the checkbox
