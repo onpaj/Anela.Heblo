@@ -21,16 +21,16 @@
       "updated_at": "2026-06-25T13:21:01.040779Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-25T13:21:33.362536Z"
     }
   },
   "tasks": [
     {
       "name": "fix-invalid-css-selector",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T13:21:33.592820Z"
     },
     {
       "name": "fix-leaflet-generator-timeout",
