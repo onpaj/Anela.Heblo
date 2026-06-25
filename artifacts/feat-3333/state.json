@@ -21,8 +21,8 @@
       "updated_at": "2026-06-25T07:21:46.624061Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-25T07:22:33.910311Z"
+      "status": "completed",
+      "updated_at": "2026-06-25T07:33:07.632006Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "update-bank-statement-import-chart",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 2,
-      "updated_at": "2026-06-25T07:32:07.838695Z"
+      "updated_at": "2026-06-25T07:33:07.421116Z"
     }
   ]
 }
