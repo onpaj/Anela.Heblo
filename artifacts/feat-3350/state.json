@@ -21,16 +21,16 @@
       "updated_at": "2026-06-25T18:22:25.723001Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-25T18:22:40.471133Z"
     }
   },
   "tasks": [
     {
       "name": "create-seed-script",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T18:22:40.716029Z"
     }
   ]
 }
