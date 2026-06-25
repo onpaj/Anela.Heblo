@@ -1,3 +1,20 @@
+### task: update-handler-tests
+
+
+Update `GetProductMarginSummaryHandlerTests` to:
+1. Construct `TimeWindowParser` with a `FakeTimeProvider` frozen at `2026-01-15`
+2. Remove all `DateTime.Today` references — use the frozen date instead
+3. Pass the `TimeWindowParser` instance to the handler constructor
+4. Add a test for the new `ArgumentException` path
+
+**File to modify:**
+`backend/test/Anela.Heblo.Tests/Features/Analytics/GetProductMarginSummaryHandlerTests.cs`
+
+`FakeTimeProvider` is in `Microsoft.Extensions.TimeProvider.Testing` which is already a `PackageReference` in `Anela.Heblo.Tests.csproj`. No package installation needed.
+
+**Full replacement for the file:**
+
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,10 +32,16 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Analytics;
 
+/// <summary>
+/// Tests use a FakeTimeProvider frozen at 2026-01-15 so date arithmetic
+/// is deterministic regardless of when the suite runs.
+/// </summary>
 public class GetProductMarginSummaryHandlerTests
 {
-    private static readonly DateTimeOffset FrozenNow = new(2026, 1, 15, 12, 0, 0, TimeSpan.Zero);
-    private static readonly DateTime FrozenDate = new(2026, 1, 15);
+    // Frozen instant: 2026-01-15 12:00:00 UTC
+    private static readonly DateTimeOffset FrozenNow = new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero);
+    // The "today" date the parser will derive from FrozenNow
+    private static readonly DateTime FrozenDate = FrozenNow.Date; // 2026-01-15
 
     private readonly Mock<IAnalyticsRepository> _analyticsRepositoryMock;
     private readonly MarginCalculator _marginCalculator;
@@ -31,8 +54,10 @@ public class GetProductMarginSummaryHandlerTests
         _analyticsRepositoryMock = new Mock<IAnalyticsRepository>();
         _marginCalculator = new MarginCalculator();
         _monthlyBreakdownGenerator = new MonthlyBreakdownGenerator(_marginCalculator);
-        var timeProvider = new FakeTimeProvider(FrozenNow);
-        _timeWindowParser = new TimeWindowParser(timeProvider);
+
+        var fakeTimeProvider = new FakeTimeProvider(FrozenNow);
+        _timeWindowParser = new TimeWindowParser(fakeTimeProvider);
+
         _handler = new GetProductMarginSummaryHandler(
             _analyticsRepositoryMock.Object,
             _marginCalculator,
@@ -50,8 +75,9 @@ public class GetProductMarginSummaryHandlerTests
             GroupingMode = ProductGroupingMode.Products
         };
 
-        var fromDate = new DateTime(FrozenDate.Year, 1, 1);
-        var toDate = FrozenDate;
+        // Frozen date is 2026-01-15, so current-year starts 2026-01-01
+        var fromDate = new DateTime(FrozenDate.Year, 1, 1); // 2026-01-01
+        var toDate = FrozenDate;                            // 2026-01-15
 
         var analyticsProducts = new List<AnalyticsProduct>
         {
@@ -66,7 +92,7 @@ public class GetProductMarginSummaryHandlerTests
                 M2Amount = 100m,
                 SalesHistory = new List<SalesDataPoint>
                 {
-                    new() { Date = new DateTime(2026, 1, 10), AmountB2B = 10, AmountB2C = 5 }
+                    new() { Date = new DateTime(FrozenDate.Year, 1, 10), AmountB2B = 10, AmountB2C = 5 }
                 }
             },
             new AnalyticsProduct
@@ -80,7 +106,7 @@ public class GetProductMarginSummaryHandlerTests
                 M2Amount = 50m,
                 SalesHistory = new List<SalesDataPoint>
                 {
-                    new() { Date = new DateTime(2026, 1, 12), AmountB2B = 20, AmountB2C = 10 }
+                    new() { Date = new DateTime(FrozenDate.Year, 1, 12), AmountB2B = 20, AmountB2C = 10 }
                 }
             }
         };
@@ -111,12 +137,14 @@ public class GetProductMarginSummaryHandlerTests
     {
         // Arrange
         var request = new GetProductMarginSummaryRequest { TimeWindow = timeWindow, GroupingMode = ProductGroupingMode.Products };
+
+        // All expected dates derive from FrozenDate (2026-01-15), never DateTime.Today
         var expectedDates = timeWindow switch
         {
             "current-year" => (new DateTime(FrozenDate.Year, 1, 1), FrozenDate),
             "last-6-months" => (FrozenDate.AddMonths(-6), FrozenDate),
             "last-12-months" => (FrozenDate.AddMonths(-12), FrozenDate),
-            _ => (new DateTime(FrozenDate.Year, 1, 1), FrozenDate)
+            _ => throw new InvalidOperationException($"Unexpected timeWindow in test: {timeWindow}")
         };
 
         _analyticsRepositoryMock
@@ -197,7 +225,7 @@ public class GetProductMarginSummaryHandlerTests
                         PurchasePrice = 50m,
                         SalesHistory = new List<SalesDataPoint>
                         {
-                            new() { Date = new DateTime(2026, 1, 10), AmountB2B = 5, AmountB2C = 5 }
+                            new() { Date = new DateTime(FrozenDate.Year, 1, 10), AmountB2B = 5, AmountB2C = 5 }
                         }
                     }
                 }
@@ -209,7 +237,7 @@ public class GetProductMarginSummaryHandlerTests
         {
             new MonthlyProductMarginDto
             {
-                Year = 2026,
+                Year = FrozenDate.Year,
                 Month = 1,
                 MonthDisplay = "Jan",
                 ProductSegments = new List<ProductMarginSegmentDto>(),
@@ -246,6 +274,7 @@ public class GetProductMarginSummaryHandlerTests
                 MarginLevel.M2))
             .Returns(monthlyData);
 
+        // Note: this handler instance gets its own TimeWindowParser with the shared FakeTimeProvider
         var handler = new GetProductMarginSummaryHandler(
             _analyticsRepositoryMock.Object,
             marginCalculatorMock.Object,
@@ -304,21 +333,17 @@ public class GetProductMarginSummaryHandlerTests
     }
 
     [Fact]
-    public async Task ParseTimeWindow_UnknownValue_ThrowsArgumentException()
+    public void ParseTimeWindow_UnknownValue_ThrowsArgumentException()
     {
-        // Arrange
-        var request = new GetProductMarginSummaryRequest
-        {
-            TimeWindow = "not-a-real-window",
-            GroupingMode = ProductGroupingMode.Products
-        };
+        // Arrange — _timeWindowParser is already wired to FakeTimeProvider
 
         // Act
-        Func<Task> act = () => _handler.Handle(request, CancellationToken.None);
+        Action act = () => _timeWindowParser.ParseTimeWindow("not-a-real-window");
 
         // Assert
-        await act.Should().ThrowAsync<ArgumentException>()
-            .WithMessage("*not-a-real-window*");
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("Unknown time window value: 'not-a-real-window'*")
+            .WithParameterName("timeWindow");
     }
 }
 
@@ -331,6 +356,38 @@ public static class TestExtensions
         {
             yield return item;
         }
-        await Task.CompletedTask;
+        await Task.CompletedTask; // Satisfy async requirement
     }
 }
+```
+
+Key changes from the original:
+- Added `using Microsoft.Extensions.Time.Testing;`
+- Added `FrozenNow` and `FrozenDate` static readonly fields — single source of truth for the frozen instant
+- Constructor creates `FakeTimeProvider(FrozenNow)`, builds `TimeWindowParser`, passes it to handler
+- All `DateTime.Today` references replaced with `FrozenDate`
+- `Handle_DifferentTimeWindows_ParsesCorrectly`: the `_ =>` fallback now throws `InvalidOperationException` instead of silently mapping an unrecognised value (matching the new handler behaviour)
+- `Handle_ValidRequest_ReturnsCorrectResponse`: sales history dates updated to fall within `2026-01-01..2026-01-15` (the frozen current-year window) so the mock repository setup matches correctly
+- Added `ParseTimeWindow_UnknownValue_ThrowsArgumentException` test (new, covers FR-4)
+
+**Run all Analytics tests:**
+```bash
+cd /home/user/worktrees/feature-3334-Arch-Review-Analytics-Timewindowparser-Uses-Dateti/backend
+dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~GetProductMarginSummaryHandlerTests" \
+  --verbosity normal
+```
+
+Expected: all 6 tests pass (5 original + 1 new ArgumentException test).
+
+**Run the full backend build and format check:**
+```bash
+cd /home/user/worktrees/feature-3334-Arch-Review-Analytics-Timewindowparser-Uses-Dateti/backend
+dotnet build && dotnet format --verify-no-changes
+```
+
+**Commit:**
+```
+git add backend/test/Anela.Heblo.Tests/Features/Analytics/GetProductMarginSummaryHandlerTests.cs
+git commit -m "test: update GetProductMarginSummaryHandlerTests to use FakeTimeProvider and cover ArgumentException path"
+```

@@ -1,10 +1,17 @@
 namespace Anela.Heblo.Application.Features.Analytics.Services;
 
-public static class TimeWindowParser
+public class TimeWindowParser
 {
-    public static (DateTime fromDate, DateTime toDate) ParseTimeWindow(string timeWindow)
+    private readonly TimeProvider _timeProvider;
+
+    public TimeWindowParser(TimeProvider timeProvider)
     {
-        var today = DateTime.Today;
+        _timeProvider = timeProvider;
+    }
+
+    public (DateTime fromDate, DateTime toDate) ParseTimeWindow(string timeWindow)
+    {
+        var today = _timeProvider.GetLocalNow().Date;
 
         return timeWindow switch
         {
@@ -13,7 +20,7 @@ public static class TimeWindowParser
             "last-6-months" => (today.AddMonths(-6), today),
             "last-12-months" => (today.AddMonths(-12), today),
             "last-24-months" => (today.AddMonths(-24), today),
-            _ => (new DateTime(today.Year, 1, 1), today)
+            _ => throw new ArgumentException($"Unknown time window value: '{timeWindow}'", nameof(timeWindow))
         };
     }
 }

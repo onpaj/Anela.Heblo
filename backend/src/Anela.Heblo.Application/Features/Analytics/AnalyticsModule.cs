@@ -44,6 +44,7 @@ public static class AnalyticsModule
         services.AddScoped<IPipelineBehavior<GetProductMarginAnalysisRequest, GetProductMarginAnalysisResponse>,
             ValidationResultBehavior<GetProductMarginAnalysisRequest, GetProductMarginAnalysisResponse>>();
 
+        services.AddScoped<TimeWindowParser>();
         services.AddScoped<IMarginCalculator, MarginCalculator>();
         services.AddScoped<IMonthlyBreakdownGenerator, MonthlyBreakdownGenerator>();
 
