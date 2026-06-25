@@ -173,8 +173,8 @@ const InvoiceImportStatistics: React.FC = () => {
           </div>
         ) : data ? (
           <InvoiceImportChart
-            data={data.data}
-            minimumThreshold={data.minimumThreshold}
+            data={data.data ?? []}
+            minimumThreshold={data.minimumThreshold ?? 0}
             dateType={dateType}
           />
         ) : (
