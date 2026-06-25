@@ -33,10 +33,10 @@ const InvoiceImportStatistics: React.FC = () => {
   const summaryStats = React.useMemo(() => {
     if (!data?.data) return null;
 
-    const totalInvoices = data.data.reduce((sum, day) => sum + day.count, 0);
+    const totalInvoices = data.data.reduce((sum, day) => sum + (day.count ?? 0), 0);
     const avgDaily = Math.round(totalInvoices / data.data.length);
-    const problematicDays = data.data.filter(day => day.isBelowThreshold).length;
-    const maxDaily = Math.max(...data.data.map(day => day.count));
+    const problematicDays = data.data.filter(day => day.isBelowThreshold ?? false).length;
+    const maxDaily = Math.max(...data.data.map(day => day.count ?? 0));
 
     return {
       totalInvoices,
@@ -173,8 +173,8 @@ const InvoiceImportStatistics: React.FC = () => {
           </div>
         ) : data ? (
           <InvoiceImportChart
-            data={data.data}
-            minimumThreshold={data.minimumThreshold}
+            data={data.data ?? []}
+            minimumThreshold={data.minimumThreshold ?? 0}
             dateType={dateType}
           />
         ) : (

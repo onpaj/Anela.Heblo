@@ -48,13 +48,13 @@ const StatisticsTab: React.FC = () => {
       };
     }
 
-    const totalImports = statistics.reduce((sum, stat) => sum + stat.importCount, 0);
-    const totalItems = statistics.reduce((sum, stat) => sum + stat.totalItemCount, 0);
-    const daysWithData = statistics.filter(stat => 
-      (viewType === 'ImportCount' ? stat.importCount : stat.totalItemCount) > 0
+    const totalImports = statistics.reduce((sum, stat) => sum + (stat.importCount ?? 0), 0);
+    const totalItems = statistics.reduce((sum, stat) => sum + (stat.totalItemCount ?? 0), 0);
+    const daysWithData = statistics.filter(stat =>
+      (viewType === 'ImportCount' ? stat.importCount ?? 0 : stat.totalItemCount ?? 0) > 0
     ).length;
-    const daysWithIssues = statistics.filter(stat => 
-      (viewType === 'ImportCount' ? stat.importCount : stat.totalItemCount) < minimumThreshold
+    const daysWithIssues = statistics.filter(stat =>
+      (viewType === 'ImportCount' ? stat.importCount ?? 0 : stat.totalItemCount ?? 0) < minimumThreshold
     ).length;
 
     return {

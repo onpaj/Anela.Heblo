@@ -10,19 +10,19 @@ import {
   ReferenceLine,
   ReferenceArea,
 } from 'recharts';
-import { format, parseISO, isWeekend } from 'date-fns';
+import { format, isWeekend } from 'date-fns';
 import { cs } from 'date-fns/locale';
-import { BankStatementImportStatisticsDto } from '../../api/hooks/useBankStatements';
+import { DailyBankStatementStatistics } from '../../api/hooks/useBankStatements';
 
 interface BankStatementImportChartProps {
-  data: BankStatementImportStatisticsDto[];
+  data: DailyBankStatementStatistics[];
   viewType?: 'ImportCount' | 'TotalItemCount';
   dateType?: 'ImportDate' | 'StatementDate';
   minimumThreshold: number;
 }
 
 interface ChartDataPoint {
-  date: string;
+  date: Date;
   displayDate: string;
   count: number;
   itemCount: number;
@@ -41,33 +41,25 @@ export const BankStatementImportChart: React.FC<BankStatementImportChartProps> =
 }) => {
   // Transform data for chart
   const chartData: ChartDataPoint[] = data.map((item) => {
-    const parsedDate = parseISO(item.date);
-    const isWeekendDay = isWeekend(parsedDate);
-    const currentCount = viewType === 'ImportCount' ? item.importCount : item.totalItemCount;
-    
+    const isWeekendDay = isWeekend(item.date!);
+    const currentCount = (viewType === 'ImportCount' ? item.importCount : item.totalItemCount) ?? 0;
+
     return {
-      date: item.date,
-      displayDate: format(parsedDate, 'dd.MM.', { locale: cs }),
-      count: item.importCount,
-      itemCount: item.totalItemCount,
+      date: item.date!,
+      displayDate: format(item.date!, 'dd.MM.', { locale: cs }),
+      count: item.importCount ?? 0,
+      itemCount: item.totalItemCount ?? 0,
       isBelowThreshold: currentCount < minimumThreshold,
       isWeekend: isWeekendDay,
     };
   });
 
-  // Debug: log weekend data
-  console.log('Bank statements chart data:', chartData.map(d => ({ 
-    date: d.displayDate, 
-    isWeekend: d.isWeekend,
-    dayOfWeek: format(parseISO(d.date), 'EEEE', { locale: cs })
-  })));
-
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
-      const fullDate = format(parseISO(data.date), 'dd. MMMM yyyy', { locale: cs });
-      const dayOfWeek = format(parseISO(data.date), 'EEEE', { locale: cs });
+      const fullDate = format(data.date, 'dd. MMMM yyyy', { locale: cs });
+      const dayOfWeek = format(data.date, 'EEEE', { locale: cs });
       
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
