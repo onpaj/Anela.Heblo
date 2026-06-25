@@ -43,11 +43,11 @@ const BankStatementImportPage: React.FC = () => {
   const summaryStats = React.useMemo(() => {
     if (!data?.statistics) return null;
 
-    const totalImports = data.statistics.reduce((sum, day) => sum + day.importCount, 0);
-    const totalItems = data.statistics.reduce((sum, day) => sum + day.totalItemCount, 0);
+    const totalImports = data.statistics.reduce((sum, day) => sum + (day.importCount ?? 0), 0);
+    const totalItems = data.statistics.reduce((sum, day) => sum + (day.totalItemCount ?? 0), 0);
     const avgDaily = Math.round(totalImports / data.statistics.length || 0);
-    const maxDaily = Math.max(...data.statistics.map(day => day.importCount));
-    const activeDays = data.statistics.filter(day => day.importCount > 0).length;
+    const maxDaily = Math.max(...data.statistics.map(day => day.importCount ?? 0));
+    const activeDays = data.statistics.filter(day => (day.importCount ?? 0) > 0).length;
 
     return {
       totalImports,
