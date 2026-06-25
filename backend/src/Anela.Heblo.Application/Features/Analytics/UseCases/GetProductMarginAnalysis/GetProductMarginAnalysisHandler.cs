@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 
@@ -15,15 +16,18 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
     private readonly IAnalyticsRepository _analyticsRepository;
     private readonly IReportBuilderService _reportBuilderService;
     private readonly IMarginCalculator _marginCalculator;
+    private readonly ILogger<GetProductMarginAnalysisHandler> _logger;
 
     public GetProductMarginAnalysisHandler(
         IAnalyticsRepository analyticsRepository,
         IReportBuilderService reportBuilderService,
-        IMarginCalculator marginCalculator)
+        IMarginCalculator marginCalculator,
+        ILogger<GetProductMarginAnalysisHandler> logger)
     {
         _analyticsRepository = analyticsRepository;
         _reportBuilderService = reportBuilderService;
         _marginCalculator = marginCalculator;
+        _logger = logger;
     }
 
     public async Task<GetProductMarginAnalysisResponse> Handle(GetProductMarginAnalysisRequest request, CancellationToken cancellationToken)
@@ -59,7 +63,8 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
         }
         catch (Exception ex)
         {
-            return CreateErrorResponse(ErrorCodes.InternalServerError, ("details", ex.Message));
+            _logger.LogError(ex, "Unhandled exception in GetProductMarginAnalysisHandler");
+            return CreateErrorResponse(ErrorCodes.InternalServerError);
         }
     }
 

@@ -10,6 +10,7 @@ using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalys
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -32,7 +33,8 @@ public class GetProductMarginAnalysisHandlerTests
         _handler = new GetProductMarginAnalysisHandler(
             _analyticsRepositoryMock.Object,
             _reportBuilderServiceMock.Object,
-            new MarginCalculator());
+            new MarginCalculator(),
+            NullLogger<GetProductMarginAnalysisHandler>.Instance);
     }
 
     [Fact]
@@ -283,6 +285,5 @@ public class GetProductMarginAnalysisHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
-        result.Params.Should().ContainKey("details");
     }
 }
