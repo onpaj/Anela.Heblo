@@ -216,7 +216,7 @@ const BankStatementImportPage: React.FC = () => {
           </div>
         ) : data ? (
           <BankStatementImportChart
-            data={data.statistics}
+            data={data.statistics ?? []}
             viewType={viewType}
             dateType={dateType}
             minimumThreshold={10}
