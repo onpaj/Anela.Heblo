@@ -9,6 +9,7 @@ import Select, {
 } from "react-select";
 import { User, AlertCircle, ChevronDown } from "lucide-react";
 import { useResponsiblePersonsQuery } from "../../api/hooks/useUserManagement";
+import { usePermissionsContext } from "../../auth/PermissionsContext";
 
 interface ResponsiblePersonComboboxProps {
   groupId: string;                   // Microsoft Entra group ID to fetch members from; combobox stays disabled when empty
@@ -40,7 +41,9 @@ const ResponsiblePersonCombobox: React.FC<ResponsiblePersonComboboxProps> = ({
   allowManualEntry = true,
 }) => {
   const [inputValue, setInputValue] = useState("");
-  const { data: response, isLoading, isError } = useResponsiblePersonsQuery(groupId);
+  const { hasPermission } = usePermissionsContext();
+  const canReadGroupMembers = hasPermission('admin.administration.read');
+  const { data: response, isLoading, isError } = useResponsiblePersonsQuery(groupId, { enabled: canReadGroupMembers });
 
   const options = useMemo((): ResponsiblePersonSelectOption[] => {
     const members = response?.members || [];
