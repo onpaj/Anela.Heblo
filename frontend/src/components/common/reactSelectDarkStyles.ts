@@ -65,7 +65,13 @@ export function getSelectStyles<
   return {
     control: (provided, state) => ({
       ...provided,
-      backgroundColor: isDark ? GRAPHITE.surface2 : LIGHT.control,
+      backgroundColor: isDark
+        ? state.isDisabled
+          ? GRAPHITE.surface
+          : GRAPHITE.surface2
+        : state.isDisabled
+          ? "#f9fafb"
+          : LIGHT.control,
       borderColor: error
         ? LIGHT.error
         : state.isFocused
