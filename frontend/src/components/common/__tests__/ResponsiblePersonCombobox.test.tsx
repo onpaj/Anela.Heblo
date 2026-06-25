@@ -9,6 +9,18 @@ jest.mock('../../../api/hooks/useUserManagement', () => ({
     useResponsiblePersonsQuery: () => mockUseResponsiblePersonsQuery(),
 }));
 
+// Mock PermissionsContext
+const mockHasPermission = jest.fn();
+jest.mock('../../../auth/PermissionsContext', () => ({
+    usePermissionsContext: () => ({
+        hasPermission: mockHasPermission,
+        permissions: [],
+        isSuperUser: false,
+        groups: [],
+        isLoading: false,
+    }),
+}));
+
 const createWrapper = () => {
     const queryClient = new QueryClient({
         defaultOptions: {
@@ -39,6 +51,7 @@ describe('ResponsiblePersonCombobox', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        mockHasPermission.mockReturnValue(true);  // default: admin user
     });
 
     it('should render loading state', () => {
@@ -165,5 +178,41 @@ describe('ResponsiblePersonCombobox', () => {
         });
 
         expect(screen.getByText('Custom error message')).toBeInTheDocument();
+    });
+
+    it('non-admin: query is disabled — no error banner shown', () => {
+        mockHasPermission.mockReturnValue(false);
+        mockUseResponsiblePersonsQuery.mockReturnValue({
+            data: undefined,
+            isLoading: false,
+            isError: false,
+        });
+
+        render(<ResponsiblePersonCombobox {...defaultProps} />, {
+            wrapper: createWrapper(),
+        });
+
+        expect(
+            screen.queryByText('Could not load team members. You can still enter names manually.')
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+
+    it('admin: query is enabled — no error banner, combobox renders', async () => {
+        mockHasPermission.mockReturnValue(true);
+        mockUseResponsiblePersonsQuery.mockReturnValue({
+            data: { success: true, members: mockUsers },
+            isLoading: false,
+            isError: false,
+        });
+
+        render(<ResponsiblePersonCombobox {...defaultProps} />, {
+            wrapper: createWrapper(),
+        });
+
+        expect(screen.getByRole('combobox')).toBeInTheDocument();
+        expect(
+            screen.queryByText('Could not load team members. You can still enter names manually.')
+        ).not.toBeInTheDocument();
     });
 });
