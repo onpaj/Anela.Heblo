@@ -543,16 +543,16 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const currentStateTransitions = order?.state !== undefined ? getStateTransitions(order.state) : { next: null, previous: null };
 
   const content = (
-    <div className={`bg-white ${isModalMode ? 'rounded-lg shadow-xl' : ''} ${isModalMode ? 'max-w-7xl w-full max-h-[720px]' : 'h-full max-w-7xl'} overflow-hidden flex flex-col relative`}>
+    <div className={`bg-white dark:bg-graphite-surface ${isModalMode ? 'rounded-lg shadow-xl dark:shadow-soft-dark' : ''} ${isModalMode ? 'max-w-7xl w-full max-h-[720px]' : 'h-full max-w-7xl'} overflow-hidden flex flex-col relative`}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-graphite-border flex-shrink-0">
         <div className="flex items-center space-x-3">
-          <Factory className="h-6 w-6 text-indigo-600" />
+          <Factory className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">
               {order ? `Výrobní zakázka ${order.orderNumber}` : "Načítání..."}
             </h2>
-            <p className="text-sm text-gray-500">ID: {orderId}</p>
+            <p className="text-sm text-gray-500 dark:text-graphite-muted">ID: {orderId}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -566,7 +566,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
           {onEdit && order && (
             <button
               onClick={() => onEdit(orderId)}
-              className="text-gray-400 hover:text-indigo-600 transition-colors"
+              className="text-gray-400 dark:text-graphite-faint hover:text-indigo-600 dark:hover:text-graphite-accent transition-colors"
               title="Upravit zakázku"
             >
               <Edit className="h-5 w-5" />
@@ -574,7 +574,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
           )}
           <button
             onClick={handleCloseWithWeekNavigation}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted transition-colors"
             title={isModalMode ? "Zavřít" : "Zpět na seznam"}
           >
             {isModalMode ? <X className="h-6 w-6" /> : <ArrowLeft className="h-6 w-6" />}
@@ -588,12 +588,12 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
           <div className="flex items-center justify-center h-64">
             <div className="flex items-center space-x-2">
               <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-              <div className="text-gray-500">Načítání detailů zakázky...</div>
+              <div className="text-gray-500 dark:text-graphite-muted">Načítání detailů zakázky...</div>
             </div>
           </div>
         ) : orderError ? (
           <div className="flex items-center justify-center h-64">
-            <div className="flex items-center space-x-2 text-red-600">
+            <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
               <AlertCircle className="h-5 w-5" />
               <div>Chyba při načítání detailů: {orderError.message}</div>
             </div>
@@ -601,14 +601,14 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         ) : order ? (
           <>
             {/* Tabs */}
-            <div className="border-b border-gray-200 px-4 pt-3">
+            <div className="border-b border-gray-200 dark:border-graphite-border px-4 pt-3">
               <nav className="-mb-px flex space-x-8">
                 <button
                   onClick={() => setActiveTab("info")}
                   className={`${
                     activeTab === "info"
-                      ? "border-indigo-500 text-indigo-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                      ? "border-indigo-500 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted dark:hover:text-graphite-text dark:hover:border-graphite-border"
                   } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center`}
                 >
                   <Info className="h-4 w-4 mr-2" />
@@ -618,8 +618,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                   onClick={() => setActiveTab("notes")}
                   className={`${
                     activeTab === "notes"
-                      ? "border-indigo-500 text-indigo-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                      ? "border-indigo-500 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted dark:hover:text-graphite-text dark:hover:border-graphite-border"
                   } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center`}
                 >
                   <StickyNote className="h-4 w-4 mr-2" />
@@ -629,8 +629,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                   onClick={() => setActiveTab("conditions")}
                   className={`${
                     activeTab === "conditions"
-                      ? "border-indigo-500 text-indigo-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                      ? "border-indigo-500 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted dark:hover:text-graphite-text dark:hover:border-graphite-border"
                   } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center`}
                 >
                   <Thermometer className="h-4 w-4 mr-2" />
@@ -789,7 +789,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     );
   } else {
     return (
-      <div className="h-screen bg-gray-50 overflow-hidden">
+      <div className="h-screen bg-gray-50 dark:bg-graphite-surface-2 overflow-hidden">
         <div className="max-w-6xl mx-auto py-4 px-4 sm:px-6 lg:px-8 h-full">
           {content}
         </div>

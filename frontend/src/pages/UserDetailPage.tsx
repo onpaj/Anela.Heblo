@@ -121,7 +121,7 @@ export default function UserDetailPage() {
   if (isLoading) {
     return (
       <div className="p-3 sm:p-8 max-w-5xl mx-auto">
-        <div className="text-gray-500">Loading user…</div>
+        <div className="text-gray-500 dark:text-graphite-muted">Loading user…</div>
       </div>
     );
   }
@@ -137,11 +137,11 @@ export default function UserDetailPage() {
   if (!user) {
     return (
       <div className="p-8 max-w-5xl mx-auto">
-        <p className="text-gray-500">User not found.</p>
+        <p className="text-gray-500 dark:text-graphite-muted">User not found.</p>
         <button
           type="button"
           onClick={() => requestNavigation("/admin/access/users")}
-          className="text-gray-500 hover:text-gray-700 text-sm mt-2"
+          className="text-gray-500 dark:text-graphite-muted hover:text-gray-700 text-sm mt-2"
         >
           ← Access management
         </button>
@@ -165,21 +165,21 @@ export default function UserDetailPage() {
         <button
           type="button"
           onClick={() => requestNavigation("/admin/access/users")}
-          className="text-gray-500 hover:text-gray-700 text-sm"
+          className="text-gray-500 dark:text-graphite-muted hover:text-gray-700 text-sm"
         >
           ← Access management
         </button>
-        <h1 className="text-2xl font-semibold text-gray-900">{user.displayName}</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-graphite-text">{user.displayName}</h1>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
+      <div className="bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-lg p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">Last login: {lastLoginText}</p>
+          <p className="text-sm text-gray-500 dark:text-graphite-muted">Last login: {lastLoginText}</p>
           <button
             type="button"
             onClick={onToggleActive}
             disabled={setActive.isPending}
-            className={`text-sm ${user.isActive ? "text-red-600" : "text-green-600"} hover:underline disabled:opacity-50`}
+            className={`text-sm ${user.isActive ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-emerald-400"} hover:underline disabled:opacity-50`}
             aria-label={user.isActive ? "Disable user" : "Enable user"}
           >
             {user.isActive ? "Disable" : "Enable"}
@@ -188,21 +188,21 @@ export default function UserDetailPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="block">
-            <span className="block text-sm font-medium text-gray-700 mb-1">Display name</span>
+            <span className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Display name</span>
             <input
               type="text"
               value={draft.displayName}
               onChange={(e) => updateDraft({ displayName: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </label>
           <label className="block">
-            <span className="block text-sm font-medium text-gray-700 mb-1">Email</span>
+            <span className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Email</span>
             <input
               type="email"
               value={draft.email}
               onChange={(e) => updateDraft({ email: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </label>
         </div>
@@ -212,14 +212,14 @@ export default function UserDetailPage() {
             type="checkbox"
             checked={draft.canPack}
             onChange={(e) => updateDraft({ canPack: e.target.checked })}
-            className="rounded border-gray-300 accent-indigo-600"
+            className="rounded border-gray-300 dark:border-graphite-border accent-indigo-600"
           />
-          <span className="text-sm text-gray-700">Can pack</span>
+          <span className="text-sm text-gray-700 dark:text-graphite-muted">Can pack</span>
         </label>
       </div>
 
       <section>
-        <h2 className="text-lg font-medium text-gray-900 mb-3">Group membership</h2>
+        <h2 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-3">Group membership</h2>
         <GroupsPicker
           value={draft.groupIds}
           onChange={(groupIds) => updateDraft({ groupIds })}
@@ -227,30 +227,30 @@ export default function UserDetailPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-medium text-gray-900 mb-3">Effective permissions</h2>
-        <p className="text-sm text-gray-500 mb-3">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-3">Effective permissions</h2>
+        <p className="text-sm text-gray-500 dark:text-graphite-muted mb-3">
           Reflects the last saved group assignment. Updates after Save.
         </p>
         {permissionsQuery.isLoading ? (
-          <div className="text-gray-500 text-sm">Loading permissions…</div>
+          <div className="text-gray-500 dark:text-graphite-muted text-sm">Loading permissions…</div>
         ) : (
           <div className="flex flex-wrap gap-2">
             {(permissionsQuery.data?.permissions ?? []).map((p) => (
               <span
                 key={p}
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-graphite-accent/10 dark:text-graphite-accent"
               >
                 {p}
               </span>
             ))}
             {(permissionsQuery.data?.permissions ?? []).length === 0 && (
-              <p className="text-sm text-gray-500">No permissions assigned.</p>
+              <p className="text-sm text-gray-500 dark:text-graphite-muted">No permissions assigned.</p>
             )}
           </div>
         )}
       </section>
 
-      <div className="flex gap-3 pt-4 border-t border-gray-200">
+      <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-graphite-border">
         <button
           type="button"
           onClick={onSave}
@@ -263,7 +263,7 @@ export default function UserDetailPage() {
           type="button"
           onClick={() => requestNavigation("/admin/access/users")}
           disabled={isSaving}
-          className="px-5 py-2 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+          className="px-5 py-2 border border-gray-300 dark:border-graphite-border text-gray-700 dark:text-graphite-muted rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
         >
           Cancel
         </button>

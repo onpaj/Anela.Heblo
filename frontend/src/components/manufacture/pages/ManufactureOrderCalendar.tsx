@@ -159,12 +159,12 @@ const ManufactureOrderCalendar: React.FC<ManufactureOrderCalendarProps> = ({
   const weekDays = ['Po', 'Út', 'St', 'Čt', 'Pá'];
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-sm dark:shadow-soft-dark border border-gray-200 dark:border-graphite-border">
       {/* Calendar Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-graphite-border">
         <div className="flex items-center space-x-3">
-          <Calendar className="h-5 w-5 text-indigo-600" />
-          <h2 className="text-lg font-semibold text-gray-900">
+          <Calendar className="h-5 w-5 text-indigo-600 dark:text-graphite-accent" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
             Kalendář výrobních zakázek
           </h2>
         </div>
@@ -191,7 +191,7 @@ const ManufactureOrderCalendar: React.FC<ManufactureOrderCalendarProps> = ({
               {weekDays.map(day => (
                 <div 
                   key={day}
-                  className="text-center text-sm font-medium text-gray-500 py-2"
+                  className="text-center text-sm font-medium text-gray-500 dark:text-graphite-muted py-2"
                 >
                   {day}
                 </div>
@@ -204,14 +204,14 @@ const ManufactureOrderCalendar: React.FC<ManufactureOrderCalendarProps> = ({
                 <div
                   key={index}
                   className={`
-                    min-h-[120px] border border-gray-100 p-1 bg-white
-                    ${!day.isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''}
+                    min-h-[120px] border border-gray-100 dark:border-graphite-border p-1 bg-white dark:bg-graphite-surface
+                    ${!day.isCurrentMonth ? 'bg-gray-50 text-gray-400 dark:bg-graphite-surface-2 dark:text-graphite-faint' : ''}
                   `}
                 >
                   {/* Day Number */}
                   <div className={`
                     text-sm font-medium mb-1
-                    ${day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}
+                    ${day.isCurrentMonth ? 'text-gray-900 dark:text-graphite-text' : 'text-gray-400 dark:text-graphite-faint'}
                   `}>
                     {day.date}
                   </div>
@@ -235,13 +235,18 @@ const ManufactureOrderCalendar: React.FC<ManufactureOrderCalendarProps> = ({
       </div>
 
       {/* Legend */}
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-gray-200 dark:border-graphite-border p-4">
         <div className="flex flex-wrap gap-4 text-xs">
           <div className="flex items-center space-x-4 ml-6">
             {Object.entries(stateColors).map(([state, colorClass]) => (
               <div key={state} className="flex items-center space-x-1">
-                <div className={`w-3 h-3 rounded ${colorClass.split(' ')[0]} border`}></div>
-                <span className="text-gray-600 capitalize">
+                <div
+                  className={`w-3 h-3 rounded ${colorClass
+                    .split(' ')
+                    .filter((c) => c.startsWith("bg-") || c.startsWith("dark:bg-"))
+                    .join(" ")} border dark:border-graphite-border`}
+                ></div>
+                <span className="text-gray-600 dark:text-graphite-muted capitalize">
                   {state}
                 </span>
               </div>

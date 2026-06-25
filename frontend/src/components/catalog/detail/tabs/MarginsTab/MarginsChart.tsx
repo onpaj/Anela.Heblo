@@ -279,11 +279,11 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
   const hasData = hasM0M2Data;
 
   return (
-    <div className="flex-1 bg-gray-50 rounded-lg p-4 mb-4">
+    <div className="flex-1 bg-gray-50 dark:bg-graphite-surface-2 rounded-lg p-4 mb-4">
       {hasData ? (
         <>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Vývoj nákladů a marží</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text">Vývoj nákladů a marží</h3>
           </div>
           <div className="h-96">
             <Chart type="bar" data={chartData} options={chartOptions} />
@@ -291,8 +291,8 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
         </>
       ) : (
         <div className="flex items-center justify-center h-96">
-          <div className="text-center text-gray-500">
-            <BarChart3 className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+          <div className="text-center text-gray-500 dark:text-graphite-muted">
+            <BarChart3 className="h-12 w-12 mx-auto mb-2 text-gray-300 dark:text-graphite-faint" />
             <p>Žádná data pro zobrazení grafu</p>
             <p className="text-sm">Náklady a marže za posledních 12 měsíců (bez aktuálního měsíce)</p>
           </div>
