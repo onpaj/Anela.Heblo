@@ -1,135 +1,176 @@
-# Specification: Fix Recurring Jobs Test Failures — Investigate 24 vs 12 Job Count Discrepancy
+# Specification: Fix Recurring Jobs E2E Tests — Hard-coded Count 12 vs. Actual 24
 
 ## Summary
-E2E test suite asserts exactly 12 recurring jobs, but staging returns 24 (2x duplication). This investigation must determine whether jobs are genuinely duplicated in the database/UI (requiring a bug fix) or whether 24 is the correct count (requiring test assertion updates). All four assertion points must align with the root cause, and the spec passes.
+
+The recurring-jobs E2E suite fails on staging because four test assertions hard-code `12` rows/buttons while the staging database now contains 24 recurring job configurations. Root-cause investigation confirms this is **not a rendering duplication bug**: the application genuinely has 24 registered `IRecurringJob` implementations (12 that existed when the tests were written, plus 12 added since). The fix is to replace every brittle `toBe(12)` assertion with a robust count that matches the real set of jobs.
 
 ## Background
-Nightly E2E test run 28147951139 (2026-06-25) flagged 4 failing assertions in `frontend/test/e2e/core/recurring-jobs-management.spec.ts`:
-- Line 46: `expect(rowCount).toBe(12)` — Main list view row count
-- Line 215: `expect(rowCount).toBe(12)` — Refresh button test  
-- Line 296: `expect(buttonCount).toBe(12)` — Toggle buttons for accessibility
-- Line 693: `expect(buttonCount).toBe(12)` — Run Now buttons
 
-All four consistently fail with actual count = 24. This 2x factor suggests either:
-1. **Real UI/data duplication bug** — Jobs rendered twice due to query or rendering logic
-2. **Test brittleness** — Hard-coded count no longer matches staging's actual job inventory
+`frontend/test/e2e/core/recurring-jobs-management.spec.ts` was written when the application had exactly 12 recurring jobs. Since then, 12 additional jobs have been added to the codebase:
 
-Acceptance requires root cause documentation and either duplication fix or robust assertion replacement.
+- **DataQuality group:** `InvoiceDqtJob`, `ProductPairingDqtJob`, `StockWriteBackDqtJob`
+- **Photobank group:** `PhotobankAutoTagJob`, `PhotobankIndexJob`
+- **MeetingTasks:** `PlaudPollingJob`
+- **Leaflet:** `LeafletIngestionJob`
+- **Packaging:** `FillTrackingNumbersJob`
+- **Smartsupp:** `SmartsuppWebhookAuditCleanupJob`
+- **Adapters (explicitly registered):** `FlexiAnalyticsSyncJob`, `MetaAdsInvoiceImportJob`, `GoogleAdsInvoiceImportJob`
+
+The `GET /api/recurring-jobs` endpoint reads from the `recurring_job_configurations` database table, which is seeded on every application startup from all discovered `IRecurringJob` implementations (`SeedRecurringJobConfigurationsAsync` in `Program.cs` / `ServiceCollectionExtensions.cs`). The seeding is additive (only inserts missing rows), so the table now contains exactly 24 rows on staging — one per registered job. The UI renders one `<tr>` per row, giving 24 rows and 24 `button[role="switch"]` elements.
+
+The `expectedJobs` array on line 223 of the test file lists the original 12 jobs and the "display correct job names" test still passes (all 12 expected names are present in the larger set). The four count assertions at lines 46, 215, 296, and 693 are what fail.
+
+**The `bug` label should be removed.** There is no duplication; the job count legitimately grew.
 
 ## Functional Requirements
 
-### FR-1: Investigate Root Cause
-Determine whether the 24-job count is a real issue or test data reality.
+### FR-1: Replace hard-coded row count assertions
 
-**Investigation steps:**
-- Open staging recurring-jobs page in a browser
-- Count distinct jobs visually and by job name uniqueness
-- If duplicates are visible: same job name appears 2+ times in table → Bug exists
-- If no duplicates: 24 distinct jobs → Test count outdated, data changed
+Replace `expect(rowCount).toBe(12)` on lines 46 and 215 with assertions that are resilient to future job additions while still verifying that the page loads a non-trivial, complete list.
+
+**Strategy:** Assert `toBeGreaterThanOrEqual(24)` to document the current minimum while tolerating future growth. Do not use `toEqual` with the exact current count (24) because that would just recreate the same brittleness.
 
 **Acceptance criteria:**
-- Root cause documented in issue with evidence (browser screenshots or API response JSON)
-- Clear statement: "Each job is rendered twice (duplication bug)" OR "There are genuinely 24 distinct jobs"
+- Line 46 (`should display all 12 recurring jobs`): assertion passes when `rowCount >= 24`.
+- Line 215 (`should refresh jobs list when clicking refresh button`): assertion passes when `rowCount >= 24`.
+- Test name at line 37 is updated from `'should display all 12 recurring jobs'` to `'should display all recurring jobs'`.
 
-### FR-2: Fix Duplication (If Bug Path)
-If jobs are duplicated in the UI or API response, fix the root cause.
+### FR-2: Replace hard-coded toggle-button count assertion
 
-**Possible bug locations:**
-- Backend: `GetRecurringJobsListHandler` or `RecurringJobConfigurationRepository.GetAllAsync()` — returning duplicates
-  - Check for `Distinct()` missing on queries
-  - Verify no joins creating Cartesian product
-- Frontend: `RecurringJobsPage.tsx` line 218 `{jobsList.map((job) => ...)}` — mapping duplicates
-  - Check if `useRecurringJobsQuery()` returns dupes
-  - Verify no accidental double-fetches or stale data merging
-- Database: Duplicate entries in `RecurringJobConfigurations` table
-  - Check for failed migration rollback leaving orphaned records
-  - Verify unique constraints on `JobName`
+Replace `expect(buttonCount).toBe(12)` on line 296 (`should have proper accessibility attributes on toggle buttons`) with `toBeGreaterThanOrEqual(24)`.
 
 **Acceptance criteria:**
-- Duplicate issue fixed at source
-- Backend/frontend deduplication code added/corrected
-- All tests pass against staging
-- `bug` label remains on issue
+- The assertion passes when there are >= 24 `button[role="switch"]` elements on the page.
+- The loop that checks ARIA attributes on each button is unchanged (it already iterates dynamically over `buttonCount`).
 
-### FR-3: Update Test Assertions (If Real Data Path)
-If 24 is the correct count, replace hard-coded assertions with robust alternatives.
+### FR-3: Replace hard-coded Run Now button count assertion
 
-**Alternative assertion approaches:**
-- **Option A (Count threshold)**: `expect(rowCount).toBeGreaterThanOrEqual(12)` — allows future additions
-- **Option B (Distinct job names)**: Count unique `displayName` or `jobName` fields, assert minimum set is present
-- **Option C (Seeded jobs by name)**: Assert all 24 seeded job names are present (robust to future changes)
-
-**Code locations to update:**
-1. Line 46: `should display all 12 recurring jobs` test
-2. Line 215: `should refresh jobs list when clicking refresh button` test
-3. Line 296: `should have proper accessibility attributes on toggle buttons` test
-4. Line 693: `should have proper accessibility attributes on Run Now buttons` test
+Replace `expect(buttonCount).toBe(12)` on line 693 (`should have proper accessibility attributes on Run Now buttons`) with `toBeGreaterThanOrEqual(24)`.
 
 **Acceptance criteria:**
-- All four assertions replaced with count-agnostic logic
-- Assertions clearly document the expected job set (comment explaining why)
-- Tests pass when run against staging
-- `bug` label removed from issue (indicates no product bug found)
+- The assertion passes when there are >= 24 "Run Now" text elements on the page.
 
-### FR-4: Validate Against Staging
-Ensure all changes work correctly on staging environment.
+### FR-4: Document root cause in issue
+
+Add a comment block at the top of the spec file (or in the issue itself via `gh issue comment`) that records the investigation outcome: count grew from 12 to 24 due to 12 new `IRecurringJob` implementations added since the tests were first written. This prevents future engineers from re-investigating the same question.
 
 **Acceptance criteria:**
-- `./scripts/run-playwright-tests.sh core` passes completely
-- Specifically, `recurring-jobs-management.spec.ts` runs with 0 failures
-- No flakiness observed when run multiple times
+- A code comment in the test file above the `test.describe` block explains why `>= 24` is used.
 
 ## Non-Functional Requirements
 
-### NFR-1: Test Stability
-Assertions must not fail again due to brittleness or minor data changes.
+### NFR-1: Test resilience
 
-- Replace magic numbers with semantic or dynamic assertions
-- Avoid assuming exact job count; use relational assertions when possible
-- Document the job set being tested (e.g., "12 core jobs" vs "24 imported + core jobs")
+All four count assertions must remain valid after any future `IRecurringJob` implementation is added without touching the test file, as long as the new job count remains >= 24.
 
-### NFR-2: Root Cause Documentation
-Issue body must clearly state the investigation outcome.
+### NFR-2: No regression on existing test logic
 
-- If bug found: Describe the duplication mechanism, affected component, and fix applied
-- If not a bug: Explain why 24 is correct and how the test now handles scale
-
-### NFR-3: Code Clarity
-Test code must be maintainable for future developers.
-
-- Add comments explaining why each assertion choice was made
-- Link to this spec or investigation doc if count logic is non-obvious
+Tests that do not depend on an exact count (toggle behaviour, dialog flows, accessibility attribute checks on each item, persistence after refresh, etc.) must be left unchanged. The dynamic loop in `should have proper accessibility attributes on toggle buttons` already handles variable counts correctly and requires no modification.
 
 ## Data Model
-No schema changes required. Investigation only reads:
-- `RecurringJobConfigurations` table (backend persistence)
-- API response `GetRecurringJobsListResponse.jobs` (frontend)
-- DOM table rows (Playwright E2E)
+
+No changes to the data model. The `recurring_job_configurations` table is the source of truth; its row count is determined by the set of registered `IRecurringJob` implementations at startup.
+
+Current registered jobs (24 total):
+
+| # | Class | Assembly |
+|---|-------|----------|
+| 1 | `ComgateCzkImportJob` | Application |
+| 2 | `ComgateEurImportJob` | Application |
+| 3 | `DailyConsumptionJob` | Application |
+| 4 | `DailyInvoiceImportCzkJob` | Application |
+| 5 | `DailyInvoiceImportEurJob` | Application |
+| 6 | `FillTrackingNumbersJob` | Application |
+| 7 | `InvoiceClassificationJob` | Application |
+| 8 | `InvoiceDqtJob` | Application |
+| 9 | `KnowledgeBaseIngestionJob` | Application |
+| 10 | `LeafletIngestionJob` | Application |
+| 11 | `PhotobankAutoTagJob` | Application |
+| 12 | `PhotobankIndexJob` | Application |
+| 13 | `PlaudPollingJob` | Application |
+| 14 | `PrintPickingListJob` | Application |
+| 15 | `ProductExportDownloadJob` | Application |
+| 16 | `ProductPairingDqtJob` | Application |
+| 17 | `ProductWeightRecalculationJob` | Application |
+| 18 | `PurchasePriceRecalculationJob` | Application |
+| 19 | `ShoptetPayImportJob` | Application |
+| 20 | `SmartsuppWebhookAuditCleanupJob` | Application |
+| 21 | `StockWriteBackDqtJob` | Application |
+| 22 | `FlexiAnalyticsSyncJob` | Adapters.Flexi (conditional on AnalyticsDatabase config) |
+| 23 | `GoogleAdsInvoiceImportJob` | Adapters.GoogleAds |
+| 24 | `MetaAdsInvoiceImportJob` | Adapters.MetaAds |
+
+Note: `FlexiAnalyticsSyncJob` is only registered when `AnalyticsDatabase:ConnectionString` is set. If staging has this configured, the count is 24; if not, it would be 23. The brief states staging returns exactly 24, so the analytics connection string is set on staging.
 
 ## API / Interface Design
-No API changes. All endpoints unchanged:
-- `GET /api/recurringjobs` — Returns `GetRecurringJobsListResponse { Jobs: RecurringJobDto[] }`
 
-If backend bug is found, fix must preserve response contract.
+No API changes. The existing `GET /api/recurring-jobs` endpoint returns all rows from `recurring_job_configurations`, ordered by `job_name`. The frontend renders one table row per item. No changes are needed in the backend or frontend.
+
+**Changes are confined to:**
+- `frontend/test/e2e/core/recurring-jobs-management.spec.ts` — four assertion changes and one test-name change.
+
+### Exact changes required
+
+**Line 37** — rename test:
+```
+'should display all 12 recurring jobs'
+→
+'should display all recurring jobs'
+```
+
+**Line 46** — row count assertion:
+```typescript
+expect(rowCount).toBe(12);
+→
+expect(rowCount).toBeGreaterThanOrEqual(24);
+```
+
+**Line 215** — post-refresh row count assertion:
+```typescript
+expect(rowCount).toBe(12);
+→
+expect(rowCount).toBeGreaterThanOrEqual(24);
+```
+
+**Line 296** — toggle button count assertion:
+```typescript
+expect(buttonCount).toBe(12);
+→
+expect(buttonCount).toBeGreaterThanOrEqual(24);
+```
+
+**Line 693** — Run Now button count assertion:
+```typescript
+expect(buttonCount).toBe(12);
+→
+expect(buttonCount).toBeGreaterThanOrEqual(24);
+```
+
+Add a comment block immediately before line 4 (`test.describe('Recurring Jobs Management'`):
+```typescript
+// NOTE: The recurring jobs count grows as new IRecurringJob implementations are added.
+// As of 2026-06-25, staging has 24 jobs (12 original + 12 added since initial test authoring).
+// Assertions use toBeGreaterThanOrEqual(24) so tests survive future additions without modification.
+// To update the minimum, check SELECT COUNT(*) FROM recurring_job_configurations on staging.
+```
 
 ## Dependencies
-- Hangfire (backend job metadata)
-- Playwright (E2E automation)
-- React Query (frontend data fetching via `useRecurringJobsQuery()`)
+
+- No backend changes required.
+- No frontend production code changes required.
+- The fix depends only on the E2E test file.
+- Running the tests requires access to the staging environment (`./scripts/run-playwright-tests.sh`).
 
 ## Out of Scope
-- Job execution behavior or performance
-- Adding/removing jobs from the system
-- Cron expression validation or editing
-- Manual job trigger functionality
-- Status toggle behavior
 
-This investigation is **data count only**, not feature behavior.
+- Adding new jobs or removing existing jobs from the application.
+- Changing the UI or the API.
+- Updating the `expectedJobs` array (lines 223–235) — it asserts that the original 12 jobs are still present, which is correct and should remain as a regression guard.
+- Investigating whether any of the 24 jobs should be removed or consolidated.
+- Fixing the `FlexiAnalyticsSyncJob` conditional registration (it is intentional).
 
 ## Open Questions
-1. **Is the duplication confirmed on staging?** Needs manual verification by opening `/recurring-jobs` page in browser.
-2. **Database constraint on JobName?** Does `RecurringJobConfigurations` table have a `UNIQUE` constraint on `JobName`, or can duplicates exist at DB level?
-3. **What is the expected job count post-investigation?** Is 12 a stale target, or should it remain 12 with duplicates being a real bug?
-4. **Data seeding vs migrations:** Are the 24 jobs from seed data (test fixtures) or from migrations? This affects whether the count is environment-specific (staging = 24, prod = 12).
 
-## Status: HAS_QUESTIONS
+None.
+
+## Status: COMPLETE
