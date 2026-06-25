@@ -17,13 +17,26 @@
       "updated_at": "2026-06-25T09:22:48.374842Z"
     },
     "planning": {
-      "status": "in_progress",
-      "updated_at": "2026-06-25T09:22:48.682150Z"
+      "status": "completed",
+      "updated_at": "2026-06-25T09:25:29.741604Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "gate-hook",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "guard-component",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
