@@ -239,7 +239,7 @@ export default function GroupDetailPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col h-full w-full p-3 md:p-4">
-        <div className="text-gray-500">Loading group…</div>
+        <div className="text-gray-500 dark:text-graphite-muted">Loading group…</div>
       </div>
     );
   }
@@ -253,11 +253,11 @@ export default function GroupDetailPage() {
           <button
             type="button"
             onClick={onCancel}
-            className="text-gray-500 hover:text-gray-700 text-sm flex-shrink-0"
+            className="text-gray-500 dark:text-graphite-muted hover:text-gray-700 text-sm flex-shrink-0"
           >
             ← Access management
           </button>
-          <h1 className="text-2xl font-semibold text-gray-900 truncate">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-graphite-text truncate">
             {isCreateMode ? "New group" : "Edit group"}
           </h1>
         </div>
@@ -274,19 +274,19 @@ export default function GroupDetailPage() {
             type="button"
             onClick={onCancel}
             disabled={isSaving}
-            className="px-5 py-2 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+            className="px-5 py-2 border border-gray-300 dark:border-graphite-border text-gray-700 dark:text-graphite-muted rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
           >
             Cancel
           </button>
         </div>
       </div>
 
-      <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label
               htmlFor="group-name"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1"
             >
               Name
             </label>
@@ -296,13 +296,13 @@ export default function GroupDetailPage() {
               value={draft.name}
               onChange={(e) => updateDraft({ name: e.target.value })}
               aria-label="Name"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
             <label
               htmlFor="group-desc"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1"
             >
               Description
             </label>
@@ -311,7 +311,7 @@ export default function GroupDetailPage() {
               type="text"
               value={draft.description}
               onChange={(e) => updateDraft({ description: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
         </div>
@@ -324,8 +324,8 @@ export default function GroupDetailPage() {
             : "grid-cols-1 xl:grid-cols-3 xl:grid-rows-1"
         }`}
       >
-        <section className="bg-white shadow rounded-lg p-4 flex flex-col min-h-0">
-          <h2 className="text-lg font-medium text-gray-900 mb-3 flex-shrink-0">
+        <section className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 flex flex-col min-h-0">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-3 flex-shrink-0">
             Permissions
           </h2>
           <div className="flex-1 min-h-0">
@@ -339,12 +339,12 @@ export default function GroupDetailPage() {
         </section>
 
         {!isCreateMode && (
-          <section className="bg-white shadow rounded-lg p-4 flex flex-col min-h-0">
+          <section className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 flex flex-col min-h-0">
             <div className="flex-shrink-0">
-              <h2 className="text-lg font-medium text-gray-900 mb-1">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-1">
                 Included groups
               </h2>
-              <p className="text-sm text-gray-500 mb-3">
+              <p className="text-sm text-gray-500 dark:text-graphite-muted mb-3">
                 Groups in the right column are building blocks of this group —
                 their permissions are inherited.
               </p>
@@ -361,8 +361,8 @@ export default function GroupDetailPage() {
         )}
 
         {!isCreateMode && (
-          <section className="bg-white shadow rounded-lg p-4 flex flex-col min-h-0">
-            <h2 className="text-lg font-medium text-gray-900 mb-3 flex-shrink-0">
+          <section className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 flex flex-col min-h-0">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-3 flex-shrink-0">
               Members
             </h2>
             <EntraMemberSearch

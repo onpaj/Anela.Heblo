@@ -280,7 +280,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
           <div className="flex items-center">
             {hasSubItems ? (
               <button
-                className="expand-button flex-shrink-0 p-1 mr-2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="expand-button flex-shrink-0 p-1 mr-2 text-gray-400 hover:text-gray-600 dark:text-graphite-faint dark:hover:text-graphite-muted focus:outline-none"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRowExpand(item.productFamily!, item.code);
@@ -298,9 +298,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
             )}
             <div className={`w-1 h-8 mr-3 rounded-sm ${getSeverityStripColor(item.severity)}`} />
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-gray-900 truncate font-medium">{item.name}</div>
-              <div className="text-xs text-gray-500">{item.code}</div>
-              {item.productFamily && <div className="text-xs text-gray-400">{item.productFamily}</div>}
+              <div className="text-xs text-gray-900 dark:text-graphite-text truncate font-medium">{item.name}</div>
+              <div className="text-xs text-gray-500 dark:text-graphite-muted">{item.code}</div>
+              {item.productFamily && <div className="text-xs text-gray-400 dark:text-graphite-faint">{item.productFamily}</div>}
             </div>
           </div>
         );
@@ -320,8 +320,8 @@ const ManufacturingStockAnalysis: React.FC = () => {
           onClick={(e) => handleTogglePlanningList(item, e)}
           className={`p-1 rounded transition-colors ${
             isInPlanningList(item.code)
-              ? 'text-green-600 hover:text-red-600 hover:bg-red-50'
-              : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
+              ? 'text-green-600 dark:text-emerald-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30'
+              : 'text-gray-400 dark:text-graphite-faint hover:text-indigo-600 dark:hover:text-graphite-accent hover:bg-indigo-50 dark:hover:bg-graphite-accent/10'
           }`}
           title={isInPlanningList(item.code) ? 'Odebrat ze seznamu k plánování' : 'Přidat do seznamu k plánování'}
         >
@@ -349,12 +349,12 @@ const ManufacturingStockAnalysis: React.FC = () => {
       align: 'right',
       minWidth: 60,
       defaultWidth: 120,
-      cellClassName: 'text-xs text-gray-900',
+      cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
       renderCell: (item) =>
         (item.manufacturedStock || 0) > 0 ? (
           <div className="font-bold">{formatNumber(item.manufacturedStock, 0)}</div>
         ) : (
-          <span className="text-gray-400">—</span>
+          <span className="text-gray-400 dark:text-graphite-faint">—</span>
         ),
     },
     {
@@ -364,12 +364,12 @@ const ManufacturingStockAnalysis: React.FC = () => {
       align: 'right',
       minWidth: 60,
       defaultWidth: 120,
-      cellClassName: 'text-xs text-gray-900',
+      cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
       renderCell: (item) =>
         (item.reserve || 0) > 0 ? (
           <div className="font-bold">{formatNumber(item.reserve, 0)}</div>
         ) : (
-          <span className="text-gray-400">—</span>
+          <span className="text-gray-400 dark:text-graphite-faint">—</span>
         ),
     },
     {
@@ -379,12 +379,12 @@ const ManufacturingStockAnalysis: React.FC = () => {
       align: 'right',
       minWidth: 60,
       defaultWidth: 120,
-      cellClassName: 'text-xs text-gray-900',
+      cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
       renderCell: (item) =>
         (item.quarantine || 0) > 0 ? (
-          <div className="font-bold text-orange-700">{formatNumber(item.quarantine, 0)}</div>
+          <div className="font-bold text-orange-700 dark:text-orange-300">{formatNumber(item.quarantine, 0)}</div>
         ) : (
-          <span className="text-gray-400">—</span>
+          <span className="text-gray-400 dark:text-graphite-faint">—</span>
         ),
     },
     {
@@ -394,12 +394,12 @@ const ManufacturingStockAnalysis: React.FC = () => {
       align: 'right',
       minWidth: 60,
       defaultWidth: 120,
-      cellClassName: 'text-xs text-gray-900',
+      cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
       renderCell: (item) =>
         (item.planned || 0) > 0 ? (
           <div className="font-bold">{formatNumber(item.planned, 0)}</div>
         ) : (
-          <span className="text-gray-400">—</span>
+          <span className="text-gray-400 dark:text-graphite-faint">—</span>
         ),
     },
     {
@@ -409,7 +409,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
       align: 'right',
       minWidth: 60,
       defaultWidth: 144,
-      cellClassName: 'text-xs text-gray-900',
+      cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
       renderCell: (item) => <>{formatNumber(item.salesInPeriod, 0)}</>,
     },
     {
@@ -419,7 +419,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
       align: 'right',
       minWidth: 100,
       defaultWidth: 144,
-      cellClassName: 'text-xs text-gray-900',
+      cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
       renderCell: (item) => <div>{formatNumber(item.dailySalesRate, 2)}</div>,
     },
     {
@@ -429,7 +429,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
       align: 'right',
       minWidth: 90,
       defaultWidth: 120,
-      cellClassName: 'text-xs text-gray-900',
+      cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
       renderCell: (item) => (
         <div className="font-bold">
           {item.stockDaysAvailable > 999 ? '∞' : formatNumber(item.stockDaysAvailable, 0)}
@@ -443,7 +443,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
       align: 'right',
       minWidth: 90,
       defaultWidth: 120,
-      cellClassName: 'text-xs text-gray-900',
+      cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
       renderCell: (item) => <>{formatPercentage(item.overstockPercentage)}</>,
     },
     {
@@ -453,7 +453,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
       align: 'right',
       minWidth: 90,
       defaultWidth: 120,
-      cellClassName: 'text-xs text-gray-900',
+      cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
       renderCell: (item) => <>{formatNumber(item.minimumStock, 0)}</>,
     },
     {
@@ -463,7 +463,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
       align: 'right',
       minWidth: 90,
       defaultWidth: 120,
-      cellClassName: 'text-xs text-gray-900',
+      cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
       renderCell: (item) => <>{item.optimalDaysSetup > 0 ? `${item.optimalDaysSetup} dní` : '—'}</>,
     },
     {
@@ -473,7 +473,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
       align: 'right',
       minWidth: 80,
       defaultWidth: 96,
-      cellClassName: 'text-xs text-gray-900',
+      cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
       renderCell: (item) => <>{item.batchSize || '—'}</>,
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -495,41 +495,41 @@ const ManufacturingStockAnalysis: React.FC = () => {
       switch (severityStr) {
         case "Critical":
         case "0":
-          return "bg-red-100/50 hover:bg-red-100/70";
+          return "bg-red-100/50 hover:bg-red-100/70 dark:bg-red-900/30 dark:hover:bg-red-900/40";
         case "Major":
         case "1":
-          return "bg-orange-100/50 hover:bg-orange-100/70";
+          return "bg-orange-100/50 hover:bg-orange-100/70 dark:bg-orange-900/30 dark:hover:bg-orange-900/40";
         case "Minor":
         case "2":
-          return "bg-yellow-100/50 hover:bg-yellow-100/70";
+          return "bg-yellow-100/50 hover:bg-yellow-100/70 dark:bg-amber-900/30 dark:hover:bg-amber-900/40";
         case "Adequate":
         case "3":
-          return "bg-green-100/50 hover:bg-green-100/70";
+          return "bg-green-100/50 hover:bg-green-100/70 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/40";
         case "Unconfigured":
         case "4":
-          return "bg-gray-100/50 hover:bg-gray-100/70";
+          return "bg-gray-100/50 hover:bg-gray-100/70 dark:bg-graphite-surface-2 dark:hover:bg-white/5";
         default:
-          return "bg-gray-100/50 hover:bg-gray-100/70";
+          return "bg-gray-100/50 hover:bg-gray-100/70 dark:bg-graphite-surface-2 dark:hover:bg-white/5";
       }
     } else {
       switch (severityStr) {
         case "Critical":
         case "0":
-          return "bg-red-50/30 hover:bg-red-50/50";
+          return "bg-red-50/30 hover:bg-red-50/50 dark:bg-red-900/20 dark:hover:bg-red-900/30";
         case "Major":
         case "1":
-          return "bg-orange-50/30 hover:bg-orange-50/50";
+          return "bg-orange-50/30 hover:bg-orange-50/50 dark:bg-orange-900/20 dark:hover:bg-orange-900/30";
         case "Minor":
         case "2":
-          return "bg-yellow-50/30 hover:bg-yellow-50/50";
+          return "bg-yellow-50/30 hover:bg-yellow-50/50 dark:bg-amber-900/20 dark:hover:bg-amber-900/30";
         case "Adequate":
         case "3":
-          return "bg-green-50/30 hover:bg-green-50/50";
+          return "bg-green-50/30 hover:bg-green-50/50 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/30";
         case "Unconfigured":
         case "4":
-          return "bg-gray-50/30 hover:bg-gray-50/50";
+          return "bg-gray-50/30 hover:bg-gray-50/50 dark:bg-graphite-surface-2 dark:hover:bg-white/5";
         default:
-          return "hover:bg-gray-50";
+          return "hover:bg-gray-50 dark:hover:bg-white/5";
       }
     }
   };
@@ -649,11 +649,11 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
     if (isLoading) {
       return (
-        <tr className="bg-gray-50">
+        <tr className="bg-gray-50 dark:bg-graphite-surface-2">
           <td colSpan={12} className="px-4 py-4">
             <div className="flex items-center justify-center">
-              <RefreshCw className="h-4 w-4 animate-spin text-gray-400 mr-2" />
-              <span className="text-sm text-gray-600">
+              <RefreshCw className="h-4 w-4 animate-spin text-gray-400 dark:text-graphite-faint mr-2" />
+              <span className="text-sm text-gray-600 dark:text-graphite-muted">
                 Načítání produktů stejné řady...
               </span>
             </div>
@@ -664,9 +664,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
     if (items.length === 0) {
       return (
-        <tr className="bg-gray-50">
+        <tr className="bg-gray-50 dark:bg-graphite-surface-2">
           <td colSpan={12} className="px-4 py-3">
-            <div className="text-sm text-gray-500 text-center">
+            <div className="text-sm text-gray-500 dark:text-graphite-muted text-center">
               Žádné další produkty v této řadě
             </div>
           </td>
@@ -679,7 +679,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
         {items.map((subItem) => (
           <tr
             key={`sub-${subItem.code}`}
-            className={`${getRowColorClass(subItem.severity)} cursor-pointer transition-colors duration-150 border-l-8 border-indigo-300`}
+            className={`${getRowColorClass(subItem.severity)} cursor-pointer transition-colors duration-150 border-l-8 border-indigo-300 dark:border-graphite-accent`}
             onClick={(e) => handleRowClick(subItem, e)}
             title="Klikněte pro zobrazení detailu produktu"
           >
@@ -695,10 +695,10 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   className={`w-1 h-6 mr-3 rounded-sm ${getSeverityStripColor(subItem.severity)}`}
                 ></div>
                 <div className="flex-1 min-w-0 pl-6">
-                  <div className="text-xs text-gray-700 truncate font-medium">
+                  <div className="text-xs text-gray-700 dark:text-graphite-muted truncate font-medium">
                     {subItem.name}
                   </div>
-                  <div className="text-xs text-gray-400">{subItem.code}</div>
+                  <div className="text-xs text-gray-400 dark:text-graphite-faint">{subItem.code}</div>
                 </div>
               </div>
             </td>
@@ -715,7 +715,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
             {/* Reserve Stock */}
             <td
-              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
+              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700 dark:text-graphite-muted"
               style={{ minWidth: "90px", width: "10%" }}
             >
               {(subItem.reserve || 0) > 0 ? (
@@ -723,27 +723,27 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   {formatNumber(subItem.reserve, 0)}
                 </div>
               ) : (
-                <span className="text-gray-400">—</span>
+                <span className="text-gray-400 dark:text-graphite-faint">—</span>
               )}
             </td>
 
             {/* Quarantine Stock */}
             <td
-              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
+              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700 dark:text-graphite-muted"
               style={{ minWidth: "90px", width: "10%" }}
             >
               {(subItem.quarantine || 0) > 0 ? (
-                <div className="font-medium text-orange-700">
+                <div className="font-medium text-orange-700 dark:text-orange-300">
                   {formatNumber(subItem.quarantine, 0)}
                 </div>
               ) : (
-                <span className="text-gray-400">—</span>
+                <span className="text-gray-400 dark:text-graphite-faint">—</span>
               )}
             </td>
 
             {/* Planned Stock */}
             <td
-              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
+              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700 dark:text-graphite-muted"
               style={{ minWidth: "90px", width: "10%" }}
             >
               {(subItem.planned || 0) > 0 ? (
@@ -751,13 +751,13 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   {formatNumber(subItem.planned, 0)}
                 </div>
               ) : (
-                <span className="text-gray-400">—</span>
+                <span className="text-gray-400 dark:text-graphite-faint">—</span>
               )}
             </td>
 
             {/* Sales in Period */}
             <td
-              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
+              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700 dark:text-graphite-muted"
               style={{ minWidth: "100px", width: "12%" }}
             >
               {formatNumber(subItem.salesInPeriod, 0)}
@@ -765,7 +765,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
             {/* Daily Sales */}
             <td
-              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
+              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700 dark:text-graphite-muted"
               style={{ minWidth: "100px", width: "12%" }}
             >
               {formatNumber(subItem.dailySalesRate, 2)}
@@ -773,7 +773,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
             {/* Optimal Days Setup */}
             <td
-              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
+              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700 dark:text-graphite-muted"
               style={{ minWidth: "90px", width: "10%" }}
             >
               {subItem.optimalDaysSetup > 0
@@ -783,7 +783,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
             {/* Stock Days Available */}
             <td
-              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
+              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700 dark:text-graphite-muted"
               style={{ minWidth: "90px", width: "10%" }}
             >
               <div className="font-medium">
@@ -795,7 +795,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
             {/* Minimum Stock */}
             <td
-              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
+              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700 dark:text-graphite-muted"
               style={{ minWidth: "90px", width: "10%" }}
             >
               {formatNumber(subItem.minimumStock, 0)}
@@ -803,7 +803,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
             {/* Overstock Percentage */}
             <td
-              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
+              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700 dark:text-graphite-muted"
               style={{ minWidth: "90px", width: "10%" }}
             >
               {formatPercentage(subItem.overstockPercentage)}
@@ -811,7 +811,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
             {/* Batch Size */}
             <td
-              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
+              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700 dark:text-graphite-muted"
               style={{ minWidth: "80px", width: "8%" }}
             >
               {subItem.batchSize || "—"}
@@ -826,8 +826,8 @@ const ManufacturingStockAnalysis: React.FC = () => {
                 onClick={(e) => handleTogglePlanningList(subItem, e)}
                 className={`p-1 rounded transition-colors ${
                   isInPlanningList(subItem.code)
-                    ? "text-green-600 hover:text-red-600 hover:bg-red-50"
-                    : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                    ? "text-green-600 dark:text-emerald-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
+                    : "text-gray-400 dark:text-graphite-faint hover:text-indigo-600 dark:hover:text-graphite-accent hover:bg-indigo-50 dark:hover:bg-graphite-accent/10"
                 }`}
                 title={
                   isInPlanningList(subItem.code)
@@ -879,17 +879,17 @@ const ManufacturingStockAnalysis: React.FC = () => {
   const getStockValueColorClass = (severity: ManufacturingStockSeverity) => {
     switch (severity) {
       case ManufacturingStockSeverity.Critical:
-        return "text-red-600";    // Matches summary card text
+        return "text-red-600 dark:text-red-400";    // Matches summary card text
       case ManufacturingStockSeverity.Major:
-        return "text-orange-600"; // Matches summary card text
+        return "text-orange-600 dark:text-orange-300"; // Matches summary card text
       case ManufacturingStockSeverity.Minor:
-        return "text-yellow-600"; // Minor items
+        return "text-yellow-600 dark:text-amber-400"; // Minor items
       case ManufacturingStockSeverity.Adequate:
-        return "text-green-600";  // Matches summary card text  
+        return "text-green-600 dark:text-emerald-400";  // Matches summary card text
       case ManufacturingStockSeverity.Unconfigured:
-        return "text-gray-600";   // Matches summary card text
+        return "text-gray-600 dark:text-graphite-muted";   // Matches summary card text
       default:
-        return "text-gray-900";
+        return "text-gray-900 dark:text-graphite-text";
     }
   };
 
@@ -920,21 +920,21 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 px-4 py-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-graphite-surface-2 px-4 py-8">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-lg p-6">
             <div className="flex items-center">
               <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
-              <h3 className="text-lg font-medium text-red-800">
+              <h3 className="text-lg font-medium text-red-800 dark:text-red-300">
                 Chyba při načítání dat
               </h3>
             </div>
-            <p className="mt-2 text-sm text-red-700">
+            <p className="mt-2 text-sm text-red-700 dark:text-red-300">
               {error instanceof Error ? error.message : "Neočekávaná chyba"}
             </p>
             <button
               onClick={() => refetch()}
-              className="mt-4 bg-red-100 hover:bg-red-200 text-red-800 px-4 py-2 rounded-md text-sm font-medium"
+              className="mt-4 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/40 text-red-800 dark:text-red-300 px-4 py-2 rounded-md text-sm font-medium"
             >
               Zkusit znovu
             </button>
@@ -951,18 +951,18 @@ const ManufacturingStockAnalysis: React.FC = () => {
     >
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
-        <h1 className="text-lg font-semibold text-gray-900">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
           Řízení zásob výrobků
         </h1>
       </div>
 
       {/* Controls - Single Collapsible Block */}
-      <div className="flex-shrink-0 bg-white rounded-lg shadow mb-4">
-        <div className="p-3 border-b border-gray-200">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark mb-4">
+        <div className="p-3 border-b border-gray-200 dark:border-graphite-border">
           <div className="flex items-center justify-between">
             <button
               onClick={() => setIsControlsCollapsed(!isControlsCollapsed)}
-              className="flex items-center space-x-2 text-sm font-medium text-gray-900 hover:text-gray-700"
+              className="flex items-center space-x-2 text-sm font-medium text-gray-900 dark:text-graphite-text hover:text-gray-700 dark:hover:text-graphite-muted"
             >
               {isControlsCollapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -971,7 +971,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
               )}
               <span>Filtry a nastavení</span>
               {summary && (
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 dark:text-graphite-muted">
                   ({summary.totalProducts} produktů)
                 </span>
               )}
@@ -990,14 +990,14 @@ const ManufacturingStockAnalysis: React.FC = () => {
                             ManufacturingStockSeverity.Critical,
                           )
                         }
-                        className={`px-1 py-0.5 rounded transition-colors hover:bg-red-50 ${
+                        className={`px-1 py-0.5 rounded transition-colors hover:bg-red-50 dark:hover:bg-red-900/30 ${
                           filters.criticalItemsOnly
-                            ? "bg-red-50 ring-1 ring-red-300"
+                            ? "bg-red-50 dark:bg-red-900/30 ring-1 ring-red-300 dark:ring-red-900/40"
                             : ""
                         }`}
                         title="Nadsklad &lt; 100%"
                       >
-                        <span className="text-red-600 font-medium">
+                        <span className="text-red-600 dark:text-red-400 font-medium">
                           {summary.criticalCount}
                         </span>
                       </button>
@@ -1007,14 +1007,14 @@ const ManufacturingStockAnalysis: React.FC = () => {
                             ManufacturingStockSeverity.Major,
                           )
                         }
-                        className={`px-1 py-0.5 rounded transition-colors hover:bg-orange-50 ${
+                        className={`px-1 py-0.5 rounded transition-colors hover:bg-orange-50 dark:hover:bg-orange-900/30 ${
                           filters.majorItemsOnly
-                            ? "bg-orange-50 ring-1 ring-orange-300"
+                            ? "bg-orange-50 dark:bg-orange-900/30 ring-1 ring-orange-300 dark:ring-orange-900/40"
                             : ""
                         }`}
                         title="Pod minimální zásobou"
                       >
-                        <span className="text-orange-600 font-medium">
+                        <span className="text-orange-600 dark:text-orange-300 font-medium">
                           {summary.majorCount}
                         </span>
                       </button>
@@ -1024,14 +1024,14 @@ const ManufacturingStockAnalysis: React.FC = () => {
                             ManufacturingStockSeverity.Adequate,
                           )
                         }
-                        className={`px-1 py-0.5 rounded transition-colors hover:bg-emerald-50 ${
+                        className={`px-1 py-0.5 rounded transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-900/30 ${
                           filters.adequateItemsOnly
-                            ? "bg-emerald-50 ring-1 ring-emerald-300"
+                            ? "bg-emerald-50 dark:bg-emerald-900/30 ring-1 ring-emerald-300 dark:ring-emerald-900/40"
                             : ""
                         }`}
                         title="OK"
                       >
-                        <span className="text-green-600 font-medium">
+                        <span className="text-green-600 dark:text-emerald-400 font-medium">
                           {summary.adequateCount}
                         </span>
                       </button>
@@ -1040,7 +1040,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   {/* Search field when collapsed */}
                   <div className="flex-1 max-w-xs">
                     <div className="relative">
-                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400 dark:text-graphite-faint" />
                       <input
                         type="text"
                         value={filters.searchTerm || ""}
@@ -1048,7 +1048,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                           handleFilterChange({ searchTerm: e.target.value })
                         }
                         placeholder="Vyhledat..."
-                        className="pl-7 w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                        className="pl-7 w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                       />
                     </div>
                   </div>
@@ -1057,13 +1057,13 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
               {/* Sales multiplier control - always visible */}
               <div
-                className="flex items-center border border-gray-300 rounded-md shadow-sm bg-white"
+                className="flex items-center border border-gray-300 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark bg-white dark:bg-graphite-surface"
                 title="Násobitel denních prodejů pro simulaci poptávky"
               >
                 <button
                   onClick={() => handleSalesMultiplierChange(-0.1)}
                   disabled={(filters.salesMultiplier ?? 1.0) <= 0.1}
-                  className="px-1.5 py-1 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40 rounded-l-md"
+                  className="px-1.5 py-1 text-xs text-gray-700 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-40 rounded-l-md"
                   aria-label="Snížit násobitel"
                 >
                   −
@@ -1071,8 +1071,8 @@ const ManufacturingStockAnalysis: React.FC = () => {
                 <span
                   className={`px-1.5 py-1 text-xs min-w-[2.5rem] text-center ${
                     (filters.salesMultiplier ?? 1.0) !== 1.0
-                      ? "text-indigo-600 font-semibold"
-                      : "text-gray-700"
+                      ? "text-indigo-600 dark:text-graphite-accent font-semibold"
+                      : "text-gray-700 dark:text-graphite-muted"
                   }`}
                   title={
                     (filters.salesMultiplier ?? 1.0) !== 1.0
@@ -1085,7 +1085,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                 <button
                   onClick={() => handleSalesMultiplierChange(0.1)}
                   disabled={(filters.salesMultiplier ?? 1.0) >= 3.0}
-                  className="px-1.5 py-1 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40 rounded-r-md"
+                  className="px-1.5 py-1 text-xs text-gray-700 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-40 rounded-r-md"
                   aria-label="Zvýšit násobitel"
                 >
                   +
@@ -1096,7 +1096,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
               <button
                 onClick={() => refetch()}
                 disabled={isRefetching}
-                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark text-xs font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
               >
                 <RefreshCw
                   className={`h-3 w-3 mr-1 ${isRefetching ? "animate-spin" : ""}`}
@@ -1106,7 +1106,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
               <button
                 onClick={handleExport}
                 disabled={isExporting}
-                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark text-xs font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
               >
                 {isExporting ? (
                   <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
@@ -1125,7 +1125,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
               {/* Help */}
               <div className="relative group">
-                <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                <HelpCircle className="h-4 w-4 text-gray-400 dark:text-graphite-faint cursor-help" />
                 <div className="absolute right-0 top-6 w-80 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
                   <div className="space-y-2">
                     <div className="flex items-start">
@@ -1174,14 +1174,14 @@ const ManufacturingStockAnalysis: React.FC = () => {
             {/* Summary Cards */}
             {summary && (
               <div>
-                <h3 className="text-xs font-medium text-gray-700 mb-2">
+                <h3 className="text-xs font-medium text-gray-700 dark:text-graphite-muted mb-2">
                   Přehled stavů zásob
                 </h3>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <div className="flex items-center px-2 py-1 rounded-md bg-gray-50">
+                  <div className="flex items-center px-2 py-1 rounded-md bg-gray-50 dark:bg-graphite-surface-2">
                     <Package className="h-3 w-3 text-blue-500 mr-1" />
-                    <span className="text-gray-600">Celkem:</span>
-                    <span className="font-semibold text-gray-900 ml-1">
+                    <span className="text-gray-600 dark:text-graphite-muted">Celkem:</span>
+                    <span className="font-semibold text-gray-900 dark:text-graphite-text ml-1">
                       {summary.totalProducts}
                     </span>
                   </div>
@@ -1192,15 +1192,15 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         ManufacturingStockSeverity.Critical,
                       )
                     }
-                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-red-50 ${
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-red-50 dark:hover:bg-red-900/30 ${
                       filters.criticalItemsOnly
-                        ? "bg-red-50 ring-1 ring-red-300"
+                        ? "bg-red-50 dark:bg-red-900/30 ring-1 ring-red-300 dark:ring-red-900/40"
                         : ""
                     }`}
                   >
                     <AlertTriangle className="h-3 w-3 text-red-500 mr-1" />
-                    <span className="text-gray-600">Nadsklad &lt; 100%:</span>
-                    <span className="font-semibold text-red-600 ml-1">
+                    <span className="text-gray-600 dark:text-graphite-muted">Nadsklad &lt; 100%:</span>
+                    <span className="font-semibold text-red-600 dark:text-red-400 ml-1">
                       {summary.criticalCount}
                     </span>
                   </button>
@@ -1211,15 +1211,15 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         ManufacturingStockSeverity.Major,
                       )
                     }
-                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-orange-50 ${
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-orange-50 dark:hover:bg-orange-900/30 ${
                       filters.majorItemsOnly
-                        ? "bg-orange-50 ring-1 ring-orange-300"
+                        ? "bg-orange-50 dark:bg-orange-900/30 ring-1 ring-orange-300 dark:ring-orange-900/40"
                         : ""
                     }`}
                   >
                     <AlertCircle className="h-3 w-3 text-orange-500 mr-1" />
-                    <span className="text-gray-600">Pod min. zásobou:</span>
-                    <span className="font-semibold text-orange-600 ml-1">
+                    <span className="text-gray-600 dark:text-graphite-muted">Pod min. zásobou:</span>
+                    <span className="font-semibold text-orange-600 dark:text-orange-300 ml-1">
                       {summary.majorCount}
                     </span>
                   </button>
@@ -1230,15 +1230,15 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         ManufacturingStockSeverity.Adequate,
                       )
                     }
-                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-emerald-50 ${
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-900/30 ${
                       filters.adequateItemsOnly
-                        ? "bg-emerald-50 ring-1 ring-emerald-300"
+                        ? "bg-emerald-50 dark:bg-emerald-900/30 ring-1 ring-emerald-300 dark:ring-emerald-900/40"
                         : ""
                     }`}
                   >
                     <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
-                    <span className="text-gray-600">OK:</span>
-                    <span className="font-semibold text-green-600 ml-1">
+                    <span className="text-gray-600 dark:text-graphite-muted">OK:</span>
+                    <span className="font-semibold text-green-600 dark:text-emerald-400 ml-1">
                       {summary.adequateCount}
                     </span>
                   </button>
@@ -1249,15 +1249,15 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         ManufacturingStockSeverity.Unconfigured,
                       )
                     }
-                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-gray-50 ${
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-gray-50 dark:hover:bg-white/5 ${
                       filters.unconfiguredOnly
-                        ? "bg-gray-50 ring-1 ring-gray-300"
+                        ? "bg-gray-50 dark:bg-graphite-surface-2 ring-1 ring-gray-300 dark:ring-graphite-border"
                         : ""
                     }`}
                   >
                     <Settings className="h-3 w-3 text-gray-500 mr-1" />
-                    <span className="text-gray-600">Nezkonfigurováno:</span>
-                    <span className="font-semibold text-gray-600 ml-1">
+                    <span className="text-gray-600 dark:text-graphite-muted">Nezkonfigurováno:</span>
+                    <span className="font-semibold text-gray-600 dark:text-graphite-muted ml-1">
                       {summary.unconfiguredCount}
                     </span>
                   </button>
@@ -1267,11 +1267,11 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
             {/* Filters */}
             <div>
-              <h3 className="text-xs font-medium text-gray-700 mb-2">Filtry</h3>
+              <h3 className="text-xs font-medium text-gray-700 dark:text-graphite-muted mb-2">Filtry</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Time Period Selection */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                     Časové období
                   </label>
                   <select
@@ -1281,7 +1281,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                     onChange={(e) =>
                       handleTimePeriodChange(e.target.value as TimePeriodFilter)
                     }
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                     title={getTimePeriodTooltip(
                       filters.timePeriod || TimePeriodFilter.Q9M,
                     )}
@@ -1311,7 +1311,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                 {filters.timePeriod === TimePeriodFilter.CustomPeriod && (
                   <>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                         Od data
                       </label>
                       <input
@@ -1325,12 +1325,12 @@ const ManufacturingStockAnalysis: React.FC = () => {
                             customFromDate: new Date(e.target.value),
                           })
                         }
-                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                         Do data
                       </label>
                       <input
@@ -1344,7 +1344,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                             customToDate: new Date(e.target.value),
                           })
                         }
-                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                        className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                       />
                     </div>
                   </>
@@ -1352,7 +1352,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
                 {/* Product Family */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                     Produktová řada
                   </label>
                   <select
@@ -1362,7 +1362,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         productFamily: e.target.value || undefined,
                       })
                     }
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                   >
                     <option value="">Všechny</option>
                     {summary?.productFamilies.map((family) => (
@@ -1375,11 +1375,11 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
                 {/* Search */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                     Vyhledat
                   </label>
                   <div className="relative">
-                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400 dark:text-graphite-faint" />
                     <input
                       type="text"
                       value={filters.searchTerm || ""}
@@ -1387,7 +1387,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         handleFilterChange({ searchTerm: e.target.value })
                       }
                       placeholder="Kód, název, řada..."
-                      className="pl-8 w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                      className="pl-8 w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                     />
                   </div>
                 </div>
@@ -1398,20 +1398,20 @@ const ManufacturingStockAnalysis: React.FC = () => {
       </div>
 
       {/* Results Table */}
-      <div className="flex-1 bg-white rounded-lg shadow overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark overflow-hidden flex flex-col min-h-0">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-            <span className="ml-2 text-gray-600">Načítání dat...</span>
+            <RefreshCw className="h-8 w-8 animate-spin text-gray-400 dark:text-graphite-faint" />
+            <span className="ml-2 text-gray-600 dark:text-graphite-muted">Načítání dat...</span>
           </div>
         ) : tableData.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <Package className="h-12 w-12 text-gray-400 dark:text-graphite-faint mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-2">
                 Žádné výsledky
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-graphite-muted">
                 Zkuste upravit filtry nebo vyhledávací kritéria.
               </p>
             </div>
@@ -1419,7 +1419,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
         ) : (
           <div className="flex-1 overflow-x-auto overflow-y-auto">
             <table
-              className="w-full divide-y divide-gray-200"
+              className="w-full divide-y divide-gray-200 dark:divide-graphite-border"
               style={{ minWidth: "1200px" }}
             >
               <GridHeader
@@ -1431,7 +1431,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                 onReorder={setColumnOrder}
                 onResizeEnd={setColumnWidth}
               />
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                 {tableData.map((item) => {
                   const hasSubItems = shouldShowExpandButton(item);
                   const isExpanded =
@@ -1480,26 +1480,26 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
         {/* Pagination - Compact */}
         {totalCount > 0 && (
-          <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
+          <div className="flex-shrink-0 bg-white dark:bg-graphite-surface px-3 py-2 flex items-center justify-between border-t border-gray-200 dark:border-graphite-border text-xs">
             <div className="flex-1 flex justify-between sm:hidden">
               <button
                 onClick={() => handlePageChange(filters.pageNumber! - 1)}
                 disabled={filters.pageNumber! <= 1}
-                className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Předchozí
               </button>
               <button
                 onClick={() => handlePageChange(filters.pageNumber! + 1)}
                 disabled={filters.pageNumber! >= totalPages}
-                className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Další
               </button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div className="flex items-center space-x-3">
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray-600 dark:text-graphite-muted">
                   {(filters.pageNumber! - 1) * filters.pageSize! + 1}-
                   {Math.min(
                     filters.pageNumber! * filters.pageSize!,
@@ -1508,13 +1508,13 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   z {totalCount}
                 </p>
                 <div className="flex items-center space-x-1">
-                  <span className="text-xs text-gray-600">Zobrazit:</span>
+                  <span className="text-xs text-gray-600 dark:text-graphite-muted">Zobrazit:</span>
                   <select
                     value={filters.pageSize}
                     onChange={(e) =>
                       handlePageSizeChange(Number(e.target.value))
                     }
-                    className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                    className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -1531,7 +1531,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   <button
                     onClick={() => handlePageChange(filters.pageNumber! - 1)}
                     disabled={filters.pageNumber! <= 1}
-                    className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="h-3 w-3" />
                   </button>
@@ -1555,8 +1555,8 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         onClick={() => handlePageChange(pageNum)}
                         className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                           pageNum === filters.pageNumber!
-                            ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                            : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                            ? "z-10 bg-indigo-50 dark:bg-graphite-accent/10 border-indigo-500 dark:border-graphite-accent text-indigo-600 dark:text-graphite-accent"
+                            : "bg-white dark:bg-graphite-surface border-gray-300 dark:border-graphite-border text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
                         }`}
                       >
                         {pageNum}
@@ -1567,7 +1567,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   <button
                     onClick={() => handlePageChange(filters.pageNumber! + 1)}
                     disabled={filters.pageNumber! >= totalPages}
-                    className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronRight className="h-3 w-3" />
                   </button>

@@ -17,8 +17,8 @@ function WeatherForecastReport() {
   }
 
   return (
-    <div className="mx-4 mb-4 rounded-lg border border-gray-200 bg-white p-4">
-      <h2 className="mb-3 text-sm font-semibold text-gray-700">
+    <div className="mx-4 mb-4 rounded-lg border border-gray-200 dark:border-graphite-border bg-white dark:bg-graphite-surface p-4">
+      <h2 className="mb-3 text-sm font-semibold text-gray-700 dark:text-graphite-muted">
         Předpověď počasí — nejteplejší místo v ČR
       </h2>
       <div className="space-y-2">
@@ -38,22 +38,22 @@ function WeatherForecastReport() {
 
           return (
             <div key={day.date} className="flex items-center gap-3 text-sm">
-              <span className="w-24 shrink-0 text-gray-500">{label}</span>
+              <span className="w-24 shrink-0 text-gray-500 dark:text-graphite-muted">{label}</span>
               <span className="shrink-0 text-base leading-none">{icon}</span>
-              <span className="w-10 shrink-0 text-right text-gray-600">
+              <span className="w-10 shrink-0 text-right text-gray-600 dark:text-graphite-muted">
                 {Math.round(day.minTemperatureCelsius)}°C
               </span>
-              <div className="relative flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+              <div className="relative flex-1 h-2 rounded-full bg-gray-100 dark:bg-graphite-surface-2 overflow-hidden">
                 <div
                   data-testid="temp-bar"
                   className={`absolute h-2 ${getTemperatureColor(day.maxTemperatureCelsius)}`}
                   style={{ left: `${left}%`, width: `${width}%` }}
                 />
               </div>
-              <span className="w-10 shrink-0 text-left font-medium text-gray-900">
+              <span className="w-10 shrink-0 text-left font-medium text-gray-900 dark:text-graphite-text">
                 {Math.round(day.maxTemperatureCelsius)}°C
               </span>
-              <span className="w-20 shrink-0 text-right text-gray-500">{day.cityName}</span>
+              <span className="w-20 shrink-0 text-right text-gray-500 dark:text-graphite-muted">{day.cityName}</span>
             </div>
           );
         })}

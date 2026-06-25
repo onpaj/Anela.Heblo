@@ -41,28 +41,28 @@ function PackingShipmentDoneView({
   return (
     <div
       data-testid="packing-shipment-done"
-      className="rounded-2xl bg-white p-8 shadow-lg flex flex-col gap-6"
+      className="rounded-2xl bg-white dark:bg-graphite-surface p-8 shadow-lg dark:shadow-soft-dark flex flex-col gap-6"
     >
       <div className="flex items-center gap-4">
         <CheckCircle2 className="h-10 w-10 text-success" />
-        <h2 className="text-3xl font-bold text-neutral-slate">Zakázka byla vyexpedována</h2>
+        <h2 className="text-3xl font-bold text-neutral-slate dark:text-graphite-text">Zakázka byla vyexpedována</h2>
       </div>
 
       <dl className="grid grid-cols-2 gap-x-8 gap-y-4">
         <div className="flex flex-col gap-1">
-          <dt className="text-sm text-neutral-gray">Číslo objednávky</dt>
-          <dd className="text-base text-neutral-slate font-medium">{order.code}</dd>
+          <dt className="text-sm text-neutral-gray dark:text-graphite-muted">Číslo objednávky</dt>
+          <dd className="text-base text-neutral-slate dark:text-graphite-text font-medium">{order.code}</dd>
         </div>
 
         <div className="flex flex-col gap-1">
-          <dt className="text-sm text-neutral-gray">Zákazník</dt>
-          <dd className="text-base text-neutral-slate font-medium">{order.customerName}</dd>
+          <dt className="text-sm text-neutral-gray dark:text-graphite-muted">Zákazník</dt>
+          <dd className="text-base text-neutral-slate dark:text-graphite-text font-medium">{order.customerName}</dd>
         </div>
 
         {addressLines && (
           <div className="flex flex-col gap-1" data-testid="packing-shipment-done-address">
-            <dt className="text-sm text-neutral-gray">Adresa</dt>
-            <dd className="text-base text-neutral-slate font-medium">
+            <dt className="text-sm text-neutral-gray dark:text-graphite-muted">Adresa</dt>
+            <dd className="text-base text-neutral-slate dark:text-graphite-text font-medium">
               {addressLines.street && <div>{addressLines.street}</div>}
               {addressLines.cityZip && <div>{addressLines.cityZip}</div>}
             </dd>
@@ -70,13 +70,13 @@ function PackingShipmentDoneView({
         )}
 
         <div className="flex flex-col gap-1">
-          <dt className="text-sm text-neutral-gray">Doprava</dt>
-          <dd className="text-base text-neutral-slate font-medium">{order.shippingMethodName}</dd>
+          <dt className="text-sm text-neutral-gray dark:text-graphite-muted">Doprava</dt>
+          <dd className="text-base text-neutral-slate dark:text-graphite-text font-medium">{order.shippingMethodName}</dd>
         </div>
 
         <div className="flex flex-col gap-1">
-          <dt className="text-sm text-neutral-gray">Číslo zásilky</dt>
-          <dd className="text-base text-neutral-slate font-medium">{trackingSummary}</dd>
+          <dt className="text-sm text-neutral-gray dark:text-graphite-muted">Číslo zásilky</dt>
+          <dd className="text-base text-neutral-slate dark:text-graphite-text font-medium">{trackingSummary}</dd>
         </div>
       </dl>
 

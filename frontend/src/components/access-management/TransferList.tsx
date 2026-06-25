@@ -74,8 +74,8 @@ function ItemRow({
     ? { transform: CSS.Transform.toString(transform) }
     : undefined;
   const rowColors = highlighted
-    ? "border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
-    : "border-gray-200 bg-white hover:bg-gray-50";
+    ? "border-emerald-200 dark:border-emerald-400/30 bg-emerald-50 dark:bg-emerald-400/15 hover:bg-emerald-100 dark:hover:bg-emerald-400/25"
+    : "border-gray-200 dark:border-graphite-border bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5";
   return (
     <div
       ref={setNodeRef}
@@ -86,20 +86,20 @@ function ItemRow({
     >
       <div className="flex flex-col min-w-0 flex-1">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-sm text-gray-900 truncate">{item.label}</span>
+          <span className="text-sm text-gray-900 dark:text-graphite-text truncate">{item.label}</span>
           {highlighted && highlightLabel && (
-            <span className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">
+            <span className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-400/15 text-emerald-700 dark:text-emerald-400 font-medium">
               {highlightLabel}
             </span>
           )}
           {item.badge && (
-            <span className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
+            <span className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-400/15 text-amber-700 dark:text-amber-400 font-medium">
               {item.badge}
             </span>
           )}
         </div>
         {item.sublabel && (
-          <span className="text-xs text-gray-500 truncate">
+          <span className="text-xs text-gray-500 dark:text-graphite-muted truncate">
             {item.sublabel}
           </span>
         )}
@@ -117,8 +117,8 @@ function ItemRow({
         }
         className={`ml-3 flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-sm font-bold ${
           direction === "assign"
-            ? "text-indigo-600 hover:bg-indigo-100"
-            : "text-red-500 hover:bg-red-100"
+            ? "text-indigo-600 dark:text-graphite-accent hover:bg-indigo-100 dark:hover:bg-graphite-accent/20"
+            : "text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/25"
         }`}
       >
         {direction === "assign" ? "+" : "−"}
@@ -152,13 +152,13 @@ function DropZone({
       ref={setNodeRef}
       className={`border rounded-lg p-3 ${fillHeight ? "flex flex-col h-full min-h-0" : "min-h-48"} ${
         isOver
-          ? "bg-indigo-50 border-indigo-400"
+          ? "bg-indigo-50 dark:bg-graphite-accent/10 border-indigo-400"
           : variant === "left"
-            ? "border-gray-300 bg-gray-50"
-            : "border-gray-300 bg-white"
+            ? "border-gray-300 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2"
+            : "border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface"
       }`}
     >
-      <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+      <div className="text-xs font-semibold text-gray-600 dark:text-graphite-muted uppercase tracking-wider mb-2">
         {label}
       </div>
       <div
@@ -166,7 +166,7 @@ function DropZone({
       >
         {children}
         {isEmpty && (
-          <div className="text-sm text-gray-400 text-center py-6">
+          <div className="text-sm text-gray-400 dark:text-graphite-faint text-center py-6">
             {emptyMessage}
           </div>
         )}
@@ -250,7 +250,7 @@ function TransferList({
     if (!grouped) return rowItems.map(row);
     return Array.from(grouped.entries()).map(([section, sectionItems]) => (
       <div key={section}>
-        <div className="text-xs font-medium text-gray-500 px-1 pt-3 pb-0.5 first:pt-0">
+        <div className="text-xs font-medium text-gray-500 dark:text-graphite-muted px-1 pt-3 pb-0.5 first:pt-0">
           {section}
         </div>
         {sectionItems.map(row)}
@@ -261,7 +261,7 @@ function TransferList({
   const searchBar = searchable && (
     <div className="relative mb-3 flex-shrink-0">
       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <Search className="h-4 w-4 text-gray-400" />
+        <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
       </div>
       <input
         type="text"
@@ -269,7 +269,7 @@ function TransferList({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={searchPlaceholder}
-        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md"
+        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 text-sm border border-gray-300 dark:border-graphite-border rounded-md"
       />
     </div>
   );
@@ -289,8 +289,8 @@ function TransferList({
     const tabClass = (active: boolean) =>
       `flex-1 px-3 py-2 text-sm font-medium border-b-2 ${
         active
-          ? "border-indigo-600 text-indigo-600"
-          : "border-transparent text-gray-500 hover:text-gray-700"
+          ? "border-indigo-600 text-indigo-600 dark:text-graphite-accent"
+          : "border-transparent text-gray-500 dark:text-graphite-muted hover:text-gray-700"
       }`;
 
     return (
@@ -325,7 +325,7 @@ function TransferList({
           >
             {renderRows(paneItems, direction, grouped)}
             {paneItems.length === 0 && (
-              <div className="text-sm text-gray-400 text-center py-6">
+              <div className="text-sm text-gray-400 dark:text-graphite-faint text-center py-6">
                 {emptyMessage}
               </div>
             )}

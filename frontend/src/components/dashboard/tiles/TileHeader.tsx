@@ -8,14 +8,14 @@ interface TileHeaderProps {
 
 export const TileHeader: React.FC<TileHeaderProps> = ({ title, dragHandleProps }) => {
   return (
-    <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-      <h3 className="text-base md:text-sm font-medium text-gray-900 truncate tile-title leading-relaxed">
+    <div className="px-4 py-3 border-b border-gray-100 dark:border-graphite-border flex justify-between items-center">
+      <h3 className="text-base md:text-sm font-medium text-gray-900 dark:text-graphite-text truncate tile-title leading-relaxed">
         {title}
       </h3>
       {dragHandleProps && (
         <button
           {...dragHandleProps}
-          className="text-gray-400 hover:text-gray-600 transition-colors cursor-grab active:cursor-grabbing"
+          className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted transition-colors cursor-grab active:cursor-grabbing"
           title="Přetáhnout pro změnu pořadí"
         >
           <GripVertical className="h-4 w-4" />

@@ -83,7 +83,7 @@ export default function EntraMemberSearch({
 
   return (
     <div className="relative mb-4">
-      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
+      <label className="block text-xs font-semibold text-gray-600 dark:text-graphite-muted uppercase tracking-wider mb-1">
         Add Entra user
       </label>
       <input
@@ -103,24 +103,24 @@ export default function EntraMemberSearch({
             : "Search by name or email…"
         }
         disabled={isLoading}
-        className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-50 disabled:text-gray-400"
+        className="w-full rounded border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-50 dark:disabled:bg-graphite-surface disabled:text-gray-400 dark:disabled:text-graphite-faint"
       />
       {isOpen && candidates.length > 0 && (
-        <ul className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg max-h-48 overflow-y-auto">
+        <ul className="absolute z-20 mt-1 w-full bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded shadow-lg dark:shadow-soft-dark max-h-48 overflow-y-auto">
           {candidates.map((u) => (
             <li
               key={u.entraObjectId}
               onMouseDown={() => handleSelect(u)}
-              className="flex flex-col px-3 py-2 hover:bg-indigo-50 cursor-pointer"
+              className="flex flex-col px-3 py-2 hover:bg-indigo-50 dark:hover:bg-white/5 cursor-pointer"
             >
-              <span className="text-sm text-gray-900">{u.displayName}</span>
-              <span className="text-xs text-gray-500">{u.email}</span>
+              <span className="text-sm text-gray-900 dark:text-graphite-text">{u.displayName}</span>
+              <span className="text-xs text-gray-500 dark:text-graphite-muted">{u.email}</span>
             </li>
           ))}
         </ul>
       )}
       {isOpen && !entraUsers.isLoading && candidates.length === 0 && query.trim() && (
-        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg px-3 py-2 text-sm text-gray-400">
+        <div className="absolute z-20 mt-1 w-full bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded shadow-lg dark:shadow-soft-dark px-3 py-2 text-sm text-gray-400 dark:text-graphite-faint">
           No matching Entra users
         </div>
       )}

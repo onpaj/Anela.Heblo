@@ -28,7 +28,7 @@ const RagFeedbackForm: React.FC<RagFeedbackFormProps> = ({
 
   if (alreadySubmitted) {
     return (
-      <div className="border border-gray-200 rounded-lg p-4 text-sm text-gray-600 bg-gray-50">
+      <div className="border border-gray-200 dark:border-graphite-border rounded-lg p-4 text-sm text-gray-600 dark:text-graphite-muted bg-gray-50 dark:bg-graphite-surface-2">
         Zpětná vazba již byla odeslána.
       </div>
     );
@@ -36,7 +36,7 @@ const RagFeedbackForm: React.FC<RagFeedbackFormProps> = ({
 
   if (isSuccess) {
     return (
-      <div className="border border-gray-200 rounded-lg p-4 text-sm text-green-700 bg-green-50">
+      <div className="border border-gray-200 dark:border-graphite-border rounded-lg p-4 text-sm text-green-700 dark:text-emerald-300 bg-green-50 dark:bg-emerald-900/30">
         Děkujeme za vaši zpětnou vazbu.
       </div>
     );
@@ -54,8 +54,8 @@ const RagFeedbackForm: React.FC<RagFeedbackFormProps> = ({
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 space-y-3">
-      <p className="text-sm font-medium text-gray-700">Ohodnoťte odpověď</p>
+    <div className="border border-gray-200 dark:border-graphite-border rounded-lg p-4 space-y-3">
+      <p className="text-sm font-medium text-gray-700 dark:text-graphite-muted">Ohodnoťte odpověď</p>
       <ScoreRow label="Přesnost" value={precisionScore} onChange={setPrecisionScore} />
       <ScoreRow label="Styl" value={styleScore} onChange={setStyleScore} />
       <textarea
@@ -64,7 +64,7 @@ const RagFeedbackForm: React.FC<RagFeedbackFormProps> = ({
         placeholder="Volitelný komentář..."
         rows={2}
         maxLength={COMMENT_MAX_LENGTH}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+        className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
       />
       <button
         type="button"

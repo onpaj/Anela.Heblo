@@ -50,23 +50,23 @@ const PackingMaterialConsumptionChart: React.FC<PackingMaterialConsumptionChartP
       const fullDate = format(data.date, 'dd. MMMM yyyy', { locale: cs });
       
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-medium text-gray-900">{fullDate}</p>
-          <p className="text-sm text-gray-600">
+        <div className="bg-white dark:bg-graphite-surface p-3 border border-gray-200 dark:border-graphite-border rounded-lg shadow-lg dark:shadow-soft-dark">
+          <p className="font-medium text-gray-900 dark:text-graphite-text">{fullDate}</p>
+          <p className="text-sm text-gray-600 dark:text-graphite-muted">
             Množství: <span className="font-medium">{data.newQuantity.toLocaleString('cs-CZ', {
               minimumFractionDigits: 0,
               maximumFractionDigits: 2
             })}</span>
           </p>
-          <p className="text-sm text-gray-600">
-            Změna: <span className={`font-medium ${data.changeAmount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <p className="text-sm text-gray-600 dark:text-graphite-muted">
+            Změna: <span className={`font-medium ${data.changeAmount > 0 ? 'text-green-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
               {data.changeAmount > 0 ? '+' : ''}{data.changeAmount.toLocaleString('cs-CZ', {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 2
               })}
             </span>
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-graphite-muted">
             Typ: {data.logTypeText}
           </p>
         </div>
@@ -94,7 +94,7 @@ const PackingMaterialConsumptionChart: React.FC<PackingMaterialConsumptionChartP
 
   if (!chartData || chartData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
+      <div className="flex items-center justify-center h-64 text-gray-500 dark:text-graphite-muted">
         <div className="text-center">
           <p className="text-sm">Žádná data pro zobrazení</p>
           <p className="text-xs">Za posledních 60 dní nejsou k dispozici žádné záznamy změn</p>
@@ -107,10 +107,10 @@ const PackingMaterialConsumptionChart: React.FC<PackingMaterialConsumptionChartP
     <div className="w-full">
       {/* Chart title */}
       <div className="mb-4">
-        <h4 className="text-base font-medium text-gray-900 mb-1">
+        <h4 className="text-base font-medium text-gray-900 dark:text-graphite-text mb-1">
           Vývoj množství materiálu
         </h4>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 dark:text-graphite-muted">
           Zobrazuje aktuální množství materiálu v čase na základě zaznamenaných změn
         </p>
       </div>
@@ -154,15 +154,15 @@ const PackingMaterialConsumptionChart: React.FC<PackingMaterialConsumptionChartP
       <div className="mt-4 flex flex-wrap gap-4 text-sm">
         <div className="flex items-center gap-2">
           <div className="w-4 h-0.5 bg-blue-500"></div>
-          <span className="text-gray-600">Množství v čase</span>
+          <span className="text-gray-600 dark:text-graphite-muted">Množství v čase</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"></div>
-          <span className="text-gray-600">Ruční změna</span>
+          <span className="text-gray-600 dark:text-graphite-muted">Ruční změna</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-amber-500 rounded-full border-2 border-white"></div>
-          <span className="text-gray-600">Automatická spotřeba</span>
+          <span className="text-gray-600 dark:text-graphite-muted">Automatická spotřeba</span>
         </div>
       </div>
     </div>

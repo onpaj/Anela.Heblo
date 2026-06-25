@@ -77,12 +77,12 @@ const ContainerScanLoop = ({ mode }: ContainerScanLoopProps) => {
 
   return (
     <div className="space-y-4 pt-2">
-      <div className="bg-secondary-blue-pale border border-primary-blue rounded-xl p-3 space-y-1">
-        <p className="text-xs text-neutral-gray">Materiál</p>
-        <p className="font-mono font-semibold text-neutral-slate">{materialCode}</p>
-        <p className="text-xs text-neutral-gray mt-1">Šarže</p>
-        <p className="font-mono font-semibold text-neutral-slate">{lotCode}</p>
-        <p className="text-xs text-neutral-gray mt-2">
+      <div className="bg-secondary-blue-pale dark:bg-graphite-surface-2 border border-primary-blue dark:border-graphite-accent rounded-xl p-3 space-y-1">
+        <p className="text-xs text-neutral-gray dark:text-graphite-muted">Materiál</p>
+        <p className="font-mono font-semibold text-neutral-slate dark:text-graphite-text">{materialCode}</p>
+        <p className="text-xs text-neutral-gray dark:text-graphite-muted mt-1">Šarže</p>
+        <p className="font-mono font-semibold text-neutral-slate dark:text-graphite-text">{lotCode}</p>
+        <p className="text-xs text-neutral-gray dark:text-graphite-muted mt-2">
           Naskenováno: <span className="font-semibold">{count}</span>
         </p>
       </div>
@@ -94,13 +94,13 @@ const ContainerScanLoop = ({ mode }: ContainerScanLoopProps) => {
       />
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
           {error}
         </p>
       )}
 
       {lastSaved && !error && !create.isPending && (
-        <p className="text-sm text-green-600 flex items-center gap-1">
+        <p className="text-sm text-green-600 dark:text-emerald-400 flex items-center gap-1">
           <CheckCircle className="h-4 w-4" /> Uloženo
         </p>
       )}

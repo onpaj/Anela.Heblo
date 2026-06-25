@@ -22,7 +22,7 @@ export default function MembersPicker({ value, onChange, fillHeight }: MembersPi
     [users.data]
   );
 
-  if (users.isLoading) return <div className="text-gray-500 text-sm">Loading users…</div>;
+  if (users.isLoading) return <div className="text-gray-500 dark:text-graphite-muted text-sm">Loading users…</div>;
 
   return (
     <TransferList

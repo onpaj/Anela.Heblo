@@ -11,6 +11,8 @@ import Select, {
 import { Package, AlertCircle } from "lucide-react";
 import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
 import { CatalogItemDto, ProductType } from "../../api/generated/api-client";
+import { useTheme } from "../../contexts/ThemeContext";
+import { GRAPHITE } from "./reactSelectDarkStyles";
 
 // Generic interface for the autocomplete component
 interface CatalogAutocompleteProps<T = CatalogItemDto> {
@@ -71,6 +73,9 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
   displayValue,
   renderItem,
 }: CatalogAutocompleteProps<T>) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   // Convert CatalogItemDto to Select option format
   const convertToOption = (item: CatalogItemDto): CatalogSelectOption => ({
     value: item.productCode || "",
@@ -208,43 +213,74 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
     control: (base, state) => ({
       ...base,
       ...getSizeStyles().control(base),
-      borderColor: error ? "#fca5a5" : state.isFocused ? "#6366f1" : "#d1d5db",
+      borderColor: error
+        ? "#fca5a5"
+        : state.isFocused
+          ? isDark
+            ? GRAPHITE.accent
+            : "#6366f1"
+          : isDark
+            ? GRAPHITE.border
+            : "#d1d5db",
       borderRadius: "6px",
       borderWidth: "1px",
       boxShadow: state.isFocused
         ? error
           ? "0 0 0 1px #ef4444"
-          : "0 0 0 1px #6366f1"
+          : `0 0 0 1px ${isDark ? GRAPHITE.accent : "#6366f1"}`
         : "none",
-      backgroundColor: disabled ? "#f9fafb" : "white",
+      backgroundColor: disabled
+        ? isDark
+          ? GRAPHITE.surface
+          : "#f9fafb"
+        : isDark
+          ? GRAPHITE.surface2
+          : "white",
       cursor: disabled ? "not-allowed" : "default",
       "&:hover": {
         borderColor: error
           ? "#fca5a5"
           : state.isFocused
-            ? "#6366f1"
-            : "#9ca3af",
+            ? isDark
+              ? GRAPHITE.accent
+              : "#6366f1"
+            : isDark
+              ? GRAPHITE.borderStrong
+              : "#9ca3af",
       },
     }),
     option: (base, state) => ({
       ...base,
       backgroundColor: state.isSelected
-        ? "#6366f1"
+        ? isDark
+          ? GRAPHITE.accent
+          : "#6366f1"
         : state.isFocused
-          ? "#e0e7ff"
-          : "white",
+          ? isDark
+            ? GRAPHITE.hover
+            : "#e0e7ff"
+          : isDark
+            ? GRAPHITE.surface
+            : "white",
       color: state.isSelected
-        ? "white"
+        ? isDark
+          ? GRAPHITE.accentInk
+          : "white"
         : state.isFocused
-          ? "#312e81"
-          : "#111827",
+          ? isDark
+            ? GRAPHITE.text
+            : "#312e81"
+          : isDark
+            ? GRAPHITE.text
+            : "#111827",
       cursor: "pointer",
       padding: "8px 12px",
     }),
     menu: (base) => ({
       ...base,
       borderRadius: "6px",
-      border: "1px solid #d1d5db",
+      border: `1px solid ${isDark ? GRAPHITE.border : "#d1d5db"}`,
+      backgroundColor: isDark ? GRAPHITE.surface : base.backgroundColor,
       boxShadow:
         "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
       zIndex: 9999999, // Extremely high to ensure it appears above sticky table headers
@@ -261,25 +297,39 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
     }),
     placeholder: (base) => ({
       ...base,
-      color: "#6b7280",
+      color: isDark ? GRAPHITE.faint : "#6b7280",
     }),
     singleValue: (base) => ({
       ...base,
-      color: disabled ? "#6b7280" : "#111827",
+      color: disabled
+        ? isDark
+          ? GRAPHITE.muted
+          : "#6b7280"
+        : isDark
+          ? GRAPHITE.text
+          : "#111827",
+    }),
+    input: (base) => ({
+      ...base,
+      color: isDark ? GRAPHITE.text : base.color,
+    }),
+    noOptionsMessage: (base) => ({
+      ...base,
+      color: isDark ? GRAPHITE.muted : base.color,
     }),
     clearIndicator: (base) => ({
       ...base,
       color: "#9ca3af",
       cursor: "pointer",
       "&:hover": {
-        color: "#6b7280",
+        color: isDark ? GRAPHITE.muted : "#6b7280",
       },
     }),
     dropdownIndicator: (base) => ({
       ...base,
       color: "#9ca3af",
       "&:hover": {
-        color: "#6b7280",
+        color: isDark ? GRAPHITE.muted : "#6b7280",
       },
     }),
   };
@@ -301,9 +351,9 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
             {renderItem ? (
               renderItem(catalogItem)
             ) : (
-              <span className="text-gray-900 truncate">
+              <span className="text-gray-900 dark:text-graphite-text truncate">
                 {props.data.productName}{" "}
-                <span className="text-gray-500 font-mono">
+                <span className="text-gray-500 dark:text-graphite-muted font-mono">
                   ({props.data.productCode})
                 </span>
               </span>

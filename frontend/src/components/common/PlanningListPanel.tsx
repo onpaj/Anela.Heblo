@@ -30,19 +30,19 @@ const PlanningListPanel: React.FC<PlanningListPanelProps> = ({
     >
       {/* Panel */}
       <div
-        className={`bg-white shadow-xl border-l border-gray-200 transition-transform duration-300 ease-in-out ${
+        className={`bg-white dark:bg-graphite-surface shadow-xl dark:shadow-soft-dark border-l border-gray-200 dark:border-graphite-border transition-transform duration-300 ease-in-out ${
           showPanel ? "translate-x-0" : "translate-x-[calc(100%-10px)]"
         }`}
         style={{ width: "320px", maxHeight: "80vh" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2">
           <div className="flex items-center space-x-2">
-            <List className="h-4 w-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-800">
+            <List className="h-4 w-4 text-gray-600 dark:text-graphite-muted" />
+            <span className="text-sm font-medium text-gray-800 dark:text-graphite-text">
               Seznam k plánování
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 dark:text-graphite-muted">
               ({items.length}/{20})
             </span>
           </div>
@@ -51,8 +51,8 @@ const PlanningListPanel: React.FC<PlanningListPanelProps> = ({
         {/* Content */}
         <div className="overflow-y-auto" style={{ maxHeight: "calc(80vh - 3rem)" }}>
           {items.length === 0 ? (
-            <div className="p-4 text-center text-gray-500">
-              <Package className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+            <div className="p-4 text-center text-gray-500 dark:text-graphite-muted">
+              <Package className="h-8 w-8 mx-auto mb-2 text-gray-400 dark:text-graphite-faint" />
               <p className="text-sm">Seznam je prázdný</p>
             </div>
           ) : (
@@ -60,20 +60,20 @@ const PlanningListPanel: React.FC<PlanningListPanelProps> = ({
               {items.map((item) => (
                 <div
                   key={item.productCode}
-                  className="flex items-center justify-between p-2 rounded border border-gray-100 hover:bg-gray-50 group transition-colors"
+                  className="flex items-center justify-between p-2 rounded border border-gray-100 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5 group transition-colors"
                 >
                   <div
                     className="flex-1 min-w-0 cursor-pointer"
                     onClick={() => onItemClick?.(item)}
                   >
-                    <div className="text-xs font-medium text-gray-900 truncate">
+                    <div className="text-xs font-medium text-gray-900 dark:text-graphite-text truncate">
                       {item.productName}
                     </div>
-                    <div className="text-xs text-gray-500">{item.productCode}</div>
+                    <div className="text-xs text-gray-500 dark:text-graphite-muted">{item.productCode}</div>
                   </div>
                   <button
                     onClick={() => removeItem(item.productCode)}
-                    className="ml-2 p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="ml-2 p-1 text-gray-400 dark:text-graphite-faint hover:text-red-600 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Odebrat ze seznamu"
                   >
                     <X className="h-3 w-3" />
@@ -85,8 +85,8 @@ const PlanningListPanel: React.FC<PlanningListPanelProps> = ({
         </div>
 
         {/* Footer with instruction */}
-        <div className="p-2 bg-gray-50 border-t border-gray-200">
-          <p className="text-xs text-gray-600 text-center">
+        <div className="p-2 bg-gray-50 dark:bg-graphite-surface-2 border-t border-gray-200 dark:border-graphite-border">
+          <p className="text-xs text-gray-600 dark:text-graphite-muted text-center">
             Klikněte na produkt pro rychlé plánování
           </p>
         </div>
