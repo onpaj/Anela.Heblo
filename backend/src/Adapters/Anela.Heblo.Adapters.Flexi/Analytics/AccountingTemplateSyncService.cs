@@ -109,13 +109,16 @@ public sealed class AccountingTemplateSyncService : IEntitySyncService
         Error = (_, args) => args.ErrorContext.Handled = true,
     };
 
-    private static AccountingTemplate Map(AccountingTemplateFlexiDto dto) => new()
+    internal static AccountingTemplate Map(AccountingTemplateFlexiDto dto) => new()
     {
         FlexiId = (long)dto.Id,
         Code = dto.Code ?? "",
         Name = dto.Name,
         Description = dto.Description,
-        LastModified = dto.LastUpdate == default ? null : (DateTimeOffset?)dto.LastUpdate.ToUniversalTime(),
+        // FlexiBee SDK returns Kind=Unspecified representing Prague local time.
+        // Force Kind=Unspecified before ConvertTimeToUtc to match UnspecifiedDateTimeConverter pattern.
+        // dto.LastUpdate is non-nullable DateTime; == default guard is correct here (no nullable operator).
+        LastModified = dto.LastUpdate == default ? null : (DateTimeOffset?)TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(dto.LastUpdate, DateTimeKind.Unspecified), TimeZoneInfo.Local),
         RawPayload = JsonConvert.SerializeObject(dto, RawPayloadSettings),
         SyncedAt = DateTimeOffset.UtcNow,
     };

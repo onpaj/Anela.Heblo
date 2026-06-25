@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Xcc.Services.Dashboard;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Analytics.DashboardTiles;
 
@@ -8,6 +9,7 @@ public class InvoiceImportStatisticsTile : ITile
 {
     private readonly IAnalyticsRepository _analyticsRepository;
     private readonly TimeProvider _timeProvider;
+    private readonly ILogger<InvoiceImportStatisticsTile> _logger;
 
     public string Title => "Faktury importované včera";
     public string Description => "Počet faktur naimportovaných včera";
@@ -19,10 +21,12 @@ public class InvoiceImportStatisticsTile : ITile
 
     public InvoiceImportStatisticsTile(
         IAnalyticsRepository analyticsRepository,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ILogger<InvoiceImportStatisticsTile> logger)
     {
         _analyticsRepository = analyticsRepository;
         _timeProvider = timeProvider;
+        _logger = logger;
     }
 
     public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
@@ -79,11 +83,11 @@ public class InvoiceImportStatisticsTile : ITile
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Unhandled exception in InvoiceImportStatisticsTile");
             return new
             {
                 status = "error",
-                error = "Nepodařilo se načíst statistiky importu faktur",
-                details = ex.Message
+                error = "Nepodařilo se načíst statistiky importu faktur"
             };
         }
     }
