@@ -16,14 +16,14 @@ const PackingMaterialsPage: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex items-center space-x-3 mb-4">
-        <Package className="h-8 w-8 text-gray-700" />
+        <Package className="h-8 w-8 text-gray-700 dark:text-graphite-muted" />
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sledování materiálů</h1>
-          <p className="text-sm text-gray-500">Správa spotřebních materiálů a historie spotřeby</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-graphite-text">Sledování materiálů</h1>
+          <p className="text-sm text-gray-500 dark:text-graphite-muted">Správa spotřebních materiálů a historie spotřeby</p>
         </div>
       </div>
 
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-gray-200 dark:border-graphite-border mb-6">
         <nav className="flex gap-6" aria-label="Tabs">
           {tabs.map((tab) => (
             <button
@@ -31,8 +31,8 @@ const PackingMaterialsPage: React.FC = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-blue-600 text-blue-600 dark:text-graphite-accent dark:border-graphite-accent'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-graphite-muted'
               }`}
             >
               {tab.label}

@@ -19,7 +19,7 @@ export default function GroupsPicker({ value, onChange }: GroupsPickerProps) {
     [groups.data]
   );
 
-  if (groups.isLoading) return <div className="text-gray-500 text-sm">Loading groups…</div>;
+  if (groups.isLoading) return <div className="text-gray-500 dark:text-graphite-muted text-sm">Loading groups…</div>;
 
   return (
     <TransferList

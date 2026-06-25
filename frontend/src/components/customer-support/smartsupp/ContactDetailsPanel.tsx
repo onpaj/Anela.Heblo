@@ -41,14 +41,14 @@ function OtherConversationRow({
     <button
       data-testid={`other-conversation-${conv.id}`}
       onClick={() => onSelect?.(conv.id)}
-      className="w-full text-left py-1.5 border-b border-gray-50 last:border-0"
+      className="w-full text-left py-1.5 border-b border-gray-50 dark:border-graphite-border last:border-0"
     >
       <div className="flex items-center justify-between mb-0.5">
-        <span className="text-xs text-gray-500">{date}</span>
-        <span className="text-xs text-gray-500">{conv.status}</span>
+        <span className="text-xs text-gray-500 dark:text-graphite-muted">{date}</span>
+        <span className="text-xs text-gray-500 dark:text-graphite-muted">{conv.status}</span>
       </div>
       {conv.lastMessagePreview && (
-        <div className="text-xs text-gray-700 truncate">{conv.lastMessagePreview}</div>
+        <div className="text-xs text-gray-700 dark:text-graphite-muted truncate">{conv.lastMessagePreview}</div>
       )}
     </button>
   );
@@ -76,31 +76,31 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
   const visitorInfo = visitorData?.visitorInfo;
 
   return (
-    <aside className="h-full w-full overflow-y-auto bg-white border-l border-gray-200">
+    <aside className="h-full w-full overflow-y-auto bg-white dark:bg-graphite-surface border-l border-gray-200 dark:border-graphite-border">
       {/* Header */}
-      <div className="px-4 py-4 border-b border-gray-200 flex items-center gap-3">
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-graphite-border flex items-center gap-3">
         <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-medium">
           {displayName.slice(0, 2).toUpperCase()}
         </div>
         <div className="min-w-0">
-          <div className="font-semibold text-sm text-gray-900 truncate">{displayName}</div>
+          <div className="font-semibold text-sm text-gray-900 dark:text-graphite-text truncate">{displayName}</div>
           {conversation.contactEmail && (
-            <div className="text-xs text-gray-500 truncate">{conversation.contactEmail}</div>
+            <div className="text-xs text-gray-500 dark:text-graphite-muted truncate">{conversation.contactEmail}</div>
           )}
           {(visitorLoading || visitorInfo) && (
             <div className="flex gap-3 mt-1">
-              <span className="text-xs text-gray-500" data-testid="visits-count">
+              <span className="text-xs text-gray-500 dark:text-graphite-muted" data-testid="visits-count">
                 {visitorLoading ? (
-                  <span className="inline-block w-8 h-2 bg-gray-200 rounded animate-pulse" />
+                  <span className="inline-block w-8 h-2 bg-gray-200 dark:bg-graphite-hover rounded animate-pulse" />
                 ) : visitorInfo?.visitsCount != null ? (
-                  <>Návštěvy <span className="font-medium text-gray-800">{visitorInfo.visitsCount}</span></>
+                  <>Návštěvy <span className="font-medium text-gray-800 dark:text-graphite-text">{visitorInfo.visitsCount}</span></>
                 ) : null}
               </span>
-              <span className="text-xs text-gray-500" data-testid="chats-count">
+              <span className="text-xs text-gray-500 dark:text-graphite-muted" data-testid="chats-count">
                 {visitorLoading ? (
-                  <span className="inline-block w-8 h-2 bg-gray-200 rounded animate-pulse" />
+                  <span className="inline-block w-8 h-2 bg-gray-200 dark:bg-graphite-hover rounded animate-pulse" />
                 ) : visitorInfo?.chatsCount != null ? (
-                  <>Chaty <span className="font-medium text-gray-800">{visitorInfo.chatsCount}</span></>
+                  <>Chaty <span className="font-medium text-gray-800 dark:text-graphite-text">{visitorInfo.chatsCount}</span></>
                 ) : null}
               </span>
             </div>
@@ -112,7 +112,7 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
       <Section title="Stav">
         <StatusPill status={conversation.status} />
         {conversation.closeType && (
-          <div className="text-xs text-gray-500 mt-1.5">Uzavřeno: {conversation.closeType}</div>
+          <div className="text-xs text-gray-500 dark:text-graphite-muted mt-1.5">Uzavřeno: {conversation.closeType}</div>
         )}
       </Section>
 
@@ -121,11 +121,11 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
         <Section title="Hodnocení">
           <div data-testid="rating" className="flex items-center gap-1 text-amber-500">
             <Star className="w-4 h-4 fill-amber-400" />
-            <span className="text-sm font-medium text-gray-900">{conversation.rating}</span>
-            <span className="text-xs text-gray-400">/ 5</span>
+            <span className="text-sm font-medium text-gray-900 dark:text-graphite-text">{conversation.rating}</span>
+            <span className="text-xs text-gray-400 dark:text-graphite-faint">/ 5</span>
           </div>
           {conversation.ratingText && (
-            <p className="text-xs text-gray-600 mt-1.5 italic">"{conversation.ratingText}"</p>
+            <p className="text-xs text-gray-600 dark:text-graphite-muted mt-1.5 italic">"{conversation.ratingText}"</p>
           )}
         </Section>
       )}
@@ -146,28 +146,28 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
         <Section title="Kontakt">
           <div className="space-y-1">
             {conversation.contactPhone && (
-              <div className="text-sm text-gray-700">{conversation.contactPhone}</div>
+              <div className="text-sm text-gray-700 dark:text-graphite-muted">{conversation.contactPhone}</div>
             )}
             {conversation.locationIp && (
-              <div className="text-xs text-gray-500">{conversation.locationIp}</div>
+              <div className="text-xs text-gray-500 dark:text-graphite-muted">{conversation.locationIp}</div>
             )}
             {locationText && (
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-gray-700 dark:text-graphite-muted">
                 {flag ? `${flag} ${locationText}` : locationText}
               </div>
             )}
             {conversation.channel && (
-              <div className="text-sm text-gray-700">{conversation.channel}</div>
+              <div className="text-sm text-gray-700 dark:text-graphite-muted">{conversation.channel}</div>
             )}
             {conversation.domain && (
-              <div className="text-xs text-gray-500">{conversation.domain}</div>
+              <div className="text-xs text-gray-500 dark:text-graphite-muted">{conversation.domain}</div>
             )}
             {conversation.referer && (
               <a
                 href={conversation.referer}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-blue-600 hover:underline truncate block"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate block"
               >
                 {conversation.referer}
               </a>
@@ -179,7 +179,7 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
       {/* Note */}
       {conversation.contactNote && (
         <Section title="Poznámka">
-          <p className="text-sm text-gray-700 whitespace-pre-wrap">{conversation.contactNote}</p>
+          <p className="text-sm text-gray-700 dark:text-graphite-muted whitespace-pre-wrap">{conversation.contactNote}</p>
         </Section>
       )}
 
@@ -190,7 +190,7 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
             {conversation.contactTags.map((t) => (
               <span
                 key={t}
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-blue-50 text-blue-700"
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
               >
                 {t}
               </span>
@@ -206,7 +206,7 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
             {conversation.tags.map((t) => (
               <span
                 key={t}
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-gray-100 text-gray-700"
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-gray-100 dark:bg-graphite-surface-2 text-gray-700 dark:text-graphite-muted"
               >
                 {t}
               </span>
@@ -236,8 +236,8 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
           <div className="space-y-1">
             {infoEntries.map(([key, value]) => (
               <div key={key} className="flex gap-2 text-xs">
-                <span className="text-gray-500 shrink-0 w-1/2 truncate">{key}</span>
-                <span className="text-gray-800 truncate">{value}</span>
+                <span className="text-gray-500 dark:text-graphite-muted shrink-0 w-1/2 truncate">{key}</span>
+                <span className="text-gray-800 dark:text-graphite-text truncate">{value}</span>
               </div>
             ))}
           </div>

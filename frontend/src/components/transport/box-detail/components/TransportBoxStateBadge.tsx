@@ -18,7 +18,7 @@ const TransportBoxStateBadge: React.FC<TransportBoxStateBadgeProps> = ({
   return (
     <span
       className={`inline-flex items-center rounded-full font-medium ${
-        stateColors[state] || "bg-gray-100 text-gray-800"
+        stateColors[state] || "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted"
       } ${sizeClasses[size]}`}
     >
       {stateLabels[state] || state}

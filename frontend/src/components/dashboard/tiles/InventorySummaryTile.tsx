@@ -40,8 +40,8 @@ export const InventorySummaryTile: React.FC<InventorySummaryTileProps> = ({ data
     return (
       <div className="h-full flex items-center justify-center text-center">
         <div>
-          <div className="text-red-500 text-2xl mb-2">⚠️</div>
-          <p className="text-red-600 text-sm">{data.error || 'Chyba při načítání dat'}</p>
+          <div className="text-red-500 dark:text-red-400 text-2xl mb-2">⚠️</div>
+          <p className="text-red-600 dark:text-red-400 text-sm">{data.error || 'Chyba při načítání dat'}</p>
         </div>
       </div>
     );
@@ -96,7 +96,7 @@ export const InventorySummaryTile: React.FC<InventorySummaryTileProps> = ({ data
     <div
       className={`
         flex items-start gap-2 h-full pt-2 min-h-44
-        ${isClickable ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 rounded-lg' : ''}
+        ${isClickable ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 transition-colors duration-200 rounded-lg' : ''}
       `}
       onClick={handleClick}
       title={tooltip}
@@ -117,27 +117,27 @@ export const InventorySummaryTile: React.FC<InventorySummaryTileProps> = ({ data
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-sm bg-green-500"></div>
-            <span className="text-base md:text-sm text-gray-700">&lt; 180 dní</span>
+            <span className="text-base md:text-sm text-gray-700 dark:text-graphite-muted">&lt; 180 dní</span>
           </div>
-          <span className="text-2xl md:text-xl font-bold text-gray-900">{recent}</span>
+          <span className="text-2xl md:text-xl font-bold text-gray-900 dark:text-graphite-text">{recent}</span>
         </div>
 
         {/* Orange: 120-250 days */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-sm bg-amber-500"></div>
-            <span className="text-base md:text-sm text-gray-700">180-365 dní</span>
+            <span className="text-base md:text-sm text-gray-700 dark:text-graphite-muted">180-365 dní</span>
           </div>
-          <span className="text-2xl md:text-xl font-bold text-gray-900">{medium}</span>
+          <span className="text-2xl md:text-xl font-bold text-gray-900 dark:text-graphite-text">{medium}</span>
         </div>
 
         {/* Red: > 250 days or never */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-sm bg-red-500"></div>
-            <span className="text-base md:text-sm text-gray-700">&gt; 365 dní</span>
+            <span className="text-base md:text-sm text-gray-700 dark:text-graphite-muted">&gt; 365 dní</span>
           </div>
-          <span className="text-2xl md:text-xl font-bold text-gray-900">{redTotal}</span>
+          <span className="text-2xl md:text-xl font-bold text-gray-900 dark:text-graphite-text">{redTotal}</span>
         </div>
       </div>
     </div>

@@ -53,7 +53,7 @@ function PhotoThumbnail({
   if (hasError) {
     return (
       <div
-        className={`flex items-center justify-center bg-gray-100 rounded text-gray-400 ${className}`}
+        className={`flex items-center justify-center bg-gray-100 dark:bg-graphite-surface-2 rounded text-gray-400 dark:text-graphite-faint ${className}`}
         aria-label="Náhled není k dispozici"
       >
         <ImageIcon className="w-8 h-8" />
@@ -64,7 +64,7 @@ function PhotoThumbnail({
   if (!objectUrl) {
     return (
       <div
-        className={`bg-gray-200 rounded animate-pulse ${className}`}
+        className={`bg-gray-200 dark:bg-graphite-hover rounded animate-pulse ${className}`}
         aria-label={alt}
       />
     );

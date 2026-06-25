@@ -39,13 +39,13 @@ const PackingMaterialsSettingsTab: React.FC<PackingMaterialsSettingsTabProps> = 
   const getConsumptionTypeColor = (type: ConsumptionType) => {
     switch (type) {
       case ConsumptionType.PerOrder:
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
       case ConsumptionType.PerProduct:
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300';
       case ConsumptionType.PerDay:
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted';
     }
   };
 
@@ -76,7 +76,7 @@ const PackingMaterialsSettingsTab: React.FC<PackingMaterialsSettingsTabProps> = 
   if (error) {
     return (
       <div className="p-4">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 px-4 py-3 rounded">
           Chyba při načítání materiálů: {(error as Error).message}
         </div>
       </div>
@@ -90,10 +90,10 @@ const PackingMaterialsSettingsTab: React.FC<PackingMaterialsSettingsTabProps> = 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <Package className="h-8 w-8 text-gray-700" />
+          <Package className="h-8 w-8 text-gray-700 dark:text-graphite-muted" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Sledování materiálů</h1>
-            <p className="text-sm text-gray-500">Správa spotřebních materiálů a jejich zásob</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-graphite-text">Sledování materiálů</h1>
+            <p className="text-sm text-gray-500 dark:text-graphite-muted">Správa spotřebních materiálů a jejich zásob</p>
           </div>
         </div>
 
@@ -116,40 +116,40 @@ const PackingMaterialsSettingsTab: React.FC<PackingMaterialsSettingsTabProps> = 
       </div>
 
       {/* Materials Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+            <thead className="bg-gray-50 dark:bg-graphite-surface-2">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Název
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Aktuální množství
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Spotřeba
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Typ spotřeby
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Forecast (dní)
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Akce
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
               {materials.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                    <Package className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-graphite-muted">
+                    <Package className="h-12 w-12 mx-auto text-gray-300 dark:text-graphite-faint mb-3" />
                     <p className="text-sm">Zatím nejsou přidány žádné materiály.</p>
                     <button
                       onClick={() => setIsAddModalOpen(true)}
-                      className="mt-2 text-indigo-600 hover:text-indigo-500 text-sm font-medium"
+                      className="mt-2 text-indigo-600 dark:text-graphite-accent hover:text-indigo-500 text-sm font-medium"
                     >
                       Přidat první materiál
                     </button>
@@ -157,15 +157,15 @@ const PackingMaterialsSettingsTab: React.FC<PackingMaterialsSettingsTabProps> = 
                 </tr>
               ) : (
                 materials.map((material) => (
-                  <tr key={material.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleRowClick(material)}>
+                  <tr key={material.id} className="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer" onClick={() => handleRowClick(material)}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{material.name}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-graphite-text">{material.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatQuantity(material.currentQuantity!)}</div>
+                      <div className="text-sm text-gray-900 dark:text-graphite-text">{formatQuantity(material.currentQuantity!)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatQuantity(material.consumptionRate!)}</div>
+                      <div className="text-sm text-gray-900 dark:text-graphite-text">{formatQuantity(material.consumptionRate!)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getConsumptionTypeColor(material.consumptionType!)}`}>
@@ -173,7 +173,7 @@ const PackingMaterialsSettingsTab: React.FC<PackingMaterialsSettingsTabProps> = 
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatForecastDays(material.forecastedDays)}</div>
+                      <div className="text-sm text-gray-900 dark:text-graphite-text">{formatForecastDays(material.forecastedDays)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
@@ -183,7 +183,7 @@ const PackingMaterialsSettingsTab: React.FC<PackingMaterialsSettingsTabProps> = 
                             setSelectedMaterial(material);
                             setIsQuantityModalOpen(true);
                           }}
-                          className="text-indigo-600 hover:text-indigo-900 p-1 rounded"
+                          className="text-indigo-600 dark:text-graphite-accent hover:text-indigo-900 p-1 rounded"
                           title="Upravit množství"
                         >
                           <Calculator className="h-4 w-4" />
@@ -194,7 +194,7 @@ const PackingMaterialsSettingsTab: React.FC<PackingMaterialsSettingsTabProps> = 
                             setSelectedMaterial(material);
                             setIsEditModalOpen(true);
                           }}
-                          className="text-gray-600 hover:text-gray-900 p-1 rounded"
+                          className="text-gray-600 dark:text-graphite-muted hover:text-gray-900 dark:hover:text-graphite-text p-1 rounded"
                           title="Editovat materiál"
                         >
                           <Edit className="h-4 w-4" />
@@ -204,7 +204,7 @@ const PackingMaterialsSettingsTab: React.FC<PackingMaterialsSettingsTabProps> = 
                             e.stopPropagation();
                             handleDeleteMaterial(material);
                           }}
-                          className="text-red-600 hover:text-red-900 p-1 rounded"
+                          className="text-red-600 dark:text-red-400 hover:text-red-900 p-1 rounded"
                           title="Smazat materiál"
                           disabled={deletePackingMaterialMutation.isPending}
                         >

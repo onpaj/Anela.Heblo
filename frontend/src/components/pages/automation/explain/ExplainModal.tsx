@@ -16,10 +16,10 @@ interface DialogTurn {
 }
 
 const SPEAKER_COLORS = [
-  'bg-indigo-100 text-indigo-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-amber-100 text-amber-700',
-  'bg-rose-100 text-rose-700',
+  'bg-indigo-100 text-indigo-700 dark:bg-graphite-accent/10 dark:text-graphite-accent',
+  'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
 ];
 
 function parseTranscriptToDialog(transcript: string): DialogTurn[] | null {
@@ -74,14 +74,14 @@ export function ExplainModal({
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white rounded-lg shadow-lg p-5 max-w-2xl w-full max-h-[80vh] flex flex-col">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-lg dark:shadow-soft-dark p-5 max-w-2xl w-full max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between mb-3 flex-shrink-0">
-          <h3 className="text-base font-semibold text-gray-900">Detail vysvětlení</h3>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-graphite-text">Detail vysvětlení</h3>
           <button
             type="button"
             title="Zavřít"
             onClick={onClose}
-            className="p-1 rounded-md text-gray-500 hover:bg-gray-100"
+            className="p-1 rounded-md text-gray-500 dark:text-graphite-muted hover:bg-gray-100 dark:hover:bg-white/5"
           >
             <X className="w-4 h-4" />
           </button>
@@ -92,20 +92,20 @@ export function ExplainModal({
             <div className="flex justify-center py-8">
               <div
                 role="status"
-                className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"
+                className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 dark:border-graphite-border dark:border-t-graphite-accent rounded-full animate-spin"
                 aria-label="Načítám..."
               />
             </div>
           )}
 
           {!isLoading && error && (
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           )}
 
           {!isLoading && !error && !!relevantTranscript && (
             <>
               <div>
-                <p className="text-xs font-semibold uppercase text-gray-500 mb-2">Záznam konverzace</p>
+                <p className="text-xs font-semibold uppercase text-gray-500 dark:text-graphite-muted mb-2">Záznam konverzace</p>
                 {dialogTurns ? (
                   <div className="space-y-3">
                     {dialogTurns.map((turn, i) => (
@@ -113,19 +113,19 @@ export function ExplainModal({
                         <span className={`self-start text-xs font-semibold px-1.5 py-0.5 rounded ${speakerColorMap.get(turn.speaker)}`}>
                           {turn.speaker}
                         </span>
-                        <p className="text-sm text-gray-800 pl-1">{turn.text}</p>
+                        <p className="text-sm text-gray-800 dark:text-graphite-muted pl-1">{turn.text}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 whitespace-pre-wrap">
+                  <div className="rounded-md border border-gray-200 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2 p-3 text-sm text-gray-800 dark:text-graphite-muted whitespace-pre-wrap">
                     {relevantTranscript}
                   </div>
                 )}
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase text-gray-500 mb-1">Vysvětlení</p>
-                <div className="rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">
+                <p className="text-xs font-semibold uppercase text-gray-500 dark:text-graphite-muted mb-1">Vysvětlení</p>
+                <div className="rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-300">
                   {explanation}
                 </div>
               </div>

@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3349",
+  "issue_number": 3349,
+  "created_at": "2026-06-25T17:15:06.943002Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T17:17:21.257773Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-25T17:19:46.410679Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T17:19:58.655204Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-25T17:21:24.160908Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T17:27:50.118898Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-06-25T17:27:55.995592Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-checkbox-locators",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T17:25:36.228167Z"
+    },
+    {
+      "name": "fix-invoice-id-filter-assertion",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T17:27:43.233971Z"
+    }
+  ]
+}

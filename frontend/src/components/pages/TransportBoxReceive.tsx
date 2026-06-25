@@ -90,13 +90,13 @@ const TransportBoxReceive: React.FC = () => {
   const getStateBadgeColor = (state: string) => {
     switch (state) {
       case 'InTransit':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
       case 'Reserve':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300';
       case 'Received':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted';
     }
   };
 
@@ -107,15 +107,15 @@ const TransportBoxReceive: React.FC = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Page Header with Barcode Scanner */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
-            <Package className="h-8 w-8 text-indigo-600" />
+            <Package className="h-8 w-8 text-indigo-600 dark:text-graphite-accent" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-graphite-text">
                 Příjem transportních boxů
               </h1>
-              <p className="mt-1 text-gray-600">
+              <p className="mt-1 text-gray-600 dark:text-graphite-muted">
                 Naskenujte kód boxu pro příjem zásilky do skladu
               </p>
             </div>
@@ -125,7 +125,7 @@ const TransportBoxReceive: React.FC = () => {
           <form onSubmit={handleScan} className="flex items-center space-x-2 min-w-[400px]">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Scan className="h-4 w-4 text-gray-400" />
+                <Scan className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
               </div>
               <input
                 ref={inputRef}
@@ -134,7 +134,7 @@ const TransportBoxReceive: React.FC = () => {
                 value={boxCode}
                 onChange={(e) => setBoxCode(e.target.value.toUpperCase())}
                 placeholder="Naskenujte kód boxu (např. B001)"
-                className="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                className="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                 disabled={isLoading}
                 autoComplete="off"
               />
@@ -160,14 +160,14 @@ const TransportBoxReceive: React.FC = () => {
 
       {/* Box Details Card */}
       {boxDetails && (
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
                 Detail boxu {boxDetails.code || ''}
               </h2>
               {boxDetails.lastStateChanged && (
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 dark:text-graphite-muted">
                   ({new Date(boxDetails.lastStateChanged).toLocaleString('cs-CZ')})
                 </span>
               )}
@@ -179,16 +179,16 @@ const TransportBoxReceive: React.FC = () => {
 
           {/* Alert when box is not receivable */}
           {boxDetails.isReceivable === false && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-lg">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <X className="h-5 w-5 text-red-400" />
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
+                  <h3 className="text-sm font-medium text-red-800 dark:text-red-300">
                     Box nelze přijmout
                   </h3>
-                  <div className="mt-2 text-sm text-red-700">
+                  <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                     <p>
                       Box je ve stavu "{getStateLabel(boxDetails.state || '')}" a nemůže být přijat.
                       Pro příjem musí být box ve stavu "V přepravě", "V rezervě" nebo "V karanténě".
@@ -201,32 +201,32 @@ const TransportBoxReceive: React.FC = () => {
 
           {boxDetails.location && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-500">Umístění</label>
-              <p className="mt-1 text-sm text-gray-900">{boxDetails.location}</p>
+              <label className="block text-sm font-medium text-gray-500 dark:text-graphite-muted">Umístění</label>
+              <p className="mt-1 text-sm text-gray-900 dark:text-graphite-text">{boxDetails.location}</p>
             </div>
           )}
 
           {boxDetails.description && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h3 className="text-sm font-medium text-yellow-800 mb-1">Poznámka</h3>
-              <p className="text-sm text-yellow-700">{boxDetails.description}</p>
+            <div className="mb-6 p-4 bg-yellow-50 dark:bg-amber-900/20 border border-yellow-200 dark:border-amber-900/40 rounded-lg">
+              <h3 className="text-sm font-medium text-yellow-800 dark:text-amber-300 mb-1">Poznámka</h3>
+              <p className="text-sm text-yellow-700 dark:text-amber-300">{boxDetails.description}</p>
             </div>
           )}
 
           {/* Contents Card */}
-          <div className="border border-gray-200 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="border border-gray-200 dark:border-graphite-border rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-graphite-text mb-4">
               Obsah boxu ({boxDetails.items?.length || 0} {(boxDetails.items?.length || 0) === 1 ? 'položka' : (boxDetails.items?.length || 0) < 5 ? 'položky' : 'položek'})
             </h3>
 
             {!boxDetails.items || boxDetails.items.length === 0 ? (
-              <p className="text-gray-500 text-sm">Box neobsahuje žádné položky</p>
+              <p className="text-gray-500 dark:text-graphite-muted text-sm">Box neobsahuje žádné položky</p>
             ) : (
               <div className="space-y-3">
                 {boxDetails.items.map((item) => (
-                  <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 dark:bg-graphite-surface-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
                     {/* Product Image */}
-                    <div className="flex-shrink-0 w-16 h-16 bg-white border border-gray-200 rounded-md overflow-hidden">
+                    <div className="flex-shrink-0 w-16 h-16 bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-md overflow-hidden">
                       {item.imageUrl ? (
                         <img
                           src={item.imageUrl}
@@ -238,7 +238,7 @@ const TransportBoxReceive: React.FC = () => {
                           }}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-graphite-faint">
                           <Package className="h-8 w-8" />
                         </div>
                       )}
@@ -246,27 +246,27 @@ const TransportBoxReceive: React.FC = () => {
 
                     {/* Product Code - Small */}
                     <div className="flex-shrink-0 w-20">
-                      <p className="text-xs text-gray-500 font-mono">
+                      <p className="text-xs text-gray-500 dark:text-graphite-muted font-mono">
                         {item.productCode || ''}
                       </p>
                     </div>
 
                     {/* Product Name - Flexible */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-base font-medium text-gray-900 truncate">
+                      <p className="text-base font-medium text-gray-900 dark:text-graphite-text truncate">
                         {item.productName || ''}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-gray-500 dark:text-graphite-muted mt-0.5">
                         Skladem: {item.onStock || 0}
                       </p>
                     </div>
 
                     {/* Amount - Large and Prominent */}
                     <div className="flex-shrink-0 text-right">
-                      <p className="text-2xl font-bold text-gray-900">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-graphite-text">
                         {item.amount || 0}
                       </p>
-                      <p className="text-xs text-gray-500">ks</p>
+                      <p className="text-xs text-gray-500 dark:text-graphite-muted">ks</p>
                     </div>
                   </div>
                 ))}
@@ -275,12 +275,12 @@ const TransportBoxReceive: React.FC = () => {
           </div>
 
           {/* Action Buttons - Fixed to bottom with safe area for status bar */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10 pb-8">
+          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-graphite-surface border-t border-gray-200 dark:border-graphite-border shadow-lg dark:shadow-soft-dark z-10 pb-8">
             <div className="max-w-7xl mx-auto flex justify-between space-x-4 p-4 pt-4 md:pl-64">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="flex-1 flex justify-center py-4 px-6 border border-gray-300 rounded-lg shadow-sm text-base font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:bg-gray-100 min-h-[56px]"
+                className="flex-1 flex justify-center py-4 px-6 border border-gray-300 dark:border-graphite-border rounded-lg shadow-sm text-base font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:bg-gray-100 min-h-[56px]"
               >
                 <X className="-ml-1 mr-2 h-5 w-5" />
                 Storno
@@ -309,7 +309,7 @@ const TransportBoxReceive: React.FC = () => {
                 <button
                   type="button"
                   disabled
-                  className="flex-1 flex justify-center py-4 px-6 border border-gray-300 rounded-lg shadow-sm text-base font-medium text-gray-500 bg-gray-100 cursor-not-allowed min-h-[56px]"
+                  className="flex-1 flex justify-center py-4 px-6 border border-gray-300 dark:border-graphite-border rounded-lg shadow-sm text-base font-medium text-gray-500 dark:text-graphite-muted bg-gray-100 dark:bg-graphite-surface-2 cursor-not-allowed min-h-[56px]"
                 >
                   <X className="-ml-1 mr-2 h-5 w-5" />
                   Nelze přijmout

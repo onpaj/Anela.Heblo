@@ -32,7 +32,7 @@ const PhaseDropZoneRow: React.FC<{ phase: string; columnCount: number }> = ({ ph
         colSpan={columnCount}
         ref={setNodeRef}
         className={`py-4 text-center text-sm border-2 border-dashed rounded transition-colors ${
-          isOver ? 'border-indigo-400 bg-indigo-50 text-indigo-600' : 'border-gray-200 text-gray-400'
+          isOver ? 'border-indigo-400 bg-indigo-50 text-indigo-600 dark:border-graphite-accent dark:bg-graphite-accent/10 dark:text-graphite-accent' : 'border-gray-200 text-gray-400 dark:border-graphite-border dark:text-graphite-faint'
         }`}
       >
         Přetáhněte ingredience sem pro fázi {phase}
@@ -232,7 +232,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-          <div className="text-gray-500">Načítání složení...</div>
+          <div className="text-gray-500 dark:text-graphite-muted">Načítání složení...</div>
         </div>
       </div>
     );
@@ -241,7 +241,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-2 text-red-600">
+        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
           <AlertCircle className="h-5 w-5" />
           <div>Chyba při načítání složení: {(error as Error).message}</div>
         </div>
@@ -251,10 +251,10 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
 
   if (ingredients.length === 0) {
     return (
-      <div className="text-center py-12 bg-gray-50 rounded-lg">
-        <Beaker className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-        <p className="text-gray-500 mb-2">Tento produkt nemá definované složení</p>
-        <p className="text-sm text-gray-400">Výrobní šablona pro tento produkt neexistuje</p>
+      <div className="text-center py-12 bg-gray-50 dark:bg-graphite-surface-2 rounded-lg">
+        <Beaker className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-graphite-faint" />
+        <p className="text-gray-500 dark:text-graphite-muted mb-2">Tento produkt nemá definované složení</p>
+        <p className="text-sm text-gray-400 dark:text-graphite-faint">Výrobní šablona pro tento produkt neexistuje</p>
       </div>
     );
   }
@@ -264,8 +264,8 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <Beaker className="h-5 w-5 mr-2 text-gray-500" />
+        <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text flex items-center">
+          <Beaker className="h-5 w-5 mr-2 text-gray-500 dark:text-graphite-muted" />
           Složení ({sortedIngredients.length} ingrediencí)
         </h3>
         <div className="flex items-center space-x-2">
@@ -273,7 +273,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
             <button
               type="button"
               onClick={addPhase}
-              className="inline-flex items-center px-3 py-1.5 text-sm border border-indigo-300 rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100"
+              className="inline-flex items-center px-3 py-1.5 text-sm border border-indigo-300 rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 dark:border-graphite-accent dark:text-graphite-accent dark:bg-graphite-accent/10 dark:hover:bg-white/5"
             >
               <Plus className="h-4 w-4 mr-1" />
               Přidat fázi
@@ -283,7 +283,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
             <button
               type="button"
               onClick={enterEditMode}
-              className="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              className="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:border-graphite-border dark:text-graphite-muted dark:bg-graphite-surface dark:hover:bg-white/5"
             >
               <Pencil className="h-4 w-4 mr-1.5" />
               Upravit pořadí
@@ -304,7 +304,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
                 type="button"
                 onClick={cancelEdit}
                 disabled={updateOrder.isPending}
-                className="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                className="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:border-graphite-border dark:text-graphite-muted dark:bg-graphite-surface dark:hover:bg-white/5"
               >
                 <X className="h-4 w-4 mr-1.5" />
                 Zrušit
@@ -315,7 +315,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
       </div>
 
       {saveError && (
-        <div className="flex items-center space-x-2 px-3 py-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded mb-4">
+        <div className="flex items-center space-x-2 px-3 py-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded mb-4 dark:text-red-300 dark:bg-red-900/30 dark:border-graphite-border">
           <AlertCircle className="h-4 w-4" />
           <span>{saveError}</span>
         </div>
@@ -326,39 +326,39 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex-1 min-h-0 bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="flex-1 min-h-0 bg-white rounded-lg border border-gray-200 overflow-hidden dark:bg-graphite-surface dark:border-graphite-border">
           <div className="h-full overflow-y-auto">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+              <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 dark:bg-graphite-surface-2 dark:border-graphite-border">
                 <tr>
                   {isEditMode && <th className="w-8 py-3 px-2" />}
-                  <th className="text-right py-3 px-4 font-medium text-gray-700 w-16">#</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-700 dark:text-graphite-muted w-16">#</th>
                   <th
-                    className={`text-left py-3 px-4 font-medium text-gray-700 ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100'}`}
+                    className={`text-left py-3 px-4 font-medium text-gray-700 dark:text-graphite-muted ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5'}`}
                     onClick={() => handleSort('productName')}
                   >
                     Název{getSortIcon('productName')}
                   </th>
                   <th
-                    className={`text-left py-3 px-4 font-medium text-gray-700 ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100'}`}
+                    className={`text-left py-3 px-4 font-medium text-gray-700 dark:text-graphite-muted ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5'}`}
                     onClick={() => handleSort('productCode')}
                   >
                     Kód{getSortIcon('productCode')}
                   </th>
                   <th
-                    className={`text-right py-3 px-4 font-medium text-gray-700 ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100'}`}
+                    className={`text-right py-3 px-4 font-medium text-gray-700 dark:text-graphite-muted ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5'}`}
                     onClick={() => handleSort('amount')}
                   >
                     Množství{getSortIcon('amount')}
                   </th>
-                  {isEditMode && <th className="text-center py-3 px-3 font-medium text-gray-700 w-16">Fáze</th>}
+                  {isEditMode && <th className="text-center py-3 px-3 font-medium text-gray-700 dark:text-graphite-muted w-16">Fáze</th>}
                 </tr>
               </thead>
               <SortableContext
                 items={sortedIngredients.map((i) => i.productCode)}
                 strategy={verticalListSortingStrategy}
               >
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-graphite-border">
                   {isEditMode ? (
                     <>
                       {/* In edit mode iterate draftPhases so phases always appear A→Z. */}
@@ -368,16 +368,16 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
                         );
                         return (
                           <React.Fragment key={`phase-section-${phase}`}>
-                            <tr className="bg-indigo-50 border-t border-indigo-200">
+                            <tr className="bg-indigo-50 border-t border-indigo-200 dark:bg-graphite-accent/10 dark:border-graphite-accent">
                               <td colSpan={columnCount} className="px-4 py-1">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-sm font-semibold text-indigo-700">
+                                  <span className="text-sm font-semibold text-indigo-700 dark:text-graphite-accent">
                                     Fáze {phase}
                                   </span>
                                   <button
                                     type="button"
                                     onClick={() => removePhase(phase)}
-                                    className="text-indigo-400 hover:text-red-500 text-lg leading-none px-1"
+                                    className="text-indigo-400 hover:text-red-500 text-lg leading-none px-1 dark:text-graphite-accent dark:hover:text-red-400"
                                     title={`Odebrat fázi ${phase}`}
                                   >
                                     ×
@@ -431,9 +431,9 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
                       return (
                         <React.Fragment key={ingredient.productCode}>
                           {isFirstInPhase && currentPhase && (
-                            <tr className="bg-indigo-50 border-t border-indigo-200">
+                            <tr className="bg-indigo-50 border-t border-indigo-200 dark:bg-graphite-accent/10 dark:border-graphite-accent">
                               <td colSpan={columnCount} className="px-4 py-1">
-                                <span className="text-sm font-semibold text-indigo-700">
+                                <span className="text-sm font-semibold text-indigo-700 dark:text-graphite-accent">
                                   Fáze {currentPhase}
                                 </span>
                               </td>

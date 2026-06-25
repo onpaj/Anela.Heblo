@@ -66,7 +66,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
   if (inProgress === "login" || inProgress === "logout") {
     return (
       <div className={`flex items-center ${compact ? "justify-center" : "justify-center p-2"}`}>
-        <div className="w-8 h-8 bg-gray-300 rounded-full animate-pulse"></div>
+        <div className="w-8 h-8 bg-gray-300 dark:bg-white/10 rounded-full animate-pulse"></div>
       </div>
     );
   }
@@ -76,7 +76,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
       return (
         <button
           onClick={handleLogin}
-          className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center hover:bg-gray-500 transition-colors"
+          className="w-8 h-8 bg-gray-400 dark:bg-graphite-border-strong rounded-full flex items-center justify-center hover:bg-gray-500 dark:hover:bg-graphite-hover transition-colors"
           title="Sign in"
         >
           <User className="h-4 w-4 text-white" />
@@ -87,17 +87,17 @@ const UserProfile: React.FC<UserProfileProps> = ({
     return (
       <button
         onClick={handleLogin}
-        className="flex items-center space-x-3 p-2 w-full text-left hover:bg-secondary-blue-pale/50 rounded-md transition-colors group"
+        className="flex items-center space-x-3 p-2 w-full text-left hover:bg-secondary-blue-pale/50 dark:hover:bg-white/5 rounded-md transition-colors group"
         title="Sign in"
       >
-        <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
+        <div className="w-8 h-8 bg-gray-400 dark:bg-graphite-border-strong rounded-full flex items-center justify-center">
           <User className="h-4 w-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Sign in</p>
-          <p className="text-xs text-gray-500">Click to authenticate</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-graphite-muted group-hover:text-gray-900 dark:group-hover:text-graphite-text">Sign in</p>
+          <p className="text-xs text-gray-500 dark:text-graphite-muted">Click to authenticate</p>
         </div>
-        <LogIn className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
+        <LogIn className="h-4 w-4 text-gray-400 dark:text-graphite-faint group-hover:text-gray-600 dark:group-hover:text-graphite-muted" />
       </button>
     );
   }
@@ -113,24 +113,24 @@ const UserProfile: React.FC<UserProfileProps> = ({
       {compact ? (
         <button
           onClick={() => setShowPanel((prev) => !prev)}
-          className="w-8 h-8 bg-primary-blue rounded-full flex items-center justify-center hover:bg-accent-blue-bright transition-colors"
+          className="w-8 h-8 bg-primary-blue dark:bg-graphite-accent rounded-full flex items-center justify-center hover:bg-accent-blue-bright dark:hover:bg-graphite-accent-strong transition-colors"
           title={`${userInfo?.name} (${userInfo?.email})`}
         >
-          <span className="text-white text-sm font-medium">{userInfo?.initials || "U"}</span>
+          <span className="text-white dark:text-graphite-accent-ink text-sm font-medium">{userInfo?.initials || "U"}</span>
         </button>
       ) : (
         <button
           onClick={() => setShowPanel((prev) => !prev)}
-          className="flex items-center space-x-3 p-2 w-full text-left hover:bg-secondary-blue-pale/50 rounded-md transition-colors group"
+          className="flex items-center space-x-3 p-2 w-full text-left hover:bg-secondary-blue-pale/50 dark:hover:bg-white/5 rounded-md transition-colors group"
         >
-          <div className="w-8 h-8 bg-primary-blue rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-medium">{userInfo?.initials || "U"}</span>
+          <div className="w-8 h-8 bg-primary-blue dark:bg-graphite-accent rounded-full flex items-center justify-center">
+            <span className="text-white dark:text-graphite-accent-ink text-sm font-medium">{userInfo?.initials || "U"}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-neutral-slate group-hover:text-neutral-slate truncate">
+            <p className="text-sm font-medium text-neutral-slate dark:text-graphite-text group-hover:text-neutral-slate truncate">
               {userInfo?.name || "User"}
             </p>
-            <p className="text-xs text-gray-500 truncate">{userInfo?.email || "user@example.com"}</p>
+            <p className="text-xs text-gray-500 dark:text-graphite-muted truncate">{userInfo?.email || "user@example.com"}</p>
           </div>
         </button>
       )}
@@ -146,23 +146,23 @@ const UserProfile: React.FC<UserProfileProps> = ({
         leaveTo="opacity-0 translate-y-2"
       >
         <div
-          className={`${panelPositionClass} z-10 ${menuPosition === "below" ? "rounded-b-xl" : "rounded-t-xl"} shadow-lg bg-white border border-gray-100 overflow-hidden`}
+          className={`${panelPositionClass} z-10 ${menuPosition === "below" ? "rounded-b-xl" : "rounded-t-xl"} shadow-lg dark:shadow-soft-dark bg-white dark:bg-graphite-surface border border-gray-100 dark:border-graphite-border overflow-hidden`}
         >
           <div className="max-h-[80vh] overflow-y-auto">
             {/* User identity */}
-            <div className="px-5 py-5 flex items-center space-x-4 border-b border-gray-100">
-              <div className="w-12 h-12 bg-primary-blue rounded-full flex items-center justify-center shrink-0">
-                <span className="text-white text-lg font-semibold">
+            <div className="px-5 py-5 flex items-center space-x-4 border-b border-gray-100 dark:border-graphite-border">
+              <div className="w-12 h-12 bg-primary-blue dark:bg-graphite-accent rounded-full flex items-center justify-center shrink-0">
+                <span className="text-white dark:text-graphite-accent-ink text-lg font-semibold">
                   {userInfo?.initials || "U"}
                 </span>
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-neutral-slate truncate">
+                <p className="text-sm font-semibold text-neutral-slate dark:text-graphite-text truncate">
                   {userInfo?.name}
                 </p>
-                <p className="text-xs text-gray-500 truncate">{userInfo?.email}</p>
+                <p className="text-xs text-gray-500 dark:text-graphite-muted truncate">{userInfo?.email}</p>
                 {storedUserInfo?.lastLogin && (
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-gray-400 dark:text-graphite-faint mt-0.5">
                     Poslední přihlášení:{" "}
                     {new Date(storedUserInfo.lastLogin).toLocaleString("cs-CZ")}
                   </p>
@@ -172,10 +172,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
             {/* Roles */}
             {displayRoles.length > 0 && (
-              <div className="px-5 py-4 border-b border-gray-100">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-graphite-border">
                 <div className="flex items-center space-x-2 mb-3">
-                  <ShieldCheck className="h-4 w-4 text-primary-blue" />
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <ShieldCheck className="h-4 w-4 text-primary-blue dark:text-graphite-accent" />
+                  <span className="text-xs font-semibold text-gray-500 dark:text-graphite-muted uppercase tracking-wide">
                     Role
                   </span>
                 </div>
@@ -185,8 +185,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       key={role}
                       className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                         role === "super_user"
-                          ? "bg-amber-50 text-amber-700"
-                          : "bg-secondary-blue-pale text-primary-blue"
+                          ? "bg-amber-50 dark:bg-amber-400/15 text-amber-700 dark:text-amber-400"
+                          : "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent"
                       }`}
                     >
                       {role}
@@ -198,15 +198,15 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
             {/* Permissions */}
             {!permissionsLoading && (isSuperUser || permissions.length > 0) && (
-              <div className="px-5 py-4 border-b border-gray-100">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-graphite-border">
                 <div className="flex items-center space-x-2 mb-3">
-                  <KeyRound className="h-4 w-4 text-emerald-600" />
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <KeyRound className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-xs font-semibold text-gray-500 dark:text-graphite-muted uppercase tracking-wide">
                     Oprávnění
                   </span>
                 </div>
                 {isSuperUser && (
-                  <p className="text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded-md mb-3">
+                  <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-400/15 px-3 py-1.5 rounded-md mb-3">
                     Super User · vše povoleno
                   </p>
                 )}
@@ -214,7 +214,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   {permissions.map((perm) => (
                     <span
                       key={perm}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700"
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-400/15 text-emerald-700 dark:text-emerald-400"
                     >
                       {perm}
                     </span>
@@ -225,10 +225,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
             {/* Groups */}
             {!permissionsLoading && groups.length > 0 && (
-              <div className="px-5 py-4 border-b border-gray-100">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-graphite-border">
                 <div className="flex items-center space-x-2 mb-3">
-                  <Users className="h-4 w-4 text-primary-blue" />
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <Users className="h-4 w-4 text-primary-blue dark:text-graphite-accent" />
+                  <span className="text-xs font-semibold text-gray-500 dark:text-graphite-muted uppercase tracking-wide">
                     Skupiny
                   </span>
                 </div>
@@ -236,7 +236,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   {groups.map((group) => (
                     <span
                       key={group}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary-blue-pale text-primary-blue"
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent"
                     >
                       {group}
                     </span>
@@ -249,7 +249,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
             <div className="px-5 py-4">
               <button
                 onClick={handleLogout}
-                className="flex items-center justify-center space-x-2 w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-center space-x-2 w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-text bg-white dark:bg-graphite-surface-2 border border-gray-200 dark:border-graphite-border rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
               >
                 <LogOut className="h-4 w-4" />
                 <span>Odhlásit se</span>

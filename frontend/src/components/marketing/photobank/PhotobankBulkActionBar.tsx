@@ -70,7 +70,7 @@ export default function PhotobankBulkActionBar({
           }}
           onKeyDown={handleKeyDown}
           placeholder="Název štítku"
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-blue w-full max-w-xs"
+          className="px-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md focus:outline-none focus:ring-1 focus:ring-primary-blue w-full max-w-xs"
           autoComplete="off"
         />
         <datalist id="bulk-tag-datalist">
@@ -79,10 +79,10 @@ export default function PhotobankBulkActionBar({
           ))}
         </datalist>
         {errorMessage && (
-          <p className="text-xs text-red-600">{errorMessage}</p>
+          <p className="text-xs text-red-600 dark:text-red-400">{errorMessage}</p>
         )}
         {isOverLimit && (
-          <p className="text-xs text-amber-600">
+          <p className="text-xs text-amber-600 dark:text-amber-400">
             Vyberte max. 5 000 fotek
           </p>
         )}
@@ -120,7 +120,7 @@ export default function PhotobankBulkActionBar({
           data-testid="bulk-clear-btn"
           type="button"
           onClick={onClear}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          className="px-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border rounded-md text-gray-700 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
         >
           Zrušit výběr
         </button>
