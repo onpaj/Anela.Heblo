@@ -12,7 +12,7 @@ test.describe('Stock Operations - State Badges & Stuck Detection', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to stock operations with full authentication
     await navigateToStockOperations(page);
-    expect(page.url()).toContain('/stock-operations');
+    expect(page.url()).toContain('/stock-up-operations');
     await waitForTableUpdate(page);
   });
 

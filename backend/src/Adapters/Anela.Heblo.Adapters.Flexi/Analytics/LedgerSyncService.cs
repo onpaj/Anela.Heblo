@@ -137,7 +137,7 @@ public sealed class LedgerSyncService : IEntitySyncService
         return incoming.Count;
     }
 
-    private static LedgerEntry Map(LedgerItemFlexiDto dto) => new()
+    internal static LedgerEntry Map(LedgerItemFlexiDto dto) => new()
     {
         FlexiId = dto.Id,
         Code = dto.ParSymbol,
@@ -148,7 +148,11 @@ public sealed class LedgerSyncService : IEntitySyncService
         Currency = dto.CurrencyRef,
         CostCenter = dto.DepartmentRef,
         Description = dto.Description,
-        LastModified = dto.LastUpdate?.ToUniversalTime(),
+        // FlexiBee SDK returns Kind=Unspecified representing Prague local time.
+        // ConvertTimeToUtc with TimeZoneInfo.Local matches UnspecifiedDateTimeConverter pattern.
+        LastModified = dto.LastUpdate.HasValue
+            ? TimeZoneInfo.ConvertTimeToUtc(dto.LastUpdate.Value.DateTime, TimeZoneInfo.Local)
+            : (DateTimeOffset?)null,
         // Period, DocumentType, Contact, AccountingTemplate: SDK 0.1.136 does not expose these fields yet;
         // wire them when the SDK adds PeriodRef / DocumentTypeRef / ContactRef / AccountingTemplateRef.
         RawPayload = SerializeRaw(dto),

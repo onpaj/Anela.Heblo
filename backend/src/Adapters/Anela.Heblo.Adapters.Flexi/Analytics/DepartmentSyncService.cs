@@ -108,12 +108,15 @@ public sealed class DepartmentSyncService : IEntitySyncService
         Error = (_, args) => args.ErrorContext.Handled = true,
     };
 
-    private static Department Map(DepartmentFlexiDto dto) => new()
+    internal static Department Map(DepartmentFlexiDto dto) => new()
     {
         FlexiId = (long)dto.Id,
         Code = dto.Code ?? "",
         Name = dto.Name,
-        LastModified = dto.LastUpdate == default ? null : (DateTimeOffset?)dto.LastUpdate.ToUniversalTime(),
+        // FlexiBee SDK returns Kind=Unspecified representing Prague local time.
+        // Force Kind=Unspecified before ConvertTimeToUtc to match UnspecifiedDateTimeConverter pattern.
+        // dto.LastUpdate is non-nullable DateTime; == default guard is correct here (no nullable operator).
+        LastModified = dto.LastUpdate == default ? null : (DateTimeOffset?)TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(dto.LastUpdate, DateTimeKind.Unspecified), TimeZoneInfo.Local),
         RawPayload = JsonConvert.SerializeObject(dto, RawPayloadSettings),
         SyncedAt = DateTimeOffset.UtcNow,
     };

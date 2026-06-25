@@ -10,13 +10,13 @@ test.describe('Sidebar Navigation', () => {
     await page.waitForLoadState('domcontentloaded');
   });
 
-  test('should display Personální section with Struktura link', async ({ page }) => {
-    // Find and click on Personální section
-    const personalniSection = page.getByRole('button', { name: /Personální/i });
-    await expect(personalniSection).toBeVisible();
+  test('should display Anela section with Struktura link', async ({ page }) => {
+    // Find and click on Anela section
+    const anelaSection = page.getByRole('button', { name: /Anela/i });
+    await expect(anelaSection).toBeVisible();
 
     // Expand the section
-    await personalniSection.click();
+    await anelaSection.click();
 
     // Check if Struktura link is visible with external link icon
     const strukturaLink = page.getByRole('button', { name: /Struktura/i });
@@ -28,9 +28,9 @@ test.describe('Sidebar Navigation', () => {
   });
 
   test('should open Struktura in new window', async ({ page, context }) => {
-    // Find and expand Personální section
-    const personalniSection = page.getByRole('button', { name: /Personální/i });
-    await personalniSection.click();
+    // Find and expand Anela section
+    const anelaSection = page.getByRole('button', { name: /Anela/i });
+    await anelaSection.click();
 
     // Create a promise that resolves when a new page is opened
     const newPagePromise = context.waitForEvent('page');
@@ -52,21 +52,21 @@ test.describe('Sidebar Navigation', () => {
     await newPage.close();
   });
 
-  test('should display Personální section between Sklad and Automatizace', async ({ page }) => {
+  test('should display Anela section before Sklad and Administrace', async ({ page }) => {
     // Get all section buttons in the sidebar
-    const sectionButtons = page.locator('nav button:has(svg)').filter({ hasText: /^(Sklad|Personální|Automatizace)$/ });
+    const sectionButtons = page.locator('nav button:has(svg)').filter({ hasText: /^(Anela|Sklad|Administrace)$/ });
 
     // Get text content of all sections
     const sectionTexts = await sectionButtons.allTextContents();
 
     // Find indices
+    const anelaIndex = sectionTexts.findIndex(text => text.includes('Anela'));
     const skladIndex = sectionTexts.findIndex(text => text.includes('Sklad'));
-    const personalniIndex = sectionTexts.findIndex(text => text.includes('Personální'));
-    const automatizaceIndex = sectionTexts.findIndex(text => text.includes('Automatizace'));
+    const administraceIndex = sectionTexts.findIndex(text => text.includes('Administrace'));
 
-    // Verify order: Personální should be between Sklad and Automatizace
-    expect(skladIndex).toBeGreaterThanOrEqual(0);
-    expect(personalniIndex).toBeGreaterThan(skladIndex);
-    expect(automatizaceIndex).toBeGreaterThan(personalniIndex);
+    // Verify order: Anela first, then Sklad, then Administrace
+    expect(anelaIndex).toBeGreaterThanOrEqual(0);
+    expect(skladIndex).toBeGreaterThan(anelaIndex);
+    expect(administraceIndex).toBeGreaterThan(skladIndex);
   });
 });
