@@ -191,7 +191,6 @@ public class ShoptetApiPackingOrderClientTests
         // so the packing flow reads it from that single call — no second/plain request.
         var requestCount = 0;
         var detail = DetailResponse("250006", PplDoRukyGuid, "PPL (do ruky)");
-        detail.Data.Order.Status = new OrderStatusSummary { Id = 26 };
         var orderClient = BuildOrderClient(req =>
         {
             requestCount++;
