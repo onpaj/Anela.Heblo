@@ -254,26 +254,6 @@ const CatalogList: React.FC = () => {
     }
   }, [searchParams, pageNumber]);
 
-  // Sync URL parameter with page number state
-  React.useEffect(() => {
-    const currentPage = searchParams.get("page");
-    const currentPageNumber = currentPage ? parseInt(currentPage, 10) : 1;
-
-    if (pageNumber === 1) {
-      // Remove page parameter when on page 1
-      if (currentPage) {
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete("page");
-        setSearchParams(newParams); // Creates history entry when cleaning up page param
-      }
-    } else if (currentPageNumber !== pageNumber) {
-      // Update page parameter when page number changes
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set("page", pageNumber.toString());
-      setSearchParams(newParams); // Creates history entry for page number change
-    }
-  }, [pageNumber, searchParams, setSearchParams]);
-
   // Modal handlers
   const handleItemClick = (item: CatalogItemDto) => {
     setSelectedItem(item);

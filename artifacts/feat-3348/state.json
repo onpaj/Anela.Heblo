@@ -21,16 +21,16 @@
       "updated_at": "2026-06-25T16:35:13.753072Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-25T16:35:47.883486Z"
     }
   },
   "tasks": [
     {
       "name": "fix-catalog-pagination-race",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T16:35:48.151003Z"
     },
     {
       "name": "update-e2e-test-assertions",
