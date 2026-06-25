@@ -34,15 +34,15 @@
     },
     {
       "name": "fix-navigation-spec",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-25T11:24:43.440122Z"
+      "updated_at": "2026-06-25T11:26:52.156109Z"
     },
     {
       "name": "fix-spec-url-assertions",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-25T11:26:57.062186Z"
     },
     {
       "name": "verify-no-remaining-occurrences",
