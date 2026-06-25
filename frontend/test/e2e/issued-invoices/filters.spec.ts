@@ -60,9 +60,9 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
       await expect(emptyMessage).toBeVisible();
     } else {
       // Verify filtered results contain the search term
-      const firstRowText = await tableRows.first().textContent();
+      const firstCellText = await tableRows.first().locator("td").first().textContent();
       // eslint-disable-next-line jest/no-conditional-expect
-      expect(firstRowText).toContain("2024");
+      expect(firstCellText).toContain("2024");
     }
   });
 
