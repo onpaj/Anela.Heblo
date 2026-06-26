@@ -53,6 +53,7 @@ import PhotobankSettingsPage from "./components/marketing/photobank/pages/Photob
 import AuthGuard from "./components/auth/AuthGuard";
 import RequireMenuPath from "./components/auth/RequireMenuPath";
 import { StatusBar } from "./components/StatusBar";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
 import DataQualityPage from "./pages/customer/DataQualityPage";
@@ -405,7 +406,7 @@ function App() {
                       </Route>
 
                       {/* Desktop app — full Layout with sidebar (pathless layout route) */}
-                      <Route element={<Layout statusBar={<StatusBar />}><Outlet /></Layout>}>
+                      <Route element={<Layout statusBar={<StatusBar />}><ErrorBoundary><Outlet /></ErrorBoundary></Layout>}>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/finance/overview" element={guard("/finance/overview", <FinancialOverview />)} />
                         <Route path="/finance/bank-statements" element={<BankStatementImportChart />} />
