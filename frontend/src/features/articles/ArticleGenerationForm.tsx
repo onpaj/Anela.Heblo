@@ -67,7 +67,7 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
           Téma <span className="text-red-500">*</span>
         </label>
         <input
@@ -78,17 +78,17 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
           minLength={3}
           maxLength={500}
           required
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Rozsah</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Rozsah</label>
           <select
             value={scope}
             onChange={(e) => setScope(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
           >
             {SCOPE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -97,11 +97,11 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Délka</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Délka</label>
           <select
             value={length}
             onChange={(e) => setLength(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
           >
             {LENGTH_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -111,86 +111,86 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Cílová skupina</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Cílová skupina</label>
         <input
           type="text"
           value={audience}
           onChange={(e) => setAudience(e.target.value)}
           placeholder="Např. zákazníci 30–50 let zajímající se o přírodní kosmetiku"
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Úhel pohledu</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Úhel pohledu</label>
         <input
           type="text"
           value={angle}
           onChange={(e) => setAngle(e.target.value)}
           placeholder="Např. zaměřit se na vědecké studie"
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Poznámka k tónu / jazyku</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Poznámka k tónu / jazyku</label>
         <input
           type="text"
           value={languageNote}
           onChange={(e) => setLanguageNote(e.target.value)}
           placeholder="Např. krátké věty, vyhýbat se odborným termínům"
           maxLength={500}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
         />
       </div>
 
       <div className="flex gap-6">
-        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-graphite-muted cursor-pointer">
           <input
             type="checkbox"
             checked={useKnowledgeBase}
             onChange={(e) => setUseKnowledgeBase(e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="rounded border-gray-300 dark:border-graphite-border text-blue-600 dark:text-graphite-accent focus:ring-blue-500 dark:focus:ring-graphite-accent"
           />
           Znalostní báze
         </label>
-        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-graphite-muted cursor-pointer">
           <input
             type="checkbox"
             checked={useWebSearch}
             onChange={(e) => setUseWebSearch(e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="rounded border-gray-300 dark:border-graphite-border text-blue-600 dark:text-graphite-accent focus:ring-blue-500 dark:focus:ring-graphite-accent"
           />
           Webové vyhledávání
         </label>
       </div>
 
       <details className="text-sm">
-        <summary className="cursor-pointer text-gray-500 select-none">Stylový průvodce (volitelné)</summary>
+        <summary className="cursor-pointer text-gray-500 dark:text-graphite-faint select-none">Stylový průvodce (volitelné)</summary>
         <div className="mt-2 space-y-2">
           <input
             type="text"
             value={styleGuideDriveId}
             onChange={(e) => setStyleGuideDriveId(e.target.value)}
             placeholder="OneDrive Drive ID"
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
           />
           <input
             type="text"
             value={styleGuideItemPath}
             onChange={(e) => setStyleGuideItemPath(e.target.value)}
             placeholder="Cesta k souboru (např. Documents/style-guide.txt)"
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
           />
         </div>
       </details>
 
       {error && (
-        <p className="text-sm text-red-600">Generování selhalo. Zkuste to prosím znovu.</p>
+        <p className="text-sm text-red-600 dark:text-red-400">Generování selhalo. Zkuste to prosím znovu.</p>
       )}
 
       {!canGenerate && (
-        <p className="text-sm text-amber-600">Nemáte oprávnění generovat články.</p>
+        <p className="text-sm text-amber-600 dark:text-amber-400">Nemáte oprávnění generovat články.</p>
       )}
 
       <button
