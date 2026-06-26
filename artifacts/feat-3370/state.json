@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "create-authorization-contract",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-26T09:24:49.908495Z"
+      "updated_at": "2026-06-26T09:28:05.028559Z"
     },
     {
       "name": "create-usermanagement-adapter",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-26T09:28:08.492626Z"
     },
     {
       "name": "register-adapter-in-di",
