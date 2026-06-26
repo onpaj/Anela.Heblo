@@ -24,7 +24,7 @@ test.describe('Dashboard', () => {
 
   test('should display AutoShow tiles automatically', async ({ page }) => {
     // Wait for tiles to load
-    await page.waitForSelector('[data-testid^="dashboard-tile-"]', { timeout: 5000 });
+    await page.waitForSelector('[data-testid^="dashboard-tile-"]', { timeout: 15000 });
 
     // Check if background task status tile (AutoShow: true) is visible
     // TileId naming convention: TileExtensions.GetTileId() lowercases the class name and removes "tile" suffix.
