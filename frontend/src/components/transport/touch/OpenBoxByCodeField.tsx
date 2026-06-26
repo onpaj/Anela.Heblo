@@ -31,12 +31,15 @@ const OpenBoxByCodeField: React.FC<OpenBoxByCodeFieldProps> = ({
     }
 
     setError(null);
-    const result = await openBox.mutateAsync(trimmed);
-
-    if (result.success && result.transportBox?.id) {
-      setCode("");
-      onOpenBox(result.transportBox.id);
-    } else {
+    try {
+      const result = await openBox.mutateAsync(trimmed);
+      if (result.success && result.transportBox?.id) {
+        setCode("");
+        onOpenBox(result.transportBox.id);
+      } else {
+        setError(OPEN_FAILED_MESSAGE);
+      }
+    } catch {
       setError(OPEN_FAILED_MESSAGE);
     }
   };

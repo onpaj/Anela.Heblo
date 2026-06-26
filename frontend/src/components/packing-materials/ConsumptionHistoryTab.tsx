@@ -85,12 +85,12 @@ const ConsumptionHistoryTab: React.FC = () => {
 
   if (error) {
     return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+      <div className="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900/40 rounded-lg">
         <div className="flex items-center gap-2">
-          <AlertCircle className="h-5 w-5 text-red-600" />
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
           <div>
-            <h3 className="text-red-800 font-semibold">Chyba při načítání historie spotřeby</h3>
-            <p className="text-red-600 text-sm mt-1">
+            <h3 className="text-red-800 dark:text-red-300 font-semibold">Chyba při načítání historie spotřeby</h3>
+            <p className="text-red-600 dark:text-red-400 text-sm mt-1">
               {error instanceof Error ? error.message : 'Neznámá chyba'}
             </p>
             <button
@@ -108,32 +108,32 @@ const ConsumptionHistoryTab: React.FC = () => {
   return (
     <div className="flex flex-col">
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow mb-4 p-3 space-y-3">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark mb-4 p-3 space-y-3">
         <div className="flex flex-wrap gap-3 items-end">
           <div className="w-40">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Datum od</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">Datum od</label>
             <input
               type="date"
               value={dateFromInput}
               onChange={(e) => setDateFromInput(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full border border-gray-300 dark:border-graphite-border rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
             />
           </div>
           <div className="w-40">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Datum do</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">Datum do</label>
             <input
               type="date"
               value={dateToInput}
               onChange={(e) => setDateToInput(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full border border-gray-300 dark:border-graphite-border rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
             />
           </div>
           <div className="w-56">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Materiál</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">Materiál</label>
             <select
               value={materialInput}
               onChange={(e) => setMaterialInput(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full border border-gray-300 dark:border-graphite-border rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
             >
               <option value="">Všechny</option>
               {materials.map((m) => (
@@ -144,11 +144,11 @@ const ConsumptionHistoryTab: React.FC = () => {
             </select>
           </div>
           <div className="w-48">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Typ spotřeby</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">Typ spotřeby</label>
             <select
               value={typeInput}
               onChange={(e) => setTypeInput(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full border border-gray-300 dark:border-graphite-border rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
             >
               <option value="">Všechny</option>
               {CONSUMPTION_TYPE_OPTIONS.map((o) => (
@@ -159,30 +159,30 @@ const ConsumptionHistoryTab: React.FC = () => {
             </select>
           </div>
           <div className="w-40">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Kód produktu</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">Kód produktu</label>
             <input
               type="text"
               value={productCodeInput}
               onChange={(e) => setProductCodeInput(e.target.value)}
               placeholder="Kód produktu"
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full border border-gray-300 dark:border-graphite-border rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint"
             />
           </div>
           <div className="w-40">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Faktura</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">Faktura</label>
             <input
               type="text"
               value={invoiceIdInput}
               onChange={(e) => setInvoiceIdInput(e.target.value)}
               placeholder="ID faktury"
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full border border-gray-300 dark:border-graphite-border rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint"
             />
           </div>
         </div>
         <div className="flex justify-end gap-2">
           <button
             onClick={handleClearFilters}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md border border-gray-300"
+            className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 dark:text-graphite-muted hover:text-gray-800 dark:hover:text-graphite-text hover:bg-gray-100 dark:hover:bg-white/5 rounded-md border border-gray-300 dark:border-graphite-border"
           >
             <X className="h-3 w-3" />
             Vymazat filtry
@@ -198,57 +198,57 @@ const ConsumptionHistoryTab: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark overflow-hidden flex flex-col">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
-            <span className="ml-2 text-gray-600 text-sm">Načítání dat...</span>
+            <RefreshCw className="h-6 w-6 animate-spin text-gray-400 dark:text-graphite-faint" />
+            <span className="ml-2 text-gray-600 dark:text-graphite-muted text-sm">Načítání dat...</span>
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center py-16 text-gray-500">
-            <AlertCircle className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+          <div className="text-center py-16 text-gray-500 dark:text-graphite-muted">
+            <AlertCircle className="h-10 w-10 mx-auto text-gray-300 dark:text-graphite-faint mb-3" />
             <p className="text-sm">Žádné záznamy historie spotřeby.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+              <thead className="bg-gray-50 dark:bg-graphite-surface-2">
                 <tr>
                   <th
                     onClick={handleSortByDate}
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
                   >
                     <div className="flex items-center">
                       Datum
                       {sortDescending ? <ChevronDown className="ml-1 h-4 w-4" /> : <ChevronUp className="ml-1 h-4 w-4" />}
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ záznamu</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Materiál</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ spotřeby</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Faktura</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produkt</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Spotřeba</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Původní mn.</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Nové mn.</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Změna</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ změny</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Typ záznamu</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Materiál</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Typ spotřeby</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Faktura</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Produkt</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Spotřeba</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Původní mn.</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Nové mn.</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Změna</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Typ změny</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                 {items.map((item, index) => (
-                  <tr key={`${item.recordType}-${item.packingMaterialId}-${item.createdAt}-${index}`} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{formatDate(item.date)}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{item.recordTypeText}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{item.materialName}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{item.consumptionTypeText ?? DASH}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{item.invoiceId ?? DASH}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{item.productCode ?? DASH}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900">{formatNumber(item.amount)}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700">{formatNumber(item.oldQuantity)}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700">{formatNumber(item.newQuantity)}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900">{formatNumber(item.changeAmount)}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{item.logTypeText ?? DASH}</td>
+                  <tr key={`${item.recordType}-${item.packingMaterialId}-${item.createdAt}-${index}`} className="hover:bg-gray-50 dark:hover:bg-white/5">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">{formatDate(item.date)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-graphite-muted">{item.recordTypeText}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">{item.materialName}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-graphite-muted">{item.consumptionTypeText ?? DASH}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-graphite-muted">{item.invoiceId ?? DASH}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-graphite-muted">{item.productCode ?? DASH}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 dark:text-graphite-text">{formatNumber(item.amount)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-graphite-muted">{formatNumber(item.oldQuantity)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700 dark:text-graphite-muted">{formatNumber(item.newQuantity)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 dark:text-graphite-text">{formatNumber(item.changeAmount)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-graphite-muted">{item.logTypeText ?? DASH}</td>
                   </tr>
                 ))}
               </tbody>

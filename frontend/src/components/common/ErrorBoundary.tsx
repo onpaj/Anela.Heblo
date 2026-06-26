@@ -50,17 +50,17 @@ class ErrorBoundary extends React.Component<
 
       return (
         <div className="w-full max-w-none px-4 sm:px-6 lg:px-8">
-          <div className="mb-8 p-6 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mb-8 p-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900/40 rounded-lg">
             <div className="flex items-center mb-4">
-              <AlertTriangle className="w-6 h-6 text-red-500 mr-3" />
-              <h3 className="text-red-800 font-medium text-lg">
+              <AlertTriangle className="w-6 h-6 text-red-500 dark:text-red-400 mr-3" />
+              <h3 className="text-red-800 dark:text-red-300 font-medium text-lg">
                 Nastala chyba při načítání komponenty
               </h3>
             </div>
-            <p className="text-red-700 text-sm mb-4">
+            <p className="text-red-700 dark:text-red-300 text-sm mb-4">
               Omlouváme se, došlo k neočekávané chybě. Podrobnosti chyby:
             </p>
-            <details className="bg-red-100 p-3 rounded text-xs text-red-800 mb-4">
+            <details className="bg-red-100 dark:bg-red-900/30 p-3 rounded text-xs text-red-800 dark:text-red-300 mb-4">
               <summary className="cursor-pointer font-medium">
                 Technické detaily
               </summary>

@@ -242,23 +242,23 @@ const ManufactureBatchCalculator: React.FC = () => {
     <div className="flex flex-col h-full w-full">
       {/* Header */}
       <div className="flex-shrink-0 mb-3">
-        <h1 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text flex items-center gap-2">
           <Calculator className="h-5 w-5" />
           Kalkulačka dávek pro výrobu
         </h1>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm text-gray-600 dark:text-graphite-muted mt-1">
           Přepočítejte množství ingrediencí podle požadované velikosti dávky
           nebo množství konkrétní ingredience
         </p>
       </div>
 
       {/* Controls */}
-      <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
         <div className="space-y-3">
           {/* Product Selection Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-end">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
                 Vyberte polotovar
               </label>
               <CatalogAutocomplete
@@ -273,7 +273,7 @@ const ManufactureBatchCalculator: React.FC = () => {
             {/* Calculation Mode Toggle - moved to same row */}
             {template && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
                   Způsob výpočtu
                 </label>
                 <div className="flex space-x-4">
@@ -310,11 +310,11 @@ const ManufactureBatchCalculator: React.FC = () => {
 
           {/* Calculation Inputs Row */}
           {template && (
-            <div className="border-t border-gray-200 pt-3">
+            <div className="border-t border-gray-200 dark:border-graphite-border pt-3">
               {calculationMode === "batch-size" ? (
                 <div className="flex flex-wrap gap-4 items-end">
                   <div className="w-40">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                       Požadovaná velikost dávky (g)
                     </label>
                     <input
@@ -328,7 +328,7 @@ const ManufactureBatchCalculator: React.FC = () => {
                           handleCalculateBySize();
                         }
                       }}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
+                      className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm w-full"
                       placeholder="0.00"
                     />
                   </div>
@@ -353,13 +353,13 @@ const ManufactureBatchCalculator: React.FC = () => {
               ) : (
                 <div className="flex flex-wrap gap-4 items-end">
                   <div className="flex-1 min-w-64">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                       Ingredience
                     </label>
                     <select
                       value={selectedIngredientCode}
                       onChange={(e) => setSelectedIngredientCode(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
+                      className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm w-full"
                     >
                       <option value="">Vyberte ingredienci...</option>
                       {template.ingredients?.map((ingredient) => (
@@ -373,7 +373,7 @@ const ManufactureBatchCalculator: React.FC = () => {
                     </select>
                   </div>
                   <div className="min-w-32">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                       Požadované množství (g)
                     </label>
                     <input
@@ -387,7 +387,7 @@ const ManufactureBatchCalculator: React.FC = () => {
                           handleCalculateByIngredient();
                         }
                       }}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
+                      className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm w-full"
                       placeholder="0.00"
                     />
                   </div>
@@ -421,45 +421,45 @@ const ManufactureBatchCalculator: React.FC = () => {
 
       {/* Template Display */}
       {template && !calculationResult && (
-        <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
-          <h3 className="text-md font-medium text-gray-900 mb-3 flex items-center gap-2">
+        <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
+          <h3 className="text-md font-medium text-gray-900 dark:text-graphite-text mb-3 flex items-center gap-2">
             <Package className="h-4 w-4" />
             Originální recept
           </h3>
-          <p className="text-sm text-gray-600 mb-3">
+          <p className="text-sm text-gray-600 dark:text-graphite-muted mb-3">
             <strong>{template.productName}</strong> ({template.productCode}) -
             Dávka: {template.originalBatchSize}g
           </p>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+              <thead className="bg-gray-50 dark:bg-graphite-surface-2">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Ingredience
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Kód
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Množství (g)
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                 {template.ingredients?.map((ingredient, index: number) => (
                   <tr
                     key={ingredient.productCode}
-                    className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-indigo-50 cursor-pointer transition-colors duration-150`}
+                    className={`${index % 2 === 0 ? "bg-white dark:bg-graphite-surface" : "bg-gray-50 dark:bg-graphite-surface-2"} hover:bg-indigo-50 dark:hover:bg-graphite-accent/10 cursor-pointer transition-colors duration-150`}
                     onClick={() => handleIngredientClick(ingredient.productCode || "", ingredient.productName || "")}
                     title="Klikněte pro zobrazení detailu ingredience"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                       {ingredient.productName}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted font-mono">
                       {ingredient.productCode}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                       {ingredient.originalAmount?.toFixed(2) ?? "N/A"}
                     </td>
                   </tr>
@@ -472,10 +472,10 @@ const ManufactureBatchCalculator: React.FC = () => {
 
       {/* Results */}
       {calculationResult && (
-        <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
-          <div className="p-4 border-b border-gray-200">
+        <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
+          <div className="p-4 border-b border-gray-200 dark:border-graphite-border">
             <div className="flex items-center justify-between">
-              <h3 className="text-md font-medium text-gray-900 flex items-center gap-2">
+              <h3 className="text-md font-medium text-gray-900 dark:text-graphite-text flex items-center gap-2">
                 <Beaker className="h-4 w-4" />
                 Přepočítaný recept
               </h3>
@@ -509,30 +509,30 @@ const ManufactureBatchCalculator: React.FC = () => {
               {/* Prominent display of key metrics */}
               <div className="flex gap-4 text-right flex-1">
                 <div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wide">Dávka - Kusovník</div>
-                  <div className="text-xl font-bold text-gray-700">
+                  <div className="text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wide">Dávka - Kusovník</div>
+                  <div className="text-xl font-bold text-gray-700 dark:text-graphite-muted">
                     {calculationResult.originalBatchSize}g
                   </div>
                 </div>
-                <div className="flex items-center text-2xl font-bold text-gray-400">
+                <div className="flex items-center text-2xl font-bold text-gray-400 dark:text-graphite-faint">
                   →
                 </div>
                 <div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wide">Výrobní dávka</div>
-                  <div className="text-xl font-bold text-indigo-600">
+                  <div className="text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wide">Výrobní dávka</div>
+                  <div className="text-xl font-bold text-indigo-600 dark:text-graphite-accent">
                     {calculationResult.newBatchSize}g
                   </div>
                 </div>
-                <div className="border-l border-gray-300 pl-4">
-                  <div className="text-xs text-gray-500 uppercase tracking-wide">Faktor přepočtu</div>
-                  <div className="text-xl font-bold text-emerald-600">
+                <div className="border-l border-gray-300 dark:border-graphite-border pl-4">
+                  <div className="text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wide">Faktor přepočtu</div>
+                  <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
                     {calculationResult.scaleFactor?.toFixed(3) ?? "N/A"}×
                   </div>
                 </div>
               </div>
             </div>
-            
-            <div className="mt-3 text-sm text-gray-600">
+
+            <div className="mt-3 text-sm text-gray-600 dark:text-graphite-muted">
               <p>
                 <strong>Produkt:</strong> {calculationResult.productName} (
                 {calculationResult.productCode})
@@ -541,36 +541,36 @@ const ManufactureBatchCalculator: React.FC = () => {
           </div>
 
           <div className="flex-1 overflow-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+              <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Ingredience
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Kód
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Původní množství
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Přepočítané množství
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     %
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Skladem
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Posl. inventura
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Rozdíl
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                 {calculationResult.ingredients?.map((ingredient, index) => {
                   const originalAmount = ingredient.originalAmount ?? 0;
                   const calculatedAmount = ingredient.calculatedAmount ?? 0;
@@ -588,40 +588,40 @@ const ManufactureBatchCalculator: React.FC = () => {
                   return (
                     <React.Fragment key={ingredient.productCode}>
                       {isFirstInPhase && currentPhase && (
-                        <tr className="bg-indigo-50 border-t border-indigo-200">
+                        <tr className="bg-indigo-50 dark:bg-graphite-accent/10 border-t border-indigo-200 dark:border-graphite-accent/40">
                           <td colSpan={8} className="px-6 py-1">
-                            <span className="text-sm font-semibold text-indigo-700">
+                            <span className="text-sm font-semibold text-indigo-700 dark:text-graphite-accent">
                               Fáze {currentPhase}
                             </span>
                           </td>
                         </tr>
                       )}
                     <tr
-                      className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-indigo-50 cursor-pointer transition-colors duration-150`}
+                      className={`${index % 2 === 0 ? "bg-white dark:bg-graphite-surface" : "bg-gray-50 dark:bg-graphite-surface-2"} hover:bg-indigo-50 dark:hover:bg-graphite-accent/10 cursor-pointer transition-colors duration-150`}
                       onClick={() => handleIngredientClick(ingredient.productCode || "", ingredient.productName || "")}
                       title="Klikněte pro zobrazení detailu ingredience"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                         {ingredient.productName}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted font-mono">
                         {ingredient.productCode}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                         {originalAmount.toFixed(2)}g
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
                         {calculatedAmount.toFixed(2)}g
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                         {computePercentage(calculatedAmount, calculationResult.newBatchSize)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <span
                           className={`inline-flex items-center ${
                             hasEnoughStock
-                              ? "text-green-600"
-                              : "text-red-600"
+                              ? "text-green-600 dark:text-emerald-400"
+                              : "text-red-600 dark:text-red-400"
                           }`}
                         >
                           {stockTotal.toFixed(2)}g
@@ -643,10 +643,10 @@ const ManufactureBatchCalculator: React.FC = () => {
                         <span
                           className={`inline-flex items-center ${
                             isIncrease
-                              ? "text-green-600"
+                              ? "text-green-600 dark:text-emerald-400"
                               : difference < 0
-                                ? "text-red-600"
-                                : "text-gray-500"
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-gray-500 dark:text-graphite-muted"
                           }`}
                         >
                           {isIncrease ? "+" : ""}
@@ -665,9 +665,9 @@ const ManufactureBatchCalculator: React.FC = () => {
 
       {/* Empty State */}
       {!template && selectedProduct && (
-        <div className="flex-1 bg-white shadow rounded-lg flex items-center justify-center">
-          <div className="text-center text-gray-500">
-            <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg flex items-center justify-center">
+          <div className="text-center text-gray-500 dark:text-graphite-muted">
+            <Package className="h-12 w-12 mx-auto mb-4 text-gray-400 dark:text-graphite-faint" />
             <p className="text-lg font-medium">Načítání receptu...</p>
             <p className="text-sm">
               Prosím počkejte, načítáme data pro vybraný produkt.
@@ -677,9 +677,9 @@ const ManufactureBatchCalculator: React.FC = () => {
       )}
 
       {!selectedProduct && (
-        <div className="flex-1 bg-white shadow rounded-lg flex items-center justify-center">
-          <div className="text-center text-gray-500">
-            <Calculator className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg flex items-center justify-center">
+          <div className="text-center text-gray-500 dark:text-graphite-muted">
+            <Calculator className="h-12 w-12 mx-auto mb-4 text-gray-400 dark:text-graphite-faint" />
             <p className="text-lg font-medium">Začněte výběrem polotovaru</p>
             <p className="text-sm">
               Vyberte polotovar ze seznamu a začněte počítat dávky.

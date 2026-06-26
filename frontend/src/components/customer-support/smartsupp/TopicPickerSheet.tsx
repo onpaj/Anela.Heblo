@@ -20,11 +20,11 @@ const TopicPickerSheet: React.FC<TopicPickerSheetProps> = ({ isOpen, onSelect, o
         role="dialog"
         aria-modal="true"
         aria-label="Vyberte téma"
-        className="bg-white rounded-t-2xl w-full"
+        className="bg-white dark:bg-graphite-surface rounded-t-2xl w-full"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-4 py-3 border-b border-gray-200">
-          <p className="font-semibold text-gray-900">Vyberte téma</p>
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-graphite-border">
+          <p className="font-semibold text-gray-900 dark:text-graphite-text">Vyberte téma</p>
         </div>
         <ul>
           {DRAFT_REPLY_HINTS.map((hint) => (
@@ -32,7 +32,7 @@ const TopicPickerSheet: React.FC<TopicPickerSheetProps> = ({ isOpen, onSelect, o
               <button
                 type="button"
                 onClick={() => onSelect(hint.label)}
-                className="w-full text-left px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 min-h-[44px] flex items-center"
+                className="w-full text-left px-4 py-3 text-sm text-gray-800 dark:text-graphite-text hover:bg-gray-50 dark:hover:bg-white/5 min-h-[44px] flex items-center"
               >
                 {hint.label}
               </button>

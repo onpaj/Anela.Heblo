@@ -15,7 +15,7 @@ const PurchaseOrderLines: React.FC<PurchaseOrderLinesProps> = ({
   return (
     <div className="space-y-3 flex flex-col h-full">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text">
           Položky objednávky
         </h3>
         <div className="flex items-center space-x-4">
@@ -26,9 +26,9 @@ const PurchaseOrderLines: React.FC<PurchaseOrderLinesProps> = ({
               (line.quantity || 0) > 0 &&
               (line.unitPrice || 0) > 0,
           ) && (
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 dark:text-graphite-muted">
               Celkem:{" "}
-              <span className="font-semibold text-indigo-600 text-base">
+              <span className="font-semibold text-indigo-600 text-base dark:text-graphite-accent">
                 {calculateTotal(formData.lines).toLocaleString("cs-CZ", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -52,16 +52,16 @@ const PurchaseOrderLines: React.FC<PurchaseOrderLinesProps> = ({
 
       {/* Lines validation error - moved to top */}
       {errors.lines && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-sm text-red-600">{errors.lines}</p>
+        <div className="bg-red-50 border border-red-200 rounded-md p-3 dark:bg-red-900/30 dark:border-red-900/40">
+          <p className="text-sm text-red-600 dark:text-red-400">{errors.lines}</p>
         </div>
       )}
 
       {/* Scrollable container for items */}
-      <div className="border border-gray-200 rounded-lg flex-1 overflow-y-auto">
+      <div className="border border-gray-200 rounded-lg flex-1 overflow-y-auto dark:border-graphite-border">
         <div className="space-y-0">
           {/* Header row */}
-          <div className="sticky top-0 bg-gray-50 grid grid-cols-12 gap-2 px-2 py-2 text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200">
+          <div className="sticky top-0 bg-gray-50 grid grid-cols-12 gap-2 px-2 py-2 text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:border-graphite-border">
             <div className="col-span-4">Materiál</div>
             <div className="col-span-2">Množství</div>
             <div className="col-span-2">Jedn. cena</div>

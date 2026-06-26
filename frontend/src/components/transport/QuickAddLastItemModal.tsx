@@ -117,11 +117,11 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 dark:bg-graphite-surface dark:shadow-soft-dark">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-graphite-border">
           <div className="flex items-center">
             <RotateCcw className="h-5 w-5 text-emerald-600 mr-2" />
-            <h2 className="text-lg font-medium text-gray-900">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-graphite-text">
               Opakovat poslední položku
             </h2>
           </div>
@@ -129,7 +129,7 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
             onClick={handleClose}
             disabled={isLoading}
             aria-label="close"
-            className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+            className="text-gray-400 hover:text-gray-600 disabled:opacity-50 dark:text-graphite-faint dark:hover:text-graphite-muted"
           >
             <X className="h-5 w-5" />
           </button>
@@ -150,21 +150,21 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
           }}
         >
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center">
-              <AlertCircle className="h-4 w-4 text-red-600 mr-2 flex-shrink-0" />
-              <span className="text-sm text-red-800">{error}</span>
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center dark:bg-red-900/30 dark:border-red-900/40">
+              <AlertCircle className="h-4 w-4 text-red-600 mr-2 flex-shrink-0 dark:text-red-400" />
+              <span className="text-sm text-red-800 dark:text-red-300">{error}</span>
             </div>
           )}
 
           {/* Show the product info */}
-          <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-md">
+          <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-md dark:bg-emerald-900/30 dark:border-emerald-900/40">
             <div className="flex items-center">
               <RotateCcw className="h-4 w-4 text-emerald-600 mr-2 flex-shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-emerald-900">
+                <p className="text-sm font-medium text-emerald-900 dark:text-emerald-200">
                   {lastAddedItem.productName}
                 </p>
-                <p className="text-xs text-emerald-700 font-mono">
+                <p className="text-xs text-emerald-700 font-mono dark:text-emerald-300">
                   {lastAddedItem.productCode}
                 </p>
               </div>
@@ -174,7 +174,7 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
           <div className="mb-4">
             <label
               htmlFor="amount"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 mb-2 dark:text-graphite-muted"
             >
               Množství
             </label>
@@ -190,10 +190,10 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
               placeholder="0"
               min="0.01"
               step="0.01"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               autoFocus
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-graphite-muted">
               Původní množství: {lastAddedItem.amount}
             </p>
           </div>
@@ -203,7 +203,7 @@ const QuickAddLastItemModal: React.FC<QuickAddLastItemModalProps> = ({
               type="button"
               onClick={handleClose}
               disabled={isLoading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:text-graphite-muted dark:bg-graphite-surface-2 dark:border-graphite-border dark:hover:bg-white/5"
             >
               Zrušit
             </button>

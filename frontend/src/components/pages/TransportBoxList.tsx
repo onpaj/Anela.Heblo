@@ -52,15 +52,15 @@ const stateLabels: Record<string, string> = {
 };
 
 const stateColors: Record<string, string> = {
-  New: "bg-gray-100 text-gray-800",
-  Opened: "bg-blue-100 text-blue-800",
-  InTransit: "bg-yellow-100 text-yellow-800",
-  Received: "bg-purple-100 text-purple-800",
-  Stocked: "bg-green-100 text-green-800",
-  Reserve: "bg-indigo-100 text-indigo-800",
-  Quarantine: "bg-orange-100 text-orange-800",
-  Closed: "bg-gray-100 text-gray-800",
-  Error: "bg-red-100 text-red-800",
+  New: "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted",
+  Opened: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  InTransit: "bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300",
+  Received: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  Stocked: "bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  Reserve: "bg-indigo-100 text-indigo-800 dark:bg-graphite-accent/10 dark:text-graphite-accent",
+  Quarantine: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  Closed: "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted",
+  Error: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
 };
 
 const TransportBoxList: React.FC = () => {
@@ -268,14 +268,14 @@ const TransportBoxList: React.FC = () => {
 
   if (error) {
     return (
-      <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+      <div className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-lg">
         <div className="flex items-center gap-2">
-          <AlertCircle className="h-5 w-5 text-red-600" />
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
           <div>
-            <h3 className="text-red-800 font-semibold">
+            <h3 className="text-red-800 dark:text-red-300 font-semibold">
               Chyba při načítání transportních boxů
             </h3>
-            <p className="text-red-600 text-sm mt-1">
+            <p className="text-red-600 dark:text-red-400 text-sm mt-1">
               {error instanceof Error ? error.message : "Neznámá chyba"}
             </p>
             <button
@@ -297,7 +297,7 @@ const TransportBoxList: React.FC = () => {
     >
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
-        <h1 className="text-lg font-semibold text-gray-900">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
           Transportní boxy
         </h1>
       </div>
@@ -329,12 +329,12 @@ const TransportBoxList: React.FC = () => {
           )}
 
           {/* Controls - Single Collapsible Block */}
-          <div className="flex-shrink-0 bg-white rounded-lg shadow mb-4">
-        <div className="p-3 border-b border-gray-200">
+          <div className="flex-shrink-0 bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark mb-4">
+        <div className="p-3 border-b border-gray-200 dark:border-graphite-border">
           <div className="flex items-center justify-between">
             <button
               onClick={() => setIsControlsCollapsed(!isControlsCollapsed)}
-              className="flex items-center space-x-2 text-sm font-medium text-gray-900 hover:text-gray-700"
+              className="flex items-center space-x-2 text-sm font-medium text-gray-900 dark:text-graphite-text hover:text-gray-700 dark:hover:text-graphite-muted"
             >
               {isControlsCollapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -343,7 +343,7 @@ const TransportBoxList: React.FC = () => {
               )}
               <span>Filtry a nastavení</span>
               {summaryData && (
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 dark:text-graphite-muted">
                   ({summaryData.totalBoxes} boxů)
                 </span>
               )}
@@ -358,87 +358,87 @@ const TransportBoxList: React.FC = () => {
                     <div className="flex items-center space-x-2 text-xs">
                       <button
                         onClick={() => handleStateFilterClick("")}
-                        className={`px-1 py-0.5 rounded transition-colors hover:bg-gray-100 ${
+                        className={`px-1 py-0.5 rounded transition-colors hover:bg-gray-100 dark:hover:bg-white/5 ${
                           stateFilter === ""
-                            ? "bg-gray-100 ring-1 ring-gray-300"
+                            ? "bg-gray-100 dark:bg-graphite-surface-2 ring-1 ring-gray-300 dark:ring-graphite-border"
                             : ""
                         }`}
                         title="Všechny boxy"
                       >
-                        <span className="text-gray-700 font-medium">
+                        <span className="text-gray-700 dark:text-graphite-muted font-medium">
                           {summaryData.totalBoxes}
                         </span>
                       </button>
-                      <span className="text-gray-400">|</span>
+                      <span className="text-gray-400 dark:text-graphite-faint">|</span>
                       <button
                         onClick={() => handleStateFilterClick("ACTIVE")}
-                        className={`px-1 py-0.5 rounded transition-colors hover:bg-green-50 ${
+                        className={`px-1 py-0.5 rounded transition-colors hover:bg-green-50 dark:hover:bg-emerald-900/30 ${
                           stateFilter === "ACTIVE"
-                            ? "bg-green-50 ring-1 ring-green-300"
+                            ? "bg-green-50 dark:bg-emerald-900/30 ring-1 ring-green-300 dark:ring-emerald-900/40"
                             : ""
                         }`}
                         title="Aktivní boxy"
                       >
-                        <span className="text-green-600 font-medium">
+                        <span className="text-green-600 dark:text-emerald-400 font-medium">
                           {summaryData.activeBoxes}
                         </span>
                       </button>
                       {Object.entries(stateLabels).map(([state, label]) => {
                         const count = summaryData.statesCounts?.[state] || 0;
-                        let colorClass = "text-gray-600";
-                        let hoverClass = "hover:bg-gray-50";
-                        let activeClass = "bg-gray-50 ring-1 ring-gray-300";
+                        let colorClass = "text-gray-600 dark:text-graphite-muted";
+                        let hoverClass = "hover:bg-gray-50 dark:hover:bg-white/5";
+                        let activeClass = "bg-gray-50 dark:bg-graphite-surface-2 ring-1 ring-gray-300 dark:ring-graphite-border";
 
                         // Apply special colors for specific states
                         switch (state) {
                           case "Error":
                             colorClass =
-                              count === 0 ? "text-gray-400" : "text-red-600";
-                            hoverClass = "hover:bg-red-50";
-                            activeClass = "bg-red-50 ring-1 ring-red-300";
+                              count === 0 ? "text-gray-400 dark:text-graphite-faint" : "text-red-600 dark:text-red-400";
+                            hoverClass = "hover:bg-red-50 dark:hover:bg-red-900/30";
+                            activeClass = "bg-red-50 dark:bg-red-900/30 ring-1 ring-red-300 dark:ring-red-900/40";
                             break;
                           case "InTransit":
                             colorClass =
-                              count === 0 ? "text-gray-400" : "text-yellow-600";
-                            hoverClass = "hover:bg-yellow-50";
-                            activeClass = "bg-yellow-50 ring-1 ring-yellow-300";
+                              count === 0 ? "text-gray-400 dark:text-graphite-faint" : "text-yellow-600 dark:text-amber-400";
+                            hoverClass = "hover:bg-yellow-50 dark:hover:bg-amber-900/30";
+                            activeClass = "bg-yellow-50 dark:bg-amber-900/30 ring-1 ring-yellow-300 dark:ring-amber-900/40";
                             break;
                           case "New":
                             colorClass =
-                              count === 0 ? "text-gray-400" : "text-blue-600";
-                            hoverClass = "hover:bg-blue-50";
-                            activeClass = "bg-blue-50 ring-1 ring-blue-300";
+                              count === 0 ? "text-gray-400 dark:text-graphite-faint" : "text-blue-600 dark:text-blue-400";
+                            hoverClass = "hover:bg-blue-50 dark:hover:bg-blue-900/30";
+                            activeClass = "bg-blue-50 dark:bg-blue-900/30 ring-1 ring-blue-300 dark:ring-blue-900/40";
                             break;
                           case "Opened":
                             colorClass =
-                              count === 0 ? "text-gray-400" : "text-indigo-600";
-                            hoverClass = "hover:bg-indigo-50";
-                            activeClass = "bg-indigo-50 ring-1 ring-indigo-300";
+                              count === 0 ? "text-gray-400 dark:text-graphite-faint" : "text-indigo-600 dark:text-graphite-accent";
+                            hoverClass = "hover:bg-indigo-50 dark:hover:bg-graphite-accent/10";
+                            activeClass = "bg-indigo-50 dark:bg-graphite-accent/10 ring-1 ring-indigo-300 dark:ring-graphite-accent";
                             break;
                           case "Stocked":
                             colorClass =
                               count === 0
-                                ? "text-gray-400"
-                                : "text-emerald-600";
-                            hoverClass = "hover:bg-emerald-50";
+                                ? "text-gray-400 dark:text-graphite-faint"
+                                : "text-emerald-600 dark:text-emerald-400";
+                            hoverClass = "hover:bg-emerald-50 dark:hover:bg-emerald-900/30";
                             activeClass =
-                              "bg-emerald-50 ring-1 ring-emerald-300";
+                              "bg-emerald-50 dark:bg-emerald-900/30 ring-1 ring-emerald-300 dark:ring-emerald-900/40";
                             break;
                           case "Quarantine":
                             colorClass =
-                              count === 0 ? "text-gray-400" : "text-orange-600";
-                            hoverClass = "hover:bg-orange-50";
-                            activeClass = "bg-orange-50 ring-1 ring-orange-300";
+                              count === 0 ? "text-gray-400 dark:text-graphite-faint" : "text-orange-600 dark:text-orange-300";
+                            hoverClass = "hover:bg-orange-50 dark:hover:bg-orange-900/30";
+                            activeClass = "bg-orange-50 dark:bg-orange-900/30 ring-1 ring-orange-300 dark:ring-orange-900/40";
                             break;
                           default:
                             colorClass =
-                              count === 0 ? "text-gray-400" : "text-gray-600";
+                              count === 0 ? "text-gray-400 dark:text-graphite-faint" : "text-gray-600 dark:text-graphite-muted";
                             break;
                         }
 
                         return (
                           <React.Fragment key={state}>
-                            <span className="text-gray-400">|</span>
+                            <span className="text-gray-400 dark:text-graphite-faint">|</span>
                             <button
                               onClick={() => handleStateFilterClick(state)}
                               className={`px-1 py-0.5 rounded transition-colors ${hoverClass} ${
@@ -458,7 +458,7 @@ const TransportBoxList: React.FC = () => {
                   {/* Search field when collapsed */}
                   <div className="flex-1 max-w-xs">
                     <div className="relative">
-                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400 dark:text-graphite-faint" />
                       <input
                         type="text"
                         value={codeInput}
@@ -470,7 +470,7 @@ const TransportBoxList: React.FC = () => {
                           }
                         }}
                         placeholder="Vyhledat..."
-                        className="pl-7 w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                        className="pl-7 w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                       />
                     </div>
                   </div>
@@ -488,7 +488,7 @@ const TransportBoxList: React.FC = () => {
               <button
                 onClick={() => refetch()}
                 disabled={isLoading}
-                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark text-xs font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
               >
                 <RefreshCw
                   className={`h-3 w-3 mr-1 ${isLoading ? "animate-spin" : ""}`}
@@ -504,36 +504,36 @@ const TransportBoxList: React.FC = () => {
             {/* Summary Cards */}
             {summaryData && (
               <div>
-                <h3 className="text-xs font-medium text-gray-700 mb-2">
+                <h3 className="text-xs font-medium text-gray-700 dark:text-graphite-muted mb-2">
                   Přehled stavů
                 </h3>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <button
                     onClick={() => handleStateFilterClick("")}
-                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-gray-100 ${
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-white/5 ${
                       stateFilter === ""
-                        ? "bg-gray-100 ring-1 ring-gray-300"
+                        ? "bg-gray-100 dark:bg-graphite-surface-2 ring-1 ring-gray-300 dark:ring-graphite-border"
                         : ""
                     }`}
                   >
                     <Package className="h-3 w-3 text-blue-500 mr-1" />
-                    <span className="text-gray-600">Celkem:</span>
-                    <span className="font-semibold text-gray-900 ml-1">
+                    <span className="text-gray-600 dark:text-graphite-muted">Celkem:</span>
+                    <span className="font-semibold text-gray-900 dark:text-graphite-text ml-1">
                       {summaryData.totalBoxes}
                     </span>
                   </button>
 
                   <button
                     onClick={() => handleStateFilterClick("ACTIVE")}
-                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-green-50 ${
+                    className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-green-50 dark:hover:bg-emerald-900/30 ${
                       stateFilter === "ACTIVE"
-                        ? "bg-green-50 ring-1 ring-green-300"
+                        ? "bg-green-50 dark:bg-emerald-900/30 ring-1 ring-green-300 dark:ring-emerald-900/40"
                         : ""
                     }`}
                   >
                     <Truck className="h-3 w-3 text-green-500 mr-1" />
-                    <span className="text-gray-600">Aktivní:</span>
-                    <span className="font-semibold text-green-600 ml-1">
+                    <span className="text-gray-600 dark:text-graphite-muted">Aktivní:</span>
+                    <span className="font-semibold text-green-600 dark:text-emerald-400 ml-1">
                       {summaryData.activeBoxes}
                     </span>
                   </button>
@@ -543,57 +543,57 @@ const TransportBoxList: React.FC = () => {
                     const count = summaryData.statesCounts?.[state] || 0;
                     const isActive = stateFilter === state;
                     let iconColor = "text-gray-500";
-                    let hoverColor = "hover:bg-gray-50";
-                    let activeColor = "bg-gray-50 ring-1 ring-gray-300";
+                    let hoverColor = "hover:bg-gray-50 dark:hover:bg-white/5";
+                    let activeColor = "bg-gray-50 dark:bg-graphite-surface-2 ring-1 ring-gray-300 dark:ring-graphite-border";
                     let IconComponent = Box;
 
                     // Set colors based on state
                     switch (state) {
                       case "New":
                         iconColor = "text-blue-500";
-                        hoverColor = "hover:bg-blue-50";
-                        activeColor = "bg-blue-50 ring-1 ring-blue-300";
+                        hoverColor = "hover:bg-blue-50 dark:hover:bg-blue-900/30";
+                        activeColor = "bg-blue-50 dark:bg-blue-900/30 ring-1 ring-blue-300 dark:ring-blue-900/40";
                         break;
                       case "Opened":
                         iconColor = "text-indigo-500";
-                        hoverColor = "hover:bg-indigo-50";
-                        activeColor = "bg-indigo-50 ring-1 ring-indigo-300";
+                        hoverColor = "hover:bg-indigo-50 dark:hover:bg-graphite-accent/10";
+                        activeColor = "bg-indigo-50 dark:bg-graphite-accent/10 ring-1 ring-indigo-300 dark:ring-graphite-accent";
                         break;
                       case "InTransit":
                         iconColor = "text-yellow-500";
-                        hoverColor = "hover:bg-yellow-50";
-                        activeColor = "bg-yellow-50 ring-1 ring-yellow-300";
+                        hoverColor = "hover:bg-yellow-50 dark:hover:bg-amber-900/30";
+                        activeColor = "bg-yellow-50 dark:bg-amber-900/30 ring-1 ring-yellow-300 dark:ring-amber-900/40";
                         IconComponent = Truck;
                         break;
                       case "Received":
                         iconColor = "text-purple-500";
-                        hoverColor = "hover:bg-purple-50";
-                        activeColor = "bg-purple-50 ring-1 ring-purple-300";
+                        hoverColor = "hover:bg-purple-50 dark:hover:bg-purple-900/30";
+                        activeColor = "bg-purple-50 dark:bg-purple-900/30 ring-1 ring-purple-300 dark:ring-purple-900/40";
                         break;
                       case "Stocked":
                         iconColor = "text-emerald-500";
-                        hoverColor = "hover:bg-emerald-50";
-                        activeColor = "bg-emerald-50 ring-1 ring-emerald-300";
+                        hoverColor = "hover:bg-emerald-50 dark:hover:bg-emerald-900/30";
+                        activeColor = "bg-emerald-50 dark:bg-emerald-900/30 ring-1 ring-emerald-300 dark:ring-emerald-900/40";
                         break;
                       case "Reserve":
                         iconColor = "text-cyan-500";
-                        hoverColor = "hover:bg-cyan-50";
-                        activeColor = "bg-cyan-50 ring-1 ring-cyan-300";
+                        hoverColor = "hover:bg-cyan-50 dark:hover:bg-cyan-900/30";
+                        activeColor = "bg-cyan-50 dark:bg-cyan-900/30 ring-1 ring-cyan-300 dark:ring-cyan-900/40";
                         break;
                       case "Quarantine":
                         iconColor = "text-orange-500";
-                        hoverColor = "hover:bg-orange-50";
-                        activeColor = "bg-orange-50 ring-1 ring-orange-300";
+                        hoverColor = "hover:bg-orange-50 dark:hover:bg-orange-900/30";
+                        activeColor = "bg-orange-50 dark:bg-orange-900/30 ring-1 ring-orange-300 dark:ring-orange-900/40";
                         break;
                       case "Closed":
                         iconColor = "text-gray-500";
-                        hoverColor = "hover:bg-gray-50";
-                        activeColor = "bg-gray-50 ring-1 ring-gray-300";
+                        hoverColor = "hover:bg-gray-50 dark:hover:bg-white/5";
+                        activeColor = "bg-gray-50 dark:bg-graphite-surface-2 ring-1 ring-gray-300 dark:ring-graphite-border";
                         break;
                       case "Error":
                         iconColor = "text-red-500";
-                        hoverColor = "hover:bg-red-50";
-                        activeColor = "bg-red-50 ring-1 ring-red-300";
+                        hoverColor = "hover:bg-red-50 dark:hover:bg-red-900/30";
+                        activeColor = "bg-red-50 dark:bg-red-900/30 ring-1 ring-red-300 dark:ring-red-900/40";
                         IconComponent = AlertCircle;
                         break;
                     }
@@ -609,9 +609,9 @@ const TransportBoxList: React.FC = () => {
                         <IconComponent
                           className={`h-3 w-3 mr-1 ${iconColor}`}
                         />
-                        <span className="text-gray-600">{label}:</span>
+                        <span className="text-gray-600 dark:text-graphite-muted">{label}:</span>
                         <span
-                          className={`font-semibold ml-1 ${count === 0 ? "text-gray-400" : iconColor.replace("text-", "text-")}`}
+                          className={`font-semibold ml-1 ${count === 0 ? "text-gray-400 dark:text-graphite-faint" : iconColor.replace("text-", "text-")}`}
                         >
                           {count}
                         </span>
@@ -624,15 +624,15 @@ const TransportBoxList: React.FC = () => {
 
             {/* Filters */}
             <div>
-              <h3 className="text-xs font-medium text-gray-700 mb-2">Filtry</h3>
+              <h3 className="text-xs font-medium text-gray-700 dark:text-graphite-muted mb-2">Filtry</h3>
               <div className="flex gap-3 items-end">
                 {/* Search - Now much smaller */}
                 <div className="w-40">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                     Kód boxu
                   </label>
                   <div className="relative">
-                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400 dark:text-graphite-faint" />
                     <input
                       type="text"
                       value={codeInput}
@@ -647,7 +647,7 @@ const TransportBoxList: React.FC = () => {
                         }
                       }}
                       placeholder="Kód boxu..."
-                      className="pl-8 pr-8 w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                      className="pl-8 pr-8 w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                     />
                     {codeInput && (
                       <button
@@ -656,7 +656,7 @@ const TransportBoxList: React.FC = () => {
                           setCodeFilter("");
                           setSkip(0);
                         }}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-graphite-faint dark:hover:text-graphite-muted"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -666,7 +666,7 @@ const TransportBoxList: React.FC = () => {
 
                 {/* Product Filter - Takes remaining space */}
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                     Produkt v boxu
                   </label>
                   <CatalogAutocomplete<string>
@@ -687,7 +687,7 @@ const TransportBoxList: React.FC = () => {
                 <div className="mt-3 flex justify-end">
                   <button
                     onClick={handleClearFilters}
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 dark:text-graphite-muted hover:text-gray-800 dark:hover:text-graphite-text hover:bg-gray-100 dark:hover:bg-white/5 rounded-md transition-colors"
                   >
                     <X className="h-3 w-3" />
                     Vymazat všechny filtry
@@ -700,32 +700,32 @@ const TransportBoxList: React.FC = () => {
       </div>
 
       {/* Results Table */}
-      <div className="flex-1 bg-white rounded-lg shadow overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark overflow-hidden flex flex-col min-h-0">
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
-            <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-            <span className="ml-2 text-gray-600">Načítání dat...</span>
+            <RefreshCw className="h-8 w-8 animate-spin text-gray-400 dark:text-graphite-faint" />
+            <span className="ml-2 text-gray-600 dark:text-graphite-muted">Načítání dat...</span>
           </div>
         ) : data?.items?.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <Package className="h-12 w-12 text-gray-400 dark:text-graphite-faint mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-2">
                 Žádné výsledky
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-graphite-muted">
                 Zkuste upravit filtry nebo vyhledávací kritéria.
               </p>
             </div>
           </div>
         ) : (
           <div className="flex-1 overflow-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+              <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
                 <tr>
                   <th
                     onClick={() => handleSort("code")}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
                   >
                     <div className="flex items-center">
                       Kód
@@ -739,7 +739,7 @@ const TransportBoxList: React.FC = () => {
                   </th>
                   <th
                     onClick={() => handleSort("state")}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
                   >
                     <div className="flex items-center">
                       Stav
@@ -751,15 +751,15 @@ const TransportBoxList: React.FC = () => {
                         ))}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Počet položek
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Lokace
                   </th>
                   <th
                     onClick={() => handleSort("laststatechanged")}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
                   >
                     <div className="flex items-center">
                       Poslední změna
@@ -771,48 +771,48 @@ const TransportBoxList: React.FC = () => {
                         ))}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Popis
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                 {data?.items?.map((box) => (
                   <tr
                     key={box.id}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    className="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
                     onClick={() => box.id && handleRowClick(box.id)}
                     title="Klikněte pro zobrazení detailu"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                       {box.code || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           stateColors[box.state || ""] ||
-                          "bg-gray-100 text-gray-800"
+                          "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted"
                         }`}
                       >
                         {stateLabels[box.state || ""] || box.state}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                       {box.itemCount}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                       <div className="flex items-center">
-                        <MapPin className="h-4 w-4 text-gray-400 mr-1" />
+                        <MapPin className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-1" />
                         {box.location || "-"}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                       <div className="flex items-center">
-                        <Calendar className="h-4 w-4 text-gray-400 mr-1" />
+                        <Calendar className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-1" />
                         {formatDate(box.lastStateChanged?.toString())}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-graphite-text max-w-xs truncate">
                       {box.description || "-"}
                     </td>
                   </tr>
@@ -824,26 +824,26 @@ const TransportBoxList: React.FC = () => {
 
         {/* Pagination - Always visible at bottom */}
         {totalItems > 0 && (
-          <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
+          <div className="flex-shrink-0 bg-white dark:bg-graphite-surface px-3 py-2 flex items-center justify-between border-t border-gray-200 dark:border-graphite-border text-xs">
             <div className="flex-1 flex justify-between sm:hidden">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Předchozí
               </button>
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Další
               </button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray-600 dark:text-graphite-muted">
                   {skip + 1}-{Math.min(skip + take, totalItems)} z {totalItems}
                 </p>
               </div>
@@ -855,7 +855,7 @@ const TransportBoxList: React.FC = () => {
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="h-3 w-3" />
                   </button>
@@ -879,8 +879,8 @@ const TransportBoxList: React.FC = () => {
                         onClick={() => handlePageChange(pageNum)}
                         className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                           pageNum === currentPage
-                            ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                            : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                            ? "z-10 bg-indigo-50 dark:bg-graphite-accent/10 border-indigo-500 dark:border-graphite-accent text-indigo-600 dark:text-graphite-accent"
+                            : "bg-white dark:bg-graphite-surface border-gray-300 dark:border-graphite-border text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
                         }`}
                       >
                         {pageNum}
@@ -891,7 +891,7 @@ const TransportBoxList: React.FC = () => {
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronRight className="h-3 w-3" />
                   </button>

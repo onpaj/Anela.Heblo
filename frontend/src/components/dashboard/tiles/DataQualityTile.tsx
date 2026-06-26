@@ -39,8 +39,8 @@ export const DataQualityTile: React.FC<DataQualityTileProps> = ({ data }) => {
     return (
       <div className="h-full flex items-center justify-center text-center">
         <div>
-          <XCircle className="h-10 w-10 text-red-500 mx-auto mb-2" />
-          <p className="text-red-600 text-sm">{data.error || 'Poslední DQT test selhal'}</p>
+          <XCircle className="h-10 w-10 text-red-500 dark:text-red-400 mx-auto mb-2" />
+          <p className="text-red-600 dark:text-red-400 text-sm">{data.error || 'Poslední DQT test selhal'}</p>
         </div>
       </div>
     );
@@ -49,13 +49,13 @@ export const DataQualityTile: React.FC<DataQualityTileProps> = ({ data }) => {
   if (data.status === 'no_data') {
     return (
       <div
-        className="flex flex-col items-center justify-center h-full leading-relaxed min-h-44 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 rounded-lg"
+        className="flex flex-col items-center justify-center h-full leading-relaxed min-h-44 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 transition-colors duration-200 rounded-lg"
         onClick={handleClick}
         style={{ touchAction: 'manipulation' }}
       >
-        <Clock className="h-10 w-10 text-gray-400 mb-2" />
-        <p className="text-sm text-gray-500">Žádná data</p>
-        <p className="text-xs text-gray-400 mt-1">Spusťte první kontrolu</p>
+        <Clock className="h-10 w-10 text-gray-400 dark:text-graphite-faint mb-2" />
+        <p className="text-sm text-gray-500 dark:text-graphite-muted">Žádná data</p>
+        <p className="text-xs text-gray-400 dark:text-graphite-faint mt-1">Spusťte první kontrolu</p>
       </div>
     );
   }
@@ -66,8 +66,8 @@ export const DataQualityTile: React.FC<DataQualityTileProps> = ({ data }) => {
   const dateTo = data.data?.dateTo;
 
   const hasMismatches = mismatchCount > 0;
-  const iconColor = hasMismatches ? 'text-red-500' : 'text-green-500';
-  const countColor = hasMismatches ? 'text-red-700' : 'text-green-700';
+  const iconColor = hasMismatches ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-emerald-400';
+  const countColor = hasMismatches ? 'text-red-700 dark:text-red-400' : 'text-green-700 dark:text-emerald-400';
 
   const dateRange =
     dateFrom && dateTo
@@ -76,7 +76,7 @@ export const DataQualityTile: React.FC<DataQualityTileProps> = ({ data }) => {
 
   return (
     <div
-      className="flex flex-col items-center justify-center h-full leading-relaxed min-h-44 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 rounded-lg"
+      className="flex flex-col items-center justify-center h-full leading-relaxed min-h-44 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 transition-colors duration-200 rounded-lg"
       onClick={handleClick}
       style={{ touchAction: 'manipulation' }}
     >
@@ -90,16 +90,16 @@ export const DataQualityTile: React.FC<DataQualityTileProps> = ({ data }) => {
       <div className={`text-3xl font-bold mb-1 ${countColor}`}>
         {mismatchCount}
       </div>
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-gray-500 dark:text-graphite-muted">
         {hasMismatches ? 'neshod' : 'vše OK'}
       </div>
       {totalChecked > 0 && (
-        <div className="text-xs text-gray-400 mt-1">
+        <div className="text-xs text-gray-400 dark:text-graphite-faint mt-1">
           z {totalChecked} faktur
         </div>
       )}
       {dateRange && (
-        <div className="text-xs text-gray-400 mt-1">
+        <div className="text-xs text-gray-400 dark:text-graphite-faint mt-1">
           {dateRange}
         </div>
       )}

@@ -24,7 +24,7 @@ export interface WeatherForecastTileProps {
 export function WeatherForecastTile({ data }: WeatherForecastTileProps) {
   if (data.status === 'error') {
     return (
-      <div className="flex h-full items-center justify-center p-4 text-center text-sm text-red-600">
+      <div className="flex h-full items-center justify-center p-4 text-center text-sm text-red-600 dark:text-red-400">
         {data.error ?? 'Předpověď počasí není dostupná.'}
       </div>
     );
@@ -38,7 +38,7 @@ export function WeatherForecastTile({ data }: WeatherForecastTileProps) {
     <div className="flex h-full flex-col p-4">
       <div className="flex-1 space-y-2">
         {days.length === 0 ? (
-          <p className="text-sm text-gray-400">Žádná data</p>
+          <p className="text-sm text-gray-400 dark:text-graphite-faint">Žádná data</p>
         ) : (
           days.map((day) => {
             const icon = getWeatherIcon(day.weatherCode);
@@ -58,22 +58,22 @@ export function WeatherForecastTile({ data }: WeatherForecastTileProps) {
 
             return (
               <div key={day.date} className="flex items-center gap-3 text-sm">
-                <span className="w-14 shrink-0 text-gray-500">{label}</span>
+                <span className="w-14 shrink-0 text-gray-500 dark:text-graphite-muted">{label}</span>
                 <span className="shrink-0 text-base leading-none">{icon}</span>
-                <span className="w-8 shrink-0 text-right text-gray-600">
+                <span className="w-8 shrink-0 text-right text-gray-600 dark:text-graphite-muted">
                   {Math.round(day.minTemperatureCelsius)}°
                 </span>
-                <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
                   <div
                     data-testid="temp-bar"
                     className={`absolute h-2 ${getTemperatureColor(day.maxTemperatureCelsius)}`}
                     style={{ left: `${left}%`, width: `${width}%` }}
                   />
                 </div>
-                <span className="w-8 shrink-0 text-left font-medium text-gray-900">
+                <span className="w-8 shrink-0 text-left font-medium text-gray-900 dark:text-graphite-text">
                   {Math.round(day.maxTemperatureCelsius)}°C
                 </span>
-                <span className="w-12 shrink-0 text-right text-xs text-gray-400">
+                <span className="w-12 shrink-0 text-right text-xs text-gray-400 dark:text-graphite-faint">
                   {day.cityName}
                 </span>
               </div>
@@ -81,10 +81,10 @@ export function WeatherForecastTile({ data }: WeatherForecastTileProps) {
           })
         )}
       </div>
-      <div className="mt-3 border-t border-gray-100 pt-2 text-right">
+      <div className="mt-3 border-t border-gray-100 dark:border-graphite-border pt-2 text-right">
         <Link
           to="/customer/cooling"
-          className="text-xs text-gray-400 hover:text-gray-600"
+          className="text-xs text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted"
         >
           → Zásilky s chlazením
         </Link>

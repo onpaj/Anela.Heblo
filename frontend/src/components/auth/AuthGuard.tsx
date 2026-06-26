@@ -52,10 +52,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // Show loading while authentication is in progress
   if (inProgress !== "none") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-graphite-surface-2">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
-          <p className="text-gray-600">Přihlašování...</p>
+          <p className="text-gray-600 dark:text-graphite-muted">Přihlašování...</p>
         </div>
       </div>
     );
@@ -64,10 +64,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // Show loading while waiting for authentication check
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-graphite-surface-2">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
-          <p className="text-gray-600">Kontrola přihlášení...</p>
+          <p className="text-gray-600 dark:text-graphite-muted">Kontrola přihlášení...</p>
         </div>
       </div>
     );

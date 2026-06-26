@@ -70,6 +70,22 @@ describe("OpenBoxByCodeField", () => {
     expect(onOpenBox).not.toHaveBeenCalled();
   });
 
+  it("shows an error when the mutation throws (network failure)", async () => {
+    mutateAsync.mockRejectedValue(new Error("Network Error"));
+
+    render(<OpenBoxByCodeField onOpenBox={onOpenBox} />);
+
+    typeCode("B001");
+    fireEvent.click(screen.getByRole("button", { name: "Otevřít" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Box se nepodařilo otevřít/i),
+      ).toBeInTheDocument();
+    });
+    expect(onOpenBox).not.toHaveBeenCalled();
+  });
+
   it("disables the submit button while a code is empty", () => {
     render(<OpenBoxByCodeField onOpenBox={onOpenBox} />);
 

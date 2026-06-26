@@ -18,6 +18,7 @@ jest.mock('../../../auth/PermissionsContext', () => ({
   }),
 }));
 jest.mock('../../../contexts/ChangelogContext', () => ({ useChangelogContext: () => ({ openModal: jest.fn() }) }));
+jest.mock('../../../contexts/ThemeContext', () => ({ useTheme: () => ({ theme: 'light', toggle: jest.fn() }) }));
 jest.mock('../../auth/UserProfile', () => () => <div data-testid="user-profile" />);
 
 function renderSidebar() {

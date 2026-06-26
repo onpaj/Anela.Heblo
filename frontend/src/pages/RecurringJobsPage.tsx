@@ -116,13 +116,13 @@ const RecurringJobsPage: React.FC = () => {
       <div className="flex flex-col h-full w-full">
         {/* Header - Fixed, title only */}
         <div className="flex-shrink-0 mb-3">
-          <h1 className="text-lg font-semibold text-gray-900">Správa Recurring Jobs</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Správa Recurring Jobs</h1>
         </div>
 
         {/* Main Content - Scrollable */}
-        <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+        <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
           <div className="p-6">
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex items-center justify-between">
+            <div className="bg-red-50 dark:bg-red-400/15 border border-red-200 text-red-700 dark:text-red-400 px-4 py-3 rounded flex items-center justify-between">
               <div className="flex items-center">
                 <AlertCircle className="h-5 w-5 mr-3" />
                 <span>Chyba při načítání recurring jobs: {(error as Error).message}</span>
@@ -148,14 +148,14 @@ const RecurringJobsPage: React.FC = () => {
       <div className="flex flex-col h-full w-full">
         {/* Header - Fixed, title only */}
         <div className="flex-shrink-0 mb-3">
-          <h1 className="text-lg font-semibold text-gray-900">Správa Recurring Jobs</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Správa Recurring Jobs</h1>
         </div>
 
         {/* Main Content - Scrollable */}
-        <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+        <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
           <div className="p-12 text-center">
-            <Clock className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-            <p className="text-gray-500">Žádné recurring jobs nenalezeny</p>
+            <Clock className="h-12 w-12 mx-auto text-gray-300 dark:text-graphite-faint mb-3" />
+            <p className="text-gray-500 dark:text-graphite-muted">Žádné recurring jobs nenalezeny</p>
           </div>
         </div>
       </div>
@@ -172,10 +172,10 @@ const RecurringJobsPage: React.FC = () => {
       {/* Main Content - Scrollable */}
       <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
         {/* Action bar inside content */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-graphite-border flex items-center justify-between">
           <div className="flex items-center">
-            <Clock className="h-5 w-5 text-gray-400 mr-2" />
-            <p className="text-sm text-gray-500">Zapínání/vypínání Hangfire úloh</p>
+            <Clock className="h-5 w-5 text-gray-400 dark:text-graphite-faint mr-2" />
+            <p className="text-sm text-gray-500 dark:text-graphite-muted">Zapínání/vypínání Hangfire úloh</p>
           </div>
           <button
             onClick={() => refetch()}
@@ -188,42 +188,42 @@ const RecurringJobsPage: React.FC = () => {
 
         {/* Table */}
         <div className="overflow-auto flex-1">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+            <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Display Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Description
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Cron Expression
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Last Modified
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Next Run
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
               {jobsList.map((job) => (
-                <tr key={job.jobName} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <tr key={job.jobName} className="hover:bg-gray-50 dark:hover:bg-white/5">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
                     {job.displayName || job.jobName}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700 max-w-xs">
+                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-graphite-muted max-w-xs">
                     {job.description || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-graphite-muted">
                     {editingCronJobName === job.jobName ? (
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1">
@@ -235,7 +235,7 @@ const RecurringJobsPage: React.FC = () => {
                               if (e.key === 'Enter') handleSaveCron(job);
                               if (e.key === 'Escape') handleCancelCronEdit();
                             }}
-                            className="font-mono text-xs border border-gray-300 rounded px-2 py-1 w-32 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="font-mono text-xs border border-gray-300 dark:border-graphite-border rounded px-2 py-1 w-32 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             autoFocus
                             aria-label="CRON výraz"
                           />
@@ -243,7 +243,7 @@ const RecurringJobsPage: React.FC = () => {
                             onClick={() => handleSaveCron(job)}
                             disabled={updateCron.isPending}
                             aria-label="Uložit CRON výraz"
-                            className="text-green-600 hover:text-green-800 disabled:opacity-50"
+                            className="text-green-600 dark:text-emerald-400 hover:text-green-800 disabled:opacity-50"
                             title="Uložit"
                           >
                             {updateCron.isPending ? (
@@ -255,14 +255,14 @@ const RecurringJobsPage: React.FC = () => {
                           <button
                             onClick={handleCancelCronEdit}
                             aria-label="Zrušit úpravu CRON výrazu"
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600"
                             title="Zrušit"
                           >
                             <X className="h-4 w-4" />
                           </button>
                         </div>
                         {cronEditError && (
-                          <span className="text-xs text-red-600">{cronEditError}</span>
+                          <span className="text-xs text-red-600 dark:text-red-400">{cronEditError}</span>
                         )}
                       </div>
                     ) : (
@@ -271,7 +271,7 @@ const RecurringJobsPage: React.FC = () => {
                         <button
                           onClick={() => handleEditCron(job)}
                           aria-label={`Upravit CRON výraz pro ${job.displayName || job.jobName}`}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-graphite-faint hover:text-gray-600"
                           title="Upravit CRON"
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -280,16 +280,16 @@ const RecurringJobsPage: React.FC = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
+                    <div className="text-sm text-gray-900 dark:text-graphite-text">
                       {formatDate(job.lastModifiedAt)}
                     </div>
                     {job.lastModifiedBy && (
-                      <div className="text-xs text-gray-500 mt-0.5">
+                      <div className="text-xs text-gray-500 dark:text-graphite-muted mt-0.5">
                         {job.lastModifiedBy}
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-graphite-muted">
                     {job.nextRunAt
                       ? formatDate(job.nextRunAt)
                       : '—'}
@@ -304,8 +304,8 @@ const RecurringJobsPage: React.FC = () => {
                       className={`
                         inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
                         ${job.isEnabled
-                          ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                          ? 'bg-emerald-100 dark:bg-emerald-400/15 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-400/25'
+                          : 'bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-graphite-muted hover:bg-gray-200'
                         }
                         ${updatingJobName === job.jobName ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                       `}
@@ -328,7 +328,7 @@ const RecurringJobsPage: React.FC = () => {
                       aria-label={`Spustit úlohu ${job.displayName || job.jobName} nyní`}
                       className={`
                         inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
-                        bg-indigo-100 text-indigo-800 hover:bg-indigo-200
+                        bg-indigo-100 dark:bg-graphite-accent/10 text-indigo-800 dark:text-graphite-accent hover:bg-indigo-200 dark:hover:bg-graphite-accent/20
                         ${triggeringJobName === job.jobName ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                       `}
                       title="Spustit úlohu nyní"

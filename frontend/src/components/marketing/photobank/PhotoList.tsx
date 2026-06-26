@@ -49,11 +49,11 @@ function PhotoList({
       <div className="flex-1 p-4 space-y-3" data-testid="loading-skeleton">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex gap-3 animate-pulse">
-            <div className="w-20 h-20 bg-gray-200 rounded-lg flex-shrink-0" />
+            <div className="w-20 h-20 bg-gray-200 dark:bg-graphite-hover rounded-lg flex-shrink-0" />
             <div className="flex-1 space-y-2 py-1">
-              <div className="h-4 bg-gray-200 rounded w-3/4" />
-              <div className="h-3 bg-gray-200 rounded w-1/2" />
-              <div className="h-3 bg-gray-200 rounded w-1/4" />
+              <div className="h-4 bg-gray-200 dark:bg-graphite-hover rounded w-3/4" />
+              <div className="h-3 bg-gray-200 dark:bg-graphite-hover rounded w-1/2" />
+              <div className="h-3 bg-gray-200 dark:bg-graphite-hover rounded w-1/4" />
             </div>
           </div>
         ))}
@@ -63,7 +63,7 @@ function PhotoList({
 
   if (photos.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-400">
+      <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-graphite-faint">
         <p className="text-sm">Žádné fotografie nenalezeny</p>
       </div>
     );
@@ -71,7 +71,7 @@ function PhotoList({
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-200">
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-200 dark:divide-graphite-border">
         {photos.map((photo) => {
           const isSelected = photo.id === selectedPhotoId;
           const isChecked = selectedIds.has(photo.id);
@@ -87,7 +87,7 @@ function PhotoList({
                   ? "border-l-4 border-primary-blue bg-secondary-blue-pale ring-1 ring-inset ring-primary-blue/30"
                   : isSelected
                     ? "border-l-2 border-primary-blue bg-secondary-blue-pale"
-                    : "hover:bg-gray-50",
+                    : "hover:bg-gray-50 dark:hover:bg-white/5",
               ].join(" ")}
             >
               <button
@@ -122,10 +122,10 @@ function PhotoList({
                   size="medium"
                 />
                 <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                  <span className="text-base font-medium text-gray-900 truncate">
+                  <span className="text-base font-medium text-gray-900 dark:text-graphite-text truncate">
                     {photo.name}
                   </span>
-                  <span className="text-sm text-gray-500 truncate">
+                  <span className="text-sm text-gray-500 dark:text-graphite-muted truncate">
                     {photo.folderPath}
                   </span>
                   {photo.tags.length > 0 && (
@@ -134,13 +134,13 @@ function PhotoList({
                         <TagBadge key={tag.id} name={tag.name} />
                       ))}
                       {overflowCount > 0 && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
+                        <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 dark:bg-graphite-surface-2 text-gray-600 dark:text-graphite-muted rounded-full text-xs">
                           +{overflowCount}
                         </span>
                       )}
                     </div>
                   )}
-                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-graphite-muted">
                     <span>{formatFileSize(photo.fileSizeBytes)}</span>
                     <span>
                       {new Date(photo.lastModifiedAt).toLocaleDateString("cs-CZ")}
@@ -164,26 +164,26 @@ function PhotoList({
         })}
       </div>
 
-      <div className="flex-shrink-0 border-t border-gray-200 px-4 py-2 flex items-center justify-between bg-white">
-        <span className="text-xs text-gray-500">
+      <div className="flex-shrink-0 border-t border-gray-200 dark:border-graphite-border px-4 py-2 flex items-center justify-between bg-white dark:bg-graphite-surface">
+        <span className="text-xs text-gray-500 dark:text-graphite-muted">
           {total} {total === 1 ? "fotografie" : total < 5 ? "fotografie" : "fotografií"}
         </span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={!canGoPrev}
-            className="p-1 rounded text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="p-1 rounded text-gray-500 dark:text-graphite-muted hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
             aria-label="Předchozí stránka"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-xs text-gray-600">
+          <span className="text-xs text-gray-600 dark:text-graphite-muted">
             Stránka {page} z {totalPages}
           </span>
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={!canGoNext}
-            className="p-1 rounded text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="p-1 rounded text-gray-500 dark:text-graphite-muted hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
             aria-label="Další stránka"
           >
             <ChevronRight className="w-4 h-4" />
