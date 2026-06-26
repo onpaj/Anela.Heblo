@@ -77,6 +77,7 @@ describe("ThemeContext", () => {
 
     expect(screen.getByTestId("theme")).toHaveTextContent("dark");
     expect(localStorage.getItem(STORAGE_KEY)).toBe("dark");
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
 
     act(() => {
       screen.getByText("toggle").click();
@@ -84,5 +85,6 @@ describe("ThemeContext", () => {
 
     expect(screen.getByTestId("theme")).toHaveTextContent("light");
     expect(localStorage.getItem(STORAGE_KEY)).toBe("light");
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
   });
 });
