@@ -1,40 +1,25 @@
 # PR Context
 
-- **PR**: #3340 — #3333: migrate analytics hooks to generated API client
-- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3340
-- **Branch**: `feature/3333-Arch-Review-Analytics-Two-Frontend-Hooks-Bypass-Ge` → `main`
-- **State**: OPEN
+- **PR**: #3359 — #3347: fix recurring-jobs E2E count assertions (12 → ≥24)
+- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3359
+- **Branch**: `feature/3347-Fix-Jobs-Investigate-Recurring-Jobs-Showing-24-Ins` → `main`
+- **State**: open
 - **Author**: onpaj
-- **Changes**: +1095 / -128 across 32 files
-- **Absorbed**: backmerged with `main` (clean), test fix applied, all tests passing, pushed
-
-## Absorb notes
-
-- Backmerge of `origin/main` was clean (no conflicts).
-- `npm run build` passes. `npm run lint` has 146 pre-existing errors (identical on `origin/main`) — none in PR-touched files; PR introduces no new lint errors.
-- **Test fix**: `useInvoiceImportStatistics.test.ts` still mocked the old `http.fetch` path while the migrated hook now calls `apiClient.analytics_GetInvoiceImportStatistics(...)` directly. Updated the test to mock the generated client method and assert on `('InvoiceDate', null)` / `('LastSyncTime', 7)` style arguments. Committed as `fix: update useInvoiceImportStatistics test to mock generated client method`.
-- No other test files reference the migrated hooks/types or removed interfaces.
+- **Changes**: +558 / -9 across 11 files
+- **Absorbed**: no main backmerge needed (base SHA unchanged); all tests passing; pushed 4de66208
 
 ## Description
 
-Closes #3333
+Closes #3347
 
-## What the issue was
+The recurring-jobs E2E suite had four `toBe(12)` assertions that staging now fails because the app has 24 registered `IRecurringJob` implementations. Replaced with `toBeGreaterThanOrEqual(24)`.
 
-Two React Query hooks in the Analytics frontend module — `useInvoiceImportStatistics` and `useBankStatementImportStatistics` — bypassed the generated OpenAPI TypeScript client by using raw `(apiClient as any).http.fetch(...)` calls and redefining types already exported by the generated client. This meant backend contract changes (field renames, type changes) would silently drift rather than producing compile-time errors, and auth header injection / retry logic provided by the generated client was being bypassed.
+## What pr-autoabsorb fixed
 
-## How it was fixed
+The PR's own frontend CI was failing due to pre-existing issues on main that showed up in the full test run:
 
-Replaced the raw fetch calls with typed generated-client method invocations in both hooks, removed the duplicate hand-written interfaces, and re-exported the generated types from the hook files so chart consumers needed no import-path changes.
+1. **`useTheme` errors** (34 tests across 5 suites) — `ThemeContext`/`ThemeProvider` and `ThemeToggle` had been added to `main` after this branch was cut. Components like `CatalogAutocomplete`, `ResponsiblePersonCombobox`, `ThemeToggle` call `useTheme()` which throws outside a `ThemeProvider`. Fixed by adding a global `jest.mock("./contexts/ThemeContext", ...)` in `setupTests.ts`.
 
-### Changes
-- `frontend/src/api/hooks/useInvoiceImportStatistics.ts` — replaced `(apiClient as any).http.fetch(...)` with `apiClient.analytics_GetInvoiceImportStatistics(...)`; removed duplicate `DailyInvoiceCount` and `InvoiceImportStatisticsResponse` interfaces; re-exported generated equivalents
-- `frontend/src/api/hooks/useBankStatements.ts` — replaced raw fetch in `useBankStatementImportStatistics` with `apiClient.analytics_GetBankStatementImportStatistics(...)`; removed duplicate interfaces; retained `GetBankStatementImportStatisticsRequest` with string dates (converting to `Date` inside `queryFn`); other hooks in the file untouched
-- `frontend/src/components/charts/InvoiceImportChart.tsx` — updated `date: string` → `date: Date` (the generated type); replaced `parseISO(item.date)` with `item.date!`; added `?? 0` / `?? false` fallbacks for optional generated type fields
-- `frontend/src/components/charts/BankStatementImportChart.tsx` — same `date` type update + `parseISO` removal; renamed `BankStatementImportStatisticsDto` → `DailyBankStatementStatistics`; added `?? 0` fallbacks
-- `frontend/src/components/pages/automation/InvoiceImportStatistics.tsx` — added `?? []` / `?? 0` fallbacks for optional fields from generated response type; `?? 0` on summary stat calculations
-- `frontend/src/components/pages/BankStatementImportChart.tsx` — added `?? []` on `data.statistics` and `?? 0` on summary stat calculations
-- `frontend/src/components/customer/tabs/StatisticsTab.tsx` — added `?? 0` fallbacks on `importCount`/`totalItemCount` usages
+2. **Stale `PositionCard` snapshots** (2 tests) — Dark-mode Tailwind classes (`dark:bg-graphite-surface`, `dark:shadow-soft-dark`, etc.) were added to `PositionCard.tsx` on main but the snapshot file was not regenerated. Fixed by running `jest --updateSnapshot`.
 
-## Artifacts
-- Brief, spec, arch-review, task-plan, impl, and review markdown are committed in this branch under `artifacts/feat-3333/`.
+Result: 280/280 frontend test suites, 2314 tests passing.

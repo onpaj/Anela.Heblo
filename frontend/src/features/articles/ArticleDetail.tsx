@@ -4,26 +4,11 @@ import { ArticleStatus } from '../../api/generated/api-client';
 import ArticleSourceList from './ArticleSourceList';
 import ArticleFeedbackSection from './ArticleFeedbackSection';
 import ArticleDebugPanel from './ArticleDebugPanel';
+import { ARTICLE_STATUS_LABELS, ARTICLE_STATUS_COLORS } from './articleStatusConfig';
 
 interface ArticleDetailProps {
   articleId: string;
 }
-
-const STATUS_LABELS: Record<ArticleStatus, string> = {
-  [ArticleStatus.Queued]: 'Ve frontě',
-  [ArticleStatus.Researching]: 'Výzkum — shromažďuji fakta…',
-  [ArticleStatus.Writing]: 'Psaní — generuji obsah…',
-  [ArticleStatus.Generated]: 'Vygenerováno',
-  [ArticleStatus.Failed]: 'Generování selhalo',
-};
-
-const STATUS_COLORS: Record<ArticleStatus, string> = {
-  [ArticleStatus.Queued]: 'bg-gray-100 text-gray-700',
-  [ArticleStatus.Researching]: 'bg-blue-100 text-blue-700',
-  [ArticleStatus.Writing]: 'bg-purple-100 text-purple-700',
-  [ArticleStatus.Generated]: 'bg-green-100 text-green-700',
-  [ArticleStatus.Failed]: 'bg-red-100 text-red-700',
-};
 
 function HtmlContent({ html }: { html: string }) {
   const srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
@@ -54,7 +39,7 @@ function InProgressView({ article }: { article: ArticleDetailType }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-4 text-gray-500">
       <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      <p className="text-sm">{STATUS_LABELS[article.status]}</p>
+      <p className="text-sm">{ARTICLE_STATUS_LABELS[article.status]}</p>
     </div>
   );
 }
@@ -102,12 +87,12 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
     <div>
       <div className="flex items-center gap-2 mb-4">
         <span
-          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[article.status]}`}
+          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${ARTICLE_STATUS_COLORS[article.status]}`}
         >
           {IN_PROGRESS_STATUSES.has(article.status) && (
             <Loader2 className="w-3 h-3 animate-spin" />
           )}
-          {STATUS_LABELS[article.status]}
+          {ARTICLE_STATUS_LABELS[article.status]}
         </span>
       </div>
 

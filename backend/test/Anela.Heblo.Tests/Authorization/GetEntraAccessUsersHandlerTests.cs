@@ -1,7 +1,5 @@
+using Anela.Heblo.Application.Features.Authorization.Contracts;
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetEntraAccessUsers;
-using Anela.Heblo.Application.Features.UserManagement.Contracts;
-using Anela.Heblo.Application.Features.UserManagement.Services;
-using Anela.Heblo.Domain.Features.Authorization;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -10,18 +8,18 @@ namespace Anela.Heblo.Tests.Authorization;
 
 public class GetEntraAccessUsersHandlerTests
 {
-    private static GetEntraAccessUsersHandler NewHandler(IGraphService graphService)
-        => new(graphService);
+    private static GetEntraAccessUsersHandler NewHandler(IEntraAccessUserSource source)
+        => new(source);
 
     [Fact]
     public async Task Handle_ReturnsEntraUsersOrderedByDisplayName()
     {
-        var mock = new Mock<IGraphService>();
-        mock.Setup(g => g.GetAppRoleMembersAsync(AccessRoles.Base, default))
-            .ReturnsAsync(new List<UserDto>
+        var mock = new Mock<IEntraAccessUserSource>();
+        mock.Setup(s => s.GetBaseMembersAsync(default))
+            .ReturnsAsync(new List<EntraAccessUserRecord>
             {
-                new() { Id = "obj-2", DisplayName = "Zdenek Novak", Email = "z@x.cz" },
-                new() { Id = "obj-1", DisplayName = "Anna Novak", Email = "a@x.cz" },
+                new("obj-2", "z@x.cz", "Zdenek Novak"),
+                new("obj-1", "a@x.cz", "Anna Novak"),
             });
 
         var result = await NewHandler(mock.Object).Handle(new GetEntraAccessUsersRequest(), default);
@@ -34,11 +32,11 @@ public class GetEntraAccessUsersHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenGraphReturnsEmpty_ReturnsEmptyList()
+    public async Task Handle_WhenSourceReturnsEmpty_ReturnsEmptyList()
     {
-        var mock = new Mock<IGraphService>();
-        mock.Setup(g => g.GetAppRoleMembersAsync(It.IsAny<string>(), default))
-            .ReturnsAsync(new List<UserDto>());
+        var mock = new Mock<IEntraAccessUserSource>();
+        mock.Setup(s => s.GetBaseMembersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<EntraAccessUserRecord>());
 
         var result = await NewHandler(mock.Object).Handle(new GetEntraAccessUsersRequest(), default);
 
