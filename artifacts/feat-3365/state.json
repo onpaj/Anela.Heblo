@@ -6,24 +6,31 @@
   "phases": {
     "analyzing": {
       "status": "completed",
-      "updated_at": "2026-06-26T05:19:06.152728Z"
+      "updated_at": "2026-06-26T05:20:18.574629Z"
     },
     "architecting": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-06-26T05:20:18.768939Z"
     },
     "designing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-06-26T05:20:18.945985Z"
     },
     "planning": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-06-26T05:20:19.129877Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "dark-mode-article-components",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
