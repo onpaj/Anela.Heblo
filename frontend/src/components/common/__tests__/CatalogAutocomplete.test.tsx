@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CatalogAutocomplete } from "../CatalogAutocomplete";
 import { CatalogItemDto, ProductType } from "../../../api/generated/api-client";
 import { useCatalogAutocomplete } from "../../../api/hooks/useCatalogAutocomplete";
+import { ThemeProvider } from "../../../contexts/ThemeContext";
 
 jest.mock("../../../api/hooks/useCatalogAutocomplete");
 const mockUseCatalogAutocomplete = useCatalogAutocomplete as jest.MockedFunction<
@@ -34,7 +35,7 @@ const createTestQueryClient = () =>
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <QueryClientProvider client={createTestQueryClient()}>
-    {children}
+    <ThemeProvider>{children}</ThemeProvider>
   </QueryClientProvider>
 );
 
