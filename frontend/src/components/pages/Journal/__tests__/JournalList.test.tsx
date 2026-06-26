@@ -12,6 +12,11 @@ import type {
   JournalTagDto,
 } from "../../../../api/generated/api-client";
 
+jest.mock("../../../../contexts/ThemeContext", () => ({
+  useTheme: () => ({ theme: "light", toggle: jest.fn() }),
+  ThemeProvider: ({ children }: any) => children,
+}));
+
 // Mock telemetry to avoid dependency on @microsoft/applicationinsights-web
 jest.mock("../../../../telemetry/useScreenView", () => ({
   useScreenView: jest.fn(),
