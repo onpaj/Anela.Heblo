@@ -52,7 +52,6 @@ const testQueryClient = new QueryClient({
 function TestApp() {
   return (
     <div className="App" data-testid="app">
-      <ThemeProvider>
       <QueryClientProvider client={testQueryClient}>
         <ThemeProvider>
           <ChangelogProvider>
@@ -70,7 +69,6 @@ function TestApp() {
           </ChangelogProvider>
         </ThemeProvider>
       </QueryClientProvider>
-      </ThemeProvider>
     </div>
   );
 }

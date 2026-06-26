@@ -12,6 +12,7 @@ jest.mock('../../../api/hooks/useUserManagement', () => ({
 
 jest.mock('../../../contexts/ThemeContext', () => ({
     useTheme: () => ({ theme: 'light', toggle: jest.fn() }),
+    ThemeProvider: ({ children }: any) => children,
 }));
 
 // Mock PermissionsContext

@@ -11,6 +11,7 @@ jest.mock("../../api/hooks/useJournal");
 jest.mock("../../api/hooks/useCatalogAutocomplete");
 jest.mock("../../contexts/ThemeContext", () => ({
   useTheme: () => ({ theme: "light", toggle: jest.fn() }),
+  ThemeProvider: ({ children }: any) => children,
 }));
 jest.mock("react-router-dom", () => ({ useNavigate: () => jest.fn() }));
 jest.mock("react-select", () => ({

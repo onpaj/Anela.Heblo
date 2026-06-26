@@ -18,6 +18,7 @@ jest.mock("react-i18next", () => ({
 
 jest.mock("../../../../contexts/ThemeContext", () => ({
   useTheme: () => ({ theme: "light", toggle: jest.fn() }),
+  ThemeProvider: ({ children }: any) => children,
 }));
 
 // Mock PermissionsContext (ManufactureOrderDetail renders ResponsiblePersonCombobox,

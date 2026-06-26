@@ -10,6 +10,7 @@ jest.mock("../../../api/hooks/useCatalogAutocomplete");
 
 jest.mock("../../../contexts/ThemeContext", () => ({
   useTheme: () => ({ theme: "light", toggle: jest.fn() }),
+  ThemeProvider: ({ children }: any) => children,
 }));
 const mockUseCatalogAutocomplete = useCatalogAutocomplete as jest.MockedFunction<
   typeof useCatalogAutocomplete
