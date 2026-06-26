@@ -382,22 +382,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         },
       ],
     },
-    {
-      id: 'knowledgebase',
-      name: 'Knowledgebase',
-      icon: Database,
-      type: 'section' as const,
-      items: [
-        {
-          id: 'kb-poradenstvi',
-          name: 'Poradenství',
-          href: '/knowledge-base',
-        },
-        ...(hasRole('knowledge_base_manager')
-          ? [{ id: 'kb-feedback', name: 'Feedback', href: '/knowledge-base/feedback' }]
-          : []),
-      ],
-    },
   ];
 
   type RawSection = (typeof allSections)[number];
