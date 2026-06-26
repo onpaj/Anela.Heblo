@@ -27,17 +27,17 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({
   return (
     <th
       scope="col"
-      className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none ${className}`}
+      className={`px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 select-none ${className}`}
       onClick={() => onSort(column)}
     >
       <div className="flex items-center space-x-1">
         <span>{children}</span>
         <div className="flex flex-col">
           <ChevronUp
-            className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
+            className={`h-3 w-3 ${isAscending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
           />
           <ChevronDown
-            className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
+            className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
           />
         </div>
       </div>

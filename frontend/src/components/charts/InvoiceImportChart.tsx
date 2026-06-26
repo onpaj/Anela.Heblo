@@ -53,19 +53,19 @@ export const InvoiceImportChart: React.FC<InvoiceImportChartProps> = ({
       const dayOfWeek = format(data.date!, 'EEEE', { locale: cs });
       
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-medium text-gray-900">{fullDate}</p>
-          <p className="text-xs text-gray-500 capitalize">{dayOfWeek}</p>
-          <p className="text-sm text-gray-600">
+        <div className="bg-white dark:bg-graphite-surface p-3 border border-gray-200 dark:border-graphite-border rounded-lg shadow-lg dark:shadow-soft-dark">
+          <p className="font-medium text-gray-900 dark:text-graphite-text">{fullDate}</p>
+          <p className="text-xs text-gray-500 dark:text-graphite-muted capitalize">{dayOfWeek}</p>
+          <p className="text-sm text-gray-600 dark:text-graphite-muted">
             Počet faktur: <span className="font-medium">{data.count}</span>
           </p>
           {data.isWeekend && (
-            <p className="text-xs text-blue-600">
+            <p className="text-xs text-blue-600 dark:text-blue-400">
               📅 Víkend
             </p>
           )}
           {data.isBelowThreshold && (
-            <p className="text-sm text-red-600 font-medium">
+            <p className="text-sm text-red-600 dark:text-red-400 font-medium">
               ⚠️ Pod minimálním prahem ({minimumThreshold})
             </p>
           )}
@@ -125,13 +125,13 @@ export const InvoiceImportChart: React.FC<InvoiceImportChartProps> = ({
     <div className="w-full">
       {/* Chart title and info */}
       <div className="mb-4">
-        <h3 className="text-lg font-medium text-gray-900 mb-1">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-1">
           Import vydaných faktur - přehled posledních dní
         </h3>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 dark:text-graphite-muted">
           Zobrazení podle: {dateType === 'InvoiceDate' ? 'datum vystavení faktury' : 'datum importu faktury'}
         </p>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 dark:text-graphite-muted">
           Minimální prah: <span className="font-medium">{minimumThreshold} faktur/den</span>
         </p>
       </div>
@@ -195,19 +195,19 @@ export const InvoiceImportChart: React.FC<InvoiceImportChartProps> = ({
       <div className="mt-4 flex flex-wrap gap-4 text-sm">
         <div className="flex items-center gap-2">
           <div className="w-4 h-0.5 bg-blue-500"></div>
-          <span className="text-gray-600">Počet faktur</span>
+          <span className="text-gray-600 dark:text-graphite-muted">Počet faktur</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-0.5 bg-red-600 border-dashed border-t-2"></div>
-          <span className="text-gray-600">Minimální prah</span>
+          <span className="text-gray-600 dark:text-graphite-muted">Minimální prah</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-red-600 rounded-full border-2 border-white"></div>
-          <span className="text-gray-600">Problémové dny</span>
+          <span className="text-gray-600 dark:text-graphite-muted">Problémové dny</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-3 bg-sky-100 border border-sky-200"></div>
-          <span className="text-gray-600">Víkendy</span>
+          <span className="text-gray-600 dark:text-graphite-muted">Víkendy</span>
         </div>
       </div>
     </div>

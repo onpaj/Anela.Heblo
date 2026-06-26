@@ -89,21 +89,21 @@ export const ConfirmationDialogs: React.FC<ConfirmationDialogsProps> = ({
       {/* Cancel Confirmation Dialog */}
       {showCancelConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-md w-full">
             <div className="p-6">
               <div className="flex items-center mb-4">
                 <AlertCircle className="h-6 w-6 text-red-600 mr-3" />
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
                   Stornovat zakázku
                 </h3>
               </div>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-graphite-muted mb-6">
                 Opravdu chcete stornovat tuto výrobní zakázku? Tato akce je nevratná.
               </p>
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={onCancelConfirmationClose}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-gray-700 dark:text-graphite-muted bg-gray-100 dark:bg-graphite-surface-2 rounded-lg hover:bg-gray-200 dark:hover:bg-graphite-hover transition-colors"
                 >
                   Zrušit
                 </button>
@@ -130,21 +130,21 @@ export const ConfirmationDialogs: React.FC<ConfirmationDialogsProps> = ({
       {/* State Return Confirmation Dialog */}
       {showStateReturnConfirmation && pendingStateChange && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-md w-full">
             <div className="p-6">
               <div className="flex items-center mb-4">
                 <AlertCircle className="h-6 w-6 text-amber-600 mr-3" />
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
                   Potvrdit návrat stavu
                 </h3>
               </div>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-graphite-muted mb-6">
                 Opravdu chcete vrátit zakázku zpět ze stavu "{order && order.state !== undefined ? getStateLabel(order.state) : 'Neznámý'}" na "{getStateLabel(pendingStateChange)}"?
               </p>
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={onStateReturnConfirmationClose}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-gray-700 dark:text-graphite-muted bg-gray-100 dark:bg-graphite-surface-2 rounded-lg hover:bg-gray-200 dark:hover:bg-graphite-hover transition-colors"
                 >
                   Zrušit
                 </button>
@@ -218,29 +218,29 @@ export const ConfirmationDialogs: React.FC<ConfirmationDialogsProps> = ({
       {/* Expanded Note Modal */}
       {showExpandedNote && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[70]">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+          <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-2xl w-full max-h-[80vh] overflow-hidden">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <StickyNote className="h-5 w-5 text-yellow-600 mr-2" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-graphite-text flex items-center">
+                  <StickyNote className="h-5 w-5 text-yellow-600 dark:text-amber-400 mr-2" />
                   Poznámka
                 </h3>
                 <button
                   onClick={onExpandedNoteClose}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted transition-colors"
                 >
                   <X className="h-6 w-6" />
                 </button>
               </div>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-h-[60vh] overflow-y-auto">
-                <p className="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed">
+              <div className="bg-yellow-50 border border-yellow-200 dark:bg-amber-900/20 dark:border-amber-900/40 rounded-lg p-4 max-h-[60vh] overflow-y-auto">
+                <p className="text-gray-800 dark:text-graphite-muted whitespace-pre-wrap text-sm leading-relaxed">
                   {expandedNoteContent}
                 </p>
               </div>
               <div className="mt-4 flex justify-end">
                 <button
                   onClick={onExpandedNoteClose}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 bg-gray-100 dark:bg-graphite-surface-2 text-gray-700 dark:text-graphite-muted rounded-lg hover:bg-gray-200 dark:hover:bg-graphite-hover transition-colors"
                 >
                   Zavřít
                 </button>

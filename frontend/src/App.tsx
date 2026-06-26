@@ -66,6 +66,7 @@ import { recoverAuth } from "./auth/authRecovery";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { isE2ETestMode, getE2EAccessToken } from "./auth/e2eAuth";
 import { ToastProvider } from "./contexts/ToastContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { PlanningListProvider } from "./contexts/PlanningListContext";
 import { PurchasePlanningListProvider } from "./contexts/PurchasePlanningListContext";
@@ -356,6 +357,7 @@ function App() {
   return (
     <OpenFeatureProvider>
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
       <LoadingProvider>
         <ToastProvider>
           <ChangelogProvider>
@@ -509,6 +511,7 @@ function App() {
           </ChangelogProvider>
         </ToastProvider>
       </LoadingProvider>
+      </ThemeProvider>
     </QueryClientProvider>
     </OpenFeatureProvider>
   );

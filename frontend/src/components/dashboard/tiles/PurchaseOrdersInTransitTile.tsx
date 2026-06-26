@@ -41,8 +41,8 @@ export const PurchaseOrdersInTransitTile: React.FC<PurchaseOrdersInTransitTilePr
     return (
       <div className="h-full flex items-center justify-center text-center">
         <div>
-          <div className="text-red-500 text-2xl mb-2">⚠️</div>
-          <p className="text-red-600 text-sm">{data.error || 'Chyba při načítání dat'}</p>
+          <div className="text-red-500 dark:text-red-400 text-2xl mb-2">⚠️</div>
+          <p className="text-red-600 dark:text-red-400 text-sm">{data.error || 'Chyba při načítání dat'}</p>
         </div>
       </div>
     );
@@ -56,23 +56,23 @@ export const PurchaseOrdersInTransitTile: React.FC<PurchaseOrdersInTransitTilePr
     <div
       className={`
         flex flex-col items-center justify-center h-full leading-relaxed min-h-44
-        ${isClickable ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 rounded-lg' : ''}
+        ${isClickable ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 transition-colors duration-200 rounded-lg' : ''}
       `}
       onClick={handleClick}
       title={tooltip}
       style={isClickable ? { touchAction: 'manipulation' } : undefined}
     >
-      <div className="mb-2 text-orange-600">
+      <div className="mb-2 text-orange-600 dark:text-amber-400">
         <Truck className="h-10 w-10" />
       </div>
-      <div className="text-3xl font-bold text-gray-900 mb-1">
+      <div className="text-3xl font-bold text-gray-900 dark:text-graphite-text mb-1">
         {formattedAmount}
       </div>
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-gray-500 dark:text-graphite-muted">
         {count} objednávek
       </div>
       {isClickable && (
-        <div className="text-xs text-gray-500 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="text-xs text-gray-500 dark:text-graphite-muted mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
           Klikněte pro detail
         </div>
       )}

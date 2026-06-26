@@ -9,9 +9,18 @@ interface ProductPropertiesInfoProps {
 }
 
 const COOLING_LABELS: Record<Cooling, { label: string; className: string }> = {
-  [Cooling.None]: { label: "Bez chlazení", className: "text-gray-400" },
-  [Cooling.L1]: { label: "L1", className: "text-blue-600 font-semibold" },
-  [Cooling.L2]: { label: "L2", className: "text-indigo-700 font-semibold" },
+  [Cooling.None]: {
+    label: "Bez chlazení",
+    className: "text-gray-400 dark:text-graphite-faint",
+  },
+  [Cooling.L1]: {
+    label: "L1",
+    className: "text-blue-600 dark:text-blue-400 font-semibold",
+  },
+  [Cooling.L2]: {
+    label: "L2",
+    className: "text-indigo-700 dark:text-graphite-accent font-semibold",
+  },
 };
 
 const ProductPropertiesInfo: React.FC<ProductPropertiesInfoProps> = ({
@@ -23,47 +32,47 @@ const ProductPropertiesInfo: React.FC<ProductPropertiesInfoProps> = ({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium text-gray-900 flex items-center">
-        <Layers className="h-5 w-5 mr-2 text-gray-500" />
+      <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text flex items-center">
+        <Layers className="h-5 w-5 mr-2 text-gray-500 dark:text-graphite-muted" />
         Vlastnosti produktu
       </h3>
 
-      <div className="bg-gray-50 rounded-lg p-4">
+      <div className="bg-gray-50 dark:bg-graphite-surface-2 rounded-lg p-4">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="text-center">
-            <span className="text-xs font-medium text-gray-600 block mb-1">
+            <span className="text-xs font-medium text-gray-600 dark:text-graphite-muted block mb-1">
               Optimální zásoby (dny)
             </span>
-            <span className="text-lg font-semibold text-gray-900">
+            <span className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
               {item.properties?.optimalStockDaysSetup || "-"}
             </span>
           </div>
 
           <div className="text-center">
-            <span className="text-xs font-medium text-gray-600 block mb-1">
+            <span className="text-xs font-medium text-gray-600 dark:text-graphite-muted block mb-1">
               Min. zásoba
             </span>
-            <span className="text-lg font-semibold text-gray-900">
+            <span className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
               {item.properties?.stockMinSetup || "-"}
             </span>
           </div>
 
           <div className="text-center">
-            <span className="text-xs font-medium text-gray-600 block mb-1">
+            <span className="text-xs font-medium text-gray-600 dark:text-graphite-muted block mb-1">
               Velikost šarže
             </span>
-            <span className="text-lg font-semibold text-gray-900">
+            <span className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
               {item.properties?.batchSize || "-"}
             </span>
           </div>
 
           <div className="text-center">
-            <span className="text-xs font-medium text-gray-600 block mb-1">
+            <span className="text-xs font-medium text-gray-600 dark:text-graphite-muted block mb-1">
               Náročnost výroby
             </span>
             <button
               onClick={onManufactureDifficultyClick}
-              className="text-lg font-semibold text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus:underline flex items-center space-x-1 mx-auto"
+              className="text-lg font-semibold text-indigo-600 dark:text-graphite-accent hover:text-indigo-700 hover:underline focus:outline-none focus:underline flex items-center space-x-1 mx-auto"
               title="Klikněte pro správu náročnosti výroby"
             >
               <span>
@@ -78,7 +87,7 @@ const ProductPropertiesInfo: React.FC<ProductPropertiesInfoProps> = ({
 
         <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="text-center">
-            <span className="text-xs font-medium text-gray-600 block mb-1">
+            <span className="text-xs font-medium text-gray-600 dark:text-graphite-muted block mb-1">
               Chlazení
             </span>
             <span className={`text-lg ${coolingDisplay.className}`}>

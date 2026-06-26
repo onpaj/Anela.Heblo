@@ -113,13 +113,13 @@ const KnowledgeBaseUploadTab: React.FC = () => {
   const statusLabel = (status: FileStatus | undefined): React.ReactNode => {
     switch (status) {
       case 'uploading':
-        return <span className="text-xs text-blue-600">Nahrávám…</span>;
+        return <span className="text-xs text-blue-600 dark:text-blue-400">Nahrávám…</span>;
       case 'done':
-        return <span className="text-xs text-green-600">✅ Hotovo</span>;
+        return <span className="text-xs text-green-600 dark:text-emerald-400">✅ Hotovo</span>;
       case 'error':
-        return <span className="text-xs text-red-600">❌ Chyba</span>;
+        return <span className="text-xs text-red-600 dark:text-red-400">❌ Chyba</span>;
       default:
-        return <span className="text-xs text-gray-400">Čeká</span>;
+        return <span className="text-xs text-gray-400 dark:text-graphite-faint">Čeká</span>;
     }
   };
 
@@ -133,15 +133,15 @@ const KnowledgeBaseUploadTab: React.FC = () => {
         onClick={() => fileInputRef.current?.click()}
         className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors ${
           dragOver
-            ? 'border-blue-400 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400 bg-gray-50'
+            ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/30'
+            : 'border-gray-300 hover:border-gray-400 bg-gray-50 dark:border-graphite-border dark:bg-graphite-surface-2'
         }`}
       >
-        <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-        <p className="text-sm font-medium text-gray-700">Přetáhněte soubory sem</p>
-        <p className="text-xs text-gray-500 mt-1">nebo</p>
-        <p className="text-sm text-blue-600 mt-1 font-medium">Vybrat soubory</p>
-        <p className="text-xs text-gray-400 mt-3">Podporované formáty: PDF, DOCX, TXT, MD</p>
+        <Upload className="w-10 h-10 text-gray-400 dark:text-graphite-faint mx-auto mb-3" />
+        <p className="text-sm font-medium text-gray-700 dark:text-graphite-muted">Přetáhněte soubory sem</p>
+        <p className="text-xs text-gray-500 dark:text-graphite-muted mt-1">nebo</p>
+        <p className="text-sm text-blue-600 dark:text-blue-400 mt-1 font-medium">Vybrat soubory</p>
+        <p className="text-xs text-gray-400 dark:text-graphite-faint mt-3">Podporované formáty: PDF, DOCX, TXT, MD</p>
         <input
           ref={fileInputRef}
           type="file"
@@ -153,19 +153,19 @@ const KnowledgeBaseUploadTab: React.FC = () => {
       </div>
 
       {queuedFiles.length > 0 && (
-        <div className="border border-gray-200 rounded-xl divide-y divide-gray-100">
+        <div className="border border-gray-200 dark:border-graphite-border rounded-xl divide-y divide-gray-100 dark:divide-graphite-border">
           {queuedFiles.map(file => (
             <div key={file.name} className="flex items-center justify-between px-4 py-3 gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                <FileText className="w-4 h-4 text-gray-400 dark:text-graphite-faint shrink-0" />
+                <span className="text-sm text-gray-700 dark:text-graphite-muted truncate">{file.name}</span>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-2">
                 <select
                   value={fileDocumentTypes[file.name] ?? 'KnowledgeBase'}
                   onChange={(e) => handleDocumentTypeChange(file.name, e.target.value as DocumentType)}
                   disabled={isUploading}
-                  className="text-xs border border-gray-200 rounded px-1 py-0.5 bg-white disabled:opacity-50"
+                  className="text-xs border border-gray-200 dark:border-graphite-border rounded px-1 py-0.5 bg-white dark:bg-graphite-surface-2 dark:text-graphite-text disabled:opacity-50"
                 >
                   <option value="KnowledgeBase">Znalostní báze</option>
                   <option value="Conversation">Konverzace</option>
@@ -174,7 +174,7 @@ const KnowledgeBaseUploadTab: React.FC = () => {
                 <button
                   onClick={() => handleRemoveFile(file.name)}
                   disabled={isUploading}
-                  className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                  className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 disabled:opacity-50"
                   aria-label="Odebrat"
                 >
                   <X className="w-4 h-4" />
@@ -198,7 +198,7 @@ const KnowledgeBaseUploadTab: React.FC = () => {
           <button
             onClick={handleCancelAll}
             disabled={isUploading}
-            className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            className="px-4 py-2 border border-gray-300 dark:border-graphite-border dark:text-graphite-muted text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
           >
             Zrušit vše
           </button>

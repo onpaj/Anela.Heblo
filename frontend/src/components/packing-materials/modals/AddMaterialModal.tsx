@@ -88,16 +88,16 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark w-full max-w-md mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-graphite-border">
           <div className="flex items-center space-x-3">
-            <Package className="h-6 w-6 text-indigo-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Přidat materiál</h2>
+            <Package className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">Přidat materiál</h2>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted transition-colors"
             disabled={isPending}
           >
             <X className="h-6 w-6" />
@@ -108,14 +108,14 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6">
           {/* General Error */}
           {errors.general && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+            <div className="mb-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 px-3 py-2 rounded text-sm">
               {errors.general}
             </div>
           )}
 
           {/* Name Field */}
           <div className="mb-4">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               Název materiálu *
             </label>
             <input
@@ -123,18 +123,18 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint ${
+                errors.name ? 'border-red-500' : 'border-gray-300 dark:border-graphite-border'
               }`}
               placeholder="např. Krabičky, Etikety, Bubble wrap"
               disabled={isPending}
             />
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+            {errors.name && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.name}</p>}
           </div>
 
           {/* Consumption Rate Field */}
           <div className="mb-4">
-            <label htmlFor="consumptionRate" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="consumptionRate" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               Spotřeba *
             </label>
             <input
@@ -144,25 +144,25 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
               min="0"
               value={formData.consumptionRate}
               onChange={(e) => setFormData({ ...formData, consumptionRate: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                errors.consumptionRate ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint ${
+                errors.consumptionRate ? 'border-red-500' : 'border-gray-300 dark:border-graphite-border'
               }`}
               placeholder="např. 1.5"
               disabled={isPending}
             />
-            {errors.consumptionRate && <p className="text-red-500 text-xs mt-1">{errors.consumptionRate}</p>}
+            {errors.consumptionRate && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.consumptionRate}</p>}
           </div>
 
           {/* Consumption Type Field */}
           <div className="mb-4">
-            <label htmlFor="consumptionType" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="consumptionType" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               Typ spotřeby *
             </label>
             <select
               id="consumptionType"
               value={formData.consumptionType}
               onChange={(e) => setFormData({ ...formData, consumptionType: e.target.value as ConsumptionType })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-graphite-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
               disabled={isPending}
             >
               {consumptionTypeOptions.map((option) => (
@@ -175,7 +175,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
 
           {/* Current Quantity Field */}
           <div className="mb-6">
-            <label htmlFor="currentQuantity" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="currentQuantity" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               Aktuální množství *
             </label>
             <input
@@ -185,13 +185,13 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
               min="0"
               value={formData.currentQuantity}
               onChange={(e) => setFormData({ ...formData, currentQuantity: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                errors.currentQuantity ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint ${
+                errors.currentQuantity ? 'border-red-500' : 'border-gray-300 dark:border-graphite-border'
               }`}
               placeholder="např. 100"
               disabled={isPending}
             />
-            {errors.currentQuantity && <p className="text-red-500 text-xs mt-1">{errors.currentQuantity}</p>}
+            {errors.currentQuantity && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.currentQuantity}</p>}
           </div>
 
           {/* Buttons */}
@@ -200,7 +200,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={isPending}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface-2 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             >
               Zrušit
             </button>

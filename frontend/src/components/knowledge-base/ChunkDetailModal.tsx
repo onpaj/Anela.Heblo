@@ -27,15 +27,15 @@ const ChunkDetailModal: React.FC<ChunkDetailModalProps> = ({ chunkId, score, onC
       aria-modal='true'
       className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
     >
-      <div className='bg-white rounded-lg shadow-xl w-[75vw] max-h-[90vh] overflow-hidden flex flex-col'>
+      <div className='bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark w-[75vw] max-h-[90vh] overflow-hidden flex flex-col'>
         {/* Header */}
-        <div className='flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0'>
-          <h2 className='text-base font-semibold text-gray-800 truncate'>
+        <div className='flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-graphite-border flex-shrink-0'>
+          <h2 className='text-base font-semibold text-gray-800 dark:text-graphite-text truncate'>
             {data?.filename ?? 'Zdroj'}
           </h2>
           <button
             onClick={onClose}
-            className='p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex-shrink-0'
+            className='p-1 rounded-md text-gray-400 dark:text-graphite-faint hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-white/5 flex-shrink-0'
             aria-label='Zavřít'
           >
             <X className='w-5 h-5' />
@@ -46,29 +46,29 @@ const ChunkDetailModal: React.FC<ChunkDetailModalProps> = ({ chunkId, score, onC
         <div className='flex-1 overflow-y-auto p-6 space-y-5 text-sm'>
           {isLoading && (
             <div className='space-y-3 animate-pulse'>
-              <div className='h-4 bg-gray-100 rounded w-1/3' />
-              <div className='h-20 bg-gray-100 rounded' />
-              <div className='h-4 bg-gray-100 rounded w-1/4' />
-              <div className='h-40 bg-gray-100 rounded' />
+              <div className='h-4 bg-gray-100 dark:bg-graphite-surface-2 rounded w-1/3' />
+              <div className='h-20 bg-gray-100 dark:bg-graphite-surface-2 rounded' />
+              <div className='h-4 bg-gray-100 dark:bg-graphite-surface-2 rounded w-1/4' />
+              <div className='h-40 bg-gray-100 dark:bg-graphite-surface-2 rounded' />
             </div>
           )}
 
           {isError && (
-            <p className='text-red-600'>Zdroj se nepodařilo načíst.</p>
+            <p className='text-red-600 dark:text-red-400'>Zdroj se nepodařilo načíst.</p>
           )}
 
           {data && (
             <>
               {/* Meta row */}
-              <div className='flex items-center gap-3 flex-wrap text-xs text-gray-500'>
-                <span className='px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium'>
+              <div className='flex items-center gap-3 flex-wrap text-xs text-gray-500 dark:text-graphite-muted'>
+                <span className='px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium'>
                   {data.documentType === 'Conversation' ? 'Konverzace' : 'Dokument'}
                 </span>
                 {data.indexedAt && (
                   <span>Indexováno: {formatDateTime(data.indexedAt)}</span>
                 )}
                 {score !== undefined && (
-                  <span className='font-medium text-gray-700'>
+                  <span className='font-medium text-gray-700 dark:text-graphite-muted'>
                     {Math.round(score * 100)}%
                   </span>
                 )}
@@ -79,7 +79,7 @@ const ChunkDetailModal: React.FC<ChunkDetailModalProps> = ({ chunkId, score, onC
                   href={getSharePointLink(data.sourcePath)!}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   Otevřít v SharePoint
                   <ExternalLink className="w-3 h-3" />
@@ -88,9 +88,9 @@ const ChunkDetailModal: React.FC<ChunkDetailModalProps> = ({ chunkId, score, onC
 
               {/* Summary */}
               <div>
-                <p className='text-xs text-gray-500 uppercase tracking-wide mb-2'>Shrnutí</p>
-                <div className='bg-blue-50 border border-blue-200 rounded-lg px-4 py-3'>
-                  <p className='text-gray-800 whitespace-pre-wrap leading-relaxed'>
+                <p className='text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wide mb-2'>Shrnutí</p>
+                <div className='bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-900/30 rounded-lg px-4 py-3'>
+                  <p className='text-gray-800 dark:text-graphite-text whitespace-pre-wrap leading-relaxed'>
                     {data.summary}
                   </p>
                 </div>
@@ -98,8 +98,8 @@ const ChunkDetailModal: React.FC<ChunkDetailModalProps> = ({ chunkId, score, onC
 
               {/* Content */}
               <div>
-                <p className='text-xs text-gray-500 uppercase tracking-wide mb-2'>Obsah</p>
-                <p className='text-gray-700 whitespace-pre-wrap leading-relaxed'>
+                <p className='text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wide mb-2'>Obsah</p>
+                <p className='text-gray-700 dark:text-graphite-muted whitespace-pre-wrap leading-relaxed'>
                   {data.content}
                 </p>
               </div>

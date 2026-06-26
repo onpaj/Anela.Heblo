@@ -95,9 +95,9 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+    <div className="bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-lg p-6 shadow-sm dark:shadow-soft-dark">
       <div className="mb-4">
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">
           {rule 
             ? 'Upravit pravidlo klasifikace'
             : 'Vytvořit pravidlo klasifikace'
@@ -108,29 +108,29 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Název pravidla <span className="text-red-500">*</span>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
+              Název pravidla <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="text"
               id="name"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="Zadejte popisný název pro toto pravidlo"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-              Typ pravidla <span className="text-red-500">*</span>
+            <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
+              Typ pravidla <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <select
               id="type"
               value={formData.ruleTypeIdentifier}
               onChange={(e) => handleInputChange('ruleTypeIdentifier', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               required
               disabled={ruleTypesLoading}
             >
@@ -148,32 +148,32 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
         </div>
 
         <div>
-          <label htmlFor="pattern" className="block text-sm font-medium text-gray-700 mb-1">
-            Vzor <span className="text-red-500">*</span>
+          <label htmlFor="pattern" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
+            Vzor <span className="text-red-500 dark:text-red-400">*</span>
           </label>
           <input
             type="text"
             id="pattern"
             value={formData.pattern}
             onChange={(e) => handleInputChange('pattern', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             placeholder={getPatternPlaceholder()}
             required
           />
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-graphite-muted">
             {getPatternHelp()}
           </p>
         </div>
 
         <div>
-          <label htmlFor="accountingTemplateCode" className="block text-sm font-medium text-gray-700 mb-1">
-            Účetní předpis <span className="text-red-500">*</span>
+          <label htmlFor="accountingTemplateCode" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
+            Účetní předpis <span className="text-red-500 dark:text-red-400">*</span>
           </label>
           <select
             id="accountingTemplateCode"
             value={formData.accountingTemplateCode}
             onChange={(e) => handleInputChange('accountingTemplateCode', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             required
             disabled={accountingTemplatesLoading}
           >
@@ -189,7 +189,7 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
               </option>
             ))}
           </select>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-graphite-muted">
             {formData.accountingTemplateCode && !accountingTemplatesLoading && accountingTemplates.length > 0 && (
               (() => {
                 const selectedTemplate = accountingTemplates.find(t => t.code === formData.accountingTemplateCode);
@@ -203,14 +203,14 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
         </div>
 
         <div>
-          <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="department" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
             Oddělení
           </label>
           <select
             id="department"
             value={formData.department}
             onChange={(e) => handleInputChange('department', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             disabled={departmentsLoading}
           >
             <option value="">Vyberte oddělení (volitelné)</option>
@@ -220,7 +220,7 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
               </option>
             ))}
           </select>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-graphite-muted">
             {departmentsLoading ? (
               'Načítání oddělení...'
             ) : (
@@ -235,18 +235,18 @@ const RuleForm: React.FC<RuleFormProps> = ({ rule, onSubmit, onCancel, isLoading
             id="isActive"
             checked={formData.isActive}
             onChange={(e) => handleInputChange('isActive', e.target.checked)}
-            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-graphite-border rounded"
           />
-          <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+          <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900 dark:text-graphite-text">
             Pravidlo je aktivní
           </label>
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-graphite-border">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <X className="w-4 h-4 mr-2 inline" />
             Zrušit

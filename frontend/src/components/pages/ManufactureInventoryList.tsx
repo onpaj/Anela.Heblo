@@ -177,17 +177,17 @@ const ManufactureInventoryList: React.FC = () => {
     return (
       <th
         scope="col"
-        className={`px-6 py-4 ${alignmentClass} text-sm font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none`}
+        className={`px-6 py-4 ${alignmentClass} text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 select-none`}
         onClick={() => handleSort(column)}
       >
         <div className={`flex items-center space-x-1 ${align === 'center' ? 'justify-center' : 'justify-start'}`}>
           <span>{children}</span>
           <div className="flex flex-col">
             <ChevronUp
-              className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
+              className={`h-3 w-3 ${isAscending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
             />
             <ChevronDown
-              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
+              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
             />
           </div>
         </div>
@@ -201,7 +201,7 @@ const ManufactureInventoryList: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-          <div className="text-gray-500">Načítání zásob materiálů...</div>
+          <div className="text-gray-500 dark:text-graphite-muted">Načítání zásob materiálů...</div>
         </div>
       </div>
     );
@@ -210,7 +210,7 @@ const ManufactureInventoryList: React.FC = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-2 text-red-600">
+        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
           <AlertCircle className="h-5 w-5" />
           <div>Chyba při načítání zásob materiálů: {error.message}</div>
         </div>
@@ -226,24 +226,24 @@ const ManufactureInventoryList: React.FC = () => {
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
         <div className="flex items-center space-x-2">
-          <Wrench className="h-6 w-6 text-indigo-600" />
-          <h1 className="text-lg font-semibold text-gray-900">Zásoby materiálů</h1>
+          <Wrench className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Zásoby materiálů</h1>
         </div>
       </div>
 
       {/* Filters - Fixed */}
-      <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="flex items-center">
-              <Filter className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm font-medium text-gray-900">Filtry:</span>
+              <Filter className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+              <span className="text-sm font-medium text-gray-900 dark:text-graphite-text">Filtry:</span>
             </div>
 
             <div className="flex-1 max-w-xs">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                 </div>
                 <input
                   type="text"
@@ -251,7 +251,7 @@ const ManufactureInventoryList: React.FC = () => {
                   value={productNameInput}
                   onChange={(e) => setProductNameInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
                   placeholder="Název materiálu..."
                 />
               </div>
@@ -260,7 +260,7 @@ const ManufactureInventoryList: React.FC = () => {
             <div className="flex-1 max-w-xs">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                 </div>
                 <input
                   type="text"
@@ -268,7 +268,7 @@ const ManufactureInventoryList: React.FC = () => {
                   value={productCodeInput}
                   onChange={(e) => setProductCodeInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
                   placeholder="Kód materiálu..."
                 />
               </div>
@@ -285,7 +285,7 @@ const ManufactureInventoryList: React.FC = () => {
                       : (e.target.value as ProductType),
                   )
                 }
-                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
                 <option value="">Všechny typy</option>
                 {allowedManufactureInventoryTypes.map((productType) => (
@@ -315,10 +315,10 @@ const ManufactureInventoryList: React.FC = () => {
       </div>
 
       {/* Data Grid - Scrollable */}
-      <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
         <div className="flex-1 overflow-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0 z-10">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+            <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
               <tr>
                 <SortableHeader column="productCode">
                   Kód materiálu
@@ -331,32 +331,32 @@ const ManufactureInventoryList: React.FC = () => {
 
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
               {filteredItems.map((item) => {
                 const available = Math.round((item.stock?.available || 0) * 100) / 100;
 
                 return (
                   <tr
                     key={item.productCode}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                    className="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors duration-150"
                     onClick={() => handleInventoryClick(item)}
                     title="Klikněte pro zobrazení detailu"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <span 
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
+                      <span
                         onClick={(e) => handleItemClick(e, item)}
                         title="Klikněte pro inventarizaci materiálu"
                       >
                         {item.productCode}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                       {item.productName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       {item.lastStockTaking ? (
-                        <div 
-                          className="text-sm text-gray-700 cursor-help inline-block"
+                        <div
+                          className="text-sm text-gray-700 dark:text-graphite-muted cursor-help inline-block"
                           title={`Poslední inventura: ${new Date(item.lastStockTaking).toLocaleString('cs-CZ', { 
                             day: '2-digit', 
                             month: '2-digit', 
@@ -369,12 +369,12 @@ const ManufactureInventoryList: React.FC = () => {
                           {Math.floor((new Date().getTime() - new Date(item.lastStockTaking).getTime()) / (1000 * 60 * 60 * 24))} d
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-sm">-</span>
+                        <span className="text-gray-400 dark:text-graphite-faint text-sm">-</span>
                       )}
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap text-center">
                       <span 
-                        className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-green-100 text-green-800 justify-center inventory-badge hover:bg-green-200 hover:text-green-900 cursor-pointer"
+                        className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-green-100 dark:bg-emerald-900/30 text-green-800 dark:text-emerald-300 justify-center inventory-badge hover:bg-green-200 dark:hover:bg-emerald-900/50 hover:text-green-900 dark:hover:text-emerald-200 cursor-pointer"
                       >
                         {available}
                       </span>
@@ -387,8 +387,8 @@ const ManufactureInventoryList: React.FC = () => {
 
           {filteredItems.length === 0 && (
             <div className="text-center py-8">
-              <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Žádné materiály nebyly nalezeny.</p>
+              <Wrench className="h-12 w-12 text-gray-400 dark:text-graphite-faint mx-auto mb-4" />
+              <p className="text-gray-500 dark:text-graphite-muted">Žádné materiály nebyly nalezeny.</p>
             </div>
           )}
         </div>
@@ -396,41 +396,41 @@ const ManufactureInventoryList: React.FC = () => {
 
       {/* Pagination - Compact */}
       {totalCount > 0 && (
-        <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
+        <div className="flex-shrink-0 bg-white dark:bg-graphite-surface px-3 py-2 flex items-center justify-between border-t border-gray-200 dark:border-graphite-border text-xs">
           <div className="flex-1 flex justify-between sm:hidden">
             <button
               onClick={() => handlePageChange(pageNumber - 1)}
               disabled={pageNumber <= 1}
-              className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Předchozí
             </button>
             <button
               onClick={() => handlePageChange(pageNumber + 1)}
               disabled={pageNumber >= totalPages}
-              className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Další
             </button>
           </div>
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="flex items-center space-x-3">
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-600 dark:text-graphite-muted">
                 {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-
                 {Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
                 {productNameFilter || productCodeFilter ? (
-                  <span className="text-gray-500"> (filtrováno)</span>
+                  <span className="text-gray-500 dark:text-graphite-muted"> (filtrováno)</span>
                 ) : (
                   ""
                 )}
               </p>
               <div className="flex items-center space-x-1">
-                <span className="text-xs text-gray-600">Zobrazit:</span>
+                <span className="text-xs text-gray-600 dark:text-graphite-muted">Zobrazit:</span>
                 <select
                   id="pageSize"
                   value={pageSize}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                  className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -441,13 +441,13 @@ const ManufactureInventoryList: React.FC = () => {
             </div>
             <div>
               <nav
-                className="relative z-0 inline-flex rounded shadow-sm -space-x-px"
+                className="relative z-0 inline-flex rounded shadow-sm dark:shadow-soft-dark -space-x-px"
                 aria-label="Pagination"
               >
                 <button
                   onClick={() => handlePageChange(pageNumber - 1)}
                   disabled={pageNumber <= 1}
-                  className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-3 w-3" />
                 </button>
@@ -471,8 +471,8 @@ const ManufactureInventoryList: React.FC = () => {
                       onClick={() => handlePageChange(pageNum)}
                       className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                         pageNum === pageNumber
-                          ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                          : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                          ? "z-10 bg-indigo-50 dark:bg-graphite-accent/10 border-indigo-500 dark:border-graphite-accent text-indigo-600 dark:text-graphite-accent"
+                          : "bg-white dark:bg-graphite-surface border-gray-300 dark:border-graphite-border text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
                       }`}
                     >
                       {pageNum}
@@ -483,7 +483,7 @@ const ManufactureInventoryList: React.FC = () => {
                 <button
                   onClick={() => handlePageChange(pageNumber + 1)}
                   disabled={pageNumber >= totalPages}
-                  className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronRight className="h-3 w-3" />
                 </button>

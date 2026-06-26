@@ -58,29 +58,29 @@ function PrintOrderModal({ isOpen, onClose, onSuccess }: PrintOrderModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div className="flex items-center justify-between p-6 border-b">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-md w-full">
+        <div className="flex items-center justify-between p-6 border-b dark:border-graphite-border">
           <div className="flex items-center space-x-2">
-            <Printer className="h-5 w-5 text-indigo-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Tisknout zakázku</h2>
+            <Printer className="h-5 w-5 text-indigo-600 dark:text-graphite-accent" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Tisknout zakázku</h2>
           </div>
           <button
             onClick={handleClose}
             disabled={printOrderMutation.isPending}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors disabled:opacity-50"
             aria-label="Zavřít"
           >
-            <X className="h-5 w-5 text-gray-500" />
+            <X className="h-5 w-5 text-gray-500 dark:text-graphite-muted" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-graphite-muted">
             Zadejte číslo zakázky. Zakázka bude vytištěna na expediční list a převedena do stavu „Balí se".
           </p>
 
           <div>
-            <label htmlFor="order-code-input" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="order-code-input" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               <div className="flex items-center space-x-1">
                 <Hash className="h-4 w-4" />
                 <span>Číslo zakázky</span>
@@ -93,13 +93,13 @@ function PrintOrderModal({ isOpen, onClose, onSuccess }: PrintOrderModalProps) {
               onChange={(e) => setOrderCode(e.target.value)}
               placeholder="např. 0001234"
               autoFocus
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               disabled={printOrderMutation.isPending}
             />
           </div>
 
           {error && (
-            <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded-md text-sm">
+            <div className="p-3 bg-red-100 border border-red-300 text-red-700 dark:bg-red-900/30 dark:border-red-900/40 dark:text-red-300 rounded-md text-sm">
               {error}
             </div>
           )}
@@ -109,7 +109,7 @@ function PrintOrderModal({ isOpen, onClose, onSuccess }: PrintOrderModalProps) {
               type="button"
               onClick={handleClose}
               disabled={printOrderMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:text-graphite-muted dark:bg-graphite-surface-2 dark:hover:bg-graphite-hover rounded-md transition-colors disabled:opacity-50"
             >
               Zrušit
             </button>

@@ -39,29 +39,29 @@ export default function PifUploadDialog({ isOpen, productCode, onClose, onSucces
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Nahrát PIF</h2>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 dark:bg-graphite-surface dark:shadow-soft-dark">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text mb-4">Nahrát PIF</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Soubor</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Soubor</label>
             <input
               ref={fileInputRef}
               type="file"
               onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:text-graphite-muted dark:file:bg-graphite-accent/10 dark:file:text-graphite-accent"
             />
           </div>
 
           {uploadMutation.isError && (
-            <p className="text-sm text-red-600">Nahrání selhalo. Zkuste to znovu.</p>
+            <p className="text-sm text-red-600 dark:text-red-400">Nahrání selhalo. Zkuste to znovu.</p>
           )}
 
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 dark:text-graphite-muted dark:border-graphite-border dark:hover:bg-white/5"
             >
               Zrušit
             </button>

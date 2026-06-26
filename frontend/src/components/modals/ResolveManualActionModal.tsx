@@ -71,33 +71,33 @@ const ResolveManualActionModal: React.FC<ResolveManualActionModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b dark:border-graphite-border">
           <div className="flex items-center space-x-2">
-            <AlertCircle className="h-5 w-5 text-orange-600" />
-            <h2 className="text-lg font-semibold text-gray-900">
+            <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-300" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
               Vyřešit ruční zásah
             </h2>
           </div>
           <button
             onClick={handleClose}
             disabled={resolveManualActionMutation.isPending}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors disabled:opacity-50"
           >
-            <X className="h-5 w-5 text-gray-500" />
+            <X className="h-5 w-5 text-gray-500 dark:text-graphite-muted" />
           </button>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-graphite-muted">
             Označte problém za vyřešený zadáním ERP čísel zakázky a volitelnou poznámkou.
           </p>
 
           {/* ERP Semiproduct */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               <div className="flex items-center space-x-1">
                 <Hash className="h-4 w-4" />
                 <span>ERP číslo meziproduktu</span>
@@ -108,14 +108,14 @@ const ResolveManualActionModal: React.FC<ResolveManualActionModalProps> = ({
               value={erpSemiproduct}
               onChange={(e) => setErpSemiproduct(e.target.value)}
               placeholder="Zadejte ERP číslo pro meziprodukt"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               disabled={resolveManualActionMutation.isPending}
             />
           </div>
 
           {/* ERP Product */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               <div className="flex items-center space-x-1">
                 <Hash className="h-4 w-4" />
                 <span>ERP číslo produktu</span>
@@ -126,14 +126,14 @@ const ResolveManualActionModal: React.FC<ResolveManualActionModalProps> = ({
               value={erpProduct}
               onChange={(e) => setErpProduct(e.target.value)}
               placeholder="Zadejte ERP číslo pro produkt"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               disabled={resolveManualActionMutation.isPending}
             />
           </div>
 
           {/* ERP Discard Residue Document Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               <div className="flex items-center space-x-1">
                 <Hash className="h-4 w-4" />
                 <span>ERP číslo dokladu likvidace zbytku</span>
@@ -144,14 +144,14 @@ const ResolveManualActionModal: React.FC<ResolveManualActionModalProps> = ({
               value={erpDiscardResidueDocumentNumber}
               onChange={(e) => setErpDiscardResidueDocumentNumber(e.target.value)}
               placeholder="Zadejte ERP číslo dokladu likvidace zbytku"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               disabled={resolveManualActionMutation.isPending}
             />
           </div>
 
           {/* Note */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               <div className="flex items-center space-x-1">
                 <MessageSquare className="h-4 w-4" />
                 <span>Poznámka (volitelná)</span>
@@ -162,7 +162,7 @@ const ResolveManualActionModal: React.FC<ResolveManualActionModalProps> = ({
               onChange={(e) => setNote(e.target.value)}
               placeholder="Popište jak byl problém vyřešen..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-none dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               disabled={resolveManualActionMutation.isPending}
             />
           </div>
@@ -173,7 +173,7 @@ const ResolveManualActionModal: React.FC<ResolveManualActionModalProps> = ({
               type="button"
               onClick={handleClose}
               disabled={resolveManualActionMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:text-graphite-muted dark:bg-graphite-surface-2 dark:hover:bg-graphite-hover rounded-md transition-colors disabled:opacity-50"
             >
               Zrušit
             </button>

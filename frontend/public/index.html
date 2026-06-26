@@ -12,6 +12,18 @@
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <script>
+      // Apply the saved theme before the bundle loads to avoid a flash of light mode.
+      (function () {
+        try {
+          var t = localStorage.getItem('anela-theme');
+          if (t !== 'light' && t !== 'dark') {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          if (t === 'dark') document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
+    <script>
       var p = location.pathname;
       if (p === '/terminal' || p.startsWith('/terminal/')) {
         document.querySelector('link[rel="manifest"]').setAttribute('href', '/manifest.terminal.json');
