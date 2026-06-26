@@ -1,0 +1,5 @@
+{
+  "_note": "Server could not start in dev environment (DB migration conflicts). Contract verification deferred to staging deployment. The mapping profile tests (InvoiceClassificationMappingProfileTests) verify the mapping correctness programmatically.",
+  "paths": {},
+  "schemas": {}
+}

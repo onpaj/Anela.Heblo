@@ -33,13 +33,13 @@ const CatalogDetailChartSection: React.FC<CatalogDetailChartSectionProps> = ({
         {shouldShowChartTabs(productType) ? (
           <>
             {/* Chart Tab Navigation */}
-            <div className="flex border-b border-gray-200 mb-4">
+            <div className="flex border-b border-gray-200 dark:border-graphite-border mb-4">
               <button
                 onClick={() => onChartTabChange("input")}
                 className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
                   activeChartTab === "input"
-                    ? "border-indigo-500 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? "border-indigo-500 text-indigo-600 dark:text-graphite-accent dark:border-graphite-accent"
+                    : "border-transparent text-gray-500 hover:text-gray-700 dark:text-graphite-muted"
                 }`}
               >
                 <BarChart3 className="h-4 w-4" />
@@ -49,8 +49,8 @@ const CatalogDetailChartSection: React.FC<CatalogDetailChartSectionProps> = ({
                 onClick={() => onChartTabChange("output")}
                 className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
                   activeChartTab === "output"
-                    ? "border-indigo-500 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? "border-indigo-500 text-indigo-600 dark:text-graphite-accent dark:border-graphite-accent"
+                    : "border-transparent text-gray-500 hover:text-gray-700 dark:text-graphite-muted"
                 }`}
               >
                 <BarChart3 className="h-4 w-4" />
@@ -71,7 +71,7 @@ const CatalogDetailChartSection: React.FC<CatalogDetailChartSectionProps> = ({
             />
 
             {/* Chart Content */}
-            <div className="flex-1 bg-gray-50 rounded-lg p-4 mb-4">
+            <div className="flex-1 bg-gray-50 dark:bg-graphite-surface-2 rounded-lg p-4 mb-4">
               <ProductChart
                 productType={productType}
                 activeTab={activeChartTab}
@@ -88,13 +88,13 @@ const CatalogDetailChartSection: React.FC<CatalogDetailChartSectionProps> = ({
         ) : (
           <>
             {/* Original behavior for UNDEFINED type */}
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <BarChart3 className="h-5 w-5 mr-2 text-gray-500" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-4 flex items-center">
+              <BarChart3 className="h-5 w-5 mr-2 text-gray-500 dark:text-graphite-muted" />
               Graf není k dispozici
             </h3>
-            <div className="flex-1 bg-gray-50 rounded-lg p-4 mb-4 flex items-center justify-center">
-              <div className="text-center text-gray-500">
-                <BarChart3 className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+            <div className="flex-1 bg-gray-50 dark:bg-graphite-surface-2 rounded-lg p-4 mb-4 flex items-center justify-center">
+              <div className="text-center text-gray-500 dark:text-graphite-muted">
+                <BarChart3 className="h-12 w-12 mx-auto mb-2 text-gray-300 dark:text-graphite-faint" />
                 <p>Pro tento typ produktu není graf k dispozici</p>
               </div>
             </div>

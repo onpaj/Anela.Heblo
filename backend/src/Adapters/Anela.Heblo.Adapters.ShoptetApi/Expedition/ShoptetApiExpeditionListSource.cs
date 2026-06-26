@@ -4,8 +4,11 @@ using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
-using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
+using Anela.Heblo.Application.Features.Logistics.Picking;
+using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Xcc;
+using Microsoft.Extensions.Logging;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Anela.Heblo.Adapters.Shoptet.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Anela.Heblo.Tests")]
@@ -14,45 +17,33 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 
 public class ShoptetApiExpeditionListSource : IPickingListSource
 {
-    // ShoptetOrderClient is the only implementation of IEshopOrderClient — safe to cast
-    // within this adapter assembly to access expedition-specific methods not on the interface.
-    private readonly ShoptetOrderClient _client;
+    private readonly IShoptetExpeditionOrderSource _client;
+    private readonly IEshopOrderClient _eshopOrderClient;
     private readonly TimeProvider _timeProvider;
     private readonly ICatalogRepository _catalog;
+    private readonly ICarrierCoolingRepository _carrierCooling;
+    private readonly IGiftSettingRepository _giftSettings;
+    private readonly ILogger<ShoptetApiExpeditionListSource> _logger;
+    private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
 
-    // GUIDs discovered via: GET /api/eshop?include=shippingMethods (production store 269953/anela.cz)
-    private static readonly IReadOnlyList<ShippingMethod> ShippingList = new List<ShippingMethod>
+    public ShoptetApiExpeditionListSource(
+        IShoptetExpeditionOrderSource client,
+        IEshopOrderClient eshopOrderClient,
+        TimeProvider timeProvider,
+        ICatalogRepository catalog,
+        ICarrierCoolingRepository carrierCooling,
+        IGiftSettingRepository giftSettings,
+        ILogger<ShoptetApiExpeditionListSource> logger,
+        Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
     {
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY",              Id = 21,  Guids = ["f6610d4d-578d-11e9-beb1-002590dad85e"] }, // Zásilkovna (do ruky)
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT",               Id = 15,  Guids = ["7878c138-578d-11e9-beb1-002590dad85e", "389cea0b-40f1-11ea-beb1-002590dad85e"] }, // Zásilkovna Z-Point (retail + VO)
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_SK",           Id = 385, Guids = ["a6d9a6ce-0ede-11ee-b534-2a01067a25a9"] }, // Zásilkovna (do ruky) SK
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_CHLAZENY",     Id = 370, Guids = ["34d3f7d4-166f-11ee-b534-2a01067a25a9"] }, // Zásilkovna chlazený balík (do ruky)
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT_CHLAZENY",      Id = 373, Guids = ["bac58d34-166f-11ee-b534-2a01067a25a9"] }, // Zásilkovna Z-Point chlazený balík - ZDARMA od 1500,-
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_SK_CHLAZENY",  Id = 388, Guids = ["75123baa-1671-11ee-b534-2a01067a25a9"] }, // Zásilkovna SK chlazený balík (do ruky)
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT_ZDARMA",        Id = 487, Guids = ["79b9ef95-5e46-11f0-ae6d-9237d29d7242"] }, // Zásilkovna Z-Point - DOPRAVA ZDARMA
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT_CHLAZENY_ZDARMA", Id = 481, Guids = ["db9bf927-5e44-11f0-ae6d-9237d29d7242"] }, // Zásilkovna Z-Point - PLATÍTE POUZE CHLADÍTKO
-        new() { Carrier = Carriers.PPL,        Name = "PPL_DO_RUKY",                     Id = 6,   Guids = ["2ec88ea7-3fb0-11e2-a723-705ab6a2ba75", "389ce5b4-40f1-11ea-beb1-002590dad85e"] }, // PPL (do ruky) (retail + VO)
-        new() { Carrier = Carriers.PPL,        Name = "PPL_PARCELSHOP",                  Id = 80,  Guids = ["c4e6c287-9a85-11ea-beb1-002590dad85e", "83372e07-9a86-11ea-beb1-002590dad85e"] }, // PPL ParcelShop (retail + VO)
-        new() { Carrier = Carriers.PPL,        Name = "PPL_EXPORT",                      Id = 86,  Guids = ["f17a0a12-0ebe-11eb-933a-002590dad85e", "2fd96b91-1508-11eb-933a-002590dad85e"] }, // PPL Export (retail + VO)
-        new() { Carrier = Carriers.PPL,        Name = "PPL_DO_RUKY_CHLAZENY",            Id = 358, Guids = ["05ea842d-166a-11ee-b534-2a01067a25a9"] }, // PPL chlazený balík (do ruky) - ZDARMA od 3000,-
-        new() { Carrier = Carriers.PPL,        Name = "PPL_PARCELSHOP_CHLAZENY",         Id = 361, Guids = ["0d10802f-166c-11ee-b534-2a01067a25a9"] }, // PPL ParcelShop chlazený balík - ZDARMA od 1500,-
-        new() { Carrier = Carriers.PPL,        Name = "PPL_EXPORT_CHLAZENY",             Id = 379, Guids = ["de70f0e4-1670-11ee-b534-2a01067a25a9"] }, // PPL Export chlazený balík (zahraničí)
-        new() { Carrier = Carriers.GLS,        Name = "GLS_DO_RUKY",                     Id = 97,  Guids = ["138ec07f-0119-11ec-a39f-002590dc5efc", "b7e787c5-011d-11ec-a39f-002590dc5efc"] }, // GLS (do ruky) (retail + VO)
-        new() { Carrier = Carriers.GLS,        Name = "GLS_EXPORT",                      Id = 109, Guids = ["c06835e6-165e-11ec-a39f-002590dc5efc", "bbbe7223-4ea8-11ec-a39f-002590dc5efc"] }, // GLS Export (retail + VO)
-        new() { Carrier = Carriers.GLS,        Name = "GLS_PARCELSHOP",                  Id = 489, Guids = ["49b79aec-0118-11ec-a39f-002590dc5efc"] }, // GLS ParcelShop
-        new() { Carrier = Carriers.Osobak,     Name = "OSOBAK",                          Id = 4,   Guids = ["8fdb2c89-3fae-11e2-a723-705ab6a2ba75", "389ce19e-40f1-11ea-beb1-002590dad85e"], MaxOrders = 1, MaxItems = int.MaxValue }, // Osobní odběr (retail + VO)
-    };
-
-    private static readonly Dictionary<string, ShippingMethod> ShippingByGuid =
-        ShippingList
-            .SelectMany(s => s.Guids.Select(g => (Guid: g, Method: s)))
-            .ToDictionary(x => x.Guid, x => x.Method);
-
-    public ShoptetApiExpeditionListSource(IEshopOrderClient client, TimeProvider timeProvider, ICatalogRepository catalog)
-    {
-        _client = (ShoptetOrderClient)client;
+        _client = client;
+        _eshopOrderClient = eshopOrderClient;
         _timeProvider = timeProvider;
         _catalog = catalog;
+        _carrierCooling = carrierCooling;
+        _giftSettings = giftSettings;
+        _logger = logger;
+        _generateDocument = generateDocument ?? ExpeditionProtocolDocument.Generate;
     }
 
     public async Task<PrintPickingListResult> CreatePickingList(
@@ -60,140 +51,50 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         Func<IList<string>, Task>? onBatchFilesReady,
         CancellationToken cancellationToken = default)
     {
-        // 1. Fetch all orders with the requested source state (paginate)
-        var allOrders = await FetchAllOrdersAsync(request.SourceStateId, cancellationToken);
-
-        // 2. Filter to carriers requested; group by carrier
-        var carrierFilter = request.Carriers.Any()
-            ? new HashSet<Carriers>(request.Carriers)
-            : null;
-
-        var ordersByCarrier = new Dictionary<Carriers, List<(string Code, string ShippingGuid)>>();
-        foreach (var order in allOrders)
-        {
-            var shippingGuid = order.Shipping?.Guid;
-            if (string.IsNullOrEmpty(shippingGuid) || !ShippingByGuid.TryGetValue(shippingGuid, out var method))
-                continue;
-            if (carrierFilter != null && !carrierFilter.Contains(method.Carrier))
-                continue;
-
-            if (!ordersByCarrier.TryGetValue(method.Carrier, out var list))
-            {
-                list = new List<(string, string)>();
-                ordersByCarrier[method.Carrier] = list;
-            }
-
-            list.Add((order.Code, shippingGuid));
-        }
+        var allOrders = string.IsNullOrEmpty(request.OrderCode)
+            ? await FetchAllOrdersAsync(request.SourceStateId, cancellationToken)
+            : await FetchSingleOrderAsync(request.OrderCode, cancellationToken);
+        var ordersByMethod = BuildOrdersByMethod(allOrders, request.Carriers);
 
         var exportedFiles = new List<string>();
         var processedCodes = new List<string>();
+        var skippedCodes = new List<string>();
         var timestamp = _timeProvider.GetFilenameTimestamp();
 
-        foreach (var (carrier, orders) in ordersByCarrier)
-        {
-            // Sort by shippingGuid so same method types are together
-            var sorted = orders.OrderBy(o => o.ShippingGuid).ToList();
+        var allSettings = await _carrierCooling.GetAllAsync(cancellationToken);
+        var coolingMatrix = allSettings.ToDictionary(
+            s => (s.Carrier, s.DeliveryHandling),
+            s => s.Cooling);
+        var coolingTextMatrix = allSettings.ToDictionary(
+            s => (s.Carrier, s.DeliveryHandling),
+            s => s.CoolingText);
 
-            // Determine batch limits from the first shipping method for this carrier
-            var maxItems = ShippingByGuid.TryGetValue(sorted[0].ShippingGuid, out var sm) ? sm.MaxItems : 20;
-            var maxOrders = sm?.MaxOrders ?? int.MaxValue;
-            var carrierDisplayName = carrier.ToString();
+        var giftSetting = await _giftSettings.GetAsync(cancellationToken);
+        var processor = new PickingListBatchProcessor(_catalog, _client, _generateDocument, _logger);
 
-            // 3. Fetch all order details for this carrier upfront, then batch greedily by item count.
-            //    This ensures batches are split based on how much content fits on a printed page,
-            //    rather than by an arbitrary order count.
-            var allExpeditionOrders = new List<ExpeditionOrder>();
-            foreach (var (code, _) in sorted)
-            {
-                var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
-                allExpeditionOrders.Add(MapToExpeditionOrder(detail));
-                processedCodes.Add(code);
-            }
+        foreach (var (method, orders) in ordersByMethod)
+            await BatchAndFlushAsync(method, orders, coolingMatrix, coolingTextMatrix,
+                giftSetting, processor, timestamp, request.NoteStateId, exportedFiles, processedCodes,
+                skippedCodes, onBatchFilesReady, cancellationToken);
 
-            // Greedy batching: accumulate orders until adding the next would exceed maxItems.
-            // A single order with more items than maxItems always becomes its own batch.
-            var currentBatch = new List<ExpeditionOrder>();
-            var currentItemCount = 0;
-            var batchIndex = 0;
-
-            async Task FlushBatchAsync(List<ExpeditionOrder> batch)
-            {
-                // Enrich with stock counts and warehouse positions from catalog.
-                // Positions are only applied where the Shoptet API left them blank (set components).
-                var productCodes = batch.SelectMany(o => o.Items).Select(i => i.ProductCode).Distinct();
-                var stockByCode = new Dictionary<string, decimal>();
-                var locationByCode = new Dictionary<string, string>();
-                foreach (var productCode in productCodes)
-                {
-                    var entry = await _catalog.GetByIdAsync(productCode, cancellationToken);
-                    if (entry != null)
-                    {
-                        stockByCode[productCode] = entry.Stock.Eshop;
-                        if (!string.IsNullOrEmpty(entry.Location))
-                            locationByCode[productCode] = entry.Location;
-                    }
-                }
-                foreach (var item in batch.SelectMany(o => o.Items))
-                {
-                    if (stockByCode.TryGetValue(item.ProductCode, out var stock))
-                        item.StockCount = stock;
-                    if (string.IsNullOrEmpty(item.WarehousePosition) && locationByCode.TryGetValue(item.ProductCode, out var location))
-                        item.WarehousePosition = location;
-                }
-
-                var data = new ExpeditionProtocolData
-                {
-                    CarrierDisplayName = carrierDisplayName,
-                    Orders = batch,
-                };
-
-                var pdfBytes = ExpeditionProtocolDocument.Generate(data);
-                var fileName = $"{timestamp}_{carrier}_{batchIndex}.pdf";
-                var filePath = Path.Combine(Path.GetTempPath(), fileName);
-                await File.WriteAllBytesAsync(filePath, pdfBytes, cancellationToken);
-                exportedFiles.Add(filePath);
-
-                if (onBatchFilesReady != null)
-                    await onBatchFilesReady(new List<string> { filePath });
-            }
-
-            foreach (var order in allExpeditionOrders)
-            {
-                var orderItemCount = order.Items.Count;
-
-                if ((currentItemCount + orderItemCount > maxItems || currentBatch.Count >= maxOrders) && currentBatch.Count > 0)
-                {
-                    // Flush current batch before starting a new one
-                    await FlushBatchAsync(currentBatch);
-                    batchIndex++;
-                    currentBatch = new List<ExpeditionOrder>();
-                    currentItemCount = 0;
-                }
-
-                currentBatch.Add(order);
-                currentItemCount += orderItemCount;
-            }
-
-            // Flush any remaining orders
-            if (currentBatch.Count > 0)
-            {
-                await FlushBatchAsync(currentBatch);
-            }
-        }
-
-        // 5. Update order states if requested
         if (request.ChangeOrderState)
         {
             foreach (var code in processedCodes)
-                await _client.UpdateStatusAsync(code, request.DesiredStateId, cancellationToken);
+                await _eshopOrderClient.UpdateStatusAsync(code, request.DesiredStateId, cancellationToken);
         }
 
         return new PrintPickingListResult
         {
             ExportedFiles = exportedFiles,
             TotalCount = processedCodes.Count,
+            SkippedCount = skippedCodes.Count,
         };
+    }
+
+    private async Task<List<OrderSummary>> FetchSingleOrderAsync(string code, CancellationToken ct)
+    {
+        var order = await _client.GetOrderByCodeAsync(code, ct);
+        return order is null ? new List<OrderSummary>() : new List<OrderSummary> { order };
     }
 
     private async Task<List<OrderSummary>> FetchAllOrdersAsync(int statusId, CancellationToken ct)
@@ -212,7 +113,137 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         return all;
     }
 
-    private static ExpeditionOrder MapToExpeditionOrder(Model.ExpeditionOrderDetail detail)
+    private static Dictionary<ShippingMethod, List<(string Code, string ShippingGuid, decimal? TotalWithVat, string? CurrencyCode)>>
+        BuildOrdersByMethod(
+            List<OrderSummary> allOrders,
+            IList<Carriers> requestedCarriers)
+    {
+        var carrierFilter = requestedCarriers.Any()
+            ? new HashSet<Carriers>(requestedCarriers)
+            : null;
+
+        var ordersByMethod = new Dictionary<ShippingMethod, List<(string, string, decimal?, string?)>>();
+        foreach (var order in allOrders)
+        {
+            var shippingGuid = order.Shipping?.Guid;
+            if (string.IsNullOrEmpty(shippingGuid) || !ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method))
+                continue;
+            if (carrierFilter != null && !carrierFilter.Contains(method.Carrier))
+                continue;
+
+            if (!ordersByMethod.TryGetValue(method, out var list))
+            {
+                list = new List<(string, string, decimal?, string?)>();
+                ordersByMethod[method] = list;
+            }
+
+            list.Add((order.Code, shippingGuid, order.Price?.WithVat, order.Price?.CurrencyCode));
+        }
+        return ordersByMethod;
+    }
+
+    private async Task BatchAndFlushAsync(
+        ShippingMethod method,
+        List<(string Code, string ShippingGuid, decimal? TotalWithVat, string? CurrencyCode)> orders,
+        IReadOnlyDictionary<(Carriers, DeliveryHandling), Cooling> coolingMatrix,
+        IReadOnlyDictionary<(Carriers, DeliveryHandling), string?> coolingTextMatrix,
+        GiftSetting giftSetting,
+        PickingListBatchProcessor processor,
+        string timestamp,
+        int noteStateId,
+        List<string> exportedFiles,
+        List<string> processedCodes,
+        List<string> skippedCodes,
+        Func<IList<string>, Task>? onBatchFilesReady,
+        CancellationToken cancellationToken)
+    {
+        var validateAddress = ShippingMethodRegistry.ResolveDeliveryHandling(method) == DeliveryHandling.NaRuky;
+        var allExpeditionOrders = new List<ExpeditionOrder>();
+        foreach (var (code, shippingGuid, totalWithVat, currencyCode) in orders)
+        {
+            var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
+
+            if (validateAddress)
+            {
+                var missing = ExpeditionAddressValidator.GetMissingFields(detail.DeliveryAddress ?? detail.BillingAddress);
+                if (missing.Count > 0)
+                {
+                    await FlagIncompleteAddressAsync(code, missing, noteStateId, cancellationToken);
+                    skippedCodes.Add(code);
+                    continue;
+                }
+            }
+
+            var expeditionOrder = MapToExpeditionOrder(detail);
+            expeditionOrder.CarrierCooling = ResolveCarrierCooling(shippingGuid, coolingMatrix);
+            expeditionOrder.CoolingText = ResolveCarrierCoolingText(shippingGuid, coolingTextMatrix);
+            expeditionOrder.GiftBadgeText = ResolveGiftBadge(totalWithVat, currencyCode, giftSetting);
+            allExpeditionOrders.Add(expeditionOrder);
+            processedCodes.Add(code);
+        }
+
+        var currentBatch = new List<ExpeditionOrder>();
+        var currentItemCount = 0;
+        var batchIndex = 0;
+
+        foreach (var order in allExpeditionOrders)
+        {
+            var orderItemCount = order.Items.Count;
+
+            if ((currentItemCount + orderItemCount > method.MaxItems || currentBatch.Count >= method.MaxOrders) && currentBatch.Count > 0)
+            {
+                var overflowPath = await processor.FlushAsync(
+                    currentBatch, method, batchIndex, timestamp, onBatchFilesReady, cancellationToken);
+                exportedFiles.Add(overflowPath);
+                batchIndex++;
+                currentBatch = new List<ExpeditionOrder>();
+                currentItemCount = 0;
+            }
+
+            currentBatch.Add(order);
+            currentItemCount += orderItemCount;
+        }
+
+        if (currentBatch.Count > 0)
+        {
+            var finalPath = await processor.FlushAsync(
+                currentBatch, method, batchIndex, timestamp, onBatchFilesReady, cancellationToken);
+            exportedFiles.Add(finalPath);
+        }
+    }
+
+    private async Task FlagIncompleteAddressAsync(
+        string code,
+        IReadOnlyList<string> missingFields,
+        int noteStateId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _eshopOrderClient.UpdateStatusAsync(code, noteStateId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex,
+                "Failed to move order {Code} with incomplete address to note state {NoteStateId}",
+                code, noteStateId);
+        }
+
+        try
+        {
+            var note = $"Robot expedice: neúplná adresa – chybí: {string.Join(", ", missingFields)}.";
+            var current = await _client.GetEshopRemarkAsync(code, cancellationToken);
+            var updated = string.IsNullOrEmpty(current) ? note : $"{current}\n{note}";
+            await _client.UpdateEshopRemarkAsync(code, updated, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "Order {Code} flagged with incomplete address but the note could not be appended", code);
+        }
+    }
+
+    internal static ExpeditionOrder MapToExpeditionOrder(Model.ExpeditionOrderDetail detail)
     {
         var addr = detail.DeliveryAddress ?? detail.BillingAddress;
         var address = addr != null
@@ -238,6 +269,85 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             EshopRemark = detail.Notes?.EshopRemark,
             Items = MapOrderItems(detail),
         };
+    }
+
+    internal static void ApplyEnrichment(
+        IEnumerable<ExpeditionOrderItem> items,
+        Dictionary<string, decimal> stockByCode,
+        Dictionary<string, string> locationByCode,
+        Dictionary<string, Cooling> coolingByCode,
+        Dictionary<string, decimal>? priceByCode = null)
+    {
+        foreach (var item in items)
+        {
+            if (stockByCode.TryGetValue(item.ProductCode, out var stock))
+                item.StockCount = stock;
+            if (string.IsNullOrEmpty(item.WarehousePosition) && locationByCode.TryGetValue(item.ProductCode, out var location))
+                item.WarehousePosition = location;
+            if (coolingByCode.TryGetValue(item.ProductCode, out var cooling))
+                item.Cooling = cooling;
+            if (item.UnitPrice == 0m && priceByCode != null && priceByCode.TryGetValue(item.ProductCode, out var price))
+                item.UnitPrice = price;
+        }
+    }
+
+    internal static Cooling ResolveCarrierCooling(
+        string shippingGuid,
+        IReadOnlyDictionary<(Carriers, DeliveryHandling), Cooling> matrix)
+    {
+        if (!ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method))
+            return Cooling.None;
+
+        var handling = ShippingMethodRegistry.ResolveDeliveryHandling(method);
+        if (!handling.HasValue)
+            return Cooling.None;
+
+        return matrix.TryGetValue((method.Carrier, handling.Value), out var cooling)
+            ? cooling
+            : Cooling.None;
+    }
+
+    internal static Cooling ResolveCarrierCooling(
+        string shippingGuid,
+        IReadOnlyDictionary<(string CarrierName, string DeliveryHandlingName), Cooling> matrix)
+    {
+        if (!ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method))
+            return Cooling.None;
+
+        var handling = ShippingMethodRegistry.ResolveDeliveryHandling(method);
+        if (!handling.HasValue)
+            return Cooling.None;
+
+        return matrix.TryGetValue((method.Carrier.ToString(), handling.Value.ToString()), out var cooling)
+            ? cooling
+            : Cooling.None;
+    }
+
+    internal static string? ResolveCarrierCoolingText(
+        string shippingGuid,
+        IReadOnlyDictionary<(Carriers, DeliveryHandling), string?> matrix)
+    {
+        if (!ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method))
+            return null;
+
+        var handling = ShippingMethodRegistry.ResolveDeliveryHandling(method);
+        if (!handling.HasValue)
+            return null;
+
+        return matrix.TryGetValue((method.Carrier, handling.Value), out var text)
+            ? text
+            : null;
+    }
+
+    internal static string? ResolveGiftBadge(
+        decimal? totalWithVat,
+        string? currencyCode,
+        GiftSetting setting)
+    {
+        if (!setting.IsEnabled) return null;
+        if (!string.Equals(currencyCode, "CZK", StringComparison.OrdinalIgnoreCase)) return null;
+        if (totalWithVat is null || totalWithVat < setting.ThresholdCzk) return null;
+        return setting.Text;
     }
 
     internal static List<ExpeditionOrderItem> MapOrderItems(Model.ExpeditionOrderDetail detail)
@@ -269,7 +379,6 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             }
             else if (string.Equals(item.ItemType, "product-set", StringComparison.OrdinalIgnoreCase))
             {
-                var setQuantity = (int)(item.Amount ?? 1);
                 if (!setItemsByParentId.TryGetValue(item.ItemId, out var setComponents))
                     continue;
 
@@ -281,7 +390,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                         Name = component.Name ?? string.Empty,
                         Variant = component.VariantName ?? string.Empty,
                         WarehousePosition = string.Empty, // Shoptet completion API does not return stock locations for set components
-                        Quantity = (int)(component.Amount ?? 0) * setQuantity,
+                        // Shoptet's completion amount is already the order total
+                        // (component-per-set * set count), so it is used as-is.
+                        Quantity = (int)(component.Amount ?? 0),
                         Unit = component.Unit ?? string.Empty,
                         UnitPrice = 0m,
                         IsFromSet = true,

@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using MediatR;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Contracts;
 
-public class ConfirmProductCompletionRequest
+public class ConfirmProductCompletionRequest : IRequest<ConfirmProductCompletionResponse>
 {
     [Required]
     public int Id { get; set; }

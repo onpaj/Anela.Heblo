@@ -4,6 +4,7 @@ using System.Threading;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
 using Anela.Heblo.Application.Features.Marketing.UseCases.GetMarketingCalendar;
 using Anela.Heblo.Domain.Features.Marketing;
+using Anela.Heblo.Tests.Domain.Marketing;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -28,21 +29,17 @@ public class GetMarketingCalendarHandlerTests
         var start = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
         var end = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc);
 
-        var actions = new List<MarketingAction>
-        {
-            new()
-            {
-                Id = 1,
-                Title = "June Launch",
-                ActionType = MarketingActionType.Event,
-                StartDate = new DateTime(2026, 6, 5, 0, 0, 0, DateTimeKind.Utc),
-                EndDate = new DateTime(2026, 6, 10, 0, 0, 0, DateTimeKind.Utc),
-                ProductAssociations = new List<MarketingActionProduct>
-                {
-                    new() { ProductCodePrefix = "TON001" },
-                },
-            },
-        };
+        var action = new MarketingActionTestBuilder()
+            .WithId(1)
+            .WithTitle("June Launch")
+            .WithActionType(MarketingActionType.Event)
+            .WithStartDate(new DateTime(2026, 6, 5, 0, 0, 0, DateTimeKind.Utc))
+            .WithEndDate(new DateTime(2026, 6, 10, 0, 0, 0, DateTimeKind.Utc))
+            .Build();
+
+        action.ProductAssociations.Add(new MarketingActionProduct { ProductCodePrefix = "TON001" });
+
+        var actions = new List<MarketingAction> { action };
 
         _repositoryMock
             .Setup(x => x.GetForCalendarAsync(start, end, It.IsAny<CancellationToken>()))

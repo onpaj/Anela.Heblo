@@ -9,6 +9,8 @@ const rows: FeedbackRow[] = [
     primaryText: 'Jak funguje věrnostní program?',
     secondaryText: 'Věrnostní program nabízí slevy.',
     createdAt: '2026-01-15T10:30:00Z',
+    userName: 'Alice Example',
+    userId: 'oid-1',
     precisionScore: 4,
     styleScore: null,
     hasFeedback: true,
@@ -17,6 +19,7 @@ const rows: FeedbackRow[] = [
     id: 'row-2',
     primaryText: 'Co jsou produktové kategorie?',
     createdAt: '2026-01-16T08:00:00Z',
+    userId: 'oid-2',
     precisionScore: null,
     styleScore: null,
     hasFeedback: false,
@@ -46,6 +49,33 @@ test('renders rows with primary text', () => {
   render(<GenericFeedbackTable {...defaultProps} />);
   expect(screen.getByText('Jak funguje věrnostní program?')).toBeInTheDocument();
   expect(screen.getByText('Co jsou produktové kategorie?')).toBeInTheDocument();
+});
+
+test('renders user column header', () => {
+  render(<GenericFeedbackTable {...defaultProps} />);
+  expect(screen.getByText('Uživatel')).toBeInTheDocument();
+});
+
+test('renders resolved userName, falling back to userId', () => {
+  render(<GenericFeedbackTable {...defaultProps} />);
+  expect(screen.getByText('Alice Example')).toBeInTheDocument(); // row-1 has a name
+  expect(screen.getByText('oid-2')).toBeInTheDocument();         // row-2 falls back to id
+});
+
+test('renders dash when row has no user', () => {
+  const rowsNoUser: FeedbackRow[] = [
+    {
+      id: 'r',
+      primaryText: 'x',
+      createdAt: '2026-01-15T10:30:00Z',
+      precisionScore: 3,
+      styleScore: 2,
+      hasFeedback: true,
+    },
+  ];
+  render(<GenericFeedbackTable {...defaultProps} rows={rowsNoUser} totalCount={1} />);
+  // scores are present, so the only dash rendered is the empty user cell
+  expect(screen.getByText('–')).toBeInTheDocument();
 });
 
 test('shows "Ano" badge for rows with feedback', () => {

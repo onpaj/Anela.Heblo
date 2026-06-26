@@ -1,0 +1,3 @@
+Plan saved to `artifacts/feat-arch-review-photobank-addrootrequest-add/plan.r1.md`.
+
+Summary: 5 tasks covering all spec FRs and the three arch-review amendments. Tasks 1–3 are one per endpoint (TDD: failing controller mapping test → new `*Body` DTO → controller rewire → green → commit), Task 4 regenerates and verifies the OpenAPI client + frontend build, Task 5 runs `dotnet format`, the full Photobank test suite, and a sanity check that `UpdateRule` was not touched. Every step shows full code or full commands. Per the pipeline note, skipping the execution handoff prompt.

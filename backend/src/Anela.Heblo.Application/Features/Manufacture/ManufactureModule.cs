@@ -1,9 +1,11 @@
+using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.DashboardTiles;
 using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
+using Anela.Heblo.Application.Features.Manufacture.Infrastructure;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.Services.Workflows;
-using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Persistence.Manufacture;
@@ -47,8 +49,15 @@ public static class ManufactureModule
         services.AddScoped<IManufactureOrderRepository, ManufactureOrderRepository>();
         services.AddScoped<IManufacturedProductInventoryRepository, ManufacturedProductInventoryRepository>();
 
+        // Cross-module contract: Manufacture implements Logistics' IInventoryReservationService.
+        // DI registration is owned by the provider (Manufacture), not the consumer (Logistics).
+        services.AddScoped<IInventoryReservationService, ManufactureInventoryReservationAdapter>();
+
+        // Cross-module contract: Manufacture implements Catalog's ICatalogManufactureSource via adapter.
+        // DI registration is owned by the provider (Manufacture), not the consumer (Catalog).
+        services.AddScoped<ICatalogManufactureSource, ManufactureCatalogSourceAdapter>();
+
         // Register application services
-        services.AddScoped<IManufactureOrderApplicationService, ManufactureOrderApplicationService>();
         services.AddScoped<IProductNameFormatter, ProductNameFormatter>();
         services.AddScoped<IManufactureNameBuilder, ManufactureNameBuilder>();
         services.AddScoped<IConfirmSemiProductManufactureWorkflow, ConfirmSemiProductManufactureWorkflow>();
@@ -59,9 +68,6 @@ public static class ManufactureModule
         services.RegisterTile<NextDayProductionTile>();
         services.RegisterTile<ManualActionRequiredTile>();
         services.RegisterTile<ManufactureConditionsTile>();
-
-        // Register protocol renderer placeholder (replaced by QuestPdfManufactureProtocolRenderer in Phase 6)
-        services.AddScoped<IManufactureProtocolRenderer, NotImplementedManufactureProtocolRenderer>();
 
         // Register manufacture error transformation
         services.Scan(scan => scan

@@ -3,7 +3,6 @@ using System.Text.Json;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrders;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
-using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using MediatR;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
@@ -60,24 +59,6 @@ public class ManufactureOrderMcpTools
     public async Task<string> GetCalendarView(CancellationToken cancellationToken = default)
     {
         var request = new GetCalendarViewRequest();
-        var response = await _mediator.Send(request, cancellationToken);
-
-        if (!response.Success)
-        {
-            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
-        }
-
-        return JsonSerializer.Serialize(response);
-    }
-
-    [McpServerTool]
-    public async Task<string> GetResponsiblePersons(
-        [Description("Microsoft Entra ID group ID for manufacture team")]
-        string groupId,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var request = new GetGroupMembersRequest { GroupId = groupId };
         var response = await _mediator.Send(request, cancellationToken);
 
         if (!response.Success)

@@ -16,12 +16,14 @@ import ClassificationHistoryPage from './ClassificationHistoryPage';
 import RulesList from './components/RulesList';
 import RuleForm from './components/RuleForm';
 import ClassificationStats from './components/ClassificationStats';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 type TabType = 'invoices' | 'rules';
 
 const InvoiceClassificationPage: React.FC = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('invoices');
+  useScreenView('Purchase', 'InvoiceClassification', activeTab === 'invoices' ? 'InvoicesTab' : 'RulesTab');
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingRule, setEditingRule] = useState<ClassificationRule | null>(null);
@@ -100,7 +102,7 @@ const InvoiceClassificationPage: React.FC = () => {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center text-red-600">
+        <div className="text-center text-red-600 dark:text-red-400">
           Error loading classification rules: {error.message}
         </div>
       </div>
@@ -110,13 +112,13 @@ const InvoiceClassificationPage: React.FC = () => {
   return (
     <div className="h-full flex flex-col">
       {/* Header with title and action buttons */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white dark:bg-graphite-surface border-b border-gray-200 dark:border-graphite-border px-6 py-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-graphite-text">
               Klasifikace faktur
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-graphite-muted">
               Prohlížení historie klasifikace a správa pravidel
             </p>
           </div>
@@ -146,14 +148,14 @@ const InvoiceClassificationPage: React.FC = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white border-b border-gray-200 px-6">
+      <div className="bg-white dark:bg-graphite-surface border-b border-gray-200 dark:border-graphite-border px-6">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('invoices')}
             className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
               activeTab === 'invoices'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-indigo-500 text-indigo-600 dark:text-graphite-accent dark:border-graphite-accent'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted'
             }`}
           >
             <div className="flex items-center">
@@ -165,8 +167,8 @@ const InvoiceClassificationPage: React.FC = () => {
             onClick={() => setActiveTab('rules')}
             className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
               activeTab === 'rules'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-indigo-500 text-indigo-600 dark:text-graphite-accent dark:border-graphite-accent'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted'
             }`}
           >
             <div className="flex items-center">
@@ -188,10 +190,10 @@ const InvoiceClassificationPage: React.FC = () => {
             {/* Rules Tab Header */}
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">
                   Správa pravidel klasifikace
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-gray-500 dark:text-graphite-muted">
                   Správa a konfigurace pravidel pro klasifikaci faktur
                 </p>
               </div>
@@ -208,7 +210,7 @@ const InvoiceClassificationPage: React.FC = () => {
 
             {/* Rule Form */}
             {showForm && (
-              <div className="bg-white shadow rounded-lg p-6">
+              <div className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-6">
                 <RuleForm
                   rule={editingRule}
                   onSubmit={handleSubmitRule}
@@ -219,14 +221,14 @@ const InvoiceClassificationPage: React.FC = () => {
             )}
             
             {/* Rules List */}
-            <div className="flex-1 bg-white shadow rounded-lg overflow-hidden">
+            <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden">
               {isLoading ? (
                 <div className="p-8 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-                  <p className="mt-2 text-sm text-gray-500">Načítání...</p>
+                  <p className="mt-2 text-sm text-gray-500 dark:text-graphite-muted">Načítání...</p>
                 </div>
               ) : error ? (
-                <div className="p-8 text-center text-red-600">
+                <div className="p-8 text-center text-red-600 dark:text-red-400">
                   Error loading classification rules: {String(error)}
                 </div>
               ) : (
@@ -252,15 +254,15 @@ const InvoiceClassificationPage: React.FC = () => {
             
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
             
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="inline-block align-bottom bg-white dark:bg-graphite-surface rounded-lg text-left overflow-hidden shadow-xl dark:shadow-soft-dark transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+              <div className="bg-white dark:bg-graphite-surface px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-graphite-text">
                     Statistiky klasifikace
                   </h3>
                   <button
                     onClick={() => setShowStatsModal(false)}
-                    className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="rounded-md bg-white dark:bg-graphite-surface text-gray-400 dark:text-graphite-faint hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <span className="sr-only">Close</span>
                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

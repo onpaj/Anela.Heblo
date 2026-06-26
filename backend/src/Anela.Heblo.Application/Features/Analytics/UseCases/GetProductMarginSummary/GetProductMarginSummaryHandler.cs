@@ -1,8 +1,6 @@
 using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Domain.Features.Analytics;
-using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSummary;
@@ -14,27 +12,30 @@ namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSu
 public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSummaryRequest, GetProductMarginSummaryResponse>
 {
     private readonly IAnalyticsRepository _analyticsRepository;
-    private readonly MarginCalculator _marginCalculator;
-    private readonly MonthlyBreakdownGenerator _monthlyBreakdownGenerator;
+    private readonly IMarginCalculator _marginCalculator;
+    private readonly IMonthlyBreakdownGenerator _monthlyBreakdownGenerator;
+    private readonly TimeWindowParser _timeWindowParser;
 
     public GetProductMarginSummaryHandler(
         IAnalyticsRepository analyticsRepository,
-        MarginCalculator marginCalculator,
-        MonthlyBreakdownGenerator monthlyBreakdownGenerator)
+        IMarginCalculator marginCalculator,
+        IMonthlyBreakdownGenerator monthlyBreakdownGenerator,
+        TimeWindowParser timeWindowParser)
     {
         _analyticsRepository = analyticsRepository;
         _marginCalculator = marginCalculator;
         _monthlyBreakdownGenerator = monthlyBreakdownGenerator;
+        _timeWindowParser = timeWindowParser;
     }
 
     public async Task<GetProductMarginSummaryResponse> Handle(GetProductMarginSummaryRequest request, CancellationToken cancellationToken)
     {
         // 1. Parse time window and calculate date range
-        var (fromDate, toDate) = TimeWindowParser.ParseTimeWindow(request.TimeWindow);
+        var (fromDate, toDate) = _timeWindowParser.ParseTimeWindow(request.TimeWindow);
         var dateRange = new DateRange(fromDate, toDate);
 
-        // 2. Stream products with Product/Goods types that have sales in the period  
-        var productTypes = new[] { ProductType.Product, ProductType.Goods };
+        // 2. Stream products with Product/Goods types that have sales in the period
+        var productTypes = new[] { AnalyticsProductType.Product, AnalyticsProductType.Goods };
         var productStream = _analyticsRepository.StreamProductsWithSalesAsync(fromDate, toDate, productTypes, cancellationToken);
 
         // 3. Calculate margin data using streaming approach (reduces memory usage)
@@ -65,7 +66,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
     /// 🔒 PERFORMANCE FIX: Simplified top products generation using calculation results
     /// No longer requires full product list in memory
     /// </summary>
-    private List<TopProductDto> GenerateTopProducts(MarginCalculationResult calculationResult, ProductGroupingMode groupingMode, string? sortBy, bool sortDescending, string marginLevel)
+    private List<TopProductDto> GenerateTopProducts(MarginCalculationResult calculationResult, ProductGroupingMode groupingMode, string? sortBy, bool sortDescending, MarginLevel marginLevel)
     {
         var topProductsWithData = calculationResult.GroupTotals
             .Select(kvp =>
@@ -216,26 +217,11 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
     /// <summary>
     /// Calculates total margin for a group of products based on selected margin level
     /// </summary>
-    private decimal CalculateTotalMarginForLevel(List<AnalyticsProduct> products, string marginLevel)
+    private decimal CalculateTotalMarginForLevel(List<AnalyticsProduct> products, MarginLevel marginLevel)
     {
-        var totalMargin = 0m;
-
-        foreach (var product in products)
-        {
-            var totalSales = product.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C);
-
-            var marginPerUnit = marginLevel.ToUpperInvariant() switch
-            {
-                "M0" => product.M0Amount,
-                "M1" => product.M1Amount,
-                "M2" => product.M2Amount,
-                _ => product.M2Amount // Default to M2 (highest level now)
-            };
-
-            totalMargin += (decimal)totalSales * marginPerUnit;
-        }
-
-        return totalMargin;
+        return products.Sum(p =>
+            (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)
+            * _marginCalculator.GetMarginAmountForLevel(p, marginLevel));
     }
 
 }

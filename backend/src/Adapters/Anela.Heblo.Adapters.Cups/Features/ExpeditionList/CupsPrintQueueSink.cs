@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Application.Shared.Printing;
 
 namespace Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 

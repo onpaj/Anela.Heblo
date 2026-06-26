@@ -27,7 +27,8 @@ public class GetManufactureProtocolHandlerTests
     [Fact]
     public async Task Handle_NonCompletedOrder_Throws()
     {
-        var order = new ManufactureOrder { Id = 1, State = ManufactureOrderState.Planned, OrderNumber = "MO-2026-001" };
+        var order = new ManufactureOrder { Id = 1, OrderNumber = "MO-2026-001" };
+        order.InitializeState(ManufactureOrderState.Planned, DateTime.UtcNow, "test");
         _repositoryMock
             .Setup(r => r.GetOrderByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
@@ -202,13 +203,11 @@ public class GetManufactureProtocolHandlerTests
 
     private static ManufactureOrder BuildCompletedOrder()
     {
-        return new ManufactureOrder
+        var order = new ManufactureOrder
         {
             Id = 1,
             OrderNumber = "MO-2026-001",
-            State = ManufactureOrderState.Completed,
             CreatedDate = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
-            StateChangedAt = new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc),
             ResponsiblePerson = "Jana Nováková",
             ManufactureType = ManufactureType.MultiPhase,
             SemiProduct = new ManufactureOrderSemiProduct
@@ -269,5 +268,7 @@ public class GetManufactureProtocolHandlerTests
                 },
             },
         };
+        order.InitializeState(ManufactureOrderState.Completed, new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc), null!);
+        return order;
     }
 }

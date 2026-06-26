@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases.RemoveItemFromBox;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
-using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
 using FluentAssertions;
@@ -15,7 +14,7 @@ namespace Anela.Heblo.Tests.Features.Logistics.Transport;
 public class RemoveItemFromBoxHandlerTests
 {
     private readonly Mock<ITransportBoxRepository> _repositoryMock;
-    private readonly Mock<IManufacturedProductInventoryRepository> _inventoryRepositoryMock;
+    private readonly Mock<IInventoryReservationService> _inventoryReservationServiceMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<RemoveItemFromBoxHandler>> _loggerMock;
     private readonly Mock<IMapper> _mapperMock;
@@ -27,7 +26,7 @@ public class RemoveItemFromBoxHandlerTests
     public RemoveItemFromBoxHandlerTests()
     {
         _repositoryMock = new Mock<ITransportBoxRepository>();
-        _inventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
+        _inventoryReservationServiceMock = new Mock<IInventoryReservationService>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<RemoveItemFromBoxHandler>>();
         _mapperMock = new Mock<IMapper>();
@@ -47,7 +46,7 @@ public class RemoveItemFromBoxHandlerTests
 
         _handler = new RemoveItemFromBoxHandler(
             _repositoryMock.Object,
-            _inventoryRepositoryMock.Object,
+            _inventoryReservationServiceMock.Object,
             _currentUserServiceMock.Object,
             _loggerMock.Object,
             _mapperMock.Object,
@@ -111,20 +110,18 @@ public class RemoveItemFromBoxHandlerTests
 
         // Assert
         result.Success.Should().BeTrue();
-        _inventoryRepositoryMock.Verify(
-            x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        _inventoryRepositoryMock.Verify(
-            x => x.UpdateAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()),
+        _inventoryReservationServiceMock.Verify(
+            x => x.RestoreAsync(
+                It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<DateTime>(),
+                It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task Handle_ItemWithSourceInventory_RestoresInventory()
+    public async Task Handle_ItemWithSourceInventory_DelegatesRestoreToInventoryService()
     {
         // Arrange
         var box = CreateOpenBoxWithItem(itemId: 1, sourceInventoryId: 42, amount: 10.0);
-        var inventoryItem = CreateInventoryItem(productCode: "PROD-001", amount: 50m);
 
         var request = new RemoveItemFromBoxRequest { BoxId = 1, ItemId = 1 };
 
@@ -132,9 +129,11 @@ public class RemoveItemFromBoxHandlerTests
             .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(box);
 
-        _inventoryRepositoryMock
-            .Setup(x => x.GetByIdAsync(42, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(inventoryItem);
+        _inventoryReservationServiceMock
+            .Setup(x => x.RestoreAsync(
+                42, 10m, It.IsAny<string>(), It.IsAny<DateTime>(),
+                1, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _repositoryMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -146,18 +145,17 @@ public class RemoveItemFromBoxHandlerTests
         // Assert
         result.Success.Should().BeTrue();
 
-        // Inventory was restored (UpdateAsync called with item that has increased amount)
-        _inventoryRepositoryMock.Verify(
-            x => x.UpdateAsync(
-                It.Is<ManufacturedProductInventoryItem>(i => i.Amount == 60m),
-                It.IsAny<CancellationToken>()),
+        _inventoryReservationServiceMock.Verify(
+            x => x.RestoreAsync(
+                42, 10m, "Test User", FixedTime,
+                1, "B001", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task Handle_ItemWithSourceInventory_InventoryItemDeleted_ProceedsWithRemoval()
+    public async Task Handle_ItemWithSourceInventory_WhenInventoryMissing_StillSucceeds()
     {
-        // Arrange — inventory item was manually deleted, but removal should still succeed
+        // Arrange — inventory item was deleted; adapter handles the null case internally (log + skip)
         var box = CreateOpenBoxWithItem(itemId: 1, sourceInventoryId: 99, amount: 5.0);
 
         var request = new RemoveItemFromBoxRequest { BoxId = 1, ItemId = 1 };
@@ -166,9 +164,12 @@ public class RemoveItemFromBoxHandlerTests
             .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(box);
 
-        _inventoryRepositoryMock
-            .Setup(x => x.GetByIdAsync(99, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufacturedProductInventoryItem?)null);
+        // RestoreAsync is called but returns normally (adapter handles missing inventory internally)
+        _inventoryReservationServiceMock
+            .Setup(x => x.RestoreAsync(
+                99, 5m, It.IsAny<string>(), It.IsAny<DateTime>(),
+                1, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _repositoryMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -179,9 +180,11 @@ public class RemoveItemFromBoxHandlerTests
 
         // Assert
         result.Success.Should().BeTrue();
-        _inventoryRepositoryMock.Verify(
-            x => x.UpdateAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        _inventoryReservationServiceMock.Verify(
+            x => x.RestoreAsync(
+                99, It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<DateTime>(),
+                It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     private static TransportBox CreateOpenBox()
@@ -229,13 +232,4 @@ public class RemoveItemFromBoxHandlerTests
         return box;
     }
 
-    private static ManufacturedProductInventoryItem CreateInventoryItem(string productCode, decimal amount)
-    {
-        return new ManufacturedProductInventoryItem(
-            productCode: productCode,
-            productName: "Test Product",
-            amount: amount,
-            createdBy: "system",
-            createdAt: new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-    }
 }

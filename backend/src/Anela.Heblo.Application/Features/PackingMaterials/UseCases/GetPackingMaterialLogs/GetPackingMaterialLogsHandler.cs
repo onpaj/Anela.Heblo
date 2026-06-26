@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using MediatR;
@@ -18,10 +19,15 @@ public class GetPackingMaterialLogsHandler : IRequestHandler<GetPackingMaterialL
         GetPackingMaterialLogsRequest request,
         CancellationToken cancellationToken)
     {
-        var material = await _repository.GetByIdWithLogsAsync(request.PackingMaterialId, cancellationToken);
+        var material = await _repository.GetByIdAsync(request.PackingMaterialId, cancellationToken);
         if (material == null)
         {
-            throw new InvalidOperationException($"Packing material with ID {request.PackingMaterialId} not found.");
+            return new GetPackingMaterialLogsResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.ResourceNotFound,
+                Error = $"Packing material with ID {request.PackingMaterialId} not found."
+            };
         }
 
         var fromDate = DateTime.UtcNow.AddDays(-request.Days);
@@ -33,7 +39,7 @@ public class GetPackingMaterialLogsHandler : IRequestHandler<GetPackingMaterialL
             Name = material.Name,
             ConsumptionRate = material.ConsumptionRate,
             ConsumptionType = material.ConsumptionType,
-            ConsumptionTypeText = GetConsumptionTypeText(material.ConsumptionType),
+            ConsumptionTypeText = PackingMaterialsTextHelper.ConsumptionTypeText(material.ConsumptionType),
             CurrentQuantity = material.CurrentQuantity,
             CreatedAt = material.CreatedAt,
             UpdatedAt = material.UpdatedAt
@@ -59,14 +65,6 @@ public class GetPackingMaterialLogsHandler : IRequestHandler<GetPackingMaterialL
             Logs = logDtos
         };
     }
-
-    private static string GetConsumptionTypeText(ConsumptionType type) => type switch
-    {
-        ConsumptionType.PerOrder => "za zakázku",
-        ConsumptionType.PerProduct => "za produkt",
-        ConsumptionType.PerDay => "za den",
-        _ => type.ToString()
-    };
 
     private static string GetLogTypeText(LogEntryType type) => type switch
     {

@@ -11,7 +11,7 @@ const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onClose }) => {
   if (toasts.length === 0) return null;
 
   return createPortal(
-    <div className="fixed top-4 right-4 z-50 space-y-4 min-w-[600px]">
+    <div className="fixed top-4 right-4 left-4 z-50 space-y-4 sm:left-auto sm:min-w-[600px]">
       {toasts.map((toast) => (
         <Toast key={toast.id} {...toast} onClose={onClose} />
       ))}

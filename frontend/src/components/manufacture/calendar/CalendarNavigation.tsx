@@ -54,32 +54,34 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
     <div className={`flex items-center justify-center space-x-4 ${className}`}>
       <button
         onClick={onPrevious}
-        className={`${classes.button} hover:bg-gray-100 rounded-lg transition-colors`}
+        className={`${classes.button} hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors`}
         title={previousTitle}
+        aria-label={previousTitle}
       >
-        <ChevronLeft className={`${classes.icon} text-gray-600`} />
+        <ChevronLeft className={`${classes.icon} text-gray-600 dark:text-graphite-muted`} />
       </button>
 
       {onToday && (
         <button
           onClick={onToday}
-          className={`${classes.todayBtn} font-medium text-indigo-600 hover:bg-indigo-50 rounded transition-colors`}
+          className={`${classes.todayBtn} font-medium text-indigo-600 dark:text-graphite-accent hover:bg-indigo-50 dark:hover:bg-graphite-accent/10 rounded transition-colors`}
           title={todayTitle}
         >
           {todayTitle}
         </button>
       )}
 
-      <span className={`${classes.label} ${classes.text} font-medium text-gray-900 text-center`}>
+      <span className={`${classes.label} ${classes.text} font-medium text-gray-900 dark:text-graphite-text text-center`}>
         {currentPeriodLabel}
       </span>
 
       <button
         onClick={onNext}
-        className={`${classes.button} hover:bg-gray-100 rounded-lg transition-colors`}
+        className={`${classes.button} hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors`}
         title={nextTitle}
+        aria-label={nextTitle}
       >
-        <ChevronRight className={`${classes.icon} text-gray-600`} />
+        <ChevronRight className={`${classes.icon} text-gray-600 dark:text-graphite-muted`} />
       </button>
     </div>
   );

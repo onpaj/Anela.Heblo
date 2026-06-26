@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrder;
 using Anela.Heblo.Application.Shared;
@@ -13,7 +14,7 @@ public class CreateManufactureOrderHandlerSinglePhaseTests
 {
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
     private readonly Mock<IProductNameFormatter> _productNameFormatterMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly CreateManufactureOrderHandler _handler;
@@ -22,7 +23,7 @@ public class CreateManufactureOrderHandlerSinglePhaseTests
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
         _productNameFormatterMock = new Mock<IProductNameFormatter>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _timeProviderMock = new Mock<TimeProvider>();
 
@@ -63,7 +64,7 @@ public class CreateManufactureOrderHandlerSinglePhaseTests
         var currentTime = new DateTime(2023, 10, 20);
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(new DateTimeOffset(currentTime));
 
-        _repositoryMock.Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+        _repositoryMock.Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("MO-2023-001");
 
         var catalogProduct = new CatalogAggregate
@@ -129,7 +130,7 @@ public class CreateManufactureOrderHandlerSinglePhaseTests
         var currentTime = new DateTime(2023, 10, 20);
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(new DateTimeOffset(currentTime));
 
-        _repositoryMock.Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+        _repositoryMock.Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("MO-2023-001");
 
         var catalogProduct = new CatalogAggregate

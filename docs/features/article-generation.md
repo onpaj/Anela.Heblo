@@ -140,7 +140,7 @@ public enum SourceType   { Web = 0, KnowledgeBase = 1, StyleGuide = 2 }
 
 ## 7. REST API
 
-All endpoints `[Authorize]`. POST `/generate` requires role `marketing_writer`; reads require `heblo_user`.
+All endpoints are gated through `[FeatureAuthorize(Feature.Marketing_Article, …)]` (class-level default is `AccessLevel.Read`). `POST /generate` requires `AccessLevel.Write` — permission string `marketing.article.write` (`AccessRoles.MarketingArticleWrite`). `GET /{id}`, `GET /`, and `POST /{id}/feedback` require `AccessLevel.Read` — permission string `marketing.article.read` (`AccessRoles.MarketingArticleRead`).
 
 ### `POST /api/Articles/generate`
 Request body (class, not record — OpenAPI codegen requirement):
@@ -238,6 +238,24 @@ Paged list, default pageSize=20, max 100.
   ```
 - **Fallback:** parse failure → wrap raw text in `<p>...</p>`, derive title from topic, empty sources
 
+#### 8.5.1 Custom prompt templates
+
+`ArticleOptions.WriteArticleSystemPromptTemplate` is rendered via `string.Replace`. Available placeholders:
+
+| Placeholder | Value | Notes |
+|---|---|---|
+| `{topic}` | `Article.Topic` | Always present. |
+| `{audience}` | `Article.Audience` or `"obecné publikum"` if null. | |
+| `{length}` | `Article.Length` | E.g. `"medium (1000w)"`. |
+| `{angle}` | `Article.Angle` or `"(nevyspecifikováno)"` if null. | |
+| `{scope}` | `Article.Scope` raw value | One of `overview`, `deep-dive`, `how-to`, `comparison`. |
+| `{language_note}` | `Article.LanguageNote` raw value, or `""` if null. | Use this for full-line custom templates. |
+| `{tone_note_line}` | Composed line: `Tonalita: <note>` when present, `""` when absent. | Use this to add a single self-contained line that disappears when no note is supplied. |
+| `{facts}` | Numbered list of aggregated facts. | |
+| `{style_guide}` | Style guide body, or `""` if none. | |
+
+**Back-compat:** appsettings overrides that omit `{scope}` or `{tone_note_line}` continue to work — those values are simply not surfaced to the LLM. To surface them, add the placeholders to the override.
+
 ### 8.6 Persistence
 - Update `Article` row with `Title`, `HtmlContent`, `Status=Generated`, `GeneratedAt = now`.
 - Insert `ArticleSource` rows (one per `sources_used` entry; type=Web for URLs, type=KnowledgeBase for KB-tagged ones, type=StyleGuide if used).
@@ -304,7 +322,8 @@ Add to `appsettings.json`:
   "QueryPlannerSystemPrompt": "...",
   "AggregateFactsSystemPrompt": "...",
   "ValidateFactsSystemPrompt": "...",
-  "WriteArticleSystemPromptTemplate": "..."
+  "WriteArticleSystemPrompt": "...",
+  "WriteArticleUserPromptTemplate": "..."
 },
 "WebSearch": {
   "Provider": "SerpApi",
@@ -343,11 +362,28 @@ MediatR handlers are auto-discovered. Hangfire job is a regular class with `[Aut
 
 ## 14. Auth & Roles
 
-- Uses the unified `marketing_writer` role — assigned to Heblo human users with content-creation responsibilities (admin assigns)
-- `[Authorize(Roles = "marketing_writer")]` on `POST /generate`
-- `[Authorize]` (default `heblo_user`) on `GET` and feedback endpoints
-- `KnowledgeBaseUpload` policy is **not** reused — articles are a separate concern
-- **Note:** The earlier `article_generator` role was removed and replaced by the unified `marketing_writer` role.
+`ArticlesController` is gated by the `FeatureAuthorize` attribute (a custom `AuthorizeAttribute` subclass at `backend/src/Anela.Heblo.Domain/Features/Authorization/FeatureAuthorizeAttribute.cs`). The class-level attribute applies a read-level gate to every action by default; `POST /generate` overrides this with a write-level gate.
+
+```csharp
+// backend/src/Anela.Heblo.API/Controllers/ArticlesController.cs
+[FeatureAuthorize(Feature.Marketing_Article)]
+[ApiController]
+[Route("api/[controller]")]
+public sealed class ArticlesController : BaseApiController
+{
+    [HttpPost("generate")]
+    [FeatureAuthorize(Feature.Marketing_Article, AccessLevel.Write)]
+    public async Task<ActionResult<GenerateArticleResponse>> Generate(...)
+}
+```
+
+- `POST /generate` requires `AccessLevel.Write` — permission string `marketing.article.write` (`AccessRoles.MarketingArticleWrite`).
+- `GET /{id}`, `GET /`, and `POST /{id}/feedback` require `AccessLevel.Read` (inherited from the class-level attribute) — permission string `marketing.article.read` (`AccessRoles.MarketingArticleRead`).
+- The `KnowledgeBaseUpload` policy is **not** reused — articles are a separate concern.
+
+**Source of truth.** Feature keys and access levels are declared in `access-matrix.json` (e.g. `{ "key": "Marketing_Article", "label": "Články", "hasWrite": true }`). The `Anela.Heblo.AccessMatrixGen` source generator compiles the matrix into `Feature.generated.cs`, `AccessRoles.generated.cs` (which exposes `AccessRoles.For(Feature, AccessLevel) → string` plus the per-feature constants used above), and `accessMatrix.generated.ts` for the frontend. Admins grant access by assigning the resulting permission strings via Azure AD app roles / group claims.
+
+**Note.** The earlier `article_generator` role was removed. The interim `marketing_reader` / `marketing_writer` role strings were retired with the 2026-06-08 permission-source-of-truth migration (see `docs/superpowers/specs/2026-06-08-permission-source-of-truth-design.md`). Access is now declared in `access-matrix.json` and exposed via the generated `AccessRoles.MarketingArticleRead` / `AccessRoles.MarketingArticleWrite` constants (permission strings `marketing.article.read` / `marketing.article.write`).
 
 ---
 
@@ -431,3 +467,29 @@ MediatR handlers are auto-discovered. Hangfire job is a regular class with `[Aut
 2. **API:** `curl POST /api/Articles/generate` with a JWT, poll `GET /api/Articles/{id}`, inspect `htmlContent` and `sources`.
 3. **Failure paths:** disable web-search key → article still generated from KB only; broken style-guide path → graceful fallback note.
 4. **Tests:** `dotnet test` passes all new test projects with ≥80% line coverage on the `Articles` slice.
+
+---
+
+## 23. Follow-ups
+
+### Resolve RequestedBy identifier → display name (UX)
+
+After 2026-05-25, `Article.RequestedBy` stores a stable Entra identifier
+(OID or email) instead of a display name. The feedback list and detail
+views currently render the raw value, which now appears as an opaque OID.
+
+**Affected frontend components:**
+- `frontend/src/components/feedback/GenericFeedbackDetailModal.tsx` — renders
+  `detail.userId` (maps from `Article.RequestedBy` via adapter) at line 51
+- `frontend/src/api/hooks/useArticles.ts` — passes through `requestedBy` OID
+  from backend to adapter
+
+**Fix scope:**
+- `backend/src/Anela.Heblo.Application/Features/Articles/UseCases/GetFeedback/GetArticleFeedbackListHandler.cs` —
+  resolve OID → display name via `IGraphService.GetGroupMembersAsync` (or similar identity resolution, cached) when projecting
+  `ArticleFeedbackSummary.RequestedBy`.
+- Frontend renderers consume the resolved name; no UI logic change required
+  if the backend swap is transparent.
+
+**Tracked separately** from the ownership/security fix that introduced the
+regression.

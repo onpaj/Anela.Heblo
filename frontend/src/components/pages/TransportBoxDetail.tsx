@@ -456,15 +456,15 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div
-        className="relative top-2 mx-auto p-3 border w-11/12 max-w-7xl shadow-lg rounded-md bg-white mb-4 flex flex-col"
-        style={{ maxHeight: "calc(100vh - 2rem)", minHeight: "900px" }}
+        className="relative top-2 mx-auto p-3 border dark:border-graphite-border w-11/12 max-w-7xl shadow-lg dark:shadow-soft-dark rounded-md bg-white dark:bg-graphite-surface mb-4 flex flex-col md:min-h-[900px]"
+        style={{ maxHeight: "calc(100vh - 2rem)" }}
       >
         {/* Header - Fixed */}
         <div className="flex items-start justify-between mb-4 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <Package className="h-6 w-6 text-indigo-600" />
+            <Package className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">
                 Detail transportního boxu
               </h2>
             </div>
@@ -483,7 +483,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
                     <div className="flex items-center gap-2">
                       <label
                         htmlFor="boxNumberInput"
-                        className="text-sm font-medium text-gray-700"
+                        className="text-sm font-medium text-gray-700 dark:text-graphite-muted"
                       >
                         Číslo boxu:
                       </label>
@@ -497,10 +497,10 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
                           }
                           placeholder="B001"
                           maxLength={4}
-                          className={`w-20 px-3 py-2 text-lg font-mono border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                          className={`w-20 px-3 py-2 text-lg font-mono border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint ${
                             boxNumberError
                               ? "border-red-300"
-                              : "border-gray-300"
+                              : "border-gray-300 dark:border-graphite-border"
                           }`}
                           style={{ fontSize: "16px" }} // Prevent iOS zoom on focus
                         />
@@ -514,21 +514,21 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
                       </button>
                     </div>
                     {boxNumberError && (
-                      <div className="mt-1 text-xs text-red-600 max-w-xs text-right">
+                      <div className="mt-1 text-xs text-red-600 dark:text-red-400 max-w-xs text-right">
                         {boxNumberError}
                       </div>
                     )}
-                    <div className="mt-1 text-xs text-gray-500 text-right">
+                    <div className="mt-1 text-xs text-gray-500 dark:text-graphite-muted text-right">
                       Zadání čísla otevře box (B + 3 číslice)
                     </div>
                   </form>
                 ) : (
                   // Show prominent box number display for all other states
                   <div className="flex flex-col items-end">
-                    <div className="text-sm font-medium text-gray-700 mb-1">
+                    <div className="text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                       Číslo boxu:
                     </div>
-                    <div className="px-4 py-2 text-xl font-mono font-bold text-indigo-600 bg-indigo-50 border-2 border-indigo-200 rounded-md">
+                    <div className="px-4 py-2 text-xl font-mono font-bold text-indigo-600 dark:text-graphite-accent bg-indigo-50 dark:bg-graphite-accent/10 border-2 border-indigo-200 dark:border-graphite-accent rounded-md">
                       {boxData.transportBox.code || "---"}
                     </div>
                   </div>
@@ -538,7 +538,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
 
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 dark:text-graphite-faint dark:hover:text-graphite-muted transition-colors"
             >
               <X className="h-6 w-6" />
             </button>
@@ -546,26 +546,26 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
         </div>
 
         {/* Main Layout with fixed right panel and flexible main content */}
-        <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+        <div className="flex flex-col md:flex-row gap-6 flex-1 min-h-0">
           {/* Main Content - Flexible Area */}
           <div className="flex-1 min-h-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                <span className="ml-2 text-gray-600">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 dark:border-graphite-accent"></div>
+                <span className="ml-2 text-gray-600 dark:text-graphite-muted">
                   Načítám detail boxu...
                 </span>
               </div>
             ) : error ? (
-              <div className="flex items-center gap-2 text-red-600 py-8">
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400 py-8">
                 <AlertCircle className="h-5 w-5" />
                 <span>Chyba při načítání detailu boxu</span>
               </div>
             ) : boxData?.transportBox ? (
               <div className="h-full flex flex-col">
                 {/* Tab Navigation */}
-                <div className="bg-white border border-gray-200 rounded-lg flex-shrink-0">
-                  <div className="border-b border-gray-200">
+                <div className="bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-lg flex-shrink-0">
+                  <div className="border-b border-gray-200 dark:border-graphite-border">
                     <nav
                       className="-mb-px flex space-x-8 px-4"
                       aria-label="Tabs"
@@ -574,8 +574,8 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
                         onClick={() => setActiveTab("info")}
                         className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                           activeTab === "info"
-                            ? "border-indigo-500 text-indigo-600"
-                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                            ? "border-indigo-500 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted dark:hover:text-graphite-text dark:hover:border-graphite-border"
                         }`}
                       >
                         <Package className="h-4 w-4" />
@@ -585,8 +585,8 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
                         onClick={() => setActiveTab("history")}
                         className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                           activeTab === "history"
-                            ? "border-indigo-500 text-indigo-600"
-                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                            ? "border-indigo-500 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted dark:hover:text-graphite-text dark:hover:border-graphite-border"
                         }`}
                       >
                         <Clock className="h-4 w-4" />
@@ -640,11 +640,11 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
               </div>
             ) : (
               <div className="text-center py-8">
-                <Package className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                <Package className="mx-auto h-12 w-12 text-gray-400 dark:text-graphite-faint" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-graphite-text">
                   Box nenalezen
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-gray-500 dark:text-graphite-muted">
                   Transportní box s ID {boxId} nebyl nalezen.
                 </p>
               </div>
@@ -652,7 +652,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
           </div>
 
           {/* Right Panel - Fixed Navigation and Close Button */}
-          <div className="w-full lg:w-80 flex-shrink-0 flex flex-col">
+          <div className="w-full md:w-80 flex-shrink-0 flex flex-col">
             {/* State Navigation - Takes available space */}
             <div className="flex-1 mb-6">
               {boxData?.transportBox && (
@@ -669,7 +669,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
               <button
                 onClick={handleViewStockUpOperations}
                 disabled={!boxId}
-                className="w-full px-4 py-3 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full px-4 py-3 text-sm font-medium text-indigo-600 dark:text-graphite-accent bg-indigo-50 dark:bg-graphite-accent/10 border border-indigo-200 dark:border-graphite-accent rounded-lg hover:bg-indigo-100 dark:hover:bg-graphite-accent/20 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <FileText className="h-4 w-4" />
                 Zobrazit operace naskladnění
@@ -677,10 +677,10 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
             </div>
 
             {/* Close Button - Fixed at bottom */}
-            <div className="pt-4 border-t border-gray-200 flex justify-end">
+            <div className="pt-4 border-t border-gray-200 dark:border-graphite-border flex justify-end">
               <button
                 onClick={onClose}
-                className="px-6 py-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 min-h-[48px] min-w-[120px]"
+                className="px-6 py-3 text-base font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 min-h-[48px] min-w-[120px]"
               >
                 Zavřít
               </button>

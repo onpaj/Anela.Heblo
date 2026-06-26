@@ -29,18 +29,19 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
             DateTime utcNow,
             MarketingActionType actionType)
         {
-            var action = new MarketingAction
-            {
-                Title = ParseTitle(evt.Subject),
-                Description = ParseDescription(evt.BodyText),
-                ActionType = actionType,
-                StartDate = evt.StartUtc,
-                EndDate = ParseEndDate(evt),
-                CreatedAt = utcNow,
-                ModifiedAt = utcNow,
-                CreatedByUserId = currentUser.Id!,
-                CreatedByUsername = currentUser.Name ?? "Unknown User",
-            };
+            var createdByUserId = currentUser.Id
+                ?? throw new InvalidOperationException(
+                    "Outlook import requires an authenticated user context for createdByUserId.");
+
+            var action = new MarketingAction(
+                title: ParseTitle(evt.Subject),
+                description: ParseDescription(evt.BodyText),
+                actionType: actionType,
+                startDate: evt.StartUtc,
+                endDate: ParseEndDate(evt),
+                createdByUserId: createdByUserId,
+                createdByUsername: currentUser.Name,
+                utcNow: utcNow);
 
             action.MarkOutlookSynced(evt.Id, utcNow);
 
@@ -49,8 +50,14 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
 
         internal static bool HasChanges(MarketingAction existing, OutlookEventDto evt, MarketingActionType actionType)
         {
-            return existing.Title != ParseTitle(evt.Subject)
-                || existing.Description != ParseDescription(evt.BodyText)
+            // Compare against the values UpdateDetails / the constructor would
+            // persist — both trim title and description. Without this, re-importing
+            // a whitespace-bearing event would always report Updated.
+            var normalizedTitle = ParseTitle(evt.Subject).Trim();
+            var normalizedDescription = ParseDescription(evt.BodyText)?.Trim();
+
+            return existing.Title != normalizedTitle
+                || existing.Description != normalizedDescription
                 || existing.StartDate != evt.StartUtc
                 || existing.EndDate != ParseEndDate(evt)
                 || existing.ActionType != actionType;
@@ -63,14 +70,20 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
             CurrentUser currentUser,
             DateTime utcNow)
         {
-            existing.Title = ParseTitle(evt.Subject);
-            existing.Description = ParseDescription(evt.BodyText);
-            existing.StartDate = evt.StartUtc;
-            existing.EndDate = ParseEndDate(evt);
-            existing.ActionType = actionType;
-            existing.ModifiedAt = utcNow;
-            existing.ModifiedByUserId = currentUser.Id;
-            existing.ModifiedByUsername = currentUser.Name ?? "Unknown User";
+            var modifiedByUserId = currentUser.Id
+                ?? throw new InvalidOperationException(
+                    "Outlook import requires an authenticated user context for modifiedByUserId.");
+
+            existing.UpdateDetails(
+                title: ParseTitle(evt.Subject),
+                description: ParseDescription(evt.BodyText),
+                actionType: actionType,
+                startDate: evt.StartUtc,
+                endDate: ParseEndDate(evt),
+                modifiedByUserId: modifiedByUserId,
+                modifiedByUsername: currentUser.Name,
+                utcNow: utcNow);
+
             existing.MarkOutlookSynced(evt.Id, utcNow);
         }
 

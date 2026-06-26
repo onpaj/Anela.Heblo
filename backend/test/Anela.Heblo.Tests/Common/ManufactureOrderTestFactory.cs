@@ -149,6 +149,7 @@ public class TestCatalogRepository : ICatalogRepository
 
     // Data load timestamps - always return current time for test
     public DateTime? TransportLoadDate => DateTime.UtcNow;
+    public DateTime? ManufacturedLoadDate => DateTime.UtcNow;
     public DateTime? ReserveLoadDate => DateTime.UtcNow;
     public DateTime? QuarantineLoadDate => DateTime.UtcNow;
     public DateTime? OrderedLoadDate => DateTime.UtcNow;
@@ -166,7 +167,6 @@ public class TestCatalogRepository : ICatalogRepository
     public DateTime? ErpPricesLoadDate => DateTime.UtcNow;
     public DateTime? EshopUrlLoadDate => DateTime.UtcNow;
     public DateTime? ManufactureDifficultySettingsLoadDate => DateTime.UtcNow;
-    public DateTime? ManufactureCostLoadDate => DateTime.UtcNow;
 
     // Merge operation tracking - always return current time for test
     public DateTime? LastMergeDateTime => DateTime.UtcNow;
@@ -174,6 +174,7 @@ public class TestCatalogRepository : ICatalogRepository
 
     // Refresh methods - no-op for test
     public Task RefreshTransportData(CancellationToken ct) => Task.CompletedTask;
+    public Task RefreshManufacturedData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshReserveData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshOrderedData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshPlannedData(CancellationToken ct) => Task.CompletedTask;

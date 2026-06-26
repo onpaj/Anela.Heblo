@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.KnowledgeBase.Contracts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
 

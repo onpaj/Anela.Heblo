@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3339",
+  "issue_number": 3339,
+  "created_at": "2026-06-25T09:15:31.647961Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T09:18:49.961117Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-25T09:22:35.768424Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T09:22:48.374842Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-25T09:25:29.741604Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T09:35:47.320897Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-06-25T09:36:01.671972Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "gate-hook",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T09:29:40.303462Z"
+    },
+    {
+      "name": "guard-component",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T09:35:40.187954Z"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -11,9 +12,9 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
-using Anela.Heblo.Domain.Features.Purchase;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -35,12 +36,10 @@ public class CatalogRepositoryTests
     private readonly Mock<IProductPriceEshopClient> _productPriceEshopClientMock;
     private readonly Mock<IProductPriceErpClient> _productPriceErpClientMock;
     private readonly Mock<IProductEshopUrlClient> _productEshopUrlClientMock;
-    private readonly Mock<ITransportBoxRepository> _transportBoxRepositoryMock;
+    private readonly Mock<ICatalogTransportSource> _transportSourceMock;
     private readonly Mock<IStockTakingRepository> _stockTakingRepositoryMock;
-    private readonly Mock<IManufactureClient> _manufactureClientMock;
-    private readonly Mock<IPurchaseOrderRepository> _purchaseOrderRepositoryMock;
-    private readonly Mock<IManufactureOrderRepository> _manufactureOrderRepositoryMock;
-    private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
+    private readonly Mock<ICatalogPurchaseSource> _purchaseSourceMock;
+    private readonly Mock<ICatalogManufactureSource> _manufactureSourceMock;
     private readonly Mock<IManufactureDifficultyRepository> _manufactureDifficultyRepositoryMock;
     private readonly Mock<ICatalogResilienceService> _resilienceServiceMock;
     private readonly Mock<ICatalogMergeScheduler> _mergeSchedulerMock;
@@ -50,6 +49,9 @@ public class CatalogRepositoryTests
     private readonly Mock<IOptions<CatalogCacheOptions>> _cacheOptionsMock;
     private readonly Mock<ILogger<CatalogRepository>> _loggerMock;
 
+    private readonly CatalogCacheStore _cacheStore;
+    private readonly CatalogMergeService _mergeService;
+    private readonly CatalogDataRefreshService _refreshService;
     private readonly CatalogRepository _repository;
 
     public CatalogRepositoryTests()
@@ -64,14 +66,19 @@ public class CatalogRepositoryTests
         _productPriceEshopClientMock = new Mock<IProductPriceEshopClient>();
         _productPriceErpClientMock = new Mock<IProductPriceErpClient>();
         _productEshopUrlClientMock = new Mock<IProductEshopUrlClient>();
+
         _productEshopUrlClientMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ProductEshopUrl>());
-        _transportBoxRepositoryMock = new Mock<ITransportBoxRepository>();
+        _transportSourceMock = new Mock<ICatalogTransportSource>();
         _stockTakingRepositoryMock = new Mock<IStockTakingRepository>();
-        _manufactureClientMock = new Mock<IManufactureClient>();
-        _purchaseOrderRepositoryMock = new Mock<IPurchaseOrderRepository>();
-        _manufactureOrderRepositoryMock = new Mock<IManufactureOrderRepository>();
-        _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
+        _purchaseSourceMock = new Mock<ICatalogPurchaseSource>();
+        _manufactureSourceMock = new Mock<ICatalogManufactureSource>();
+        _manufactureSourceMock
+            .Setup(x => x.GetManufacturedInventoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, decimal>());
+        _manufactureSourceMock
+            .Setup(x => x.GetManufactureHistoryAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogManufactureRecord>());
         _manufactureDifficultyRepositoryMock = new Mock<IManufactureDifficultyRepository>();
         _resilienceServiceMock = new Mock<ICatalogResilienceService>();
         _mergeSchedulerMock = new Mock<ICatalogMergeScheduler>();
@@ -81,37 +88,42 @@ public class CatalogRepositoryTests
         _cacheOptionsMock = new Mock<IOptions<CatalogCacheOptions>>();
         _loggerMock = new Mock<ILogger<CatalogRepository>>();
 
-        var options = new DataSourceOptions
+        var dataSourceOptions = new DataSourceOptions
         {
             SalesHistoryDays = 30,
             PurchaseHistoryDays = 30,
             ConsumedHistoryDays = 30,
             ManufactureHistoryDays = 30
         };
-        _optionsMock.Setup(x => x.Value).Returns(options);
+        _optionsMock.Setup(x => x.Value).Returns(dataSourceOptions);
 
         var cacheOptions = new CatalogCacheOptions
         {
-            EnableBackgroundMerge = false // Disable for tests to use old behavior
+            EnableBackgroundMerge = false
         };
         _cacheOptionsMock.Setup(x => x.Value).Returns(cacheOptions);
 
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(DateTimeOffset.UtcNow);
 
-        // Setup resilience service to pass through operations without resilience patterns for testing
-        _resilienceServiceMock.Setup(x => x.ExecuteWithResilienceAsync(It.IsAny<Func<CancellationToken, Task<IEnumerable<CatalogSaleRecord>>>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<CancellationToken, Task<IEnumerable<CatalogSaleRecord>>>, string, CancellationToken>((operation, name, ct) => operation(ct));
-
-        _resilienceServiceMock.Setup(x => x.ExecuteWithResilienceAsync(It.IsAny<Func<CancellationToken, Task<IEnumerable<CatalogAttributes>>>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<CancellationToken, Task<IEnumerable<CatalogAttributes>>>, string, CancellationToken>((operation, name, ct) => operation(ct));
-
         _resilienceServiceMock.Setup(x => x.ExecuteWithResilienceAsync(It.IsAny<Func<CancellationToken, Task<List<ErpStock>>>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<CancellationToken, Task<List<ErpStock>>>, string, CancellationToken>((operation, name, ct) => operation(ct));
+            .Returns<Func<CancellationToken, Task<List<ErpStock>>>, string, CancellationToken>((op, name, ct) => op(ct));
 
         _resilienceServiceMock.Setup(x => x.ExecuteWithResilienceAsync(It.IsAny<Func<CancellationToken, Task<List<EshopStock>>>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<Func<CancellationToken, Task<List<EshopStock>>>, string, CancellationToken>((operation, name, ct) => operation(ct));
+            .Returns<Func<CancellationToken, Task<List<EshopStock>>>, string, CancellationToken>((op, name, ct) => op(ct));
 
-        _repository = new CatalogRepository(
+        _cacheStore = new CatalogCacheStore(
+            _cache,
+            _timeProviderMock.Object,
+            _cacheOptionsMock.Object,
+            _mergeSchedulerMock.Object,
+            new Mock<ILogger<CatalogCacheStore>>().Object);
+
+        _mergeService = new CatalogMergeService(
+            _cacheStore,
+            _timeProviderMock.Object,
+            new Mock<ILogger<CatalogMergeService>>().Object);
+
+        _refreshService = new CatalogDataRefreshService(
             _salesClientMock.Object,
             _attributesClientMock.Object,
             _eshopStockClientMock.Object,
@@ -122,18 +134,22 @@ public class CatalogRepositoryTests
             _productPriceEshopClientMock.Object,
             _productPriceErpClientMock.Object,
             _productEshopUrlClientMock.Object,
-            _transportBoxRepositoryMock.Object,
+            _transportSourceMock.Object,
             _stockTakingRepositoryMock.Object,
-            _manufactureClientMock.Object,
-            _purchaseOrderRepositoryMock.Object,
-            _manufactureOrderRepositoryMock.Object,
-            _manufactureHistoryClientMock.Object,
+            _purchaseSourceMock.Object,
+            _manufactureSourceMock.Object,
             _manufactureDifficultyRepositoryMock.Object,
             _resilienceServiceMock.Object,
-            _mergeSchedulerMock.Object,
-            _cache,
             _timeProviderMock.Object,
             _optionsMock.Object,
+            _cacheStore,
+            new Mock<ILogger<CatalogDataRefreshService>>().Object);
+
+        _repository = new CatalogRepository(
+            _cacheStore,
+            _mergeService,
+            _refreshService,
+            _mergeSchedulerMock.Object,
             _cacheOptionsMock.Object,
             _loggerMock.Object);
     }
@@ -457,14 +473,13 @@ public class CatalogRepositoryTests
             typeof(TransportBoxItem), "TEST001", "Test Product", 15.0, DateTime.UtcNow, "user", null, null, null)!;
         ((List<TransportBoxItem>)itemsField.GetValue(quarantineBox)!).Add(item);
 
-        // Use SetupSequence: 1st call (reserve) returns empty, 2nd call (quarantine) returns the box
-        _transportBoxRepositoryMock
-            .SetupSequence(x => x.FindAsync(
-                It.IsAny<System.Linq.Expressions.Expression<System.Func<TransportBox, bool>>>(),
-                It.IsAny<bool>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TransportBox>())
-            .ReturnsAsync(new List<TransportBox> { quarantineBox });
+        // Setup transport source to return the quarantined product
+        _transportSourceMock
+            .Setup(x => x.GetProductsInReserveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int>());
+        _transportSourceMock
+            .Setup(x => x.GetProductsInQuarantineAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int> { { "TEST001", 15 } });
 
         // Act
         await _repository.RefreshReserveData(CancellationToken.None);
@@ -482,15 +497,6 @@ public class CatalogRepositoryTests
         // Arrange
         SetupEmptyMocks();
         _repository.QuarantineLoadDate.Should().BeNull(); // before any refresh
-
-        // Use SetupSequence to handle both FindAsync calls (reserve + quarantine)
-        _transportBoxRepositoryMock
-            .SetupSequence(x => x.FindAsync(
-                It.IsAny<System.Linq.Expressions.Expression<System.Func<TransportBox, bool>>>(),
-                It.IsAny<bool>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TransportBox>())
-            .ReturnsAsync(new List<TransportBox>());
 
         // Act
         await _repository.RefreshReserveData(CancellationToken.None);
@@ -515,7 +521,45 @@ public class CatalogRepositoryTests
             .ReturnsAsync(new List<CatalogLot>());
         _stockTakingRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<StockTakingRecord>());
-        _transportBoxRepositoryMock.Setup(x => x.FindAsync(It.IsAny<System.Linq.Expressions.Expression<System.Func<TransportBox, bool>>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TransportBox>());
+        _transportSourceMock.Setup(x => x.GetProductsInTransportAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int>());
+        _transportSourceMock.Setup(x => x.GetProductsInReserveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int>());
+        _transportSourceMock.Setup(x => x.GetProductsInQuarantineAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int>());
+    }
+
+    [Fact]
+    public async Task RefreshTransportData_InvokesTransportSourceOnce()
+    {
+        _transportSourceMock
+            .Setup(x => x.GetProductsInTransportAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int>());
+
+        await _repository.RefreshTransportData(CancellationToken.None);
+
+        _transportSourceMock.Verify(
+            x => x.GetProductsInTransportAsync(It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshManufacturedData_InvokesManufactureSourceOnce()
+    {
+        await _repository.RefreshManufacturedData(CancellationToken.None);
+
+        _manufactureSourceMock.Verify(
+            x => x.GetManufacturedInventoryAsync(It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshManufactureHistoryData_InvokesManufactureSourceOnce()
+    {
+        await _repository.RefreshManufactureHistoryData(CancellationToken.None);
+
+        _manufactureSourceMock.Verify(
+            x => x.GetManufactureHistoryAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

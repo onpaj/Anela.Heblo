@@ -1,0 +1,322 @@
+import React from 'react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import PackingLabelPrinter from '../PackingLabelPrinter';
+import { printLabelPdf } from '../printLabelPdf';
+import { useOrderTrackingNumber } from '../../../api/hooks/useOrderTrackingNumber';
+import type { PackingOrder, ScanShipment } from '../../../api/hooks/useScanPackingOrder';
+
+jest.mock('../printLabelPdf', () => ({
+  printLabelPdf: jest.fn(),
+}));
+
+const mockComplete = jest.fn();
+jest.mock('../../../api/hooks/useCompletePackingOrder', () => ({
+  useCompletePackingOrder: () => ({ mutate: mockComplete }),
+}));
+
+jest.mock('../../../api/hooks/useOrderTrackingNumber', () => ({
+  useOrderTrackingNumber: jest.fn(() => ({ data: null })),
+}));
+
+jest.mock('../PackingShipmentDoneView', () => ({
+  __esModule: true,
+  default: ({
+    resolvedTrackingNumbers,
+    onReprint,
+  }: {
+    resolvedTrackingNumbers?: string[] | null;
+    onReprint: () => void;
+  }) => (
+    <div data-testid="done-view">
+      <span data-testid="done-tracking">{(resolvedTrackingNumbers ?? []).join(', ')}</span>
+      <button data-testid="reprint" onClick={onReprint}>R</button>
+    </div>
+  ),
+}));
+
+const mockPrintLabelPdf = printLabelPdf as jest.MockedFunction<typeof printLabelPdf>;
+const mockUseOrderTrackingNumber = useOrderTrackingNumber as jest.MockedFunction<typeof useOrderTrackingNumber>;
+
+const makeOrder = (code: string): PackingOrder => ({
+  code,
+  customerName: 'X',
+  shippingMethodName: 'Y',
+  cooling: 'None',
+  isCooled: false,
+  customerNote: null,
+  eshopNote: null,
+  eligibility: { isEligible: true },
+  items: [],
+  shippingAddress: null,
+});
+
+const makeShipment = (packages: ScanShipment['packages']): ScanShipment => ({
+  shipmentGuid: 'guid-1',
+  packages,
+  alreadyExisted: false,
+});
+
+const pkg1 = { trackingNumber: null, labelUrl: 'https://x.com/1.pdf', labelZpl: null };
+const pkg2 = { trackingNumber: null, labelUrl: 'https://x.com/2.pdf', labelZpl: null };
+const pkg3 = { trackingNumber: null, labelUrl: 'https://x.com/3.pdf', labelZpl: null };
+
+const expectedLabel = (packageNumber: number) => ({ packageNumber });
+
+function fireAck(callIndex: number): void {
+  const cb = mockPrintLabelPdf.mock.calls[callIndex][2];
+  expect(typeof cb).toBe('function');
+  act(() => {
+    cb?.();
+  });
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockComplete.mockClear();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mockUseOrderTrackingNumber.mockReturnValue({ data: null } as any);
+});
+
+describe('PackingLabelPrinter', () => {
+  it('renders nothing when shipment has no packages', () => {
+    const { container } = render(
+      <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([])} />
+    );
+    expect(container).toBeEmptyDOMElement();
+    expect(mockPrintLabelPdf).not.toHaveBeenCalled();
+  });
+
+  it('auto-prints exactly once under React.StrictMode (no double print)', () => {
+    render(
+      <React.StrictMode>
+        <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />
+      </React.StrictMode>
+    );
+
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(1);
+    expect(mockPrintLabelPdf).toHaveBeenCalledWith(
+      '250001',
+      expectedLabel(1),
+      expect.any(Function),
+      expect.any(Function)
+    );
+  });
+
+  it('auto-prints first label on mount with an onAfterPrint callback', () => {
+    render(
+      <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />
+    );
+
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(1);
+    expect(mockPrintLabelPdf).toHaveBeenCalledWith(
+      '250001',
+      expectedLabel(1),
+      expect.any(Function),
+      expect.any(Function)
+    );
+  });
+
+  it('does NOT show done view until the last label\'s afterprint callback fires (single label)', () => {
+    render(
+      <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />
+    );
+
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+
+    fireAck(0);
+
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+  });
+
+  it('multi label: each button click prints next label with its own callback; done view appears only after the LAST callback fires', () => {
+    render(
+      <PackingLabelPrinter
+        order={makeOrder('250001')}
+        shipment={makeShipment([pkg1, pkg2])}
+      />
+    );
+
+    // After mount: label1 auto-printed, button for 2/2 visible
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('print-next-label-button')).toHaveTextContent('Vytisknout štítek 2/2');
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+
+    // Fire first ack -> still no done view (1 of 2 labels printed; need to print 2nd)
+    fireAck(0);
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+    expect(screen.getByTestId('print-next-label-button')).toBeInTheDocument();
+
+    // Click button to print second label
+    fireEvent.click(screen.getByTestId('print-next-label-button'));
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(2);
+    expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(
+      2,
+      '250001',
+      expectedLabel(2),
+      expect.any(Function),
+      expect.any(Function)
+    );
+
+    // printedCount=2, ack=1 → render rule #3 fires (null), button gone but no done view yet
+    expect(screen.queryByTestId('print-next-label-button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+
+    // Fire 2nd ack -> done view appears
+    fireAck(1);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+  });
+
+  it('three labels: button cycles through and done view shows only after final ack', () => {
+    render(
+      <PackingLabelPrinter
+        order={makeOrder('250001')}
+        shipment={makeShipment([pkg1, pkg2, pkg3])}
+      />
+    );
+
+    expect(screen.getByTestId('print-next-label-button')).toHaveTextContent('Vytisknout štítek 2/3');
+    fireAck(0);
+
+    fireEvent.click(screen.getByTestId('print-next-label-button'));
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(2);
+    expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(
+      2,
+      '250001',
+      expectedLabel(2),
+      expect.any(Function),
+      expect.any(Function)
+    );
+    expect(screen.getByTestId('print-next-label-button')).toHaveTextContent('Vytisknout štítek 3/3');
+    fireAck(1);
+
+    fireEvent.click(screen.getByTestId('print-next-label-button'));
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(3);
+    expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(
+      3,
+      '250001',
+      expectedLabel(3),
+      expect.any(Function),
+      expect.any(Function)
+    );
+
+    // All printed but final ack pending → null
+    expect(screen.queryByTestId('print-next-label-button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+
+    fireAck(2);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+  });
+
+  it('clicking reprint in done view resets state and re-prints from label 0', () => {
+    render(
+      <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />
+    );
+
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(1);
+    fireAck(0);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('reprint'));
+
+    // After reprint click: effect re-fires, prints label[0] again
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(2);
+    expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(
+      2,
+      '250001',
+      expectedLabel(1),
+      expect.any(Function),
+      expect.any(Function)
+    );
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+  });
+
+  it('resets state when order.code changes', () => {
+    const shipment = makeShipment([pkg1]);
+    const { rerender } = render(
+      <PackingLabelPrinter order={makeOrder('250001')} shipment={shipment} />
+    );
+
+    fireAck(0);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+
+    rerender(<PackingLabelPrinter order={makeOrder('250002')} shipment={shipment} />);
+
+    // Counters reset; auto-prints labels[0] of new order
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(2);
+    expect(mockPrintLabelPdf).toHaveBeenLastCalledWith(
+      '250002',
+      expectedLabel(1),
+      expect.any(Function),
+      expect.any(Function)
+    );
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+  });
+
+  it('fires completion once when done and shipment is pendingCompletion', () => {
+    const shipment = { ...makeShipment([pkg1, pkg2]), pendingCompletion: true };
+    render(<PackingLabelPrinter order={makeOrder('250001')} shipment={shipment} />);
+
+    fireAck(0); // first label acknowledged
+    fireEvent.click(screen.getByTestId('print-next-label-button'));
+    fireAck(1); // last label acknowledged → done
+
+    expect(mockComplete).toHaveBeenCalledTimes(1);
+    expect(mockComplete).toHaveBeenCalledWith('250001', expect.objectContaining({ onError: expect.any(Function) }));
+  });
+
+  it('does NOT fire completion for a single-package (pendingCompletion absent) shipment', () => {
+    render(<PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />);
+    fireAck(0);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+    expect(mockComplete).not.toHaveBeenCalled();
+  });
+
+  it('fires completion once for a single-package pendingCompletion shipment after the label prints', () => {
+    const shipment = { ...makeShipment([pkg1]), pendingCompletion: true };
+    render(<PackingLabelPrinter order={makeOrder('250001')} shipment={shipment} />);
+
+    fireAck(0); // the only label acknowledged → done
+
+    expect(mockComplete).toHaveBeenCalledTimes(1);
+    expect(mockComplete).toHaveBeenCalledWith('250001', expect.objectContaining({ onError: expect.any(Function) }));
+  });
+
+  it('does NOT fire completion a second time when the user reprints a pendingCompletion shipment', () => {
+    const shipment = { ...makeShipment([pkg1, pkg2]), pendingCompletion: true };
+    render(<PackingLabelPrinter order={makeOrder('250001')} shipment={shipment} />);
+
+    // First pass: acknowledge both labels → done, completion fired once
+    fireAck(0);
+    fireEvent.click(screen.getByTestId('print-next-label-button'));
+    fireAck(1);
+    expect(mockComplete).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+
+    // Operator hits reprint — completedRef.current remains true
+    fireEvent.click(screen.getByTestId('reprint'));
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+
+    // Second pass: acknowledge both labels again → done view reappears
+    fireAck(2); // call index 2: label[0] reprinted
+    fireEvent.click(screen.getByTestId('print-next-label-button'));
+    fireAck(3); // call index 3: label[1] reprinted
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+
+    // completedRef guard prevents a second completion call
+    expect(mockComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes the resolved tracking number into the done view once printing is finished', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockUseOrderTrackingNumber.mockReturnValue({ data: '2421907688' } as any);
+
+    render(
+      <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />
+    );
+    fireAck(0);
+
+    expect(mockUseOrderTrackingNumber).toHaveBeenCalledWith('250001', true);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+    expect(screen.getByTestId('done-tracking')).toHaveTextContent('2421907688');
+  });
+});

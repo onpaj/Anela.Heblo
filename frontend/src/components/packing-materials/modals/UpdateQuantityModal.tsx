@@ -28,7 +28,7 @@ const UpdateQuantityModal: React.FC<UpdateQuantityModalProps> = ({
     if (isOpen && material) {
       const today = new Date().toISOString().split('T')[0];
       setFormData({
-        newQuantity: material.currentQuantity.toString(),
+        newQuantity: material.currentQuantity!.toString(),
         date: today,
       });
       setErrors({});
@@ -58,9 +58,9 @@ const UpdateQuantityModal: React.FC<UpdateQuantityModalProps> = ({
     }
 
     updateQuantity({
-      id: material.id,
+      id: material.id!,
       newQuantity: parseFloat(formData.newQuantity),
-      date: formData.date, // Will be converted to DateOnly on backend
+      date: formData.date,
     }, {
       onSuccess: () => {
         onSuccess?.();
@@ -81,22 +81,22 @@ const UpdateQuantityModal: React.FC<UpdateQuantityModalProps> = ({
 
   if (!isOpen || !material) return null;
 
-  const currentQuantity = material.currentQuantity;
+  const currentQuantity = material.currentQuantity!;
   const newQuantity = parseFloat(formData.newQuantity) || 0;
   const difference = newQuantity - currentQuantity;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark w-full max-w-md mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-graphite-border">
           <div className="flex items-center space-x-3">
-            <Package className="h-6 w-6 text-indigo-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Upravit množství</h2>
+            <Package className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">Upravit množství</h2>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted transition-colors"
             disabled={isPending}
           >
             <X className="h-6 w-6" />
@@ -107,21 +107,21 @@ const UpdateQuantityModal: React.FC<UpdateQuantityModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6">
           {/* General Error */}
           {errors.general && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+            <div className="mb-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 px-3 py-2 rounded text-sm">
               {errors.general}
             </div>
           )}
 
           {/* Material Info */}
-          <div className="mb-4 p-4 bg-gray-50 rounded-md">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">{material.name}</h3>
+          <div className="mb-4 p-4 bg-gray-50 dark:bg-graphite-surface-2 rounded-md">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-graphite-text mb-2">{material.name}</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-500">Aktuální množství:</span>
+                <span className="text-gray-500 dark:text-graphite-muted">Aktuální množství:</span>
                 <div className="font-medium">{formatQuantity(currentQuantity)}</div>
               </div>
               <div>
-                <span className="text-gray-500">Typ spotřeby:</span>
+                <span className="text-gray-500 dark:text-graphite-muted">Typ spotřeby:</span>
                 <div className="font-medium">{material.consumptionTypeText}</div>
               </div>
             </div>
@@ -129,7 +129,7 @@ const UpdateQuantityModal: React.FC<UpdateQuantityModalProps> = ({
 
           {/* New Quantity Field */}
           <div className="mb-4">
-            <label htmlFor="newQuantity" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="newQuantity" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               Nové množství *
             </label>
             <input
@@ -139,18 +139,18 @@ const UpdateQuantityModal: React.FC<UpdateQuantityModalProps> = ({
               min="0"
               value={formData.newQuantity}
               onChange={(e) => setFormData({ ...formData, newQuantity: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                errors.newQuantity ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint ${
+                errors.newQuantity ? 'border-red-500' : 'border-gray-300 dark:border-graphite-border'
               }`}
               placeholder="např. 150"
               disabled={isPending}
             />
-            {errors.newQuantity && <p className="text-red-500 text-xs mt-1">{errors.newQuantity}</p>}
+            {errors.newQuantity && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.newQuantity}</p>}
           </div>
 
           {/* Date Field */}
           <div className="mb-4">
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               Datum změny *
             </label>
             <input
@@ -158,19 +158,19 @@ const UpdateQuantityModal: React.FC<UpdateQuantityModalProps> = ({
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                errors.date ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text ${
+                errors.date ? 'border-red-500' : 'border-gray-300 dark:border-graphite-border'
               }`}
               disabled={isPending}
             />
-            {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
+            {errors.date && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.date}</p>}
           </div>
 
           {/* Change Summary */}
           {formData.newQuantity && !isNaN(newQuantity) && (
-            <div className="mb-6 p-3 bg-blue-50 rounded-md">
-              <h4 className="text-sm font-medium text-blue-900 mb-2">Souhrn změny</h4>
-              <div className="text-sm text-blue-800">
+            <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-md">
+              <h4 className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">Souhrn změny</h4>
+              <div className="text-sm text-blue-800 dark:text-blue-300">
                 <div className="flex justify-between">
                   <span>Aktuální:</span>
                   <span>{formatQuantity(currentQuantity)}</span>
@@ -179,10 +179,10 @@ const UpdateQuantityModal: React.FC<UpdateQuantityModalProps> = ({
                   <span>Nové:</span>
                   <span>{formatQuantity(newQuantity)}</span>
                 </div>
-                <hr className="my-2 border-blue-200" />
+                <hr className="my-2 border-blue-200 dark:border-blue-900/40" />
                 <div className="flex justify-between font-medium">
                   <span>Změna:</span>
-                  <span className={difference >= 0 ? 'text-green-600' : 'text-red-600'}>
+                  <span className={difference >= 0 ? 'text-green-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
                     {difference >= 0 ? '+' : ''}{formatQuantity(difference)}
                   </span>
                 </div>
@@ -196,7 +196,7 @@ const UpdateQuantityModal: React.FC<UpdateQuantityModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={isPending}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface-2 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             >
               Zrušit
             </button>

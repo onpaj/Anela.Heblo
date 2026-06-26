@@ -10,7 +10,7 @@ namespace Anela.Heblo.Adapters.Flexi.Tests.Manufacture.Internal;
 
 public class ManufactureTemplateCacheTests
 {
-    private static ManufactureTemplate BuildTemplate(string productCode = "MAS001001M") => new()
+    private static ManufactureTemplate BuildTemplate(string productCode = "MAS001001M", int ingredientOrder = 0) => new()
     {
         TemplateId = 1,
         ProductCode = productCode,
@@ -28,7 +28,8 @@ public class ManufactureTemplateCacheTests
                 ProductName = "Ing",
                 Amount = 1.0,
                 ProductType = ProductType.Material,
-                HasLots = true
+                HasLots = true,
+                Order = ingredientOrder
             }
         }
     };
@@ -156,5 +157,72 @@ public class ManufactureTemplateCacheTests
 
         observed.Should().NotBeNull();
         observed!.Value.Should().Be(cts.Token);
+    }
+
+    [Fact]
+    public async Task GetOrFetchAsync_CacheMiss_PreservesIngredientOrder()
+    {
+        // Arrange
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetOrFetchAsync(
+            "MAS001001M",
+            _ => Task.FromResult<ManufactureTemplate?>(BuildTemplate(ingredientOrder: 3)),
+            CancellationToken.None);
+
+        // Assert
+        result!.Ingredients[0].Order.Should().Be(3,
+            "Order must be preserved through the deep clone returned on cache miss");
+    }
+
+    [Fact]
+    public async Task GetOrFetchAsync_CacheHit_PreservesIngredientOrder()
+    {
+        // Arrange
+        var sut = CreateSut();
+
+        // Populate cache
+        await sut.GetOrFetchAsync(
+            "MAS001001M",
+            _ => Task.FromResult<ManufactureTemplate?>(BuildTemplate(ingredientOrder: 5)),
+            CancellationToken.None);
+
+        // Act – second call hits the cache
+        var result = await sut.GetOrFetchAsync(
+            "MAS001001M",
+            _ => throw new InvalidOperationException("fetcher must not be called on hit"),
+            CancellationToken.None);
+
+        // Assert
+        result!.Ingredients[0].Order.Should().Be(5,
+            "Order must be preserved through the deep clone returned on cache hit");
+    }
+
+    [Fact]
+    public async Task Invalidate_AfterCacheHit_NextGetOrFetchInvokesFetcherAgain()
+    {
+        // Arrange
+        var sut = CreateSut();
+        var fetcherCalls = 0;
+
+        Func<CancellationToken, Task<ManufactureTemplate?>> fetch = _ =>
+        {
+            fetcherCalls++;
+            return Task.FromResult<ManufactureTemplate?>(BuildTemplate());
+        };
+
+        // First call: populates cache
+        await sut.GetOrFetchAsync("MAS001001M", fetch, CancellationToken.None);
+        fetcherCalls.Should().Be(1);
+
+        // Act
+        sut.Invalidate("MAS001001M");
+
+        // Second call: cache was invalidated, must invoke fetcher again
+        await sut.GetOrFetchAsync("MAS001001M", fetch, CancellationToken.None);
+
+        // Assert
+        fetcherCalls.Should().Be(2, "cache was invalidated between calls");
     }
 }

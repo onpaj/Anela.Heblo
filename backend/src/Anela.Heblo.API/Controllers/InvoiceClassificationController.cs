@@ -9,22 +9,23 @@ using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ClassifyIn
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetAccountingTemplates;
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetClassificationHistory;
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetInvoiceDetails;
-using Anela.Heblo.Domain.Features.InvoiceClassification;
+using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetClassificationRuleTypes;
 using Anela.Heblo.Application.Features.InvoiceClassification.Contracts;
+using Anela.Heblo.API.Infrastructure;
+using Anela.Heblo.Domain.Features.Authorization;
 
 namespace Anela.Heblo.API.Controllers;
 
+[FeatureAuthorize(Feature.Purchase_InvoiceClassification)]
 [ApiController]
 [Route("api/[controller]")]
 public class InvoiceClassificationController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly IEnumerable<IClassificationRule> _classificationRules;
 
-    public InvoiceClassificationController(IMediator mediator, IEnumerable<IClassificationRule> classificationRules)
+    public InvoiceClassificationController(IMediator mediator)
     {
         _mediator = mediator;
-        _classificationRules = classificationRules;
     }
 
     [HttpGet("rules")]
@@ -73,16 +74,12 @@ public class InvoiceClassificationController : ControllerBase
     }
 
     [HttpGet("rule-types")]
-    public ActionResult<List<ClassificationRuleTypeDto>> GetAvailableRuleTypes()
+    public async Task<ActionResult<List<ClassificationRuleTypeDto>>> GetAvailableRuleTypes(
+        CancellationToken cancellationToken)
     {
-        var ruleTypes = _classificationRules.Select(rule => new ClassificationRuleTypeDto
-        {
-            Identifier = rule.Identifier,
-            DisplayName = rule.DisplayName,
-            Description = rule.Description
-        }).ToList();
-
-        return Ok(ruleTypes);
+        var response = await _mediator.Send(new GetClassificationRuleTypesRequest(), cancellationToken);
+        // Unwrap to preserve bare-array JSON contract; envelope kept internally for sibling consistency.
+        return Ok(response.RuleTypes);
     }
 
     [HttpGet("accounting-templates")]

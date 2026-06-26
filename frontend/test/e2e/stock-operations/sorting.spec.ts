@@ -11,7 +11,7 @@ test.describe('Stock Operations - Column Sorting', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to stock operations with full authentication
     await navigateToStockOperations(page);
-    expect(page.url()).toContain('/stock-operations');
+    expect(page.url()).toContain('/stock-up-operations');
     await waitForTableUpdate(page);
   });
 

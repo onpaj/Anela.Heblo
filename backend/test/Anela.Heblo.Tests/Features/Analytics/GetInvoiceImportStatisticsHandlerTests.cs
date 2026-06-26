@@ -1,7 +1,7 @@
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
+using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Primitives;
+using Anela.Heblo.Domain.Features.Analytics;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -15,15 +15,12 @@ public class GetInvoiceImportStatisticsHandlerTests
     public GetInvoiceImportStatisticsHandlerTests()
     {
         _mockRepository = new Mock<IAnalyticsRepository>();
-        // Create a simple configuration for testing
-        var configurationBuilder = new ConfigurationBuilder();
-        configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        var options = Options.Create(new InvoiceImportOptions
         {
-            { "InvoiceImport:MinimumDailyThreshold", "10" },
-            { "InvoiceImport:DefaultDaysBack", "14" }
+            MinimumDailyThreshold = 10,
+            DefaultDaysBack = 14
         });
-        var configuration = configurationBuilder.Build();
-        _handler = new GetInvoiceImportStatisticsHandler(_mockRepository.Object, configuration);
+        _handler = new GetInvoiceImportStatisticsHandler(_mockRepository.Object, options);
     }
 
     [Fact]
@@ -69,10 +66,9 @@ public class GetInvoiceImportStatisticsHandlerTests
     public async Task Handle_ShouldUseDefaultThresholdWhenNotConfigured()
     {
         // Arrange - Create handler with empty configuration
-        var emptyConfigurationBuilder = new ConfigurationBuilder();
-        emptyConfigurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>());
-        var emptyConfiguration = emptyConfigurationBuilder.Build();
-        var handlerWithEmptyConfig = new GetInvoiceImportStatisticsHandler(_mockRepository.Object, emptyConfiguration);
+        var handlerWithEmptyConfig = new GetInvoiceImportStatisticsHandler(
+            _mockRepository.Object,
+            Options.Create(new InvoiceImportOptions()));
 
         var request = new GetInvoiceImportStatisticsRequest();
         var expectedData = new List<DailyInvoiceCount>();
@@ -95,14 +91,9 @@ public class GetInvoiceImportStatisticsHandlerTests
     public async Task Handle_ShouldUseConfigurableDefaultDaysBack()
     {
         // Arrange - Create handler with custom default days back
-        var customConfigurationBuilder = new ConfigurationBuilder();
-        customConfigurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            { "InvoiceImport:MinimumDailyThreshold", "10" },
-            { "InvoiceImport:DefaultDaysBack", "30" } // Custom default
-        });
-        var customConfiguration = customConfigurationBuilder.Build();
-        var handlerWithCustomConfig = new GetInvoiceImportStatisticsHandler(_mockRepository.Object, customConfiguration);
+        var handlerWithCustomConfig = new GetInvoiceImportStatisticsHandler(
+            _mockRepository.Object,
+            Options.Create(new InvoiceImportOptions { DefaultDaysBack = 30 }));
 
         var request = new GetInvoiceImportStatisticsRequest(); // DaysBack = null to use default
         var expectedData = new List<DailyInvoiceCount>();
@@ -152,6 +143,35 @@ public class GetInvoiceImportStatisticsHandlerTests
             It.IsAny<DateTime>(),
             It.IsAny<DateTime>(),
             dateType,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldUseDefaultValuesWhenOptionsAreParameterless()
+    {
+        // Arrange
+        var handlerWithDefaults = new GetInvoiceImportStatisticsHandler(
+            _mockRepository.Object,
+            Options.Create(new InvoiceImportOptions()));
+
+        _mockRepository.Setup(r => r.GetInvoiceImportStatisticsAsync(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<ImportDateType>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DailyInvoiceCount>());
+
+        var request = new GetInvoiceImportStatisticsRequest();
+
+        // Act
+        var result = await handlerWithDefaults.Handle(request, CancellationToken.None);
+
+        // Assert - defaults are 10 and 14
+        Assert.Equal(10, result.MinimumThreshold);
+        _mockRepository.Verify(r => r.GetInvoiceImportStatisticsAsync(
+            It.Is<DateTime>(d => d.Date == DateTime.UtcNow.Date.AddDays(-14)),
+            It.IsAny<DateTime>(),
+            It.IsAny<ImportDateType>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }

@@ -1,10 +1,10 @@
 # MCP Server
 
-The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, and perform batch calculations.
+The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, perform batch calculations, user-directory lookups, and meeting notes.
 
 ## Available Tools
 
-**Catalog (7)**
+**Catalog (8)**
 - `GetCatalogList` — list products with filtering/pagination
 - `GetCatalogDetail` — detailed product information
 - `GetProductComposition` — product composition/ingredients
@@ -12,12 +12,12 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `GetAutocomplete` — product search for autocomplete
 - `GetProductUsage` — product usage in compositions
 - `GetWarehouseStatistics` — warehouse statistics
+- `GetProductMargins` — product margins (M0/M1/M2 + monthly history); requires the Products_ProductMargins permission
 
-**Manufacture Orders (4)**
+**Manufacture Orders (3)**
 - `GetManufactureOrders` — list manufacture orders with filtering
 - `GetManufactureOrder` — single manufacture order details
 - `GetCalendarView` — calendar view of manufacture orders
-- `GetResponsiblePersons` — responsible persons from Entra ID
 
 **Manufacture Batch (4)**
 - `GetBatchTemplate` — batch template for product
@@ -25,9 +25,18 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `CalculateBatchByIngredient` — calculate batch by ingredient quantity
 - `CalculateBatchPlan` — batch plan for multiple products
 
+**User Management (1)**
+- `GetGroupMembers` — Entra ID group members by group ID
+
 **Knowledge Base (2)**
 - `SearchKnowledgeBase` — semantic search over ingested documents, returns ranked chunks with source references
 - `AskKnowledgeBase` — AI-generated answer grounded in company documents, returns prose answer with cited sources
+
+**Meeting Notes (4)** — read-only; all require the `anela.meetings.read` permission. Per-meeting visibility (Public / Private / Restricted) is enforced per caller, same as the web UI.
+- `ListMeetings` — list meetings (summary level: subject, summary, status, task counts; no raw transcript) with search, status filter, and pagination
+- `GetMeetingSummary` — summary and metadata of a single meeting (no raw transcript, no task detail)
+- `GetMeetingTranscript` — full raw transcript text of a single meeting
+- `GetMeetingTasks` — proposed task list extracted from a single meeting
 
 ## Implementation
 

@@ -5,9 +5,9 @@ namespace Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletDocumentCo
 
 public class GetLeafletDocumentContentTypesHandler : IRequestHandler<GetLeafletDocumentContentTypesRequest, GetLeafletDocumentContentTypesResponse>
 {
-    private readonly ILeafletRepository _leafletRepository;
+    private readonly ILeafletDocumentRepository _leafletRepository;
 
-    public GetLeafletDocumentContentTypesHandler(ILeafletRepository leafletRepository)
+    public GetLeafletDocumentContentTypesHandler(ILeafletDocumentRepository leafletRepository)
     {
         _leafletRepository = leafletRepository;
     }

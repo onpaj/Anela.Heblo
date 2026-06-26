@@ -8,8 +8,6 @@ namespace Anela.Heblo.Domain.Features.Marketing
 {
     public interface IMarketingActionRepository : IRepository<MarketingAction, int>
     {
-        Task DeleteSoftAsync(int id, string userId, string username, CancellationToken cancellationToken = default);
-
         Task<PagedResult<MarketingAction>> GetPagedAsync(
             MarketingActionQueryCriteria criteria,
             CancellationToken cancellationToken = default);
@@ -18,8 +16,6 @@ namespace Anela.Heblo.Domain.Features.Marketing
             DateTime from,
             DateTime to,
             CancellationToken cancellationToken = default);
-
-        Task<List<MarketingAction>> GetFailedOutlookSyncAsync(int batchSize, CancellationToken cancellationToken = default);
 
         Task<List<MarketingAction>> GetByOutlookEventIdsAsync(IReadOnlyCollection<string> outlookEventIds, CancellationToken cancellationToken = default);
     }

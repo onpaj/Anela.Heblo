@@ -2,7 +2,7 @@
 
 ## Overview
 
-The DQT feature runs automated data quality checks that compare issued invoices between Shoptet and Abra Flexi for a defined time period. It surfaces mismatches on a dashboard tile and a dedicated `/data-quality` page, and runs automatically on a weekly Hangfire schedule.
+The DQT feature runs automated data quality checks that compare issued invoices between Shoptet and Abra Flexi for a defined time period. It surfaces mismatches on a dashboard tile and a dedicated `/data-quality` page, and runs automatically on a daily Hangfire schedule.
 
 ## How it works
 
@@ -31,7 +31,7 @@ Item-level comparison matches lines by product code. Items without a product cod
 
 ## Schedule
 
-- **Automatic**: every Monday at 23:00 CEST via Hangfire recurring job (`InvoiceDqtJob`)
+- **Automatic**: daily at 05:00 Europe/Prague via Hangfire recurring job `daily-invoice-dqt` (`InvoiceDqtJob`). Each run covers the previous calendar day.
 - **Manual trigger**: `POST /api/data-quality/runs`
 
 ## API
@@ -52,7 +52,7 @@ Item-level comparison matches lines by product code. Items without a product cod
 **Application** (`Anela.Heblo.Application/Features/DataQuality/`):
 - `InvoiceDqtComparer` — fetches both sources and produces `InvoiceDqtComparisonResult`
 - `InvoiceDqtJobRunner` — orchestrates a full run: creates `DqtRun`, calls comparer, persists results, updates status
-- `InvoiceDqtJob` — Hangfire `IRecurringJob` that schedules weekly runs
+- `InvoiceDqtJob` — Hangfire `IRecurringJob` that schedules daily runs
 - Use cases: `GetDqtRuns`, `GetDqtRunDetail`, `RunDqt`
 
 **Persistence** (`Anela.Heblo.Persistence/DataQuality/`):
@@ -73,5 +73,4 @@ Item-level comparison matches lines by product code. Items without a product cod
 ## Known constraints
 
 - Flexi item `Code` field is not reliably preserved on read-back; `PriceList` (`code:PRODUCT-CODE`) is used as the authoritative product identifier instead.
-- The weekly job compares the previous 7 days by default.
 - Large date ranges (thousands of invoices) hold both full sets in memory simultaneously.

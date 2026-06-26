@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Xcc.Telemetry;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,12 +13,12 @@ namespace Anela.Heblo.Tests.Features.FileStorage.Infrastructure;
 
 public sealed class DownloadResilienceServiceTests
 {
-    private static IOptions<ProductExportOptions> CreateOptions(
+    private static IOptions<FileDownloadOptions> CreateOptions(
         int maxRetryAttempts = 3,
         TimeSpan? downloadTimeout = null,
         TimeSpan? retryBaseDelay = null)
     {
-        var options = new ProductExportOptions
+        var options = new FileDownloadOptions
         {
             MaxRetryAttempts = maxRetryAttempts,
             DownloadTimeout = downloadTimeout ?? TimeSpan.FromSeconds(120),
@@ -30,7 +30,7 @@ public sealed class DownloadResilienceServiceTests
     // Returns (service, telemetryMock) so tests can configure the mock after creation.
     // ITelemetryService is Scoped in production; the scope factory pattern mirrors that here.
     private static (DownloadResilienceService Service, Mock<ITelemetryService> Telemetry) CreateService(
-        IOptions<ProductExportOptions> options,
+        IOptions<FileDownloadOptions> options,
         Mock<ILogger<DownloadResilienceService>>? loggerMock = null)
     {
         var telemetryMock = new Mock<ITelemetryService>();
@@ -171,7 +171,9 @@ public sealed class DownloadResilienceServiceTests
             async ct =>
             {
                 callCount++;
-                await Task.Delay(TimeSpan.FromMilliseconds(200), ct);
+                // Use Timeout.InfiniteTimeSpan so the task is guaranteed to wait until
+                // the Polly token fires — avoids flakiness from wall-clock races on CI.
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct);
                 return "should not reach";
             },
             "timeout-op");

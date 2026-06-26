@@ -1,0 +1,5 @@
+Plan saved to `docs/superpowers/plans/2026-06-03-decouple-stockwriteback-dqt-from-catalog.md`.
+
+The plan decomposes the refactor into 9 sequential tasks following TDD: contracts/DTOs (Tasks 1-3, scaffolding), adapters with tests-first (Tasks 4-5), DI registration (Task 6), comparer + comparer-tests rewrite in lockstep (Task 7), architecture boundary rule with `ProductPairingDqtComparer` allowlist per Amendment 1 (Task 8), final validation gates (Task 9). Each task has frequent commits and exact file paths.
+
+One implementation choice worth flagging: the operation adapter uses `Task.FromResult(query.ToList())` rather than `.ToListAsync()` — this lets test mocks built on `AsQueryable()` work without `MockQueryable`/`IAsyncQueryProvider` plumbing, while preserving the same single-SQL-query shape (`Where + Select + ToList`) the existing comparer already relies on.

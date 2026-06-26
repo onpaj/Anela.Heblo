@@ -66,7 +66,7 @@ jest.mock("../../list/MarketingActionFilters", () => {
   return {
     __esModule: true,
     default: () => React.createElement("div", { "data-testid": "marketing-action-filters" }),
-    EMPTY_FILTERS: { searchText: "", dateFrom: "", dateTo: "" },
+    EMPTY_FILTERS: { searchText: "", dateFrom: "", dateTo: "", actionType: "" },
   };
 });
 
@@ -117,16 +117,34 @@ jest.mock("../../../../api/hooks/useMarketingCalendar", () => ({
   useUpdateMarketingAction: () => ({ mutate: jest.fn() }),
 }));
 
-jest.mock("../../../../auth/useAuth", () => ({
-  useAuth: () => ({
-    getUserInfo: () => ({ roles: [] }),
+let mockHasPermission: (perm: string) => boolean = () => false;
+jest.mock("../../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+    hasPermission: (p: string) => mockHasPermission(p),
   }),
 }));
+
+let mockIsMobile = false;
+jest.mock("../../../../hooks/useMediaQuery", () => ({
+  useIsMobile: () => mockIsMobile,
+}));
+jest.mock("../../calendar/MobileAgendaView", () => {
+  const React = require("react");
+  return {
+    MobileAgendaView: () => React.createElement("div", { "data-testid": "mobile-agenda-view" }),
+  };
+});
 
 beforeEach(() => {
   calendarRenderLog.length = 0;
   calendarHookCalls.length = 0;
   mockGotoDate.mockClear();
+  mockIsMobile = false;
+  mockHasPermission = () => false;
 });
 
 describe("MarketingCalendarPage — default render", () => {
@@ -326,5 +344,39 @@ describe("MarketingCalendarPage — 'Dnes' button respects active view", () => {
     const expected = startOfWeekMondayForTest(new Date());
     expected.setDate(expected.getDate() - 7);
     expectSameInstant(arg, expected);
+  });
+});
+
+describe("MarketingCalendarPage — Outlook import gate", () => {
+  it("hides the Outlook import button without marketing.marketing_calendar.write", () => {
+    mockHasPermission = () => false;
+    render(<MarketingCalendarPage />);
+    expect(screen.queryByRole("button", { name: /import z outlooku/i })).not.toBeInTheDocument();
+  });
+
+  it("shows the Outlook import button with marketing.marketing_calendar.write", () => {
+    mockHasPermission = (p) => p === "marketing.marketing_calendar.write";
+    render(<MarketingCalendarPage />);
+    expect(screen.getByRole("button", { name: /import z outlooku/i })).toBeInTheDocument();
+  });
+});
+
+describe('mobile view', () => {
+  it('renders MobileAgendaView when isMobile is true', () => {
+    mockIsMobile = true;
+    render(<MarketingCalendarPage />);
+    expect(screen.getByTestId('mobile-agenda-view')).toBeInTheDocument();
+  });
+
+  it('does not render the desktop calendar when isMobile is true', () => {
+    mockIsMobile = true;
+    render(<MarketingCalendarPage />);
+    expect(screen.queryByTestId('marketing-month-calendar')).not.toBeInTheDocument();
+  });
+
+  it('renders the desktop calendar when isMobile is false', () => {
+    mockIsMobile = false;
+    render(<MarketingCalendarPage />);
+    expect(screen.queryByTestId('mobile-agenda-view')).not.toBeInTheDocument();
   });
 });

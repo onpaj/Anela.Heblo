@@ -9,6 +9,7 @@ namespace Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 /// <summary>
 /// Dashboard tile showing products that are approaching stock-out based on average sales data.
 /// </summary>
+[TileId("lowstockalert")]
 public class LowStockAlertTile : ITile
 {
     private readonly ICatalogRepository _catalogRepository;
@@ -31,7 +32,6 @@ public class LowStockAlertTile : ITile
     public TileCategory Category => TileCategory.Warehouse;
     public bool DefaultEnabled => true;
     public bool AutoShow => true;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)

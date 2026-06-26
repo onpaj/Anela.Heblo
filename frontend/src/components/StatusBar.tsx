@@ -93,10 +93,13 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     return null;
   }
 
+  // Injected by the Conductor run script — names the git branch this instance runs.
+  const branchName = process.env.REACT_APP_BRANCH_NAME;
+
   const getEnvironmentColor = (env: string) => {
     switch (env.toLowerCase()) {
       case "production":
-        return "text-gray-600 bg-gray-100"; // Default background, primary text color
+        return "text-gray-600 bg-gray-100 dark:text-graphite-muted dark:bg-white/10"; // Default background, primary text color
       case "test":
         return "text-white bg-green-600"; // Green background, white text
       case "staging":
@@ -109,7 +112,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   const getAuthTypeColor = (mockAuth: boolean) => {
     return mockAuth
       ? "text-black bg-yellow-500 px-2 py-0.5 rounded text-xs" // Warning colors for Mock Auth badge
-      : "text-gray-600"; // Normal text for Azure AD
+      : "text-gray-600 dark:text-graphite-muted"; // Normal text for Azure AD
   };
 
   const getHealthDotColor = (
@@ -136,7 +139,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
   return (
     <div
-      className={`fixed bottom-0 bg-gray-100 border-t border-gray-200 text-xs text-gray-600 px-4 py-1 z-10 transition-all duration-300 h-6 ${
+      className={`fixed bottom-0 bg-gray-100 border-t border-gray-200 text-xs text-gray-600 dark:bg-graphite-chrome dark:border-graphite-border dark:text-graphite-muted px-4 z-10 transition-all duration-300 ${
+        isMobile ? "py-1.5 h-8" : "py-1 h-6"
+      } ${
         isMobile
           ? "left-0 right-0"
           : sidebarCollapsed
@@ -145,7 +150,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       } ${className}`}
     >
       <div
-        className={`flex items-center space-x-1 ${isMobile ? "justify-between" : "justify-end"}`}
+        className={`flex items-center ${isMobile ? "gap-1.5 justify-between overflow-hidden" : "space-x-1 justify-end"}`}
       >
         {isMobile ? (
           <>
@@ -162,6 +167,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                 ? "Dev"
                 : appInfo.environment}
             </span>
+            {branchName && (
+              <span className="px-2 py-0.5 rounded text-xs bg-indigo-600 text-white">
+                {branchName}
+              </span>
+            )}
             {appInfo.mockAuth && (
               <span className={getAuthTypeColor(appInfo.mockAuth)}>Mock</span>
             )}
@@ -179,6 +189,14 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             >
               {appInfo.environment}
             </span>
+            {branchName && (
+              <>
+                <span>|</span>
+                <span className="px-2 py-0.5 rounded text-xs bg-indigo-600 text-white">
+                  {branchName}
+                </span>
+              </>
+            )}
             {appInfo.mockAuth && (
               <>
                 <span>|</span>
@@ -197,7 +215,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                 className="group relative flex items-center"
                 title={`Live Health: ${isLiveHealthLoading ? "Načítá..." : liveHealthError ? "Chyba" : liveHealthData?.status || "Neznámý"}`}
               >
-                <Heart className="h-3 w-3 text-gray-500 mr-1" />
+                <Heart className="h-3 w-3 text-gray-500 dark:text-graphite-faint mr-1" />
                 <div
                   className={`w-2 h-2 rounded-full ${getHealthDotColor(
                     liveHealthData?.status || "Unknown",
@@ -212,7 +230,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                 className="group relative flex items-center"
                 title={`Ready Health: ${isReadyHealthLoading ? "Načítá..." : readyHealthError ? "Chyba" : readyHealthData?.status || "Neznámý"}`}
               >
-                <Shield className="h-3 w-3 text-gray-500 mr-1" />
+                <Shield className="h-3 w-3 text-gray-500 dark:text-graphite-faint mr-1" />
                 <div
                   className={`w-2 h-2 rounded-full ${getHealthDotColor(
                     readyHealthData?.status || "Unknown",

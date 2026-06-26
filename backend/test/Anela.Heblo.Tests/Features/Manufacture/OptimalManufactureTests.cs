@@ -57,12 +57,14 @@ public class OptimalManufactureTests
         {
             new ProductBatch()
             {
+                ProductCode = string.Empty,
+                ProductName = string.Empty,
                 Variants =
                     new List<ProductVariant>
                     {
-                        new ProductVariant { Weight = 100, DailySales = 3.4, CurrentStock = 12 },
-                        new ProductVariant { Weight = 30, DailySales = 5.2, CurrentStock = 5 },
-                        new ProductVariant { Weight = 5, DailySales = 9.7, CurrentStock = 49 }
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 100, DailySales = 3.4, CurrentStock = 12 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 30, DailySales = 5.2, CurrentStock = 5 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 5, DailySales = 9.7, CurrentStock = 49 }
                     },
                 TotalWeight = 5000
             }
@@ -72,10 +74,12 @@ public class OptimalManufactureTests
         {
             new ProductBatch()
             {
+                ProductCode = string.Empty,
+                ProductName = string.Empty,
                 Variants =
                     new List<ProductVariant>
                     {
-                        new ProductVariant { Weight = 100, DailySales = 20.5, CurrentStock = 12 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 100, DailySales = 20.5, CurrentStock = 12 },
                     },
                 TotalWeight = 5000
             }
@@ -85,12 +89,14 @@ public class OptimalManufactureTests
         {
             new ProductBatch()
             {
+                ProductCode = string.Empty,
+                ProductName = string.Empty,
                 Variants =
                     new List<ProductVariant>
                     {
-                        new ProductVariant { Weight = 100, DailySales = 3.4, CurrentStock = 0 },
-                        new ProductVariant { Weight = 30, DailySales = 5.2, CurrentStock = 0 },
-                        new ProductVariant { Weight = 5, DailySales = 9.7, CurrentStock = 49 }
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 100, DailySales = 3.4, CurrentStock = 0 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 30, DailySales = 5.2, CurrentStock = 0 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 5, DailySales = 9.7, CurrentStock = 49 }
                     },
                 TotalWeight = 5000
             }
@@ -100,12 +106,14 @@ public class OptimalManufactureTests
         {
             new ProductBatch()
             {
+                ProductCode = string.Empty,
+                ProductName = string.Empty,
                 Variants =
                     new List<ProductVariant>
                     {
-                        new ProductVariant { Weight = 100, DailySales = 0, CurrentStock = 0 },
-                        new ProductVariant { Weight = 30, DailySales = 5.2, CurrentStock = 0 },
-                        new ProductVariant { Weight = 5, DailySales = 0, CurrentStock = 49 }
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 100, DailySales = 0, CurrentStock = 0 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 30, DailySales = 5.2, CurrentStock = 0 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 5, DailySales = 0, CurrentStock = 49 }
                     },
                 TotalWeight = 5000
             }
@@ -117,12 +125,14 @@ public class OptimalManufactureTests
         {
             new ProductBatch()
             {
+                ProductCode = string.Empty,
+                ProductName = string.Empty,
                 Variants =
                     new List<ProductVariant>
                     {
-                        new ProductVariant { Weight = 100, DailySales = 3.4, CurrentStock = 0 },
-                        new ProductVariant { Weight = 30, DailySales = 5.2, CurrentStock = 0 },
-                        new ProductVariant { Weight = 5, DailySales = 9.7, CurrentStock = 49 }
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 100, DailySales = 3.4, CurrentStock = 0 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 30, DailySales = 5.2, CurrentStock = 0 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 5, DailySales = 9.7, CurrentStock = 49 }
                     },
                 TotalWeight = 0
             }
@@ -132,12 +142,14 @@ public class OptimalManufactureTests
         {
             new ProductBatch()
             {
+                ProductCode = string.Empty,
+                ProductName = string.Empty,
                 Variants =
                     new List<ProductVariant>
                     {
-                        new ProductVariant { Weight = 500, DailySales = 0.02, CurrentStock = 0 },
-                        new ProductVariant { Weight = 50, DailySales = 30.43, CurrentStock = 703 },
-                        new ProductVariant { Weight = 180, DailySales = 31.08, CurrentStock = 488 }
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 500, DailySales = 0.02, CurrentStock = 0 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 50, DailySales = 30.43, CurrentStock = 703 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 180, DailySales = 31.08, CurrentStock = 488 }
                     },
                 TotalWeight = 12000
             }
@@ -147,12 +159,14 @@ public class OptimalManufactureTests
         {
             new ProductBatch()
             {
+                ProductCode = string.Empty,
+                ProductName = string.Empty,
                 Variants =
                     new List<ProductVariant>
                     {
-                        new ProductVariant { Weight = 500, DailySales = 12.9, CurrentStock = 869 },
-                        new ProductVariant { Weight = 50, DailySales = 30.43, CurrentStock = 703 },
-                        new ProductVariant { Weight = 180, DailySales = 31.08, CurrentStock = 488 }
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 500, DailySales = 12.9, CurrentStock = 869 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 50, DailySales = 30.43, CurrentStock = 703 },
+                        new ProductVariant { ProductCode = string.Empty, ProductName = string.Empty, Weight = 180, DailySales = 31.08, CurrentStock = 488 }
                     },
                 TotalWeight = 12000
             }

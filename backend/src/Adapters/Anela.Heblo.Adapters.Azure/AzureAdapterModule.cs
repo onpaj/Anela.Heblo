@@ -1,7 +1,7 @@
 // backend/src/Adapters/Anela.Heblo.Adapters.Azure/AzureAdapterModule.cs
 using Anela.Heblo.Adapters.Azure.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionList;
-using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Application.Shared.Printing;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,7 +21,7 @@ public static class AzureAdapterModule
             return new BlobContainerClient(options.BlobConnectionString, options.BlobContainerName);
         });
 
-        services.AddScoped<IPrintQueueSink, AzureBlobPrintQueueSink>();
+        services.AddSingleton<IPrintQueueSink, AzureBlobPrintQueueSink>();
 
         return services;
     }

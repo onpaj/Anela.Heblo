@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -12,20 +11,20 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
 {
     private readonly ILogger<UpdatePurchaseOrderHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IMaterialCatalogService _materialCatalog;
     private readonly ICurrentUserService _currentUserService;
     private readonly ISupplierRepository _supplierRepository;
 
     public UpdatePurchaseOrderHandler(
         ILogger<UpdatePurchaseOrderHandler> logger,
         IPurchaseOrderRepository repository,
-        ICatalogRepository catalogRepository,
+        IMaterialCatalogService materialCatalog,
         ICurrentUserService currentUserService,
         ISupplierRepository supplierRepository)
     {
         _logger = logger;
         _repository = repository;
-        _catalogRepository = catalogRepository;
+        _materialCatalog = materialCatalog;
         _currentUserService = currentUserService;
         _supplierRepository = supplierRepository;
     }
@@ -69,36 +68,45 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
             var linesToRemove = existingLineIds.Except(requestLineIds).ToList();
             foreach (var lineId in linesToRemove)
             {
-                purchaseOrder.RemoveLine(lineId);
+                purchaseOrder.RemoveLine(lineId, updatedBy);
             }
+
+            // Batch-fetch every material referenced by the incoming request lines.
+            // Replaces the previous per-line GetByIdAsync calls (N+1).
+            var requestMaterialIds = request.Lines
+                .Select(l => l.MaterialId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .ToList();
+            var materialLookup = requestMaterialIds.Count > 0
+                ? await _materialCatalog.GetByIdsAsync(requestMaterialIds, cancellationToken)
+                : (IReadOnlyDictionary<string, MaterialInfo>)new Dictionary<string, MaterialInfo>();
 
             foreach (var lineRequest in request.Lines)
             {
+                var materialName = materialLookup.TryGetValue(lineRequest.MaterialId, out var material)
+                    ? material.ProductName
+                    : lineRequest.Name ?? "Unknown Material";
+
                 if (lineRequest.Id.HasValue)
                 {
-                    // Get material name from catalog if available
-                    var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
-                    var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
-
                     purchaseOrder.UpdateLine(
                         lineRequest.Id.Value,
                         materialName,
                         lineRequest.Quantity,
                         lineRequest.UnitPrice,
-                        lineRequest.Notes);
+                        lineRequest.Notes,
+                        updatedBy);
                 }
                 else
                 {
-                    // Get material name from catalog if available
-                    var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
-                    var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
-
                     purchaseOrder.AddLine(
                         lineRequest.MaterialId,
                         materialName,
                         lineRequest.Quantity,
                         lineRequest.UnitPrice,
-                        lineRequest.Notes);
+                        lineRequest.Notes,
+                        updatedBy);
                 }
             }
 
@@ -107,7 +115,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
 
             _logger.LogInformation("Purchase order {OrderNumber} updated successfully", purchaseOrder.OrderNumber);
 
-            return await MapToResponseAsync(purchaseOrder, request.SupplierId, cancellationToken);
+            return MapToResponse(purchaseOrder, request.SupplierId);
         }
         catch (InvalidOperationException ex)
         {
@@ -117,29 +125,9 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
         }
     }
 
-
-    private async Task<UpdatePurchaseOrderResponse> MapToResponseAsync(PurchaseOrder purchaseOrder, long supplierId, CancellationToken cancellationToken)
+    private static UpdatePurchaseOrderResponse MapToResponse(PurchaseOrder purchaseOrder, long supplierId)
     {
-        var lines = new List<PurchaseOrderLineDto>();
-
-        foreach (var line in purchaseOrder.Lines)
-        {
-            // Try to get material name from catalog
-            var material = await _catalogRepository.GetByIdAsync(line.MaterialId, cancellationToken);
-            var materialName = material?.ProductName ?? "Unknown Material";
-
-            lines.Add(new PurchaseOrderLineDto
-            {
-                Id = line.Id,
-                MaterialId = line.MaterialId,
-                Code = line.MaterialId, // Code is same as MaterialId
-                MaterialName = line.MaterialName,
-                Quantity = line.Quantity,
-                UnitPrice = line.UnitPrice,
-                LineTotal = line.LineTotal,
-                Notes = line.Notes
-            });
-        }
+        var lines = purchaseOrder.Lines.Select(line => PurchaseOrderLineDto.FromLine(line)).ToList();
 
         return new UpdatePurchaseOrderResponse
         {

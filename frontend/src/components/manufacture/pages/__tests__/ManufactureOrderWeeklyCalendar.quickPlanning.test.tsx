@@ -1,6 +1,6 @@
 // Mock the ManufactureOrderState enum first
 import React from "react";
-import { getWeightToleranceStatus } from "../ManufactureOrderWeeklyCalendar";
+import { getWeightToleranceStatus, getProductDisplayQuantity } from "../ManufactureOrderWeeklyCalendar";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -92,6 +92,23 @@ describe("getWeightToleranceStatus", () => {
 
   it('returns "warning" (not "failed") for completed orders outside tolerance', () => {
     expect(getWeightToleranceStatus(false, "Completed" as any)).toBe('warning');
+  });
+});
+
+describe("getProductDisplayQuantity", () => {
+  it("shows planned quantity for non-completed orders, ignoring a stale/zero actual quantity", () => {
+    const product = { plannedQuantity: 10, actualQuantity: 0 };
+    expect(getProductDisplayQuantity(product, "Planned" as any)).toBe(10);
+    expect(getProductDisplayQuantity(product, "Draft" as any)).toBe(10);
+    expect(getProductDisplayQuantity(product, "SemiProductManufactured" as any)).toBe(10);
+  });
+
+  it("shows actual quantity for completed orders", () => {
+    expect(getProductDisplayQuantity({ plannedQuantity: 10, actualQuantity: 8 }, "Completed" as any)).toBe(8);
+  });
+
+  it("falls back to planned quantity for completed orders with no actual quantity", () => {
+    expect(getProductDisplayQuantity({ plannedQuantity: 10, actualQuantity: null }, "Completed" as any)).toBe(10);
   });
 });
 

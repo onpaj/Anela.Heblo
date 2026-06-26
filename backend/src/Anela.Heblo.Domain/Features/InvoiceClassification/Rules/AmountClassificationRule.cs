@@ -6,7 +6,7 @@ public class AmountClassificationRule : IClassificationRule
     public string DisplayName => "Částka";
     public string Description => "Porovnání celkové částky faktury (>=, <=, >, <, =)";
 
-    public bool Evaluate(ReceivedInvoiceDto invoice, string pattern)
+    public bool Evaluate(ReceivedInvoice invoice, string pattern)
     {
         if (string.IsNullOrWhiteSpace(pattern))
             return false;

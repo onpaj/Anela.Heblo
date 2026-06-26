@@ -15,10 +15,8 @@ public static class MetaAdsAdapterServiceCollectionExtensions
     {
         services.Configure<MetaAdsSettings>(configuration.GetSection(MetaAdsSettings.ConfigurationKey));
         services.AddHttpClient<MetaAdsTransactionSource>();
-        services.AddScoped<MarketingInvoiceImportService>(sp => new MarketingInvoiceImportService(
-            sp.GetRequiredService<MetaAdsTransactionSource>(),
-            sp.GetRequiredService<IImportedMarketingTransactionRepository>(),
-            sp.GetRequiredService<ILogger<MarketingInvoiceImportService>>()));
+        services.AddScoped<IMarketingTransactionSource>(sp =>
+            sp.GetRequiredService<MetaAdsTransactionSource>());
         services.AddScoped<IRecurringJob, MetaAdsInvoiceImportJob>();
         return services;
     }

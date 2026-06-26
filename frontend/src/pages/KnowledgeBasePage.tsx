@@ -3,13 +3,21 @@ import { Database } from 'lucide-react';
 import KnowledgeBaseSearchAskTab from '../components/knowledge-base/KnowledgeBaseSearchAskTab';
 import KnowledgeBaseDocumentsTab from '../components/knowledge-base/KnowledgeBaseDocumentsTab';
 import KnowledgeBaseUploadTab from '../components/knowledge-base/KnowledgeBaseUploadTab';
-import { useKnowledgeBaseUploadPermission } from '../api/hooks/useKnowledgeBase';
+import { usePermissionsContext } from '../auth/PermissionsContext';
+import { useScreenView } from '../telemetry/useScreenView';
 
 type Tab = 'search' | 'documents' | 'upload';
 
 const KnowledgeBasePage: React.FC = () => {
-  const canUpload = useKnowledgeBaseUploadPermission();
+  const { hasPermission } = usePermissionsContext();
+  const canUpload = hasPermission('customer.knowledge_base.write');
   const [activeTab, setActiveTab] = useState<Tab>('search');
+
+  const subScreen =
+    activeTab === 'search' ? 'SearchTab' :
+    activeTab === 'documents' ? 'DocumentsTab' :
+    'UploadTab';
+  useScreenView('Knowledge', 'KnowledgeBase', subScreen);
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'search', label: 'Hledat' },
@@ -20,11 +28,11 @@ const KnowledgeBasePage: React.FC = () => {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center gap-3">
-        <Database className="w-6 h-6 text-blue-600" />
-        <h1 className="text-2xl font-semibold text-gray-900">Knowledgebase</h1>
+        <Database className="w-6 h-6 text-blue-600 dark:text-graphite-accent" />
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-graphite-text">Knowledgebase</h1>
       </div>
 
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-graphite-border">
         <nav className="flex gap-6" aria-label="Tabs">
           {tabs.map((tab) => (
             <button
@@ -32,8 +40,8 @@ const KnowledgeBasePage: React.FC = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-blue-600 text-blue-600 dark:text-graphite-accent dark:border-graphite-accent'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-graphite-muted'
               }`}
             >
               {tab.label}

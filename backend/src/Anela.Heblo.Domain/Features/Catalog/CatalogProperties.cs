@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Shared;
+
 namespace Anela.Heblo.Domain.Features.Catalog;
 
 public record CatalogProperties
@@ -12,4 +14,6 @@ public record CatalogProperties
     public bool ManufactureWithoutSemiproduct { get; set; }
 
     public double AllowedResiduePercentage { get; set; } = 0;
+
+    public Cooling Cooling { get; set; } = Cooling.None;
 }

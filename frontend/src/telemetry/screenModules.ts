@@ -1,0 +1,15 @@
+export type ScreenModule =
+  | 'Dashboard'
+  | 'Finance'
+  | 'Catalog'
+  | 'Journal'
+  | 'Purchase'
+  | 'Manufacturing'
+  | 'Logistics'
+  | 'Marketing'
+  | 'Customer'
+  | 'Automation'
+  | 'Knowledge'
+  | 'Admin'
+  | 'Terminal'
+  | 'Baleni';

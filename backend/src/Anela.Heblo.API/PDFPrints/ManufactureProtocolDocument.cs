@@ -278,6 +278,7 @@ public class ManufactureProtocolDocument : IDocument
         ConditionsReadingSource.Live => string.Empty,
         ConditionsReadingSource.Partial => " (Částečné)",
         ConditionsReadingSource.Unavailable => " (HA nedostupný)",
+        ConditionsReadingSource.Stale => " (Starší údaje)",
         _ => string.Empty,
     };
 

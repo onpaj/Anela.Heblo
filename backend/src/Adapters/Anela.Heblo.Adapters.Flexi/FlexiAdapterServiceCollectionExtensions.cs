@@ -1,6 +1,7 @@
 ﻿using Anela.Heblo.Adapters.Flexi.Accounting.Departments;
 using Anela.Heblo.Adapters.Flexi.Accounting.InvoiceClassification;
 using Anela.Heblo.Adapters.Flexi.Accounting.Ledger;
+using Anela.Heblo.Adapters.Flexi.Analytics;
 using Anela.Heblo.Adapters.Flexi.Bank;
 using Anela.Heblo.Adapters.Flexi.Invoices;
 using Anela.Heblo.Adapters.Flexi.Lots;
@@ -14,8 +15,9 @@ using Anela.Heblo.Domain.Features.Catalog.Products;
 using Anela.Heblo.Adapters.Flexi.Purchase;
 using Anela.Heblo.Adapters.Flexi.Sales;
 using Anela.Heblo.Adapters.Flexi.Stock;
-using Anela.Heblo.Application.Features.Purchase;
+using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Accounting.Ledger;
+using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
@@ -27,6 +29,7 @@ using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Persistence.Analytics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -92,6 +95,26 @@ public static class FlexiAdapterServiceCollectionExtensions
         // Bank statement import services
         services.AddScoped<FlexiBankAccountClient>();
         services.AddScoped<IBankStatementImportService, FlexiBankStatementImportService>();
+
+        // Analytics sync — registered only when the analytics database is configured
+        var analyticsConnectionString = configuration["AnalyticsDatabase:ConnectionString"];
+        if (!string.IsNullOrWhiteSpace(analyticsConnectionString))
+        {
+            services.AddAnalyticsPersistenceServices(
+                analyticsConnectionString,
+                configuration.GetValue<int?>("AnalyticsDatabase:MaxPoolSize") ?? 10);
+            services.Configure<FlexiAnalyticsSyncOptions>(
+                configuration.GetSection(FlexiAnalyticsSyncOptions.ConfigurationKey));
+            services.AddScoped<ISyncWatermarkRepository, SyncWatermarkRepository>();
+
+            services.AddScoped<IEntitySyncService, LedgerSyncService>();
+            services.AddScoped<IEntitySyncService, DepartmentSyncService>();
+            services.AddScoped<IEntitySyncService, AccountingTemplateSyncService>();
+            services.AddScoped<IEntitySyncService, ContactSyncService>();
+
+            services.AddScoped<IFlexiAnalyticsSyncService, FlexiAnalyticsSyncService>();
+            services.AddScoped<IRecurringJob, FlexiAnalyticsSyncJob>();
+        }
 
         return services;
     }

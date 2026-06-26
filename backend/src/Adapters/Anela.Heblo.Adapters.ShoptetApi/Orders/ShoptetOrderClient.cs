@@ -1,24 +1,33 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition.Model;
 using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Application.Features.ShoptetOrders;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 
-public class ShoptetOrderClient : IEshopOrderClient
+public class ShoptetOrderClient : IEshopOrderClient, IShoptetExpeditionOrderSource
 {
     private readonly HttpClient _http;
+    private readonly ShoptetOrdersSettings _orderSettings;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
     };
 
-    public ShoptetOrderClient(HttpClient http)
+    private const int AdditionalFieldMinIndex = 1;
+    private const int AdditionalFieldMaxIndex = 6;
+    private const int AdditionalFieldShortTextMaxIndex = 3;
+    private const int AdditionalFieldShortTextMaxLength = 255;
+
+    public ShoptetOrderClient(HttpClient http, IOptions<ShoptetOrdersSettings> orderSettings)
     {
         _http = http;
+        _orderSettings = orderSettings.Value;
     }
 
     public async Task<List<EshopOrderSummary>> GetRecentOrdersAsync(int count = 20, CancellationToken ct = default)
@@ -152,22 +161,6 @@ public class ShoptetOrderClient : IEshopOrderClient
         }
     }
 
-    public async Task SetInternalNoteAsync(string orderCode, string note, CancellationToken ct = default)
-    {
-        var body = new CreateOrderRemarkRequest
-        {
-            Data = new CreateOrderRemarkData { Text = note, Type = "system" },
-        };
-
-        var response = await _http.PostAsJsonAsync($"/api/orders/{orderCode}/history", body, JsonOptions, ct);
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync(ct);
-            throw new HttpRequestException(
-                $"POST /api/orders/{orderCode}/history returned {(int)response.StatusCode}: {errorBody}");
-        }
-    }
-
     public async Task UpdateEshopRemarkAsync(string orderCode, string eshopRemark, CancellationToken ct = default)
     {
         var body = new UpdateEshopRemarkRequest
@@ -190,6 +183,9 @@ public class ShoptetOrderClient : IEshopOrderClient
         response.EnsureSuccessStatusCode();
     }
 
+    public Task MarkAsPackedAsync(string orderCode, CancellationToken ct = default) =>
+        UpdateStatusAsync(orderCode, _orderSettings.PackedStateId, ct);
+
     // ── Expedition methods ────────────────────────────────────────────────────
 
     public async Task<OrderListResponse> GetOrdersByStatusAsync(int statusId, int page, CancellationToken ct = default)
@@ -208,6 +204,47 @@ public class ShoptetOrderClient : IEshopOrderClient
 
         var data = await response.Content.ReadFromJsonAsync<ExpeditionOrderDetailResponse>(JsonOptions, ct);
         return data!.Data.Order;
+    }
+
+    public async Task<OrderSummary?> GetOrderByCodeAsync(string code, CancellationToken ct = default)
+    {
+        var response = await _http.GetAsync($"/api/orders/{code}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<CreateOrderResponse>(JsonOptions, ct);
+        return data?.Data.Order;
+    }
+
+    public async Task SetAdditionalFieldAsync(
+        string orderCode,
+        int index,
+        string? text,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(orderCode))
+            throw new ArgumentException("Order code must not be null or empty.", nameof(orderCode));
+        if (index is < AdditionalFieldMinIndex or > AdditionalFieldMaxIndex)
+            throw new ArgumentOutOfRangeException(nameof(index), index, "Index must be between 1 and 6 inclusive.");
+        if (text != null && index <= AdditionalFieldShortTextMaxIndex && text.Length > AdditionalFieldShortTextMaxLength)
+            throw new ArgumentException($"Text for additionalField index {index} must not exceed 255 characters.", nameof(text));
+
+        var body = new UpdateAdditionalFieldRequest
+        {
+            Data = new UpdateAdditionalFieldData
+            {
+                AdditionalFields = [new AdditionalFieldEntry { Index = index, Text = text }],
+            },
+        };
+
+        var response = await _http.PatchAsJsonAsync($"/api/orders/{orderCode}/notes", body, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException(
+                $"PATCH /api/orders/{orderCode}/notes returned {(int)response.StatusCode}: {errorBody}");
+        }
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

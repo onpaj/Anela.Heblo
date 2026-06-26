@@ -2,11 +2,29 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import ResponsiblePersonCombobox from '../ResponsiblePersonCombobox';
+import { ThemeProvider } from '../../../contexts/ThemeContext';
 
 // Mock the useUserManagement hook
 const mockUseResponsiblePersonsQuery = jest.fn();
 jest.mock('../../../api/hooks/useUserManagement', () => ({
     useResponsiblePersonsQuery: () => mockUseResponsiblePersonsQuery(),
+}));
+
+jest.mock('../../../contexts/ThemeContext', () => ({
+    useTheme: () => ({ theme: 'light', toggle: jest.fn() }),
+    ThemeProvider: ({ children }: any) => children,
+}));
+
+// Mock PermissionsContext
+const mockHasPermission = jest.fn();
+jest.mock('../../../auth/PermissionsContext', () => ({
+    usePermissionsContext: () => ({
+        hasPermission: mockHasPermission,
+        permissions: [],
+        isSuperUser: false,
+        groups: [],
+        isLoading: false,
+    }),
 }));
 
 const createWrapper = () => {
@@ -19,7 +37,9 @@ const createWrapper = () => {
     });
 
     return ({ children }: { children: ReactNode }) => (
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        <QueryClientProvider client={queryClient}>
+            <ThemeProvider>{children}</ThemeProvider>
+        </QueryClientProvider>
     );
 };
 
@@ -31,6 +51,7 @@ const mockUsers = [
 
 describe('ResponsiblePersonCombobox', () => {
     const defaultProps = {
+        groupId: 'test-group-id',
         value: '',
         onChange: jest.fn(),
         placeholder: 'Select responsible person',
@@ -38,6 +59,7 @@ describe('ResponsiblePersonCombobox', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        mockHasPermission.mockReturnValue(true);  // default: admin user
     });
 
     it('should render loading state', () => {
@@ -164,5 +186,41 @@ describe('ResponsiblePersonCombobox', () => {
         });
 
         expect(screen.getByText('Custom error message')).toBeInTheDocument();
+    });
+
+    it('non-admin: query is disabled — no error banner shown', () => {
+        mockHasPermission.mockReturnValue(false);
+        mockUseResponsiblePersonsQuery.mockReturnValue({
+            data: undefined,
+            isLoading: false,
+            isError: false,
+        });
+
+        render(<ResponsiblePersonCombobox {...defaultProps} />, {
+            wrapper: createWrapper(),
+        });
+
+        expect(
+            screen.queryByText('Could not load team members. You can still enter names manually.')
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+
+    it('admin: query is enabled — no error banner, combobox renders', async () => {
+        mockHasPermission.mockReturnValue(true);
+        mockUseResponsiblePersonsQuery.mockReturnValue({
+            data: { success: true, members: mockUsers },
+            isLoading: false,
+            isError: false,
+        });
+
+        render(<ResponsiblePersonCombobox {...defaultProps} />, {
+            wrapper: createWrapper(),
+        });
+
+        expect(screen.getByRole('combobox')).toBeInTheDocument();
+        expect(
+            screen.queryByText('Could not load team members. You can still enter names manually.')
+        ).not.toBeInTheDocument();
     });
 });

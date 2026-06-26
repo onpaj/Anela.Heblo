@@ -385,6 +385,7 @@ public class MockCatalogRepository : ICatalogRepository
 
     // Data load timestamps - always return current time for mock since all data is immediately available
     public DateTime? TransportLoadDate => DateTime.UtcNow;
+    public DateTime? ManufacturedLoadDate => DateTime.UtcNow;
     public DateTime? ReserveLoadDate => DateTime.UtcNow;
     public DateTime? QuarantineLoadDate => DateTime.UtcNow;
     public DateTime? OrderedLoadDate => DateTime.UtcNow;
@@ -402,8 +403,6 @@ public class MockCatalogRepository : ICatalogRepository
     public DateTime? ErpPricesLoadDate => DateTime.UtcNow;
     public DateTime? EshopUrlLoadDate => DateTime.UtcNow;
     public DateTime? ManufactureDifficultySettingsLoadDate => DateTime.UtcNow;
-    public DateTime? ManufactureDifficultyLoadDate => DateTime.UtcNow;
-    public DateTime? ManufactureCostLoadDate => DateTime.UtcNow;
 
     // Merge operation tracking - always return current time for mock
     public DateTime? LastMergeDateTime => DateTime.UtcNow;
@@ -412,6 +411,7 @@ public class MockCatalogRepository : ICatalogRepository
 
     // Refresh methods - no-op for mock
     public Task RefreshTransportData(CancellationToken ct) => Task.CompletedTask;
+    public Task RefreshManufacturedData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshReserveData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshOrderedData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshPlannedData(CancellationToken ct) => Task.CompletedTask;

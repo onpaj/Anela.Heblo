@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text.Json;
 using Anela.Heblo.Adapters.HomeAssistant;
+using Anela.Heblo.Adapters.HomeAssistant.Caching;
+using Anela.Heblo.Adapters.HomeAssistant.Telemetry;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
@@ -29,10 +31,14 @@ public class HomeAssistantConditionsReadingProviderTests
             OuterHumidityEntityId = "sensor.outer_humidity",
             RequestTimeoutSeconds = 5,
             ConditionsCacheDurationMinutes = 5,
+            StaleSnapshotMaxAgeMinutes = 60,
         };
     }
 
-    private HomeAssistantConditionsReadingProvider CreateProvider(IMemoryCache? cache = null)
+    private HomeAssistantConditionsReadingProvider CreateProvider(
+        IMemoryCache? cache = null,
+        HomeAssistantSnapshotCoordinator? coordinator = null,
+        HomeAssistantSnapshotMetrics? metrics = null)
     {
         var httpClient = new HttpClient(_handlerMock.Object)
         {
@@ -41,7 +47,11 @@ public class HomeAssistantConditionsReadingProviderTests
         };
         var options = Options.Create(_settings);
         cache ??= new MemoryCache(new MemoryCacheOptions());
-        return new HomeAssistantConditionsReadingProvider(httpClient, options, cache, NullLogger<HomeAssistantConditionsReadingProvider>.Instance);
+        coordinator ??= new HomeAssistantSnapshotCoordinator();
+        metrics ??= new HomeAssistantSnapshotMetrics();
+        return new HomeAssistantConditionsReadingProvider(
+            httpClient, options, cache, coordinator, metrics,
+            NullLogger<HomeAssistantConditionsReadingProvider>.Instance);
     }
 
     private void SetupSensorResponse(string entityId, string stateValue, HttpStatusCode status = HttpStatusCode.OK)
@@ -277,5 +287,163 @@ public class HomeAssistantConditionsReadingProviderTests
             Times.Exactly(8),
             ItExpr.IsAny<HttpRequestMessage>(),
             ItExpr.IsAny<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetCurrentSnapshotAsync_UnavailableLive_WithFreshLkg_ReturnsStaleFromLkg()
+    {
+        // Arrange — first call succeeds (populates LKG), second call all fail.
+        SetupSensorResponse("sensor.inner_temp", "21.5");
+        SetupSensorResponse("sensor.inner_humidity", "55.0");
+        SetupSensorResponse("sensor.outer_temp", "18.2");
+        SetupSensorResponse("sensor.outer_humidity", "72.3");
+
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var coordinator = new HomeAssistantSnapshotCoordinator();
+        var provider = CreateProvider(cache, coordinator);
+
+        var live = await provider.GetCurrentSnapshotAsync(CancellationToken.None);
+        live.Source.Should().Be(ConditionsReadingSource.Live);
+
+        // Invalidate live cache and reconfigure all to fail.
+        cache.Remove(HomeAssistantConditionsReadingProvider.CacheKey);
+        _handlerMock.Reset();
+        SetupSensorFailure("sensor.inner_temp", HttpStatusCode.InternalServerError);
+        SetupSensorFailure("sensor.inner_humidity", HttpStatusCode.InternalServerError);
+        SetupSensorFailure("sensor.outer_temp", HttpStatusCode.InternalServerError);
+        SetupSensorFailure("sensor.outer_humidity", HttpStatusCode.InternalServerError);
+
+        // Act
+        var stale = await provider.GetCurrentSnapshotAsync(CancellationToken.None);
+
+        // Assert
+        stale.Source.Should().Be(ConditionsReadingSource.Stale);
+        stale.InnerTemperature.Should().Be(21.5m);
+        stale.RecordedAt.Should().Be(live.RecordedAt, "stale snapshot carries the LKG timestamp");
+    }
+
+    [Fact]
+    public async Task GetCurrentSnapshotAsync_UnavailableLive_WithExpiredLkg_ReturnsUnavailable()
+    {
+        // Arrange — populate LKG manually with an old snapshot.
+        var coordinator = new HomeAssistantSnapshotCoordinator();
+        coordinator.RecordLive(new ConditionsSnapshot(
+            21m, 55m, 18m, 72m,
+            DateTime.UtcNow.AddMinutes(-_settings.StaleSnapshotMaxAgeMinutes - 1),
+            ConditionsReadingSource.Live));
+
+        SetupSensorFailure("sensor.inner_temp", HttpStatusCode.InternalServerError);
+        SetupSensorFailure("sensor.inner_humidity", HttpStatusCode.InternalServerError);
+        SetupSensorFailure("sensor.outer_temp", HttpStatusCode.InternalServerError);
+        SetupSensorFailure("sensor.outer_humidity", HttpStatusCode.InternalServerError);
+
+        var provider = CreateProvider(coordinator: coordinator);
+
+        // Act
+        var result = await provider.GetCurrentSnapshotAsync(CancellationToken.None);
+
+        // Assert
+        result.Source.Should().Be(ConditionsReadingSource.Unavailable);
+    }
+
+    [Fact]
+    public async Task GetCurrentSnapshotAsync_ColdStart_NoCache_AllFail_ReturnsUnavailable()
+    {
+        SetupSensorFailure("sensor.inner_temp", HttpStatusCode.InternalServerError);
+        SetupSensorFailure("sensor.inner_humidity", HttpStatusCode.InternalServerError);
+        SetupSensorFailure("sensor.outer_temp", HttpStatusCode.InternalServerError);
+        SetupSensorFailure("sensor.outer_humidity", HttpStatusCode.InternalServerError);
+
+        var provider = CreateProvider();
+
+        var result = await provider.GetCurrentSnapshotAsync(CancellationToken.None);
+
+        result.Source.Should().Be(ConditionsReadingSource.Unavailable);
+    }
+
+    [Fact]
+    public async Task GetCurrentSnapshotAsync_PartialLive_DoesNotOverwriteLkg()
+    {
+        // Arrange — first call all live to populate LKG.
+        SetupSensorResponse("sensor.inner_temp", "21.5");
+        SetupSensorResponse("sensor.inner_humidity", "55.0");
+        SetupSensorResponse("sensor.outer_temp", "18.2");
+        SetupSensorResponse("sensor.outer_humidity", "72.3");
+
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var coordinator = new HomeAssistantSnapshotCoordinator();
+        var provider = CreateProvider(cache, coordinator);
+
+        var live = await provider.GetCurrentSnapshotAsync(CancellationToken.None);
+        coordinator.LastKnownGoodLive.Should().NotBeNull();
+
+        // Invalidate cache, make one sensor fail (partial result).
+        cache.Remove(HomeAssistantConditionsReadingProvider.CacheKey);
+        _handlerMock.Reset();
+        SetupSensorResponse("sensor.inner_temp", "22.0");
+        SetupSensorResponse("sensor.inner_humidity", "56.0");
+        SetupSensorFailure("sensor.outer_temp", HttpStatusCode.InternalServerError);
+        SetupSensorResponse("sensor.outer_humidity", "73.0");
+
+        // Act
+        var partial = await provider.GetCurrentSnapshotAsync(CancellationToken.None);
+
+        // Assert
+        partial.Source.Should().Be(ConditionsReadingSource.Partial);
+        coordinator.LastKnownGoodLive.Should().Be(live, "Partial result must not overwrite LKG");
+    }
+
+    [Fact]
+    public async Task GetCurrentSnapshotAsync_RecordsLastObservedOnCoordinator()
+    {
+        SetupSensorResponse("sensor.inner_temp", "21.5");
+        SetupSensorResponse("sensor.inner_humidity", "55.0");
+        SetupSensorResponse("sensor.outer_temp", "18.2");
+        SetupSensorResponse("sensor.outer_humidity", "72.3");
+
+        var coordinator = new HomeAssistantSnapshotCoordinator();
+        var provider = CreateProvider(coordinator: coordinator);
+
+        var snapshot = await provider.GetCurrentSnapshotAsync(CancellationToken.None);
+
+        coordinator.LastObservedSnapshot.Should().Be(snapshot);
+    }
+
+    [Fact]
+    public async Task GetCurrentSnapshotAsync_ConcurrentCallers_ProduceOnlyOneBurstOfHttpCalls()
+    {
+        SetupSensorResponse("sensor.inner_temp", "21.5");
+        SetupSensorResponse("sensor.inner_humidity", "55.0");
+        SetupSensorResponse("sensor.outer_temp", "18.2");
+        SetupSensorResponse("sensor.outer_humidity", "72.3");
+
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var coordinator = new HomeAssistantSnapshotCoordinator();
+        var provider = CreateProvider(cache, coordinator);
+
+        // Act
+        var tasks = Enumerable.Range(0, 10)
+            .Select(_ => provider.GetCurrentSnapshotAsync(CancellationToken.None))
+            .ToArray();
+        await Task.WhenAll(tasks);
+
+        // Assert — only 4 outbound HTTP calls, not 40.
+        _handlerMock.Protected().Verify(
+            "SendAsync",
+            Times.Exactly(4),
+            ItExpr.IsAny<HttpRequestMessage>(),
+            ItExpr.IsAny<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetCurrentSnapshotAsync_PreCancelledToken_ThrowsBeforeAcquiringGate()
+    {
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+        var provider = CreateProvider();
+
+        var act = async () => await provider.GetCurrentSnapshotAsync(cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
     }
 }

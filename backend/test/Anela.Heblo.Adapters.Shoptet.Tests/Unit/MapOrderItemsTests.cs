@@ -102,7 +102,33 @@ public class MapOrderItemsTests
         items.Should().HaveCount(2);
         items.Single(i => i.ProductCode == "A1").SetName.Should().Be("Kit Alpha");
         items.Single(i => i.ProductCode == "B1").SetName.Should().Be("Kit Beta");
-        // Kit Beta has quantity 2 (set) * 3 (component) = 6
-        items.Single(i => i.ProductCode == "B1").Quantity.Should().Be(6);
+        // Shoptet's completion amount is already the order total (component-per-set * set count),
+        // so it is used as-is — Kit Beta's B1 component amount of 3 stays 3.
+        items.Single(i => i.ProductCode == "B1").Quantity.Should().Be(3);
+    }
+
+    [Fact]
+    public void MapOrderItems_CompletionAmountIsOrderTotal_NotMultipliedBySetCount()
+    {
+        // Regression for order 126014786: 2x set SA010, each containing 1x of each
+        // component. Shoptet returns the component completion amount as the order total
+        // (1 per set * 2 sets = 2), so the expedition list must show 2 — not 4.
+        var detail = new ExpeditionOrderDetail
+        {
+            Code = "126014786",
+            Items =
+            [
+                new ExpeditionOrderItemDto { ItemType = "product-set", ItemId = 30, Code = "SA010", Name = "Set", Amount = 2 },
+            ],
+            Completion =
+            [
+                new ExpeditionCompletionItemDto { ItemType = "product-set-item", ItemId = 301, ParentProductSetItemId = 30, Code = "SER004005", Name = "Component", Amount = 2 },
+            ],
+        };
+
+        var items = ShoptetApiExpeditionListSource.MapOrderItems(detail);
+
+        items.Should().HaveCount(1);
+        items[0].Quantity.Should().Be(2);
     }
 }

@@ -24,6 +24,7 @@ import {
   CreateManufacturedInventoryItemInput,
 } from "../../api/hooks/useManufacturedProductInventory";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const PAGE_SIZE = 20;
 
@@ -78,76 +79,76 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ onClose, onSubmit, isSubmit
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Přidat položku na sklad</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Přidat položku na sklad</h2>
+          <button onClick={onClose} className="text-gray-400 dark:text-graphite-faint hover:text-gray-600">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Kód produktu *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Kód produktu *</label>
             <input
               type="text"
               required
               value={form.productCode}
               onChange={(e) => handleChange("productCode", e.target.value)}
-              className="block w-full border-gray-300 rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              className="block w-full border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Název produktu *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Název produktu *</label>
             <input
               type="text"
               required
               value={form.productName}
               onChange={(e) => handleChange("productName", e.target.value)}
-              className="block w-full border-gray-300 rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              className="block w-full border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Množství *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Množství *</label>
             <input
               type="number"
               required
               min={0}
               value={form.amount}
               onChange={(e) => handleChange("amount", Number(e.target.value))}
-              className="block w-full border-gray-300 rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              className="block w-full border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Č. šarže</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Č. šarže</label>
             <input
               type="text"
               value={form.lotNumber ?? ""}
               onChange={(e) => handleChange("lotNumber", e.target.value)}
-              className="block w-full border-gray-300 rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              className="block w-full border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Expirační datum</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Expirační datum</label>
             <input
               type="date"
               value={form.expirationDate ?? ""}
               onChange={(e) => handleChange("expirationDate", e.target.value)}
-              className="block w-full border-gray-300 rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              className="block w-full border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ID výrobní zakázky</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">ID výrobní zakázky</label>
             <input
               type="number"
               value={form.manufactureOrderId ?? ""}
               onChange={(e) => handleChange("manufactureOrderId", e.target.value ? Number(e.target.value) : undefined)}
-              className="block w-full border-gray-300 rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              className="block w-full border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
@@ -155,7 +156,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ onClose, onSubmit, isSubmit
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5"
             >
               Zrušit
             </button>
@@ -206,13 +207,13 @@ const InlineEditCell: React.FC<InlineEditCellProps> = ({ item, onSave }) => {
           min={0}
           value={value}
           onChange={(e) => setValue(Number(e.target.value))}
-          className="w-20 border-gray-300 rounded sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
+          className="w-20 border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
           autoFocus
         />
-        <button onClick={handleSave} className="text-green-600 hover:text-green-800" title="Uložit">
+        <button onClick={handleSave} className="text-green-600 dark:text-emerald-400 hover:text-green-800" title="Uložit">
           <Check className="h-4 w-4" />
         </button>
-        <button onClick={handleCancel} className="text-gray-400 hover:text-gray-600" title="Zrušit">
+        <button onClick={handleCancel} className="text-gray-400 dark:text-graphite-faint hover:text-gray-600" title="Zrušit">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -221,10 +222,10 @@ const InlineEditCell: React.FC<InlineEditCellProps> = ({ item, onSave }) => {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 dark:bg-emerald-900/30 text-green-800 dark:text-emerald-300">
         {item.amount}
       </span>
-      <button onClick={() => setEditing(true)} className="text-gray-400 hover:text-indigo-600" title="Upravit množství">
+      <button onClick={() => setEditing(true)} className="text-gray-400 dark:text-graphite-faint hover:text-indigo-600 dark:hover:text-graphite-accent" title="Upravit množství">
         <Pencil className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -237,13 +238,13 @@ interface LogPanelProps {
 
 const LogPanel: React.FC<LogPanelProps> = ({ item }) => {
   if (item.log.length === 0) {
-    return <p className="text-sm text-gray-500 px-4 py-2">Žádné záznamy.</p>;
+    return <p className="text-sm text-gray-500 dark:text-graphite-muted px-4 py-2">Žádné záznamy.</p>;
   }
 
   return (
-    <table className="min-w-full text-xs text-gray-700">
+    <table className="min-w-full text-xs text-gray-700 dark:text-graphite-muted">
       <thead>
-        <tr className="bg-gray-100">
+        <tr className="bg-gray-100 dark:bg-graphite-surface-2">
           <th className="px-3 py-1 text-left font-medium">Datum</th>
           <th className="px-3 py-1 text-left font-medium">Typ</th>
           <th className="px-3 py-1 text-right font-medium">Změna</th>
@@ -252,12 +253,12 @@ const LogPanel: React.FC<LogPanelProps> = ({ item }) => {
           <th className="px-3 py-1 text-left font-medium">Uživatel</th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-gray-100">
+      <tbody className="divide-y divide-gray-100 dark:divide-graphite-border">
         {item.log.map((entry) => (
           <tr key={entry.id}>
             <td className="px-3 py-1 whitespace-nowrap">{formatDateTime(entry.timestamp)}</td>
             <td className="px-3 py-1 whitespace-nowrap">{changeTypeLabels[entry.changeType] ?? entry.changeType}</td>
-            <td className={`px-3 py-1 text-right whitespace-nowrap font-medium ${entry.amountDelta >= 0 ? "text-green-700" : "text-red-700"}`}>
+            <td className={`px-3 py-1 text-right whitespace-nowrap font-medium ${entry.amountDelta >= 0 ? "text-green-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
               {entry.amountDelta >= 0 ? "+" : ""}{entry.amountDelta}
             </td>
             <td className="px-3 py-1 text-right whitespace-nowrap">{entry.amountAfter}</td>
@@ -271,6 +272,7 @@ const LogPanel: React.FC<LogPanelProps> = ({ item }) => {
 };
 
 const ManufacturedInventoryPage: React.FC = () => {
+  useScreenView('Manufacturing', 'ManufacturedProductInventory');
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [onlyWithStock, setOnlyWithStock] = useState(true);
@@ -326,7 +328,7 @@ const ManufacturedInventoryPage: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-          <span className="text-gray-500">Načítání skladu výroby...</span>
+          <span className="text-gray-500 dark:text-graphite-muted">Načítání skladu výroby...</span>
         </div>
       </div>
     );
@@ -335,7 +337,7 @@ const ManufacturedInventoryPage: React.FC = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-2 text-red-600">
+        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
           <AlertCircle className="h-5 w-5" />
           <span>Chyba při načítání: {(error as Error).message}</span>
         </div>
@@ -349,8 +351,8 @@ const ManufacturedInventoryPage: React.FC = () => {
       <div className="flex-shrink-0 mb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Package className="h-6 w-6 text-indigo-600" />
-            <h1 className="text-lg font-semibold text-gray-900">Sklad výroby</h1>
+            <Package className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Sklad výroby</h1>
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
@@ -363,11 +365,11 @@ const ManufacturedInventoryPage: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative flex-1 max-w-xs">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
+              <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
             </div>
             <input
               type="text"
@@ -375,16 +377,16 @@ const ManufacturedInventoryPage: React.FC = () => {
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Hledat..."
-              className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+              className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-graphite-muted cursor-pointer">
             <input
               type="checkbox"
               checked={onlyWithStock}
               onChange={(e) => { setOnlyWithStock(e.target.checked); setPage(1); }}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="rounded border-gray-300 dark:border-graphite-border text-indigo-600 focus:ring-indigo-500"
             />
             Pouze na skladě
           </label>
@@ -399,34 +401,34 @@ const ManufacturedInventoryPage: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
         <div className="flex-1 overflow-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0 z-10">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+            <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Kód produktu</th>
-                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Název produktu</th>
-                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Č. šarže</th>
-                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Expirace</th>
-                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Množství</th>
-                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Naposledy změnil</th>
-                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Akce</th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Kód produktu</th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Název produktu</th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Č. šarže</th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Expirace</th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Množství</th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Naposledy změnil</th>
+                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Akce</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
               {items.map((item) => {
                 const isExpanded = expandedRows.has(item.id);
                 return (
                   <React.Fragment key={item.id}>
-                    <tr className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{item.productCode}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{item.productName}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{item.lotNumber ?? "—"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{formatDate(item.expirationDate)}</td>
+                    <tr className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-graphite-text whitespace-nowrap">{item.productCode}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">{item.productName}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-graphite-muted whitespace-nowrap">{item.lotNumber ?? "—"}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-graphite-muted whitespace-nowrap">{formatDate(item.expirationDate)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <InlineEditCell item={item} onSave={handleUpdate} />
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-graphite-muted whitespace-nowrap">
                         {item.lastModifiedBy
                           ? `${item.lastModifiedBy} (${formatDate(item.lastModifiedAt)})`
                           : `${item.createdBy} (${formatDate(item.createdAt)})`}
@@ -435,7 +437,7 @@ const ManufacturedInventoryPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => toggleRow(item.id)}
-                            className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                            className="flex items-center gap-1 text-xs text-indigo-600 dark:text-graphite-accent hover:text-indigo-800 font-medium"
                             title="Historie změn"
                           >
                             Historie
@@ -445,14 +447,14 @@ const ManufacturedInventoryPage: React.FC = () => {
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => setConfirmDeleteId(null)}
-                                className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+                                className="text-xs text-gray-500 dark:text-graphite-muted hover:text-gray-700 font-medium"
                               >
                                 Zrušit
                               </button>
                               <button
                                 onClick={() => handleDeleteConfirm(item.id)}
                                 disabled={deleteMutation.isPending}
-                                className="text-xs text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                                className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 font-medium disabled:opacity-50"
                               >
                                 Potvrdit smazání
                               </button>
@@ -460,7 +462,7 @@ const ManufacturedInventoryPage: React.FC = () => {
                           ) : (
                             <button
                               onClick={() => setConfirmDeleteId(item.id)}
-                              className="text-red-400 hover:text-red-600"
+                              className="text-red-400 dark:text-red-400 hover:text-red-600"
                               title="Smazat"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -471,7 +473,7 @@ const ManufacturedInventoryPage: React.FC = () => {
                     </tr>
                     {isExpanded && (
                       <tr>
-                        <td colSpan={7} className="bg-gray-50 border-b border-gray-200">
+                        <td colSpan={7} className="bg-gray-50 dark:bg-graphite-surface-2 border-b border-gray-200 dark:border-graphite-border">
                           <LogPanel item={item} />
                         </td>
                       </tr>
@@ -484,8 +486,8 @@ const ManufacturedInventoryPage: React.FC = () => {
 
           {items.length === 0 && (
             <div className="text-center py-8">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Žádné položky nebyly nalezeny.</p>
+              <Package className="h-12 w-12 text-gray-400 dark:text-graphite-faint mx-auto mb-4" />
+              <p className="text-gray-500 dark:text-graphite-muted">Žádné položky nebyly nalezeny.</p>
             </div>
           )}
         </div>
@@ -493,15 +495,15 @@ const ManufacturedInventoryPage: React.FC = () => {
 
       {/* Pagination */}
       {totalCount > 0 && (
-        <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
-          <p className="text-xs text-gray-600">
+        <div className="flex-shrink-0 bg-white dark:bg-graphite-surface px-3 py-2 flex items-center justify-between border-t border-gray-200 dark:border-graphite-border text-xs">
+          <p className="text-xs text-gray-600 dark:text-graphite-muted">
             {Math.min((page - 1) * PAGE_SIZE + 1, totalCount)}–{Math.min(page * PAGE_SIZE, totalCount)} z {totalCount}
           </p>
-          <nav className="relative z-0 inline-flex rounded shadow-sm -space-x-px" aria-label="Pagination">
+          <nav className="relative z-0 inline-flex rounded shadow-sm dark:shadow-soft-dark -space-x-px" aria-label="Pagination">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="h-3 w-3" />
             </button>
@@ -517,8 +519,8 @@ const ManufacturedInventoryPage: React.FC = () => {
                   onClick={() => setPage(pageNum)}
                   className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                     pageNum === page
-                      ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                      : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                      ? "z-10 bg-indigo-50 dark:bg-graphite-accent/10 border-indigo-500 dark:border-graphite-accent text-indigo-600 dark:text-graphite-accent"
+                      : "bg-white dark:bg-graphite-surface border-gray-300 dark:border-graphite-border text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
                   }`}
                 >
                   {pageNum}
@@ -528,7 +530,7 @@ const ManufacturedInventoryPage: React.FC = () => {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronRight className="h-3 w-3" />
             </button>

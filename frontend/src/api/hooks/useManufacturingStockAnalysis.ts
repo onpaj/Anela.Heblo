@@ -73,6 +73,7 @@ export interface ManufacturingStockItemDto {
   erpStock: number;
   eshopStock: number;
   transportStock: number;
+  manufacturedStock: number;
   primaryStockSource: string;
   reserve: number;
   quarantine: number;
@@ -236,22 +237,31 @@ export const formatPercentage = (value: number): string => {
   return `${formatNumber(value, 1)}%`;
 };
 
-// Helper function to format warehouse stock with transport breakdown
+// Helper function to format warehouse stock with transport + manufactured breakdown
 export const formatWarehouseStock = (item: ManufacturingStockItemDto): string => {
   const totalStock = formatNumber(item.currentStock, 0);
-  
-  // If transport is 0, show just the total
-  if (item.transportStock === 0) {
+  const transport = item.transportStock ?? 0;
+  const manufactured = item.manufacturedStock ?? 0;
+
+  // If there are no secondary parts, show just the total
+  if (transport === 0 && manufactured === 0) {
     return totalStock;
   }
-  
-  // If transport > 0, show breakdown: "12 (5+7)"
-  // Use the correct primary stock source (Erp or Eshop) + Transport = Available
-  const primaryStock = item.primaryStockSource === "Erp" 
-    ? formatNumber(item.erpStock, 0)
-    : formatNumber(item.eshopStock, 0);
-  const transportStock = formatNumber(item.transportStock, 0);
-  
-  return `${totalStock} (${primaryStock}+${transportStock})`;
+
+  // Otherwise show breakdown: "15 (5+7+3)" = total (primary+transport+manufactured)
+  const primaryStock =
+    item.primaryStockSource === "Erp"
+      ? formatNumber(item.erpStock, 0)
+      : formatNumber(item.eshopStock, 0);
+
+  const parts = [primaryStock];
+  if (transport !== 0) {
+    parts.push(formatNumber(transport, 0));
+  }
+  if (manufactured !== 0) {
+    parts.push(formatNumber(manufactured, 0));
+  }
+
+  return `${totalStock} (${parts.join("+")})`;
 };
 

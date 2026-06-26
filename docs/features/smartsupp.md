@@ -9,6 +9,7 @@ Integrace Smartsupp propojuje live chat platformu Smartsupp s interním systéme
 - **Příjem webhooků** — real-time aktualizace konverzací a zpráv ze Smartsupp
 - **Manuální synchronizace** — záložní dotažení konverzací přes REST API
 - **Přehled konverzací** — zobrazení otevřených/uzavřených konverzací s detailem zpráv
+- **AI návrh odpovědi** — agent vygeneruje návrh odpovědi z celé konverzace a databáze znalostí (KnowledgeBase RAG), s volitelným tématem
 
 ---
 
@@ -89,6 +90,9 @@ Ověření identity probíhá přes HMAC-SHA256 hlavičku `X-Smartsupp-Hmac`. Vi
 | `GET` | `/api/smartsupp/conversations` | Seznam konverzací (`?status=Open\|Resolved&page=1&pageSize=50`) |
 | `GET` | `/api/smartsupp/conversations/{id}` | Detail konverzace |
 | `POST` | `/api/smartsupp/sync` | Spustí manuální synchronizaci (`{ "since": "2026-01-01T00:00:00Z" }` — volitelné) |
+| `POST` | `/api/smartsupp/conversations/{id}/draft-reply` | Vygeneruje AI návrh odpovědi (`{ "topic": "Reklamace" }` — volitelné) |
+| `GET` | `/api/smartsupp/conversations/{id}/shoptet-info` | Vrátí profil Shoptet zákazníka a poslední objednávky pro danou konverzaci. Vrátí 404 pokud nelze zákazníka identifikovat. |
+| `GET` | `/api/smartsupp/conversations/{id}/visitor-info` | Vrátí visitor data (OS, prohlížeč, počet návštěv, historie stránek). Vrátí 404 pokud konverzace nemá `visitor_id`. Data jsou cachována 24 h. |
 
 ---
 
@@ -111,6 +115,16 @@ Nastavení v `appsettings.json` (citlivé hodnoty v `secrets.json`):
 | `ApiToken` | Bearer token pro Smartsupp REST API (manuální sync) |
 | `WebhookSecret` | Sdílené tajemství pro ověření HMAC podpisu webhooků |
 | `WebhookAppId` | Pokud je nastaven, přijímá pouze webhooky se shodným `app_id`; prázdný = přijímá vše |
+
+### AI návrh odpovědi
+
+Systémový prompt pro generování návrhů odpovědí má výchozí hodnotu v kódu
+(`SmartsuppDraftReplyOptions`). Lze ho přepsat volitelnou sekcí
+`SmartsuppDraftReply:DraftReplySystemPrompt` v `appsettings.json`.
+
+Retrieval kontextu probíhá přes KnowledgeBase modul (`SearchDocumentsRequest`).
+Dotaz se odvodí z tématu (`topic`), nebo — pokud téma chybí — z posledních
+zpráv zákazníka.
 
 ---
 

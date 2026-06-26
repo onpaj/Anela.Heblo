@@ -77,16 +77,16 @@ const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+      <div className="relative top-20 mx-auto p-5 border dark:border-graphite-border w-96 shadow-lg dark:shadow-soft-dark rounded-md bg-white dark:bg-graphite-surface">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-indigo-600" />
-            <h3 className="text-lg font-medium text-gray-900">Výběr lokace</h3>
+            <MapPin className="h-5 w-5 text-indigo-600 dark:text-graphite-accent" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text">Výběr lokace</h3>
           </div>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -97,7 +97,7 @@ const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
           <div>
             <label
               htmlFor="location"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2"
             >
               Vyberte lokaci pro rezervu:
             </label>
@@ -105,7 +105,7 @@ const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
               id="location"
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               required
             >
               <option value="">-- Vyberte lokaci --</option>
@@ -118,7 +118,7 @@ const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
           </div>
 
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 p-3 rounded-md">
               {error}
             </div>
           )}
@@ -128,7 +128,7 @@ const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-gray-200 dark:bg-graphite-hover rounded-md hover:bg-gray-300 dark:hover:bg-white/5 transition-colors"
             >
               Zrušit
             </button>

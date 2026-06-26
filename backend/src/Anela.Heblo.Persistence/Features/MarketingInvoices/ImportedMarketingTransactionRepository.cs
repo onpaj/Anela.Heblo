@@ -19,9 +19,10 @@ public class ImportedMarketingTransactionRepository
             ct);
     }
 
-    async Task IImportedMarketingTransactionRepository.AddAsync(ImportedMarketingTransaction entity, CancellationToken ct)
+    async Task<ImportedMarketingTransaction> IImportedMarketingTransactionRepository.AddAsync(ImportedMarketingTransaction entity, CancellationToken ct)
     {
         await base.AddAsync(entity, ct);
+        return entity;
     }
 
     async Task IImportedMarketingTransactionRepository.AddRangeAsync(IEnumerable<ImportedMarketingTransaction> entities, CancellationToken ct)

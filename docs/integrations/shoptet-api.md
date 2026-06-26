@@ -98,7 +98,7 @@ Statuses are store-specific (configured in Shoptet admin). Retrievable via `GET 
 
 **IMPORTANT — numeric fields must be JSON strings.** `vatRate`, `itemPriceWithVat`, and `amount` must be sent as strings (e.g. `"21"`, `"1.00"`, `"1"`), not JSON numbers. Sending them as numbers returns 422. The correct field name for quantity is `amount` (not `quantity`).
 
-**`product-set` in GET order response:** When an order contains a set product, Shoptet returns the set header as a `product-set` item in `items[]` (with its own SKU, e.g. `SA009`). The individual components are **not** in `items[]` — they are in the separate `completion[]` array as `product-set-item` entries, linked to the parent via `parentProductSetItemId` matching the parent's `itemId`. To build an expedition/picking list for sets, ignore `product-set` in `items[]` and instead expand it using the `product-set-item` entries from `completion[]`, multiplying component quantities by the set quantity.
+**`product-set` in GET order response:** When an order contains a set product, Shoptet returns the set header as a `product-set` item in `items[]` (with its own SKU, e.g. `SA009`). The individual components are **not** in `items[]` — they are in the separate `completion[]` array as `product-set-item` entries, linked to the parent via `parentProductSetItemId` matching the parent's `itemId`. To build an expedition/picking list for sets, ignore `product-set` in `items[]` and instead expand it using the `product-set-item` entries from `completion[]`. Each `product-set-item` `amount` is **already the order total** for that component (component-per-set × set count) — use it **as-is**, do **not** multiply by the set quantity. (Corrected after order `126014786` printed doubled set-component quantities: 2× set `SA010` showed 4 of each component instead of 2.)
 
 
 ### 3.4 Shipping Methods
@@ -136,6 +136,21 @@ Source of truth: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/ShoptetAp
 | 489 | `GLS_PARCELSHOP` | GLS | 8 |
 | 4 | `OSOBAK` | Osobak | 1 |
 
+**2025+ carrier scheme** (added when PPL/Zásilkovna/GLS introduced new "box & výdejní místa / do ruky" methods on anela.cz; GUIDs `*-11f1-9239-bc241122355e`). These coexist with the legacy methods above — both still receive orders during the transition. GUIDs discovered via `GET /api/eshop?include=shippingMethods` (production anela.cz, `retail` group); numeric IDs supplied from Shoptet admin (not returned by the REST API).
+
+| ID | Constant Name | Carrier | DisplayName | GUID |
+|---|---|---|---|---|
+| 490 | `PPL_BOX` | PPL | PPL přímo do PPL boxu | `6fc70492-6341-11f1-9239-bc241122355e` |
+| 496 | `PPL_VYDEJNI_MISTA` | PPL | PPL výdejní místa a Alzaboxy | `8e6313c7-6342-11f1-9239-bc241122355e` |
+| 493 | `PPL_DO_RUKY_NEW` | PPL | PPL do ruky | `53f8a8a5-6342-11f1-9239-bc241122355e` |
+| 502 | `ZASILKOVNA_BOXY_VYDEJNI` | Zásilkovna | Zásilkovna boxy a výdejní místa | `68201aa2-6343-11f1-9239-bc241122355e` |
+| 505 | `ZASILKOVNA_DO_RUKY_NEW` | Zásilkovna | Zásilkovna do ruky | `b1915a68-6343-11f1-9239-bc241122355e` |
+| 511 | `GLS_BOXY_VYDEJNI` | GLS | GLS boxy a výdejní místa | `8448f4b6-6344-11f1-9239-bc241122355e` |
+| 508 | `GLS_DO_RUKY_NEW` | GLS | GLS do ruky | `53db451b-6344-11f1-9239-bc241122355e` |
+
+> `ResolveDeliveryHandling` classifies these by `Name`: `*_DO_RUKY*` → `NaRuky`; names containing `BOX` or `VYDEJNI` → `Box`. The legacy `7878c138-…` method (`ZASILKOVNA_ZPOINT`, id 15) was renamed in Shoptet to "Zásilkovna – Výdejní místa a Z-boxy" — `DisplayName` updated to match.
+> ⚠️ The ID↔method pairing within each carrier was assigned from the order the methods appear in the `retail` response; confirm against Shoptet admin before relying on the picking-list filter.
+
 **Important:** These are Shoptet admin-internal numeric IDs used in URL filter params (`?f[shippingId]=21`), not the `shippingGuid` used in the REST API order creation body. When seeding test orders via `POST /api/orders`, use the corresponding `shippingGuid` from `GET /api/eshop?include=shippingMethods` that maps to the desired shipping ID.
 
 #### Order Statuses (known values from code)
@@ -145,9 +160,12 @@ Defined in `PrintPickingListOptions` and `ShoptetApiExpeditionListSource`:
 | ID | Name |
 |---|---|
 | -2 | Vyřizuje se (Processing) — source state for picking list |
-| 26 | Balí se (Packing) — PACK seed state; `PrintPickingListOptions.DesiredStateId` |
+| 26 | Balí se (Packing) — PACK seed state; `PrintPickingListOptions.DesiredStateId`. **Only orders in this state are eligible for packing** (`ScanPackingOrder` returns `isEligible: false` otherwise). |
+| 52 | Zabaleno (Packed) — order moves here after `MarkAsPacked` (single-package scan or `CompletePacking`). Confirmed live 2026-06-09. |
 | 70 | Předáno přepravci (Handed to carrier) — EXP seed state |
 | 73 | Oprava-robot — Fix source state (`FixSourceStateId`) |
+
+> **Reset a test order to packable:** `PATCH /api/orders/{code}/status` with `{"data":{"statusId":26}}` puts it back into "Balí se" so the packing flow can be re-run. Confirmed live 2026-06-09 on order 126000035.
 
 > **Note:** Status 55 ("K Expedici") referenced in `ShoptetApiExpeditionListSource.DesiredStateId` does **not exist** in the store (confirmed via `GET /api/eshop?include=orderStatuses`). Seeding EXP-category orders uses status 70 instead.
 > Custom status IDs for the hydration test are configurable: `Shoptet:StatusId:EXP` and `Shoptet:StatusId:PACK` in user secrets.
@@ -168,6 +186,10 @@ Optional `include` sections: `notes`, `images`, `shippingDetails`, `stockLocatio
 **`amount` field in GET response** — returned as a JSON decimal number (e.g. `1.000`), NOT a string and NOT an integer. Map to `decimal?` with `[JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]`, then cast to `int` when needed.
 
 **Fields in list response:** `code`, `guid`, `creationTime`, `changeTime`, `company`, `fullName`, `email`, `phone`, `remark`, `cashDeskOrder`, `customerGuid`, `paid`, `status`, `source`, `price`, `paymentMethod`, `shipping`, `adminUrl`, `salesChannelGuid`. **`externalCode` is NOT included.** Use `GET /api/orders/{code}` (single detail) to get `externalCode`.
+
+**`shipping` object on `GET /api/orders/{code}`** — the single-order detail base response (no `include` needed) returns a `shipping` object with the same shape as the list endpoint, exposing `shipping.guid` and `shipping.name`. The Balení packing flow (`GET /api/orders/{code}?include=stockLocation,notes`) relies on these two fields to resolve the order's shipping method and derive carrier cooling.
+
+**`status` object on `GET /api/orders/{code}`** — `status` (`{ "id": int, "name": string }`) is a **base field**, not an `include` section (there is no `status` include — see the include list above). It is present on every order response, including the `?include=stockLocation,notes` expedition/packing response. Confirmed live 2026-06-25 on order `126000040` (returned `status.id`). The Balení packing flow reads the order status from this single response — it does **not** need a second `GET /api/orders/{code}` round-trip.
 
 ### 3.6 PATCH /api/orders/{code}/notes — Update Remarks (operationId: updateRemarksForOrder)
 
@@ -202,9 +224,60 @@ Updates the order's remark/note slots. Any property omitted from the body is lef
 
 **Used by:** `BlockOrderProcessingHandler` — reads current `eshopRemark` via `GetEshopRemarkAsync`, appends the block reason on a new line, writes back via `UpdateEshopRemarkAsync`. Both methods are on `ShoptetOrderClient`.
 
+**✅ Verified 2026-05-25 against test store (Shoptet token prefix 780175):**
+- PATCH `additionalFields: [{ "index": 1, "text": "CHLAZENE-TEST" }]` → 200 `{"data":null,"errors":null}` _(verified with index 1; index 6 uses the same API path — round-trip confirmed)_
+- GET `/api/orders/{code}?include=notes` → field round-trips correctly
+- Production uses **index 6** (index 1 is reserved by an external system):
+  ```json
+  {
+    "data": {
+      "additionalFields": [{ "index": 6, "text": "CHLAZENE" }]
+    }
+  }
+  ```
+
+### 3.7 Heblo reservations for the 6 per-order additional fields
+
+| Index | Reserved by | Value contract | Written when | Cleared when | Reader(s) | Limits |
+|---|---|---|---|---|---|---|
+| 1 | **RESERVED — external system** | Do not use; already claimed by a system outside Heblo | — | — | External system (unknown) | ≤ 255 chars |
+| 2 | — unassigned — | | | | | ≤ 255 chars |
+| 3 | — unassigned — | | | | | ≤ 255 chars |
+| 4 | — unassigned — | | | | | length undocumented |
+| 5 | — unassigned — | | | | | length undocumented |
+| 6 | Expedition cooling marker | Literal string `"CHLAZENE"` for cooled orders; no other value ever written | Original expedition list print, if `ExpeditionOrder.IsCooled == true` | Never (write-only) | External / Shoptet operators (informational; nothing in Heblo reads it back) | length undocumented (we use 8 chars) |
+
+**Before using an additional field in a new feature, claim it by updating this table in the same PR.** The fields are a finite shared resource (6 total) and the Shoptet API gives no per-field semantic protection — two callers writing to the same index will silently overwrite each other. The Heblo expectation is: one logical owner per index, documented here.
+
+The Heblo client (`ShoptetOrderClient.SetAdditionalFieldAsync`) accepts any 1..6 index; there is no runtime guard tying an index to a feature. The guard is this table and code review.
+
+Length limits: indices 1–3 are capped at 255 chars by the Shoptet API. Indices 4–6 are believed to support longer text but the exact cap has not been verified — measure before assuming.
+
 ---
 
-## 4. Products API
+## 4. Customers API
+
+> **TODO: Verify against live API.** Run `curl -H "Shoptet-Private-API-Token: <token>" https://api.myshoptet.com/api/customers/<guid>` with a real customer GUID and document the actual response shape here. Update `ShoptetCustomerResponse.cs` field names if they differ from the speculative model.
+
+### 4.1 Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/customers/{guid}` | Get customer by GUID |
+
+### 4.2 Known fields (speculative — verify before production)
+
+Response shape assumed to follow Shoptet conventions:
+- `data.customer.guid` — customer GUID
+- `data.customer.email` — customer email
+- `data.customer.fullName` — full name
+- `data.customer.customerGroup.name` — customer group name
+- `data.customer.priceList.name` — price list name
+- `data.customer.billingAddress` — billing address with `street`, `city`, `zip`, `countryCode`
+
+---
+
+## 5. Products API
 
 | Method | Path | Description |
 |---|---|---|
@@ -240,9 +313,34 @@ Returns the full product including a `variants[]` array with `code` fields — *
 
 The snapshot endpoint (`GET /api/products/snapshot`) exists but requires a registered webhook for `job:finished` — not usable without webhook infrastructure.
 
+### 4.4 Stock CSV export — resilience characteristics
+
+The stock CSV export URL is configured via `StockClient:Url` and **is not** on `api.myshoptet.com` — it is the per-store CSV export host (e.g. `https://<store>.myshoptet.com/action/...`). Two consequences:
+
+- The dependency tracker (which targets `api.myshoptet.com`) does **not** record these calls. Failures must be queried by exception name (`System.Net.Http.HttpRequestException` with `outerMethod contains "ShoptetStockClient.ListAsync"`).
+- The URL contains an access token as a query parameter (e.g. `?token=...` / `?hash=...`). Logging code redacts `token`, `hash`, `key`, `apiToken`, `access_token` keys to `***`.
+
+**Encoding:** `windows-1250`. **Delimiter:** `;`. Parsed via `CsvHelper` with `StockDataMap`.
+
+**Observed transient failure rate (baseline):** ~1.1 `HttpRequestException` / day across all callers (telemetry window 2026-06-05 → 2026-06-12).
+
+**Resilience policy (HTTP layer, registered against the named HttpClient `"ShoptetStockCsv"`):**
+
+| Property | Value | Configurable via |
+|---|---|---|
+| Per-attempt timeout | 8s (default) | `StockClient:TimeoutSeconds` |
+| Max retry attempts | 3 (default) | `StockClient:MaxRetryAttempts` |
+| Retry base delay | 1s exponential + jitter | `StockClient:RetryBaseDelaySeconds` |
+| Retry triggers | `HttpRequestException`, 5xx, 408, 429, `TimeoutRejectedException`, `OperationCanceledException` (only when caller's token has **not** requested cancellation) | — |
+| Outer `HttpClient.Timeout` | `TimeoutSeconds × (MaxRetryAttempts + 1) + 5` | derived |
+
+Worst-case wall clock with defaults: ≈ 8 + 1 + 8 + 2 + 8 + 4 + 8 ≈ 39 s — but `CatalogDataRefreshService` invocations are wrapped by `CatalogResilienceService` whose 30 s pipeline timeout will surface first. Tune `TimeoutSeconds` down if the outer pipeline still aborts retries; raise it for ad-hoc callers that do not use the outer pipeline.
+
+**Caller-side wrapping:** Both `CatalogDataRefreshService.RefreshEshopStockData` and `ProductPairingDqtComparer.CompareAsync` wrap `ListAsync` with `ICatalogResilienceService` for circuit-breaker + outer-timeout semantics. New callers must follow the same pattern.
+
 ---
 
-## 5. ShoptetPay API
+## 6. ShoptetPay API
 
 Base URL: `https://api.shoptetpay.com`
 
@@ -846,3 +944,376 @@ echo | openssl s_client -servername "$EXPORT_HOST" -connect "$EXPORT_HOST:443" 2
 **Resilience configuration:** Per-attempt timeout 120 s, 3 Polly retries with exponential + jitter backoff (base 2 s). Hangfire auto-retry is disabled on this job (`[AutomaticRetry(Attempts = 0)]`); all retry logic lives in Polly only. See `ProductExportOptions` for tunables (`HeadTimeout`, `DownloadTimeout`, `MaxRetryAttempts`, `RetryBaseDelay`).
 
 **Related code:** `ProductExportDownloadJob`, `DownloadFromUrlHandler`, `DownloadResilienceService`, `AzureBlobStorageService.DownloadFromUrlAsync`.
+
+---
+
+## 11. Delivery API
+
+### 11.1 Shipments Endpoint
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/shipments` | List shipments (filter by `orderCode`) |
+| `POST` | `/api/shipments` | Create a shipment for an order |
+| `GET` | `/api/shipments/order/{code}/shipping-options` | Get available carrier options for an order |
+
+### 11.2 Filtering
+
+Pass `orderCode` as a query parameter to retrieve shipments for a specific order:
+
+```
+GET /api/shipments?orderCode={orderCode}
+```
+
+Optional `status` filter also available (not used in this integration).
+
+### 11.3 Response Envelope
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "guid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "orderCode": "0001234",
+        "packages": [
+          {
+            "name": "Zásilka 1",
+            "width": 20,
+            "height": 10,
+            "depth": 5,
+            "weight": 0.5,
+            "packagingId": 1,
+            "labelUrl": "https://api.myshoptet.com/api/shipments/{guid}/label.pdf",
+            "labelZpl": "^XA^FO50,50^ADN,36,20^FDHello ZPL^FS^XZ",
+            "trackingNumber": "TRK123456",
+            "trackingUrl": "https://carrier.cz/track/TRK123456"
+          }
+        ]
+      }
+    ],
+    "paginator": {
+      "totalCount": 1,
+      "itemsPerPage": 10,
+      "currentPage": 1,
+      "pageCount": 1
+    }
+  },
+  "errors": []
+}
+```
+
+### 11.4 Error Envelope
+
+When Shoptet returns an error (non-2xx or populated `errors[]`):
+
+```json
+{
+  "data": null,
+  "errors": [
+    {
+      "errorCode": "shipment-not-found",
+      "message": "Shipment not found for given order",
+      "instance": "/api/shipments?orderCode=0001234"
+    }
+  ]
+}
+```
+
+### 11.5 Labels
+
+- `labelUrl` — PDF download URL, may be `null` if the label has not been generated yet.
+- `labelZpl` — Raw Zebra ZPL string for direct USB printing, may be `null`.
+- An order may have multiple shipments, each with multiple packages. All are returned; the kiosk prints each.
+- If both `labelUrl` and `labelZpl` are `null` for all packages, labels have not been generated yet.
+- **Generation latency is significant — confirmed minutes, not seconds (live, 2026-06-09).** A `POST /api/shipments` returns a shipment in `requested` state with `labelUrl: null` and `trackingNumber: null`; both populate (status → `created`) only once Balikobot/the carrier finalizes. For order 126000035 ("PPL na výdejní místo") this took **several minutes**. Implication: the `GetPackageLabelPdf` readiness poll (5×1s) will almost always 404 if a print is attempted immediately after scanning — the label must be re-fetched/reprinted once ready (from Zásilky), or the print retried.
+
+### 11.5.1 Package `name` is NOT a stable match key — and shipments accumulate per order
+
+> **Verified 2026-06-10 against the live test store (780175), order `126000035`.** A GET returned **12 shipments** for the single order.
+
+Hard-won findings from the FillTrackingNumbers backfill job — read before matching packages to DB rows:
+
+- **`packages[].name` is non-unique within an order.** Every package across all 12 shipments was named `"Vlastní balení"` ("custom packaging" — the packaging type, not an identifier). Building a `Dictionary` keyed by `name` will throw a duplicate-key exception the moment two non-dead packages share a name.
+- **`packages[].name` is NOT stable across label generation.** Immediately after `POST /api/shipments` (status `requested`, label not yet ready) the package name is a placeholder sequence (`"1"`, `"2"`, …). Once the carrier label generates, Shoptet **renames** the package to the packaging type (`"Vlastní balení"`). So a name persisted at scan time will not match the name read back later. **Never match a persisted package to a live label by name.**
+- **Shipments accumulate; `ResetOrderShipmentHandler` orphans the DB `ShipmentGuid`.** Each pack/reset cancels the old shipment (status → `canceled`/`deleted`) and creates a brand-new one. The Heblo `Package` row is **not** updated on reset, so its `ShipmentGuid` points at a now-cancelled shipment that still carries an (invalid) tracking number. The live, deliverable tracking number lives on a different, newer shipment.
+- **Latest active shipment = the last non-dead shipment in the response.** Shoptet returns shipments **oldest-first** (the `guid` is UUIDv7, time-ordered). "Active" = status not in `{canceled, cancel_requested, deleted, request_failed}`. To resolve the current tracking number for an order, take the **last** active shipment and read its package tracking number — ignore the persisted `ShipmentGuid` and all package names. Implemented as `IShipmentClient.GetLatestActiveTrackingNumberAsync` and used by `FillTrackingNumbersJob`.
+- Each Heblo-created shipment has **exactly one package** (`ScanPackingOrderHandler`/`ResetOrderShipmentHandler` always send a single `packages[]` entry), so an order's single tracking number maps to its single `Package` row.
+
+### 11.6 Authentication
+
+Same host (`https://api.myshoptet.com`) and `Shoptet-Private-API-Token` header as all other Shoptet endpoints. `ShoptetApiSettings.BaseUrl` and `ShoptetApiSettings.ApiToken` are reused — no new configuration keys.
+
+### 11.7 Implementation status
+
+- **Backend** (`POST /api/shipment-labels`) — complete. Fetches labels by order code, returns PDF URL + ZPL string per package, maps 29XX error codes for not-found and not-generated cases.
+- **UI / Balení module** — not yet implemented. The Balení kiosk PWA needs a new screen that calls this endpoint and sends the ZPL payload to the USB-connected Zebra printer. The cloud backend is data-only — USB hardware access happens entirely on the kiosk device.
+
+---
+
+### 11.8 GET /api/shipments/order/{code}/shipping-options
+
+> **Probed 2026-05-19** against the production API token (store 780175 / anela.cz staging, orders 126000032–126000035).
+
+Returns the available carrier options for a specific order. Must be called before `POST /api/shipments` to obtain the `shippingId` required by the create endpoint.
+
+#### Path parameter
+
+| Parameter | Type | Description |
+|---|---|---|
+| `code` | string | Shoptet order code (e.g. `126000035`) |
+
+#### Response shape (200)
+
+```json
+{
+  "data": {
+    "shippingOptions": [
+      {
+        "shippingId": 236806,
+        "methodName": "PPL (do ruky)",
+        "carrierCode": "ppl-cz",
+        "serviceCode": "ppl-cz-private-address",
+        "maxShipment": 1,
+        "carrierAddresses": [],
+        "bankAccounts": [],
+        "branch": "balikobot"
+      }
+    ]
+  },
+  "errors": null,
+  "metadata": {
+    "requestId": "..."
+  }
+}
+```
+
+#### Field semantics
+
+| Field | Type | Description |
+|---|---|---|
+| `shippingId` | integer | Carrier-specific shipment identifier — pass as `shippingId` in `POST /api/shipments`. **Per-order value**, different for each order even for the same shipping method. |
+| `methodName` | string | Human-readable shipping method name |
+| `carrierCode` | string | Carrier code (e.g. `ppl-cz`, `zasilkovna`) |
+| `serviceCode` | string | Carrier service code (e.g. `ppl-cz-private-address`) |
+| `maxShipment` | integer | Maximum number of shipments allowed for this order |
+| `carrierAddresses` | array | Pickup point / branch addresses (empty for home delivery) |
+| `bankAccounts` | array | Carrier bank accounts (required for COD — empty when not applicable) |
+| `branch` | string | Integration branch identifier (e.g. `balikobot`) |
+
+#### Observed behaviour
+
+- Returns an empty `shippingOptions: []` when the order's shipping method has no Balikobot carrier integration configured (e.g. GLS, Zásilkovna on this store), or when Balikobot is not set up in the store at all.
+- The `shippingId` value is **unique per order** (observed: different integer per test-seed order 126000032–126000035, all PPL do ruky). Do not cache or reuse across orders.
+- The `shippingId` is **not** the same as the numeric shipping method ID used in the expedition list URL filter (`?f[shippingId]=6`).
+
+---
+
+### 11.9 POST /api/shipments — Create Shipment
+
+> **Probed 2026-05-19** against the production API token. Schema fully confirmed from OpenAPI spec + 422-error iteration. Successful creation was blocked by the test store having no Balikobot carrier configured (`GET /api/shipments/carriers` returns `[]`) — the request body shape was confirmed up to the carrier-integration boundary (`errorCode: invalid-request-data`, `instance: integration-call`).
+
+Creates a shipment for an order. Triggers Balikobot carrier API call synchronously.
+
+#### Request body
+
+```json
+{
+  "data": {
+    "orderCode": "126000035",
+    "shippingId": 236806,
+    "note": null,
+    "cod": null,
+    "addressId": null,
+    "bankAccountId": null,
+    "packages": [
+      {
+        "width": 300,
+        "height": 200,
+        "depth": 150,
+        "weight": "0.500"
+      }
+    ]
+  }
+}
+```
+
+**Required fields:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `data` | object | yes | Envelope wrapping all fields (Shoptet standard pattern) |
+| `data.orderCode` | string | yes | Shoptet order code |
+| `data.shippingId` | integer\|null | yes (if Balikobot) | From `GET /api/shipments/order/{code}/shipping-options` — the `shippingId` field |
+| `data.packages` | array | yes (min 1 item) | Package dimensions and weight |
+
+**Optional fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `data.note` | string\|null | Shipment note |
+| `data.cod` | string\|null | COD override — `null` = use order COD; `"0.00"` = no COD; any other value overrides amount |
+| `data.addressId` | integer\|null | From `carrierAddresses[].id` in shipping-options (for pickup points) |
+| `data.bankAccountId` | integer\|null | From `bankAccounts[].id` in shipping-options — required when `cod` is sent |
+
+**Package object — three mutually exclusive variants (oneOf):**
+
+*Variant A: by dimensions*
+```json
+{ "width": 300, "height": 200, "depth": 150, "weight": "0.500" }
+```
+
+*Variant B: by packaging type + weight*
+```json
+{ "packaging": 6, "weight": "0.500" }
+```
+
+*Variant C: by orderPackagingId (pre-configured packaging)*
+```json
+{ "orderPackagingId": 3 }
+```
+
+**Weight unit: kilograms (kg).** The `weight` field accepts `string | null | integer`. String format is decimal kg (e.g. `"0.500"`, `"1.00"`). The `typeWeight` schema in the OpenAPI spec confirms: *"weight in kg, unpacked. 3 decimal places."* The GET response `shipmentPackage.weight` examples show `1` (numeric, kg).
+
+**Dimensions** (`width`, `height`, `depth`) are integers in **millimetres** — the OpenAPI spec examples show `10`, `20`, `30`.
+
+#### Response shape (201 Created)
+
+```json
+{
+  "data": {
+    "guid": "1e3f3f32-3f3f-6766-3f3f-02423f1f0004",
+    "checkUrls": null
+  },
+  "errors": null
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `data.guid` | string (UUID) | Shipment GUID — use with `GET /api/shipments?orderCode=...` to poll for label readiness |
+| `data.checkUrls` | array\|null | URL(s) to poll for async completion — `null` by default; only available if explicitly enabled by Shoptet |
+
+#### Error codes (422)
+
+| errorCode | instance | Meaning |
+|---|---|---|
+| `invalid-request-data` | `data` | Outer `data` wrapper missing |
+| `invalid-request-data` | `data.packages[0]` | Package object doesn't match any variant (oneOf mismatch — check required fields) |
+| `invalid-request-data` | `data.packages[0].weight` | Double (float) value sent; weight must be string, null, or integer |
+| `invalid-request-data` | `data.packages[0].orderPackagingId` | Required when using variant C |
+| `invalid-request-data` | `data.packages[0].packaging` | Must be integer (not a nested object) |
+| `invalid-request-data` | `integration-call` | **Carrier (Balikobot) rejected the request.** Shoptet wraps the carrier error with this generic message. Causes include: carrier not configured, invalid address, address validation failure, or missing carrier account. |
+| `shipment-validation-failed` | `data.orderCode` | Invalid recipient address (missing phone/email/fullName/street/city/zip), invalid currency, invalid country |
+| `shipment-validation-failed` | `data.bankAccountId` | Required when COD is sent |
+| `shipment-validation-failed` | `data.cod` | COD exceeds carrier maximum (100 000.00) |
+
+#### Label readiness latency
+
+After a successful `201` response, the shipment is in `requested` status. The label is not immediately available.
+
+**Confirmed workflow:**
+1. `POST /api/shipments` → `201` with `guid`
+2. Poll `GET /api/shipments?orderCode={code}` — check `items[].packages[].labelUrl != null`
+3. When `labelUrl` is non-null, the label is ready for download
+
+**Status lifecycle** (from OpenAPI spec code list):
+
+| Status | Meaning |
+|---|---|
+| `requested` | Shipment submitted to carrier, label not yet ready |
+| `request_failed` | Carrier rejected the request |
+| `created` | Label ready (tracking number assigned) |
+| `in_transit` | Parcel picked up by carrier |
+| `ready_for_pickup` | Available at pickup point |
+| `delivered` | Delivered |
+| `failed` | Delivery failed |
+| `back_transit` | Return in transit |
+| `returned` | Returned to sender |
+| `cancel_requested` | Cancellation requested |
+| `canceled` | Canceled |
+| `closed` | Closed |
+| `deleted` | Deleted |
+
+**Webhook alternative:** `shipment:create` webhook fires when carrier confirms the shipment (tracking number assigned, label ready). Register via Shoptet webhooks if polling is undesirable.
+
+**Observed latency:** The test store has no Balikobot configured so label-ready latency was not directly measured. For the PPL carrier via Balikobot the expected flow is synchronous within the carrier call — label should be available within a few seconds of the `POST` completing. The `checkUrls` field (when non-null) provides a polling URL for async carriers.
+
+#### Multi-package carrier constraints (confirmed live 2026-06-10)
+
+**PPL "výdejní místo" (parcel box) does not support multi-package shipments.** Sending `packages: [{...}, {...}]` (2 items) succeeds with HTTP 201, but Balikobot/PPL silently creates only **1 package** — the returned label shows `1/1` and `GET /api/shipments?orderCode=...` returns a single package entry. No error is returned.
+
+Implication: if the operator selects "Více balíků" for a PPL parcel-box order, the backend produces N=2 `ScanShipmentPackage` entries (second one with `LabelUrl = null`), `pendingCompletion = true`, and the `PackingLabelPrintModal` opens for a 2-label sequence. Label 1 prints successfully after backoff. Label 2 never gets a URL — `printLabelWithReadiness` times out (30 s), operator sees the timeout screen, must cancel. Order stays unpacked.
+
+**Workaround (operator):** Do not use "Více balíků" for PPL výdejní místo. Use the standard single-scan flow.
+
+**Follow-up required:** Add a check after `CreateShipmentAsync` — compare the actual package count returned by `GET /api/shipments?orderCode=...` against the requested `n`. If fewer packages were created, surface a warning to the operator (e.g. "Dopravce vytvořil pouze X/N balíků").
+
+#### Test store limitation
+
+The staging store (780175 / `api.myshoptet.com` with token `Shoptet:ApiToken`) has **no Balikobot carriers configured** (`GET /api/shipments/carriers` returns `[]`). All `POST /api/shipments` calls in the test store will return `errorCode: invalid-request-data, instance: integration-call`. Integration tests for shipment creation must run against the production store or a store with Balikobot configured.
+
+---
+
+### 11.10 POST /api/shipments/{guid}/cancel-request — Cancel Shipment
+
+> **Probed 2026-05-21** against the official OpenAPI spec (`https://api.docs.shoptet.com/_bundle/Shoptet%20API/openapi.json`).
+
+Requests cancellation of an existing shipment. Forwarded to the carrier asynchronously — the API accepts the request immediately and the carrier processes the actual cancellation in the background.
+
+> **⚠️ Common mistake — there is NO `DELETE /api/shipments/{guid}` endpoint.** Calling `DELETE` returns `404` / `405`. The only documented cancellation mechanism is this `POST .../cancel-request`. Anela hit this bug prior to 2026-05-21 in `ShoptetShipmentClient.DeleteShipmentAsync` — `ResetOrderShipmentHandler` consistently failed with `ShipmentDeleteFailed` because the underlying DELETE never succeeded.
+
+#### Path parameter
+
+| Parameter | Type | Description |
+|---|---|---|
+| `guid` | string (UUID) | Shipment GUID returned by `POST /api/shipments` |
+
+#### Request body
+
+**None.** No body, no query params.
+
+#### Response (202 Accepted)
+
+Empty body. Cancellation has been accepted for forwarding to the carrier — it is NOT yet final.
+
+#### Error codes
+
+| HTTP | errorCode | instance | Meaning |
+|---|---|---|---|
+| 404 | `shipment-not-found` | `payload` | Shipment GUID does not exist (already removed / never created). Treat as idempotent success. |
+| 422 | `invalid-request-data` | `integration-call` | Carrier rejected the cancellation request (e.g. shipment already in transit). |
+
+#### Final-state semantics
+
+`202` does NOT mean the shipment is cancelled — only that the request was accepted. Poll `GET /api/shipments/{guid}` to observe the actual lifecycle:
+
+```
+requested → cancel_requested → canceled → deleted
+created   → cancel_requested → canceled
+in_transit → (cancellation may be rejected by carrier with 422)
+```
+
+#### Anela usage pattern (Balení reset flow)
+
+`ResetOrderShipmentHandler` fires `POST .../cancel-request` and **immediately** calls `POST /api/shipments` to create a replacement — it does **not** poll for the cancel to complete. Trade-off:
+
+- Operator experience is fast (single confirm-then-print cycle on the kiosk).
+- The old shipment may briefly co-exist with the new one in `requested` state at the carrier.
+- A `404` from cancel-request is treated as success — the shipment is already gone, no further action needed.
+
+`ShoptetShipmentClient.CancelShipmentAsync` returns silently on `404` and throws `HttpRequestException` on any other non-2xx status.
+
+---
+
+## Multi-package shipments (`POST /api/shipments`)
+
+The packaging scan can request **N parcels** for one order. We send the `data.packages`
+array with N entries (same width/height/depth; weight = order weight ÷ N, floored at
+`MinPackageWeightGrams`). Shoptet returns one shipment GUID with N distinct package names;
+`GET /api/shipments?orderCode={code}` then lists all N packages, each with its own label
+URL / tracking number once ready.
+
+**To verify on staging before relying on it:** create a multi-package shipment for a test
+order, confirm Shoptet returns N distinct package names and N printable labels, and that the
+order can still be marked packed (status 52) afterwards.

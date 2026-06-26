@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using Anela.Heblo.Adapters.Microsoft365.Photobank;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -40,7 +41,7 @@ public sealed class PhotobankGraphServiceThumbnailTests
     }
 
     [Fact]
-    public async Task GetThumbnailAsync_ReturnsGraphThumbnail_WhenGraphReturns200()
+    public async Task GetThumbnailAsync_ReturnsSuccess_WhenGraphReturns200()
     {
         // Arrange
         var imageBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }; // minimal JPEG header bytes
@@ -68,10 +69,10 @@ public sealed class PhotobankGraphServiceThumbnailTests
         var result = await service.GetThumbnailAsync(DriveId, FileId, ThumbnailSize.Medium);
 
         // Assert
-        result.Should().NotBeNull();
-        result!.ContentType.Should().Be("image/jpeg");
-        result.ContentLength.Should().Be(imageBytes.Length);
-        result.Content.Should().NotBeNull();
+        var ok = result.Should().BeOfType<GetThumbnailResult.Success>().Subject;
+        ok.Thumbnail.ContentType.Should().Be("image/jpeg");
+        ok.Thumbnail.ContentLength.Should().Be(imageBytes.Length);
+        ok.Thumbnail.Content.Should().NotBeNull();
     }
 
     [Theory]
@@ -107,7 +108,7 @@ public sealed class PhotobankGraphServiceThumbnailTests
     }
 
     [Fact]
-    public async Task GetThumbnailAsync_ReturnsNull_WhenGraphReturns404()
+    public async Task GetThumbnailAsync_ReturnsNotFound_WhenGraphReturns404()
     {
         // Arrange
         var handlerMock = new Mock<HttpMessageHandler>();
@@ -127,11 +128,35 @@ public sealed class PhotobankGraphServiceThumbnailTests
         var result = await service.GetThumbnailAsync(DriveId, FileId, ThumbnailSize.Medium);
 
         // Assert
-        result.Should().BeNull();
+        result.Should().BeOfType<GetThumbnailResult.NotFound>();
     }
 
     [Fact]
-    public async Task GetThumbnailAsync_ThrowsGraphThrottledException_WhenGraphReturns429()
+    public async Task GetThumbnailAsync_ReturnsNotFound_WhenGraphReturns406()
+    {
+        // Arrange
+        var handlerMock = new Mock<HttpMessageHandler>();
+        var tokenMock = new Mock<ITokenAcquisition>();
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotAcceptable));
+
+        var service = CreateService(handlerMock, tokenMock);
+
+        // Act
+        var result = await service.GetThumbnailAsync(DriveId, FileId, ThumbnailSize.Medium);
+
+        // Assert
+        result.Should().BeOfType<GetThumbnailResult.NotFound>();
+    }
+
+    [Fact]
+    public async Task GetThumbnailAsync_ReturnsThrottled_WhenGraphReturns429()
     {
         // Arrange
         var handlerMock = new Mock<HttpMessageHandler>();
@@ -151,15 +176,15 @@ public sealed class PhotobankGraphServiceThumbnailTests
         var service = CreateService(handlerMock, tokenMock);
 
         // Act
-        var act = async () => await service.GetThumbnailAsync(DriveId, FileId, ThumbnailSize.Medium);
+        var result = await service.GetThumbnailAsync(DriveId, FileId, ThumbnailSize.Medium);
 
         // Assert
-        var ex = await act.Should().ThrowAsync<GraphThrottledException>();
-        ex.Which.RetryAfter.Should().Be(TimeSpan.FromSeconds(30));
+        var throttled = result.Should().BeOfType<GetThumbnailResult.Throttled>().Subject;
+        throttled.RetryAfter.Should().Be(TimeSpan.FromSeconds(30));
     }
 
     [Fact]
-    public async Task GetThumbnailAsync_ThrowsGraphThrottledException_WhenGraphReturns429_WithNoRetryAfterHeader()
+    public async Task GetThumbnailAsync_ReturnsThrottled_WhenGraphReturns429_WithNoRetryAfterHeader()
     {
         // Arrange
         var handlerMock = new Mock<HttpMessageHandler>();
@@ -176,15 +201,15 @@ public sealed class PhotobankGraphServiceThumbnailTests
         var service = CreateService(handlerMock, tokenMock);
 
         // Act
-        var act = async () => await service.GetThumbnailAsync(DriveId, FileId, ThumbnailSize.Medium);
+        var result = await service.GetThumbnailAsync(DriveId, FileId, ThumbnailSize.Medium);
 
         // Assert
-        var ex = await act.Should().ThrowAsync<GraphThrottledException>();
-        ex.Which.RetryAfter.Should().BeNull();
+        var throttled = result.Should().BeOfType<GetThumbnailResult.Throttled>().Subject;
+        throttled.RetryAfter.Should().BeNull();
     }
 
     [Fact]
-    public async Task GetThumbnailAsync_ThrowsHttpRequestException_WhenGraphReturns500()
+    public async Task GetThumbnailAsync_ReturnsUpstreamError_WhenGraphReturns500()
     {
         // Arrange
         var handlerMock = new Mock<HttpMessageHandler>();
@@ -201,9 +226,9 @@ public sealed class PhotobankGraphServiceThumbnailTests
         var service = CreateService(handlerMock, tokenMock);
 
         // Act
-        var act = async () => await service.GetThumbnailAsync(DriveId, FileId, ThumbnailSize.Medium);
+        var result = await service.GetThumbnailAsync(DriveId, FileId, ThumbnailSize.Medium);
 
         // Assert
-        await act.Should().ThrowAsync<HttpRequestException>();
+        result.Should().BeOfType<GetThumbnailResult.UpstreamError>();
     }
 }

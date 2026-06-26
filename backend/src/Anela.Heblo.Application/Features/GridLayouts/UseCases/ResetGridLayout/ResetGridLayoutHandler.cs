@@ -3,7 +3,6 @@ using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace Anela.Heblo.Application.Features.GridLayouts.UseCases.ResetGridLayout;
 
@@ -31,12 +30,11 @@ public class ResetGridLayoutHandler : IRequestHandler<ResetGridLayoutRequest, Re
             await _repository.DeleteAsync(userId, request.GridKey, cancellationToken);
             return new ResetGridLayoutResponse();
         }
-        catch (Exception ex) when (ex is PostgresException or NpgsqlException)
+        catch (GridLayoutPersistenceException ex)
         {
-            var pgEx = ex as PostgresException ?? ex.InnerException as PostgresException;
             _logger.LogError(ex,
-                "Database error resetting GridLayout for user={UserId} gridKey={GridKey} SqlState={SqlState}",
-                userId, request.GridKey, pgEx?.SqlState);
+                "Database error resetting GridLayout for user={UserId} gridKey={GridKey}",
+                userId, request.GridKey);
             return new ResetGridLayoutResponse(ErrorCodes.DatabaseError);
         }
     }

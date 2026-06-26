@@ -1,4 +1,6 @@
+using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Logistics.DashboardTiles;
+using Anela.Heblo.Application.Features.Logistics.Infrastructure;
 using Anela.Heblo.Application.Features.Logistics.Services;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Persistence;
@@ -24,6 +26,18 @@ public static class LogisticsModule
 
         // Register transport box completion service
         services.AddTransient<ITransportBoxCompletionService, TransportBoxCompletionService>();
+
+        // Cross-module contract: Logistics implements Catalog's ICatalogTransportSource via adapter.
+        // DI registration is owned by the provider (Logistics), not the consumer (Catalog).
+        services.AddScoped<ICatalogTransportSource, LogisticsCatalogTransportSourceAdapter>();
+
+        // Cross-module contract: Logistics provides ExpeditionList's IExpeditionPickingSource via adapter.
+        // The adapter delegates to the Logistics-namespaced IPickingListSource (bound to
+        // ShoptetApiExpeditionListSource by AddShoptetApiAdapter). DI registration is owned by
+        // the provider (Logistics), not the consumer (ExpeditionList).
+        services.AddScoped<
+            ExpeditionList.Contracts.IExpeditionPickingSource,
+            Infrastructure.LogisticsExpeditionPickingAdapter>();
 
         // Register dashboard tiles
         services.RegisterTile<InTransitBoxesTile>();

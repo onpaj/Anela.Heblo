@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { ArticleGenerationStepStatus } from '../generated/api-client';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export interface ArticleGenerationStep {
   id: string;
   stepName: string;
   sequence: number;
-  status: string;
+  status: ArticleGenerationStepStatus;
   startedAt: string;
   finishedAt: string | null;
   durationMs: number | null;
@@ -24,22 +25,23 @@ export const useArticleTraceQuery = (id: string, enabled: boolean) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.articleTrace, id],
     queryFn: async (): Promise<ArticleTrace> => {
-      const apiClient = getAuthenticatedApiClient();
-      const fullUrl = `${(apiClient as any).baseUrl}/api/articles/${id}/trace`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch article trace: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const client = getAuthenticatedApiClient();
+      const data = await client.articles_GetTrace(id);
       return {
         articleId: data.articleId ?? id,
-        steps: (data.steps ?? []) as ArticleGenerationStep[],
+        steps: (data.steps ?? []).map((step) => ({
+          id: step.id ?? '',
+          stepName: step.stepName ?? '',
+          sequence: step.sequence ?? 0,
+          status: step.status ?? ArticleGenerationStepStatus.Running,
+          startedAt: step.startedAt?.toISOString() ?? '',
+          finishedAt: step.finishedAt?.toISOString() ?? null,
+          durationMs: step.durationMs ?? null,
+          model: step.model ?? null,
+          inputJson: step.inputJson ?? null,
+          outputJson: step.outputJson ?? null,
+          errorMessage: step.errorMessage ?? null,
+        })),
       };
     },
     enabled,

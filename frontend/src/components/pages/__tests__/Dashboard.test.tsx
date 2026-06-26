@@ -9,7 +9,7 @@ import {
 import {
   useUserDashboardSettings,
   useTileData,
-  useSaveDashboardSettings
+  useSaveDashboardSettings,
 } from "../../../api/hooks/useDashboard";
 
 // Mock the health check hooks
@@ -25,13 +25,27 @@ jest.mock("../../../api/hooks/useDashboard", () => ({
   useSaveDashboardSettings: jest.fn(),
 }));
 
+let mockHasPermission: (perm: string) => boolean = () => true;
+jest.mock("../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+    hasPermission: (p: string) => mockHasPermission(p),
+  }),
+}));
+
 // Mock dashboard components
 jest.mock("../../dashboard/DashboardGrid", () => {
   return function MockDashboardGrid({ tiles, onReorder }: any) {
     return (
       <div data-testid="dashboard-grid">
         <div data-testid="tile-count">{tiles.length}</div>
-        <button onClick={() => onReorder(['tile1', 'tile2'])} data-testid="reorder-button">
+        <button
+          onClick={() => onReorder(["tile1", "tile2"])}
+          data-testid="reorder-button"
+        >
           Reorder
         </button>
       </div>
@@ -43,7 +57,9 @@ jest.mock("../../dashboard/DashboardSettings", () => {
   return function MockDashboardSettings({ onClose }: any) {
     return (
       <div data-testid="dashboard-settings">
-        <button onClick={onClose} data-testid="close-settings">Close</button>
+        <button onClick={onClose} data-testid="close-settings">
+          Close
+        </button>
       </div>
     );
   };
@@ -55,15 +71,15 @@ const mockUseLiveHealthCheck = useLiveHealthCheck as jest.MockedFunction<
 const mockUseReadyHealthCheck = useReadyHealthCheck as jest.MockedFunction<
   typeof useReadyHealthCheck
 >;
-const mockUseUserDashboardSettings = useUserDashboardSettings as jest.MockedFunction<
-  typeof useUserDashboardSettings
->;
-const mockUseTileData = useTileData as jest.MockedFunction<
-  typeof useTileData
->;
-const mockUseSaveDashboardSettings = useSaveDashboardSettings as jest.MockedFunction<
-  typeof useSaveDashboardSettings
->;
+const mockUseUserDashboardSettings =
+  useUserDashboardSettings as jest.MockedFunction<
+    typeof useUserDashboardSettings
+  >;
+const mockUseTileData = useTileData as jest.MockedFunction<typeof useTileData>;
+const mockUseSaveDashboardSettings =
+  useSaveDashboardSettings as jest.MockedFunction<
+    typeof useSaveDashboardSettings
+  >;
 
 const createQueryClient = () =>
   new QueryClient({
@@ -83,60 +99,61 @@ const renderWithQueryClient = (component: React.ReactElement) => {
 
 const mockUserSettings = {
   tiles: [
-    { tileId: 'tile1', isVisible: true, displayOrder: 0 },
-    { tileId: 'tile2', isVisible: false, displayOrder: 1 },
-    { tileId: 'tile3', isVisible: true, displayOrder: 2 }
+    { tileId: "tile1", isVisible: true, displayOrder: 0 },
+    { tileId: "tile2", isVisible: false, displayOrder: 1 },
+    { tileId: "tile3", isVisible: true, displayOrder: 2 },
   ],
-  lastModified: '2024-01-01T00:00:00Z'
+  lastModified: "2024-01-01T00:00:00Z",
 };
 
 const mockTileData = [
   {
-    tileId: 'tile1',
-    title: 'Analytics Tile',
-    description: 'Analytics data',
-    size: 'Medium',
-    category: 'Analytics',
+    tileId: "tile1",
+    title: "Analytics Tile",
+    description: "Analytics data",
+    size: "Medium",
+    category: "Analytics",
     defaultEnabled: true,
     autoShow: false,
     requiredPermissions: [],
-    data: { count: 42 }
+    data: { count: 42 },
   },
   {
-    tileId: 'tile2',
-    title: 'Finance Tile',
-    description: 'Finance data',
-    size: 'Large',
-    category: 'Finance',
+    tileId: "tile2",
+    title: "Finance Tile",
+    description: "Finance data",
+    size: "Large",
+    category: "Finance",
     defaultEnabled: true,
     autoShow: true,
     requiredPermissions: [],
-    data: { revenue: 1000 }
+    data: { revenue: 1000 },
   },
   {
-    tileId: 'tile3',
-    title: 'Operations Tile',
-    description: 'Operations data',
-    size: 'Small',
-    category: 'Operations',
+    tileId: "tile3",
+    title: "Operations Tile",
+    description: "Operations data",
+    size: "Small",
+    category: "Operations",
     defaultEnabled: false,
     autoShow: false,
     requiredPermissions: [],
-    data: { status: 'active' }
-  }
+    data: { status: "active" },
+  },
 ];
 
 describe("Dashboard", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+    mockHasPermission = () => true;
+
     // Setup default mocks
     mockUseLiveHealthCheck.mockReturnValue({
       data: { status: "healthy" },
       isLoading: false,
       error: null,
     } as any);
-    
+
     mockUseReadyHealthCheck.mockReturnValue({
       data: { status: "ready" },
       isLoading: false,
@@ -174,33 +191,33 @@ describe("Dashboard", () => {
   it("should render settings button", () => {
     renderWithQueryClient(<Dashboard />);
 
-    const settingsButton = screen.getByRole('button', { name: /nastavení/i });
+    const settingsButton = screen.getByRole("button", { name: /nastavení/i });
     expect(settingsButton).toBeInTheDocument();
   });
 
   it("should show settings when settings button is clicked", () => {
     renderWithQueryClient(<Dashboard />);
 
-    const settingsButton = screen.getByRole('button', { name: /nastavení/i });
+    const settingsButton = screen.getByRole("button", { name: /nastavení/i });
     fireEvent.click(settingsButton);
 
-    expect(screen.getByTestId('dashboard-settings')).toBeInTheDocument();
-    expect(screen.queryByTestId('dashboard-grid')).not.toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-settings")).toBeInTheDocument();
+    expect(screen.queryByTestId("dashboard-grid")).not.toBeInTheDocument();
   });
 
   it("should hide settings when close is clicked", () => {
     renderWithQueryClient(<Dashboard />);
 
     // Open settings
-    const settingsButton = screen.getByRole('button', { name: /nastavení/i });
+    const settingsButton = screen.getByRole("button", { name: /nastavení/i });
     fireEvent.click(settingsButton);
-    expect(screen.getByTestId('dashboard-settings')).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-settings")).toBeInTheDocument();
 
     // Close settings
-    const closeButton = screen.getByTestId('close-settings');
+    const closeButton = screen.getByTestId("close-settings");
     fireEvent.click(closeButton);
-    expect(screen.queryByTestId('dashboard-settings')).not.toBeInTheDocument();
-    expect(screen.getByTestId('dashboard-grid')).toBeInTheDocument();
+    expect(screen.queryByTestId("dashboard-settings")).not.toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-grid")).toBeInTheDocument();
   });
 
   it("should call health check hooks on mount", () => {
@@ -227,10 +244,10 @@ describe("Dashboard", () => {
 
     renderWithQueryClient(<Dashboard />);
 
-    expect(screen.getByTestId('dashboard-container')).toBeInTheDocument();
-    expect(screen.getByTestId('dashboard-container')).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-container")).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-container")).toBeInTheDocument();
     // Loading spinner is visible but doesn't have status role
-    expect(screen.queryByTestId('dashboard-grid')).not.toBeInTheDocument();
+    expect(screen.queryByTestId("dashboard-grid")).not.toBeInTheDocument();
   });
 
   it("should show loading spinner when settings are loading", () => {
@@ -242,19 +259,19 @@ describe("Dashboard", () => {
 
     renderWithQueryClient(<Dashboard />);
 
-    expect(screen.getByTestId('dashboard-container')).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-container")).toBeInTheDocument();
     // Loading spinner is visible but doesn't have status role
   });
 
   it("should filter visible tiles based on user settings", () => {
     renderWithQueryClient(<Dashboard />);
 
-    const grid = screen.getByTestId('dashboard-grid');
+    const grid = screen.getByTestId("dashboard-grid");
     expect(grid).toBeInTheDocument();
-    
+
     // Should show 2 tiles: tile1 (explicitly visible) and tile2 (autoShow)
-    const tileCount = screen.getByTestId('tile-count');
-    expect(tileCount).toHaveTextContent('2');
+    const tileCount = screen.getByTestId("tile-count");
+    expect(tileCount).toHaveTextContent("2");
   });
 
   it("should handle reordering tiles", async () => {
@@ -267,23 +284,23 @@ describe("Dashboard", () => {
 
     renderWithQueryClient(<Dashboard />);
 
-    const reorderButton = screen.getByTestId('reorder-button');
+    const reorderButton = screen.getByTestId("reorder-button");
     fireEvent.click(reorderButton);
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith({
         tiles: expect.arrayContaining([
           expect.objectContaining({
-            tileId: 'tile1',
+            tileId: "tile1",
             isVisible: true,
-            displayOrder: 0
+            displayOrder: 0,
           }),
           expect.objectContaining({
-            tileId: 'tile2',
+            tileId: "tile2",
             isVisible: false,
-            displayOrder: 1
-          })
-        ])
+            displayOrder: 1,
+          }),
+        ]),
       });
     });
   });
@@ -297,11 +314,11 @@ describe("Dashboard", () => {
 
     renderWithQueryClient(<Dashboard />);
 
-    const grid = screen.getByTestId('dashboard-grid');
+    const grid = screen.getByTestId("dashboard-grid");
     expect(grid).toBeInTheDocument();
-    
-    const tileCount = screen.getByTestId('tile-count');
-    expect(tileCount).toHaveTextContent('0');
+
+    const tileCount = screen.getByTestId("tile-count");
+    expect(tileCount).toHaveTextContent("0");
   });
 
   it("should handle missing user settings", () => {
@@ -313,27 +330,27 @@ describe("Dashboard", () => {
 
     renderWithQueryClient(<Dashboard />);
 
-    const grid = screen.getByTestId('dashboard-grid');
+    const grid = screen.getByTestId("dashboard-grid");
     expect(grid).toBeInTheDocument();
-    
-    const tileCount = screen.getByTestId('tile-count');
-    expect(tileCount).toHaveTextContent('0');
+
+    const tileCount = screen.getByTestId("tile-count");
+    expect(tileCount).toHaveTextContent("0");
   });
 
   it("should apply correct container styling", () => {
     renderWithQueryClient(<Dashboard />);
 
-    const container = screen.getByTestId('dashboard-container');
-    expect(container).toHaveClass('flex', 'flex-col', 'w-full');
+    const container = screen.getByTestId("dashboard-container");
+    expect(container).toHaveClass("flex", "flex-col", "w-full");
   });
 
   it("should show autoShow tiles when not explicitly disabled", () => {
     const settingsWithoutTile2 = {
       tiles: [
-        { tileId: 'tile1', isVisible: true, displayOrder: 0 },
-        { tileId: 'tile3', isVisible: true, displayOrder: 2 }
+        { tileId: "tile1", isVisible: true, displayOrder: 0 },
+        { tileId: "tile3", isVisible: true, displayOrder: 2 },
       ],
-      lastModified: '2024-01-01T00:00:00Z'
+      lastModified: "2024-01-01T00:00:00Z",
     };
 
     mockUseUserDashboardSettings.mockReturnValue({
@@ -344,18 +361,18 @@ describe("Dashboard", () => {
 
     renderWithQueryClient(<Dashboard />);
 
-    const tileCount = screen.getByTestId('tile-count');
-    expect(tileCount).toHaveTextContent('3'); // tile1 (visible), tile2 (autoShow), tile3 (visible)
+    const tileCount = screen.getByTestId("tile-count");
+    expect(tileCount).toHaveTextContent("3"); // tile1 (visible), tile2 (autoShow), tile3 (visible)
   });
 
   it("should not show autoShow tiles when explicitly disabled", () => {
     const settingsWithDisabledAutoShow = {
       tiles: [
-        { tileId: 'tile1', isVisible: true, displayOrder: 0 },
-        { tileId: 'tile2', isVisible: false, displayOrder: 1 }, // Explicitly disabled autoShow tile
-        { tileId: 'tile3', isVisible: true, displayOrder: 2 }
+        { tileId: "tile1", isVisible: true, displayOrder: 0 },
+        { tileId: "tile2", isVisible: false, displayOrder: 1 }, // Explicitly disabled autoShow tile
+        { tileId: "tile3", isVisible: true, displayOrder: 2 },
       ],
-      lastModified: '2024-01-01T00:00:00Z'
+      lastModified: "2024-01-01T00:00:00Z",
     };
 
     mockUseUserDashboardSettings.mockReturnValue({
@@ -366,18 +383,18 @@ describe("Dashboard", () => {
 
     renderWithQueryClient(<Dashboard />);
 
-    const tileCount = screen.getByTestId('tile-count');
-    expect(tileCount).toHaveTextContent('2'); // tile1 and tile3 only
+    const tileCount = screen.getByTestId("tile-count");
+    expect(tileCount).toHaveTextContent("2"); // tile1 and tile3 only
   });
 
   it("should sort tiles by display order", () => {
     const unsortedSettings = {
       tiles: [
-        { tileId: 'tile3', isVisible: true, displayOrder: 2 },
-        { tileId: 'tile1', isVisible: true, displayOrder: 0 },
-        { tileId: 'tile2', isVisible: false, displayOrder: 1 }
+        { tileId: "tile3", isVisible: true, displayOrder: 2 },
+        { tileId: "tile1", isVisible: true, displayOrder: 0 },
+        { tileId: "tile2", isVisible: false, displayOrder: 1 },
       ],
-      lastModified: '2024-01-01T00:00:00Z'
+      lastModified: "2024-01-01T00:00:00Z",
     };
 
     mockUseUserDashboardSettings.mockReturnValue({
@@ -389,6 +406,89 @@ describe("Dashboard", () => {
     renderWithQueryClient(<Dashboard />);
 
     // The tiles should be sorted by display order regardless of how they appear in the settings
-    expect(screen.getByTestId('dashboard-grid')).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-grid")).toBeInTheDocument();
+  });
+
+  it("renders a normally visible tile", () => {
+    mockUseTileData.mockReturnValue({
+      data: [{ ...mockTileData[0] }],
+      isLoading: false,
+      error: null,
+    } as any);
+    mockUseUserDashboardSettings.mockReturnValue({
+      data: {
+        tiles: [{ tileId: "tile1", isVisible: true, displayOrder: 0 }],
+        lastModified: "2024-01-01T00:00:00Z",
+      },
+      isLoading: false,
+      error: null,
+    } as any);
+
+    renderWithQueryClient(<Dashboard />);
+
+    expect(screen.getByTestId("tile-count")).toHaveTextContent("1");
+  });
+
+  it("renders (does not hide) tiles the backend flagged as unauthorized", () => {
+    mockUseTileData.mockReturnValue({
+      data: [
+        { ...mockTileData[0] }, // tile1 visible
+        { ...mockTileData[1], isUnauthorized: true, data: null }, // tile2 autoShow + unauthorized
+      ],
+      isLoading: false,
+      error: null,
+    } as any);
+    mockUseUserDashboardSettings.mockReturnValue({
+      data: {
+        tiles: [{ tileId: "tile1", isVisible: true, displayOrder: 0 }], // tile2 omitted → shows via autoShow
+        lastModified: "2024-01-01T00:00:00Z",
+      },
+      isLoading: false,
+      error: null,
+    } as any);
+
+    renderWithQueryClient(<Dashboard />);
+
+    // Both tiles pass through; the unauthorized one renders a placeholder instead of being hidden.
+    expect(screen.getByTestId("tile-count")).toHaveTextContent("2");
+  });
+
+  it("does not throw when useTileData returns null (contract drift)", () => {
+    mockUseTileData.mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+    } as any);
+
+    expect(() => renderWithQueryClient(<Dashboard />)).not.toThrow();
+
+    const tileCount = screen.getByTestId("tile-count");
+    expect(tileCount).toHaveTextContent("0");
+  });
+
+  it("does not throw when userSettings.tiles is null (contract drift)", () => {
+    mockUseUserDashboardSettings.mockReturnValue({
+      data: { tiles: null, lastModified: "2024-01-01T00:00:00Z" },
+      isLoading: false,
+      error: null,
+    } as any);
+
+    expect(() => renderWithQueryClient(<Dashboard />)).not.toThrow();
+
+    const tileCount = screen.getByTestId("tile-count");
+    expect(tileCount).toHaveTextContent("0");
+  });
+
+  it("does not throw when useTileData returns a non-array object (contract drift)", () => {
+    mockUseTileData.mockReturnValue({
+      data: { unexpected: "shape", length: 1 } as any,
+      isLoading: false,
+      error: null,
+    } as any);
+
+    expect(() => renderWithQueryClient(<Dashboard />)).not.toThrow();
+
+    const tileCount = screen.getByTestId("tile-count");
+    expect(tileCount).toHaveTextContent("0");
   });
 });

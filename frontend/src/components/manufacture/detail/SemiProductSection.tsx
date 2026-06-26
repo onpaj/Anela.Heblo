@@ -22,18 +22,18 @@ export const SemiProductSection: React.FC<SemiProductSectionProps> = ({
     : null;
 
   return (
-    <div className="bg-blue-50 rounded-lg p-3">
+    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
       {order.semiProduct ? (
         <div className="flex items-center">
           <div className="flex-1">
-            <div className="text-sm font-medium text-gray-900 mb-1">
+            <div className="text-sm font-medium text-gray-900 dark:text-graphite-text mb-1">
               {order.semiProduct.productName || "Bez názvu"}
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 dark:text-graphite-muted">
               {order.semiProduct.productCode || "Bez kódu"}
             </div>
             {directQuantity !== null && (
-              <div className="text-xs text-amber-700 mt-0.5">
+              <div className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
                 z toho {directQuantity}g přímý výstup
               </div>
             )}
@@ -45,17 +45,17 @@ export const SemiProductSection: React.FC<SemiProductSectionProps> = ({
                   type="number"
                   value={editableSemiProductQuantity}
                   onChange={(e) => onSemiProductQuantityChange(e.target.value)}
-                  className="text-lg font-bold text-gray-700 bg-white border border-gray-300 rounded px-2 py-1 w-25 text-center"
+                  className="text-lg font-bold text-gray-700 bg-white border border-gray-300 rounded px-2 py-1 w-25 text-center dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                   min="0"
                   step="1"
                 />
-                <span className="text-lg font-bold text-gray-900 ml-1">g</span>
+                <span className="text-lg font-bold text-gray-900 dark:text-graphite-text ml-1">g</span>
               </div>
             ) : (
-              <div className="text-lg font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 dark:text-graphite-text">
                 {order.semiProduct.actualQuantity || order.semiProduct.plannedQuantity || "0"}g
                 {order.semiProduct.actualQuantity && order.semiProduct.plannedQuantity && order.semiProduct.actualQuantity !== order.semiProduct.plannedQuantity && (
-                  <span className="text-xs text-gray-500 ml-1">
+                  <span className="text-xs text-gray-500 dark:text-graphite-muted ml-1">
                     (plán: {order.semiProduct.plannedQuantity}g)
                   </span>
                 )}
@@ -64,7 +64,7 @@ export const SemiProductSection: React.FC<SemiProductSectionProps> = ({
           </div>
         </div>
       ) : (
-        <p className="text-gray-500 text-center text-sm italic">
+        <p className="text-gray-500 dark:text-graphite-muted text-center text-sm italic">
           Polotovar není definován
         </p>
       )}

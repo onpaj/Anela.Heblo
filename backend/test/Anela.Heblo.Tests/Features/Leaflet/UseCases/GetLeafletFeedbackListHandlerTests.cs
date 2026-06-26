@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletFeedbackList;
+using Anela.Heblo.Application.Shared.Users;
 using Anela.Heblo.Domain.Features.Leaflet;
 using Moq;
 using Xunit;
@@ -7,7 +8,15 @@ namespace Anela.Heblo.Tests.Features.Leaflet.UseCases;
 
 public class GetLeafletFeedbackListHandlerTests
 {
-    private readonly Mock<ILeafletRepository> _repo = new();
+    private readonly Mock<ILeafletGenerationRepository> _repo = new();
+    private readonly Mock<IUserDisplayNameResolver> _userDisplayNameResolver = new();
+
+    public GetLeafletFeedbackListHandlerTests()
+    {
+        _userDisplayNameResolver
+            .Setup(r => r.ResolveAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyDictionary<string, string?>)new Dictionary<string, string?>());
+    }
 
     private static LeafletGeneration MakeGeneration(bool hasFeedback = false) =>
         new()
@@ -39,7 +48,8 @@ public class GetLeafletFeedbackListHandlerTests
             .ReturnsAsync(stats ?? DefaultStats());
     }
 
-    private GetLeafletFeedbackListHandler CreateHandler() => new(_repo.Object);
+    private GetLeafletFeedbackListHandler CreateHandler() =>
+        new(_repo.Object, _userDisplayNameResolver.Object);
 
     [Fact]
     public async Task Handle_ReturnsMappedGenerations()
@@ -61,6 +71,24 @@ public class GetLeafletFeedbackListHandlerTests
         Assert.Equal(gen.PrecisionScore, dto.PrecisionScore);
         Assert.Equal(gen.StyleScore, dto.StyleScore);
         Assert.True(dto.HasFeedback);
+    }
+
+    [Fact]
+    public async Task Handle_ResolvesUserNameFromResolver()
+    {
+        var gen = MakeGeneration(hasFeedback: true); // UserId = "user-1"
+        SetupRepo([gen]);
+        _userDisplayNameResolver
+            .Setup(r => r.ResolveAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyDictionary<string, string?>)new Dictionary<string, string?>
+            {
+                ["user-1"] = "Alice Example",
+            });
+
+        var result = await CreateHandler().Handle(new GetLeafletFeedbackListRequest(), default);
+
+        Assert.Equal("Alice Example", result.Items[0].UserName);
+        Assert.Equal("user-1", result.Items[0].UserId);
     }
 
     [Fact]

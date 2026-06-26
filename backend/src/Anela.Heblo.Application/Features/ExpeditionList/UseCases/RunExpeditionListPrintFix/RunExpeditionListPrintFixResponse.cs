@@ -5,5 +5,5 @@ namespace Anela.Heblo.Application.Features.ExpeditionList.UseCases.RunExpedition
 public class RunExpeditionListPrintFixResponse : BaseResponse
 {
     public int TotalCount { get; set; }
-    public string? ErrorMessage { get; set; }
+    public int SkippedCount { get; set; }
 }

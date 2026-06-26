@@ -9,4 +9,10 @@ public class SmartsuppOptions
     public int HttpTimeoutSeconds { get; set; } = 30;
     public string WebhookSecret { get; set; } = "";
     public string? WebhookAppId { get; set; }
+    public List<string> IgnoredEventTypes { get; set; } = new();
+
+    // Reserved for future automatic-reply (bot) features. Not consumed by the
+    // user-driven SendMessage flow, which resolves agent_id per Heblo user via
+    // SmartsuppSendMessageOptions.AgentMap (Application layer).
+    public string? AgentId { get; set; }
 }

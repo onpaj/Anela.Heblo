@@ -17,12 +17,13 @@ import {
   useMarketingAction,
   useUpdateMarketingAction,
 } from '../../../api/hooks/useMarketingCalendar';
-import { ACTION_TYPE_TO_INT, formatDateStr } from '../calendar/fullcalendarAdapters';
+import { formatDateStr } from '../calendar/fullcalendarAdapters';
 import type { CalendarEvent } from '../calendar/fullcalendarAdapters';
 import { PAGE_CONTAINER_HEIGHT } from '../../../constants/layout';
-import { useAuth } from '../../../auth/useAuth';
-
-const MARKETING_IMPORT_ROLE = 'super_user';
+import { usePermissionsContext } from '../../../auth/PermissionsContext';
+import { useIsMobile } from '../../../hooks/useMediaQuery';
+import { MobileAgendaView } from '../calendar/MobileAgendaView';
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 const CZECH_MONTHS = [
   'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
@@ -60,6 +61,12 @@ const MarketingCalendarPage: React.FC = () => {
   const [editingAction, setEditingAction] = useState<MarketingActionDto | null>(null);
   const [prefillDates, setPrefillDates] = useState<{ dateFrom: string; dateTo: string } | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const viewModeSubScreen =
+    viewMode === 'fiveWeeks' ? 'FiveWeeksView' :
+    viewMode === 'twoWeeks' ? 'TwoWeeksView' :
+    'ListView';
+  useScreenView('Marketing', 'MarketingCalendar', viewModeSubScreen);
+  const isMobile = useIsMobile();
 
   const calendarRef = useRef<FullCalendar>(null);
 
@@ -71,8 +78,8 @@ const MarketingCalendarPage: React.FC = () => {
     }
   };
 
-  const { getUserInfo } = useAuth();
-  const isAdmin = getUserInfo()?.roles?.includes(MARKETING_IMPORT_ROLE) ?? false;
+  const { hasPermission } = usePermissionsContext();
+  const isAdmin = hasPermission('marketing.marketing_calendar.write');
 
   const { startDate, endDate } = useMemo(() => {
     if (visibleRange) {
@@ -89,6 +96,7 @@ const MarketingCalendarPage: React.FC = () => {
   const listQuery = useMarketingActions({
     pageNumber,
     searchTerm: filters.searchText || undefined,
+    actionType: filters.actionType || undefined,
     startDateFrom: filters.dateFrom ? new Date(filters.dateFrom) : undefined,
     startDateTo: filters.dateTo ? new Date(filters.dateTo) : undefined,
   });
@@ -204,7 +212,7 @@ const MarketingCalendarPage: React.FC = () => {
         id,
         request: {
           title: event.title,
-          actionType: ACTION_TYPE_TO_INT[event.actionType] ?? 99,
+          actionType: event.actionType,
           startDate: new Date(dateFrom),
           endDate: new Date(dateTo),
           associatedProducts: event.associatedProducts,
@@ -230,20 +238,24 @@ const MarketingCalendarPage: React.FC = () => {
     [],
   );
 
+  if (isMobile) {
+    return <MobileAgendaView />;
+  }
+
   return (
     <div className="flex flex-col" style={{ height: PAGE_CONTAINER_HEIGHT }}>
-      <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 flex-shrink-0">
-        <h1 className="text-xl font-semibold text-gray-900">
+      <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-graphite-surface border-b border-gray-200 dark:border-graphite-border flex-shrink-0">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">
           Marketingový kalendář
         </h1>
         <div className="flex items-center gap-3">
-          <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+          <div className="flex border border-gray-200 dark:border-graphite-border rounded-lg overflow-hidden">
             <button
               onClick={() => handleViewModeChange('fiveWeeks')}
               className={`px-3 py-2 text-sm flex items-center gap-1.5 transition-colors ${
                 viewMode === 'fiveWeeks'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  : 'text-gray-600 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5'
               }`}
             >
               <Calendar className="h-4 w-4" />
@@ -254,7 +266,7 @@ const MarketingCalendarPage: React.FC = () => {
               className={`px-3 py-2 text-sm flex items-center gap-1.5 transition-colors ${
                 viewMode === 'twoWeeks'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  : 'text-gray-600 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5'
               }`}
             >
               <Calendar className="h-4 w-4" />
@@ -265,7 +277,7 @@ const MarketingCalendarPage: React.FC = () => {
               className={`px-3 py-2 text-sm flex items-center gap-1.5 transition-colors ${
                 viewMode === 'list'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  : 'text-gray-600 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5'
               }`}
             >
               <List className="h-4 w-4" />
@@ -282,7 +294,7 @@ const MarketingCalendarPage: React.FC = () => {
           {isAdmin && (
             <button
               onClick={() => setIsImportModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-graphite-surface-2 text-gray-700 dark:text-graphite-muted border border-gray-300 dark:border-graphite-border rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-white/5 transition-colors"
             >
               <Download className="h-4 w-4" />
               Import z Outlooku
@@ -303,11 +315,11 @@ const MarketingCalendarPage: React.FC = () => {
               />
             </div>
             {calendarQuery.isLoading ? (
-              <div className="text-center py-12 text-gray-500 text-sm">
+              <div className="text-center py-12 text-gray-500 dark:text-graphite-muted text-sm">
                 Načítání...
               </div>
             ) : calendarQuery.error ? (
-              <div className="text-center py-12 text-red-500 text-sm">
+              <div className="text-center py-12 text-red-500 dark:text-red-400 text-sm">
                 Chyba při načítání kalendáře.
               </div>
             ) : (
@@ -341,7 +353,7 @@ const MarketingCalendarPage: React.FC = () => {
                 setPageNumber(1);
               }}
             />
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-lg overflow-hidden">
               <MarketingActionGrid
                 actions={listActions}
                 totalPages={totalPages}

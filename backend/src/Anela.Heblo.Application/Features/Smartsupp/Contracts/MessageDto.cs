@@ -8,5 +8,11 @@ public class MessageDto
     public string? Content { get; set; }
     public DateTime CreatedAt { get; set; }
 
-    // AttachmentsJson excluded — attachment rendering is out of scope for this phase.
+    public string? AgentId { get; set; }
+    public string? SubType { get; set; }
+    public string? DeliveryStatus { get; set; }
+    public DateTime? DeliveredAt { get; set; }
+    public int? ResponseTime { get; set; }
+    public bool IsFirstReply { get; set; }
+    public string? PageUrl { get; set; }
 }

@@ -1,11 +1,11 @@
-using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 
 namespace Anela.Heblo.Application.Features.ExpeditionList.Services;
 
 public interface IExpeditionListService
 {
-    Task<PrintPickingListResult> PrintPickingListAsync(
-        PrintPickingListRequest request,
+    Task<ExpeditionPickingResult> PrintPickingListAsync(
+        ExpeditionPickingRequest request,
         IList<string>? emailList = null,
         CancellationToken cancellationToken = default);
 }

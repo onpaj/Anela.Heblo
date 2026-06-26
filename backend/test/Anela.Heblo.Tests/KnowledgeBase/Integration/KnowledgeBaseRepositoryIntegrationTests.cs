@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Shared.Rag;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.KnowledgeBase;
 using DotNet.Testcontainers.Configurations;

@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.Logistics.Contracts;
+using Anela.Heblo.Application.Features.Logistics.Contracts.Models;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using AutoMapper;
 using MediatR;
@@ -12,18 +12,18 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
 {
     private readonly ILogger<GetTransportBoxByCodeHandler> _logger;
     private readonly ITransportBoxRepository _repository;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly ILogisticsCatalogSource _catalogSource;
     private readonly IMapper _mapper;
 
     public GetTransportBoxByCodeHandler(
         ILogger<GetTransportBoxByCodeHandler> logger,
         ITransportBoxRepository repository,
-        ICatalogRepository catalogRepository,
+        ILogisticsCatalogSource catalogSource,
         IMapper mapper)
     {
         _logger = logger;
         _repository = repository;
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
         _mapper = mapper;
     }
 
@@ -48,8 +48,10 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
                 new Dictionary<string, string> { { "BoxCode", request.BoxCode } });
         }
 
-        // Check if box is in a receivable state (Reserve or InTransit)
-        var isReceivable = transportBox.State == TransportBoxState.Reserve || transportBox.State == TransportBoxState.InTransit;
+        // Check if box is in a receivable state (InTransit, Reserve, or Quarantine)
+        var isReceivable = transportBox.State == TransportBoxState.Reserve
+            || transportBox.State == TransportBoxState.InTransit
+            || transportBox.State == TransportBoxState.Quarantine;
         if (!isReceivable)
         {
             _logger.LogInformation("Transport box {BoxCode} is in state {State}, not receivable but will load details",
@@ -69,17 +71,27 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
         dto.IsReceivable = isReceivable;
 
         // Enrich each item with catalog image and current stock
+        var codes = dto.Items.Select(i => i.ProductCode).Distinct().ToList();
+        var catalogByCode = new Dictionary<string, LogisticsCatalogItem>(StringComparer.Ordinal);
+        foreach (var code in codes)
+        {
+            var item = await _catalogSource.GetCatalogItemAsync(code, cancellationToken);
+            if (item != null)
+                catalogByCode[code] = item;
+        }
+
         foreach (var itemDto in dto.Items)
         {
-            try
+            if (catalogByCode.TryGetValue(itemDto.ProductCode, out var catalogItem))
             {
-                var catalogItem = (await _catalogRepository.GetByIdAsync(itemDto.ProductCode, cancellationToken))!;
                 itemDto.ImageUrl = catalogItem.Image;
-                itemDto.OnStock = catalogItem.Stock.Eshop;
+                itemDto.OnStock = catalogItem.EshopStock;
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogWarning(ex, "Failed to load catalog image for product {ProductCode}", itemDto.ProductCode);
+                _logger.LogWarning(
+                    "Catalog item not found for product code {ProductCode} in transport box {BoxCode}; leaving image/stock unset",
+                    itemDto.ProductCode, dto.Code);
             }
         }
 

@@ -82,7 +82,7 @@ public class E2ESessionService : IE2ESessionService
             new Claim("family_name", "Test"),
             new Claim("oid", "e2e-test-object-id"),
             new Claim("tid", environmentName), // Use environment as tenant for testing
-            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.HebloUser), // Base role for application access
+            new Claim(ClaimTypes.Role, AccessRoles.Base), // Base role for application access
             new Claim("scp", "access_as_user"),
             new Claim("permission", "FinancialOverview.View")
         };

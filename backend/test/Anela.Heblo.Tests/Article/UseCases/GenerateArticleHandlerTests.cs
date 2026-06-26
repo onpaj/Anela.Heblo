@@ -56,9 +56,9 @@ public class GenerateArticleHandlerTests
 
         var response = await CreateHandler().Handle(request, default);
 
-        response.ArticleId.Should().NotBe(Guid.Empty);
+        response.ArticleId.Should().NotBeNull().And.NotBe(Guid.Empty);
         captured.Should().NotBeNull();
-        captured!.Id.Should().Be(response.ArticleId);
+        captured!.Id.Should().Be(response.ArticleId!.Value);
         captured.Topic.Should().Be(request.Topic);
         captured.Scope.Should().Be(request.Scope);
         captured.Audience.Should().Be(request.Audience);
@@ -70,7 +70,7 @@ public class GenerateArticleHandlerTests
         captured.StyleGuideDriveId.Should().Be(request.StyleGuideDriveId);
         captured.StyleGuideItemPath.Should().Be(request.StyleGuideItemPath);
         captured.Status.Should().Be(ArticleStatus.Queued);
-        captured.RequestedBy.Should().Be("John Doe");
+        captured.RequestedBy.Should().Be("user-id");
     }
 
     [Fact]
@@ -100,5 +100,43 @@ public class GenerateArticleHandlerTests
         _backgroundJobClient.Verify(c => c.Create(
             It.Is<Job>(j => j.Type == typeof(GenerateArticleJob) && j.Method.Name == nameof(GenerateArticleJob.RunAsync)),
             It.IsAny<EnqueuedState>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_AuthenticatedUserWithoutId_FallsBackToEmail()
+    {
+        // GetIdentifier() returns Id ?? Email ?? "system". When Id is missing
+        // (e.g. a future auth path that only exposes preferred_username), the
+        // Email is what we want to persist — never "system" for an authenticated
+        // user.
+        _currentUserService
+            .Setup(s => s.GetCurrentUser())
+            .Returns(new CurrentUser(Id: null, Name: "Some One", Email: "some.one@example.com", IsAuthenticated: true));
+
+        DomainArticle? captured = null;
+        _repository
+            .Setup(r => r.AddAsync(It.IsAny<DomainArticle>(), It.IsAny<CancellationToken>()))
+            .Callback<DomainArticle, CancellationToken>((a, _) => captured = a)
+            .Returns(Task.CompletedTask);
+
+        await CreateHandler().Handle(new GenerateArticleRequest { Topic = "Topic" }, default);
+
+        captured!.RequestedBy.Should().Be("some.one@example.com");
+    }
+
+    [Fact]
+    public async Task Handle_HappyPath_ReturnsHangfireJobIdAndQueuedStatus()
+    {
+        SetupAuthenticatedUser();
+        _backgroundJobClient
+            .Setup(c => c.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>()))
+            .Returns("job-123");
+
+        var response = await CreateHandler().Handle(new GenerateArticleRequest { Topic = "Topic" }, default);
+
+        response.Success.Should().BeTrue();
+        response.HangfireJobId.Should().Be("job-123");
+        response.Status.Should().Be(ArticleStatus.Queued);
+        response.ArticleId.Should().NotBeNull().And.NotBe(Guid.Empty);
     }
 }

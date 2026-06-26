@@ -1,10 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
-using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -14,11 +12,11 @@ namespace Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBox
 public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBoxStateRequest, ChangeTransportBoxStateResponse>
 {
     private readonly ITransportBoxRepository _repository;
-    private readonly IManufacturedProductInventoryRepository _inventoryRepository;
+    private readonly IInventoryReservationService _inventoryReservationService;
     private readonly IMediator _mediator;
     private readonly ILogger<ChangeTransportBoxStateHandler> _logger;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IStockUpProcessingService _stockUpProcessingService;
+    private readonly ILogisticsStockOperationService _stockOperationService;
     private readonly TimeProvider _timeProvider;
 
 
@@ -39,19 +37,19 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 
     public ChangeTransportBoxStateHandler(
         ITransportBoxRepository repository,
-        IManufacturedProductInventoryRepository inventoryRepository,
+        IInventoryReservationService inventoryReservationService,
         IMediator mediator,
         ILogger<ChangeTransportBoxStateHandler> logger,
         ICurrentUserService currentUserService,
-        IStockUpProcessingService stockUpProcessingService,
+        ILogisticsStockOperationService stockOperationService,
         TimeProvider timeProvider)
     {
         _repository = repository;
-        _inventoryRepository = inventoryRepository;
+        _inventoryReservationService = inventoryReservationService;
         _mediator = mediator;
         _logger = logger;
         _currentUserService = currentUserService;
-        _stockUpProcessingService = stockUpProcessingService;
+        _stockOperationService = stockOperationService;
         _timeProvider = timeProvider;
     }
 
@@ -245,11 +243,11 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
         {
             var documentNumber = $"BOX-{box.Id:000000}-{group.ProductCode}";
 
-            await _stockUpProcessingService.CreateOperationAsync(
+            await _stockOperationService.CreateOperationAsync(
                 documentNumber,
                 group.ProductCode,
                 group.Amount,
-                StockUpSourceType.TransportBox,
+                LogisticsStockOperationSource.TransportBox,
                 box.Id,
                 cancellationToken);
 
@@ -275,15 +273,14 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
         {
             if (item.SourceInventoryId == null) continue;
 
-            var inventoryItem = await _inventoryRepository.GetByIdAsync(item.SourceInventoryId.Value, cancellationToken);
-            if (inventoryItem == null)
-            {
-                _logger.LogWarning("InventoryItem {InventoryId} not found during restore for BoxItem {BoxItemId} — skipping restore", item.SourceInventoryId, item.Id);
-                continue;
-            }
-
-            inventoryItem.Restore((decimal)item.Amount, userName, timestamp, boxId, boxCode);
-            await _inventoryRepository.UpdateAsync(inventoryItem, cancellationToken);
+            await _inventoryReservationService.RestoreAsync(
+                inventoryId: item.SourceInventoryId.Value,
+                amount: (decimal)item.Amount,
+                userName: userName,
+                timestamp: timestamp,
+                boxId: boxId,
+                boxCode: boxCode,
+                cancellationToken: cancellationToken);
         }
     }
 }

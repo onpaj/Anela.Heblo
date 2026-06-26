@@ -1,8 +1,14 @@
+using Anela.Heblo.Application.Features.Article.Contracts;
 using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Features.Leaflet.Contracts;
+using Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
 using Microsoft.Identity.Web;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
+using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Persistence.KnowledgeBase;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,7 +36,21 @@ public static class KnowledgeBaseModule
         services.AddScoped<IIndexingStrategy, ConversationIndexingStrategy>();
         services.AddScoped<IDocumentIndexingService, DocumentIndexingService>();
 
-        // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)
+        // Cross-module contract: KnowledgeBase implements Leaflet's ILeafletKnowledgeSource via adapter.
+        // DI registration owned by provider (KnowledgeBase), not consumer (Leaflet) — keeps the
+        // dependency direction inverted properly.
+        services.AddScoped<ILeafletKnowledgeSource, KnowledgeBaseLeafletSourceAdapter>();
+
+        // Cross-module contract: KnowledgeBase implements Article's IArticleStyleGuideSource via adapter.
+        // Same provider-owned-DI pattern as the Leaflet binding above.
+        services.AddScoped<IArticleStyleGuideSource, KnowledgeBaseArticleStyleGuideSource>();
+
+        // Cross-module contract: KnowledgeBase implements Article's IArticleKnowledgeSource via adapter.
+        // Scoped to match existing Article contract bindings above.
+        services.AddScoped<IArticleKnowledgeSource, KnowledgeBaseArticleKnowledgeSource>();
+
+        // Repository (real EF Core implementation lives in the Persistence layer)
+        services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
 
         // OneDrive service — use real Graph service only when SharePoint drives are configured
         // AND real authentication is active. Mock auth has no Azure AD token so Graph calls
@@ -39,7 +59,7 @@ public static class KnowledgeBaseModule
         configuration.GetSection("KnowledgeBase").Bind(kbOptions);
         var sharePointConfigured = kbOptions.OneDriveFolderMappings.Any(m => !string.IsNullOrWhiteSpace(m.DriveId));
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
-        var bypassJwtValidation = configuration.GetValue<bool>("BypassJwtValidation", false);
+        var bypassJwtValidation = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, false);
 
         if (sharePointConfigured && !useMockAuth && !bypassJwtValidation)
         {

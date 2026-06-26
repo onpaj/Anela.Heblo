@@ -9,6 +9,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import ResponsiblePersonCombobox from "../../common/ResponsiblePersonCombobox";
+import { useManufactureSettingsQuery } from "../../../api/hooks/useManufactureSettings";
 import { ManufactureType } from "../../../api/generated/api-client";
 
 interface BasicInfoSectionProps {
@@ -52,6 +53,9 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   shouldTruncateText,
   truncateText,
 }) => {
+  const { data: manufactureSettings } = useManufactureSettingsQuery();
+  const manufactureGroupId = manufactureSettings?.manufactureGroupId ?? "";
+
   const flexiDocs = [
     { label: 'Výdej materiálu (polotovar)', value: order.docMaterialIssueForSemiProduct, date: order.docMaterialIssueForSemiProductDate, hideForSinglePhase: true },
     { label: 'Příjem polotovaru', value: order.docSemiProductReceipt, date: order.docSemiProductReceiptDate, hideForSinglePhase: true },
@@ -60,20 +64,21 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
     { label: 'Příjem výrobku', value: order.docProductReceipt, date: order.docProductReceiptDate, hideForSinglePhase: false },
   ];
   return (
-    <div className="bg-gray-50 rounded-lg p-3">
-      <h3 className="text-base font-semibold text-gray-800 mb-3 flex items-center">
-        <User className="h-4 w-4 mr-2 text-indigo-600" />
+    <div className="bg-gray-50 dark:bg-graphite-surface-2 rounded-lg p-3">
+      <h3 className="text-base font-semibold text-gray-800 dark:text-graphite-muted mb-3 flex items-center">
+        <User className="h-4 w-4 mr-2 text-indigo-600 dark:text-graphite-accent" />
         Základní informace
       </h3>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <User className="h-4 w-4 text-gray-400 mr-2" />
-            <span className="text-sm text-gray-500">Odpovědná osoba:</span>
+            <User className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+            <span className="text-sm text-gray-500 dark:text-graphite-muted">Odpovědná osoba:</span>
           </div>
           {canEditFields ? (
             <div className="w-48">
               <ResponsiblePersonCombobox
+                groupId={manufactureGroupId}
                 value={editableResponsiblePerson}
                 onChange={(value) => onResponsiblePersonChange(value)}
                 placeholder="Vyberte..."
@@ -81,7 +86,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               />
             </div>
           ) : (
-            <span className="text-sm text-gray-900">
+            <span className="text-sm text-gray-900 dark:text-graphite-text">
               {order.responsiblePerson || "Není přiřazena"}
             </span>
           )}
@@ -93,11 +98,11 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           .map(doc => (
             <div key={doc.label} className="flex items-center justify-between">
               <div className="flex items-center">
-                <Hash className="h-4 w-4 text-gray-400 mr-2" />
-                <span className="text-sm text-gray-500">{doc.label}:</span>
+                <Hash className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+                <span className="text-sm text-gray-500 dark:text-graphite-muted">{doc.label}:</span>
               </div>
               <span
-                className="text-sm text-gray-900"
+                className="text-sm text-gray-900 dark:text-graphite-text"
                 title={doc.date ? `Datum: ${formatDateTime(doc.date)}` : undefined}
               >
                 {doc.value || "-"}
@@ -110,15 +115,15 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
         {/* Manual Action Required Section */}
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <AlertCircle className="h-4 w-4 text-gray-400 mr-2" />
-            <span className="text-sm text-gray-500">Vyžaduje ruční zásah:</span>
+            <AlertCircle className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+            <span className="text-sm text-gray-500 dark:text-graphite-muted">Vyžaduje ruční zásah:</span>
           </div>
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
               checked={editableManualActionRequired}
               onChange={(e) => onManualActionRequiredChange(e.target.checked)}
-              className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+              className="h-4 w-4 text-indigo-600 border-gray-300 dark:border-graphite-border rounded focus:ring-indigo-500"
             />
             {editableManualActionRequired && (
               <button
@@ -135,47 +140,47 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm text-gray-500">Datum:</span>
+              <Calendar className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+              <span className="text-sm text-gray-500 dark:text-graphite-muted">Datum:</span>
             </div>
             {canEditFields ? (
               <input
                 type="date"
                 value={editablePlannedDate}
                 onChange={(e) => onPlannedDateChange(e.target.value)}
-                className="text-sm border border-gray-300 rounded px-2 py-1"
+                className="text-sm border border-gray-300 rounded px-2 py-1 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               />
             ) : (
-              <span className="text-sm text-gray-900">
+              <span className="text-sm text-gray-900 dark:text-graphite-text">
                 {order.plannedDate ? formatDate(order.plannedDate) : "-"}
               </span>
             )}
           </div>
         </div>
-        <div className="mt-3 pt-3 border-t border-gray-200">
+        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-graphite-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <Hash className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm text-gray-500">Šarže:</span>
+              <Hash className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+              <span className="text-sm text-gray-500 dark:text-graphite-muted">Šarže:</span>
             </div>
             {canEditFields ? (
               <input
                 type="text"
                 value={editableLotNumber}
                 onChange={(e) => onLotNumberChange(e.target.value)}
-                className="text-sm border border-gray-300 rounded px-2 py-1 w-28"
+                className="text-sm border border-gray-300 rounded px-2 py-1 w-28 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                 placeholder="38202412"
               />
             ) : (
-              <span className="text-sm text-gray-900">
+              <span className="text-sm text-gray-900 dark:text-graphite-text">
                 {order.semiProduct?.lotNumber || "-"}
               </span>
             )}
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <CalendarClock className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm text-gray-500">Expirace ({order.semiProduct?.expirationMonths} měsíců):</span>
+              <CalendarClock className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+              <span className="text-sm text-gray-500 dark:text-graphite-muted">Expirace ({order.semiProduct?.expirationMonths} měsíců):</span>
             </div>
             {canEditFields ? (
               <input
@@ -183,10 +188,10 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 lang="cs"
                 value={editableExpirationDate ? editableExpirationDate.substring(0, 7) : ""}
                 onChange={(e) => onExpirationDateChange(e.target.value + "-01")}
-                className="text-sm border border-gray-300 rounded px-2 py-1"
+                className="text-sm border border-gray-300 rounded px-2 py-1 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               />
             ) : (
-              <span className="text-sm text-gray-900">
+              <span className="text-sm text-gray-900 dark:text-graphite-text">
                 {order.semiProduct?.expirationDate ? formatDate(order.semiProduct.expirationDate) : "-"}
               </span>
             )}
@@ -194,25 +199,25 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
         </div>
 
         {/* Latest Note */}
-        <div className="mt-3 pt-3 border-t border-gray-200">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Poslední poznámka:</h4>
+        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-graphite-border">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">Poslední poznámka:</h4>
           {order.notes && order.notes.length > 0 ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 relative">
+            <div className="bg-yellow-50 border border-yellow-200 dark:bg-amber-900/20 dark:border-amber-900/40 rounded-lg p-3 relative">
               <div className="flex items-start space-x-2">
-                <div className="p-1 bg-yellow-100 rounded-full mt-1">
-                  <StickyNote className="h-3 w-3 text-yellow-600" />
+                <div className="p-1 bg-yellow-100 dark:bg-amber-900/30 rounded-full mt-1">
+                  <StickyNote className="h-3 w-3 text-yellow-600 dark:text-amber-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm font-medium text-gray-900 dark:text-graphite-text">
                       {order.notes[0].createdByUser || "Neznámý"}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 dark:text-graphite-muted">
                       {formatDateTime(order.notes[0].createdAt)}
                     </span>
                   </div>
                   <div className="relative">
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap" style={{ 
+                    <p className="text-sm text-gray-800 dark:text-graphite-muted whitespace-pre-wrap" style={{
                       display: '-webkit-box', 
                       WebkitLineClamp: 2, 
                       WebkitBoxOrient: 'vertical', 
@@ -225,10 +230,10 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                     {order.notes && order.notes[0]?.text && shouldTruncateText(order.notes[0].text) && (
                       <button
                         onClick={() => onExpandNote(order.notes![0].text || '')}
-                        className="absolute top-0 right-0 p-1 bg-yellow-100 hover:bg-yellow-200 rounded-full transition-colors"
+                        className="absolute top-0 right-0 p-1 bg-yellow-100 hover:bg-yellow-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 rounded-full transition-colors"
                         title="Rozbalit poznámku"
                       >
-                        <Maximize2 className="h-3 w-3 text-yellow-600" />
+                        <Maximize2 className="h-3 w-3 text-yellow-600 dark:text-amber-400" />
                       </button>
                     )}
                   </div>
@@ -236,7 +241,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               </div>
             </div>
           ) : (
-            <p className="text-gray-500 text-sm italic">
+            <p className="text-gray-500 dark:text-graphite-muted text-sm italic">
               Zatím nejsou žádné poznámky
             </p>
           )}

@@ -118,4 +118,27 @@ public class ProcessWebhookEventHandlerTests
 
         _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_SaveChangesThrows_RethrowsImmediately()
+    {
+        // Arrange
+        var reaction = new Mock<ISmartsuppWebhookReaction>();
+        reaction.Setup(r => r.EventName).Returns("conversation.opened");
+        reaction.Setup(r => r.HandleAsync(It.IsAny<WebhookEventContext>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("db error"));
+
+        var handler = CreateHandler(new[] { reaction.Object });
+
+        // Act
+        var act = async () => await handler.Handle(MakeRequest("conversation.opened"), CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _metrics.Verify(m => m.RecordReceived("conversation.opened", "error", It.IsAny<double>()), Times.Once);
+    }
 }

@@ -1,0 +1,78 @@
+{
+  "feature_id": "feat-3239",
+  "issue_number": 3239,
+  "created_at": "2026-06-22T07:14:17.867198Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-22T07:17:22.491750Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-22T07:21:38.886796Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-22T07:21:50.672314Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-22T07:25:48.909583Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-22T07:59:09.661156Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "introduce-getthumbnailresult-du",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T07:29:59.224993Z"
+    },
+    {
+      "name": "update-mock-implementation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T07:32:10.180105Z"
+    },
+    {
+      "name": "move-photobankgraphservice-to-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T07:37:37.919953Z"
+    },
+    {
+      "name": "wire-adapter-di-registration",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T07:42:19.249128Z"
+    },
+    {
+      "name": "rewrite-getthumbnailhandler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T07:49:12.099961Z"
+    },
+    {
+      "name": "update-handler-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T07:53:28.468637Z"
+    },
+    {
+      "name": "update-graph-service-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T07:53:28.851437Z"
+    },
+    {
+      "name": "final-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T07:59:09.464985Z"
+    }
+  ]
+}

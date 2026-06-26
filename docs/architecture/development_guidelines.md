@@ -12,6 +12,7 @@ This document defines development rules, conventions, and best practices for the
 - Communication between modules **exclusively through `contracts/`** (e.g., `IProductQueryService`)
 - `API` project **never defines or owns DTOs** – it only uses them
 - Each module owns its contract interfaces and DTOs
+- **Module-specific bootstrap values belong to that module's own anonymous endpoint**, not to the cross-cutting `/api/configuration` response. The `Configuration` module exposes only application-wide values (version, environment, mock-auth flag). Module-specific values (e.g. Manufacture's responsible-person Entra group ID) live on a module-owned anonymous endpoint such as `/api/manufacture/settings`.
 
 ### Example:
 ```csharp
@@ -58,6 +59,24 @@ public class OrderDto { } // Never in API or Xcc!
 - **Backend provides semantic data**: Return filter parameters, not constructed URLs
 - **Frontend owns routing**: URL construction happens in frontend based on its routing structure
 - **Backward compatibility**: Support both new filter-based and legacy URL approaches during transition
+
+### User Identity Resolution
+
+There is exactly **one** way to obtain the current user. See **ADR-005** for the full decision.
+
+| Concern | Lives in |
+| --- | --- |
+| `ICurrentUserService` interface | `Anela.Heblo.Domain/Features/Users/` |
+| `CurrentUserService` implementation (depends on `IHttpContextAccessor`) | `Anela.Heblo.API/Features/Users/` (outer ring, **not** Application) |
+| DI registration | `Anela.Heblo.API/Features/Users/UsersModule.cs` (`AddUsersModule()`) |
+| Resolution call-site | **inside MediatR handlers** that inject `ICurrentUserService` |
+
+**Rules:**
+- **Resolve identity inside the handler**, not the controller. Handlers inject `ICurrentUserService`.
+- **Controllers never resolve identity** — no `GetCurrentUserId()` helper, no `ICurrentUserService` injection, no stamping `UserId`/`ModifiedBy` onto requests.
+- **Request DTOs must not carry client-settable `UserId` / `ModifiedBy`** — these are server-resolved, never trusted from the client (spoofing hole).
+- **Never inject `IHttpContextAccessor` into a handler** — always go through `ICurrentUserService`.
+- When a GUID audit value is needed, use `Guid.TryParse(user.Id, out var id) ? id : null` — nullable, **no sentinel GUID** (see the `TransportBox` pattern in `CreateNewTransportBoxHandler`). Do **not** add a shared `UserIdResolver` helper unless a real consumer exists.
 
 ### Testing
 - Unit tests for domain logic
@@ -114,6 +133,19 @@ public static class OrdersModule
     }
 }
 ```
+
+### Repository bindings belong to the slice, never to `PersistenceModule`
+
+A repository's **implementation** lives in `Anela.Heblo.Persistence` (single `ApplicationDbContext`,
+Phase 1 — see ADR-001), but its **DI binding** must be written in the owning module's
+`{Feature}Module.cs`, exactly like the `IOrderRepository` line above. `PersistenceModule.cs` owns
+**only shared infrastructure**: the `DbContext`, `NpgsqlDataSource`, interceptors, telemetry, and the
+material-container code generator.
+
+Registering a repo centrally in `PersistenceModule.cs` splits one slice's wiring across two layers,
+turns `PersistenceModule` into a multi-module coupling/merge-conflict hotspot, and has already caused
+a duplicate registration (`IDqtRunRepository`). The rule is enforced by
+`PersistenceModuleTests.AddPersistenceServices_RegistersNoRepositoryBindings`.
 
 ### API Composition (Program.cs):
 ```csharp
@@ -191,6 +223,21 @@ When module A needs data from module B:
 3. Inject interface in module A
 4. Never access module B's domain or infrastructure directly
 
+### Cross-Module Communication Example: ILeafletKnowledgeSource
+
+When module A needs **read-only access** to data in module B, the dependency must **invert**: the consumer owns the contract, the provider implements an adapter.
+
+**Pattern:**
+1. **Consumer (A) defines the contract.** Module A declares an interface in its own `Contracts/` folder, exposing only the operations it actually consumes (no speculative methods).
+2. **Provider (B) implements the contract via an adapter.** Module B writes an adapter class that delegates to its existing internal services. The adapter lives in module B's `Infrastructure/`.
+3. **Provider (B) registers the DI binding.** Module B's `{Module}.cs` registers `services.AddScoped<IConsumerContract, ProviderAdapter>();`. The consumer module never touches this registration.
+
+**Concrete example in this codebase:**
+- **Consumer contract**: `Anela.Heblo.Application.Features.Leaflet.Contracts.ILeafletKnowledgeSource` (Leaflet-owned)
+- **Provider adapter**: `Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure.KnowledgeBaseLeafletSourceAdapter` (KnowledgeBase-owned)
+- **DI registration**: `KnowledgeBaseModule.AddKnowledgeBaseModule` registers the binding
+- **Validation**: A reflection-based test in `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` enforces that Leaflet types contain no references to KnowledgeBase-owned namespaces. Future regressions fail CI.
+
 ---
 
 ## 🏗️ Architecture Decision Records (ADRs)
@@ -213,6 +260,43 @@ When module A needs data from module B:
 - **Decision**: Use standard ASP.NET Core Controllers with MediatR for request handling
 - **Consequences**: Clean architecture, testable handlers, standard /api/{controller} endpoints
 
+### ADR-004: Repository DI Bindings Live in the Feature Module, Not `PersistenceModule`
+- **Status**: Accepted (2026-06-05)
+- **Context**: Repository **implementations** live in `Anela.Heblo.Persistence` because of the single
+  shared `ApplicationDbContext` (ADR-001). But the **DI binding**
+  (`services.AddScoped<IRepo, RepoImpl>()`) was written in two different places depending on the
+  module: some feature modules registered their own repos in `{Feature}Module.cs` (correct), while
+  ~15 modules had their repos registered centrally in `Anela.Heblo.Persistence/PersistenceModule.cs`.
+  This split a single vertical slice's wiring across two layers, turned `PersistenceModule` into a
+  multi-module coupling/merge-conflict hotspot, contradicted the documented DI pattern, and had
+  already produced a duplicate registration (`IDqtRunRepository`).
+- **Decision**: A repository's DI binding is **always** declared in its owning module's
+  `{Feature}Module.cs`. `PersistenceModule.cs` registers **only shared infrastructure**: the
+  `DbContext`, `NpgsqlDataSource`, interceptors, telemetry, and the material-container code generator
+  — never a repository. Repository implementation classes are `public` so the Application-layer module
+  can bind them. The implementation file still lives under `Persistence/{Feature}/`.
+- **Consequences**:
+  - Each vertical slice owns its full wiring in one file; adding a feature touches one module, not two.
+  - `PersistenceModule` stays small and stable (no per-feature churn).
+  - Enforced by `PersistenceModuleTests.AddPersistenceServices_RegistersNoRepositoryBindings`, which
+    fails CI if any `*Repository` binding reappears in `PersistenceModule`.
+  - Module-wiring tests that mock a repository must register the mock **after** the
+    `Add{Feature}Module` call so the mock overrides the module's real binding.
+- **Supersedes**: the previous mixed convention where `PersistenceModule` centrally registered
+  repositories. All future implementations must follow this pattern.
+
+### ADR-005: User Identity Resolution
+- **Status**: Accepted
+- **Context**: Identity resolution had drifted into two coexisting patterns — a `BaseApiController.GetCurrentUserId()` helper that duplicated `CurrentUserService`'s claim-priority chain (used by `Dashboard`, `CarrierCooling`, `GiftSettings`), alongside the handler-side `ICurrentUserService` pattern used by 60+ other handlers. A daily arch-review routine kept re-filing fragments of the same concern (impl location, missing `UsersModule`, dead controller injections, direct `IHttpContextAccessor` use) because the canonical rule was written down nowhere.
+- **Decision**: There is exactly one way to obtain the current user. The `ICurrentUserService` interface lives in `Domain/Features/Users/`; the `CurrentUserService` implementation lives in `API/Features/Users/` (outer ring, since it depends on the web-only `IHttpContextAccessor`); DI is wired in `UsersModule.cs`. **Identity is resolved inside MediatR handlers** via injected `ICurrentUserService` — never in controllers, never via a controller helper, never via direct `IHttpContextAccessor`. Request DTOs carry no client-settable `UserId`/`ModifiedBy`. GUID audit values use `Guid.TryParse(user.Id, out var id) ? id : null` with no sentinel. See the *User Identity Resolution* practices section above.
+- **Consequences**: `BaseApiController.GetCurrentUserId()`, the three outlier controllers' identity assignments, and the spoofable DTO fields are removed (PR #2602, the final convergence of five arch-review findings). This ADR is the single source of truth — arch-review should treat any controller-side identity resolution or handler-side `IHttpContextAccessor` use as a violation of an accepted decision, not a new finding.
+
+### ADR-006: Light and Dark Mode Required for Every Frontend Component
+- **Status**: Accepted (2026-06-25)
+- **Context**: The frontend supports a light theme and a "Graphite" dark theme (Tailwind `darkMode: 'class'`, toggled via `ThemeContext` on `<html>`, persisted in `localStorage`). Dark mode was rolled out incrementally, so many components were authored with light-only utilities (`bg-white`, `text-gray-900`, `border-gray-200`) that render with broken contrast in dark mode. Retrofitting after the fact is expensive, and a daily review kept re-discovering the same theming gaps on new screens.
+- **Decision**: Every frontend component that renders color (background, text, border, ring, shadow, divider, icon, status) **must render correctly in both light and dark mode**. Support is **additive** — keep the light class and append a matching `dark:` variant, or use a design-system class (`.card`, `.input`, `.btn-*`, `.text-h*`, `.text-body*`, `.badge-*`) that already encodes both themes (prefer the latter). Map raw light classes to the `graphite-*` tokens per `docs/design/dark-mode-conversion-guide.md`: surfaces → `graphite-surface`/`surface-2`, text → `graphite-text`/`muted`/`faint`, borders → `graphite-border`, accents → `graphite-accent`; status pills keep their hue at `~900/30` bg + `~300` text. Both themes must meet WCAG 2.1 AA contrast. Applies to all routes, modals, drawers, tab panels, tables, forms, badges, and shared components.
+- **Consequences**: Dark mode stays complete by construction instead of via recurring audits; new screens are theme-correct on first review. Slightly more work per component, and UI reviews must verify both themes (toggle, or the Playwright dev instance on `:3100`). Recommended follow-up (not yet implemented): a lint/CI check that flags light-only color utilities lacking a `dark:` sibling. Cross-session summary in `memory/decisions/light-dark-mode-required.md`.
+
 ---
 
 ## ⚠️ Common Pitfalls to Avoid
@@ -224,6 +308,7 @@ When module A needs data from module B:
 5. **Don't bypass contracts** - Always communicate through interfaces
 6. **Don't create anemic domain models** - Put behavior in entities
 7. **Don't ignore module boundaries** - Respect the architecture
+8. **Don't resolve user identity in controllers** - No `GetCurrentUserId()` helper, no `IHttpContextAccessor` in handlers; resolve via `ICurrentUserService` inside the handler (ADR-005)
 
 ---
 
@@ -233,3 +318,7 @@ When module A needs data from module B:
 - [FastEndpoints Documentation](https://fast-endpoints.com/)
 - [Domain-Driven Design](https://martinfowler.com/tags/domain%20driven%20design.html)
 - [Feature Folders](https://scottsauber.com/2016/04/25/feature-folder-structure-in-asp-net-core/)
+
+## Feature Flags
+
+Use `IFeatureFlagChecker` for all flag evaluation in business code — never call OpenFeature SDK directly. Always use `FeatureFlagKeys` constants (never raw strings). See [docs/development/feature-flags.md](../development/feature-flags.md) for the full guide.

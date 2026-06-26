@@ -17,6 +17,7 @@ public class PhotobankAutoTagJob : IRecurringJob
     private readonly AutoTagOptions _options;
     private readonly ILogger<PhotobankAutoTagJob> _logger;
     private readonly IPhotobankTagsCache _cache;
+    private readonly IRecurringJobStatusChecker _statusChecker;
 
     public RecurringJobMetadata Metadata { get; } = new()
     {
@@ -32,18 +33,24 @@ public class PhotobankAutoTagJob : IRecurringJob
         IChatClient chat,
         IOptions<AutoTagOptions> options,
         ILogger<PhotobankAutoTagJob> logger,
-        IPhotobankTagsCache cache)
+        IPhotobankTagsCache cache,
+        IRecurringJobStatusChecker statusChecker)
     {
         _repo = repo;
         _chat = chat;
         _options = options.Value;
         _logger = logger;
         _cache = cache;
+        _statusChecker = statusChecker;
     }
 
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        if (!_options.Enabled)
+        // defaultIfMissing: false — LLM-cost job must stay off until an operator explicitly enables it in the DB.
+        if (!await _statusChecker.IsJobEnabledAsync(
+                Metadata.JobName,
+                cancellationToken,
+                defaultIfMissing: Metadata.DefaultIsEnabled))
         {
             _logger.LogInformation("Job {JobName} is disabled. Skipping.", Metadata.JobName);
             return;

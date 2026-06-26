@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.Invoices.Contracts;
-using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Invoices;
+using Anela.Heblo.Application.Shared;
 using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;

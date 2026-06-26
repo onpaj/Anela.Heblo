@@ -32,8 +32,8 @@ const PurchaseHistoryTab: React.FC<PurchaseHistoryTabProps> = ({
   if (sortedHistory.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center text-gray-500">
-          <ShoppingCart className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+        <div className="text-center text-gray-500 dark:text-graphite-muted">
+          <ShoppingCart className="h-12 w-12 mx-auto mb-2 text-gray-300 dark:text-graphite-faint" />
           <p className="text-lg font-medium">Žádná historie nákupů</p>
           <p className="text-sm">
             Pro tento produkt není k dispozici historie nákupů
@@ -46,66 +46,66 @@ const PurchaseHistoryTab: React.FC<PurchaseHistoryTabProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <ShoppingCart className="h-5 w-5 mr-2 text-gray-500" />
+        <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text flex items-center">
+          <ShoppingCart className="h-5 w-5 mr-2 text-gray-500 dark:text-graphite-muted" />
           Historie nákupů ({sortedHistory.length} záznamů)
         </h3>
       </div>
 
       {/* Purchase history grid with fixed height and scrollbar */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden dark:bg-graphite-surface dark:border-graphite-border">
         <div className="h-96 overflow-y-auto">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+            <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 dark:bg-graphite-surface-2 dark:border-graphite-border">
               <tr>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                <th className="text-left py-3 px-4 font-medium text-gray-700 dark:text-graphite-muted">
                   Datum
                 </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                <th className="text-left py-3 px-4 font-medium text-gray-700 dark:text-graphite-muted">
                   Dodavatel
                 </th>
-                <th className="text-right py-3 px-4 font-medium text-gray-700">
+                <th className="text-right py-3 px-4 font-medium text-gray-700 dark:text-graphite-muted">
                   Množství
                 </th>
-                <th className="text-right py-3 px-4 font-medium text-gray-700">
+                <th className="text-right py-3 px-4 font-medium text-gray-700 dark:text-graphite-muted">
                   Cena/ks
                 </th>
-                <th className="text-right py-3 px-4 font-medium text-gray-700">
+                <th className="text-right py-3 px-4 font-medium text-gray-700 dark:text-graphite-muted">
                   Celkem
                 </th>
-                <th className="text-center py-3 px-4 font-medium text-gray-700">
+                <th className="text-center py-3 px-4 font-medium text-gray-700 dark:text-graphite-muted">
                   Doklad
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-graphite-border">
               {sortedHistory.map((record, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-gray-900">
+                <tr key={index} className="hover:bg-gray-50 dark:hover:bg-white/5">
+                  <td className="py-3 px-4 text-gray-900 dark:text-graphite-text">
                     {formatDate(record.date)}
                   </td>
                   <td
-                    className="py-3 px-4 text-gray-900 max-w-xs truncate"
+                    className="py-3 px-4 text-gray-900 dark:text-graphite-text max-w-xs truncate"
                     title={record.supplierName || "-"}
                   >
                     {record.supplierName || "-"}
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-900 font-medium">
+                  <td className="py-3 px-4 text-right text-gray-900 dark:text-graphite-text font-medium">
                     {record.amount
                       ? Math.round(record.amount * 100) / 100
                       : "-"}
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-900 font-medium">
+                  <td className="py-3 px-4 text-right text-gray-900 dark:text-graphite-text font-medium">
                     {record.pricePerPiece
                       ? `${record.pricePerPiece.toLocaleString("cs-CZ", { minimumFractionDigits: 2 })} Kč`
                       : "-"}
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-900 font-semibold">
+                  <td className="py-3 px-4 text-right text-gray-900 dark:text-graphite-text font-semibold">
                     {record.priceTotal
                       ? `${record.priceTotal.toLocaleString("cs-CZ", { minimumFractionDigits: 2 })} Kč`
                       : "-"}
                   </td>
-                  <td className="py-3 px-4 text-center font-mono text-gray-500 text-xs">
+                  <td className="py-3 px-4 text-center font-mono text-gray-500 dark:text-graphite-muted text-xs">
                     {record.documentNumber || "-"}
                   </td>
                 </tr>
@@ -116,38 +116,38 @@ const PurchaseHistoryTab: React.FC<PurchaseHistoryTabProps> = ({
       </div>
 
       {/* Summary */}
-      <div className="bg-blue-50 rounded-lg p-4">
+      <div className="bg-blue-50 rounded-lg p-4 dark:bg-blue-900/30">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center">
-            <div className="text-sm font-medium text-gray-600 mb-1">
+            <div className="text-sm font-medium text-gray-600 dark:text-graphite-muted mb-1">
               Celkové nákupy
             </div>
-            <div className="text-xl font-bold text-blue-900">
+            <div className="text-xl font-bold text-blue-900 dark:text-blue-300">
               {sortedHistory
                 .reduce((sum, record) => sum + (record.amount || 0), 0)
                 .toLocaleString("cs-CZ")}
             </div>
-            <div className="text-xs text-gray-500">kusů celkem</div>
+            <div className="text-xs text-gray-500 dark:text-graphite-muted">kusů celkem</div>
           </div>
 
           <div className="text-center">
-            <div className="text-sm font-medium text-gray-600 mb-1">
+            <div className="text-sm font-medium text-gray-600 dark:text-graphite-muted mb-1">
               Celková hodnota
             </div>
-            <div className="text-xl font-bold text-blue-900">
+            <div className="text-xl font-bold text-blue-900 dark:text-blue-300">
               {sortedHistory
                 .reduce((sum, record) => sum + (record.priceTotal || 0), 0)
                 .toLocaleString("cs-CZ", { minimumFractionDigits: 2 })}{" "}
               Kč
             </div>
-            <div className="text-xs text-gray-500">celkové náklady</div>
+            <div className="text-xs text-gray-500 dark:text-graphite-muted">celkové náklady</div>
           </div>
 
           <div className="text-center">
-            <div className="text-sm font-medium text-gray-600 mb-1">
+            <div className="text-sm font-medium text-gray-600 dark:text-graphite-muted mb-1">
               Průměrná cena
             </div>
-            <div className="text-xl font-bold text-blue-900">
+            <div className="text-xl font-bold text-blue-900 dark:text-blue-300">
               {sortedHistory.length > 0
                 ? (
                     sortedHistory.reduce(
@@ -158,7 +158,7 @@ const PurchaseHistoryTab: React.FC<PurchaseHistoryTabProps> = ({
                 : "0"}{" "}
               Kč
             </div>
-            <div className="text-xs text-gray-500">za kus</div>
+            <div className="text-xs text-gray-500 dark:text-graphite-muted">za kus</div>
           </div>
         </div>
       </div>

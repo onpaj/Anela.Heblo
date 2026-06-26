@@ -1,21 +1,13 @@
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
-using FluentAssertions;
-using FluentAssertions;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using FluentAssertions;
 using Microsoft.Extensions.Options;
-using FluentAssertions;
 using Moq;
-using FluentAssertions;
 using Xunit;
-using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Manufacture.Services;
 
@@ -416,5 +408,42 @@ public class ManufactureAnalysisMapperTests
         result.OverstockPercentage.Should().Be(0.0);
         result.BatchSize.Should().Be("0");
         result.IsConfigured.Should().BeFalse();
+    }
+
+    [Fact]
+    public void MapToDto_MapsManufacturedStock()
+    {
+        // Arrange
+        var catalogItem = new CatalogAggregate
+        {
+            ProductCode = "PROD001",
+            ProductName = "Product One",
+            Properties = new CatalogProperties
+            {
+                OptimalStockDaysSetup = 30,
+                StockMinSetup = 25,
+                BatchSize = 5
+            },
+            Stock = new StockData
+            {
+                Erp = 100,
+                Transport = 0,
+                Manufactured = 12
+            }
+        };
+
+        // Act
+        var result = _mapper.MapToDto(
+            catalogItem,
+            ManufacturingStockSeverity.Adequate,
+            dailySalesRate: 1.0,
+            salesInPeriod: 30.0,
+            stockDaysAvailable: 100.0,
+            overstockPercentage: 200.0,
+            isInProduction: false);
+
+        // Assert
+        result.ManufacturedStock.Should().Be(12.0);
+        result.CurrentStock.Should().Be(112.0, "CurrentStock is Available = Erp + Transport + Manufactured");
     }
 }

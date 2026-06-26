@@ -13,6 +13,7 @@ import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import DashboardGrid from "../dashboard/DashboardGrid";
 import DashboardSettings from "../dashboard/DashboardSettings";
 import { useIsMobile } from "../../hooks/useMediaQuery";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const Dashboard: React.FC = () => {
   useLiveHealthCheck();
@@ -21,25 +22,26 @@ const Dashboard: React.FC = () => {
   const isMobile = useIsMobile();
   const [showSettings, setShowSettings] = useState(false);
 
+  useScreenView('Dashboard', 'Dashboard');
+
   const { data: userSettings, isLoading: settingsLoading } = useUserDashboardSettings();
   const { data: allTileData = [], isLoading: dataLoading } = useTileData();
   const saveDashboardSettings = useSaveDashboardSettings();
 
-  // Filter visible tiles based on user settings and handle AutoShow tiles
   const visibleTileData = React.useMemo(() => {
-    if (!userSettings || !allTileData.length) return [];
+    const tileData = Array.isArray(allTileData) ? allTileData : [];
+    const settingsTiles = Array.isArray(userSettings?.tiles) ? userSettings!.tiles : [];
 
-    // Get user's visible tile settings
-    const userTileSettings = userSettings.tiles.reduce((acc, tile) => {
+    if (!userSettings || !Array.isArray(userSettings.tiles) || tileData.length === 0) return [];
+
+    const userTileSettings = settingsTiles.reduce((acc, tile) => {
       acc[tile.tileId] = tile;
       return acc;
     }, {} as Record<string, any>);
 
-    // Filter and sort tiles
-    return allTileData
+    return tileData
       .filter(tile => {
         const userSetting = userTileSettings[tile.tileId];
-        // Show tile if user has it enabled, or if it's AutoShow and not explicitly disabled
         return userSetting?.isVisible || (tile.autoShow && userSetting?.isVisible !== false);
       })
       .sort((a, b) => {
@@ -52,22 +54,19 @@ const Dashboard: React.FC = () => {
   const handleReorder = async (tileIds: string[]) => {
     if (!userSettings) return;
 
-    // Create updated tiles with new order
-    const updatedTiles = tileIds.map((tileId, index) => {
-      const existingTile = userSettings.tiles.find(t => t.tileId === tileId);
-      return {
-        tileId,
-        isVisible: existingTile?.isVisible ?? true,
-        displayOrder: index
-      };
-    });
+    const settingsTiles = Array.isArray(userSettings.tiles) ? userSettings.tiles : [];
 
-    // Add tiles that weren't reordered (not visible)
-    userSettings.tiles.forEach(tile => {
-      if (!tileIds.includes(tile.tileId)) {
-        updatedTiles.push(tile);
-      }
-    });
+    const updatedTiles = [
+      ...tileIds.map((tileId, index) => {
+        const existingTile = settingsTiles.find(t => t.tileId === tileId);
+        return {
+          tileId,
+          isVisible: existingTile?.isVisible ?? true,
+          displayOrder: index
+        };
+      }),
+      ...settingsTiles.filter(tile => !tileIds.includes(tile.tileId))
+    ];
 
     await saveDashboardSettings.mutateAsync({ tiles: updatedTiles });
   };
@@ -84,16 +83,16 @@ const Dashboard: React.FC = () => {
       <div className="flex-shrink-0 mb-3 px-3 sm:px-4 md:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-graphite-text">
               Dashboard
             </h1>
-            <p className="mt-2 text-gray-600 hidden sm:block">
+            <p className="mt-2 text-gray-600 dark:text-graphite-muted hidden sm:block">
               Přehled systému a aktuálního stavu
             </p>
           </div>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center space-x-2 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 transition-colors hidden md:flex"
+            className="flex items-center space-x-2 px-3 py-2 bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark hover:bg-gray-50 dark:hover:bg-white/5 transition-colors hidden md:flex"
           >
             <Settings className="h-4 w-4" />
             <span className="text-sm font-medium">Nastavení</span>

@@ -1,35 +1,42 @@
 using Anela.Heblo.Application.Features.Article.UseCases.GetFeedbackList;
+using Anela.Heblo.Application.Shared.Users;
 using Anela.Heblo.Domain.Features.Article;
 using FluentAssertions;
 using Moq;
-using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
 
 namespace Anela.Heblo.Tests.Article.UseCases;
 
 public class GetArticleFeedbackListHandlerTests
 {
     private readonly Mock<IArticleRepository> _repository = new();
+    private readonly Mock<IUserDisplayNameResolver> _userDisplayNameResolver = new();
 
-    private GetArticleFeedbackListHandler CreateHandler() => new(_repository.Object);
+    public GetArticleFeedbackListHandlerTests()
+    {
+        _userDisplayNameResolver
+            .Setup(r => r.ResolveAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyDictionary<string, string?>)new Dictionary<string, string?>());
+    }
+
+    private GetArticleFeedbackListHandler CreateHandler() =>
+        new(_repository.Object, _userDisplayNameResolver.Object);
 
     [Fact]
     public async Task Handle_DefaultParams_RunsPagedAndStatsInParallelAndProjectsResults()
     {
-        var article = new DomainArticle
-        {
-            Id = Guid.NewGuid(),
-            Topic = "Sun care",
-            Title = "Sun care title",
-            RequestedBy = "alice",
-            CreatedAt = DateTimeOffset.UtcNow,
-            PrecisionScore = 4,
-            StyleScore = 5,
-            FeedbackComment = "ok",
-        };
+        var article = new ArticleFeedbackProjection(
+            Id: Guid.NewGuid(),
+            Title: "Sun care title",
+            Topic: "Sun care",
+            RequestedBy: "alice",
+            CreatedAt: DateTimeOffset.UtcNow,
+            PrecisionScore: 4,
+            StyleScore: 5,
+            FeedbackComment: "ok");
 
         _repository.Setup(r => r.GetFeedbackPagedAsync(
                 null, null, "CreatedAt", true, 1, 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(((IReadOnlyList<DomainArticle>)new[] { article }, 1));
+            .ReturnsAsync(((IReadOnlyList<ArticleFeedbackProjection>)new[] { article }, 1));
 
         _repository.Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ArticleFeedbackStats(10, 4, 4.5, 4.0));
@@ -54,11 +61,43 @@ public class GetArticleFeedbackListHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ResolvesUserNameFromRequestedBy()
+    {
+        var article = new ArticleFeedbackProjection(
+            Id: Guid.NewGuid(),
+            Title: "Sun care title",
+            Topic: "Sun care",
+            RequestedBy: "alice@anela.cz",
+            CreatedAt: DateTimeOffset.UtcNow,
+            PrecisionScore: 4,
+            StyleScore: 5,
+            FeedbackComment: "ok");
+
+        _repository.Setup(r => r.GetFeedbackPagedAsync(
+                It.IsAny<bool?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<bool>(),
+                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(((IReadOnlyList<ArticleFeedbackProjection>)new[] { article }, 1));
+        _repository.Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ArticleFeedbackStats(1, 1, 4.0, 5.0));
+        _userDisplayNameResolver
+            .Setup(r => r.ResolveAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyDictionary<string, string?>)new Dictionary<string, string?>
+            {
+                ["alice@anela.cz"] = "Alice Example",
+            });
+
+        var response = await CreateHandler().Handle(new GetArticleFeedbackListRequest(), default);
+
+        response.Items[0].UserName.Should().Be("Alice Example");
+        response.Items[0].RequestedBy.Should().Be("alice@anela.cz");
+    }
+
+    [Fact]
     public async Task Handle_UnknownSortBy_FallsBackToCreatedAt()
     {
         _repository.Setup(r => r.GetFeedbackPagedAsync(
                 It.IsAny<bool?>(), It.IsAny<string?>(), "CreatedAt", true, 1, 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(((IReadOnlyList<DomainArticle>)Array.Empty<DomainArticle>(), 0));
+            .ReturnsAsync(((IReadOnlyList<ArticleFeedbackProjection>)Array.Empty<ArticleFeedbackProjection>(), 0));
         _repository.Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ArticleFeedbackStats(0, 0, null, null));
 
@@ -77,7 +116,7 @@ public class GetArticleFeedbackListHandlerTests
         _repository.Setup(r => r.GetFeedbackPagedAsync(
                 It.IsAny<bool?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<bool>(),
                 It.IsAny<int>(), 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(((IReadOnlyList<DomainArticle>)Array.Empty<DomainArticle>(), 0));
+            .ReturnsAsync(((IReadOnlyList<ArticleFeedbackProjection>)Array.Empty<ArticleFeedbackProjection>(), 0));
         _repository.Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ArticleFeedbackStats(0, 0, null, null));
 

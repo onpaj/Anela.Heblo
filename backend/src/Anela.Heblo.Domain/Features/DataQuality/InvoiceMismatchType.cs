@@ -8,5 +8,6 @@ public enum InvoiceMismatchType
     MissingInShoptet = 2,
     TotalWithVatDiffers = 4,
     TotalWithoutVatDiffers = 8,
-    ItemsDiffer = 16
+    ItemsDiffer = 16,
+    DuplicateInvoiceCode = 32
 }

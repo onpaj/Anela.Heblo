@@ -43,6 +43,12 @@ public class ExpeditionOrderDetail
 
     [JsonPropertyName("notes")]
     public OrderNotes? Notes { get; set; }
+
+    [JsonPropertyName("shipping")]
+    public OrderShippingSummary? Shipping { get; set; }
+
+    [JsonPropertyName("status")]
+    public OrderStatusSummary? Status { get; set; }
 }
 
 public class ExpeditionAddress

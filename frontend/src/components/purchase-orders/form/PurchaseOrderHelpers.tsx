@@ -152,8 +152,10 @@ export const transformExistingOrderData = (
       : [createDefaultLine()];
 
   // Create supplier object from existing data
+  // Note: PurchaseOrderSummaryDto doesn't include supplierId, only supplierName.
+  // We use 0 as a placeholder supplier ID for the form's SupplierDto.
   const existingSupplier = new SupplierDto({
-    id: existingOrderData.supplierId || 0,
+    id: 0,
     name: existingOrderData.supplierName || "",
     code: "UNKNOWN", // We don't have supplier code in existing data
   });

@@ -11,6 +11,7 @@ using Anela.Heblo.API;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Domain.Features.Catalog.Inventory;
 using Microsoft.Extensions.Hosting;
 using Hangfire;
 using Hangfire.Common;
@@ -103,6 +104,14 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
             foreach (var d in oneDriveDescriptors)
                 services.Remove(d);
             services.AddScoped<IOneDriveService, MockOneDriveService>();
+
+            // Replace MaterialContainerCodeGenerator with a no-op mock in tests.
+            // MaterialContainerCodeGenerator depends on NpgsqlDataSource (raw ADO.NET) which is not registered
+            // when UseInMemoryDatabase=true — the real data source is only created for non-InMemory runs.
+            var codeGeneratorDescriptors = services.Where(s => s.ServiceType == typeof(IMaterialContainerCodeGenerator)).ToList();
+            foreach (var d in codeGeneratorDescriptors)
+                services.Remove(d);
+            services.AddScoped<IMaterialContainerCodeGenerator, MockMaterialContainerCodeGenerator>();
 
             // Apply any additional service configuration from derived classes
             ConfigureTestServices(services);
@@ -201,3 +210,20 @@ public class MockBackgroundJobClient : IBackgroundJobClient
 
     public bool ChangeState(string jobId, IState state, string expectedStateName) => true;
 }
+
+/// <summary>
+/// No-op implementation of IMaterialContainerCodeGenerator for test environments.
+/// MaterialContainerCodeGenerator depends on NpgsqlDataSource which is not registered when
+/// UseInMemoryDatabase=true — the real data source is only built for non-InMemory runs.
+/// </summary>
+public class MockMaterialContainerCodeGenerator : IMaterialContainerCodeGenerator
+{
+    public Task<IReadOnlyList<string>> GenerateAsync(int count, CancellationToken ct)
+    {
+        var codes = Enumerable.Range(1, count)
+            .Select(i => $"INT-TEST-{i:D8}")
+            .ToList();
+        return Task.FromResult<IReadOnlyList<string>>(codes);
+    }
+}
+

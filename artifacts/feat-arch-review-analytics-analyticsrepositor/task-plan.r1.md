@@ -1,0 +1,5 @@
+Plan complete and saved to `docs/superpowers/plans/2026-06-04-decouple-analytics-repository-from-invoices-and-bank.md`.
+
+**Summary:** 15 bite-sized tasks (TDD: Red → Green → Refactor → Commit). Two Consumer-Owned Contracts in `Anela.Heblo.Domain.Features.Analytics`, two `internal sealed` adapters in `Application.Features.{Invoices,Bank}.Infrastructure` (taking `ApplicationDbContext` directly per arch Decision 1), `AnalyticsRepository` refactored to drop `ApplicationDbContext` entirely (arch Amendment 3), DI registered as **Scoped** (arch Decision 2 — deviates from spec's Transient because the adapters wrap a Scoped DbContext), and four new `ModuleBoundariesTests` rules to prevent regression.
+
+Per the pipeline note, I'm skipping the execution-choice prompt — the saved plan file is the artifact.

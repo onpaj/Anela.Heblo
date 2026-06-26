@@ -1,0 +1,36 @@
+{
+  "feature_id": "feat-3282",
+  "issue_number": 3282,
+  "created_at": "2026-06-22T18:14:27.453142Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-22T18:19:12.084817Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-22T18:23:16.810135Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-22T18:25:34.154654Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-22T18:28:26.519507Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-22T19:24:10.783059Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "write-calendar-view-handler-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T19:24:03.526931Z"
+    }
+  ]
+}

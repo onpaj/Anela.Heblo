@@ -86,6 +86,7 @@ public class CreateManufacturedInventoryItemHandlerTests
         _repositoryMock.Verify(
             r => r.AddAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()),
             Times.Once);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }
 
@@ -150,6 +151,7 @@ public class UpdateManufacturedInventoryItemHandlerTests
         result.Item.Should().NotBeNull();
         existingItem.Amount.Should().Be(15m);
         _repositoryMock.Verify(r => r.UpdateAsync(existingItem, It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -209,6 +211,7 @@ public class DeleteManufacturedInventoryItemHandlerTests
         result.Success.Should().BeTrue();
         _repositoryMock.Verify(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()), Times.Once);
         _repositoryMock.Verify(r => r.DeleteAsync(existingItem, It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -228,5 +231,6 @@ public class DeleteManufacturedInventoryItemHandlerTests
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.ManufacturedInventoryItemNotFound);
         _repositoryMock.Verify(r => r.DeleteAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

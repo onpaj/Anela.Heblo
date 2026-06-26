@@ -44,14 +44,19 @@ public class ImportedMarketingTransactionConfiguration : IEntityTypeConfiguratio
             .HasColumnName("ImportedAt")
             .HasColumnType("timestamp without time zone");
 
-        builder.Property(e => e.IsSynced)
+        builder.Property(e => e.Currency)
             .IsRequired()
-            .HasDefaultValue(false)
-            .HasColumnName("IsSynced")
-            .HasColumnType("boolean");
+            .HasMaxLength(3)
+            .HasColumnName("Currency")
+            .HasColumnType("character varying(3)");
 
-        builder.Property(e => e.ErrorMessage)
-            .HasColumnName("ErrorMessage")
+        builder.Property(e => e.Description)
+            .HasMaxLength(500)
+            .HasColumnName("Description")
+            .HasColumnType("character varying(500)");
+
+        builder.Property(e => e.RawData)
+            .HasColumnName("RawData")
             .HasColumnType("text");
 
         builder.Property(e => e.Description)

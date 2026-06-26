@@ -1,5 +1,9 @@
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ACTION_TYPE_BADGE,
+  ACTION_TYPE_LABELS,
+} from "./marketingActionTypeLabels";
 
 export interface MarketingActionDto {
   id?: number;
@@ -16,24 +20,6 @@ export interface MarketingActionDto {
   }>;
   outlookSyncStatus?: string;
 }
-
-const ACTION_TYPE_BADGE: Record<string, string> = {
-  General: "bg-blue-100 text-blue-800",
-  Promotion: "bg-purple-100 text-purple-800",
-  Launch: "bg-green-100 text-green-800",
-  Campaign: "bg-yellow-100 text-yellow-800",
-  Event: "bg-pink-100 text-pink-800",
-  Other: "bg-gray-100 text-gray-800",
-};
-
-const ACTION_TYPE_LABELS: Record<string, string> = {
-  General: "Sociální sítě",
-  Promotion: "Událost",
-  Launch: "Email",
-  Campaign: "PR",
-  Event: "Fotografie",
-  Other: "Ostatní",
-};
 
 const formatDate = (d: string | Date | null | undefined) => {
   if (!d) return "—";
@@ -60,13 +46,13 @@ const MarketingActionGrid: React.FC<MarketingActionGridProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="p-8 text-center text-gray-500 text-sm">Načítání...</div>
+      <div className="p-8 text-center text-gray-500 dark:text-graphite-muted text-sm">Načítání...</div>
     );
   }
 
   if (actions.length === 0) {
     return (
-      <div className="p-8 text-center text-gray-500 text-sm">
+      <div className="p-8 text-center text-gray-500 dark:text-graphite-muted text-sm">
         Žádné marketingové akce nebyly nalezeny.
       </div>
     );
@@ -75,27 +61,27 @@ const MarketingActionGrid: React.FC<MarketingActionGridProps> = ({
   return (
     <div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+          <thead className="bg-gray-50 dark:bg-graphite-surface-2">
             <tr>
               {["Název", "Typ", "Od", "Do", "Produkty"].map((h) => (
                 <th
                   key={h}
-                  className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
                 >
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
+          <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-100 dark:divide-graphite-border">
             {actions.map((action) => (
               <tr
                 key={action.id}
                 onClick={() => onActionClick(action.id!)}
-                className="hover:bg-gray-50 cursor-pointer transition-colors"
+                className="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
               >
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-graphite-text">
                   <div className="flex items-center gap-1.5">
                     {action.title}
                     {action.outlookSyncStatus === 'Failed' && (
@@ -111,21 +97,21 @@ const MarketingActionGrid: React.FC<MarketingActionGridProps> = ({
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      ACTION_TYPE_BADGE[action.actionType ?? ""] ??
-                      ACTION_TYPE_BADGE.Other
+                      ACTION_TYPE_BADGE[action.actionType as keyof typeof ACTION_TYPE_BADGE] ??
+                      "bg-gray-100 dark:bg-graphite-surface-2 text-gray-800 dark:text-graphite-muted"
                     }`}
                   >
-                    {ACTION_TYPE_LABELS[action.actionType ?? ""] ??
+                    {ACTION_TYPE_LABELS[action.actionType as keyof typeof ACTION_TYPE_LABELS] ??
                       action.actionType}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-gray-600 dark:text-graphite-muted">
                   {formatDate(action.dateFrom as string)}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-gray-600 dark:text-graphite-muted">
                   {formatDate(action.dateTo as string)}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-gray-600 dark:text-graphite-muted">
                   {action.associatedProducts?.join(", ") || "—"}
                 </td>
               </tr>
@@ -135,23 +121,23 @@ const MarketingActionGrid: React.FC<MarketingActionGridProps> = ({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 px-4 py-3 border-t border-gray-200">
+        <div className="flex items-center justify-center gap-4 px-4 py-3 border-t border-gray-200 dark:border-graphite-border">
           <button
             onClick={() => onPageChange(pageNumber - 1)}
             disabled={pageNumber <= 1}
-            className="p-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            <ChevronLeft className="h-4 w-4 text-gray-600" />
+            <ChevronLeft className="h-4 w-4 text-gray-600 dark:text-graphite-muted" />
           </button>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-600 dark:text-graphite-muted">
             {pageNumber} / {totalPages}
           </span>
           <button
             onClick={() => onPageChange(pageNumber + 1)}
             disabled={pageNumber >= totalPages}
-            className="p-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            <ChevronRight className="h-4 w-4 text-gray-600" />
+            <ChevronRight className="h-4 w-4 text-gray-600 dark:text-graphite-muted" />
           </button>
         </div>
       )}

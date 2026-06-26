@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -11,7 +12,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture.Services;
 public class ResidueDistributionCalculatorTests
 {
     private readonly Mock<IManufactureClient> _manufactureClientMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly ResidueDistributionCalculator _calculator;
 
     private const string SemiProductCode = "SP-001";
@@ -21,7 +22,7 @@ public class ResidueDistributionCalculatorTests
     public ResidueDistributionCalculatorTests()
     {
         _manufactureClientMock = new Mock<IManufactureClient>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
 
         _calculator = new ResidueDistributionCalculator(
             _manufactureClientMock.Object,
@@ -244,6 +245,55 @@ public class ResidueDistributionCalculatorTests
         result.Products.Should().BeEmpty();
 
         // Nothing should be called — no templates, no catalog lookup
+        _manufactureClientMock.Verify(
+            x => x.GetManufactureTemplateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _catalogRepositoryMock.Verify(
+            x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_SinglePhaseManufactureType_ReturnsImmediatelyWithoutLookups()
+    {
+        // Single-phase order with distinct product codes (does NOT match the placeholder semiproduct).
+        // The ManufactureType guard must short-circuit before any template/catalog lookups.
+        var order = new UpdateManufactureOrderDto
+        {
+            ManufactureType = ManufactureType.SinglePhase,
+            SemiProduct = new UpdateManufactureOrderSemiProductDto
+            {
+                ProductCode = ProductCodeA, // single-phase placeholder points at the first product
+                ProductName = "Product A",
+                PlannedQuantity = 100m,
+                ActualQuantity = 100m
+            },
+            Products = new List<UpdateManufactureOrderProductDto>
+            {
+                new UpdateManufactureOrderProductDto
+                {
+                    ProductCode = ProductCodeA,
+                    ProductName = "Product A",
+                    PlannedQuantity = 60m,
+                    ActualQuantity = 60m,
+                    SemiProductCode = ProductCodeA
+                },
+                new UpdateManufactureOrderProductDto
+                {
+                    ProductCode = ProductCodeB,
+                    ProductName = "Product B",
+                    PlannedQuantity = 40m,
+                    ActualQuantity = 40m,
+                    SemiProductCode = ProductCodeB
+                }
+            }
+        };
+
+        var result = await _calculator.CalculateAsync(order);
+
+        result.IsWithinAllowedThreshold.Should().BeTrue();
+        result.Products.Should().BeEmpty();
+
         _manufactureClientMock.Verify(
             x => x.GetManufactureTemplateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);

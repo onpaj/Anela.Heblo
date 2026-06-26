@@ -14,15 +14,13 @@ public static class GoogleAdsAdapterServiceCollectionExtensions
         IConfiguration configuration)
     {
         services.Configure<GoogleAdsSettings>(configuration.GetSection(GoogleAdsSettings.ConfigurationKey));
-        services.AddScoped<IAccountBudgetFetcher, SdkAccountBudgetFetcher>();
+        services.AddSingleton<IAccountBudgetFetcher, SdkAccountBudgetFetcher>();
         services.AddScoped<GoogleAdsTransactionSource>(sp =>
             new GoogleAdsTransactionSource(
                 sp.GetRequiredService<IAccountBudgetFetcher>(),
-                sp.GetRequiredService<ILogger<GoogleAdsTransactionSource>>()));
-        services.AddScoped<MarketingInvoiceImportService>(sp => new MarketingInvoiceImportService(
-            sp.GetRequiredService<GoogleAdsTransactionSource>(),
-            sp.GetRequiredService<IImportedMarketingTransactionRepository>(),
-            sp.GetRequiredService<ILogger<MarketingInvoiceImportService>>()));
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<GoogleAdsTransactionSource>>()));
+        services.AddScoped<IMarketingTransactionSource>(sp =>
+            sp.GetRequiredService<GoogleAdsTransactionSource>());
         services.AddScoped<IRecurringJob, GoogleAdsInvoiceImportJob>();
         return services;
     }

@@ -41,6 +41,7 @@ namespace Anela.Heblo.Application.Features.Journal.Mapping
             {
                 Id = entry.Id,
                 Title = entry.Title,
+                Content = entry.Content,
                 EntryDate = entry.EntryDate,
                 CreatedAt = entry.CreatedAt,
                 ModifiedAt = entry.ModifiedAt,
@@ -61,8 +62,6 @@ namespace Anela.Heblo.Application.Features.Journal.Mapping
                         Color = ta.Tag.Color
                     })
                     .ToList()
-                // ContentPreview defaults to string.Empty; HighlightedTerms defaults to new List<string>().
-                // The search handler overwrites these with real values before returning.
             };
         }
     }

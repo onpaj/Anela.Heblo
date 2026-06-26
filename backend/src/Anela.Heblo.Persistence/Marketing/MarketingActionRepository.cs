@@ -24,17 +24,6 @@ namespace Anela.Heblo.Persistence.Marketing
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
         }
 
-        public async Task DeleteSoftAsync(int id, string userId, string username, CancellationToken cancellationToken = default)
-        {
-            var entity = await GetByIdAsync(id, cancellationToken);
-            if (entity != null)
-            {
-                entity.SoftDelete(userId, username);
-                await UpdateAsync(entity, cancellationToken);
-                await SaveChangesAsync(cancellationToken);
-            }
-        }
-
         public async Task<PagedResult<MarketingAction>> GetPagedAsync(
             MarketingActionQueryCriteria criteria,
             CancellationToken cancellationToken = default)
@@ -125,16 +114,6 @@ namespace Anela.Heblo.Persistence.Marketing
                     x.StartDate <= to &&
                     (!x.EndDate.HasValue || x.EndDate >= from))
                 .OrderBy(x => x.StartDate)
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<List<MarketingAction>> GetFailedOutlookSyncAsync(int batchSize, CancellationToken cancellationToken = default)
-        {
-            return await Context.Set<MarketingAction>()
-                .IgnoreQueryFilters()
-                .Where(x => x.OutlookSyncStatus == MarketingSyncStatus.Failed)
-                .OrderBy(x => x.Id)
-                .Take(batchSize)
                 .ToListAsync(cancellationToken);
         }
 

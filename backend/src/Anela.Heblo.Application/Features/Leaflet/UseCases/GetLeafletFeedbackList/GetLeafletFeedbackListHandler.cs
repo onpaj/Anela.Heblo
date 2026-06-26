@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared.Users;
 using Anela.Heblo.Domain.Features.Leaflet;
 using MediatR;
 
@@ -9,11 +10,15 @@ public class GetLeafletFeedbackListHandler
     private static readonly int[] AllowedPageSizes = [10, 20, 50];
     private static readonly string[] AllowedSortColumns = ["CreatedAt", "PrecisionScore", "StyleScore"];
 
-    private readonly ILeafletRepository _repository;
+    private readonly ILeafletGenerationRepository _repository;
+    private readonly IUserDisplayNameResolver _userDisplayNameResolver;
 
-    public GetLeafletFeedbackListHandler(ILeafletRepository repository)
+    public GetLeafletFeedbackListHandler(
+        ILeafletGenerationRepository repository,
+        IUserDisplayNameResolver userDisplayNameResolver)
     {
         _repository = repository;
+        _userDisplayNameResolver = userDisplayNameResolver;
     }
 
     public async Task<GetLeafletFeedbackListResponse> Handle(
@@ -30,6 +35,10 @@ public class GetLeafletFeedbackListHandler
 
         var stats = await _repository.GetGenerationStatsAsync(cancellationToken);
 
+        var userNames = await _userDisplayNameResolver.ResolveAsync(
+            items.Select(g => g.UserId).Where(id => id is not null)!,
+            cancellationToken);
+
         return new GetLeafletFeedbackListResponse
         {
             Items = items.Select(g => new LeafletFeedbackSummary
@@ -44,6 +53,7 @@ public class GetLeafletFeedbackListHandler
                 DurationMs = g.DurationMs,
                 CreatedAt = g.CreatedAt,
                 UserId = g.UserId,
+                UserName = g.UserId is not null ? userNames.GetValueOrDefault(g.UserId) : null,
                 PrecisionScore = g.PrecisionScore,
                 StyleScore = g.StyleScore,
                 FeedbackComment = g.FeedbackComment,

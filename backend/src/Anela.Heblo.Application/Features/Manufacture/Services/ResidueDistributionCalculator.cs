@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -7,16 +8,22 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 public class ResidueDistributionCalculator : IResidueDistributionCalculator
 {
     private readonly IManufactureClient _manufactureClient;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
 
-    public ResidueDistributionCalculator(IManufactureClient manufactureClient, ICatalogRepository catalogRepository)
+    public ResidueDistributionCalculator(IManufactureClient manufactureClient, IManufactureCatalogSource catalogSource)
     {
         _manufactureClient = manufactureClient;
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
     }
 
     public async Task<ResidueDistribution> CalculateAsync(UpdateManufactureOrderDto order, CancellationToken cancellationToken = default)
     {
+        // Residue distribution only applies to MultiPhase orders, where leftover semiproduct is spread
+        // across the finished products. SinglePhase orders have no real semiproduct (the SemiProduct
+        // entry is a placeholder for the first product), so there is nothing to distribute.
+        if (order.ManufactureType != ManufactureType.MultiPhase)
+            return new ResidueDistribution { IsWithinAllowedThreshold = true };
+
         if (order.SemiProduct is null)
             return new ResidueDistribution { IsWithinAllowedThreshold = true };
 
@@ -37,7 +44,7 @@ public class ResidueDistributionCalculator : IResidueDistributionCalculator
 
         var totalTheoretical = productData.Sum(p => p.TheoreticalConsumption);
 
-        var semiProductCatalog = await _catalogRepository.GetByIdAsync(order.SemiProduct.ProductCode, cancellationToken);
+        var semiProductCatalog = await _catalogSource.GetByIdAsync(order.SemiProduct.ProductCode, cancellationToken);
         var allowedResiduePercentage = semiProductCatalog?.Properties.AllowedResiduePercentage ?? 0;
 
         var difference = actualSemiProduct - totalTheoretical;
@@ -78,6 +85,8 @@ public class ResidueDistributionCalculator : IResidueDistributionCalculator
                 continue;
 
             var template = await _manufactureClient.GetManufactureTemplateAsync(product.ProductCode, cancellationToken);
+            if (template is null)
+                continue;
             var semiProductIngredient = template.Ingredients
                 .FirstOrDefault(i => i.ProductType == ProductType.SemiProduct);
 

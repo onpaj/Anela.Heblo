@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
-public class AggregateFactsStep : IArticlePipelineStep
+public class AggregateFactsStep
 {
     private const int MaxSnippets = 50;
 

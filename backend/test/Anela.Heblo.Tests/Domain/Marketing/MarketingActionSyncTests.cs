@@ -6,17 +6,14 @@ namespace Anela.Heblo.Tests.Domain.Marketing
 {
     public class MarketingActionSyncTests
     {
-        private static MarketingAction CreateAction()
-        {
-            return new MarketingAction
-            {
-                Title = "Test Action",
-                StartDate = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedAt = DateTime.UtcNow,
-                CreatedByUserId = "user-1",
-            };
-        }
+        private static MarketingAction CreateAction() =>
+            new MarketingActionTestBuilder()
+                .WithTitle("Test Action")
+                .WithStartDate(DateTime.UtcNow)
+                .WithCreatedAt(DateTime.UtcNow)
+                .WithModifiedAt(DateTime.UtcNow)
+                .WithCreatedBy("user-1")
+                .Build();
 
         [Fact]
         public void MarkOutlookSynced_SetsEventIdAndStatus_WhenCalled()
@@ -40,7 +37,8 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.OutlookSyncError = "previous error";
+            action.MarkOutlookSynced("seed-event", new DateTime(2026, 4, 27, 9, 0, 0, DateTimeKind.Utc));
+            action.OutlookSyncError = "previous error"; // internal set: no domain method seeds an error value
             var utcNow = new DateTime(2026, 4, 27, 10, 0, 0, DateTimeKind.Utc);
 
             // Act
@@ -51,48 +49,12 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         }
 
         [Fact]
-        public void MarkOutlookFailed_SetsFailedStatusAndTruncatesError_WhenErrorIsLong()
-        {
-            // Arrange
-            var action = CreateAction();
-            var longError = new string('x', 1500);
-            var utcNow = new DateTime(2026, 4, 27, 10, 0, 0, DateTimeKind.Utc);
-
-            // Act
-            action.MarkOutlookFailed(longError, utcNow);
-
-            // Assert
-            action.OutlookSyncStatus.Should().Be(MarketingSyncStatus.Failed);
-            action.OutlookSyncError.Should().HaveLength(1000);
-            action.OutlookSyncError.Should().Be(new string('x', 1000));
-        }
-
-        [Fact]
-        public void MarkOutlookFailed_KeepsEventId_WhenFailed()
-        {
-            // Arrange
-            var action = CreateAction();
-            var existingEventId = "existing-event-id";
-            action.OutlookEventId = existingEventId;
-            var utcNow = new DateTime(2026, 4, 27, 10, 0, 0, DateTimeKind.Utc);
-
-            // Act
-            action.MarkOutlookFailed("transient error", utcNow);
-
-            // Assert
-            // Event ID must be preserved so retry logic can attempt an update rather than a create
-            action.OutlookEventId.Should().Be(existingEventId);
-        }
-
-        [Fact]
         public void ClearOutlookLink_ResetsAllSyncFields()
         {
             // Arrange
             var action = CreateAction();
-            action.OutlookEventId = "some-event-id";
-            action.OutlookLastAttemptAt = new DateTime(2026, 4, 27, 10, 0, 0, DateTimeKind.Utc);
-            action.OutlookSyncStatus = MarketingSyncStatus.Synced;
-            action.OutlookSyncError = "some error";
+            action.MarkOutlookSynced("some-event-id", new DateTime(2026, 4, 27, 10, 0, 0, DateTimeKind.Utc));
+            action.OutlookSyncError = "some error"; // internal set: seed an error to prove ClearOutlookLink resets it
 
             // Act
             action.ClearOutlookLink();

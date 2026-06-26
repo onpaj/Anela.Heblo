@@ -24,8 +24,8 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
     ) || [];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 h-full">
-      <h3 className="text-base font-medium text-gray-900 mb-4 flex items-center gap-2">
+    <div className="bg-white border border-gray-200 rounded-lg p-4 h-full dark:bg-graphite-surface dark:border-graphite-border">
+      <h3 className="text-base font-medium text-gray-900 mb-4 flex items-center gap-2 dark:text-graphite-text">
         <Box className="h-4 w-4" />
         Navigace stavu
       </h3>
@@ -33,8 +33,8 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
       {/* 3 Equal Sections Layout */}
       <div className="flex flex-col h-[calc(100%-4rem)] gap-4">
         {/* Section 1: Previous Transitions */}
-        <div className="flex-1 border border-gray-200 rounded-lg p-3 flex flex-col">
-          <div className="text-xs text-gray-500 mb-2 uppercase tracking-wider text-center font-semibold">
+        <div className="flex-1 border border-gray-200 rounded-lg p-3 flex flex-col dark:border-graphite-border">
+          <div className="text-xs text-gray-500 mb-2 uppercase tracking-wider text-center font-semibold dark:text-graphite-muted">
             Zpět
           </div>
           <div className="flex-1 flex flex-col gap-2">
@@ -46,9 +46,9 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
                   disabled={
                     changeStateMutation.isPending || transition.systemOnly
                   }
-                  className={`flex-1 flex items-center justify-center px-3 rounded-lg transition-colors text-sm font-medium ${
+                  className={`flex-1 min-h-[56px] py-2 flex items-center justify-center px-3 rounded-lg transition-colors text-sm font-medium ${
                     transition.systemOnly
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-graphite-surface-2 dark:text-graphite-faint"
                       : "bg-gray-500 text-white hover:bg-gray-600 active:bg-gray-700"
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
                   title={
@@ -70,7 +70,7 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
                 </button>
               ))
             ) : (
-              <div className="flex-1 flex items-center justify-center text-xs text-gray-400 italic">
+              <div className="flex-1 min-h-[56px] flex items-center justify-center text-xs text-gray-400 italic dark:text-graphite-faint">
                 Žádné kroky zpět
               </div>
             )}
@@ -78,15 +78,15 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
         </div>
 
         {/* Section 2: Current State */}
-        <div className="flex-1 border border-gray-200 rounded-lg p-3 flex flex-col">
-          <div className="text-xs text-gray-500 mb-2 uppercase tracking-wider text-center font-semibold">
+        <div className="flex-1 border border-gray-200 rounded-lg p-3 flex flex-col dark:border-graphite-border">
+          <div className="text-xs text-gray-500 mb-2 uppercase tracking-wider text-center font-semibold dark:text-graphite-muted">
             Aktuální
           </div>
           <div className="flex-1 flex flex-col">
             <div
-              className={`flex-1 rounded-lg border-2 border-dashed flex items-center justify-center ${
+              className={`flex-1 min-h-[56px] rounded-lg border-2 border-dashed flex items-center justify-center ${
                 stateColors[transportBox.state || ""] ||
-                "bg-gray-100 text-gray-800 border-gray-300"
+                "bg-gray-100 text-gray-800 border-gray-300 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:border-graphite-border"
               } border-opacity-50`}
             >
               <div className="flex items-center">
@@ -100,8 +100,8 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
         </div>
 
         {/* Section 3: Next Transitions */}
-        <div className="flex-1 border border-gray-200 rounded-lg p-3 flex flex-col">
-          <div className="text-xs text-gray-500 mb-2 uppercase tracking-wider text-center font-semibold">
+        <div className="flex-1 border border-gray-200 rounded-lg p-3 flex flex-col dark:border-graphite-border">
+          <div className="text-xs text-gray-500 mb-2 uppercase tracking-wider text-center font-semibold dark:text-graphite-muted">
             Vpřed
           </div>
           <div className="flex-1 flex flex-col gap-2">
@@ -113,9 +113,9 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
                   disabled={
                     changeStateMutation.isPending || transition.systemOnly
                   }
-                  className={`flex-1 flex items-center justify-center px-3 rounded-lg transition-colors text-sm font-medium ${
+                  className={`flex-1 min-h-[56px] py-2 flex items-center justify-center px-3 rounded-lg transition-colors text-sm font-medium ${
                     transition.systemOnly
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-graphite-surface-2 dark:text-graphite-faint"
                       : transition.newState === "InTransit" ||
                           transition.newState === "Stocked" ||
                           transition.newState === "Closed"
@@ -144,7 +144,7 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
                 </button>
               ))
             ) : (
-              <div className="flex-1 flex items-center justify-center text-xs text-gray-400 italic">
+              <div className="flex-1 min-h-[56px] flex items-center justify-center text-xs text-gray-400 italic dark:text-graphite-faint">
                 Žádné kroky vpřed
               </div>
             )}

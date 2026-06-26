@@ -1,0 +1,23 @@
+# Local development dependencies for Anela Heblo.
+# Started automatically by scripts/start-backend-dev.sh.
+# Currently only Azurite (Azure Storage emulator); add more services here as needed.
+#
+# Manual usage:
+#   podman compose up -d        # or: docker compose up -d
+#   podman compose down         # stop (add -v to also wipe stored blobs)
+services:
+  # Azurite backs FileStorage:BlobConnectionString=UseDevelopmentStorage=true in Development.
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: heblo-azurite
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --location /data
+    ports:
+      - "10000:10000" # Blob (used by expedition-list features)
+      - "10001:10001" # Queue
+      - "10002:10002" # Table
+    volumes:
+      - azurite-data:/data
+    restart: unless-stopped
+
+volumes:
+  azurite-data:

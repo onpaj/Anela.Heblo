@@ -1,12 +1,13 @@
-using Anela.Heblo.Application.Features.MarketingInvoices.Services;
+using Anela.Heblo.Application.Features.MarketingInvoices.UseCases.ImportMarketingInvoices;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Adapters.GoogleAds;
 
 public class GoogleAdsInvoiceImportJob : IRecurringJob
 {
-    private readonly MarketingInvoiceImportService _importService;
+    private readonly IMediator _mediator;
     private readonly IRecurringJobStatusChecker _statusChecker;
     private readonly ILogger<GoogleAdsInvoiceImportJob> _logger;
 
@@ -20,11 +21,11 @@ public class GoogleAdsInvoiceImportJob : IRecurringJob
     };
 
     public GoogleAdsInvoiceImportJob(
-        MarketingInvoiceImportService importService,
+        IMediator mediator,
         IRecurringJobStatusChecker statusChecker,
         ILogger<GoogleAdsInvoiceImportJob> logger)
     {
-        _importService = importService ?? throw new ArgumentNullException(nameof(importService));
+        _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         _statusChecker = statusChecker ?? throw new ArgumentNullException(nameof(statusChecker));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -44,14 +45,18 @@ public class GoogleAdsInvoiceImportJob : IRecurringJob
             var to = DateTime.UtcNow;
             var from = to.AddDays(-7);
 
-            var result = await _importService.ImportAsync(from, to, cancellationToken);
+            var response = await _mediator.Send(
+                new ImportMarketingInvoicesRequest
+                {
+                    Platform = GoogleAdsTransactionSource.PlatformName,
+                    From = from,
+                    To = to,
+                },
+                cancellationToken);
 
             _logger.LogInformation(
                 "{JobName} completed. Imported={Imported}, Skipped={Skipped}, Failed={Failed}",
-                Metadata.JobName,
-                result.Imported,
-                result.Skipped,
-                result.Failed);
+                Metadata.JobName, response.Imported, response.Skipped, response.Failed);
         }
         catch (Exception ex)
         {

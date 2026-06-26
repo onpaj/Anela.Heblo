@@ -18,6 +18,13 @@ public interface ISmartsuppRepository
         SmartsuppContact contact,
         CancellationToken cancellationToken);
 
+    Task BackfillConversationDenormFieldsAsync(
+        SmartsuppContact contact,
+        CancellationToken cancellationToken);
+
+    Task<List<string>> ListOrphanContactConversationIdsAsync(
+        CancellationToken cancellationToken);
+
     Task UpsertConversationAsync(
         SmartsuppConversation conversation,
         CancellationToken cancellationToken);
@@ -28,6 +35,11 @@ public interface ISmartsuppRepository
         CancellationToken cancellationToken);
 
     Task<List<OpenConversationRef>> ListOpenConversationRefsAsync(
+        CancellationToken cancellationToken);
+
+    Task<List<SmartsuppConversation>> ListConversationsForContactAsync(
+        string contactId,
+        string excludeConversationId,
         CancellationToken cancellationToken);
 
     Task MarkConversationResolvedAsync(
@@ -43,4 +55,14 @@ public interface ISmartsuppRepository
         CancellationToken cancellationToken);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
+
+    Task UpdateVisitorCacheAsync(
+        string conversationId,
+        string? userAgent,
+        string? os,
+        string? browser,
+        string? browserVersion,
+        int? visitsCount,
+        DateTime fetchedAt,
+        CancellationToken cancellationToken);
 }

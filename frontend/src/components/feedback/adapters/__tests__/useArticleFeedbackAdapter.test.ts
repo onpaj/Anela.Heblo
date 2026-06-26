@@ -11,11 +11,10 @@ const mockArticle = {
   topic: 'Péče o pleť v létě',
   title: 'Jak pečovat o pleť v letních měsících',
   requestedBy: 'user@anela.cz',
-  generatedAt: '2026-01-15T10:30:00Z',
+  createdAt: '2026-01-15T10:30:00Z',
   precisionScore: 4,
   styleScore: 5,
-  feedbackComment: 'Skvělý článek.',
-  hasFeedback: true,
+  hasComment: true,
 };
 
 const mockArticleNoTitle = {
@@ -23,11 +22,10 @@ const mockArticleNoTitle = {
   topic: 'Zimní vlasová péče',
   title: null,
   requestedBy: 'other@anela.cz',
-  generatedAt: null,
+  createdAt: null,
   precisionScore: null,
   styleScore: null,
-  feedbackComment: null,
-  hasFeedback: false,
+  hasComment: false,
 };
 
 const mockStats = {
@@ -78,12 +76,12 @@ test('maps requestedBy to userId', () => {
   expect(result.current.rows[0].userId).toBe('user@anela.cz');
 });
 
-test('maps generatedAt to createdAt', () => {
+test('maps article createdAt onto row createdAt', () => {
   const { result } = renderHook(() => useArticleFeedbackAdapter(params));
   expect(result.current.rows[0].createdAt).toBe('2026-01-15T10:30:00Z');
 });
 
-test('uses empty string for createdAt when generatedAt is null', () => {
+test('uses empty string for row createdAt when article createdAt is null', () => {
   const { result } = renderHook(() => useArticleFeedbackAdapter(params));
   expect(result.current.rows[1].createdAt).toBe('');
 });
@@ -100,7 +98,7 @@ test('translates GenericFeedbackParams to article-specific params', () => {
       page: 1,
       pageSize: 20,
       sortBy: 'CreatedAt',
-      descending: true,
+      sortDescending: true,
       requestedBy: 'user@anela.cz',
     }),
   );

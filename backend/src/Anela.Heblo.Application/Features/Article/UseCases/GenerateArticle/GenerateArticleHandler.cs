@@ -43,15 +43,21 @@ public sealed class GenerateArticleHandler : IRequestHandler<GenerateArticleRequ
             StyleGuideDriveId = request.StyleGuideDriveId,
             StyleGuideItemPath = request.StyleGuideItemPath,
             Status = ArticleStatus.Queued,
-            RequestedBy = currentUser.IsAuthenticated ? currentUser.Name : null,
+            RequestedBy = currentUser.IsAuthenticated ? currentUser.GetIdentifier() : null,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
         await _repository.AddAsync(article, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
-        _backgroundJobClient.Enqueue<GenerateArticleJob>(j => j.RunAsync(article.Id, CancellationToken.None));
+        var jobId = _backgroundJobClient.Enqueue<GenerateArticleJob>(
+            j => j.RunAsync(article.Id, CancellationToken.None));
 
-        return new GenerateArticleResponse { ArticleId = article.Id };
+        return new GenerateArticleResponse
+        {
+            ArticleId = article.Id,
+            HangfireJobId = jobId,
+            Status = ArticleStatus.Queued,
+        };
     }
 }

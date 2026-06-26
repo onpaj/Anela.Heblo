@@ -307,7 +307,6 @@ describe("useGiftPackageManufacturing hooks", () => {
         giftPackageCode: "SET001",
         quantity: 5,
         allowStockOverride: false,
-        userId: "user123",
       };
 
       await result.current.mutateAsync(manufactureRequest);
@@ -330,7 +329,6 @@ describe("useGiftPackageManufacturing hooks", () => {
         giftPackageCode: "SET001",
         quantity: 100, // Too much
         allowStockOverride: false,
-        userId: "user123",
       };
 
       await expect(result.current.mutateAsync(manufactureRequest))
@@ -368,7 +366,6 @@ describe("useGiftPackageManufacturing hooks", () => {
         giftPackageCode: "SET001",
         quantity: 5,
         allowStockOverride: false,
-        userId: "user123",
       };
 
       await mutationResult.current.mutateAsync(manufactureRequest);
@@ -393,7 +390,6 @@ describe("useGiftPackageManufacturing hooks", () => {
         giftPackageCode: "SET001",
         quantity: 100,
         allowStockOverride: true,
-        userId: "user123",
       };
 
       await result.current.mutateAsync(manufactureRequestWithOverride);

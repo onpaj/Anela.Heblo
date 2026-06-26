@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
-using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
 using MediatR;
@@ -13,7 +12,7 @@ namespace Anela.Heblo.Application.Features.Logistics.UseCases.AddItemToBox;
 public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemToBoxResponse>
 {
     private readonly ITransportBoxRepository _repository;
-    private readonly IManufacturedProductInventoryRepository _inventoryRepository;
+    private readonly IInventoryReservationService _inventoryReservationService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AddItemToBoxHandler> _logger;
     private readonly IMapper _mapper;
@@ -21,14 +20,14 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
 
     public AddItemToBoxHandler(
         ITransportBoxRepository repository,
-        IManufacturedProductInventoryRepository inventoryRepository,
+        IInventoryReservationService inventoryReservationService,
         ICurrentUserService currentUserService,
         ILogger<AddItemToBoxHandler> logger,
         IMapper mapper,
         TimeProvider timeProvider)
     {
         _repository = repository;
-        _inventoryRepository = inventoryRepository;
+        _inventoryReservationService = inventoryReservationService;
         _currentUserService = currentUserService;
         _logger = logger;
         _mapper = mapper;
@@ -56,32 +55,35 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
 
             if (request.SourceInventoryId != null)
             {
-                var inventoryItem = await _inventoryRepository.GetByIdAsync(request.SourceInventoryId.Value, cancellationToken);
-                if (inventoryItem == null)
-                {
-                    return new AddItemToBoxResponse
-                    {
-                        Success = false,
-                        ErrorCode = ErrorCodes.ManufacturedInventoryItemNotFound,
-                        Params = new Dictionary<string, string> { { "sourceInventoryId", request.SourceInventoryId.Value.ToString() } }
-                    };
-                }
+                var consumeResult = await _inventoryReservationService.TryConsumeAsync(
+                    inventoryId: request.SourceInventoryId.Value,
+                    amount: (decimal)request.Amount,
+                    userName: userName,
+                    timestamp: timestamp,
+                    boxId: transportBox.Id,
+                    boxCode: transportBox.Code,
+                    allowNegativeStock: request.AllowNegativeStock,
+                    cancellationToken: cancellationToken);
 
-                try
+                switch (consumeResult.Outcome)
                 {
-                    inventoryItem.Consume((decimal)request.Amount, userName, timestamp, transportBox.Id, transportBox.Code, request.AllowNegativeStock);
+                    case ConsumeInventoryOutcome.InventoryNotFound:
+                        return new AddItemToBoxResponse
+                        {
+                            Success = false,
+                            ErrorCode = ErrorCodes.ManufacturedInventoryItemNotFound,
+                            Params = new Dictionary<string, string> { { "sourceInventoryId", request.SourceInventoryId.Value.ToString() } }
+                        };
+                    case ConsumeInventoryOutcome.InsufficientStock:
+                        return new AddItemToBoxResponse
+                        {
+                            Success = false,
+                            ErrorCode = ErrorCodes.ManufacturedInventoryInsufficientStock,
+                            Params = new Dictionary<string, string> { { "sourceInventoryId", request.SourceInventoryId.Value.ToString() } }
+                        };
+                    case ConsumeInventoryOutcome.Success:
+                        break;
                 }
-                catch (InvalidOperationException)
-                {
-                    return new AddItemToBoxResponse
-                    {
-                        Success = false,
-                        ErrorCode = ErrorCodes.ManufacturedInventoryInsufficientStock,
-                        Params = new Dictionary<string, string> { { "sourceInventoryId", request.SourceInventoryId.Value.ToString() } }
-                    };
-                }
-
-                await _inventoryRepository.UpdateAsync(inventoryItem, cancellationToken);
             }
 
             var addedItem = transportBox.AddItem(

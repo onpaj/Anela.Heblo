@@ -1,0 +1,113 @@
+import { useMutation } from '@tanstack/react-query';
+import { getAuthenticatedApiClient } from '../client';
+import { startNewTelemetryOperation } from '../../telemetry/appInsights';
+
+interface ApiClientWithInternals {
+  baseUrl: string;
+  http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+}
+
+export type Cooling = 'None' | 'L1' | 'L2';
+
+export interface PackingOrderItem {
+  name: string;
+  quantity: number;
+  imageUrl: string | null;
+  setName: string | null;
+}
+
+export interface PackingEligibility {
+  isEligible: boolean;
+}
+
+export interface ShippingAddress {
+  street: string | null;
+  city: string | null;
+  zip: string | null;
+}
+
+// Shaped to match usePackingOrder's PackingOrder so existing sub-components work unchanged
+export interface PackingOrder {
+  code: string;
+  customerName: string;
+  shippingMethodName: string;
+  shippingAddress: ShippingAddress | null;
+  cooling: Cooling;
+  isCooled: boolean;
+  customerNote: string | null;
+  eshopNote: string | null;
+  eligibility: PackingEligibility;
+  items: PackingOrderItem[];
+}
+
+export interface ScanShipmentPackage {
+  trackingNumber: string | null;
+  labelUrl: string | null;
+  labelZpl: string | null;
+}
+
+export interface ScanShipment {
+  shipmentGuid: string;
+  packages: ScanShipmentPackage[];
+  alreadyExisted: boolean;
+  pendingCompletion?: boolean;
+}
+
+export interface ScanPackingOrderResult {
+  order: PackingOrder;
+  shipment: ScanShipment | null;
+}
+
+const SCAN_ERROR_MESSAGES: Partial<Record<string, string>> = {
+  ShoptetOrderNotFound: 'Objednávka nebyla nalezena.',
+  ShipmentCarrierNotResolved: 'Dopravce se nepodařilo určit pro tuto objednávku.',
+  ShipmentCreationFailed: 'Shoptet nemohl vytvořit zásilku — zkuste znovu.',
+  ShipmentOrderWeightUnavailable: 'Nelze zjistit hmotnost objednávky.',
+  PackingUserNotEligible: 'Vybraný balič není aktivní nebo nemá oprávnění balit. Vyberte baliče znovu.',
+};
+
+const GENERIC_SCAN_ERROR = 'Chyba při skenování objednávky.';
+
+export type ScanPackingOrderVariables = {
+  orderCode: string;
+  numberOfPackages?: number;
+  packingUserId?: string | null;
+};
+
+const scanPackingOrder = async ({
+  orderCode,
+  numberOfPackages = 1,
+  packingUserId = null,
+}: ScanPackingOrderVariables): Promise<ScanPackingOrderResult> => {
+  const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
+  const response = await apiClient.http.fetch(
+    `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/scan?numberOfPackages=${numberOfPackages}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packingUserId }),
+    },
+  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = (await response.json()) as any;
+
+  if (!data.success) {
+    const message = (data.errorCode && SCAN_ERROR_MESSAGES[data.errorCode as string]) ?? GENERIC_SCAN_ERROR;
+    throw new Error(message);
+  }
+
+  return {
+    order: data.order as PackingOrder,
+    shipment: (data.shipment as ScanShipment) ?? null,
+  };
+};
+
+export const useScanPackingOrder = () =>
+  useMutation<ScanPackingOrderResult, Error, ScanPackingOrderVariables>({
+    mutationFn: scanPackingOrder,
+    onMutate: () => {
+      // Each scan is its own AI operation so repeated scans on the same page do
+      // not collapse into a single end-to-end transaction.
+      startNewTelemetryOperation('packaging-scan');
+    },
+  });

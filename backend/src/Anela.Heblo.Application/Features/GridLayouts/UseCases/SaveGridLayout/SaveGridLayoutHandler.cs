@@ -1,11 +1,10 @@
 using System.Text.Json;
-using Anela.Heblo.Application.Features.GridLayouts.Contracts;
+using Anela.Heblo.Application.Features.GridLayouts.Infrastructure;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace Anela.Heblo.Application.Features.GridLayouts.UseCases.SaveGridLayout;
 
@@ -28,25 +27,19 @@ public class SaveGridLayoutHandler : IRequestHandler<SaveGridLayoutRequest, Save
         var userId = user.Id ?? user.Email
             ?? throw new InvalidOperationException("Authenticated user must have either Id or Email claim.");
 
-        var payload = new GridLayoutDto
-        {
-            GridKey = request.GridKey,
-            Columns = request.Columns
-        };
-
-        var json = JsonSerializer.Serialize(payload);
+        var stored = GridLayoutStoredMapper.ToStored(request.Columns);
+        var json = JsonSerializer.Serialize(stored);
 
         try
         {
             await _repository.UpsertAsync(userId, request.GridKey, json, cancellationToken);
             return new SaveGridLayoutResponse();
         }
-        catch (Exception ex) when (ex is PostgresException or NpgsqlException)
+        catch (GridLayoutPersistenceException ex)
         {
-            var pgEx = ex as PostgresException ?? ex.InnerException as PostgresException;
             _logger.LogError(ex,
-                "Database error saving GridLayout for user={UserId} gridKey={GridKey} SqlState={SqlState}",
-                userId, request.GridKey, pgEx?.SqlState);
+                "Database error saving GridLayout for user={UserId} gridKey={GridKey}",
+                userId, request.GridKey);
             return new SaveGridLayoutResponse(ErrorCodes.DatabaseError);
         }
     }

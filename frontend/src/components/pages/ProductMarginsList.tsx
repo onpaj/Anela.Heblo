@@ -12,6 +12,7 @@ import {
 import { useProductMarginsQuery } from "../../api/hooks/useProductMargins";
 import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const ProductMarginsList: React.FC = () => {
   // Filter states - separate input values from applied filters
@@ -35,6 +36,8 @@ const ProductMarginsList: React.FC = () => {
     null,
   );
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  useScreenView('Catalog', 'ProductMargins');
 
   // Use the API call
   const {
@@ -135,7 +138,7 @@ const ProductMarginsList: React.FC = () => {
     return (
       <th
         scope="col"
-        className={`px-6 py-3 text-${align} text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none`}
+        className={`px-6 py-3 text-${align} text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 select-none`}
         onClick={() => handleSort(column)}
       >
         <div
@@ -144,10 +147,10 @@ const ProductMarginsList: React.FC = () => {
           {align === "right" && (
             <div className="flex flex-col">
               <ChevronUp
-                className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
+                className={`h-3 w-3 ${isAscending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
               />
               <ChevronDown
-                className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
+                className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
               />
             </div>
           )}
@@ -155,10 +158,10 @@ const ProductMarginsList: React.FC = () => {
           {align === "left" && (
             <div className="flex flex-col">
               <ChevronUp
-                className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
+                className={`h-3 w-3 ${isAscending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
               />
               <ChevronDown
-                className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
+                className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
               />
             </div>
           )}
@@ -188,12 +191,12 @@ const ProductMarginsList: React.FC = () => {
 
   // Get margin color
   const getMarginColor = (margin?: number | null) => {
-    if (margin === null || margin === undefined) return "text-gray-500";
-    if (!isFinite(margin)) return "text-gray-500"; // Handle Infinity, -Infinity, NaN
-    if (margin < 30) return "text-red-600";
-    if (margin < 50) return "text-orange-600";
-    if (margin < 80) return "text-yellow-600";
-    return "text-green-600";
+    if (margin === null || margin === undefined) return "text-gray-500 dark:text-graphite-muted";
+    if (!isFinite(margin)) return "text-gray-500 dark:text-graphite-muted"; // Handle Infinity, -Infinity, NaN
+    if (margin < 30) return "text-red-600 dark:text-red-400";
+    if (margin < 50) return "text-orange-600 dark:text-amber-400";
+    if (margin < 80) return "text-yellow-600 dark:text-amber-400";
+    return "text-green-600 dark:text-emerald-400";
   };
 
   // Get tooltip content for margin levels using M0-M2 cost levels from backend
@@ -219,7 +222,7 @@ const ProductMarginsList: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-          <div className="text-gray-500">Načítání marží produktů...</div>
+          <div className="text-gray-500 dark:text-graphite-muted">Načítání marží produktů...</div>
         </div>
       </div>
     );
@@ -228,7 +231,7 @@ const ProductMarginsList: React.FC = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-2 text-red-600">
+        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
           <AlertCircle className="h-5 w-5" />
           <div>Chyba při načítání marží: {error.message}</div>
         </div>
@@ -243,22 +246,22 @@ const ProductMarginsList: React.FC = () => {
     >
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
-        <h1 className="text-lg font-semibold text-gray-900">Marže produktů</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Marže produktů</h1>
       </div>
 
       {/* Filters - Fixed */}
-      <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="flex items-center">
-              <Filter className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm font-medium text-gray-900">Filtry:</span>
+              <Filter className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+              <span className="text-sm font-medium text-gray-900 dark:text-graphite-text">Filtry:</span>
             </div>
 
             <div className="flex-1 max-w-xs">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                 </div>
                 <input
                   type="text"
@@ -266,7 +269,7 @@ const ProductMarginsList: React.FC = () => {
                   value={productNameInput}
                   onChange={(e) => setProductNameInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
                   placeholder="Název produktu..."
                 />
               </div>
@@ -275,7 +278,7 @@ const ProductMarginsList: React.FC = () => {
             <div className="flex-1 max-w-xs">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                 </div>
                 <input
                   type="text"
@@ -283,7 +286,7 @@ const ProductMarginsList: React.FC = () => {
                   value={productCodeInput}
                   onChange={(e) => setProductCodeInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
                   placeholder="Kód produktu..."
                 />
               </div>
@@ -298,7 +301,7 @@ const ProductMarginsList: React.FC = () => {
                   setProductTypeFilter(e.target.value);
                   setPageNumber(1);
                 }}
-                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full py-2 px-3 sm:text-sm border-gray-300 rounded-md"
+                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full py-2 px-3 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md"
               >
                 <option value="Product">Výrobky</option>
                 <option value="Goods">Zboží</option>
@@ -327,10 +330,10 @@ const ProductMarginsList: React.FC = () => {
       </div>
 
       {/* Data Grid - Scrollable */}
-      <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
         <div className="flex-1 overflow-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0 z-10">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+            <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
               <tr>
                 <SortableHeader column="productCode">
                   Kód produktu
@@ -358,31 +361,31 @@ const ProductMarginsList: React.FC = () => {
                 </SortableHeader>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
               {filteredItems.map((item) => (
                 <tr
                   key={item.productCode}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                  className="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors duration-150"
                   onClick={() => handleItemClick(item.productCode!)}
                   title="Klikněte pro zobrazení detailu"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
                     {item.productCode}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                     {item.productName}
                   </td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm text-right ${
                     item.priceWithoutVatIsFromEshop
-                      ? 'text-gray-900'
-                      : 'text-orange-600 font-semibold'
+                      ? 'text-gray-900 dark:text-graphite-text'
+                      : 'text-orange-600 dark:text-amber-400 font-semibold'
                   }`}>
                     {formatCurrency(item.priceWithoutVat)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-graphite-text">
                     {formatCurrency(item.purchasePrice)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600 dark:text-graphite-muted">
                     {item.manufactureDifficulty ||
                     item.manufactureDifficulty === 0
                       ? item.manufactureDifficulty.toFixed(1)
@@ -415,42 +418,42 @@ const ProductMarginsList: React.FC = () => {
 
       {/* Pagination - Compact */}
       {totalCount > 0 && (
-        <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
+        <div className="flex-shrink-0 bg-white dark:bg-graphite-surface px-3 py-2 flex items-center justify-between border-t border-gray-200 dark:border-graphite-border text-xs">
           <div className="flex-1 flex justify-between sm:hidden">
             <button
               onClick={() => handlePageChange(pageNumber - 1)}
               disabled={pageNumber <= 1}
-              className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Předchozí
             </button>
             <button
               onClick={() => handlePageChange(pageNumber + 1)}
               disabled={pageNumber >= totalPages}
-              className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Další
             </button>
           </div>
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="flex items-center space-x-3">
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-600 dark:text-graphite-muted">
                 {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-
                 {Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
                 {productNameFilter ||
                 productCodeFilter ||
                 productTypeFilter !== "Product" ? (
-                  <span className="text-gray-500"> (filtrováno)</span>
+                  <span className="text-gray-500 dark:text-graphite-muted"> (filtrováno)</span>
                 ) : (
                   ""
                 )}
               </p>
               <div className="flex items-center space-x-1">
-                <span className="text-xs text-gray-600">Zobrazit:</span>
+                <span className="text-xs text-gray-600 dark:text-graphite-muted">Zobrazit:</span>
                 <select
                   value={pageSize}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                  className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -461,13 +464,13 @@ const ProductMarginsList: React.FC = () => {
             </div>
             <div>
               <nav
-                className="relative z-0 inline-flex rounded shadow-sm -space-x-px"
+                className="relative z-0 inline-flex rounded shadow-sm dark:shadow-soft-dark -space-x-px"
                 aria-label="Pagination"
               >
                 <button
                   onClick={() => handlePageChange(pageNumber - 1)}
                   disabled={pageNumber <= 1}
-                  className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-3 w-3" />
                 </button>
@@ -491,8 +494,8 @@ const ProductMarginsList: React.FC = () => {
                       onClick={() => handlePageChange(pageNum)}
                       className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                         pageNumber === pageNum
-                          ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                          : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                          ? "z-10 bg-indigo-50 dark:bg-graphite-accent/10 border-indigo-500 dark:border-graphite-accent text-indigo-600 dark:text-graphite-accent"
+                          : "bg-white dark:bg-graphite-surface border-gray-300 dark:border-graphite-border text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
                       }`}
                     >
                       {pageNum}
@@ -503,7 +506,7 @@ const ProductMarginsList: React.FC = () => {
                 <button
                   onClick={() => handlePageChange(pageNumber + 1)}
                   disabled={pageNumber >= totalPages}
-                  className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronRight className="h-3 w-3" />
                 </button>

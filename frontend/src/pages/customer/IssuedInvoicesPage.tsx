@@ -17,16 +17,19 @@ import {
 import { useIssuedInvoicesList } from "../../api/hooks/useIssuedInvoices";
 import { useIssuedInvoiceSyncStats } from "../../api/hooks/useIssuedInvoiceSyncStats";
 import { useEnqueueInvoiceImport, useRunningInvoiceImportJobs } from "../../api/hooks/useAsyncInvoiceImport";
+import { IssuedInvoiceSourceQuery } from "../../api/generated/api-client";
 import { formatDate, formatDateTime, formatCurrency } from "../../utils/formatters";
 import IssuedInvoiceDetailModal from "../../components/customer/IssuedInvoiceDetailModal";
 import InvoiceImportStatistics from "../../components/pages/automation/InvoiceImportStatistics";
 import InvoiceImportJobTracker from "../../components/invoices/InvoiceImportJobTracker";
 import InvoiceImportRunningIndicator from "../../components/invoices/InvoiceImportRunningIndicator";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const IssuedInvoicesPage: React.FC = () => {
   // Tab state
   const [activeTab, setActiveTab] = useState<'statistics' | 'grid'>('statistics');
+  useScreenView('Customer', 'IssuedInvoices');
   
   // Filter states - separate input values from applied filters
   const [invoiceIdInput, setInvoiceIdInput] = useState("");
@@ -194,7 +197,9 @@ const IssuedInvoicesPage: React.FC = () => {
   // Load running jobs on page load and keep in sync
   React.useEffect(() => {
     if (runningJobs) {
-      const jobIds = runningJobs.map(job => job.id).filter(Boolean);
+      const jobIds = runningJobs
+        .map(job => job.id)
+        .filter((id): id is string => Boolean(id));
       setActiveJobIds(jobIds);
     }
   }, [runningJobs]);
@@ -216,16 +221,15 @@ const IssuedInvoicesPage: React.FC = () => {
 
       // Build request body
       const requestBody = {
-        query: {
+        query: new IssuedInvoiceSourceQuery({
           requestId: `import-${Date.now()}`,
-          ...(importType === 'invoice' 
+          ...(importType === 'invoice'
             ? { invoiceId: importInvoiceId.trim() }
-            : { 
-                dateFrom: importDateFrom,
-                dateTo: importDateTo,
-                limit: 100
-              })
-        }
+            : {
+                dateFromString: importDateFrom,
+                dateToString: importDateTo,
+              }),
+        }),
       };
 
       // Async import
@@ -264,17 +268,17 @@ const IssuedInvoicesPage: React.FC = () => {
     return (
       <th
         scope="col"
-        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 select-none"
         onClick={() => handleSort(column)}
       >
         <div className="flex items-center space-x-1">
           <span>{children}</span>
           <div className="flex flex-col">
             <ChevronUp
-              className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
+              className={`h-3 w-3 ${isAscending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
             />
             <ChevronDown
-              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
+              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
             />
           </div>
         </div>
@@ -285,7 +289,7 @@ const IssuedInvoicesPage: React.FC = () => {
   const getSyncStatusIcon = (invoice: any) => {
     if (invoice.errorType) {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
           <AlertCircle className="h-3 w-3 mr-1" />
           Chyba
         </span>
@@ -293,14 +297,14 @@ const IssuedInvoicesPage: React.FC = () => {
     }
     if (invoice.isSynced) {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300">
           <CheckCircle className="h-3 w-3 mr-1" />
           Synced
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300">
         <Clock className="h-3 w-3 mr-1" />
         Čeká
       </span>
@@ -312,7 +316,7 @@ const IssuedInvoicesPage: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-          <div className="text-gray-500">Načítání faktur...</div>
+          <div className="text-gray-500 dark:text-graphite-muted">Načítání faktur...</div>
         </div>
       </div>
     );
@@ -321,7 +325,7 @@ const IssuedInvoicesPage: React.FC = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-2 text-red-600">
+        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
           <AlertCircle className="h-5 w-5" />
           <div>Chyba při načítání faktur: {error.message}</div>
         </div>
@@ -336,7 +340,7 @@ const IssuedInvoicesPage: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center space-x-2">
             <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-            <div className="text-gray-500">Načítání statistik...</div>
+            <div className="text-gray-500 dark:text-graphite-muted">Načítání statistik...</div>
           </div>
         </div>
       );
@@ -345,7 +349,7 @@ const IssuedInvoicesPage: React.FC = () => {
     if (syncStatsError) {
       return (
         <div className="flex items-center justify-center h-64">
-          <div className="flex items-center space-x-2 text-red-600">
+          <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
             <AlertCircle className="h-5 w-5" />
             <div>Chyba při načítání statistik: {(syncStatsError as Error)?.message || 'Neočekávaná chyba'}</div>
           </div>
@@ -358,31 +362,31 @@ const IssuedInvoicesPage: React.FC = () => {
         {/* Summary Cards */}
         {syncStats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <h3 className="text-sm font-medium text-gray-600">Celkem faktur</h3>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+            <div className="bg-white dark:bg-graphite-surface rounded-lg border border-gray-200 dark:border-graphite-border p-4">
+              <h3 className="text-sm font-medium text-gray-600 dark:text-graphite-muted">Celkem faktur</h3>
+              <p className="text-2xl font-bold text-gray-900 dark:text-graphite-text mt-1">
                 {syncStats.totalInvoices}
               </p>
             </div>
-            
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <h3 className="text-sm font-medium text-gray-600">Synchronizováno</h3>
-              <p className="text-2xl font-bold text-green-600 mt-1">
+
+            <div className="bg-white dark:bg-graphite-surface rounded-lg border border-gray-200 dark:border-graphite-border p-4">
+              <h3 className="text-sm font-medium text-gray-600 dark:text-graphite-muted">Synchronizováno</h3>
+              <p className="text-2xl font-bold text-green-600 dark:text-emerald-400 mt-1">
                 {syncStats.syncedInvoices}
               </p>
             </div>
-            
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <h3 className="text-sm font-medium text-gray-600">Nesynchronizováno</h3>
-              <p className="text-2xl font-bold text-yellow-600 mt-1">
+
+            <div className="bg-white dark:bg-graphite-surface rounded-lg border border-gray-200 dark:border-graphite-border p-4">
+              <h3 className="text-sm font-medium text-gray-600 dark:text-graphite-muted">Nesynchronizováno</h3>
+              <p className="text-2xl font-bold text-yellow-600 dark:text-amber-400 mt-1">
                 {syncStats.unsyncedInvoices}
               </p>
             </div>
-            
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <h3 className="text-sm font-medium text-gray-600">S chybami</h3>
+
+            <div className="bg-white dark:bg-graphite-surface rounded-lg border border-gray-200 dark:border-graphite-border p-4">
+              <h3 className="text-sm font-medium text-gray-600 dark:text-graphite-muted">S chybami</h3>
               <p className={`text-2xl font-bold mt-1 ${
-                syncStats.invoicesWithErrors > 0 ? 'text-red-600' : 'text-green-600'
+                syncStats.invoicesWithErrors > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-emerald-400'
               }`}>
                 {syncStats.invoicesWithErrors}
               </p>
@@ -391,7 +395,7 @@ const IssuedInvoicesPage: React.FC = () => {
         )}
 
         {/* Invoice Import Statistics Chart */}
-        <div className="bg-white rounded-lg border border-gray-200">
+        <div className="bg-white dark:bg-graphite-surface rounded-lg border border-gray-200 dark:border-graphite-border">
           <InvoiceImportStatistics />
         </div>
       </div>
@@ -405,9 +409,9 @@ const IssuedInvoicesPage: React.FC = () => {
     >
       {/* Job Tracking Section - At Top Like Gift Packages */}
       {activeJobIds.length > 0 && (
-        <div className="flex-shrink-0 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+        <div className="flex-shrink-0 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-900/30 rounded-lg p-3 mb-4">
           <div className="flex items-center gap-3">
-            <h3 className="text-sm font-medium text-blue-900">Běžící importy:</h3>
+            <h3 className="text-sm font-medium text-blue-900 dark:text-blue-300">Běžící importy:</h3>
             <div className="space-y-1">
               {activeJobIds.map((jobId) => (
                 <InvoiceImportJobTracker
@@ -424,18 +428,18 @@ const IssuedInvoicesPage: React.FC = () => {
       {/* Header with Tabs - Fixed */}
       <div className="flex-shrink-0 mb-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-900">Vydané faktury</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Vydané faktury</h1>
         </div>
-        
+
         {/* Tab Navigation */}
-        <div className="mt-3 border-b border-gray-200">
+        <div className="mt-3 border-b border-gray-200 dark:border-graphite-border">
           <nav className="-mb-px flex space-x-8">
             <button
               onClick={() => setActiveTab('statistics')}
               className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'statistics'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-indigo-500 text-indigo-600 dark:text-graphite-accent dark:border-graphite-accent'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted'
               }`}
             >
               <BarChart3 className="h-4 w-4" />
@@ -445,8 +449,8 @@ const IssuedInvoicesPage: React.FC = () => {
               onClick={() => setActiveTab('grid')}
               className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'grid'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-indigo-500 text-indigo-600 dark:text-graphite-accent dark:border-graphite-accent'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted'
               }`}
             >
               <List className="h-4 w-4" />
@@ -462,18 +466,18 @@ const IssuedInvoicesPage: React.FC = () => {
       ) : (
         <>
           {/* Filters and Import - Fixed (only for grid tab) */}
-          <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
+          <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="flex items-center">
-                  <Filter className="h-4 w-4 text-gray-400 mr-2" />
-                  <span className="text-sm font-medium text-gray-900">Filtry:</span>
+                  <Filter className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-graphite-text">Filtry:</span>
                 </div>
 
                 <div className="flex-1 max-w-xs">
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Search className="h-4 w-4 text-gray-400" />
+                      <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                     </div>
                     <input
                       type="text"
@@ -481,7 +485,7 @@ const IssuedInvoicesPage: React.FC = () => {
                       value={invoiceIdInput}
                       onChange={(e) => setInvoiceIdInput(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                      className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
                       placeholder="Číslo faktury..."
                     />
                   </div>
@@ -490,7 +494,7 @@ const IssuedInvoicesPage: React.FC = () => {
                 <div className="flex-1 max-w-xs">
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Search className="h-4 w-4 text-gray-400" />
+                      <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                     </div>
                     <input
                       type="text"
@@ -498,7 +502,7 @@ const IssuedInvoicesPage: React.FC = () => {
                       value={customerNameInput}
                       onChange={(e) => setCustomerNameInput(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                      className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
                       placeholder="Zákazník..."
                     />
                   </div>
@@ -509,14 +513,14 @@ const IssuedInvoicesPage: React.FC = () => {
                     type="date"
                     value={invoiceDateFrom}
                     onChange={(e) => setInvoiceDateFrom(e.target.value)}
-                    className="focus:ring-indigo-500 focus:border-indigo-500 block py-2 px-3 sm:text-sm border-gray-300 rounded-md"
+                    className="focus:ring-indigo-500 focus:border-indigo-500 block py-2 px-3 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
                     placeholder="Od"
                   />
                   <input
                     type="date"
                     value={invoiceDateTo}
                     onChange={(e) => setInvoiceDateTo(e.target.value)}
-                    className="focus:ring-indigo-500 focus:border-indigo-500 block py-2 px-3 sm:text-sm border-gray-300 rounded-md"
+                    className="focus:ring-indigo-500 focus:border-indigo-500 block py-2 px-3 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
                     placeholder="Do"
                   />
                 </div>
@@ -527,9 +531,9 @@ const IssuedInvoicesPage: React.FC = () => {
                       type="checkbox"
                       checked={showOnlyUnsynced}
                       onChange={(e) => setShowOnlyUnsynced(e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                      className="h-4 w-4 text-indigo-600 border-gray-300 dark:border-graphite-border rounded focus:ring-indigo-500"
                     />
-                    <span className="ml-1 text-gray-700">Nesync</span>
+                    <span className="ml-1 text-gray-700 dark:text-graphite-muted">Nesync</span>
                   </label>
                   
                   <label className="flex items-center text-sm">
@@ -537,9 +541,9 @@ const IssuedInvoicesPage: React.FC = () => {
                       type="checkbox"
                       checked={showOnlyWithErrors}
                       onChange={(e) => setShowOnlyWithErrors(e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                      className="h-4 w-4 text-indigo-600 border-gray-300 dark:border-graphite-border rounded focus:ring-indigo-500"
                     />
-                    <span className="ml-1 text-gray-700">Chyby</span>
+                    <span className="ml-1 text-gray-700 dark:text-graphite-muted">Chyby</span>
                   </label>
                 </div>
               </div>
@@ -583,17 +587,17 @@ const IssuedInvoicesPage: React.FC = () => {
 
 
           {/* Data Grid - Scrollable */}
-          <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0 relative">
+          <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0 relative">
             {loading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="flex items-center space-x-2">
                   <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                  <div className="text-gray-500">Načítání faktur...</div>
+                  <div className="text-gray-500 dark:text-graphite-muted">Načítání faktur...</div>
                 </div>
               </div>
             ) : error ? (
               <div className="flex items-center justify-center h-64">
-                <div className="flex items-center space-x-2 text-red-600">
+                <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
                   <AlertCircle className="h-5 w-5" />
                   <div>Chyba při načítání faktur: {(error as Error)?.message || 'Neočekávaná chyba'}</div>
                 </div>
@@ -611,8 +615,8 @@ const IssuedInvoicesPage: React.FC = () => {
                 )}
                 
                 <div className="flex-1 overflow-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50 sticky top-0 z-10">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+                    <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
                       <tr>
                         <SortableHeader column="Id">
                           Číslo faktury
@@ -628,13 +632,13 @@ const IssuedInvoicesPage: React.FC = () => {
                         </SortableHeader>
                         <th
                           scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
                         >
                           Měna
                         </th>
                         <th
                           scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
                         >
                           Stav
                         </th>
@@ -643,33 +647,33 @@ const IssuedInvoicesPage: React.FC = () => {
                         </SortableHeader>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                       {filteredItems.map((invoice: any) => (
                         <tr
                           key={invoice.id}
-                          className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                          className="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors duration-150"
                           onClick={() => handleItemClick(invoice)}
                           title="Klikněte pro zobrazení detailu"
                         >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
                             {invoice.id}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
                             {formatDate(invoice.invoiceDate)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                             {invoice.customerName || "-"}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-800">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text text-right">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-800 dark:bg-graphite-accent/10 dark:text-graphite-accent">
                               {formatCurrency(invoice.price)}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text text-center">
                             <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                              (invoice as any).currency === 'EUR' 
-                                ? 'bg-yellow-100 text-yellow-800' 
-                                : 'bg-blue-100 text-blue-800'
+                              (invoice as any).currency === 'EUR'
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300'
+                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
                             }`}>
                               {(invoice as any).currency || 'CZK'}
                             </span>
@@ -677,7 +681,7 @@ const IssuedInvoicesPage: React.FC = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                             {getSyncStatusIcon(invoice)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
                             {invoice.lastSyncTime ? formatDateTime(invoice.lastSyncTime) : "-"}
                           </td>
                         </tr>
@@ -687,48 +691,48 @@ const IssuedInvoicesPage: React.FC = () => {
 
                   {filteredItems.length === 0 && (
                     <div className="text-center py-8">
-                      <p className="text-gray-500">Žádné faktury nebyly nalezeny.</p>
+                      <p className="text-gray-500 dark:text-graphite-muted">Žádné faktury nebyly nalezeny.</p>
                     </div>
                   )}
                 </div>
 
                 {/* Pagination - Compact */}
                 {totalCount > 0 && (
-                  <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
+                  <div className="flex-shrink-0 bg-white dark:bg-graphite-surface px-3 py-2 flex items-center justify-between border-t border-gray-200 dark:border-graphite-border text-xs">
                     <div className="flex-1 flex justify-between sm:hidden">
                       <button
                         onClick={() => handlePageChange(pageNumber - 1)}
                         disabled={pageNumber <= 1}
-                        className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Předchozí
                       </button>
                       <button
                         onClick={() => handlePageChange(pageNumber + 1)}
                         disabled={pageNumber >= totalPages}
-                        className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Další
                       </button>
                     </div>
                     <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                       <div className="flex items-center space-x-3">
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-gray-600 dark:text-graphite-muted">
                           {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-
                           {Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
                           {invoiceIdFilter || customerNameFilter ? (
-                            <span className="text-gray-500"> (filtrováno)</span>
+                            <span className="text-gray-500 dark:text-graphite-muted"> (filtrováno)</span>
                           ) : (
                             ""
                           )}
                         </p>
                         <div className="flex items-center space-x-1">
-                          <span className="text-xs text-gray-600">Zobrazit:</span>
+                          <span className="text-xs text-gray-600 dark:text-graphite-muted">Zobrazit:</span>
                           <select
                             id="pageSize"
                             value={pageSize}
                             onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                            className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                            className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                           >
                             <option value={10}>10</option>
                             <option value={20}>20</option>
@@ -745,7 +749,7 @@ const IssuedInvoicesPage: React.FC = () => {
                           <button
                             onClick={() => handlePageChange(pageNumber - 1)}
                             disabled={pageNumber <= 1}
-                            className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <ChevronLeft className="h-3 w-3" />
                           </button>
@@ -769,8 +773,8 @@ const IssuedInvoicesPage: React.FC = () => {
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                                   pageNum === pageNumber
-                                    ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                                    : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                                    ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-graphite-accent/10 dark:border-graphite-accent dark:text-graphite-accent"
+                                    : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50 dark:bg-graphite-surface dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-white/5"
                                 }`}
                               >
                                 {pageNum}
@@ -781,7 +785,7 @@ const IssuedInvoicesPage: React.FC = () => {
                           <button
                             onClick={() => handlePageChange(pageNumber + 1)}
                             disabled={pageNumber >= totalPages}
-                            className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <ChevronRight className="h-3 w-3" />
                           </button>
@@ -799,16 +803,16 @@ const IssuedInvoicesPage: React.FC = () => {
       {/* Import Modal */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-md w-full mx-4">
             {/* Header */}
-            <div className="flex justify-between items-center p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-graphite-border">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text flex items-center gap-2">
                 <Download className="h-5 w-5" />
                 Import faktur
               </h2>
               <button
                 onClick={() => setShowImportModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 transition-colors"
               >
                 ✕
               </button>
@@ -818,7 +822,7 @@ const IssuedInvoicesPage: React.FC = () => {
             <div className="p-6 space-y-6">
               {/* Import Type Selection */}
               <div>
-                <label className="text-sm font-medium text-gray-900 mb-3 block">
+                <label className="text-sm font-medium text-gray-900 dark:text-graphite-text mb-3 block">
                   Typ importu
                 </label>
                 <div className="space-y-2">
@@ -829,9 +833,9 @@ const IssuedInvoicesPage: React.FC = () => {
                       value="date"
                       checked={importType === 'date'}
                       onChange={(e) => setImportType(e.target.value as 'date' | 'invoice')}
-                      className="h-4 w-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                      className="h-4 w-4 text-emerald-600 border-gray-300 dark:border-graphite-border focus:ring-emerald-500"
                     />
-                    <span className="ml-2 text-sm text-gray-700">Rozsah datumů</span>
+                    <span className="ml-2 text-sm text-gray-700 dark:text-graphite-muted">Rozsah datumů</span>
                   </label>
                   <label className="flex items-center">
                     <input
@@ -840,9 +844,9 @@ const IssuedInvoicesPage: React.FC = () => {
                       value="invoice"
                       checked={importType === 'invoice'}
                       onChange={(e) => setImportType(e.target.value as 'date' | 'invoice')}
-                      className="h-4 w-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                      className="h-4 w-4 text-emerald-600 border-gray-300 dark:border-graphite-border focus:ring-emerald-500"
                     />
-                    <span className="ml-2 text-sm text-gray-700">Konkrétní faktura</span>
+                    <span className="ml-2 text-sm text-gray-700 dark:text-graphite-muted">Konkrétní faktura</span>
                   </label>
                 </div>
               </div>
@@ -850,13 +854,13 @@ const IssuedInvoicesPage: React.FC = () => {
 
               {/* Currency Selection */}
               <div>
-                <label className="text-sm font-medium text-gray-900 mb-2 block">
+                <label className="text-sm font-medium text-gray-900 dark:text-graphite-text mb-2 block">
                   Měna
                 </label>
                 <select
                   value={importCurrency}
                   onChange={(e) => setImportCurrency(e.target.value as 'CZK' | 'EUR')}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
                 >
                   <option value="CZK">CZK</option>
                   <option value="EUR">EUR</option>
@@ -867,31 +871,31 @@ const IssuedInvoicesPage: React.FC = () => {
               {importType === 'date' ? (
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-900 mb-2 block">
+                    <label className="text-sm font-medium text-gray-900 dark:text-graphite-text mb-2 block">
                       Datum od
                     </label>
                     <input
                       type="date"
                       value={importDateFrom}
                       onChange={(e) => setImportDateFrom(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                      className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-900 mb-2 block">
+                    <label className="text-sm font-medium text-gray-900 dark:text-graphite-text mb-2 block">
                       Datum do
                     </label>
                     <input
                       type="date"
                       value={importDateTo}
                       onChange={(e) => setImportDateTo(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                      className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
                     />
                   </div>
                 </div>
               ) : (
                 <div>
-                  <label className="text-sm font-medium text-gray-900 mb-2 block">
+                  <label className="text-sm font-medium text-gray-900 dark:text-graphite-text mb-2 block">
                     Číslo faktury
                   </label>
                   <input
@@ -899,19 +903,19 @@ const IssuedInvoicesPage: React.FC = () => {
                     value={importInvoiceId}
                     onChange={(e) => setImportInvoiceId(e.target.value)}
                     placeholder="Zadejte číslo faktury"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"
                   />
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-lg">
+            <div className="border-t border-gray-200 dark:border-graphite-border px-6 py-4 bg-gray-50 dark:bg-graphite-surface-2 rounded-b-lg">
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowImportModal(false)}
                   disabled={importLoading}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50"
                 >
                   Zrušit
                 </button>

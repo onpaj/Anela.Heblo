@@ -1,0 +1,197 @@
+using Anela.Heblo.Application.Features.Authorization.UseCases.GetPackingUsers;
+using Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder;
+using Anela.Heblo.Application.Features.Packaging.UseCases.DeletePackage;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumber;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumbers;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingStatistics;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
+using Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment;
+using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
+using Anela.Heblo.Domain.Features.Authorization;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Anela.Heblo.API.Controllers;
+
+public class ScanOrderBody
+{
+    public Guid? PackingUserId { get; set; }
+}
+
+
+[FeatureAuthorize(Feature.Warehouse_Packaging)]
+[ApiController]
+[Route("api/packaging")]
+public class PackagingController : BaseApiController
+{
+    private readonly IMediator _mediator;
+
+    public PackagingController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+    /// <summary>
+    /// Scans an order: returns order info, eligibility, and creates/fetches a shipment in one call.
+    /// Ineligible orders return success: true with eligibility.isEligible: false.
+    /// </summary>
+    [HttpPost("orders/{orderCode}/scan")]
+    [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
+    public async Task<ActionResult<ScanPackingOrderResponse>> ScanOrder(
+        [FromRoute] string orderCode,
+        [FromQuery] int numberOfPackages = 1,
+        [FromBody] ScanOrderBody? body = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _mediator.Send(
+            new ScanPackingOrderRequest
+            {
+                OrderCode = orderCode,
+                NumberOfPackages = numberOfPackages,
+                PackingUserId = body?.PackingUserId,
+            },
+            cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Resets an order shipment: deletes the existing shipment and creates a new one.
+    /// </summary>
+    [HttpPost("orders/{orderCode}/shipment/reset")]
+    [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
+    public async Task<ActionResult<ResetOrderShipmentResponse>> ResetShipment(
+        [FromRoute] string orderCode,
+        [FromQuery] int numberOfPackages = 1,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _mediator.Send(
+            new ResetOrderShipmentRequest { OrderCode = orderCode, NumberOfPackages = numberOfPackages },
+            cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Streams the carrier-issued label PDF for a single package through our own origin.
+    /// The same-origin proxy lets the SPA silent-print the label without CORS errors.
+    /// </summary>
+    [HttpGet("orders/{orderCode}/packages/{packageNumber:int}/label.pdf")]
+    public async Task<ActionResult> GetPackageLabelPdf(
+        [FromRoute] string orderCode,
+        [FromRoute] int packageNumber,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(
+            new GetPackageLabelPdfRequest { OrderCode = orderCode, PackageNumber = packageNumber },
+            cancellationToken);
+
+        if (!response.Success || response.Content is null)
+        {
+            return response.ErrorCode switch
+            {
+                Application.Shared.ErrorCodes.PackageLabelNotFound => NotFound(response),
+                Application.Shared.ErrorCodes.PackageLabelDownloadFailed => StatusCode(StatusCodes.Status503ServiceUnavailable, response),
+                _ => BadRequest(response),
+            };
+        }
+
+        Response.Headers.CacheControl = "no-store";
+        return File(response.Content, response.ContentType, response.FileName);
+    }
+
+    /// <summary>
+    /// Returns the tracking number of the latest active (non-cancelled) shipment for the order,
+    /// backfilling it onto the order's package rows. Used by the kiosk confirmation screen once
+    /// the label has printed (tracking is guaranteed assigned by then). Returns trackingNumber: null
+    /// when no active shipment has one yet — callers fall back to the package name.
+    /// </summary>
+    [HttpGet("orders/{orderCode}/tracking-number")]
+    public async Task<ActionResult<GetOrderTrackingNumberResponse>> GetOrderTrackingNumber(
+        [FromRoute] string orderCode,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(
+            new GetOrderTrackingNumberRequest { OrderCode = orderCode },
+            cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Returns the per-package tracking numbers of the latest active (non-cancelled) shipment for
+    /// the order, in package order. Used by the kiosk confirmation screen to show each package's
+    /// tracking number once labels have printed. Returns an empty list when none are assigned yet.
+    /// </summary>
+    [HttpGet("orders/{orderCode}/tracking-numbers")]
+    public async Task<ActionResult<GetOrderTrackingNumbersResponse>> GetOrderTrackingNumbers(
+        [FromRoute] string orderCode,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(
+            new GetOrderTrackingNumbersRequest { OrderCode = orderCode },
+            cancellationToken);
+        return HandleResponse(response);
+    }
+
+    [HttpGet("dashboard")]
+    public async Task<ActionResult<GetPackingDashboardResponse>> GetDashboard(CancellationToken ct)
+    {
+        var response = await _mediator.Send(new GetPackingDashboardRequest(), ct);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Aggregated packing statistics over a local-day window (defaults to the last 30 days).
+    /// Read-only, derived solely from persisted package rows.
+    /// </summary>
+    [HttpGet("statistics")]
+    public async Task<ActionResult<GetPackingStatisticsResponse>> GetStatistics(
+        [FromQuery] GetPackingStatisticsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    [HttpGet("packages")]
+    public async Task<ActionResult<GetPackagesResponse>> GetPackages(
+        [FromQuery] GetPackagesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>Active operators eligible for packing (admin-curated, CanPack = true).</summary>
+    [HttpGet("packing-users")]
+    public async Task<ActionResult<GetPackingUsersResponse>> GetPackingUsers(CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(new GetPackingUsersRequest(), cancellationToken);
+        return HandleResponse(response);
+    }
+
+    [HttpDelete("packages/{id:int}")]
+    [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
+    public async Task<ActionResult<DeletePackageResponse>> DeletePackage(
+        [FromRoute] int id,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(new DeletePackageRequest { Id = id }, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Marks the order as packed after all multi-package labels have been printed.
+    /// </summary>
+    [HttpPost("orders/{orderCode}/packing/complete")]
+    [FeatureAuthorize(Feature.Warehouse_Packaging, AccessLevel.Write)]
+    public async Task<ActionResult<CompletePackingOrderResponse>> CompletePacking(
+        [FromRoute] string orderCode,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(
+            new CompletePackingOrderRequest { OrderCode = orderCode },
+            cancellationToken);
+        return HandleResponse(response);
+    }
+}

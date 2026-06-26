@@ -38,7 +38,7 @@ const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
         onClick={handleClick}
         className={`
           text-xs p-1 rounded cursor-pointer transition-all
-          ${event.state ? stateColors[event.state] : 'bg-gray-100 text-gray-800'}
+          ${event.state ? stateColors[event.state] : 'bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted'}
           hover:shadow-sm hover:scale-105
           ${className}
         `}
@@ -73,7 +73,7 @@ const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
       onClick={handleClick}
       className={`
         p-3 rounded-lg cursor-pointer transition-all border min-h-[200px] flex flex-col
-        ${event.state ? `${stateColors[event.state]} ${stateBorderColors[event.state]}` : 'bg-gray-100 text-gray-800 border-gray-200'}
+        ${event.state ? `${stateColors[event.state]} ${stateBorderColors[event.state]}` : 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:border-graphite-border'}
         hover:shadow-md hover:scale-[1.02] transform
         ${className}
       `}

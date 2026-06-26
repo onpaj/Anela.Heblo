@@ -201,6 +201,41 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         }, cancellationToken);
     }
 
+    public async Task<SmartsuppVisitorData?> GetVisitorAsync(
+        string visitorId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_options.ApiToken))
+            throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
+
+        return await _pipeline.ExecuteAsync(async ct =>
+        {
+            var client = _httpClientFactory.CreateClient("Smartsupp");
+            using var request = new HttpRequestMessage(HttpMethod.Get,
+                $"{_options.BaseUrl}visitors/{visitorId}");
+            request.Headers.Add("Authorization", $"Bearer {_options.ApiToken}");
+
+            var response = await client.SendAsync(request, ct);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return null;
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Smartsupp visitor failed {Status}: {Body}", response.StatusCode, errorBody);
+                var ex = new HttpRequestException($"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+                if (response.Headers.RetryAfter?.Delta is { } delta)
+                    ex.Data["RetryAfter"] = delta;
+                throw ex;
+            }
+
+            var raw = await response.Content.ReadAsStringAsync(ct);
+            var result = JsonSerializer.Deserialize<SmartsuppVisitorApiResponse>(raw, JsonOptions);
+            return result is null ? null : MapVisitor(result);
+        }, cancellationToken);
+    }
+
     private static SmartsuppSearchResult MapSearchResult(SmartsuppSearchApiResponse r) =>
         new()
         {
@@ -270,6 +305,17 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             AttachmentsJson = item.Attachments is { } a ? JsonSerializer.Serialize(a) : null,
             ChannelType = item.Channel?.Type,
             ChannelId = item.Channel?.Id,
+        };
+
+    private static SmartsuppVisitorData MapVisitor(SmartsuppVisitorApiResponse item) =>
+        new()
+        {
+            Id = item.Id ?? "",
+            UserAgent = item.UserAgent,
+            Os = item.Os,
+            Browser = item.Browser,
+            BrowserVersion = item.BrowserVersion,
+            VisitsCount = item.Visits,
         };
 
     private static SmartsuppContactData MapContact(SmartsuppContactApiResponse item) =>
@@ -424,5 +470,161 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         public string? BannedBy { get; set; }
         public JsonElement? Tags { get; set; }
         public bool GdprApproved { get; set; }
+    }
+
+    private sealed class SmartsuppVisitorApiResponse
+    {
+        public string? Id { get; set; }
+        public string? UserAgent { get; set; }
+        public string? Os { get; set; }
+        public string? Browser { get; set; }
+        public string? BrowserVersion { get; set; }
+        public int? Visits { get; set; }
+    }
+
+    private sealed class SmartsuppAgentsApiResponse
+    {
+        public List<SmartsuppAgentApiItem>? Agents { get; set; }
+    }
+
+    private sealed class SmartsuppAgentApiItem
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public string? Email { get; set; }
+    }
+
+    private sealed class SendMessageApiRequest
+    {
+        public SendMessageApiContent Content { get; init; } = null!;
+        public string? AgentId { get; init; }
+    }
+
+    private sealed class SendMessageApiContent
+    {
+        public string Type { get; init; } = "text";
+        public string Text { get; init; } = null!;
+    }
+
+    private sealed class SendMessageApiResponse
+    {
+        public string? Id { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public async Task<IReadOnlyList<SmartsuppAgentData>> GetAgentsAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_options.ApiToken))
+            throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
+
+        return await _pipeline.ExecuteAsync(async ct =>
+        {
+            var client = _httpClientFactory.CreateClient("Smartsupp");
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{_options.BaseUrl}agents");
+            request.Headers.Add("Authorization", $"Bearer {_options.ApiToken}");
+
+            var response = await client.SendAsync(request, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Smartsupp get agents failed {Status}: {Body}", response.StatusCode, errorBody);
+                throw new HttpRequestException($"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+            }
+
+            var raw = await response.Content.ReadAsStringAsync(ct);
+            var result = JsonSerializer.Deserialize<SmartsuppAgentsApiResponse>(raw, JsonOptions);
+
+            return (result?.Agents ?? [])
+                .Where(a => a.Id is not null)
+                .Select(a => new SmartsuppAgentData { Id = a.Id!, Name = a.Name, Email = a.Email })
+                .ToList();
+        }, cancellationToken);
+    }
+
+    public async Task<SmartsuppSentMessageData> SendMessageAsync(
+        string conversationId,
+        string content,
+        string? agentId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_options.ApiToken))
+            throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
+
+        // Agent attribution: when agentId is provided, Smartsupp records the message
+        // as sent by that agent (and renders their profile name to the customer).
+        // When null, the message is attributed to the API token's default sender.
+        // Do NOT include an `agent` block; doing so triggers sub_type=agent and 422
+        // ("agent_id is required when sub_type is \"agent\"") even if agent_id is set.
+        var body = new SendMessageApiRequest
+        {
+            Content = new SendMessageApiContent { Text = content },
+            AgentId = string.IsNullOrWhiteSpace(agentId) ? null : agentId,
+        };
+
+        var json = JsonSerializer.Serialize(body, JsonOptions);
+
+        return await _pipeline.ExecuteAsync(async ct =>
+        {
+            var client = _httpClientFactory.CreateClient("Smartsupp");
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"{_options.BaseUrl}conversations/{conversationId}/messages");
+            request.Headers.Add("Authorization", $"Bearer {_options.ApiToken}");
+            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.SendAsync(request, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Smartsupp send message failed {Status}: {Body}",
+                    response.StatusCode, errorBody);
+                var ex = new HttpRequestException(
+                    $"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+                if (response.Headers.RetryAfter?.Delta is { } delta)
+                    ex.Data["RetryAfter"] = delta;
+                throw ex;
+            }
+
+            var raw = await response.Content.ReadAsStringAsync(ct);
+            var result = JsonSerializer.Deserialize<SendMessageApiResponse>(raw, JsonOptions)
+                ?? throw new InvalidOperationException("Smartsupp send message returned an empty response body.");
+
+            return new SmartsuppSentMessageData
+            {
+                Id = result.Id ?? string.Empty,
+                CreatedAt = DateTime.SpecifyKind(result.CreatedAt, DateTimeKind.Unspecified),
+            };
+        }, cancellationToken);
+    }
+
+    public async Task CloseConversationAsync(string conversationId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_options.ApiToken))
+            throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
+
+        await _pipeline.ExecuteAsync(async ct =>
+        {
+            var client = _httpClientFactory.CreateClient("Smartsupp");
+            using var request = new HttpRequestMessage(
+                HttpMethod.Patch,
+                $"{_options.BaseUrl}conversations/{conversationId}/close");
+            request.Headers.Add("Authorization", $"Bearer {_options.ApiToken}");
+
+            var response = await client.SendAsync(request, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Smartsupp close conversation failed {Status}: {Body}",
+                    response.StatusCode, errorBody);
+                var ex = new HttpRequestException(
+                    $"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+                if (response.Headers.RetryAfter?.Delta is { } delta)
+                    ex.Data["RetryAfter"] = delta;
+                throw ex;
+            }
+        }, cancellationToken);
     }
 }

@@ -6,7 +6,6 @@ using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.Users;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Npgsql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.GridLayouts;
@@ -51,12 +50,44 @@ public class SaveGridLayoutHandlerTests
     }
 
     [Fact]
+    public async Task Handle_SerializedJson_DoesNotContainGridKeyOrLastModified()
+    {
+        _currentUserMock.Setup(x => x.GetCurrentUser()).Returns(new CurrentUser("user-1", "Test", "test@test.com", true));
+
+        string? capturedJson = null;
+        _repositoryMock
+            .Setup(x => x.UpsertAsync("user-1", "test-grid", It.IsAny<string>(), default))
+            .Callback<string, string, string, CancellationToken>((_, _, json, _) => capturedJson = json)
+            .Returns(Task.CompletedTask);
+
+        var request = new SaveGridLayoutRequest
+        {
+            GridKey = "test-grid",
+            Columns = new List<GridColumnStateDto>
+            {
+                new() { Id = "col1", Order = 0, Width = 100, Hidden = false }
+            }
+        };
+
+        var handler = CreateHandler();
+        await handler.Handle(request, default);
+
+        Assert.NotNull(capturedJson);
+        var parsed = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(capturedJson!);
+        Assert.False(parsed!.ContainsKey("gridKey"), "Serialized JSON must not contain gridKey");
+        Assert.False(parsed.ContainsKey("lastModified"), "Serialized JSON must not contain lastModified");
+        Assert.True(parsed.ContainsKey("columns"), "Serialized JSON must contain columns");
+    }
+
+    [Fact]
     public async Task Handle_WhenDatabaseThrows_ReturnsDatabaseErrorAndLogsError()
     {
         _currentUserMock.Setup(x => x.GetCurrentUser()).Returns(new CurrentUser("user-1", "Test", "test@test.com", true));
         _repositoryMock
             .Setup(x => x.UpsertAsync("user-1", "test-grid", It.IsAny<string>(), default))
-            .ThrowsAsync(new NpgsqlException("relation \"GridLayouts\" does not exist"));
+            .ThrowsAsync(new GridLayoutPersistenceException(
+                "GridLayout persistence error during UpsertAsync: relation \"GridLayouts\" does not exist",
+                new InvalidOperationException("simulated underlying driver exception")));
 
         var request = new SaveGridLayoutRequest { GridKey = "test-grid", Columns = new List<GridColumnStateDto>() };
 
@@ -70,7 +101,7 @@ public class SaveGridLayoutHandlerTests
                 LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Database error saving GridLayout")),
-                It.IsAny<NpgsqlException>(),
+                It.IsAny<GridLayoutPersistenceException>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }

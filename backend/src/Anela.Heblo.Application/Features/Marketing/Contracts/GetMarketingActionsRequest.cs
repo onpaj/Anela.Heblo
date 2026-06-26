@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Marketing;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Marketing.Contracts
@@ -10,6 +11,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 20;
         public string? SearchTerm { get; set; }
+        public MarketingActionType? ActionType { get; set; }
         public string? ProductCodePrefix { get; set; }
         public DateTime? StartDateFrom { get; set; }
         public DateTime? StartDateTo { get; set; }

@@ -21,9 +21,9 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
         PropertyNameCaseInsensitive = true,
     };
 
-    private const decimal CentsToCurrency = 100m;
+    public const string PlatformName = "MetaAds";
 
-    public string Platform => "MetaAds";
+    public string Platform => PlatformName;
 
     public MetaAdsTransactionSource(
         HttpClient httpClient,
@@ -43,7 +43,7 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
         CancellationToken ct)
     {
         var results = new List<MarketingTransaction>();
-        var url = BuildInitialUrl();
+        var url = BuildInitialUrl(from, to);
 
         _logger.LogInformation(
             "MetaAds: fetching transactions for account {AccountId} from {From:yyyy-MM-dd} to {To:yyyy-MM-dd}",
@@ -65,8 +65,7 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
                     results.Add(new MarketingTransaction
                     {
                         TransactionId = item.Id,
-                        Platform = Platform,
-                        Amount = item.Amount / CentsToCurrency,
+                        Amount = item.Amount / 100m,
                         TransactionDate = txDate,
                         Currency = item.Currency,
                         Description = item.PaymentType,
@@ -107,10 +106,11 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
         }, ct);
     }
 
-    private string BuildInitialUrl() =>
+    private string BuildInitialUrl(DateTime from, DateTime to) =>
         $"https://graph.facebook.com/{_settings.ApiVersion}/{_settings.AccountId}/transactions" +
         $"?fields=id,time,amount,currency,payment_type" +
-        $"&access_token={_settings.AccessToken}";
+        $"&access_token={_settings.AccessToken}" +
+        $"&time_range={{\"since\":\"{from.ToUniversalTime():yyyy-MM-dd}\",\"until\":\"{to.ToUniversalTime():yyyy-MM-dd}\"}}";
 
     private static string RedactToken(string url)
     {

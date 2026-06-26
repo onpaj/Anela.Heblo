@@ -1,10 +1,11 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.GridLayouts.Contracts;
+using Anela.Heblo.Application.Features.GridLayouts.Infrastructure;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace Anela.Heblo.Application.Features.GridLayouts.UseCases.GetGridLayout;
 
@@ -36,19 +37,39 @@ public class GetGridLayoutHandler : IRequestHandler<GetGridLayoutRequest, GetGri
                 return new GetGridLayoutResponse { Layout = null };
             }
 
-            var dto = JsonSerializer.Deserialize<GridLayoutDto>(entity.LayoutJson) ?? new GridLayoutDto();
-            dto.GridKey = entity.GridKey;
-            dto.LastModified = entity.LastModified;
+            StoredGridLayout? stored;
+            try
+            {
+                stored = JsonSerializer.Deserialize<StoredGridLayout>(entity.LayoutJson);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex,
+                    "Malformed LayoutJson for user={UserId} gridKey={GridKey}; returning null layout",
+                    userId, request.GridKey);
+                return new GetGridLayoutResponse { Layout = null };
+            }
+
+            if (stored is null)
+            {
+                return new GetGridLayoutResponse { Layout = null };
+            }
+
+            var dto = new GridLayoutDto
+            {
+                GridKey = entity.GridKey,
+                Columns = GridLayoutStoredMapper.ToDtoColumns(stored),
+                LastModified = entity.LastModified
+            };
 
             return new GetGridLayoutResponse { Layout = dto };
         }
-        catch (Exception ex) when (ex is PostgresException or NpgsqlException)
+        catch (GridLayoutPersistenceException ex)
         {
-            var pgEx = ex as PostgresException ?? ex.InnerException as PostgresException;
             _logger.LogError(ex,
-                "Database error reading GridLayout for user={UserId} gridKey={GridKey} SqlState={SqlState}",
-                userId, request.GridKey, pgEx?.SqlState);
-            return new GetGridLayoutResponse { Layout = null };
+                "Database error reading GridLayout for user={UserId} gridKey={GridKey}",
+                userId, request.GridKey);
+            return new GetGridLayoutResponse(ErrorCodes.DatabaseError);
         }
     }
 }

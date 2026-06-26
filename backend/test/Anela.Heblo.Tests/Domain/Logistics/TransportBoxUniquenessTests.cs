@@ -1,11 +1,9 @@
 using System.ComponentModel.DataAnnotations;
-using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases;
 using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
-using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Logistics.TransportBoxes;
@@ -25,8 +23,8 @@ public class TransportBoxUniquenessTests : IDisposable
     private readonly ChangeTransportBoxStateHandler _handler;
     private readonly Mock<ICurrentUserService> _mockUserService;
     private readonly Mock<IMediator> _mockMediator;
-    private readonly Mock<IStockUpProcessingService> _mockStockUpProcessingService;
-    private readonly Mock<IManufacturedProductInventoryRepository> _mockInventoryRepository;
+    private readonly Mock<ILogisticsStockOperationService> _mockStockUpProcessingService;
+    private readonly Mock<IInventoryReservationService> _mockInventoryReservationService;
 
     private const string TestUser = "TestUser";
 
@@ -42,8 +40,8 @@ public class TransportBoxUniquenessTests : IDisposable
         _repository = new TransportBoxRepository(_dbContext, NullLogger<TransportBoxRepository>.Instance);
         _mockUserService = new Mock<ICurrentUserService>();
         _mockMediator = new Mock<IMediator>();
-        _mockStockUpProcessingService = new Mock<IStockUpProcessingService>();
-        _mockInventoryRepository = new Mock<IManufacturedProductInventoryRepository>();
+        _mockStockUpProcessingService = new Mock<ILogisticsStockOperationService>();
+        _mockInventoryReservationService = new Mock<IInventoryReservationService>();
 
         _mockUserService.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(Guid.NewGuid().ToString(), TestUser, "test@test.com", true));
@@ -53,14 +51,14 @@ public class TransportBoxUniquenessTests : IDisposable
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<int>(),
-                It.IsAny<StockUpSourceType>(),
+                It.IsAny<LogisticsStockOperationSource>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _handler = new ChangeTransportBoxStateHandler(
             _repository,
-            _mockInventoryRepository.Object,
+            _mockInventoryReservationService.Object,
             _mockMediator.Object,
             NullLogger<ChangeTransportBoxStateHandler>.Instance,
             _mockUserService.Object,

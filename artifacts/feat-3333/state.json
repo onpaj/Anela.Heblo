@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-3333",
+  "issue_number": 3333,
+  "created_at": "2026-06-25T07:14:45.984058Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T07:17:43.258454Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-25T07:20:33.623587Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T07:20:45.028074Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-25T07:21:46.624061Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T07:33:07.632006Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-06-25T07:43:12.639661Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "migrate-invoice-import-statistics-hook",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T07:25:13.939594Z"
+    },
+    {
+      "name": "update-invoice-import-chart",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T07:26:49.615591Z"
+    },
+    {
+      "name": "migrate-bank-statement-import-statistics-hook",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T07:29:23.805614Z"
+    },
+    {
+      "name": "update-bank-statement-import-chart",
+      "status": "completed",
+      "revision": 2,
+      "updated_at": "2026-06-25T07:33:07.421116Z"
+    }
+  ]
+}

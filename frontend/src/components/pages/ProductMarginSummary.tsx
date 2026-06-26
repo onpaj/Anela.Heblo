@@ -5,7 +5,9 @@ import { AlertTriangle, BarChart3 } from "lucide-react";
 import {
   useProductMarginSummaryQuery,
   ProductGroupingMode,
+  MarginLevel,
 } from "../../api/hooks/useProductMarginSummary";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 type TimeWindowType =
   | "current-year"
@@ -13,8 +15,6 @@ type TimeWindowType =
   | "last-6-months"
   | "last-12-months"
   | "last-24-months";
-
-type MarginLevelType = "M0" | "M1" | "M2";
 
 // Color palette for products (blue/green/purple theme, highest margin to lowest)
 const PRODUCT_COLORS = [
@@ -44,7 +44,9 @@ const ProductMarginSummary: React.FC = () => {
   const [selectedGroupingMode, setSelectedGroupingMode] =
     useState<ProductGroupingMode>(ProductGroupingMode.Products);
   const [selectedMarginLevel, setSelectedMarginLevel] =
-    useState<MarginLevelType>("M2");
+    useState<MarginLevel>(MarginLevel.M2);
+
+  useScreenView('Finance', 'ProductMarginSummary');
 
   const { data, isLoading, error } = useProductMarginSummaryQuery(
     selectedTimeWindow,
@@ -276,18 +278,18 @@ const ProductMarginSummary: React.FC = () => {
     return (
       <div className="flex flex-col h-full w-full">
         <div className="flex-shrink-0 mb-3">
-          <h1 className="text-lg font-semibold text-gray-900">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
             Přehled marží produktů
           </h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-gray-600 dark:text-graphite-muted">
             Analýza celkové marže z prodeje produktů v čase s rozložením podle
             jednotlivých produktů
           </p>
         </div>
-        <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex items-center justify-center">
+        <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex items-center justify-center">
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            <span className="ml-2 text-gray-600">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 dark:border-graphite-accent"></div>
+            <span className="ml-2 text-gray-600 dark:text-graphite-muted">
               Načítám data o marži produktů...
             </span>
           </div>
@@ -300,22 +302,22 @@ const ProductMarginSummary: React.FC = () => {
     return (
       <div className="flex flex-col h-full w-full">
         <div className="flex-shrink-0 mb-3">
-          <h1 className="text-lg font-semibold text-gray-900">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
             Přehled marží produktů
           </h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-gray-600 dark:text-graphite-muted">
             Analýza celkové marže z prodeje produktů v čase s rozložením podle
             jednotlivých produktů
           </p>
         </div>
-        <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900/30 rounded-lg">
           <div className="flex items-center">
-            <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
-            <h3 className="text-red-800 font-medium">
+            <AlertTriangle className="w-5 h-5 text-red-500 dark:text-red-400 mr-2" />
+            <h3 className="text-red-800 dark:text-red-300 font-medium">
               Chyba při načítání dat o marži
             </h3>
           </div>
-          <p className="mt-1 text-red-700 text-sm">{error.message}</p>
+          <p className="mt-1 text-red-700 dark:text-red-300 text-sm">{error.message}</p>
         </div>
       </div>
     );
@@ -325,21 +327,21 @@ const ProductMarginSummary: React.FC = () => {
     return (
       <div className="flex flex-col h-full w-full">
         <div className="flex-shrink-0 mb-3">
-          <h1 className="text-lg font-semibold text-gray-900">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
             Přehled marží produktů
           </h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-gray-600 dark:text-graphite-muted">
             Analýza celkové marže z prodeje produktů v čase s rozložením podle
             jednotlivých produktů
           </p>
         </div>
-        <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex items-center justify-center">
+        <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex items-center justify-center">
           <div className="text-center py-12">
-            <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
+            <BarChart3 className="mx-auto h-12 w-12 text-gray-400 dark:text-graphite-faint" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-graphite-text">
               Žádná data o marži
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-graphite-muted">
               Pro vybrané období nejsou k dispozici žádná data o marži produktů.
             </p>
           </div>
@@ -352,21 +354,21 @@ const ProductMarginSummary: React.FC = () => {
     <div className="flex flex-col h-full w-full">
       {/* Header */}
       <div className="flex-shrink-0 mb-3">
-        <h1 className="text-lg font-semibold text-gray-900">Analýza marže</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Analýza marže</h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-graphite-muted">
           Analýza celkové marže z prodeje v čase s rozložením podle produktů
           nebo kategorií
         </p>
       </div>
 
       {/* Controls */}
-      <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
         <div className="flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:space-x-8">
           {/* Margin Level Selector */}
           <div className="flex items-center space-x-4">
             <label
               htmlFor="margin-level"
-              className="text-sm font-medium text-gray-700"
+              className="text-sm font-medium text-gray-700 dark:text-graphite-muted"
             >
               Úroveň marže:
             </label>
@@ -374,9 +376,9 @@ const ProductMarginSummary: React.FC = () => {
               id="margin-level"
               value={selectedMarginLevel}
               onChange={(e) =>
-                setSelectedMarginLevel(e.target.value as MarginLevelType)
+                setSelectedMarginLevel(e.target.value as MarginLevel)
               }
-              className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
             >
               <option value="M0">M0 (Materiál)</option>
               <option value="M1">M1 (+ Výroba)</option>
@@ -388,7 +390,7 @@ const ProductMarginSummary: React.FC = () => {
           <div className="flex items-center space-x-4">
             <label
               htmlFor="grouping-mode"
-              className="text-sm font-medium text-gray-700"
+              className="text-sm font-medium text-gray-700 dark:text-graphite-muted"
             >
               Seskupení:
             </label>
@@ -398,7 +400,7 @@ const ProductMarginSummary: React.FC = () => {
               onChange={(e) =>
                 setSelectedGroupingMode(e.target.value as ProductGroupingMode)
               }
-              className="block w-48 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              className="block w-48 pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
             >
               <option value={ProductGroupingMode.Products}>
                 Jednotlivé produkty
@@ -416,7 +418,7 @@ const ProductMarginSummary: React.FC = () => {
           <div className="flex items-center space-x-4">
             <label
               htmlFor="time-window"
-              className="text-sm font-medium text-gray-700"
+              className="text-sm font-medium text-gray-700 dark:text-graphite-muted"
             >
               Časové období:
             </label>
@@ -426,7 +428,7 @@ const ProductMarginSummary: React.FC = () => {
               onChange={(e) =>
                 setSelectedTimeWindow(e.target.value as TimeWindowType)
               }
-              className="block w-60 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              className="block w-60 pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
             >
               <option value="current-year">Aktuální rok</option>
               <option value="current-and-previous-year">
@@ -441,7 +443,7 @@ const ProductMarginSummary: React.FC = () => {
 
         {/* Summary Information */}
         {data && (
-          <div className="mt-4 flex flex-col space-y-2 lg:flex-row lg:space-y-0 lg:items-center lg:space-x-8 text-sm text-gray-600">
+          <div className="mt-4 flex flex-col space-y-2 lg:flex-row lg:space-y-0 lg:items-center lg:space-x-8 text-sm text-gray-600 dark:text-graphite-muted">
             <span>
               <strong>Celková marže:</strong>{" "}
               {formatCurrency(data.totalMargin || 0)}
@@ -466,7 +468,7 @@ const ProductMarginSummary: React.FC = () => {
 
       {/* Chart */}
       <div
-        className="flex-shrink-0 bg-white shadow rounded-lg overflow-hidden"
+        className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden"
         style={{ height: "500px" }}
       >
         {chartData && (
@@ -480,56 +482,56 @@ const ProductMarginSummary: React.FC = () => {
 
       {/* Detailed Products Table */}
       {tableData.length > 0 && (
-        <div className="mt-6 bg-white shadow rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
-          <div className="flex-shrink-0 px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">
+        <div className="mt-6 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
+          <div className="flex-shrink-0 px-6 py-4 border-b border-gray-200 dark:border-graphite-border">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text">
               Detailní přehled produktů
             </h3>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-gray-600 dark:text-graphite-muted">
               Kompletní přehled všech úrovní marží M0-M2 za vybrané období
             </p>
           </div>
           <div className="flex-1 overflow-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+              <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Produkt/Skupina
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Celková marže
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     M0 (Kč)
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     M0 (%)
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     M1 (Kč)
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     M1 (%)
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     M2 (Kč)
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     M2 (%)
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Prod. cena
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Nák. cena
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                 {tableData.map((row, index) => (
                   <tr
                     key={row.groupKey}
-                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                    className={index % 2 === 0 ? "bg-white dark:bg-graphite-surface" : "bg-gray-50 dark:bg-graphite-surface-2"}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -537,36 +539,36 @@ const ProductMarginSummary: React.FC = () => {
                           className="h-4 w-4 rounded-full mr-3 flex-shrink-0"
                           style={{ backgroundColor: row.colorCode }}
                         ></div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 dark:text-graphite-text">
                           {row.displayName}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text font-medium">
                       {formatCurrency(row.totalMargin)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
                       {formatCurrency(row.m0Amount)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
                       {row.m0Percentage.toFixed(1)}%
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
                       {formatCurrency(row.m1Amount)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
                       {row.m1Percentage.toFixed(1)}%
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
                       {formatCurrency(row.m2Amount)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
                       {row.m2Percentage.toFixed(1)}%
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
                       {formatCurrency(row.sellingPrice)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
                       {formatCurrency(row.purchasePrice)}
                     </td>
                   </tr>

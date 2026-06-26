@@ -82,16 +82,16 @@ const ConfirmSemiProductQuantityModal: React.FC<ConfirmSemiProductQuantityModalP
       onClick={(e) => e.target === e.currentTarget && handleClose()}
       onKeyDown={handleKeyDown}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-md w-full mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <Factory className="h-5 w-5 text-indigo-600" />
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-graphite-border">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text flex items-center gap-2">
+            <Factory className="h-5 w-5 text-indigo-600 dark:text-graphite-accent" />
             Potvrdit skutečné množství
           </h2>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted transition-colors"
             disabled={isLoading}
           >
             <X className="h-5 w-5" />
@@ -101,25 +101,25 @@ const ConfirmSemiProductQuantityModal: React.FC<ConfirmSemiProductQuantityModalP
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Product info */}
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 mb-1">Polotovar</h3>
-            <p className="text-sm text-gray-600">{productName}</p>
-            <p className="text-xs text-gray-500 mt-1">
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 dark:text-graphite-text mb-1">Polotovar</h3>
+            <p className="text-sm text-gray-600 dark:text-graphite-muted">{productName}</p>
+            <p className="text-xs text-gray-500 dark:text-graphite-muted mt-1">
               Plánované množství: <span className="font-medium">{plannedQuantity}</span>
             </p>
           </div>
 
           {/* Actual Quantity Input */}
           <div>
-            <label htmlFor="actualQuantity" className="block text-sm font-medium text-gray-700 mb-2">
-              Skutečné množství <span className="text-red-500">*</span>
+            <label htmlFor="actualQuantity" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
+              Skutečné množství <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="number"
               id="actualQuantity"
               value={actualQuantity}
               onChange={(e) => setActualQuantity(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center text-lg font-semibold"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center text-lg font-semibold dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               min="1"
               step="1"
               disabled={isLoading}
@@ -130,9 +130,9 @@ const ConfirmSemiProductQuantityModal: React.FC<ConfirmSemiProductQuantityModalP
 
           {/* Error Message */}
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
-              <span className="text-sm text-red-600">{error}</span>
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-900/40 rounded-lg">
+              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+              <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
             </div>
           )}
 
@@ -141,7 +141,7 @@ const ConfirmSemiProductQuantityModal: React.FC<ConfirmSemiProductQuantityModalP
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:text-graphite-muted dark:bg-graphite-surface-2 dark:hover:bg-graphite-hover transition-colors"
               disabled={isLoading}
             >
               Zrušit

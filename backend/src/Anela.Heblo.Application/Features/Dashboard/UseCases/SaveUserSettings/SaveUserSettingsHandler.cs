@@ -1,27 +1,48 @@
-using Anela.Heblo.Xcc.Domain;
-using Anela.Heblo.Xcc.Services.Dashboard;
+using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
+using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
+using Anela.Heblo.Domain.Features.Dashboard;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Dashboard.UseCases.SaveUserSettings;
 
 public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, SaveUserSettingsResponse>
 {
-    private readonly IDashboardService _dashboardService;
+    private readonly IUserDashboardSettingsRepository _repository;
+    private readonly IUserDashboardSettingsLock _lock;
     private readonly TimeProvider _timeProvider;
+    private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
     public SaveUserSettingsHandler(
-        IDashboardService dashboardService,
-        TimeProvider timeProvider
-        )
+        IUserDashboardSettingsRepository repository,
+        IUserDashboardSettingsLock @lock,
+        TimeProvider timeProvider,
+        IMediator mediator,
+        ICurrentUserService currentUserService)
     {
-        _dashboardService = dashboardService;
+        _repository = repository;
+        _lock = @lock;
         _timeProvider = timeProvider;
+        _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     public async Task<SaveUserSettingsResponse> Handle(SaveUserSettingsRequest request, CancellationToken cancellationToken)
     {
-        var userId = string.IsNullOrEmpty(request.UserId) ? "anonymous" : request.UserId;
-        var settings = await _dashboardService.GetUserSettingsAsync(userId);
+        var currentUser = _currentUserService.GetCurrentUser();
+        var userId = string.IsNullOrEmpty(currentUser.Id) ? "anonymous" : currentUser.Id;
+
+        // Trigger provisioning outside the write lock (lock is non-reentrant)
+        await _mediator.Send(new GetUserSettingsRequest(), cancellationToken);
+
+        await using var lockHandle = await _lock.AcquireAsync(userId, cancellationToken);
+
+        var settings = await _repository.GetByUserIdAsync(userId);
+        if (settings == null)
+        {
+            return new SaveUserSettingsResponse();
+        }
 
         // Update tile settings
         if (request.Tiles != null)
@@ -37,7 +58,6 @@ public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, 
                 }
                 else
                 {
-                    // Add new tile
                     settings.Tiles.Add(new UserDashboardTile
                     {
                         UserId = userId,
@@ -51,8 +71,9 @@ public class SaveUserSettingsHandler : IRequestHandler<SaveUserSettingsRequest, 
             }
         }
 
+        settings.UserId = userId;
         settings.LastModified = _timeProvider.GetUtcNow().DateTime;
-        await _dashboardService.SaveUserSettingsAsync(userId, settings);
+        await _repository.UpdateAsync(settings);
 
         return new SaveUserSettingsResponse();
     }

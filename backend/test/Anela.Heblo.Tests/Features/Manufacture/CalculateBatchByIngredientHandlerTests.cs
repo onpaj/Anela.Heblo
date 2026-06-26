@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -11,13 +12,13 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class CalculateBatchByIngredientHandlerTests
 {
     private readonly Mock<IManufactureClient> _manufactureClientMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly CalculateBatchByIngredientHandler _handler;
 
     public CalculateBatchByIngredientHandlerTests()
     {
         _manufactureClientMock = new Mock<IManufactureClient>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _handler = new CalculateBatchByIngredientHandler(_manufactureClientMock.Object, _catalogRepositoryMock.Object);
     }
 

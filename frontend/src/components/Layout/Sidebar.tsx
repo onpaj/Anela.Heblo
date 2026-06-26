@@ -21,9 +21,10 @@ import {
   Megaphone,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
-import { useAuth } from "../../auth/useAuth";
-import { useMockAuth, shouldUseMockAuth } from "../../auth/mockAuth";
+import { ThemeToggle } from "../common/ThemeToggle";
 import { useChangelogContext } from "../../contexts/ChangelogContext";
+import { ACCESS_ROUTES } from "../../auth/accessMatrix.generated";
+import { usePermissionsContext } from "../../auth/PermissionsContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -43,19 +44,20 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [activeItem, setActiveItem] = useState("dashboard");
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
 
-  // Use mock auth if enabled, otherwise use real auth
-  const realAuth = useAuth();
-  const mockAuth = useMockAuth();
-  const auth = shouldUseMockAuth() ? mockAuth : realAuth;
-  const { getUserInfo } = auth;
-  const userInfo = getUserInfo();
-
   // Changelog context
   const { openModal } = useChangelogContext();
 
-  // Helper function to check if user has a specific role
-  const hasRole = (role: string): boolean => {
-    return userInfo?.roles?.includes(role) || false;
+  // Permissions come from the backend /me endpoint (DB-backed RBAC), not from
+  // the JWT roles claim. super_user grants everything.
+  const { hasPermission } = usePermissionsContext();
+
+  // Strict gate: a route is visible only when it's mapped in the access matrix
+  // and the user holds ALL required permissions. Routes absent from the matrix
+  // are hidden by default.
+  const canSeeKey = (key: string): boolean => {
+    const req = ACCESS_ROUTES[key];
+    if (!req) return false;
+    return req.permissions.every(p => hasPermission(p));
   };
 
   // Function to open Hangfire dashboard in new window
@@ -71,12 +73,19 @@ const Sidebar: React.FC<SidebarProps> = ({
     window.open("https://orgchart.anela.cz", "_blank", "noopener,noreferrer");
   };
 
+  const openBaleni = () => {
+    window.open(`${window.location.origin}/baleni`, "_blank", "noopener,noreferrer");
+  };
+
+
   const openTerminal = () => {
     window.open(`${window.location.origin}/terminal`, "_blank", "noopener,noreferrer");
   };
 
-  // Navigation sections - only implemented pages
-  const navigationSections = [
+  // Navigation sections - only implemented pages.
+  // Every sub-item declares a `key` that maps to ACCESS_ROUTES; sections with
+  // no visible sub-items are hidden entirely.
+  const allSections = [
     {
       id: "dashboard",
       name: "Dashboard",
@@ -84,72 +93,48 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: LayoutDashboard,
       type: "single" as const,
     },
-    // Finance section - only visible for finance_reader role
-    ...(hasRole("finance_reader")
-      ? [
-          {
-            id: "finance",
-            name: "Finance",
-            icon: DollarSign,
-            type: "section" as const,
-            items: [
-              {
-                id: "financni-prehled",
-                name: "Finanční přehled",
-                href: "/finance/overview",
-              },
-              {
-                id: "analyza-marzovosti",
-                name: "Analýza marže",
-                href: "/analytics/product-margin-summary",
-              },
-            ],
-          },
-        ]
-      : []),
-    // Marketing section - only visible for marketing_reader role
-    ...(hasRole("marketing_reader")
-      ? [
-          {
-            id: "marketing",
-            name: "Marketing",
-            icon: Megaphone,
-            type: "section" as const,
-            items: [
-              {
-                id: "naklady",
-                name: "Náklady",
-                href: "/marketing/costs",
-              },
-              {
-                id: "marketing-calendar",
-                name: "Kalendář",
-                href: "/marketing/calendar",
-              },
-              {
-                id: "photobank",
-                name: "Fotobanka",
-                href: "/marketing/photobank",
-              },
-              {
-                id: "leaflet-generator",
-                name: "Generátor letáků",
-                href: "/leaflet-generator",
-              },
-              {
-                id: "articles",
-                name: "Generátor článků",
-                href: "/articles",
-              },
-              {
-                id: "marketing-feedback",
-                name: "Feedback",
-                href: "/marketing/feedback",
-              },
-            ],
-          },
-        ]
-      : []),
+    {
+      id: "anela",
+      name: "Anela",
+      icon: Users,
+      type: "section" as const,
+      items: [
+        {
+          id: "meeting-tasks",
+          name: "Porady",
+          href: "/automation/meeting-tasks",
+          key: "/automation/meeting-tasks",
+        },
+        {
+          id: "struktura",
+          name: "Struktura",
+          href: "#",
+          onClick: openOrgChart,
+          isExternal: true,
+          key: "#org-chart",
+        },
+      ],
+    },
+    {
+      id: "finance",
+      name: "Finance",
+      icon: DollarSign,
+      type: "section" as const,
+      items: [
+        {
+          id: "financni-prehled",
+          name: "Finanční přehled",
+          href: "/finance/overview",
+          key: "/finance/overview",
+        },
+        {
+          id: "analyza-marzovosti",
+          name: "Analýza marže",
+          href: "/analytics/product-margin-summary",
+          key: "/analytics/product-margin-summary",
+        },
+      ],
+    },
     {
       id: "zakaznicke",
       name: "Zákaznické",
@@ -160,19 +145,16 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "vydane-faktury",
           name: "Vydané faktury",
           href: "/customer/issued-invoices",
+          key: "/customer/issued-invoices",
         },
         {
           id: "prehled-bankovnich-vypisu",
           name: "Bankovní výpisy",
           href: "/customer/bank-statements-overview",
+          key: "/customer/bank-statements-overview",
         },
-        {
-          id: "archiv-expedic-zakaznicke",
-          name: "Expedice",
-          href: "/logistics/expedition-archive",
-        },
-        { id: "knowledge-base", name: "Poradenství (KB)", href: "/knowledge-base" },
-        { id: "smartsupp", name: "Smartsupp", href: "/customer/smartsupp" },
+        { id: "knowledge-base", name: "Poradenství (KB)", href: "/knowledge-base", key: "/knowledge-base" },
+        { id: "smartsupp", name: "Smartsupp", href: "/customer/smartsupp", key: "/customer/smartsupp" },
       ],
     },
     {
@@ -181,9 +163,23 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: Package,
       type: "section" as const,
       items: [
-        { id: "catalog", name: "Katalog", href: "/catalog" },
-        { id: "marze-produktu", name: "Marže", href: "/products/margins" },
-        { id: "journal", name: "Deník", href: "/journal" },
+        { id: "catalog", name: "Katalog", href: "/catalog", key: "/catalog" },
+        { id: "marze-produktu", name: "Marže", href: "/products/margins", key: "/products/margins" },
+        { id: "journal", name: "Deník", href: "/journal", key: "/journal" },
+      ],
+    },
+    {
+      id: "marketing",
+      name: "Marketing",
+      icon: Megaphone,
+      type: "section" as const,
+      items: [
+        { id: "naklady", name: "Náklady", href: "/marketing/costs", key: "/marketing/costs" },
+        { id: "marketing-calendar", name: "Kalendář", href: "/marketing/calendar", key: "/marketing/calendar" },
+        { id: "photobank", name: "Fotobanka", href: "/marketing/photobank", key: "/marketing/photobank" },
+        { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator", key: "/leaflet-generator" },
+        { id: "articles", name: "Generátor článků", href: "/articles", key: "/articles" },
+        { id: "marketing-feedback", name: "Feedback", href: "/marketing/feedback", key: "/marketing/feedback" },
       ],
     },
     {
@@ -196,16 +192,19 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "nakupni-objednavky",
           name: "Nákupní objednávky",
           href: "/purchase/orders",
+          key: "/purchase/orders",
         },
         {
           id: "analyza-skladu",
           name: "Zásoby materiálu",
           href: "/purchase/stock-analysis",
+          key: "/purchase/stock-analysis",
         },
         {
           id: "klasifikace-faktur",
           name: "Klasifikace faktur",
           href: "/purchase/invoice-classification",
+          key: "/purchase/invoice-classification",
         },
       ],
     },
@@ -219,36 +218,49 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "rizeni-zasob-vyroba",
           name: "Zásoby výrobků",
           href: "/manufacturing/stock-analysis",
+          key: "/manufacturing/stock-analysis",
         },
         {
           id: "zasoby-materialu",
           name: "Inventury materiálu",
           href: "/manufacturing/inventory",
+          key: "/manufacturing/inventory",
         },
         {
           id: "prehled-vyroby",
           name: "Souhrn výroby",
           href: "/manufacturing/output",
+          key: "/manufacturing/output",
         },
         {
           id: "kalkulator-davek",
           name: "Kalkulačka dávek",
           href: "/manufacturing/batch-calculator",
+          key: "/manufacturing/batch-calculator",
         },
         {
           id: "planovani-davek",
           name: "Plánování dávek",
           href: "/manufacturing/batch-planning",
+          key: "/manufacturing/batch-planning",
         },
         {
           id: "vyrobni-zakazky",
           name: "Výrobní zakázky",
           href: "/manufacturing/orders",
+          key: "/manufacturing/orders",
         },
         {
           id: "sklad-vyroby",
           name: "Sklad výroby",
           href: "/manufacturing/product-inventory",
+          key: "/manufacturing/product-inventory",
+        },
+        {
+          id: "sarze",
+          name: "Šarže",
+          href: "/manufacturing/material-containers",
+          key: "/manufacturing/material-containers",
         },
       ],
     },
@@ -262,31 +274,43 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "prijem-boxu",
           name: "Příjem boxů",
           href: "/logistics/receive-boxes",
+          key: "/logistics/receive-boxes",
         },
         {
           id: "transportni-boxy",
           name: "Transportní boxy",
           href: "/logistics/transport-boxes",
+          key: "/logistics/transport-boxes",
         },
         {
           id: "zasoby",
           name: "Zásoby produktů",
           href: "/logistics/inventory",
+          key: "/logistics/inventory",
         },
         {
           id: "vypackovani-balicku",
           name: "Výroba dárkových balíčků",
           href: "/logistics/gift-package-manufacturing",
-        },
-        {
-          id: "statistiky-skladu",
-          name: "Statistiky skladu",
-          href: "/logistics/warehouse-statistics",
+          key: "/logistics/gift-package-manufacturing",
         },
         {
           id: "sledovani-materialu",
           name: "Sledování materiálů",
           href: "/logistics/packing-materials",
+          key: "/logistics/packing-materials",
+        },
+        {
+          id: "tisk-expedice",
+          name: "Tisk expedice",
+          href: "/logistics/expedition-archive",
+          key: "/logistics/expedition-archive",
+        },
+        {
+          id: "nastaveni-expedice",
+          name: "Nastavení expedice",
+          href: "/customer/expedition-settings",
+          key: "/customer/expedition-settings",
         },
         {
           id: "terminal",
@@ -294,28 +318,22 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "#",
           onClick: openTerminal,
           isExternal: true,
+          key: "#terminal",
+        },
+        {
+          id: "baleni",
+          name: "Balení",
+          href: "#",
+          onClick: openBaleni,
+          isExternal: true,
+          key: "#baleni-external",
         },
       ],
     },
 
     {
-      id: "personalni",
-      name: "Personální",
-      icon: Users,
-      type: "section" as const,
-      items: [
-        {
-          id: "struktura",
-          name: "Struktura",
-          href: "#",
-          onClick: openOrgChart,
-          isExternal: true,
-        },
-      ],
-    },
-    {
       id: "automatizace",
-      name: "Automatizace",
+      name: "Administrace",
       icon: Bot,
       type: "section" as const,
       items: [
@@ -323,27 +341,44 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "background-tasks",
           name: "Background Tasky",
           href: "/automation/background-tasks",
+          key: "/automation/background-tasks",
         },
         {
           id: "stock-operations",
           name: "Naskladnění",
           href: "/stock-up-operations",
+          key: "/stock-up-operations",
         },
         {
           id: "recurring-jobs",
           name: "Recurring Jobs",
           href: "/recurring-jobs",
+          key: "/recurring-jobs",
         },
         {
           id: "hangfire",
           name: "Hangfire",
           href: "#",
           onClick: openHangfireDashboard,
+          key: "#hangfire",
         },
         {
           id: "data-quality",
           name: "Kvalita dat",
           href: "/automation/data-quality",
+          key: "/automation/data-quality",
+        },
+        {
+          id: "feature-flags",
+          name: "Feature Flags",
+          href: "/admin/feature-flags",
+          key: "/admin/feature-flags",
+        },
+        {
+          id: "access-management",
+          name: "Access management",
+          href: "/admin/access",
+          key: "/admin/access",
         },
       ],
     },
@@ -364,6 +399,21 @@ const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
   ];
+
+  type RawSection = (typeof allSections)[number];
+
+  const canSeeItem = (item: { key: string }): boolean => canSeeKey(item.key);
+
+  const navigationSections: RawSection[] = [];
+  for (const section of allSections) {
+    if (section.type === "single") {
+      navigationSections.push(section);
+      continue;
+    }
+    const visibleItems = section.items.filter(canSeeItem);
+    if (visibleItems.length === 0) continue;
+    navigationSections.push({ ...section, items: visibleItems });
+  }
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections(
@@ -386,7 +436,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar */}
       <div
         className={`
-        fixed top-0 left-0 z-40 bottom-0 bg-white border-r border-gray-200 shadow-sm transform transition-all duration-300 ease-in-out
+        fixed top-0 left-0 z-40 bottom-0 bg-white dark:bg-graphite-chrome border-r border-gray-200 dark:border-graphite-border shadow-sm dark:shadow-soft-dark transform transition-all duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0
         ${isCollapsed ? "w-16" : "w-4/5 max-w-[280px] md:w-64"}
       `}
@@ -394,14 +444,14 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex flex-col h-full">
           {/* App Title / Mobile Menu */}
           <div
-            className={`${isCollapsed ? "h-16 px-2" : "h-16 px-4"} flex items-center border-b border-gray-200 flex-shrink-0`}
+            className={`${isCollapsed ? "h-16 px-2" : "h-16 px-4"} flex items-center border-b border-gray-200 dark:border-graphite-border flex-shrink-0`}
           >
             {!isCollapsed ? (
               <div className="flex items-center justify-between w-full">
                 {/* Mobile menu button - only visible on mobile */}
                 <button
                   type="button"
-                  className="md:hidden p-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="md:hidden p-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale dark:text-graphite-muted dark:hover:text-graphite-accent dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary"
                   onClick={onMenuClick}
                 >
                   <Menu className="h-5 w-5" />
@@ -409,10 +459,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* App Title */}
                 <div className="flex items-center md:justify-start justify-center flex-1">
-                  <div className="w-8 h-8 bg-primary-blue rounded flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">AH</span>
-                  </div>
-                  <span className="ml-3 text-lg font-semibold text-gray-900">
+                  <img
+                    src="/logo192.png"
+                    alt="Anela Heblo"
+                    className="w-8 h-8 rounded"
+                  />
+                  <span className="ml-3 text-lg font-semibold text-gray-900 dark:text-graphite-text">
                     Anela Heblo
                   </span>
                 </div>
@@ -449,13 +501,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                             flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-300
                             ${
                               isActive
-                                ? "bg-secondary-blue-pale text-primary-blue border-r-2 border-primary-blue"
-                                : "text-neutral-slate hover:bg-secondary-blue-pale/50 hover:text-neutral-slate"
+                                ? "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent border-r-2 border-primary-blue dark:border-graphite-accent"
+                                : "text-neutral-slate dark:text-graphite-text hover:bg-secondary-blue-pale/50 dark:hover:bg-white/5 hover:text-neutral-slate"
                             }
                           `}
                         >
                           <IconComponent
-                            className={`mr-3 h-5 w-5 ${isActive ? "text-primary-blue" : "text-neutral-gray"}`}
+                            className={`mr-3 h-5 w-5 ${isActive ? "text-primary-blue dark:text-graphite-accent" : "text-neutral-gray dark:text-graphite-muted"}`}
                           />
                           {section.name}
                         </Link>
@@ -471,14 +523,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                             flex items-center justify-center p-2 rounded-md transition-colors duration-300
                             ${
                               isActive
-                                ? "bg-secondary-blue-pale text-primary-blue"
-                                : "text-neutral-slate hover:bg-secondary-blue-pale/50 hover:text-neutral-slate"
+                                ? "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent"
+                                : "text-neutral-slate dark:text-graphite-text hover:bg-secondary-blue-pale/50 dark:hover:bg-white/5 hover:text-neutral-slate"
                             }
                           `}
                           title={section.name}
                         >
                           <IconComponent
-                            className={`h-5 w-5 ${isActive ? "text-primary-blue" : "text-neutral-gray"}`}
+                            className={`h-5 w-5 ${isActive ? "text-primary-blue dark:text-graphite-accent" : "text-neutral-gray dark:text-graphite-muted"}`}
                           />
                         </Link>
                       )}
@@ -498,21 +550,21 @@ const Sidebar: React.FC<SidebarProps> = ({
                             w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md transition-colors duration-300
                             ${
                               isActive
-                                ? "bg-secondary-blue-pale text-primary-blue"
-                                : "text-neutral-slate hover:bg-secondary-blue-pale/50 hover:text-neutral-slate"
+                                ? "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent"
+                                : "text-neutral-slate dark:text-graphite-text hover:bg-secondary-blue-pale/50 dark:hover:bg-white/5 hover:text-neutral-slate"
                             }
                           `}
                         >
                           <div className="flex items-center">
                             <IconComponent
-                              className={`mr-3 h-5 w-5 ${isActive ? "text-primary-blue" : "text-neutral-gray"}`}
+                              className={`mr-3 h-5 w-5 ${isActive ? "text-primary-blue dark:text-graphite-accent" : "text-neutral-gray dark:text-graphite-muted"}`}
                             />
                             {section.name}
                           </div>
                           {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-gray-400 transition-transform duration-300" />
+                            <ChevronDown className="h-4 w-4 text-gray-400 dark:text-graphite-faint transition-transform duration-300" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-400 transition-transform duration-300" />
+                            <ChevronRight className="h-4 w-4 text-gray-400 dark:text-graphite-faint transition-transform duration-300" />
                           )}
                         </button>
 
@@ -528,6 +580,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 return (
                                   <button
                                     key={subItem.id}
+                                    data-menu-key={subItem.key}
                                     onClick={() => {
                                       setActiveItem(subItem.id);
                                       (subItem as any).onClick();
@@ -536,8 +589,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                       flex items-center justify-between w-full text-left px-3 py-2 text-sm rounded-md transition-colors duration-300
                                       ${
                                         isSubActive
-                                          ? "bg-secondary-blue-pale text-primary-blue font-medium"
-                                          : "text-neutral-gray hover:bg-secondary-blue-pale/30 hover:text-neutral-slate"
+                                          ? "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent font-medium"
+                                          : "text-neutral-gray dark:text-graphite-muted hover:bg-secondary-blue-pale/30 dark:hover:bg-white/5 hover:text-neutral-slate dark:hover:text-graphite-text"
                                       }
                                     `}
                                   >
@@ -562,8 +615,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     block px-3 py-2 text-sm rounded-md transition-colors duration-300
                                     ${
                                       isSubActive
-                                        ? "bg-secondary-blue-pale text-primary-blue font-medium"
-                                        : "text-neutral-gray hover:bg-secondary-blue-pale/30 hover:text-neutral-slate"
+                                        ? "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent font-medium"
+                                        : "text-neutral-gray dark:text-graphite-muted hover:bg-secondary-blue-pale/30 dark:hover:bg-white/5 hover:text-neutral-slate dark:hover:text-graphite-text"
                                     }
                                   `}
                                 >
@@ -586,14 +639,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                           flex items-center justify-center p-2 rounded-md transition-colors duration-300
                           ${
                             isActive
-                              ? "bg-secondary-blue-pale text-primary-blue"
-                              : "text-neutral-slate hover:bg-secondary-blue-pale/50 hover:text-neutral-slate"
+                              ? "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent"
+                              : "text-neutral-slate dark:text-graphite-text hover:bg-secondary-blue-pale/50 dark:hover:bg-white/5 hover:text-neutral-slate"
                           }
                         `}
                         title={section.name}
                       >
                         <IconComponent
-                          className={`h-5 w-5 ${isActive ? "text-primary-blue" : "text-neutral-gray"}`}
+                          className={`h-5 w-5 ${isActive ? "text-primary-blue dark:text-graphite-accent" : "text-neutral-gray dark:text-graphite-muted"}`}
                         />
                       </button>
                     )}
@@ -605,43 +658,45 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Changelog and User Profile at bottom */}
           <div
-            className={`border-t border-gray-200 ${isCollapsed ? "px-2" : "px-3"} flex flex-col flex-shrink-0`}
+            className={`border-t border-gray-200 dark:border-graphite-border ${isCollapsed ? "px-2" : "px-3"} flex flex-col flex-shrink-0`}
           >
             {/* Changelog button */}
             {!isCollapsed ? (
-              <div className="py-2">
+              <div className="py-2 flex items-center gap-1">
                 <button
                   type="button"
                   onClick={openModal}
-                  className="w-full flex items-center px-2 py-2 text-sm font-medium text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale rounded-md transition-colors"
+                  className="flex-1 flex items-center px-2 py-2 text-sm font-medium text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale dark:text-graphite-muted dark:hover:text-graphite-accent dark:hover:bg-white/5 rounded-md transition-colors"
                   title="Co je nové"
                 >
                   <Newspaper className="h-4 w-4 mr-3" />
                   Co je nové
                 </button>
+                <ThemeToggle className="flex-shrink-0" />
               </div>
             ) : (
-              <div className="py-2 flex justify-center">
+              <div className="py-2 flex flex-col items-center gap-1">
                 <button
                   type="button"
                   onClick={openModal}
-                  className="p-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale transition-colors"
+                  className="p-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale dark:text-graphite-muted dark:hover:text-graphite-accent dark:hover:bg-white/5 transition-colors"
                   title="Co je nové"
                 >
                   <Newspaper className="h-4 w-4" />
                 </button>
+                <ThemeToggle />
               </div>
             )}
 
             {/* User Profile and Toggle button */}
             {!isCollapsed ? (
-              <div className="flex items-center justify-between h-16 py-2 border-t border-gray-100">
+              <div className="relative flex items-center justify-between h-16 py-2 border-t border-gray-100 dark:border-graphite-border">
                 <div className="flex-1 min-w-0">
                   <UserProfile />
                 </div>
                 <button
                   type="button"
-                  className="hidden md:flex p-1.5 ml-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary transition-colors flex-shrink-0"
+                  className="hidden md:flex p-1.5 ml-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale dark:text-graphite-muted dark:hover:text-graphite-accent dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary transition-colors flex-shrink-0"
                   onClick={onToggleCollapse}
                   title="Collapse sidebar"
                 >
@@ -649,13 +704,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col items-center py-2 space-y-2 border-t border-gray-100">
+              <div className="relative flex flex-col items-center py-2 space-y-2 border-t border-gray-100 dark:border-graphite-border">
                 <div className="w-full flex justify-center">
                   <UserProfile compact />
                 </div>
                 <button
                   type="button"
-                  className="hidden md:flex p-1.5 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                  className="hidden md:flex p-1.5 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale dark:text-graphite-muted dark:hover:text-graphite-accent dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
                   onClick={onToggleCollapse}
                   title="Expand sidebar"
                 >

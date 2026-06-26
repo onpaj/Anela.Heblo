@@ -23,4 +23,11 @@ public class ShoptetApiSettings
     /// Configure per environment in user secrets: Shoptet:InvoiceShippingGuidMap:{guid}
     /// </summary>
     public Dictionary<string, ShippingMethod> InvoiceShippingGuidMap { get; set; } = new();
+
+    /// <summary>
+    /// Fallback item weight in grams when the catalog has no GrossWeight or NetWeight for a product.
+    /// Defaults to 0: a product with no known weight contributes nothing to the shipment weight,
+    /// rather than inflating it (e.g. 50 pcs × 500 g = 25 kg on order 126014878).
+    /// </summary>
+    public int DefaultItemWeightGrams { get; set; } = 0;
 }

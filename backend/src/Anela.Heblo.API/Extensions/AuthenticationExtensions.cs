@@ -2,7 +2,9 @@ using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
 using Anela.Heblo.API.Infrastructure.Authentication;
+using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.Authorization;
 
@@ -40,8 +42,8 @@ public static class AuthenticationExtensions
     private static void ConfigureMockAuthentication(IServiceCollection services)
     {
         // Mock authentication - can be used in any environment when UseMockAuth=true
-        services.AddAuthentication(ConfigurationConstants.MOCK_AUTH_SCHEME)
-            .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>(ConfigurationConstants.MOCK_AUTH_SCHEME, _ => { });
+        services.AddAuthentication(InfrastructureConstants.MOCK_AUTH_SCHEME)
+            .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>(InfrastructureConstants.MOCK_AUTH_SCHEME, _ => { });
         ConfigureAuthorizationPolicies(services);
 
         // Note: GraphService is now handled via MockGraphService in UserManagementModule
@@ -57,7 +59,10 @@ public static class AuthenticationExtensions
             .AddInMemoryTokenCaches();
 
         // Also add API authentication for Bearer tokens (for API clients)
-        services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
+        // Chain OBO so ITokenAcquisition.GetAccessTokenForUserAsync works for delegated writes.
+        services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd")
+            .EnableTokenAcquisitionToCallDownstreamApi()
+            .AddInMemoryTokenCaches();
 
         // Configure HTTPS forwarding headers for deployment behind load balancer/proxy
         services.Configure<ForwardedHeadersOptions>(options =>
@@ -100,19 +105,18 @@ public static class AuthenticationExtensions
     {
         services.AddAuthorization(options =>
         {
-            // Default policy requires HebloUser role for all endpoints with [Authorize]
             options.DefaultPolicy = new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
-                .RequireRole(AuthorizationConstants.Roles.HebloUser)
+                .RequireRole(AccessRoles.Base)
                 .Build();
-
-            options.AddPolicy(AuthorizationConstants.Policies.KnowledgeBaseUpload, policy =>
-                policy.RequireAuthenticatedUser()
-                      .RequireRole(AuthorizationConstants.Roles.SuperUser));
-
-            options.AddPolicy(AuthorizationConstants.Policies.MarketingReader, policy =>
-                policy.RequireAuthenticatedUser()
-                      .RequireRole(AuthorizationConstants.Roles.MarketingReader));
+            options.AddPolicy("AuthenticatedUser", p => p.RequireAuthenticatedUser());
+            // Per-feature gating is expressed via [Authorize(Roles = …)] on controllers/actions.
         });
+
+        services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, PermissionClaimsTransformation>();
+
+        // Replace the bare 403 from the authorization middleware with a structured body naming the
+        // missing permission(s). Covers both mock and real auth — both call this method.
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, PermissionAuthorizationResultHandler>();
     }
 }

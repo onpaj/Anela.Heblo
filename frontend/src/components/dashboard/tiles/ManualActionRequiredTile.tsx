@@ -22,7 +22,7 @@ export const ManualActionRequiredTile: React.FC<ManualActionRequiredTileProps> =
   // Determine icon color based on count
   // count = 0: Success (green) - all is OK
   // count > 0: Danger (red) - requires attention
-  const iconColor = count === 0 ? 'text-emerald-600' : 'text-red-600';
+  const iconColor = count === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400';
   
   return (
     <CountTile

@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Application.Features.PackingMaterials.Services;
-using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using Microsoft.Extensions.Logging;
@@ -16,22 +16,17 @@ public class ConsumptionCalculationServiceTests
         _mockLogger = new MockLogger<ConsumptionCalculationService>();
     }
 
-    private static IssuedInvoice MakeInvoice(string id, DateOnly date, int itemsCount)
+    private static InvoiceConsumptionHeader MakeHeader(string id, int itemsCount)
     {
-        return new IssuedInvoice
-        {
-            Id = id,
-            InvoiceDate = date.ToDateTime(TimeOnly.MinValue),
-            ItemsCount = itemsCount
-        };
+        return new InvoiceConsumptionHeader(id, itemsCount);
     }
 
     private static ConsumptionCalculationService BuildService(
         MockPackingMaterialRepository materialRepo,
-        MockIssuedInvoiceRepository invoiceRepo,
+        MockInvoiceConsumptionSource invoiceSource,
         ILogger<ConsumptionCalculationService> logger)
     {
-        return new ConsumptionCalculationService(materialRepo, invoiceRepo, logger);
+        return new ConsumptionCalculationService(materialRepo, invoiceSource, logger);
     }
 
     [Fact]
@@ -42,9 +37,9 @@ public class ConsumptionCalculationServiceTests
         var material = new PackingMaterial("Tape", 3m, ConsumptionType.PerDay, 100m);
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { material });
-        var invoiceRepo = new MockIssuedInvoiceRepository();
+        var invoiceSource = new MockInvoiceConsumptionSource();
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -69,14 +64,14 @@ public class ConsumptionCalculationServiceTests
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { material });
 
-        var invoiceRepo = new MockIssuedInvoiceRepository();
-        invoiceRepo.SetInvoices(new[]
+        var invoiceSource = new MockInvoiceConsumptionSource();
+        invoiceSource.SetHeaders(date, new[]
         {
-            MakeInvoice("INV-1", date, itemsCount: 3),
-            MakeInvoice("INV-2", date, itemsCount: 5)
+            MakeHeader("INV-1", itemsCount: 3),
+            MakeHeader("INV-2", itemsCount: 5)
         });
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -111,14 +106,14 @@ public class ConsumptionCalculationServiceTests
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { material });
 
-        var invoiceRepo = new MockIssuedInvoiceRepository();
-        invoiceRepo.SetInvoices(new[]
+        var invoiceSource = new MockInvoiceConsumptionSource();
+        invoiceSource.SetHeaders(date, new[]
         {
-            MakeInvoice("INV-A", date, itemsCount: 3),
-            MakeInvoice("INV-B", date, itemsCount: 5)
+            MakeHeader("INV-A", itemsCount: 3),
+            MakeHeader("INV-B", itemsCount: 5)
         });
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -150,9 +145,9 @@ public class ConsumptionCalculationServiceTests
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { material });
         materialRepo.SetHasDailyProcessingBeenRun(date, true);
-        var invoiceRepo = new MockIssuedInvoiceRepository();
+        var invoiceSource = new MockInvoiceConsumptionSource();
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -164,16 +159,16 @@ public class ConsumptionCalculationServiceTests
     }
 
     [Fact]
-    public async Task ProcessDailyConsumptionAsync_WritesMarkerLog_WhenZeroConsumption()
+    public async Task ProcessDailyConsumptionAsync_RecordsDailyRun_WhenZeroConsumption()
     {
         // Arrange — PerOrder material but zero invoices means zero consumption
         var date = new DateOnly(2025, 6, 15);
         var material = new PackingMaterial("Cards", 1m, ConsumptionType.PerOrder, 8000m);
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { material });
-        var invoiceRepo = new MockIssuedInvoiceRepository();
+        var invoiceSource = new MockInvoiceConsumptionSource();
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -182,33 +177,32 @@ public class ConsumptionCalculationServiceTests
         Assert.True(result.WasRun);
         Assert.Equal(0, result.MaterialsProcessed);
 
-        // Quantity must NOT have changed
+        // No PackingMaterialLog entries — no synthetic marker
         var updated = materialRepo.Materials[0];
-        Assert.Equal(8000m, updated.CurrentQuantity);
+        Assert.Empty(updated.Logs);
 
-        var markerLog = updated.Logs.Single();
-        Assert.Equal(LogEntryType.AutomaticConsumption, markerLog.LogType);
-        Assert.Equal(date, markerLog.Date);
-        Assert.Equal(8000m, markerLog.OldQuantity);
-        Assert.Equal(8000m, markerLog.NewQuantity);
+        // Daily run record written
+        var dailyRun = Assert.Single(materialRepo.AddedDailyRuns);
+        Assert.Equal(date, dailyRun.Date);
+        Assert.Equal(0, dailyRun.MaterialsProcessed);
 
-        // No fact rows for zero consumption (no invoices means no PerOrder rows)
+        // No fact rows for zero consumption
         Assert.Empty(materialRepo.AddedConsumptionRows);
     }
 
     [Fact]
-    public async Task ProcessDailyConsumptionAsync_MixedTypes_ZeroInvoices_PerDayDecrementsPerOrderGetsMarkerLog()
+    public async Task ProcessDailyConsumptionAsync_MixedTypes_ZeroInvoices_PerDayDecrementsPerOrderHasNoLog()
     {
-        // Arrange — PerDay material always decrements; PerOrder material gets marker log when zero invoices
+        // Arrange — PerDay material always decrements; PerOrder material has no consumption when zero invoices
         var date = new DateOnly(2025, 6, 15);
         var perDayMaterial = new PackingMaterial("Tape", 5m, ConsumptionType.PerDay, 200m);
         var perOrderMaterial = new PackingMaterial("Box", 2m, ConsumptionType.PerOrder, 100m);
 
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { perDayMaterial, perOrderMaterial });
-        var invoiceRepo = new MockIssuedInvoiceRepository(); // no invoices
+        var invoiceSource = new MockInvoiceConsumptionSource(); // no invoices
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -220,9 +214,9 @@ public class ConsumptionCalculationServiceTests
         // PerDay material should be decremented
         var tape = materialRepo.Materials.First(m => m.Name == "Tape");
         Assert.Equal(195m, tape.CurrentQuantity);
-        Assert.Single(tape.Logs);
+        Assert.Single(tape.Logs); // real consumption log
 
-        // PerOrder material should be untouched — but idempotency marker written on first material (Tape)
+        // PerOrder material should be completely untouched — no marker log
         var box = materialRepo.Materials.First(m => m.Name == "Box");
         Assert.Equal(100m, box.CurrentQuantity);
         Assert.Empty(box.Logs);
@@ -231,10 +225,10 @@ public class ConsumptionCalculationServiceTests
         Assert.Single(materialRepo.AddedConsumptionRows);
         Assert.Equal(ConsumptionType.PerDay, materialRepo.AddedConsumptionRows[0].ConsumptionType);
 
-        // Subsequent re-run should be blocked (Tape's log counts as the marker)
-        materialRepo.SetHasDailyProcessingBeenRun(date, true);
-        var rerun = await service.ProcessDailyConsumptionAsync(date);
-        Assert.False(rerun.WasRun);
+        // Daily run recorded
+        var dailyRun = Assert.Single(materialRepo.AddedDailyRuns);
+        Assert.Equal(date, dailyRun.Date);
+        Assert.Equal(1, dailyRun.MaterialsProcessed);
     }
 
     [Fact]
@@ -242,8 +236,8 @@ public class ConsumptionCalculationServiceTests
     {
         // Arrange
         var materialRepo = new MockPackingMaterialRepository();
-        var invoiceRepo = new MockIssuedInvoiceRepository();
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var invoiceSource = new MockInvoiceConsumptionSource();
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
         var date = DateOnly.FromDateTime(DateTime.Today);
         materialRepo.SetHasDailyProcessingBeenRun(date, true);
 
@@ -267,15 +261,15 @@ public class ConsumptionCalculationServiceTests
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { perDayMaterial, perOrderMaterial, perProductMaterial });
 
-        var invoiceRepo = new MockIssuedInvoiceRepository();
-        invoiceRepo.SetInvoices(new[]
+        var invoiceSource = new MockInvoiceConsumptionSource();
+        invoiceSource.SetHeaders(date, new[]
         {
-            MakeInvoice("INV-1", date, itemsCount: 4),
-            MakeInvoice("INV-2", date, itemsCount: 6),
-            MakeInvoice("INV-3", date, itemsCount: 0)
+            MakeHeader("INV-1", itemsCount: 4),
+            MakeHeader("INV-2", itemsCount: 6),
+            MakeHeader("INV-3", itemsCount: 0)
         });
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -312,5 +306,101 @@ public class ConsumptionCalculationServiceTests
         var stickerLog = materialRepo.Materials.First(m => m.Name == "Sticker").Logs.Single();
         Assert.Equal(10m, Math.Abs(stickerLog.ChangeAmount));
         Assert.Equal(perProductRows.Sum(r => r.Amount), Math.Abs(stickerLog.ChangeAmount));
+    }
+
+    [Fact]
+    public async Task ProcessDailyConsumptionAsync_RecordsDailyRun_WhenMaterialListIsEmpty()
+    {
+        // Arrange — no materials configured at all (FR-4)
+        var date = new DateOnly(2025, 6, 15);
+        var materialRepo = new MockPackingMaterialRepository(); // no materials
+        var invoiceRepo = new MockInvoiceConsumptionSource();
+
+        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+
+        // Act
+        var result = await service.ProcessDailyConsumptionAsync(date);
+
+        // Assert
+        Assert.True(result.WasRun);
+        Assert.Equal(0, result.MaterialsProcessed);
+
+        var dailyRun = Assert.Single(materialRepo.AddedDailyRuns);
+        Assert.Equal(date, dailyRun.Date);
+        Assert.Equal(0, dailyRun.MaterialsProcessed);
+
+        Assert.Empty(materialRepo.AddedConsumptionRows);
+    }
+
+    [Fact]
+    public async Task ProcessDailyConsumptionAsync_SecondRun_ReturnsWasRunFalse_WithoutMutating()
+    {
+        // Arrange — simulate day already processed via HasDailyProcessingBeenRunAsync (FR-2)
+        var date = new DateOnly(2025, 6, 15);
+        var material = new PackingMaterial("Cards", 1m, ConsumptionType.PerOrder, 8000m);
+        var materialRepo = new MockPackingMaterialRepository();
+        materialRepo.SetMaterials(new[] { material });
+        materialRepo.SetHasDailyProcessingBeenRun(date, true); // simulate existing daily run
+        var invoiceRepo = new MockInvoiceConsumptionSource();
+
+        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+
+        // Act
+        var result = await service.ProcessDailyConsumptionAsync(date);
+
+        // Assert
+        Assert.False(result.WasRun);
+        Assert.Equal(0, result.MaterialsProcessed);
+
+        // No mutations
+        Assert.Empty(materialRepo.AddedDailyRuns);
+        Assert.Empty(materialRepo.AddedConsumptionRows);
+        Assert.Equal(8000m, materialRepo.Materials[0].CurrentQuantity);
+        Assert.Empty(materialRepo.Materials[0].Logs);
+    }
+
+    [Fact]
+    public async Task ProcessDailyConsumptionAsync_PropagatesOtherDbUpdateExceptions()
+    {
+        // Arrange — SaveChangesAsync throws a DbUpdateException unrelated to the daily run constraint
+        var date = new DateOnly(2025, 6, 15);
+        var material = new PackingMaterial("Cards", 1m, ConsumptionType.PerDay, 8000m);
+        var materialRepo = new MockPackingMaterialRepository();
+        materialRepo.SetMaterials(new[] { material });
+        var invoiceRepo = new MockInvoiceConsumptionSource();
+
+        // Set up a non-duplicate DbUpdateException (no inner PostgresException).
+        // After the refactor, AddDailyRunAsync returns true (mock default), so execution
+        // reaches the second SaveChangesAsync (consumption rows + quantity updates), where
+        // this exception is thrown.
+        var unrelatedEx = new Microsoft.EntityFrameworkCore.DbUpdateException("some other db error", new Exception("inner"));
+        materialRepo.SetSaveChangesException(unrelatedEx);
+
+        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+
+        // Act & Assert — the service must NOT swallow unrelated DbUpdateExceptions
+        var thrown = await Assert.ThrowsAsync<Microsoft.EntityFrameworkCore.DbUpdateException>(
+            () => service.ProcessDailyConsumptionAsync(date));
+        Assert.Same(unrelatedEx, thrown);
+    }
+
+    [Fact]
+    public async Task ProcessDailyConsumptionAsync_ReturnsWasRunFalse_WhenAddDailyRunReturnsFalse()
+    {
+        // Arrange — simulate concurrent duplicate: AddDailyRunAsync returns false
+        var date = new DateOnly(2025, 6, 15);
+        var materialRepo = new MockPackingMaterialRepository();
+        materialRepo.SetAddDailyRunReturns(date, false);
+        var invoiceSource = new MockInvoiceConsumptionSource();
+
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
+
+        // Act
+        var result = await service.ProcessDailyConsumptionAsync(date);
+
+        // Assert
+        Assert.False(result.WasRun);
+        Assert.Equal(0, result.MaterialsProcessed);
+        Assert.Empty(materialRepo.AddedConsumptionRows);
     }
 }

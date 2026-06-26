@@ -29,7 +29,7 @@ public sealed class ListArticlesHandler : IRequestHandler<ListArticlesRequest, L
                 Id = a.Id,
                 Topic = a.Topic,
                 Title = a.Title,
-                Status = a.Status.ToString(),
+                Status = a.Status,
                 CreatedAt = a.CreatedAt,
                 GeneratedAt = a.GeneratedAt
             }).ToList(),

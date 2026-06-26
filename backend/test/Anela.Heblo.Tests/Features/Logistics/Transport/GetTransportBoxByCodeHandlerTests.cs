@@ -1,8 +1,8 @@
 using Anela.Heblo.Application.Features.Logistics;
+using Anela.Heblo.Application.Features.Logistics.Contracts;
+using Anela.Heblo.Application.Features.Logistics.Contracts.Models;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxByCode;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using AutoMapper;
 using FluentAssertions;
@@ -16,14 +16,14 @@ namespace Anela.Heblo.Tests.Features.Logistics.Transport;
 public class GetTransportBoxByCodeHandlerTests
 {
     private readonly Mock<ITransportBoxRepository> _repositoryMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<ILogisticsCatalogSource> _catalogSourceMock;
     private readonly Mock<ILogger<GetTransportBoxByCodeHandler>> _loggerMock;
     private readonly GetTransportBoxByCodeHandler _handler;
 
     public GetTransportBoxByCodeHandlerTests()
     {
         _repositoryMock = new Mock<ITransportBoxRepository>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogSourceMock = new Mock<ILogisticsCatalogSource>();
         _loggerMock = new Mock<ILogger<GetTransportBoxByCodeHandler>>();
 
         var config = new MapperConfiguration(cfg =>
@@ -32,7 +32,7 @@ public class GetTransportBoxByCodeHandlerTests
         }, NullLoggerFactory.Instance);
         var mapper = config.CreateMapper();
 
-        _handler = new GetTransportBoxByCodeHandler(_loggerMock.Object, _repositoryMock.Object, _catalogRepositoryMock.Object, mapper);
+        _handler = new GetTransportBoxByCodeHandler(_loggerMock.Object, _repositoryMock.Object, _catalogSourceMock.Object, mapper);
     }
 
     [Fact]
@@ -84,11 +84,14 @@ public class GetTransportBoxByCodeHandlerTests
             .Setup(x => x.GetByIdWithDetailsAsync(box.Id))
             .ReturnsAsync(box);
 
-        // Mock catalog repository for the product in the box
-        var catalogItem = CreateTestCatalogItem("TEST-PRODUCT", "Test Product", "https://example.com/image.jpg", 10.5m);
-        _catalogRepositoryMock
-            .Setup(x => x.GetByIdAsync("TEST-PRODUCT", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => catalogItem);
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemAsync("TEST-PRODUCT", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LogisticsCatalogItem
+            {
+                ProductCode = "TEST-PRODUCT",
+                Image = "https://example.com/image.jpg",
+                EshopStock = 10.5m
+            });
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -99,13 +102,14 @@ public class GetTransportBoxByCodeHandlerTests
         result.TransportBox.Should().NotBeNull();
         result.TransportBox!.Code.Should().Be("B001");
         result.TransportBox.State.Should().Be(TransportBoxState.Opened.ToString());
-        result.TransportBox.IsReceivable.Should().BeFalse(); // Box is not in receivable state
+        result.TransportBox.IsReceivable.Should().BeFalse();
         result.TransportBox.Items.Should().HaveCount(1);
     }
 
     [Theory]
     [InlineData(TransportBoxState.Reserve)]
     [InlineData(TransportBoxState.InTransit)]
+    [InlineData(TransportBoxState.Quarantine)]
     public async Task Handle_BoxInValidState_ReturnsSuccessResponse(TransportBoxState state)
     {
         // Arrange
@@ -120,11 +124,14 @@ public class GetTransportBoxByCodeHandlerTests
             .Setup(x => x.GetByIdWithDetailsAsync(box.Id))
             .ReturnsAsync(box);
 
-        // Mock catalog repository for the product in the box
-        var catalogItem = CreateTestCatalogItem("TEST-PRODUCT", "Test Product", "https://example.com/image.jpg", 10.5m);
-        _catalogRepositoryMock
-            .Setup(x => x.GetByIdAsync("TEST-PRODUCT", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => catalogItem);
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemAsync("TEST-PRODUCT", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LogisticsCatalogItem
+            {
+                ProductCode = "TEST-PRODUCT",
+                Image = "https://example.com/image.jpg",
+                EshopStock = 10.5m
+            });
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -135,7 +142,7 @@ public class GetTransportBoxByCodeHandlerTests
         result.TransportBox.Should().NotBeNull();
         result.TransportBox!.Code.Should().Be("B001");
         result.TransportBox.State.Should().Be(state.ToString());
-        result.TransportBox.IsReceivable.Should().BeTrue(); // Box is in receivable state
+        result.TransportBox.IsReceivable.Should().BeTrue();
         result.TransportBox.Items.Should().HaveCount(1);
         result.TransportBox.Items[0].ImageUrl.Should().Be("https://example.com/image.jpg");
         result.TransportBox.Items[0].OnStock.Should().Be(10.5m);
@@ -179,23 +186,91 @@ public class GetTransportBoxByCodeHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert - The important part is that we called GetByCodeAsync with uppercase "B001"
-        result.Success.Should().BeFalse(); // Box not found is expected
+        result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.TransportBoxNotFound);
         _repositoryMock.Verify(x => x.GetByCodeAsync("B001"), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ValidBox_CallsGetCatalogItemAsyncPerUniqueProductCode()
+    {
+        // Arrange
+        var request = new GetTransportBoxByCodeRequest { BoxCode = "B001" };
+        var box = CreateTestBoxWithItems(TransportBoxState.Reserve, "B001");
+
+        _repositoryMock
+            .Setup(x => x.GetByCodeAsync("B001"))
+            .ReturnsAsync(box);
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(box.Id))
+            .ReturnsAsync(box);
+
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemAsync("TEST-PRODUCT", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LogisticsCatalogItem
+            {
+                ProductCode = "TEST-PRODUCT",
+                Image = "https://example.com/image.jpg",
+                EshopStock = 10.5m
+            });
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _catalogSourceMock.Verify(x => x.GetCatalogItemAsync("TEST-PRODUCT", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ItemMissingFromCatalog_LogsWarningAndLeavesItemUnpopulated()
+    {
+        // Arrange
+        var request = new GetTransportBoxByCodeRequest { BoxCode = "B001" };
+        var box = CreateTestBoxWithItems(TransportBoxState.Reserve, "B001");
+
+        _repositoryMock
+            .Setup(x => x.GetByCodeAsync("B001"))
+            .ReturnsAsync(box);
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(box.Id))
+            .ReturnsAsync(box);
+
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LogisticsCatalogItem?)null);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.TransportBox.Should().NotBeNull();
+        result.TransportBox!.Items.Should().HaveCount(1);
+        result.TransportBox.Items[0].ImageUrl.Should().BeNull();
+        result.TransportBox.Items[0].OnStock.Should().Be(0);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("TEST-PRODUCT")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce());
     }
 
     private TransportBox CreateTestBox(TransportBoxState state, string code)
     {
         var box = new TransportBox();
 
-        // Set state and code using reflection
         var stateProperty = typeof(TransportBox).GetProperty("State");
         stateProperty?.SetValue(box, state);
 
         var codeField = typeof(TransportBox).GetField("<Code>k__BackingField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         codeField?.SetValue(box, code);
 
-        // Set Id for testing
         var idProperty = typeof(TransportBox).GetProperty("Id");
         idProperty?.SetValue(box, 1);
 
@@ -206,13 +281,11 @@ public class GetTransportBoxByCodeHandlerTests
     {
         var box = CreateTestBox(state, code);
 
-        // Add a test item using reflection
         var itemsField = typeof(TransportBox).GetField("_items", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         if (itemsField != null)
         {
             var items = (List<TransportBoxItem>)itemsField.GetValue(box)!;
 
-            // Create a test item
             var itemType = typeof(TransportBoxItem);
             var item = Activator.CreateInstance(itemType,
                 "TEST-PRODUCT",
@@ -231,19 +304,5 @@ public class GetTransportBoxByCodeHandlerTests
         }
 
         return box;
-    }
-
-    private CatalogAggregate CreateTestCatalogItem(string productCode, string productName, string imageUrl, decimal eshopStock)
-    {
-        return new CatalogAggregate
-        {
-            ProductCode = productCode,
-            ProductName = productName,
-            Image = imageUrl,
-            Stock = new StockData
-            {
-                Eshop = eshopStock
-            }
-        };
     }
 }

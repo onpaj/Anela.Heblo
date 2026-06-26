@@ -12,7 +12,7 @@ const ErrorState: React.FC<ErrorStateProps> = ({
 }) => {
   return (
     <div className={`flex items-center justify-center ${className}`}>
-      <div className="flex items-center space-x-2 text-red-600">
+      <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
         <AlertCircle className="h-5 w-5" />
         <div>{message}</div>
       </div>

@@ -3,7 +3,7 @@ namespace Anela.Heblo.Domain.Features.MarketingInvoices;
 public interface IImportedMarketingTransactionRepository
 {
     Task<bool> ExistsAsync(string platform, string transactionId, CancellationToken ct);
-    Task AddAsync(ImportedMarketingTransaction entity, CancellationToken ct);
+    Task<ImportedMarketingTransaction> AddAsync(ImportedMarketingTransaction entity, CancellationToken ct);
     Task AddRangeAsync(IEnumerable<ImportedMarketingTransaction> entities, CancellationToken ct);
     Task<List<ImportedMarketingTransaction>> GetUnsyncedAsync(CancellationToken ct);
     Task<ImportedMarketingTransaction?> GetByIdAsync(int id, CancellationToken ct);

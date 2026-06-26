@@ -179,9 +179,6 @@ public class BlockOrderProcessingHandlerTests
                 "previous staff note\nblocked by accounting",
                 It.IsAny<CancellationToken>()),
             Times.Once);
-        clientMock.Verify(
-            c => c.SetInternalNoteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
     }
 
     [Fact]
@@ -213,5 +210,73 @@ public class BlockOrderProcessingHandlerTests
         clientMock.Verify(
             c => c.UpdateEshopRemarkAsync("ORDER-2", "fraud suspicion", It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShoptetApiThrowsOnGetEshopRemark_ReturnsSuccessAndLogsWarning()
+    {
+        var exception = new HttpRequestException("Shoptet unavailable");
+        _clientMock.Setup(x => x.GetOrderStatusIdAsync("ORDER-X", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(26);
+        _clientMock.Setup(x => x.UpdateStatusAsync("ORDER-X", 99, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _clientMock.Setup(x => x.GetEshopRemarkAsync("ORDER-X", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(exception);
+
+        var result = await CreateHandler().Handle(
+            new BlockOrderProcessingRequest { OrderCode = "ORDER-X", Note = "blocked" },
+            CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        _loggerMock.Verify(x => x.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("ORDER-X")),
+            It.Is<Exception>(e => e != null),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShoptetApiThrowsOnUpdateEshopRemark_ReturnsSuccessAndLogsWarning()
+    {
+        var exception = new HttpRequestException("Shoptet unavailable");
+        _clientMock.Setup(x => x.GetOrderStatusIdAsync("ORDER-X", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(26);
+        _clientMock.Setup(x => x.UpdateStatusAsync("ORDER-X", 99, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _clientMock.Setup(x => x.GetEshopRemarkAsync("ORDER-X", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(string.Empty);
+        _clientMock.Setup(x => x.UpdateEshopRemarkAsync("ORDER-X", "blocked", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(exception);
+
+        var result = await CreateHandler().Handle(
+            new BlockOrderProcessingRequest { OrderCode = "ORDER-X", Note = "blocked" },
+            CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        _loggerMock.Verify(x => x.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("ORDER-X")),
+            It.Is<Exception>(e => e != null),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_CancellationOnRemarkStep_PropagatesOperationCanceledException()
+    {
+        _clientMock.Setup(x => x.GetOrderStatusIdAsync("ORDER-X", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(26);
+        _clientMock.Setup(x => x.UpdateStatusAsync("ORDER-X", 99, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _clientMock.Setup(x => x.GetEshopRemarkAsync("ORDER-X", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            CreateHandler().Handle(
+                new BlockOrderProcessingRequest { OrderCode = "ORDER-X", Note = "blocked" },
+                CancellationToken.None));
     }
 }

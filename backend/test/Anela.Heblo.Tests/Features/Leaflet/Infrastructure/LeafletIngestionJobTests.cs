@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
+using Anela.Heblo.Domain.Shared.Rag;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -19,7 +20,7 @@ public class LeafletIngestionJobTests
     private readonly Mock<IOneDriveService> _oneDrive = new();
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
-    private readonly Mock<ILeafletRepository> _leafletRepository = new();
+    private readonly Mock<ILeafletDocumentRepository> _leafletRepository = new();
     private readonly Mock<ILogger<LeafletIngestionJob>> _logger = new();
 
     private static LeafletOptions DefaultLeafletOptions() => new()
@@ -41,7 +42,7 @@ public class LeafletIngestionJobTests
         opts ??= DefaultLeafletOptions();
 
         _statusChecker
-            .Setup(s => s.IsJobEnabledAsync("leaflet-ingestion", It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync("leaflet-ingestion", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
 
         return new LeafletIngestionJob(
@@ -179,7 +180,7 @@ public class LeafletIngestionJobTests
     public async Task Execute_does_nothing_when_job_is_disabled()
     {
         _statusChecker
-            .Setup(s => s.IsJobEnabledAsync("leaflet-ingestion", It.IsAny<CancellationToken>()))
+            .Setup(s => s.IsJobEnabledAsync("leaflet-ingestion", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(false);
 
         var job = new LeafletIngestionJob(

@@ -10,13 +10,13 @@ namespace Anela.Heblo.Tests.Features.Leaflet.UseCases;
 
 public class IndexLeafletHandlerTests
 {
-    private readonly Mock<ILeafletRepository> _repoMock;
+    private readonly Mock<ILeafletDocumentRepository> _repoMock;
     private readonly Mock<ILeafletIndexingService> _indexingMock;
     private readonly Mock<IDocumentTextExtractor> _extractorMock;
 
     public IndexLeafletHandlerTests()
     {
-        _repoMock = new Mock<ILeafletRepository>();
+        _repoMock = new Mock<ILeafletDocumentRepository>();
         _indexingMock = new Mock<ILeafletIndexingService>();
         _extractorMock = new Mock<IDocumentTextExtractor>();
 
@@ -415,6 +415,43 @@ public class IndexLeafletHandlerTests
         _repoMock.Verify(
             r => r.UpdateGraphItemIdAsync(existingId, "drive-backfill", "item-backfill", It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_happy_path_stamps_WordCount_on_document_before_AddDocumentAsync()
+    {
+        // Arrange
+        _repoMock
+            .Setup(r => r.GetByHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeafletDocument?)null);
+        _repoMock
+            .Setup(r => r.GetBySourcePathAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeafletDocument?)null);
+
+        _extractorMock.Setup(e => e.CanHandle("application/pdf")).Returns(true);
+        _extractorMock
+            .Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("alpha beta gamma delta epsilon");  // 5 words
+
+        int? capturedWordCountAtAdd = null;
+        _repoMock
+            .Setup(r => r.AddDocumentAsync(It.IsAny<LeafletDocument>(), It.IsAny<CancellationToken>()))
+            .Callback<LeafletDocument, CancellationToken>((doc, _) => capturedWordCountAtAdd = doc.WordCount);
+
+        var handler = CreateHandler();
+        var request = new IndexLeafletRequest
+        {
+            Content = new byte[] { 1, 2, 3 },
+            Filename = "wc.pdf",
+            SourcePath = "/inbox/wc.pdf",
+            ContentType = "application/pdf",
+        };
+
+        // Act
+        await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        capturedWordCountAtAdd.Should().Be(5);
     }
 
     [Fact]
