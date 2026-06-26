@@ -34,15 +34,15 @@
     },
     {
       "name": "fix-classification-combined-filters",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-26T00:26:06.760003Z"
+      "updated_at": "2026-06-26T00:27:43.169049Z"
     },
     {
       "name": "fix-classification-pagination-wait",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-26T00:27:43.358604Z"
     }
   ]
 }
