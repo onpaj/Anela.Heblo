@@ -1,5 +1,5 @@
 import { CarrierMix } from "../../../../api/hooks/usePackingStatistics";
-import { buildCarrierSlices, MAX_CARRIERS, OTHER_LABEL } from "../PackingCharts";
+import { buildCarrierSlices, MAX_CARRIERS, OTHER_KEY, OTHER_LABEL } from "../PackingCharts";
 
 const carrier = (code: string, name: string, packageCount: number): CarrierMix => ({
   code,
@@ -51,7 +51,7 @@ describe("buildCarrierSlices", () => {
     expect(result).toHaveLength(MAX_CARRIERS + 1);
     const bucket = result[result.length - 1];
     expect(bucket.name).toBe(OTHER_LABEL);
-    expect(bucket.key).toBe(OTHER_LABEL);
+    expect(bucket.key).toBe(OTHER_KEY);
     // last two carriers: (100-6) + (100-7) = 94 + 93
     expect(bucket.packageCount).toBe(187);
   });
@@ -64,6 +64,20 @@ describe("buildCarrierSlices", () => {
 
     expect(result).toHaveLength(MAX_CARRIERS);
     expect(result.some((s) => s.name === OTHER_LABEL)).toBe(false);
+  });
+
+  it("uses a sentinel key for the bucket even when a carrier is named Ostatní", () => {
+    // A carrier named exactly OTHER_LABEL should never produce a key collision with the bucket.
+    const input = Array.from({ length: MAX_CARRIERS + 1 }, (_, i) =>
+      carrier(`C${i}`, i === 0 ? OTHER_LABEL : `Carrier ${i}`, 100 - i),
+    );
+    const result = buildCarrierSlices(input);
+
+    const keys = result.map((s) => s.key);
+    expect(new Set(keys).size).toBe(keys.length); // all keys are unique
+    const bucket = result[result.length - 1];
+    expect(bucket.key).toBe(OTHER_KEY);
+    expect(bucket.name).toBe(OTHER_LABEL);
   });
 
   it("merges first, then buckets (dedup can drop below the threshold)", () => {

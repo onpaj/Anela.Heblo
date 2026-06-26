@@ -28,6 +28,7 @@ const EmptyState: React.FC = () => (
 
 export const MAX_CARRIERS = 6;
 export const OTHER_LABEL = "Ostatní";
+export const OTHER_KEY = "__ostalni_bucket__"; // sentinel React key; never equals a real carrier name
 const OTHER_COLOR = "#64748b"; // neutral slate for the "Ostatní" bucket
 
 export interface CarrierSlice {
@@ -71,11 +72,11 @@ export function buildCarrierSlices(data: readonly CarrierMix[]): CarrierSlice[] 
   }
 
   const otherTotal = rest.reduce((sum, s) => sum + s.packageCount, 0);
-  return [...top, { key: OTHER_LABEL, name: OTHER_LABEL, packageCount: otherTotal }];
+  return [...top, { key: OTHER_KEY, name: OTHER_LABEL, packageCount: otherTotal }];
 }
 
 function sliceColor(slice: CarrierSlice, index: number): string {
-  if (slice.key === OTHER_LABEL) return OTHER_COLOR;
+  if (slice.key === OTHER_KEY) return OTHER_COLOR;
   return CARRIER_COLORS[index % CARRIER_COLORS.length];
 }
 
