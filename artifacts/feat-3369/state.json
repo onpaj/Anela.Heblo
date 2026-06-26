@@ -21,8 +21,8 @@
       "updated_at": "2026-06-26T08:25:09.374465Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-26T08:26:29.778108Z"
+      "status": "completed",
+      "updated_at": "2026-06-26T08:47:40.598710Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "decouple-handler-and-add-arch-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-26T08:33:00.643352Z"
+      "updated_at": "2026-06-26T08:47:40.388764Z"
     }
   ]
 }
