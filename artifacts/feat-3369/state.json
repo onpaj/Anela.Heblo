@@ -21,16 +21,16 @@
       "updated_at": "2026-06-26T08:25:09.374465Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-26T08:26:29.778108Z"
     }
   },
   "tasks": [
     {
       "name": "introduce-graph-service-exception-wrappers",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-26T08:26:30.012212Z"
     },
     {
       "name": "decouple-handler-and-add-arch-test",
