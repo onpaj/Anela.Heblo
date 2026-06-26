@@ -456,7 +456,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div
-        className="relative top-2 mx-auto p-3 border dark:border-graphite-border w-11/12 max-w-7xl shadow-lg dark:shadow-soft-dark rounded-md bg-white dark:bg-graphite-surface mb-4 flex flex-col lg:min-h-[900px]"
+        className="relative top-2 mx-auto p-3 border dark:border-graphite-border w-11/12 max-w-7xl shadow-lg dark:shadow-soft-dark rounded-md bg-white dark:bg-graphite-surface mb-4 flex flex-col md:min-h-[900px]"
         style={{ maxHeight: "calc(100vh - 2rem)" }}
       >
         {/* Header - Fixed */}
@@ -546,7 +546,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
         </div>
 
         {/* Main Layout with fixed right panel and flexible main content */}
-        <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+        <div className="flex flex-col md:flex-row gap-6 flex-1 min-h-0">
           {/* Main Content - Flexible Area */}
           <div className="flex-1 min-h-0">
             {isLoading ? (
@@ -652,7 +652,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
           </div>
 
           {/* Right Panel - Fixed Navigation and Close Button */}
-          <div className="w-full lg:w-80 flex-shrink-0 flex flex-col">
+          <div className="w-full md:w-80 flex-shrink-0 flex flex-col">
             {/* State Navigation - Takes available space */}
             <div className="flex-1 mb-6">
               {boxData?.transportBox && (

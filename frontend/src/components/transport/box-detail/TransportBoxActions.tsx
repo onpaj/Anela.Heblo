@@ -46,7 +46,7 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
                   disabled={
                     changeStateMutation.isPending || transition.systemOnly
                   }
-                  className={`flex-1 flex items-center justify-center px-3 rounded-lg transition-colors text-sm font-medium ${
+                  className={`flex-1 min-h-[56px] py-2 flex items-center justify-center px-3 rounded-lg transition-colors text-sm font-medium ${
                     transition.systemOnly
                       ? "bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-graphite-surface-2 dark:text-graphite-faint"
                       : "bg-gray-500 text-white hover:bg-gray-600 active:bg-gray-700"
@@ -70,7 +70,7 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
                 </button>
               ))
             ) : (
-              <div className="flex-1 flex items-center justify-center text-xs text-gray-400 italic dark:text-graphite-faint">
+              <div className="flex-1 min-h-[56px] flex items-center justify-center text-xs text-gray-400 italic dark:text-graphite-faint">
                 Žádné kroky zpět
               </div>
             )}
@@ -84,7 +84,7 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
           </div>
           <div className="flex-1 flex flex-col">
             <div
-              className={`flex-1 rounded-lg border-2 border-dashed flex items-center justify-center ${
+              className={`flex-1 min-h-[56px] rounded-lg border-2 border-dashed flex items-center justify-center ${
                 stateColors[transportBox.state || ""] ||
                 "bg-gray-100 text-gray-800 border-gray-300 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:border-graphite-border"
               } border-opacity-50`}
@@ -113,7 +113,7 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
                   disabled={
                     changeStateMutation.isPending || transition.systemOnly
                   }
-                  className={`flex-1 flex items-center justify-center px-3 rounded-lg transition-colors text-sm font-medium ${
+                  className={`flex-1 min-h-[56px] py-2 flex items-center justify-center px-3 rounded-lg transition-colors text-sm font-medium ${
                     transition.systemOnly
                       ? "bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-graphite-surface-2 dark:text-graphite-faint"
                       : transition.newState === "InTransit" ||
@@ -144,7 +144,7 @@ const TransportBoxActions: React.FC<TransportBoxActionsProps> = ({
                 </button>
               ))
             ) : (
-              <div className="flex-1 flex items-center justify-center text-xs text-gray-400 italic dark:text-graphite-faint">
+              <div className="flex-1 min-h-[56px] flex items-center justify-center text-xs text-gray-400 italic dark:text-graphite-faint">
                 Žádné kroky vpřed
               </div>
             )}
