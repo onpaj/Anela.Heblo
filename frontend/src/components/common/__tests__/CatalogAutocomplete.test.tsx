@@ -6,6 +6,10 @@ import { CatalogItemDto, ProductType } from "../../../api/generated/api-client";
 import { useCatalogAutocomplete } from "../../../api/hooks/useCatalogAutocomplete";
 
 jest.mock("../../../api/hooks/useCatalogAutocomplete");
+
+jest.mock("../../../contexts/ThemeContext", () => ({
+  useTheme: () => ({ theme: "light", toggle: jest.fn() }),
+}));
 const mockUseCatalogAutocomplete = useCatalogAutocomplete as jest.MockedFunction<
   typeof useCatalogAutocomplete
 >;

@@ -7,6 +7,7 @@ import Layout from "../Layout/Layout";
 import Dashboard from "../pages/Dashboard";
 import AuthGuard from "../auth/AuthGuard";
 import { ChangelogProvider } from "../../contexts/ChangelogContext";
+import { ThemeProvider } from "../../contexts/ThemeContext";
 import { PermissionsProvider } from "../../auth/PermissionsContext";
 import "../../i18n";
 
@@ -51,6 +52,7 @@ const testQueryClient = new QueryClient({
 function TestApp() {
   return (
     <div className="App" data-testid="app">
+      <ThemeProvider>
       <QueryClientProvider client={testQueryClient}>
         <ChangelogProvider>
           <MsalProvider instance={msalInstance}>
@@ -66,6 +68,7 @@ function TestApp() {
           </MsalProvider>
         </ChangelogProvider>
       </QueryClientProvider>
+      </ThemeProvider>
     </div>
   );
 }
