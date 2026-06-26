@@ -1,6 +1,6 @@
 # MCP Server
 
-The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, perform batch calculations, and user-directory lookups.
+The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, perform batch calculations, user-directory lookups, and meeting notes.
 
 ## Available Tools
 
@@ -31,6 +31,12 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 **Knowledge Base (2)**
 - `SearchKnowledgeBase` — semantic search over ingested documents, returns ranked chunks with source references
 - `AskKnowledgeBase` — AI-generated answer grounded in company documents, returns prose answer with cited sources
+
+**Meeting Notes (4)** — read-only; all require the `anela.meetings.read` permission. Per-meeting visibility (Public / Private / Restricted) is enforced per caller, same as the web UI.
+- `ListMeetings` — list meetings (summary level: subject, summary, status, task counts; no raw transcript) with search, status filter, and pagination
+- `GetMeetingSummary` — summary and metadata of a single meeting (no raw transcript, no task detail)
+- `GetMeetingTranscript` — full raw transcript text of a single meeting
+- `GetMeetingTasks` — proposed task list extracted from a single meeting
 
 ## Implementation
 

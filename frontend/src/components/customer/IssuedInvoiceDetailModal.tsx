@@ -248,8 +248,12 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                   
                   {data.invoice.syncHistory && data.invoice.syncHistory.length > 0 ? (
                     <div className="space-y-3 max-h-[calc(90vh-300px)] overflow-y-auto">
-                      {data.invoice.syncHistory
-                        .sort((a, b) => (b.syncTime?.getTime() ?? 0) - (a.syncTime?.getTime() ?? 0))
+                      {[...data.invoice.syncHistory]
+                        .sort((a, b) => {
+                          const tb = b.syncTime ? new Date(b.syncTime).getTime() : 0;
+                          const ta = a.syncTime ? new Date(a.syncTime).getTime() : 0;
+                          return tb - ta;
+                        })
                         .map((sync, index) => {
                           const isExpanded = expandedSyncItems.has((sync.id ?? '').toString());
                           const isLatest = index === 0;

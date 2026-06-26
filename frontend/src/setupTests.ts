@@ -5,11 +5,10 @@
 import "@testing-library/jest-dom";
 import React from "react";
 
-// Provide a default ThemeContext so components that call useTheme() don't
-// throw "must be used within a ThemeProvider" in tests that don't need theme logic.
+// Mock ThemeContext so components using useTheme() work without a ThemeProvider wrapper
 jest.mock("./contexts/ThemeContext", () => ({
-  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
   useTheme: () => ({ theme: "light" as const, toggle: jest.fn() }),
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 // Mock crypto for MSAL

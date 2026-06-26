@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ManufactureOrderDetail from "../ManufactureOrderDetail";
 import { ManufactureOrderState } from "../../../../api/generated/api-client";
+import { ThemeProvider } from "../../../../contexts/ThemeContext";
 
 // Mock i18next
 jest.mock("react-i18next", () => ({
@@ -13,6 +14,11 @@ jest.mock("react-i18next", () => ({
       changeLanguage: jest.fn(),
     },
   }),
+}));
+
+jest.mock("../../../../contexts/ThemeContext", () => ({
+  useTheme: () => ({ theme: "light", toggle: jest.fn() }),
+  ThemeProvider: ({ children }: any) => children,
 }));
 
 // Mock PermissionsContext (ManufactureOrderDetail renders ResponsiblePersonCombobox,
@@ -85,7 +91,9 @@ const createWrapper = () => {
 
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>{children}</BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

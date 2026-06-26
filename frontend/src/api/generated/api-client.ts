@@ -13962,6 +13962,12 @@ export enum ArticleStatus {
     Failed = "Failed",
 }
 
+export enum ArticleGenerationStepStatus {
+    Running = "Running",
+    Succeeded = "Succeeded",
+    Failed = "Failed",
+}
+
 export class GenerateArticleRequest implements IGenerateArticleRequest {
     topic!: string;
     scope?: string;
@@ -14252,7 +14258,7 @@ export class ArticleGenerationStepDto implements IArticleGenerationStepDto {
     id?: string;
     stepName?: string;
     sequence?: number;
-    status?: string;
+    status?: ArticleGenerationStepStatus;
     startedAt?: Date;
     finishedAt?: Date | undefined;
     durationMs?: number | undefined;
@@ -14314,7 +14320,7 @@ export interface IArticleGenerationStepDto {
     id?: string;
     stepName?: string;
     sequence?: number;
-    status?: string;
+    status?: ArticleGenerationStepStatus;
     startedAt?: Date;
     finishedAt?: Date | undefined;
     durationMs?: number | undefined;
