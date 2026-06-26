@@ -21,16 +21,16 @@
       "updated_at": "2026-06-26T09:24:14.554826Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-26T09:24:46.393124Z"
     }
   },
   "tasks": [
     {
       "name": "create-authorization-contract",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-26T09:24:49.908495Z"
     },
     {
       "name": "create-usermanagement-adapter",
