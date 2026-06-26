@@ -34,15 +34,15 @@
     },
     {
       "name": "create-usermanagement-adapter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-26T09:28:08.492626Z"
+      "updated_at": "2026-06-26T09:30:59.605275Z"
     },
     {
       "name": "register-adapter-in-di",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-26T09:30:59.843670Z"
     },
     {
       "name": "update-handler",
