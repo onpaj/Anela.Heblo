@@ -46,15 +46,15 @@
     },
     {
       "name": "update-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-26T09:33:20.116825Z"
+      "updated_at": "2026-06-26T09:35:17.162630Z"
     },
     {
       "name": "update-handler-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-26T09:35:17.359262Z"
     },
     {
       "name": "verify",
