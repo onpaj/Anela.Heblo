@@ -26,6 +26,59 @@ const EmptyState: React.FC = () => (
   <p className="text-sm text-neutral-gray italic">Žádná data k zobrazení.</p>
 );
 
+export const MAX_CARRIERS = 6;
+export const OTHER_LABEL = "Ostatní";
+const OTHER_COLOR = "#64748b"; // neutral slate for the "Ostatní" bucket
+
+export interface CarrierSlice {
+  /** Stable key for the React Cell + legend payload (slices are unique by name). */
+  key: string;
+  name: string;
+  packageCount: number;
+}
+
+/**
+ * Collapses raw CarrierMix rows into a bounded set of pie slices:
+ * 1. merge entries sharing the same display `name` (sum packageCount),
+ * 2. sort descending by packageCount,
+ * 3. keep the top MAX_CARRIERS, rolling any remainder into a single
+ *    "Ostatní" bucket (added only when >= 1 carrier remains).
+ * Pure: does not mutate the input array or its elements.
+ */
+export function buildCarrierSlices(data: readonly CarrierMix[]): CarrierSlice[] {
+  const mergedByName = new Map<string, CarrierSlice>();
+  for (const { name, packageCount } of data) {
+    const existing = mergedByName.get(name);
+    if (existing) {
+      mergedByName.set(name, {
+        ...existing,
+        packageCount: existing.packageCount + packageCount,
+      });
+    } else {
+      mergedByName.set(name, { key: name, name, packageCount });
+    }
+  }
+
+  const sorted = Array.from(mergedByName.values()).sort(
+    (a, b) => b.packageCount - a.packageCount,
+  );
+
+  const top = sorted.slice(0, MAX_CARRIERS);
+  const rest = sorted.slice(MAX_CARRIERS);
+
+  if (rest.length === 0) {
+    return top;
+  }
+
+  const otherTotal = rest.reduce((sum, s) => sum + s.packageCount, 0);
+  return [...top, { key: OTHER_LABEL, name: OTHER_LABEL, packageCount: otherTotal }];
+}
+
+function sliceColor(slice: CarrierSlice, index: number): string {
+  if (slice.key === OTHER_LABEL) return OTHER_COLOR;
+  return CARRIER_COLORS[index % CARRIER_COLORS.length];
+}
+
 export const ThroughputChart: React.FC<{ data: DailyThroughput[] }> = ({ data }) => {
   if (data.length === 0) return <EmptyState />;
   const chartData = data.map((d) => ({
@@ -59,26 +112,39 @@ export const ThroughputChart: React.FC<{ data: DailyThroughput[] }> = ({ data })
 
 export const CarrierMixChart: React.FC<{ data: CarrierMix[] }> = ({ data }) => {
   if (data.length === 0) return <EmptyState />;
+  const slices = buildCarrierSlices(data);
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
-            data={data}
+            data={slices}
             dataKey="packageCount"
             nameKey="name"
             cx="50%"
-            cy="50%"
-            innerRadius={55}
-            outerRadius={90}
+            cy="45%"
+            innerRadius={45}
+            outerRadius={75}
             paddingAngle={2}
           >
-            {data.map((entry, index) => (
-              <Cell key={entry.code} fill={CARRIER_COLORS[index % CARRIER_COLORS.length]} />
+            {slices.map((entry, index) => (
+              <Cell key={entry.key} fill={sliceColor(entry, index)} />
             ))}
           </Pie>
           <Tooltip formatter={(value) => [value, "Balíků"]} />
-          <Legend />
+          <Legend
+            layout="horizontal"
+            verticalAlign="bottom"
+            align="center"
+            iconSize={8}
+            wrapperStyle={{
+              fontSize: 11,
+              lineHeight: "16px",
+              maxHeight: 64,
+              overflowY: "hidden",
+              paddingTop: 4,
+            }}
+          />
         </PieChart>
       </ResponsiveContainer>
     </div>
