@@ -1,0 +1,29 @@
+{
+  "name": "Heblo Balení",
+  "short_name": "Balení",
+  "description": "Balicí stanice pro expedici zásilek",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "id": "/baleni",
+  "start_url": "/baleni",
+  "scope": "/baleni",
+  "display": "standalone",
+  "orientation": "landscape",
+  "theme_color": "#2563EB",
+  "background_color": "#F8FAFC"
+}

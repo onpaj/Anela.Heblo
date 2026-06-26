@@ -1,9 +1,9 @@
 using Anela.Heblo.Application.Features.Analytics.Contracts;
-using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 
@@ -15,30 +15,23 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
 {
     private readonly IAnalyticsRepository _analyticsRepository;
     private readonly IReportBuilderService _reportBuilderService;
+    private readonly IMarginCalculator _marginCalculator;
+    private readonly ILogger<GetProductMarginAnalysisHandler> _logger;
 
     public GetProductMarginAnalysisHandler(
         IAnalyticsRepository analyticsRepository,
-        IReportBuilderService reportBuilderService)
+        IReportBuilderService reportBuilderService,
+        IMarginCalculator marginCalculator,
+        ILogger<GetProductMarginAnalysisHandler> logger)
     {
         _analyticsRepository = analyticsRepository;
         _reportBuilderService = reportBuilderService;
+        _marginCalculator = marginCalculator;
+        _logger = logger;
     }
 
     public async Task<GetProductMarginAnalysisResponse> Handle(GetProductMarginAnalysisRequest request, CancellationToken cancellationToken)
     {
-        // Basic input validation (kept here for backward compatibility with tests)
-        if (string.IsNullOrWhiteSpace(request.ProductId))
-        {
-            return CreateErrorResponse(ErrorCodes.RequiredFieldMissing, ("field", "ProductId"));
-        }
-
-        if (request.StartDate > request.EndDate)
-        {
-            return CreateErrorResponse(ErrorCodes.InvalidDateRange,
-                ("startDate", request.StartDate.ToString("yyyy-MM-dd")),
-                ("endDate", request.EndDate.ToString("yyyy-MM-dd")));
-        }
-
         try
         {
             // Get product data
@@ -63,14 +56,15 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
             }
 
             // Calculate margins directly from product data
-            var marginData = CalculateProductMargins(productData, request.StartDate, request.EndDate);
+            var marginData = _marginCalculator.CalculateForProduct(productData, productData.SalesHistory);
 
             // Build successful response
             return BuildSuccessResponse(request, productData, marginData);
         }
         catch (Exception ex)
         {
-            return CreateErrorResponse(ErrorCodes.InternalServerError, ("details", ex.Message));
+            _logger.LogError(ex, "Unhandled exception in GetProductMarginAnalysisHandler");
+            return CreateErrorResponse(ErrorCodes.InternalServerError);
         }
     }
 
@@ -101,12 +95,8 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
         // Add monthly breakdown if requested
         if (request.IncludeBreakdown)
         {
-            var salesInPeriod = productData.SalesHistory
-                .Where(s => s.Date >= request.StartDate && s.Date <= request.EndDate)
-                .ToList();
-
-            response.MonthlyBreakdown = _reportBuilderService.BuildMonthlyBreakdown(
-                salesInPeriod, productData, request.StartDate, request.EndDate);
+            response.MonthlyBreakdown = _reportBuilderService
+                .BuildMonthlyBreakdown(productData.SalesHistory, productData, request.StartDate, request.EndDate) ?? new List<MonthlyMarginBreakdownDto>();
         }
 
         return response;
@@ -119,31 +109,6 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
             Success = false,
             ErrorCode = errorCode,
             Params = parameters?.ToDictionary(p => p.key, p => p.value)
-        };
-    }
-
-    /// <summary>
-    /// Calculates margin data directly from product analytics data
-    /// </summary>
-    private static AnalysisMarginData CalculateProductMargins(AnalyticsProduct product, DateTime startDate, DateTime endDate)
-    {
-        var salesInPeriod = product.SalesHistory
-            .Where(s => s.Date >= startDate && s.Date <= endDate)
-            .ToList();
-
-        var totalSales = salesInPeriod.Sum(s => s.AmountB2B + s.AmountB2C);
-        var revenue = (decimal)totalSales * product.SellingPrice;
-        var cost = (decimal)totalSales * (product.SellingPrice - product.MarginAmount);
-        var margin = revenue - cost;
-        var marginPercentage = revenue > 0 ? (margin / revenue) * 100 : 0;
-
-        return new AnalysisMarginData
-        {
-            Revenue = revenue,
-            Cost = cost,
-            Margin = margin,
-            MarginPercentage = marginPercentage,
-            UnitsSold = (int)totalSales
         };
     }
 

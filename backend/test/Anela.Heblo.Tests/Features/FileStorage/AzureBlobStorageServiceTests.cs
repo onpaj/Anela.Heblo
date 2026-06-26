@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.FileStorage.Services;
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
@@ -27,7 +28,7 @@ public class AzureBlobStorageServiceTests
         var httpClient = new HttpClient(_stubHandler) { BaseAddress = new Uri("http://test/") };
         _mockHttpClientFactory = new Mock<IHttpClientFactory>();
         _mockHttpClientFactory
-            .Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
             .Returns(httpClient);
 
         _service = new AzureBlobStorageService(
@@ -61,6 +62,7 @@ public class AzureBlobStorageServiceTests
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
             It.IsAny<PublicAccessType>(),
             It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
         _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
@@ -70,7 +72,7 @@ public class AzureBlobStorageServiceTests
 
         // Assert — factory must have been asked for the named client exactly once
         _mockHttpClientFactory.Verify(
-            f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName),
+            f => f.CreateClient(FileStorageModule.FileDownloadClientName),
             Times.Once);
     }
 
@@ -82,7 +84,7 @@ public class AzureBlobStorageServiceTests
         var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
 
         var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+        factory.Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
                .Returns(client);
 
         var service = new AzureBlobStorageService(
@@ -111,25 +113,74 @@ public class AzureBlobStorageServiceTests
     }
 
     // ---------------------------------------------------------------------------
-    // GetContentTypeFromExtension (tested indirectly)
+    // FR-4: GetContentTypeFromExtension — all switch arms (via UploadAsync BlobUploadOptions)
     // ---------------------------------------------------------------------------
 
     [Theory]
-    [InlineData(".jpg", "image/jpeg")]
-    [InlineData(".jpeg", "image/jpeg")]
-    [InlineData(".png", "image/png")]
-    [InlineData(".pdf", "application/pdf")]
-    [InlineData(".txt", "text/plain")]
-    [InlineData(".json", "application/json")]
-    [InlineData(".unknown", "application/octet-stream")]
-    public void GetContentTypeFromExtension_DifferentExtensions_ShouldReturnCorrectContentType(string extension, string expectedContentType)
+    [InlineData("file.jpg", "image/jpeg")]
+    [InlineData("file.jpeg", "image/jpeg")]
+    [InlineData("file.png", "image/png")]
+    [InlineData("file.gif", "image/gif")]
+    [InlineData("file.webp", "image/webp")]
+    [InlineData("file.pdf", "application/pdf")]
+    [InlineData("file.txt", "text/plain")]
+    [InlineData("file.json", "application/json")]
+    [InlineData("file.xml", "application/xml")]
+    [InlineData("file.zip", "application/zip")]
+    [InlineData("file.doc", "application/msword")]
+    [InlineData("file.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")]
+    [InlineData("file.xls", "application/vnd.ms-excel")]
+    [InlineData("file.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
+    [InlineData("file.unknown", "application/octet-stream")]
+    public async Task DownloadFromUrlAsync_NoResponseContentType_InfersContentTypeFromExtension(
+        string blobName, string expectedContentType)
     {
-        // This test would require making the private method internal or using reflection
-        // For now, we'll test it indirectly through other methods
-        var fileName = $"test{extension}";
-        // The GetContentTypeFromExtension method is private, so we test it indirectly
-        Assert.NotEmpty(fileName); // Placeholder assertion
-        Assert.NotEmpty(expectedContentType); // Verify expected content type is provided
+        // Arrange — response has NO Content-Type header (ByteArrayContent), so production code
+        // falls back to GetContentTypeFromExtension(blobName).
+        var fileUrl = "https://example.com/file";
+        var containerName = "documents";
+
+        var handler = BuildNoContentTypeHandler();
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+        _mockHttpClientFactory
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
+            .Returns(client);
+
+        SetupContainerAndBlobClient(containerName, out _, out var blobMock, out _);
+
+        // Act — pass explicit blobName so extension is known
+        await _service.DownloadFromUrlAsync(fileUrl, containerName, blobName);
+
+        // Assert — UploadAsync received the content type inferred from the extension
+        blobMock.Verify(x => x.UploadAsync(
+            It.IsAny<Stream>(),
+            It.Is<BlobUploadOptions>(opts => opts.HttpHeaders.ContentType == expectedContentType),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DownloadFromUrlAsync_NoResponseContentType_UppercaseExtension_InfersContentType()
+    {
+        // Arrange — GetContentTypeFromExtension lowercases the extension before matching.
+        var fileUrl = "https://example.com/file";
+        var containerName = "documents";
+
+        var handler = BuildNoContentTypeHandler();
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+        _mockHttpClientFactory
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
+            .Returns(client);
+
+        SetupContainerAndBlobClient(containerName, out _, out var blobMock, out _);
+
+        // Act — uppercase extension must still resolve to image/jpeg
+        await _service.DownloadFromUrlAsync(fileUrl, containerName, "PHOTO.JPG");
+
+        // Assert
+        blobMock.Verify(x => x.UploadAsync(
+            It.IsAny<Stream>(),
+            It.Is<BlobUploadOptions>(opts => opts.HttpHeaders.ContentType == "image/jpeg"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ---------------------------------------------------------------------------
@@ -156,59 +207,6 @@ public class AzureBlobStorageServiceTests
 
         // Assert
         Assert.Equal(expectedUrl.ToString(), result);
-    }
-
-    // ---------------------------------------------------------------------------
-    // DownloadFromUrlAsync — content-type extension inference
-    // ---------------------------------------------------------------------------
-
-    [Theory]
-    [InlineData("image/jpeg", ".jpg")]
-    [InlineData("image/png", ".png")]
-    [InlineData("application/pdf", ".pdf")]
-    [InlineData("text/plain", ".txt")]
-    [InlineData("application/json", ".json")]
-    [InlineData("unknown/type", ".bin")]
-    public async Task DownloadAndUploadFromUrl_DifferentContentTypes_ShouldGenerateCorrectExtension(string contentType, string expectedExtension)
-    {
-        // Arrange
-        var fileUrl = "https://example.com/file";
-        var containerName = "documents";
-
-        // Build an HttpContent with the specific content-type header and wire it into the factory.
-        var responseContent = new StringContent("test content");
-        responseContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
-
-        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, overrideContent: responseContent);
-        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
-        _mockHttpClientFactory
-            .Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
-            .Returns(client);
-
-        var expectedBlobUrl = $"https://testaccount.blob.core.windows.net/{containerName}/downloaded-file-guid{expectedExtension}";
-
-        var mockContainerClient = new Mock<BlobContainerClient>();
-        var mockBlobClient = new Mock<BlobClient>();
-        mockBlobClient.Setup(x => x.Uri).Returns(new Uri(expectedBlobUrl));
-        mockBlobClient.Setup(x => x.UploadAsync(
-            It.IsAny<Stream>(),
-            It.IsAny<BlobUploadOptions>(),
-            It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
-        mockContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
-        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
-            It.IsAny<PublicAccessType>(),
-            It.IsAny<IDictionary<string, string>>(),
-            It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
-        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
-
-        // Act
-        var result = await _service.DownloadFromUrlAsync(fileUrl, containerName);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Contains(containerName, result);
     }
 
     // ---------------------------------------------------------------------------
@@ -240,6 +238,7 @@ public class AzureBlobStorageServiceTests
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
             It.IsAny<PublicAccessType>(),
             It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
 
@@ -285,6 +284,7 @@ public class AzureBlobStorageServiceTests
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
             It.IsAny<PublicAccessType>(),
             It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
 
@@ -421,7 +421,7 @@ public class AzureBlobStorageServiceTests
         var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
 
         var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+        factory.Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
                .Returns(client);
 
         var service = new AzureBlobStorageService(
@@ -434,6 +434,241 @@ public class AzureBlobStorageServiceTests
             service.DownloadFromUrlAsync("https://example.com/nonexistent.pdf", "documents"));
 
         Assert.Equal("File not found", exception.Message);
+    }
+
+    // ---------------------------------------------------------------------------
+    // FR-1: blobName derived from the URL path filename
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task DownloadFromUrlAsync_UrlWithFilename_UsesBlobNameFromPath()
+    {
+        // Arrange
+        var fileUrl = "https://example.com/folder/report.pdf";
+        var containerName = "documents";
+
+        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, "test content");
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+        _mockHttpClientFactory
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
+            .Returns(client);
+
+        SetupContainerAndBlobClient(containerName, out _, out _, out var capturedBlobNames);
+
+        // Act
+        await _service.DownloadFromUrlAsync(fileUrl, containerName);
+
+        // Assert — blob name comes from the URL path filename, not a generated GUID
+        Assert.Equal("report.pdf", Assert.Single(capturedBlobNames));
+    }
+
+    // ---------------------------------------------------------------------------
+    // FR-2: no filename in URL → generated "downloaded-file-{guid}{ext}" blob name
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task DownloadFromUrlAsync_UrlWithNoFilename_KnownContentType_UsesPrefixAndExtension()
+    {
+        // Arrange — URL path ends with '/', so Path.GetFileName returns empty and a name is generated.
+        var fileUrl = "https://example.com/files/";
+        var containerName = "documents";
+
+        var responseContent = new StringContent("test content");
+        responseContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, overrideContent: responseContent);
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+        _mockHttpClientFactory
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
+            .Returns(client);
+
+        SetupContainerAndBlobClient(containerName, out _, out _, out var capturedBlobNames);
+
+        // Act
+        await _service.DownloadFromUrlAsync(fileUrl, containerName);
+
+        // Assert — generated name uses the "downloaded-file-" prefix and the content-type extension
+        var generatedName = Assert.Single(capturedBlobNames);
+        Assert.StartsWith("downloaded-file-", generatedName);
+        Assert.EndsWith(".png", generatedName);
+    }
+
+    [Fact]
+    public async Task DownloadFromUrlAsync_UrlWithNoFilename_UnknownContentType_UsesBinExtension()
+    {
+        // Arrange — unknown content type maps to the ".bin" fallback in GetExtensionFromContentType.
+        var fileUrl = "https://example.com/files/";
+        var containerName = "documents";
+
+        var responseContent = new StringContent("test content");
+        responseContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-unknown");
+        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, overrideContent: responseContent);
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+        _mockHttpClientFactory
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
+            .Returns(client);
+
+        SetupContainerAndBlobClient(containerName, out _, out _, out var capturedBlobNames);
+
+        // Act
+        await _service.DownloadFromUrlAsync(fileUrl, containerName);
+
+        // Assert
+        var generatedName = Assert.Single(capturedBlobNames);
+        Assert.StartsWith("downloaded-file-", generatedName);
+        Assert.EndsWith(".bin", generatedName);
+    }
+
+    // ---------------------------------------------------------------------------
+    // FR-3: GetExtensionFromContentType — all switch arms (via generated blob name)
+    // ---------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("image/jpeg", ".jpg")]
+    [InlineData("image/png", ".png")]
+    [InlineData("image/gif", ".gif")]
+    [InlineData("image/webp", ".webp")]
+    [InlineData("application/pdf", ".pdf")]
+    [InlineData("text/plain", ".txt")]
+    [InlineData("application/json", ".json")]
+    [InlineData("application/xml", ".xml")]
+    [InlineData("application/x-unknown", ".bin")]
+    public async Task DownloadFromUrlAsync_NoFilenameUrl_ContentTypeToExtension_AllArms(
+        string contentType, string expectedExtension)
+    {
+        // Arrange — URL ends with '/' to force the generated "downloaded-file-{guid}{ext}" branch.
+        var fileUrl = "https://example.com/files/";
+        var containerName = "documents";
+
+        var responseContent = new StringContent("test content");
+        responseContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, overrideContent: responseContent);
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+        _mockHttpClientFactory
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
+            .Returns(client);
+
+        SetupContainerAndBlobClient(containerName, out _, out _, out var capturedBlobNames);
+
+        // Act
+        await _service.DownloadFromUrlAsync(fileUrl, containerName);
+
+        // Assert
+        var generatedName = Assert.Single(capturedBlobNames);
+        Assert.EndsWith(expectedExtension, generatedName);
+    }
+
+    // ---------------------------------------------------------------------------
+    // FR-5: container cache — CreateIfNotExists runs once across repeat downloads
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task DownloadFromUrlAsync_CalledTwice_SameContainer_CallsCreateIfNotExistsOnce()
+    {
+        // Arrange — fresh instance so the _containerExists cache starts empty.
+        var mockBlobServiceClient = new Mock<BlobServiceClient>();
+        var mockLogger = new Mock<ILogger<AzureBlobStorageService>>();
+
+        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, "test content");
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName)).Returns(client);
+
+        var service = new AzureBlobStorageService(
+            mockBlobServiceClient.Object,
+            factory.Object,
+            mockLogger.Object);
+
+        var containerName = "documents";
+        var mockContainerClient = new Mock<BlobContainerClient>();
+        var mockBlobClient = new Mock<BlobClient>();
+
+        mockBlobClient.Setup(x => x.Uri)
+            .Returns(new Uri($"https://test.blob.core.windows.net/{containerName}/file.pdf"));
+        mockBlobClient.Setup(x => x.UploadAsync(
+                It.IsAny<Stream>(), It.IsAny<BlobUploadOptions>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+        mockContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
+        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
+                It.IsAny<PublicAccessType>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<BlobContainerEncryptionScopeOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
+        mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName))
+            .Returns(mockContainerClient.Object);
+
+        // Act — two downloads to the same container
+        await service.DownloadFromUrlAsync("https://example.com/a.pdf", containerName);
+        await service.DownloadFromUrlAsync("https://example.com/b.pdf", containerName);
+
+        // Assert — second download hits the cached "already-seen" branch, so no second create
+        mockContainerClient.Verify(
+            x => x.CreateIfNotExistsAsync(
+                It.IsAny<PublicAccessType>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<BlobContainerEncryptionScopeOptions>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    // ---------------------------------------------------------------------------
+    // FR-6: ListVirtualDirectoriesAsync — trailing-slash trimming
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task ListVirtualDirectoriesAsync_TrimsTrailingSlash_FromPrefixes()
+    {
+        // Arrange
+        var containerName = "documents";
+        var mockContainerClient = new Mock<BlobContainerClient>();
+
+        var items = new[]
+        {
+            BlobsModelFactory.BlobHierarchyItem("invoices/", null),
+            BlobsModelFactory.BlobHierarchyItem("reports/", null),
+        };
+
+        mockContainerClient.Setup(x => x.GetBlobsByHierarchyAsync(
+                It.IsAny<BlobTraits>(),
+                It.IsAny<BlobStates>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(CreateAsyncPageable(items));
+        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName))
+            .Returns(mockContainerClient.Object);
+
+        // Act
+        var result = await _service.ListVirtualDirectoriesAsync(containerName);
+
+        // Assert — each prefix has exactly one trailing slash trimmed
+        Assert.Equal(2, result.Count);
+        Assert.Contains("invoices", result);
+        Assert.Contains("reports", result);
+    }
+
+    [Fact]
+    public async Task ListVirtualDirectoriesAsync_EmptyContainer_ReturnsEmptyList()
+    {
+        // Arrange
+        var containerName = "documents";
+        var mockContainerClient = new Mock<BlobContainerClient>();
+
+        mockContainerClient.Setup(x => x.GetBlobsByHierarchyAsync(
+                It.IsAny<BlobTraits>(),
+                It.IsAny<BlobStates>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(CreateAsyncPageable(Array.Empty<BlobHierarchyItem>()));
+        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName))
+            .Returns(mockContainerClient.Object);
+
+        // Act
+        var result = await _service.ListVirtualDirectoriesAsync(containerName);
+
+        // Assert
+        Assert.Empty(result);
     }
 
     // ---------------------------------------------------------------------------
@@ -539,6 +774,7 @@ public class AzureBlobStorageServiceTests
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
             It.IsAny<PublicAccessType>(),
             It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
 
@@ -556,6 +792,59 @@ public class AzureBlobStorageServiceTests
             _service.UploadAsync(stream, containerName, blobName, contentType));
 
         Assert.Equal("Storage error", exception.Message);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Shared test helpers
+    // ---------------------------------------------------------------------------
+
+    private void SetupContainerAndBlobClient(
+        string containerName,
+        out Mock<BlobContainerClient> containerMock,
+        out Mock<BlobClient> blobMock,
+        out List<string> capturedBlobNames)
+    {
+        var names = new List<string>();
+        capturedBlobNames = names;
+
+        var container = new Mock<BlobContainerClient>();
+        var blob = new Mock<BlobClient>();
+
+        blob.Setup(x => x.Uri)
+            .Returns(new Uri($"https://testaccount.blob.core.windows.net/{containerName}/blob"));
+        blob.Setup(x => x.UploadAsync(
+                It.IsAny<Stream>(),
+                It.IsAny<BlobUploadOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+
+        container.Setup(x => x.GetBlobClient(It.IsAny<string>()))
+            .Callback<string>(name => names.Add(name))
+            .Returns(blob.Object);
+        container.Setup(x => x.CreateIfNotExistsAsync(
+                It.IsAny<PublicAccessType>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<BlobContainerEncryptionScopeOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
+
+        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName))
+            .Returns(container.Object);
+
+        containerMock = container;
+        blobMock = blob;
+    }
+
+    private static StubHttpMessageHandler BuildNoContentTypeHandler(string responseBody = "test content")
+    {
+        var content = new ByteArrayContent(Encoding.UTF8.GetBytes(responseBody));
+        return new StubHttpMessageHandler(HttpStatusCode.OK, overrideContent: content);
+    }
+
+    private static AsyncPageable<T> CreateAsyncPageable<T>(IEnumerable<T> items) where T : notnull
+    {
+        var page = Page<T>.FromValues(items.ToList(), continuationToken: null, response: Mock.Of<Azure.Response>());
+        return AsyncPageable<T>.FromPages(new[] { page });
     }
 
     // ---------------------------------------------------------------------------

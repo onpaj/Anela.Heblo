@@ -26,6 +26,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.GetMarketingAction
                 PageNumber = request.PageNumber,
                 PageSize = request.PageSize,
                 SearchTerm = request.SearchTerm,
+                ActionType = request.ActionType,
                 ProductCodePrefix = request.ProductCodePrefix,
                 StartDateFrom = request.StartDateFrom,
                 StartDateTo = request.StartDateTo,
@@ -38,7 +39,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.GetMarketingAction
 
             return new GetMarketingActionsResponse
             {
-                Actions = result.Items.Select(MapToDto).ToList(),
+                Actions = result.Items.Select(MarketingActionDto.FromEntity).ToList(),
                 TotalCount = result.TotalCount,
                 PageNumber = result.PageNumber,
                 PageSize = result.PageSize,
@@ -47,35 +48,5 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.GetMarketingAction
                 HasPreviousPage = result.PageNumber > 1,
             };
         }
-
-        internal static MarketingActionDto MapToDto(MarketingAction action) =>
-            new()
-            {
-                Id = action.Id,
-                Title = action.Title,
-                Description = action.Description,
-                ActionType = action.ActionType.ToString(),
-                StartDate = action.StartDate,
-                EndDate = action.EndDate,
-                CreatedAt = action.CreatedAt,
-                ModifiedAt = action.ModifiedAt,
-                CreatedByUserId = action.CreatedByUserId,
-                CreatedByUsername = action.CreatedByUsername,
-                ModifiedByUserId = action.ModifiedByUserId,
-                ModifiedByUsername = action.ModifiedByUsername,
-                AssociatedProducts = action.ProductAssociations
-                    .Select(pa => pa.ProductCodePrefix)
-                    .Distinct()
-                    .ToList(),
-                FolderLinks = action.FolderLinks
-                    .Select(fl => new MarketingActionFolderLinkDto
-                    {
-                        FolderKey = fl.FolderKey,
-                        FolderType = fl.FolderType.ToString(),
-                    })
-                    .ToList(),
-                OutlookSyncStatus = action.OutlookSyncStatus.ToString(),
-                OutlookEventId = action.OutlookEventId,
-            };
     }
 }

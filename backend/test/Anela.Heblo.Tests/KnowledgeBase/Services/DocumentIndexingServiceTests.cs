@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Shared.Rag;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;

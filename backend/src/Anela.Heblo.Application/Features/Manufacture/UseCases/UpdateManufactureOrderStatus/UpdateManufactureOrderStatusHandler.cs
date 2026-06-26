@@ -1,32 +1,41 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Http;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 
 public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufactureOrderStatusRequest, UpdateManufactureOrderStatusResponse>
 {
     private readonly IManufactureOrderRepository _repository;
+    private readonly IManufacturedProductInventoryRepository _inventoryRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<UpdateManufactureOrderStatusHandler> _logger;
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ICurrentUserService _currentUserService;
     private readonly IConditionsReadingProvider _conditionsProvider;
 
     public UpdateManufactureOrderStatusHandler(
         IManufactureOrderRepository repository,
         TimeProvider timeProvider,
         ILogger<UpdateManufactureOrderStatusHandler> logger,
-        IHttpContextAccessor httpContextAccessor,
-        IConditionsReadingProvider conditionsProvider)
+        ICurrentUserService currentUserService,
+        IConditionsReadingProvider conditionsProvider,
+        IManufacturedProductInventoryRepository inventoryRepository,
+        IManufactureCatalogSource catalogSource)
     {
         _repository = repository;
         _timeProvider = timeProvider;
         _logger = logger;
-        _httpContextAccessor = httpContextAccessor;
+        _currentUserService = currentUserService;
         _conditionsProvider = conditionsProvider;
+        _inventoryRepository = inventoryRepository;
+        _catalogSource = catalogSource;
     }
 
     public async Task<UpdateManufactureOrderStatusResponse> Handle(UpdateManufactureOrderStatusRequest request, CancellationToken cancellationToken)
@@ -44,7 +53,7 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             var oldState = order.State;
 
             // Validate state transition (basic validation - can be extended)
-            if (!IsValidStateTransition(oldState, request.NewState))
+            if (!order.CanTransitionTo(request.NewState))
             {
                 return new UpdateManufactureOrderStatusResponse(Application.Shared.ErrorCodes.InvalidOperation,
                     new Dictionary<string, string>
@@ -54,10 +63,10 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
                     });
             }
 
+            var currentUserName = _currentUserService.GetCurrentUser().GetDisplayName();
+
             // Update state
-            order.State = request.NewState;
-            order.StateChangedAt = _timeProvider.GetUtcNow().DateTime;
-            order.StateChangedByUser = GetCurrentUserName();
+            order.ChangeState(request.NewState, _timeProvider.GetUtcNow().DateTime, currentUserName);
 
             if (request.ManualActionRequired.HasValue)
                 order.ManualActionRequired = request.ManualActionRequired.Value;
@@ -119,10 +128,16 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
                 });
             }
 
-            if (request.NewState is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Completed)
+            if (request.NewState is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Completed
+                && order.ConditionsReadings.All(r => r.Stage != request.NewState))
             {
                 var reading = await CaptureConditionsReadingAsync(order, request.NewState, cancellationToken);
                 order.ConditionsReadings.Add(reading);
+            }
+
+            if (request.NewState == ManufactureOrderState.Completed)
+            {
+                await WriteDownInventoryAsync(order, currentUserName, cancellationToken);
             }
 
             await _repository.UpdateOrderAsync(order, cancellationToken);
@@ -142,24 +157,35 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
         }
     }
 
-    private bool IsValidStateTransition(ManufactureOrderState fromState, ManufactureOrderState toState)
+    private async Task WriteDownInventoryAsync(ManufactureOrder order, string changedByUser, CancellationToken cancellationToken)
     {
-        // Allow backward and forward state transitions - simplified business rules
-        return fromState switch
-        {
-            ManufactureOrderState.Draft => toState is ManufactureOrderState.Planned or ManufactureOrderState.Cancelled,
-            ManufactureOrderState.Planned => toState is ManufactureOrderState.Draft or ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Cancelled or ManufactureOrderState.Completed,
-            ManufactureOrderState.SemiProductManufactured => toState is ManufactureOrderState.Planned or ManufactureOrderState.Completed or ManufactureOrderState.Cancelled,
-            ManufactureOrderState.Completed => toState is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Cancelled or ManufactureOrderState.Planned, // Allow going back from completed
-            ManufactureOrderState.Cancelled => false, // Cannot change from cancelled state
-            _ => false
-        };
-    }
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
 
-    private string GetCurrentUserName()
-    {
-        var user = _httpContextAccessor.HttpContext?.User;
-        return user?.Identity?.Name ?? "System";
+        var productsWithQuantity = order.Products
+            .Where(p => p.ActualQuantity is > 0)
+            .ToList();
+
+        if (productsWithQuantity.Count == 0)
+            return;
+
+        var productCodes = productsWithQuantity.Select(p => p.ProductCode).ToList();
+        var catalogEntries = await _catalogSource.GetByIdsAsync(productCodes, cancellationToken);
+
+        var items = productsWithQuantity
+            .Where(p => !catalogEntries.TryGetValue(p.ProductCode, out var entry) || entry.Type != ProductType.SemiProduct)
+            .Select(p => new ManufacturedProductInventoryItem(
+                productCode: p.ProductCode,
+                productName: p.ProductName,
+                amount: p.ActualQuantity!.Value,
+                createdBy: changedByUser,
+                createdAt: timestamp,
+                lotNumber: p.LotNumber,
+                expirationDate: p.ExpirationDate,
+                manufactureOrderId: order.Id))
+            .ToList();
+
+        if (items.Count > 0)
+            await _inventoryRepository.AddRangeAsync(items, cancellationToken);
     }
 
     private async Task<ManufactureOrderConditionsReading> CaptureConditionsReadingAsync(

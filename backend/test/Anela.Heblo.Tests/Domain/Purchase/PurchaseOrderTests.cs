@@ -89,7 +89,7 @@ public class PurchaseOrderTests
         const decimal unitPrice = 25.50m;
         const string notes = "Test line item";
 
-        purchaseOrder.AddLine(ValidMaterialId, ValidName, quantity, unitPrice, notes);
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, quantity, unitPrice, notes, ValidCreatedBy);
 
         purchaseOrder.Lines.Should().HaveCount(1);
         var line = purchaseOrder.Lines.First();
@@ -112,7 +112,7 @@ public class PurchaseOrderTests
         const decimal unitPrice = 25.50m;
         const string notes = "Test line item";
 
-        purchaseOrder.AddLine(ValidMaterialId, ValidName, quantity, unitPrice, notes);
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, quantity, unitPrice, notes, ValidCreatedBy);
 
         purchaseOrder.Lines.Should().HaveCount(1);
         var line = purchaseOrder.Lines.First();
@@ -129,9 +129,10 @@ public class PurchaseOrderTests
     {
         var purchaseOrder = CreateValidPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, ValidCreatedBy);
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
 
-        var action = () => purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
+        var action = () => purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes", ValidCreatedBy);
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot add lines to completed orders");
@@ -141,10 +142,10 @@ public class PurchaseOrderTests
     public void RemoveLine_FromDraftOrder_ShouldRemoveLineAndUpdateTotals()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes", ValidCreatedBy);
         var lineId = purchaseOrder.Lines.First().Id;
 
-        purchaseOrder.RemoveLine(lineId);
+        purchaseOrder.RemoveLine(lineId, ValidCreatedBy);
 
         purchaseOrder.Lines.Should().BeEmpty();
         purchaseOrder.TotalAmount.Should().Be(0);
@@ -154,11 +155,11 @@ public class PurchaseOrderTests
     public void RemoveLine_FromInTransitOrder_ShouldRemoveLineSuccessfully()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes", ValidCreatedBy);
         var lineId = purchaseOrder.Lines.First().Id;
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
 
-        purchaseOrder.RemoveLine(lineId);
+        purchaseOrder.RemoveLine(lineId, ValidCreatedBy);
 
         purchaseOrder.Lines.Should().BeEmpty();
         purchaseOrder.TotalAmount.Should().Be(0);
@@ -168,12 +169,13 @@ public class PurchaseOrderTests
     public void RemoveLine_FromCompletedOrder_ShouldThrowInvalidOperationException()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes", ValidCreatedBy);
         var lineId = purchaseOrder.Lines.First().Id;
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, ValidCreatedBy);
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
 
-        var action = () => purchaseOrder.RemoveLine(lineId);
+        var action = () => purchaseOrder.RemoveLine(lineId, ValidCreatedBy);
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot remove lines from completed orders");
@@ -183,10 +185,10 @@ public class PurchaseOrderTests
     public void UpdateLine_InDraftOrder_ShouldUpdateLineAndRecalculateTotals()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "old notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "old notes", ValidCreatedBy);
         var lineId = purchaseOrder.Lines.First().Id;
 
-        purchaseOrder.UpdateLine(lineId, "Updated Material Name", 20, 30.00m, "new notes");
+        purchaseOrder.UpdateLine(lineId, "Updated Material Name", 20, 30.00m, "new notes", ValidCreatedBy);
 
         var line = purchaseOrder.Lines.First();
         line.Quantity.Should().Be(20);
@@ -200,11 +202,11 @@ public class PurchaseOrderTests
     public void UpdateLine_InInTransitOrder_ShouldUpdateLineSuccessfully()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "old notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "old notes", ValidCreatedBy);
         var lineId = purchaseOrder.Lines.First().Id;
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
 
-        purchaseOrder.UpdateLine(lineId, "Updated Material Name", 20, 30.00m, "new notes");
+        purchaseOrder.UpdateLine(lineId, "Updated Material Name", 20, 30.00m, "new notes", ValidCreatedBy);
 
         var line = purchaseOrder.Lines.First();
         line.Quantity.Should().Be(20);
@@ -218,12 +220,13 @@ public class PurchaseOrderTests
     public void UpdateLine_InCompletedOrder_ShouldThrowInvalidOperationException()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "notes", ValidCreatedBy);
         var lineId = purchaseOrder.Lines.First().Id;
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, ValidCreatedBy);
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
 
-        var action = () => purchaseOrder.UpdateLine(lineId, "Updated Material Name", 20, 30.00m, "new notes");
+        var action = () => purchaseOrder.UpdateLine(lineId, "Updated Material Name", 20, 30.00m, "new notes", ValidCreatedBy);
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot update lines in completed orders");
@@ -266,6 +269,7 @@ public class PurchaseOrderTests
     {
         var purchaseOrder = CreateValidPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, ValidCreatedBy);
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
         var newExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(21);
 
@@ -292,6 +296,27 @@ public class PurchaseOrderTests
         statusChangeEntry.Action.Should().Contain("Status changed");
         statusChangeEntry.OldValue.Should().Be("Draft");
         statusChangeEntry.NewValue.Should().Be("InTransit");
+        statusChangeEntry.ChangedBy.Should().Be(changedBy);
+    }
+
+    [Fact]
+    public void ChangeStatus_FromReceivedToCompleted_ShouldUpdateStatusAndHistory()
+    {
+        var purchaseOrder = CreateValidPurchaseOrder();
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, ValidCreatedBy);
+        const string changedBy = "completer@example.com";
+
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, changedBy);
+
+        purchaseOrder.Status.Should().Be(PurchaseOrderStatus.Completed);
+        purchaseOrder.UpdatedBy.Should().Be(changedBy);
+        purchaseOrder.History.Should().HaveCount(4);
+
+        var statusChangeEntry = purchaseOrder.History.Last();
+        statusChangeEntry.Action.Should().Contain("Status changed");
+        statusChangeEntry.OldValue.Should().Be("Received");
+        statusChangeEntry.NewValue.Should().Be("Completed");
         statusChangeEntry.ChangedBy.Should().Be(changedBy);
     }
 
@@ -332,6 +357,7 @@ public class PurchaseOrderTests
         else if (fromStatus == PurchaseOrderStatus.Completed)
         {
             purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+            purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, ValidCreatedBy);
             purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
         }
 
@@ -345,9 +371,9 @@ public class PurchaseOrderTests
     public void TotalAmount_WithMultipleLines_ShouldCalculateCorrectTotal()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "line 1");
-        purchaseOrder.AddLine("MAT002", "Material 2", 5, 100.00m, "line 2");
-        purchaseOrder.AddLine("MAT003", "Material 3", 3, 33.33m, "line 3");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "line 1", ValidCreatedBy);
+        purchaseOrder.AddLine("MAT002", "Material 2", 5, 100.00m, "line 2", ValidCreatedBy);
+        purchaseOrder.AddLine("MAT003", "Material 3", 3, 33.33m, "line 3", ValidCreatedBy);
 
         purchaseOrder.TotalAmount.Should().Be(854.99m);
     }
@@ -415,11 +441,11 @@ public class PurchaseOrderTests
     public void ClearAllLines_InTransitOrder_ShouldClearLinesSuccessfully()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "line 1");
-        purchaseOrder.AddLine("MAT002", "Material 2", 5, 100.00m, "line 2");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "line 1", ValidCreatedBy);
+        purchaseOrder.AddLine("MAT002", "Material 2", 5, 100.00m, "line 2", ValidCreatedBy);
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
 
-        purchaseOrder.ClearAllLines();
+        purchaseOrder.ClearAllLines(ValidCreatedBy);
 
         purchaseOrder.Lines.Should().BeEmpty();
         purchaseOrder.TotalAmount.Should().Be(0);
@@ -429,11 +455,12 @@ public class PurchaseOrderTests
     public void ClearAllLines_CompletedOrder_ShouldThrowInvalidOperationException()
     {
         var purchaseOrder = CreateValidPurchaseOrder();
-        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "line 1");
+        purchaseOrder.AddLine(ValidMaterialId, ValidName, 10, 25.50m, "line 1", ValidCreatedBy);
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, ValidCreatedBy);
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
 
-        var action = () => purchaseOrder.ClearAllLines();
+        var action = () => purchaseOrder.ClearAllLines(ValidCreatedBy);
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot clear lines from completed orders");
@@ -465,6 +492,7 @@ public class PurchaseOrderTests
     {
         var purchaseOrder = CreateValidPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, ValidCreatedBy);
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
 
         var action = () => purchaseOrder.UpdateOrderNumber("PO-2024-002", "updater@example.com");
@@ -495,6 +523,7 @@ public class PurchaseOrderTests
     {
         var purchaseOrder = CreateValidPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, ValidCreatedBy);
+        purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, ValidCreatedBy);
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Completed, ValidCreatedBy);
 
         purchaseOrder.IsEditable.Should().BeFalse();

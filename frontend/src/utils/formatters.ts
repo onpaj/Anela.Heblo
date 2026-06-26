@@ -3,32 +3,32 @@
  */
 
 /**
- * Formats a date string to a localized date format
+ * Formats a date string or Date object to a localized date format
  */
-export function formatDate(dateString: string | null): string {
-  if (!dateString) return '-';
-  
+export function formatDate(dateValue: string | Date | null | undefined): string {
+  if (!dateValue) return '—';
+
   try {
-    const date = new Date(dateString);
+    const date = new Date(dateValue);
     return date.toLocaleDateString('cs-CZ', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     });
   } catch {
-    return '-';
+    return '—';
   }
 }
 
 /**
- * Formats a datetime string to a localized datetime format
+ * Formats a datetime string or Date object to a localized datetime format
  */
-export function formatDateTime(dateString: string | null): string {
-  if (!dateString) return '-';
-  
+export function formatDateTime(dateValue: string | Date | null | undefined): string {
+  if (!dateValue) return '—';
+
   try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('cs-CZ', {
+    const date = new Date(dateValue);
+    return date.toLocaleString('cs-CZ', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -36,7 +36,7 @@ export function formatDateTime(dateString: string | null): string {
       minute: '2-digit',
     });
   } catch {
-    return '-';
+    return '—';
   }
 }
 

@@ -1,12 +1,14 @@
+using Anela.Heblo.Application.Features.Dashboard.Contracts;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.DataQuality.DashboardTiles;
 
+[TileId("dqtyesterdaystatus")]
 public class DqtYesterdayStatusTile : ITile
 {
-    private const string DrillDownHref = "/automation/data-quality";
+    private const string DrillDownRouteKey = "dataQuality";
 
     private readonly IDqtRunRepository _repository;
     private readonly TimeProvider _timeProvider;
@@ -18,7 +20,6 @@ public class DqtYesterdayStatusTile : ITile
     public TileCategory Category => TileCategory.DataQuality;
     public bool DefaultEnabled => true;
     public bool AutoShow => false;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public DqtYesterdayStatusTile(
@@ -50,7 +51,7 @@ public class DqtYesterdayStatusTile : ITile
                 {
                     status = "no_data",
                     data = (object?)null,
-                    drillDown = new { href = DrillDownHref, enabled = true }
+                    drillDown = new DashboardTileDrillDown { RouteKey = DrillDownRouteKey, Enabled = true }
                 };
             }
 
@@ -75,7 +76,7 @@ public class DqtYesterdayStatusTile : ITile
                     totalChecked = run.TotalChecked,
                     totalMismatches = run.TotalMismatches
                 },
-                drillDown = new { href = DrillDownHref, enabled = true }
+                drillDown = new DashboardTileDrillDown { RouteKey = DrillDownRouteKey, Enabled = true }
             };
         }
         catch (Exception ex)
@@ -90,7 +91,7 @@ public class DqtYesterdayStatusTile : ITile
             {
                 status = "error",
                 data = (object?)null,
-                drillDown = new { href = DrillDownHref, enabled = true }
+                drillDown = new DashboardTileDrillDown { RouteKey = DrillDownRouteKey, Enabled = true }
             };
         }
     }

@@ -3,15 +3,16 @@ import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import {
   GetProductMarginSummaryResponse,
   ProductGroupingMode,
+  MarginLevel,
 } from "../generated/api-client";
 
 // Re-export the generated types for convenience
-export { GetProductMarginSummaryResponse, ProductGroupingMode };
+export { GetProductMarginSummaryResponse, ProductGroupingMode, MarginLevel };
 
 export const useProductMarginSummaryQuery = (
   timeWindow: string = "current-year",
   groupingMode: ProductGroupingMode = ProductGroupingMode.Products,
-  marginLevel: string = "M2",
+  marginLevel: MarginLevel = MarginLevel.M2,
 ) => {
   return useQuery<GetProductMarginSummaryResponse, Error>({
     queryKey: [...QUERY_KEYS.productMarginSummary, timeWindow, groupingMode, marginLevel],

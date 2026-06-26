@@ -6,7 +6,6 @@ using Anela.Heblo.Application.Features.Photobank.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Photobank;
 using MediatR;
-using Npgsql;
 
 namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
 {
@@ -40,7 +39,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
                     PageSize = request.PageSize,
                 };
             }
-            catch (PostgresException ex) when (request.UseRegex && ex.SqlState == "2201B")
+            catch (InvalidPhotoSearchPatternException)
             {
                 return new GetPhotosResponse
                 {

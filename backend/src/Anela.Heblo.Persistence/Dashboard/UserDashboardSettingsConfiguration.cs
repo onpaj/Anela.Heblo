@@ -1,4 +1,4 @@
-using Anela.Heblo.Xcc.Domain;
+using Anela.Heblo.Domain.Features.Dashboard;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Anela.Heblo.Persistence.Extensions;

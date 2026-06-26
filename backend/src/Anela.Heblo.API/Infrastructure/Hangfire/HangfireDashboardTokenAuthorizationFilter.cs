@@ -1,5 +1,6 @@
 using Hangfire.Dashboard;
 using System.Security.Claims;
+using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.Authorization;
 
@@ -96,7 +97,7 @@ public class HangfireDashboardTokenAuthorizationFilter : IDashboardAuthorization
         }
 
         // Then, ensure user has the HebloUser role
-        return user.IsInRole(AuthorizationConstants.Roles.HebloUser);
+        return user.IsInRole(AccessRoles.Base);
     }
 
     private ClaimsPrincipal CreateMockPrincipal()
@@ -107,10 +108,10 @@ public class HangfireDashboardTokenAuthorizationFilter : IDashboardAuthorization
             new Claim(ClaimTypes.Name, "Mock User"),
             new Claim(ClaimTypes.Email, "mock@example.com"),
             new Claim("name", "Mock User"),
-            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.HebloUser) // Add HebloUser role for Hangfire access
+            new Claim(ClaimTypes.Role, AccessRoles.Base) // Add HebloUser role for Hangfire access
         };
 
-        var identity = new ClaimsIdentity(claims, ConfigurationConstants.MOCK_AUTH_SCHEME);
+        var identity = new ClaimsIdentity(claims, InfrastructureConstants.MOCK_AUTH_SCHEME);
         return new ClaimsPrincipal(identity);
     }
 }

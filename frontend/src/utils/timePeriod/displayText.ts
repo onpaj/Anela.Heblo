@@ -11,7 +11,7 @@ export function getTimePeriodDisplayText(period: TimePeriod): string {
     case TimePeriod.PreviousSeason:
       return "Předchozí sezona";
     case TimePeriod.Q9M:
-      return "9M (6 měsíců + prognóza 3 měsíce)";
+      return "9M";
     case TimePeriod.CustomPeriod:
       return "Vlastní období";
     default:

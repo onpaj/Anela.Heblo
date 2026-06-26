@@ -10,7 +10,7 @@ test.describe('Stock Operations - Accept Failed Operations', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to stock operations with full authentication
     await navigateToStockOperations(page);
-    expect(page.url()).toContain('/stock-operations');
+    expect(page.url()).toContain('/stock-up-operations');
     await waitForTableUpdate(page);
   });
 

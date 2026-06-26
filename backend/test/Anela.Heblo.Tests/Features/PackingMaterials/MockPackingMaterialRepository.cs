@@ -8,6 +8,9 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
 {
     private List<PackingMaterial> _materials = new();
     private readonly Dictionary<DateOnly, bool> _dailyProcessingStatus = new();
+    private Exception? _saveChangesException;
+    private readonly Dictionary<DateOnly, bool> _addDailyRunResults = new();
+
     public List<PackingMaterial> UpdatedMaterials { get; } = new();
     public IReadOnlyList<PackingMaterial> Materials => _materials;
     public bool GetAllAsyncWasCalled { get; private set; }
@@ -22,6 +25,16 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
         _dailyProcessingStatus[date] = hasRun;
     }
 
+    public void SetSaveChangesException(Exception ex)
+    {
+        _saveChangesException = ex;
+    }
+
+    public void SetAddDailyRunReturns(DateOnly date, bool result)
+    {
+        _addDailyRunResults[date] = result;
+    }
+
     public Task<IEnumerable<PackingMaterial>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         GetAllAsyncWasCalled = true;
@@ -34,20 +47,33 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
         return Task.FromResult(material);
     }
 
-    public Task<IEnumerable<PackingMaterial>> GetAllWithLogsAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult<IEnumerable<PackingMaterial>>(_materials);
-    }
-
-    public Task<PackingMaterial?> GetByIdWithLogsAsync(int id, CancellationToken cancellationToken = default)
-    {
-        var material = _materials.FirstOrDefault(m => m.Id == id);
-        return Task.FromResult(material);
-    }
-
     public Task<IEnumerable<PackingMaterialLog>> GetRecentLogsAsync(int packingMaterialId, DateTime fromDate, CancellationToken cancellationToken = default)
     {
         return Task.FromResult<IEnumerable<PackingMaterialLog>>(new List<PackingMaterialLog>());
+    }
+
+    public Dictionary<int, List<PackingMaterialLog>> RecentLogsByMaterial { get; } = new();
+
+    public Task<IReadOnlyDictionary<int, IReadOnlyList<PackingMaterialLog>>> GetRecentLogsForMaterialsAsync(
+        IEnumerable<int> packingMaterialIds,
+        DateTime fromDate,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = packingMaterialIds.ToHashSet();
+        var dict = new Dictionary<int, IReadOnlyList<PackingMaterialLog>>();
+        foreach (var kvp in RecentLogsByMaterial)
+        {
+            if (!ids.Contains(kvp.Key)) continue;
+            var filtered = kvp.Value
+                .Where(l => l.CreatedAt >= fromDate)
+                .OrderByDescending(l => l.CreatedAt)
+                .ToList();
+            if (filtered.Count > 0)
+            {
+                dict[kvp.Key] = filtered;
+            }
+        }
+        return Task.FromResult<IReadOnlyDictionary<int, IReadOnlyList<PackingMaterialLog>>>(dict);
     }
 
     public Task<bool> HasDailyProcessingBeenRunAsync(DateOnly date, CancellationToken cancellationToken = default)
@@ -100,6 +126,8 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        if (_saveChangesException != null)
+            throw _saveChangesException;
         return Task.FromResult(0);
     }
 
@@ -132,6 +160,7 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
 
     public List<PackingMaterialConsumption> AddedConsumptionRows { get; } = new();
     public Dictionary<DateOnly, List<PackingMaterialConsumption>> ConsumptionRowsByDate { get; } = new();
+    public List<PackingMaterialDailyRun> AddedDailyRuns { get; } = new();
 
     public Task<IEnumerable<PackingMaterial>> GetAllWithAllocationsAsync(CancellationToken cancellationToken = default)
         => Task.FromResult<IEnumerable<PackingMaterial>>(_materials);
@@ -147,4 +176,68 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
 
     public Task<IEnumerable<PackingMaterialConsumption>> GetConsumptionsByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
         => Task.FromResult<IEnumerable<PackingMaterialConsumption>>(ConsumptionRowsByDate.TryGetValue(date, out var rows) ? rows : new List<PackingMaterialConsumption>());
+
+    public Task<bool> AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default)
+    {
+        AddedDailyRuns.Add(run);
+        var result = !_addDailyRunResults.TryGetValue(run.Date, out var configured) || configured;
+        return Task.FromResult(result);
+    }
+
+    public Task<(IReadOnlyList<MaterialConsumptionHistoryRecord> Items, int TotalCount)> GetConsumptionHistoryAsync(
+        MaterialConsumptionHistoryFilter filter,
+        int skip,
+        int take,
+        bool ascending,
+        CancellationToken cancellationToken = default)
+    {
+        var records = ConsumptionRowsByDate.Values.SelectMany(v => v).Select(c => new MaterialConsumptionHistoryRecord
+        {
+            RecordType = HistoryRecordType.Consumption,
+            PackingMaterialId = c.PackingMaterialId,
+            Date = c.Date,
+            CreatedAt = c.CreatedAt,
+            ConsumptionType = c.ConsumptionType,
+            InvoiceId = c.InvoiceId,
+            ProductCode = c.ProductCode,
+            ProductQuantity = c.ProductQuantity,
+            Amount = c.Amount,
+        }).ToList();
+
+        var consumptionOnlyFilter = filter.ConsumptionType.HasValue
+            || !string.IsNullOrWhiteSpace(filter.ProductCode)
+            || !string.IsNullOrWhiteSpace(filter.InvoiceId);
+
+        if (!consumptionOnlyFilter)
+        {
+            records.AddRange(RecentLogsByMaterial.Values.SelectMany(v => v).Select(l => new MaterialConsumptionHistoryRecord
+            {
+                RecordType = HistoryRecordType.QuantityChange,
+                PackingMaterialId = l.PackingMaterialId,
+                Date = l.Date,
+                CreatedAt = l.CreatedAt,
+                OldQuantity = l.OldQuantity,
+                NewQuantity = l.NewQuantity,
+                ChangeAmount = l.NewQuantity - l.OldQuantity,
+                LogType = l.LogType,
+                UserId = l.UserId,
+            }));
+        }
+
+        IEnumerable<MaterialConsumptionHistoryRecord> query = records;
+        if (filter.DateFrom.HasValue) query = query.Where(r => r.Date >= filter.DateFrom.Value);
+        if (filter.DateTo.HasValue) query = query.Where(r => r.Date <= filter.DateTo.Value);
+        if (filter.PackingMaterialId.HasValue) query = query.Where(r => r.PackingMaterialId == filter.PackingMaterialId.Value);
+        if (filter.ConsumptionType.HasValue) query = query.Where(r => r.ConsumptionType == filter.ConsumptionType.Value);
+        if (!string.IsNullOrWhiteSpace(filter.ProductCode)) query = query.Where(r => r.ProductCode == filter.ProductCode);
+        if (!string.IsNullOrWhiteSpace(filter.InvoiceId)) query = query.Where(r => r.InvoiceId == filter.InvoiceId);
+
+        var filtered = query.ToList();
+        var ordered = ascending
+            ? filtered.OrderBy(r => r.Date).ThenBy(r => r.CreatedAt)
+            : filtered.OrderByDescending(r => r.Date).ThenByDescending(r => r.CreatedAt);
+
+        var paged = ordered.Skip(skip).Take(take).ToList();
+        return Task.FromResult<(IReadOnlyList<MaterialConsumptionHistoryRecord> Items, int TotalCount)>((paged, filtered.Count));
+    }
 }

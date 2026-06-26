@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Grid3x3, List, Settings, Tag } from "lucide-react";
-import { useMsal } from "@azure/msal-react";
+import { usePermissionsContext } from "../../../../auth/PermissionsContext";
 import TagSidebar from "../TagSidebar";
 import PhotoGrid from "../PhotoGrid";
 import PhotoList from "../PhotoList";
@@ -12,9 +12,7 @@ import BulkTagDialog from "../BulkTagDialog";
 import PhotobankBulkActionBar from "../PhotobankBulkActionBar";
 import { usePhotos, usePhotoTags, useBulkAddPhotoTagByIds, useRetagPhotos } from "../../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
-
-const ADMIN_ROLE = "super_user";
-const TAGGER_ROLE = "marketing_writer";
+import { useScreenView } from "../../../../telemetry/useScreenView";
 
 const DEFAULT_PAGE_SIZE = 48;
 const SIDEBAR_WIDTH = "220px";
@@ -46,10 +44,9 @@ function readTagsOnTiles(): boolean {
 }
 
 function PhotobankPage() {
-  const { accounts } = useMsal();
-  const roles = (accounts[0]?.idTokenClaims as any)?.roles as string[] | undefined;
-  const isAdmin = roles?.includes(ADMIN_ROLE) ?? false;
-  const canBulkTag = roles?.includes(TAGGER_ROLE) ?? false;
+  const { hasPermission } = usePermissionsContext();
+  const isAdmin = hasPermission('marketing.photobank.admin');
+  const canBulkTag = hasPermission('marketing.photobank.write');
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [search, setSearch] = useState("");
@@ -62,6 +59,8 @@ function PhotobankPage() {
   const [bulkTagDialogOpen, setBulkTagDialogOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [selectionAnchorId, setSelectionAnchorId] = useState<number | null>(null);
+
+  useScreenView('Marketing', 'Photobank', view === 'tiles' ? 'TilesView' : 'ListView');
 
   useEffect(() => {
     try {
@@ -229,11 +228,11 @@ function PhotobankPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {isAdmin && (
-        <div className="flex justify-end px-3 py-1.5 border-b border-gray-100">
+        <div className="flex justify-end px-3 py-1.5 border-b border-gray-100 dark:border-graphite-border">
           <Link
             to="/marketing/photobank/settings"
             aria-label="Nastavení fotobanky"
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600"
           >
             <Settings className="w-4 h-4" />
           </Link>
@@ -260,7 +259,7 @@ function PhotobankPage() {
         {/* Main content area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* View toggle + bulk tag bar */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-graphite-border">
             <div>
               {canBulkTag && (
                 <BulkTagButton
@@ -287,7 +286,7 @@ function PhotobankPage() {
                     "w-8 h-8 flex items-center justify-center rounded ml-2",
                     tagsOnTiles
                       ? "bg-primary-blue text-white"
-                      : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50",
+                      : "bg-white dark:bg-graphite-surface text-gray-600 dark:text-graphite-muted border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5",
                   ].join(" ")}
                 >
                   <Tag className="w-4 h-4" />

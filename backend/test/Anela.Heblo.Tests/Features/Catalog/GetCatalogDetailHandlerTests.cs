@@ -6,7 +6,6 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
-using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Services;
 using AutoMapper;
 using FluentAssertions;
@@ -18,21 +17,18 @@ namespace Anela.Heblo.Tests.Features.Catalog;
 public class GetCatalogDetailHandlerTests
 {
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
-    private readonly Mock<ILotsClient> _lotsClientMock;
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
+    private readonly Mock<ILogger<GetCatalogDetailHandler>> _loggerMock;
     private readonly GetCatalogDetailHandler _handler;
 
     public GetCatalogDetailHandlerTests()
     {
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
-        _lotsClientMock = new Mock<ILotsClient>();
         _mapperMock = new Mock<IMapper>();
         _timeProviderMock = new Mock<TimeProvider>();
-        var loggerMock = new Mock<ILogger<GetCatalogDetailHandler>>();
-        _handler = new GetCatalogDetailHandler(_catalogRepositoryMock.Object, _lotsClientMock.Object, _mapperMock.Object, _timeProviderMock.Object, loggerMock.Object);
-
-        // No longer needed - using pre-calculated margins from CatalogAggregate
+        _loggerMock = new Mock<ILogger<GetCatalogDetailHandler>>();
+        _handler = new GetCatalogDetailHandler(_catalogRepositoryMock.Object, _mapperMock.Object, _timeProviderMock.Object, _loggerMock.Object);
     }
 
     [Fact]
@@ -203,6 +199,31 @@ public class GetCatalogDetailHandlerTests
         response.ErrorCode.Should().Be(ErrorCodes.ProductNotFound);
         response.Params.Should().ContainKey("productCode");
         response.Params!["productCode"].Should().Be("NONEXISTENT");
+    }
+
+    [Fact]
+    public async Task Handle_Should_LogWarning_When_Product_Not_Found()
+    {
+        // Arrange
+        var request = new GetCatalogDetailRequest { ProductCode = "NONEXISTENT" };
+        _catalogRepositoryMock
+            .Setup(r => r.SingleOrDefaultAsync(
+                It.IsAny<System.Linq.Expressions.Expression<System.Func<CatalogAggregate, bool>>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CatalogAggregate?)null);
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        _loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("NONEXISTENT")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

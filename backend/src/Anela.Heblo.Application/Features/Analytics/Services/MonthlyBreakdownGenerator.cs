@@ -4,15 +4,24 @@ using Anela.Heblo.Domain.Features.Analytics;
 
 namespace Anela.Heblo.Application.Features.Analytics.Services;
 
+public interface IMonthlyBreakdownGenerator
+{
+    List<MonthlyProductMarginDto> Generate(
+        MarginCalculationResult calculationResult,
+        DateRange dateRange,
+        ProductGroupingMode groupingMode,
+        MarginLevel marginLevel = MarginLevel.M2);
+}
+
 /// <summary>
 /// 🔒 PERFORMANCE FIX: Extracted monthly breakdown logic from handler
 /// Implements single responsibility principle and reduces handler complexity
 /// </summary>
-public class MonthlyBreakdownGenerator
+public class MonthlyBreakdownGenerator : IMonthlyBreakdownGenerator
 {
-    private readonly MarginCalculator _marginCalculator;
+    private readonly IMarginCalculator _marginCalculator;
 
-    public MonthlyBreakdownGenerator(MarginCalculator marginCalculator)
+    public MonthlyBreakdownGenerator(IMarginCalculator marginCalculator)
     {
         _marginCalculator = marginCalculator;
     }
@@ -24,7 +33,7 @@ public class MonthlyBreakdownGenerator
         MarginCalculationResult calculationResult,
         DateRange dateRange,
         ProductGroupingMode groupingMode,
-        string marginLevel = "M2")
+        MarginLevel marginLevel = MarginLevel.M2)
     {
         var monthlyData = new List<MonthlyProductMarginDto>();
 
@@ -67,7 +76,7 @@ public class MonthlyBreakdownGenerator
         DateTime monthStart,
         DateTime monthEnd,
         ProductGroupingMode groupingMode,
-        string marginLevel)
+        MarginLevel marginLevel)
     {
         var segments = new List<ProductMarginSegmentDto>();
         var totalMonthMargin = 0m;
@@ -123,7 +132,7 @@ public class MonthlyBreakdownGenerator
         List<AnalyticsProduct> products,
         DateTime monthStart,
         DateTime monthEnd,
-        string marginLevel)
+        MarginLevel marginLevel)
     {
         var totalMargin = 0m;
         var totalUnitsSold = 0;

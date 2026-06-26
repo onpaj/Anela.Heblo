@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3347",
+  "issue_number": 3347,
+  "created_at": "2026-06-25T15:15:40.433212Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T15:23:44.385131Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-25T15:24:27.080696Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T15:24:54.881946Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-25T15:25:23.292776Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T15:28:51.104237Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-06-25T15:30:37.039659Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-recurring-jobs-test-assertions",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T15:28:50.916537Z"
+    }
+  ]
+}

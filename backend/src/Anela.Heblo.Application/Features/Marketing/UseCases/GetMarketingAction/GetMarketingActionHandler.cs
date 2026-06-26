@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
-using Anela.Heblo.Application.Features.Marketing.UseCases.GetMarketingActions;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using MediatR;
@@ -33,7 +32,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.GetMarketingAction
 
             return new GetMarketingActionResponse
             {
-                Action = GetMarketingActionsHandler.MapToDto(action),
+                Action = MarketingActionDto.FromEntity(action),
             };
         }
     }

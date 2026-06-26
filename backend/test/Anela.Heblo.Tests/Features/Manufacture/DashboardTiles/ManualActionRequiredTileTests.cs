@@ -32,7 +32,6 @@ public class ManualActionRequiredTileTests
         Assert.Equal(TileCategory.Manufacture, _tile.Category);
         Assert.True(_tile.DefaultEnabled);
         Assert.True(_tile.AutoShow);
-        Assert.Equal(typeof(object), _tile.ComponentType);
         Assert.Empty(_tile.RequiredPermissions);
     }
 

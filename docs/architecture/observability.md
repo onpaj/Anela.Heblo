@@ -36,7 +36,7 @@ Tento dokument definuje kompletní observability strategii pro Anela Heblo aplik
 | **Structured Logging** | Microsoft.Extensions.Logging with AI sink | ✅ Implemented |
 | **Business Event Tracking** | Custom telemetry service | ✅ Implemented |
 | **Azure Monitor** | Infrastructure monitoring | ⏳ Planned |
-| **Frontend Monitoring** | React error tracking | ⏳ Planned |
+| **Frontend Monitoring** | React analytics via Application Insights JS SDK | ✅ Implemented |
 | **Alerting** | Teams/Email notifications | ⏳ Not configured |
 
 ## Cost-Optimized Application Insights
@@ -395,33 +395,46 @@ Business event tracking service implemented for all critical operations.
 
 ### Azure Configuration Required
 
-#### 1. Create Application Insights Resources
-```bash
-# Test Environment
-az monitor app-insights component create \
-  --app ai-heblo-test \
-  --location westeurope \
-  --resource-group rg-heblo-test
+#### 1. Application Insights Resources
 
-# Production
+Each environment has its own Application Insights resource. Both resources share a single Log Analytics workspace (the default DEWC workspace) to keep cost low; query-time separation comes from the per-environment cloud-role tag.
+
+| Environment | Web App | App Insights resource | Resource group | Region | Cloud role tag |
+|---|---|---|---|---|---|
+| Production | `heblo` | `aiHeblo` | `rgHeblo` | germanywestcentral | `Heblo-API-Production` |
+| Staging | `heblo-test` | `aiHeblo-test` | `rgHeblo` | germanywestcentral | `Heblo-API-Staging` |
+
+Both resources are created by `scripts/create-azure-infrastructure.sh`. To recreate manually:
+```bash
+WORKSPACE_ID=$(az monitor app-insights component show --app aiHeblo -g rgHeblo --query workspaceResourceId -o tsv)
+
 az monitor app-insights component create \
-  --app ai-heblo-production \
-  --location westeurope \
-  --resource-group rg-heblo-prod
+  --app aiHeblo-test \
+  --location germanywestcentral \
+  --resource-group rgHeblo \
+  --kind web --application-type web \
+  --workspace "$WORKSPACE_ID"
 ```
 
 #### 2. Configure App Service Settings
+The .NET app reads `ApplicationInsights:ConnectionString` from `IConfiguration`. Set both the dotnet-config form and the auto-instrumentation env var on each Web App:
 ```bash
+CS=$(az monitor app-insights component show --app aiHeblo-test -g rgHeblo --query connectionString -o tsv)
 az webapp config appsettings set \
-  --name app-heblo-prod \
-  --resource-group rg-heblo-prod \
-  --settings ApplicationInsights__ConnectionString="<connection-string>"
+  --name heblo-test \
+  --resource-group rgHeblo \
+  --settings \
+    APPLICATIONINSIGHTS_CONNECTION_STRING="$CS" \
+    ApplicationInsights__ConnectionString="$CS"
 ```
+For staging, the same value must also be stored as the GitHub repo secret `APPLICATIONINSIGHTS_CONNECTION_STRING_STAGING` so `.github/workflows/deploy-staging-manual.yml` can re-apply it on every redeploy.
 
 #### 3. Set Up Alerts
 Use Azure Portal or ARM templates to configure alerts based on the alert matrix above.
 
-### Frontend Setup (Planned)
+### Frontend Setup (✅ Implemented)
+
+See [docs/features/usage-analytics.md](../features/usage-analytics.md) for the full event catalogue and KQL starter queries.
 
 #### 1. Application Insights JavaScript SDK
 ```typescript

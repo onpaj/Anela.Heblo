@@ -1,7 +1,6 @@
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.Price;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -10,20 +9,20 @@ namespace Anela.Heblo.Tests.Application.Purchase;
 
 public class RecalculatePurchasePriceHandlerTests
 {
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
-    private readonly Mock<IProductPriceErpClient> _productPriceClientMock;
+    private readonly Mock<IMaterialCatalogService> _materialCatalogMock;
+    private readonly Mock<IPurchasePriceRecalculationService> _priceRecalculationServiceMock;
     private readonly Mock<ILogger<RecalculatePurchasePriceHandler>> _loggerMock;
     private readonly RecalculatePurchasePriceHandler _handler;
 
     public RecalculatePurchasePriceHandlerTests()
     {
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
-        _productPriceClientMock = new Mock<IProductPriceErpClient>();
+        _materialCatalogMock = new Mock<IMaterialCatalogService>();
+        _priceRecalculationServiceMock = new Mock<IPurchasePriceRecalculationService>();
         _loggerMock = new Mock<ILogger<RecalculatePurchasePriceHandler>>();
 
         _handler = new RecalculatePurchasePriceHandler(
-            _catalogRepositoryMock.Object,
-            _productPriceClientMock.Object,
+            _materialCatalogMock.Object,
+            _priceRecalculationServiceMock.Object,
             _loggerMock.Object);
     }
 
@@ -32,13 +31,12 @@ public class RecalculatePurchasePriceHandlerTests
     {
         // Arrange
         var productCode = "PROD001";
-        var product = CreateProductWithBoM(productCode, 123);
-        var products = new List<CatalogAggregate> { product };
+        var product = CreateMaterialWithBoM(productCode, 123);
 
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(products);
+        _materialCatalogMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
 
-        _productPriceClientMock.Setup(x => x.RecalculatePurchasePrice(123, It.IsAny<CancellationToken>()))
+        _priceRecalculationServiceMock.Setup(x => x.RecalculatePurchasePriceAsync(123, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var request = new RecalculatePurchasePriceRequest
@@ -63,22 +61,23 @@ public class RecalculatePurchasePriceHandlerTests
         processedProduct.Success.Should().BeTrue();
         processedProduct.ErrorCode.Should().BeNull();
 
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(123, It.IsAny<CancellationToken>()), Times.Once);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(123, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task Handle_WithRecalculateAll_ShouldProcessOnlyProductsWithBoM()
     {
         // Arrange
-        var productWithBoM1 = CreateProductWithBoM("PROD001", 123);
-        var productWithBoM2 = CreateProductWithBoM("PROD002", 456);
-        var productWithoutBoM = CreateProductWithoutBoM("PROD003");
-        var products = new List<CatalogAggregate> { productWithBoM1, productWithBoM2, productWithoutBoM };
+        var bomReferences = new List<MaterialBomReference>
+        {
+            new MaterialBomReference { ProductCode = "PROD001", BoMId = 123 },
+            new MaterialBomReference { ProductCode = "PROD002", BoMId = 456 }
+        };
 
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(products);
+        _materialCatalogMock.Setup(x => x.GetMaterialsWithBomAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(bomReferences);
 
-        _productPriceClientMock.Setup(x => x.RecalculatePurchasePrice(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+        _priceRecalculationServiceMock.Setup(x => x.RecalculatePurchasePriceAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var request = new RecalculatePurchasePriceRequest
@@ -93,25 +92,23 @@ public class RecalculatePurchasePriceHandlerTests
         result.Should().NotBeNull();
         result.SuccessCount.Should().Be(2);
         result.FailedCount.Should().Be(0);
-        result.TotalCount.Should().Be(2); // Only products with BoM
+        result.TotalCount.Should().Be(2);
         result.IsSuccess.Should().BeTrue();
         result.ProcessedProducts.Should().HaveCount(2);
 
         result.ProcessedProducts.Should().OnlyContain(p => p.Success);
         result.ProcessedProducts.Select(p => p.ProductCode).Should().BeEquivalentTo(new[] { "PROD001", "PROD002" });
 
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(123, It.IsAny<CancellationToken>()), Times.Once);
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(456, It.IsAny<CancellationToken>()), Times.Once);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(123, It.IsAny<CancellationToken>()), Times.Once);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(456, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task Handle_WithSingleProductNotFound_ShouldReturnError()
     {
         // Arrange
-        var products = new List<CatalogAggregate>();
-
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(products);
+        _materialCatalogMock.Setup(x => x.GetByIdAsync("NONEXISTENT", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MaterialInfo?)null);
 
         var request = new RecalculatePurchasePriceRequest
         {
@@ -129,7 +126,7 @@ public class RecalculatePurchasePriceHandlerTests
         result.Params.Should().ContainKey("ProductCode");
         result.Params["ProductCode"].Should().Be("NONEXISTENT");
 
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -137,11 +134,10 @@ public class RecalculatePurchasePriceHandlerTests
     {
         // Arrange
         var productCode = "PROD001";
-        var product = CreateProductWithoutBoM(productCode);
-        var products = new List<CatalogAggregate> { product };
+        var product = CreateMaterialWithoutBoM(productCode);
 
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(products);
+        _materialCatalogMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
 
         var request = new RecalculatePurchasePriceRequest
         {
@@ -154,20 +150,12 @@ public class RecalculatePurchasePriceHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        result.SuccessCount.Should().Be(0);
-        result.FailedCount.Should().Be(1);
-        result.TotalCount.Should().Be(1);
-        result.IsSuccess.Should().BeFalse();
-        result.ProcessedProducts.Should().HaveCount(1);
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.InvalidValue);
+        result.Params.Should().ContainKey("Message");
+        result.Params["Message"].Should().Contain("does not have BoM");
 
-        var processedProduct = result.ProcessedProducts.First();
-        processedProduct.ProductCode.Should().Be(productCode);
-        processedProduct.Success.Should().BeFalse();
-        processedProduct.ErrorCode.Should().Be(ErrorCodes.Exception);
-        processedProduct.Params.Should().ContainKey("message");
-        processedProduct.Params["message"].Should().Contain("does not have BoM");
-
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -175,14 +163,13 @@ public class RecalculatePurchasePriceHandlerTests
     {
         // Arrange
         var productCode = "PROD001";
-        var product = CreateProductWithBoM(productCode, 123);
-        var products = new List<CatalogAggregate> { product };
+        var product = CreateMaterialWithBoM(productCode, 123);
 
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(products);
+        _materialCatalogMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
 
         var expectedError = "ERP system unavailable";
-        _productPriceClientMock.Setup(x => x.RecalculatePurchasePrice(123, It.IsAny<CancellationToken>()))
+        _priceRecalculationServiceMock.Setup(x => x.RecalculatePurchasePriceAsync(123, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException(expectedError));
 
         var request = new RecalculatePurchasePriceRequest
@@ -214,17 +201,19 @@ public class RecalculatePurchasePriceHandlerTests
     public async Task Handle_WithMixedSuccessAndFailure_ShouldRecordBoth()
     {
         // Arrange
-        var successProduct = CreateProductWithBoM("PROD001", 123);
-        var failProduct = CreateProductWithBoM("PROD002", 456);
-        var products = new List<CatalogAggregate> { successProduct, failProduct };
+        var bomReferences = new List<MaterialBomReference>
+        {
+            new MaterialBomReference { ProductCode = "PROD001", BoMId = 123 },
+            new MaterialBomReference { ProductCode = "PROD002", BoMId = 456 }
+        };
 
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(products);
+        _materialCatalogMock.Setup(x => x.GetMaterialsWithBomAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(bomReferences);
 
-        _productPriceClientMock.Setup(x => x.RecalculatePurchasePrice(123, It.IsAny<CancellationToken>()))
+        _priceRecalculationServiceMock.Setup(x => x.RecalculatePurchasePriceAsync(123, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _productPriceClientMock.Setup(x => x.RecalculatePurchasePrice(456, It.IsAny<CancellationToken>()))
+        _priceRecalculationServiceMock.Setup(x => x.RecalculatePurchasePriceAsync(456, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Network timeout"));
 
         var request = new RecalculatePurchasePriceRequest
@@ -258,12 +247,10 @@ public class RecalculatePurchasePriceHandlerTests
     public async Task Handle_WithNoProductsWithBoM_ShouldReturnEmptyResult()
     {
         // Arrange
-        var productWithoutBoM1 = CreateProductWithoutBoM("PROD001");
-        var productWithoutBoM2 = CreateProductWithoutBoM("PROD002");
-        var products = new List<CatalogAggregate> { productWithoutBoM1, productWithoutBoM2 };
+        var bomReferences = new List<MaterialBomReference>();
 
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(products);
+        _materialCatalogMock.Setup(x => x.GetMaterialsWithBomAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(bomReferences);
 
         var request = new RecalculatePurchasePriceRequest
         {
@@ -278,11 +265,11 @@ public class RecalculatePurchasePriceHandlerTests
         result.SuccessCount.Should().Be(0);
         result.FailedCount.Should().Be(0);
         result.TotalCount.Should().Be(0);
-        result.IsSuccess.Should().BeFalse(); // No products found to recalculate
+        result.IsSuccess.Should().BeFalse();
         result.ProcessedProducts.Should().BeEmpty();
         result.Message.Should().Be("No products found to recalculate");
 
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -291,7 +278,7 @@ public class RecalculatePurchasePriceHandlerTests
         // Arrange
         var request = new RecalculatePurchasePriceRequest
         {
-            ProductCode = null, // Neither product code nor recalculate all
+            ProductCode = null,
             RecalculateAll = false
         };
 
@@ -310,52 +297,48 @@ public class RecalculatePurchasePriceHandlerTests
     public async Task Handle_WithCancellationToken_ShouldPassTokenToClients()
     {
         // Arrange
-        var product = CreateProductWithBoM("PROD001", 123);
-        var products = new List<CatalogAggregate> { product };
+        var productCode = "PROD001";
+        var product = CreateMaterialWithBoM(productCode, 123);
         var cancellationToken = new CancellationToken();
 
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(cancellationToken))
-            .ReturnsAsync(products);
+        _materialCatalogMock.Setup(x => x.GetByIdAsync(productCode, cancellationToken))
+            .ReturnsAsync(product);
 
-        _productPriceClientMock.Setup(x => x.RecalculatePurchasePrice(123, cancellationToken))
+        _priceRecalculationServiceMock.Setup(x => x.RecalculatePurchasePriceAsync(123, cancellationToken))
             .Returns(Task.CompletedTask);
 
         var request = new RecalculatePurchasePriceRequest
         {
-            ProductCode = "PROD001"
+            ProductCode = productCode
         };
 
         // Act
         await _handler.Handle(request, cancellationToken);
 
         // Assert
-        _catalogRepositoryMock.Verify(x => x.GetAllAsync(cancellationToken), Times.Once);
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(123, cancellationToken), Times.Once);
+        _materialCatalogMock.Verify(x => x.GetByIdAsync(productCode, cancellationToken), Times.Once);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(123, cancellationToken), Times.Once);
     }
 
-    private static CatalogAggregate CreateProductWithBoM(string productCode, int bomId)
+    private static MaterialInfo CreateMaterialWithBoM(string productCode, int bomId)
     {
-        return new CatalogAggregate
+        return new MaterialInfo
         {
             ProductCode = productCode,
-            ErpPrice = new ProductPriceErp
-            {
-                BoMId = bomId,
-                PurchasePrice = 100.00m
-            }
+            ProductName = "Test Product",
+            HasBoM = true,
+            BoMId = bomId
         };
     }
 
-    private static CatalogAggregate CreateProductWithoutBoM(string productCode)
+    private static MaterialInfo CreateMaterialWithoutBoM(string productCode)
     {
-        return new CatalogAggregate
+        return new MaterialInfo
         {
             ProductCode = productCode,
-            ErpPrice = new ProductPriceErp
-            {
-                BoMId = null,
-                PurchasePrice = 100.00m
-            }
+            ProductName = "Test Product",
+            HasBoM = false,
+            BoMId = null
         };
     }
 }

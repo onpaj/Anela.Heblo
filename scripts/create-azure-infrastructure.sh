@@ -10,6 +10,7 @@ set -e
 RESOURCE_GROUP="rgHeblo"
 PLAN_NAME="spHeblo"
 APP_INSIGHTS_NAME="aiHeblo"
+APP_INSIGHTS_NAME_TEST="aiHeblo-test"
 LOCATION="West Europe"
 SKU="B1"  # Basic tier
 
@@ -18,7 +19,8 @@ echo ""
 echo "📋 Configuration:"
 echo "   Resource Group: $RESOURCE_GROUP"
 echo "   App Service Plan: $PLAN_NAME"
-echo "   Application Insights: $APP_INSIGHTS_NAME"
+echo "   Application Insights (Production): $APP_INSIGHTS_NAME"
+echo "   Application Insights (Staging):    $APP_INSIGHTS_NAME_TEST"
 echo "   Location: $LOCATION"
 echo "   SKU: $SKU"
 echo ""
@@ -72,9 +74,9 @@ else
     echo "✅ App Service Plan created"
 fi
 
-# Step 3: Create Application Insights
+# Step 3: Create Application Insights (production)
 echo ""
-echo "📋 Step 3: Creating Application Insights..."
+echo "📋 Step 3: Creating Application Insights (production)..."
 if az monitor app-insights component show --app $APP_INSIGHTS_NAME --resource-group $RESOURCE_GROUP &> /dev/null; then
     echo "✅ Application Insights $APP_INSIGHTS_NAME already exists"
 else
@@ -88,7 +90,28 @@ else
     echo "✅ Application Insights created"
 fi
 
-# Get Application Insights details
+# Step 3b: Create Application Insights (staging) — shares the prod LA workspace
+echo ""
+echo "📋 Step 3b: Creating Application Insights (staging)..."
+if az monitor app-insights component show --app $APP_INSIGHTS_NAME_TEST --resource-group $RESOURCE_GROUP &> /dev/null; then
+    echo "✅ Application Insights $APP_INSIGHTS_NAME_TEST already exists"
+else
+    WORKSPACE_ID=$(az monitor app-insights component show \
+        --app $APP_INSIGHTS_NAME \
+        --resource-group $RESOURCE_GROUP \
+        --query workspaceResourceId -o tsv)
+    echo "🔨 Creating Application Insights $APP_INSIGHTS_NAME_TEST..."
+    az monitor app-insights component create \
+        --app $APP_INSIGHTS_NAME_TEST \
+        --location $LOCATION \
+        --kind web \
+        --resource-group $RESOURCE_GROUP \
+        --application-type web \
+        --workspace "$WORKSPACE_ID"
+    echo "✅ Application Insights (staging) created"
+fi
+
+# Get Application Insights details (production)
 AI_INSTRUMENTATION_KEY=$(az monitor app-insights component show \
     --app $APP_INSIGHTS_NAME \
     --resource-group $RESOURCE_GROUP \
@@ -99,18 +122,34 @@ AI_CONNECTION_STRING=$(az monitor app-insights component show \
     --resource-group $RESOURCE_GROUP \
     --query connectionString -o tsv)
 
+# Get Application Insights details (staging)
+AI_INSTRUMENTATION_KEY_TEST=$(az monitor app-insights component show \
+    --app $APP_INSIGHTS_NAME_TEST \
+    --resource-group $RESOURCE_GROUP \
+    --query instrumentationKey -o tsv)
+
+AI_CONNECTION_STRING_TEST=$(az monitor app-insights component show \
+    --app $APP_INSIGHTS_NAME_TEST \
+    --resource-group $RESOURCE_GROUP \
+    --query connectionString -o tsv)
+
 echo ""
 echo "🎉 Infrastructure setup completed successfully!"
 echo ""
 echo "📊 Infrastructure Summary:"
 echo "   Resource Group: $RESOURCE_GROUP"
 echo "   App Service Plan: $PLAN_NAME ($SKU)"
-echo "   Application Insights: $APP_INSIGHTS_NAME"
+echo "   Application Insights (Production): $APP_INSIGHTS_NAME"
+echo "   Application Insights (Staging):    $APP_INSIGHTS_NAME_TEST"
 echo "   Location: $LOCATION"
 echo ""
-echo "📊 Application Insights Details:"
+echo "📊 Application Insights Details (Production):"
 echo "   Instrumentation Key: ${AI_INSTRUMENTATION_KEY:0:8}..."
 echo "   Connection String: InstrumentationKey=${AI_INSTRUMENTATION_KEY:0:8}..."
+echo ""
+echo "📊 Application Insights Details (Staging):"
+echo "   Instrumentation Key: ${AI_INSTRUMENTATION_KEY_TEST:0:8}..."
+echo "   Connection String: InstrumentationKey=${AI_INSTRUMENTATION_KEY_TEST:0:8}..."
 echo ""
 echo "🚀 Next Steps:"
 echo "   1. Create production app: ./scripts/deploy-azure.sh production"

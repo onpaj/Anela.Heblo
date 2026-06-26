@@ -1,8 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
-using Anela.Heblo.Application.Features.Purchase;
+using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
-using Anela.Heblo.Application.Features.Purchase.Services;
 using Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrderById;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrders;
@@ -86,6 +85,23 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var response = await _client.GetAsync("/api/purchase-orders?sortBy=OrderNumber&sortDescending=false");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task GetPurchaseOrders_WithLegacySupplierIdQueryString_IsSilentlyIgnored()
+    {
+        var baseline = await _client.GetAsync("/api/purchase-orders");
+        baseline.StatusCode.Should().Be(HttpStatusCode.OK);
+        var baselineContent = await baseline.Content.ReadFromJsonAsync<GetPurchaseOrdersResponse>();
+        baselineContent.Should().NotBeNull();
+
+        var withLegacyParam = await _client.GetAsync("/api/purchase-orders?SupplierId=99");
+        withLegacyParam.StatusCode.Should().Be(HttpStatusCode.OK);
+        var legacyContent = await withLegacyParam.Content.ReadFromJsonAsync<GetPurchaseOrdersResponse>();
+        legacyContent.Should().NotBeNull();
+
+        legacyContent!.TotalCount.Should().Be(baselineContent!.TotalCount);
+        legacyContent.Orders.Should().HaveCount(baselineContent.Orders.Count);
     }
 
     [Fact]
@@ -568,17 +584,6 @@ public class PurchaseOrdersTestFactory : HebloWebApplicationFactory
         // The PurchaseModule now only registers default implementations
         // Tests use the EF Core in-memory database from the base factory
         // This ensures data persists properly within each test
-
-        // Override the default number generator to use in-memory implementation
-        var numberGeneratorDescriptor = services.SingleOrDefault(
-            d => d.ServiceType == typeof(IPurchaseOrderNumberGenerator));
-        if (numberGeneratorDescriptor != null)
-        {
-            services.Remove(numberGeneratorDescriptor);
-        }
-
-        // Use in-memory number generator for testing
-        services.AddScoped<IPurchaseOrderNumberGenerator, InMemoryPurchaseOrderNumberGenerator>();
 
         // Add mock supplier repository
         services.AddScoped<ISupplierRepository, MockSupplierRepository>();

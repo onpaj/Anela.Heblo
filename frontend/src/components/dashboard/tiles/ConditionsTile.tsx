@@ -24,16 +24,16 @@ const formatHumidity = (v: number | null) =>
   v == null ? '—' : `${v.toFixed(0)} %`;
 
 const SOURCE_LABEL: Record<Source, { label: string; cls: string }> = {
-  Live:        { label: 'Živé',       cls: 'bg-green-100 text-green-700' },
-  Partial:     { label: 'Částečné',   cls: 'bg-amber-100 text-amber-700' },
-  Unavailable: { label: 'Nedostupné', cls: 'bg-red-100 text-red-700' },
+  Live:        { label: 'Živé',       cls: 'bg-green-100 dark:bg-emerald-400/15 text-green-700 dark:text-emerald-400' },
+  Partial:     { label: 'Částečné',   cls: 'bg-amber-100 dark:bg-amber-400/15 text-amber-700 dark:text-amber-400' },
+  Unavailable: { label: 'Nedostupné', cls: 'bg-red-100 dark:bg-red-400/15 text-red-700 dark:text-red-400' },
 };
 
 export const ConditionsTile: React.FC<ConditionsTileProps> = ({ data }) => {
   const d = data.data;
   if (!d) return null;
 
-  const src = SOURCE_LABEL[d.source];
+  const src = SOURCE_LABEL[d.source] ?? { label: d.source, cls: 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-graphite-muted' };
   const recorded = new Date(d.recordedAt);
 
   return (
@@ -42,7 +42,7 @@ export const ConditionsTile: React.FC<ConditionsTileProps> = ({ data }) => {
         <span className={`px-2 py-0.5 rounded font-medium ${src.cls}`}>
           {src.label}
         </span>
-        <span className="text-gray-500">
+        <span className="text-gray-500 dark:text-graphite-muted">
           {recorded.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
@@ -80,8 +80,8 @@ const Reading: React.FC<{
   <div className="flex items-center gap-2">
     {icon}
     <div className="flex flex-col">
-      <span className="text-xs text-gray-500">{label}</span>
-      <span className="text-lg font-semibold text-gray-800">{value}</span>
+      <span className="text-xs text-gray-500 dark:text-graphite-muted">{label}</span>
+      <span className="text-lg font-semibold text-gray-800 dark:text-graphite-text">{value}</span>
     </div>
   </div>
 );

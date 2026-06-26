@@ -1,5 +1,3 @@
-using Anela.Heblo.Domain.Features.Catalog;
-
 namespace Anela.Heblo.Domain.Features.Analytics;
 
 /// <summary>
@@ -10,7 +8,7 @@ public class AnalyticsProduct
 {
     public required string ProductCode { get; init; }
     public required string ProductName { get; init; }
-    public required ProductType Type { get; init; }
+    public required AnalyticsProductType Type { get; init; }
     public string? ProductFamily { get; init; }
     public string? ProductCategory { get; init; }
     public required decimal MarginAmount { get; init; }
@@ -54,13 +52,3 @@ public class SalesDataPoint
 /// Value object for date range queries
 /// </summary>
 public record DateRange(DateTime FromDate, DateTime ToDate);
-
-/// <summary>
-/// Result object for margin calculations
-/// </summary>
-public class MarginCalculationResult
-{
-    public required Dictionary<string, decimal> GroupTotals { get; init; }
-    public required Dictionary<string, List<AnalyticsProduct>> GroupProducts { get; init; }
-    public required decimal TotalMargin { get; init; }
-}

@@ -8,13 +8,13 @@ namespace Anela.Heblo.Application.Features.Leaflet.UseCases.IndexLeaflet;
 
 public class IndexLeafletHandler : IRequestHandler<IndexLeafletRequest, IndexLeafletResponse>
 {
-    private readonly ILeafletRepository _repo;
+    private readonly ILeafletDocumentRepository _repo;
     private readonly IEnumerable<IDocumentTextExtractor> _extractors;
     private readonly ILeafletIndexingService _indexing;
     private readonly ILogger<IndexLeafletHandler> _logger;
 
     public IndexLeafletHandler(
-        ILeafletRepository repo,
+        ILeafletDocumentRepository repo,
         IEnumerable<IDocumentTextExtractor> extractors,
         ILeafletIndexingService indexing,
         ILogger<IndexLeafletHandler> logger)
@@ -71,6 +71,7 @@ public class IndexLeafletHandler : IRequestHandler<IndexLeafletRequest, IndexLea
             ?? throw new NotSupportedException($"No extractor for content type '{request.ContentType}'");
 
         var text = await extractor.ExtractTextAsync(request.Content, ct);
+        var wordCount = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
 
         var doc = new LeafletDocument
         {
@@ -80,19 +81,17 @@ public class IndexLeafletHandler : IRequestHandler<IndexLeafletRequest, IndexLea
             ContentType = request.ContentType,
             ContentHash = hash,
             IngestedAt = DateTime.UtcNow,
-            WordCount = 0,
+            WordCount = wordCount,
             DriveId = useGraphIdentity ? request.DriveId : null,
             GraphItemId = useGraphIdentity ? request.GraphItemId : null,
             Status = LeafletDocumentStatus.Processing,
         };
 
         await _repo.AddDocumentAsync(doc, ct);
-        await _repo.SaveChangesAsync(ct);
 
         try
         {
             var chunkCount = await _indexing.IndexAsync(text, doc, ct);
-            await _repo.SaveChangesAsync(ct);
 
             var indexedAt = DateTime.UtcNow;
             await _repo.UpdateStatusAsync(doc.Id, LeafletDocumentStatus.Indexed, indexedAt, ct);

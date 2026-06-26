@@ -1,6 +1,7 @@
 using Anela.Heblo.API.PDFPrints;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using FluentAssertions;
 using Xunit;
 
@@ -66,6 +67,29 @@ public class ManufactureProtocolRendererSmokeTests
                     Text = "Testovací poznámka",
                     CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, DateTimeKind.Utc),
                     CreatedByUser = "user@anela.cz",
+                },
+            },
+            ConditionsReadings = new List<ManufactureProtocolConditionsReading>
+            {
+                new ManufactureProtocolConditionsReading
+                {
+                    Stage = ManufactureOrderState.SemiProductManufactured,
+                    InnerTemperature = 21.5m,
+                    InnerHumidity = 45.0m,
+                    OuterTemperature = 19.0m,
+                    OuterHumidity = 50.0m,
+                    RecordedAt = new DateTime(2024, 6, 1, 10, 30, 0, DateTimeKind.Utc),
+                    Source = ConditionsReadingSource.Live,
+                },
+                new ManufactureProtocolConditionsReading
+                {
+                    Stage = ManufactureOrderState.Completed,
+                    InnerTemperature = 22.0m,
+                    InnerHumidity = null,
+                    OuterTemperature = null,
+                    OuterHumidity = null,
+                    RecordedAt = new DateTime(2024, 6, 1, 14, 0, 0, DateTimeKind.Utc),
+                    Source = ConditionsReadingSource.Partial,
                 },
             },
         };

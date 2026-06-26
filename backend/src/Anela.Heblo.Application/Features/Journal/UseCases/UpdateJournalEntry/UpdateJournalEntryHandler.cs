@@ -45,39 +45,22 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.UpdateJournalEntry
                 });
             }
 
-            // Check if user owns the entry (for now, allow all authenticated users to edit)
-            // In production, you might want to restrict this to the original author
-
-            var now = DateTime.UtcNow;
-
-            // Update basic fields
-            entry.Title = request.Title?.Trim();
-            entry.Content = request.Content.Trim();
-            entry.EntryDate = request.EntryDate.Date;
-            entry.ModifiedAt = now;
-            entry.ModifiedByUserId = currentUser.Id;
-            entry.ModifiedByUsername = currentUser.Name ?? "Unknown User";
-
-            // Update product associations (both products and families)
-            entry.ProductAssociations.Clear();
-            if (request.AssociatedProducts?.Any() == true)
+            if (string.IsNullOrWhiteSpace(request.Title))
             {
-                foreach (var productIdentifier in request.AssociatedProducts.Distinct())
-                {
-                    // Try as full product code first, then as prefix
-                    entry.AssociateWithProduct(productIdentifier);
-                }
+                return new UpdateJournalEntryResponse(
+                    ErrorCodes.InvalidJournalTitle,
+                    new Dictionary<string, string> { { "field", "title" } });
             }
 
-            // Update tag assignments
-            entry.TagAssignments.Clear();
-            if (request.TagIds?.Any() == true)
-            {
-                foreach (var tagId in request.TagIds.Distinct())
-                {
-                    entry.AssignTag(tagId);
-                }
-            }
+            entry.Update(
+                request.Title,
+                request.Content,
+                request.EntryDate,
+                currentUser.Id,
+                currentUser.Name ?? "Unknown User");
+
+            entry.ReplaceProductAssociations(request.AssociatedProducts);
+            entry.ReplaceTagAssignments(request.TagIds);
 
             await _journalRepository.UpdateAsync(entry, cancellationToken);
             await _journalRepository.SaveChangesAsync(cancellationToken);

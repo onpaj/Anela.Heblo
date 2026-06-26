@@ -17,6 +17,12 @@ interface DqtRunsTableProps {
 
 const PAGE_SIZE = 20;
 
+const TEST_TYPE_LABELS: Record<string, string> = {
+  IssuedInvoiceComparison: 'Porovnání faktur',
+  ProductPairing: 'Párování produktů',
+  StockWriteBackReconciliation: 'Zpětný zápis skladu',
+};
+
 const formatDateTime = (iso: string): string => {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -31,10 +37,10 @@ const formatDateTime = (iso: string): string => {
 
 const StatusIcon: React.FC<{ run: DqtRunDto }> = ({ run }) => {
   if (run.status === 'Failed') {
-    return <XCircle className="h-4 w-4 text-red-500" />;
+    return <XCircle className="h-4 w-4 text-red-500 dark:text-red-400" />;
   }
   if (run.status === 'Running') {
-    return <Loader2 className="h-4 w-4 text-indigo-500 animate-spin" />;
+    return <Loader2 className="h-4 w-4 text-indigo-500 dark:text-graphite-accent animate-spin" />;
   }
   if (run.status === 'Completed' && run.totalMismatches > 0) {
     return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
@@ -60,8 +66,8 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-40">
-        <div className="flex items-center gap-2 text-gray-500">
-          <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+        <div className="flex items-center gap-2 text-gray-500 dark:text-graphite-muted">
+          <Loader2 className="h-5 w-5 animate-spin text-indigo-500 dark:text-graphite-accent" />
           Načítání testů...
         </div>
       </div>
@@ -71,7 +77,7 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
   if (error) {
     return (
       <div className="flex items-center justify-center h-40">
-        <div className="flex items-center gap-2 text-red-600">
+        <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
           <AlertCircle className="h-5 w-5" />
           Chyba při načítání: {(error as Error).message}
         </div>
@@ -82,28 +88,31 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50 sticky top-0 z-10">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+          <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8" />
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider w-8" />
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
+                Typ testu
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                 Období
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                 Zkontrolováno
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                 Neshody
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                 Spuštění
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                 Čas
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
             {items.map((run) => {
               const isSelected = run.id === selectedRunId;
               return (
@@ -112,22 +121,25 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
                   onClick={() => onRunSelect(run.id)}
                   className={`cursor-pointer transition-colors ${
                     isSelected
-                      ? 'bg-indigo-50 border-l-2 border-indigo-500'
-                      : 'hover:bg-gray-50'
+                      ? 'bg-indigo-50 dark:bg-graphite-accent/10 border-l-2 border-indigo-500 dark:border-graphite-accent'
+                      : 'hover:bg-gray-50 dark:hover:bg-white/5'
                   }`}
                 >
                   <td className="px-3 py-3">
                     <StatusIcon run={run} />
                   </td>
-                  <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">
+                  <td className="px-3 py-3 text-sm text-gray-700 dark:text-graphite-muted whitespace-nowrap">
+                    {TEST_TYPE_LABELS[run.testType] ?? run.testType}
+                  </td>
+                  <td className="px-3 py-3 text-sm text-gray-900 dark:text-graphite-text whitespace-nowrap">
                     {run.dateFrom} — {run.dateTo}
                   </td>
-                  <td className="px-3 py-3 text-sm text-gray-700 text-center">
+                  <td className="px-3 py-3 text-sm text-gray-700 dark:text-graphite-muted text-center">
                     {run.totalChecked}
                   </td>
                   <td className="px-3 py-3 text-sm font-medium text-center">
                     <span
-                      className={run.totalMismatches > 0 ? 'text-red-600' : 'text-green-600'}
+                      className={run.totalMismatches > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-emerald-400'}
                     >
                       {run.totalMismatches}
                     </span>
@@ -136,14 +148,14 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                         run.triggerType === 'Manual'
-                          ? 'bg-indigo-100 text-indigo-800'
-                          : 'bg-gray-100 text-gray-700'
+                          ? 'bg-indigo-100 text-indigo-800 dark:bg-graphite-accent/10 dark:text-graphite-accent'
+                          : 'bg-gray-100 text-gray-700 dark:bg-graphite-surface-2 dark:text-graphite-muted'
                       }`}
                     >
                       {run.triggerType === 'Manual' ? 'Ruční' : 'Plánované'}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-sm text-gray-500 whitespace-nowrap">
+                  <td className="px-3 py-3 text-sm text-gray-500 dark:text-graphite-muted whitespace-nowrap">
                     {formatDateTime(run.startedAt)}
                   </td>
                 </tr>
@@ -153,14 +165,14 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
         </table>
 
         {items.length === 0 && (
-          <div className="text-center py-8 text-gray-500 text-sm">Žádné testy nebyly nalezeny.</div>
+          <div className="text-center py-8 text-gray-500 dark:text-graphite-muted text-sm">Žádné testy nebyly nalezeny.</div>
         )}
       </div>
 
       {/* Pagination */}
       {totalCount > 0 && (
-        <div className="flex-shrink-0 bg-white border-t border-gray-200 px-3 py-2 flex items-center justify-between text-xs">
-          <p className="text-gray-600">
+        <div className="flex-shrink-0 bg-white dark:bg-graphite-surface border-t border-gray-200 dark:border-graphite-border px-3 py-2 flex items-center justify-between text-xs">
+          <p className="text-gray-600 dark:text-graphite-muted">
             {Math.min((pageNumber - 1) * PAGE_SIZE + 1, totalCount)}–
             {Math.min(pageNumber * PAGE_SIZE, totalCount)} z {totalCount}
           </p>
@@ -168,7 +180,7 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
             <button
               onClick={() => handlePageChange(pageNumber - 1)}
               disabled={pageNumber <= 1}
-              className="inline-flex items-center px-2 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center px-2 py-1 rounded-l border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="h-3 w-3" />
             </button>
@@ -189,8 +201,8 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
                   onClick={() => handlePageChange(pageNum)}
                   className={`inline-flex items-center px-2 py-1 border text-xs font-medium ${
                     pageNum === pageNumber
-                      ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      ? 'z-10 bg-indigo-50 dark:bg-graphite-accent/10 border-indigo-500 dark:border-graphite-accent text-indigo-600 dark:text-graphite-accent'
+                      : 'bg-white dark:bg-graphite-surface border-gray-300 dark:border-graphite-border text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5'
                   }`}
                 >
                   {pageNum}
@@ -200,7 +212,7 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
             <button
               onClick={() => handlePageChange(pageNumber + 1)}
               disabled={pageNumber >= totalPages}
-              className="inline-flex items-center px-2 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center px-2 py-1 rounded-r border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronRight className="h-3 w-3" />
             </button>

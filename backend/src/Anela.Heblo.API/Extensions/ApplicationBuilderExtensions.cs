@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.API.Infrastructure;
 using Hangfire;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using Microsoft.AspNetCore.HttpLogging;
@@ -69,7 +69,7 @@ public static class ApplicationBuilderExtensions
         app.UseForwardedHeaders();
 
         // Use CORS - MUST be before UseHttpsRedirection to ensure CORS headers are included in redirect responses
-        app.UseCors(ConfigurationConstants.CORS_POLICY_NAME);
+        app.UseCors(InfrastructureConstants.CORS_POLICY_NAME);
 
         app.UseHttpsRedirection();
 
@@ -84,6 +84,11 @@ public static class ApplicationBuilderExtensions
         {
             app.UseMiddleware<E2ETestAuthenticationMiddleware>();
         }
+
+        // Global exception handler — must come before UseRouting so it can catch
+        // exceptions thrown by any later middleware (auth, endpoints, etc.).
+        // Handler chain is composed via AddExceptionHandler<T>() in DI.
+        app.UseExceptionHandler();
 
         // Routing must be explicitly configured before authentication/authorization
         app.UseRouting();
@@ -168,7 +173,7 @@ public static class ApplicationBuilderExtensions
         app.MapHealthChecks("/health").WithHttpLogging(HttpLoggingFields.None);
         app.MapHealthChecks("/health/ready", new HealthCheckOptions
         {
-            Predicate = check => check.Tags.Contains(ConfigurationConstants.DB_TAG) || check.Tags.Contains("ready"),
+            Predicate = check => check.Tags.Contains(InfrastructureConstants.DB_TAG) || check.Tags.Contains("ready"),
             ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
         }).WithHttpLogging(HttpLoggingFields.None);
         app.MapHealthChecks("/health/live", new HealthCheckOptions
@@ -274,8 +279,7 @@ public static class ApplicationBuilderExtensions
     }
 
     /// <summary>
-    /// Applies any pending EF Core migrations to the database.
-    /// Should only be called in Production; other environments use <c>dotnet ef database update</c>.
+    /// Applies any pending EF Core migrations to the database on every startup.
     /// Fails fast (rethrows) on error so the app does not start with an out-of-date schema.
     /// </summary>
     public static async Task MigrateDatabaseAsync(this WebApplication app)
@@ -288,27 +292,35 @@ public static class ApplicationBuilderExtensions
             using var scope = app.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
-
-            if (pending.Count == 0)
+            if (db.Database.IsRelational())
             {
-                logger.LogInformation("Database schema is up to date; no pending migrations.");
-                return;
-            }
+                var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
 
-            foreach (var migration in pending)
+                if (pending.Count == 0)
+                {
+                    logger.LogInformation("Database schema is up to date; no pending migrations.");
+                }
+                else
+                {
+                    foreach (var migration in pending)
+                    {
+                        logger.LogInformation("Pending migration: {MigrationName}", migration);
+                    }
+
+                    var stopwatch = Stopwatch.StartNew();
+                    await db.Database.MigrateAsync();
+                    stopwatch.Stop();
+
+                    logger.LogInformation(
+                        "Applied {Count} migration(s) in {Elapsed} ms.",
+                        pending.Count,
+                        stopwatch.ElapsedMilliseconds);
+                }
+            }
+            else
             {
-                logger.LogInformation("Pending migration: {MigrationName}", migration);
+                logger.LogInformation("Non-relational database provider — skipping migrations.");
             }
-
-            var stopwatch = Stopwatch.StartNew();
-            await db.Database.MigrateAsync();
-            stopwatch.Stop();
-
-            logger.LogInformation(
-                "Applied {Count} migration(s) in {Elapsed} ms.",
-                pending.Count,
-                stopwatch.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {

@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
@@ -6,15 +6,19 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 public class ProductionActivityAnalyzer : IProductionActivityAnalyzer
 {
     private readonly ILogger<ProductionActivityAnalyzer> _logger;
+    private readonly TimeProvider _timeProvider;
 
-    public ProductionActivityAnalyzer(ILogger<ProductionActivityAnalyzer> logger)
+    public ProductionActivityAnalyzer(
+        ILogger<ProductionActivityAnalyzer> logger,
+        TimeProvider timeProvider)
     {
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
-    public bool IsInActiveProduction(IEnumerable<ManufactureHistoryRecord> manufactureHistory, int dayThreshold = 30)
+    public bool IsInActiveProduction(IEnumerable<CatalogManufactureRecord> manufactureHistory, int dayThreshold = 30)
     {
-        var cutoffDate = DateTime.UtcNow.AddDays(-dayThreshold);
+        var cutoffDate = _timeProvider.GetUtcNow().DateTime.AddDays(-dayThreshold);
 
         var recentProduction = manufactureHistory.Any(m =>
             m.Date >= cutoffDate && m.Amount > 0);
@@ -25,7 +29,7 @@ public class ProductionActivityAnalyzer : IProductionActivityAnalyzer
         return recentProduction;
     }
 
-    public DateTime? GetLastProductionDate(IEnumerable<ManufactureHistoryRecord> manufactureHistory)
+    public DateTime? GetLastProductionDate(IEnumerable<CatalogManufactureRecord> manufactureHistory)
     {
         var lastProduction = manufactureHistory
             .Where(m => m.Amount > 0)
@@ -40,9 +44,9 @@ public class ProductionActivityAnalyzer : IProductionActivityAnalyzer
         return lastDate;
     }
 
-    public double CalculateAverageProductionFrequency(IEnumerable<ManufactureHistoryRecord> manufactureHistory, int analysisMonths = 12)
+    public double CalculateAverageProductionFrequency(IEnumerable<CatalogManufactureRecord> manufactureHistory, int analysisMonths = 12)
     {
-        var analysisStartDate = DateTime.UtcNow.AddMonths(-analysisMonths);
+        var analysisStartDate = _timeProvider.GetUtcNow().DateTime.AddMonths(-analysisMonths);
 
         var productionDates = manufactureHistory
             .Where(m => m.Date >= analysisStartDate && m.Amount > 0)

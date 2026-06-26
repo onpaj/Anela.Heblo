@@ -15,4 +15,10 @@ public class IngredientDto
 
     [JsonPropertyName("unit")]
     public string Unit { get; set; }
+
+    [JsonPropertyName("order")]
+    public int Order { get; set; }
+
+    [JsonPropertyName("phaseLabel")]
+    public string? PhaseLabel { get; set; }
 }

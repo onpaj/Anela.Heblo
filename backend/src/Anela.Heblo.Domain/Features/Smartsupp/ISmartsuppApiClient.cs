@@ -11,9 +11,27 @@ public interface ISmartsuppApiClient
         string conversationId,
         CancellationToken cancellationToken);
 
+    Task<SmartsuppConversationData?> GetConversationAsync(
+        string conversationId,
+        CancellationToken cancellationToken);
+
     Task<SmartsuppContactData?> GetContactAsync(
         string contactId,
         CancellationToken cancellationToken);
+
+    Task<SmartsuppVisitorData?> GetVisitorAsync(
+        string visitorId,
+        CancellationToken cancellationToken);
+
+    Task<SmartsuppSentMessageData> SendMessageAsync(
+        string conversationId,
+        string content,
+        string? agentId,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<SmartsuppAgentData>> GetAgentsAsync(CancellationToken cancellationToken);
+
+    Task CloseConversationAsync(string conversationId, CancellationToken cancellationToken);
 }
 
 public class SmartsuppSearchResult
@@ -89,6 +107,16 @@ public class SmartsuppMessageData
     public string? AuthorName { get; set; }
 }
 
+public class SmartsuppVisitorData
+{
+    public string Id { get; set; } = null!;
+    public string? UserAgent { get; set; }
+    public string? Os { get; set; }
+    public string? Browser { get; set; }
+    public string? BrowserVersion { get; set; }
+    public int? VisitsCount { get; set; }
+}
+
 public class SmartsuppContactData
 {
     public string Id { get; set; } = null!;
@@ -103,4 +131,17 @@ public class SmartsuppContactData
     public bool GdprApproved { get; set; }
     public string? TagsJson { get; set; }
     public string? PropertiesJson { get; set; }
+}
+
+public class SmartsuppSentMessageData
+{
+    public string Id { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SmartsuppAgentData
+{
+    public string Id { get; set; } = null!;
+    public string? Name { get; set; }
+    public string? Email { get; set; }
 }

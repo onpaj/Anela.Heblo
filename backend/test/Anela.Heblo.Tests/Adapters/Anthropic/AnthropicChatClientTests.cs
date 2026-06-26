@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Anela.Heblo.Adapters.Anthropic;
+using FluentAssertions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -304,5 +305,66 @@ public class AnthropicChatClientTests
         var options = new AnthropicOptions();
 
         Assert.Equal(60, options.HttpTimeoutSeconds);
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_WithMaxOutputTokensOption_OverridesDefaultMaxTokens()
+    {
+        string? capturedBody = null;
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Returns<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            {
+                capturedBody = await req.Content!.ReadAsStringAsync();
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(BuildSuccessJson("ok"))
+                };
+            });
+
+        var client = CreateClient(handler: handlerMock.Object);
+        var messages = new[] { new ChatMessage(ChatRole.User, "Hi") };
+        var options = new ChatOptions { MaxOutputTokens = 8192 };
+
+        await client.GetResponseAsync(messages, options);
+
+        capturedBody.Should().NotBeNull();
+        var doc = JsonDocument.Parse(capturedBody!);
+        doc.RootElement.GetProperty("max_tokens").GetInt32().Should().Be(8192);
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_WithoutMaxOutputTokensOption_UsesDefaultMaxTokens()
+    {
+        string? capturedBody = null;
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Returns<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            {
+                capturedBody = await req.Content!.ReadAsStringAsync();
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(BuildSuccessJson("ok"))
+                };
+            });
+
+        var client = CreateClient(handler: handlerMock.Object);
+        var messages = new[] { new ChatMessage(ChatRole.User, "Hi") };
+
+        await client.GetResponseAsync(messages);
+
+        capturedBody.Should().NotBeNull();
+        var doc = JsonDocument.Parse(capturedBody!);
+        doc.RootElement.GetProperty("max_tokens").GetInt32().Should().Be(1024);
     }
 }

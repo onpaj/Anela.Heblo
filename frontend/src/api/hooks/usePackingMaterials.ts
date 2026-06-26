@@ -1,262 +1,152 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
-import { 
-  ProcessDailyConsumptionRequest as GeneratedProcessDailyConsumptionRequest,
-  ProcessDailyConsumptionResponse as GeneratedProcessDailyConsumptionResponse 
+import {
+  PackingMaterialDto,
+  PackingMaterialLogDto,
+  GetPackingMaterialsListResponse,
+  GetPackingMaterialLogsResponse,
+  CreatePackingMaterialRequest,
+  ICreatePackingMaterialRequest,
+  CreatePackingMaterialResponse,
+  UpdatePackingMaterialRequest,
+  IUpdatePackingMaterialRequest,
+  UpdatePackingMaterialResponse,
+  UpdatePackingMaterialQuantityResponse,
+  ProcessDailyConsumptionRequest,
+  ProcessDailyConsumptionResponse,
+  GetConsumptionHistoryResponse,
+  MaterialConsumptionHistoryItemDto,
+  ConsumptionType,
+  LogEntryType,
+  HistoryRecordType,
+  UpdateQuantityRequest as UpdateQuantityRequestGenerated,
 } from "../generated/api-client";
 
-// Define types based on our backend DTOs
-export interface PackingMaterialDto {
-  id: number;
-  name: string;
-  consumptionRate: number;
-  consumptionType: ConsumptionType;
-  consumptionTypeText: string;
-  currentQuantity: number;
-  forecastedDays?: number;
-  createdAt: string;
-  updatedAt?: string;
-}
+export {
+  PackingMaterialDto,
+  PackingMaterialLogDto,
+  GetPackingMaterialsListResponse,
+  GetPackingMaterialLogsResponse,
+  CreatePackingMaterialRequest,
+  CreatePackingMaterialResponse,
+  UpdatePackingMaterialRequest,
+  UpdatePackingMaterialResponse,
+  UpdatePackingMaterialQuantityResponse,
+  ProcessDailyConsumptionRequest,
+  ProcessDailyConsumptionResponse,
+  GetConsumptionHistoryResponse,
+  ConsumptionType,
+  LogEntryType,
+  HistoryRecordType,
+};
 
-export enum ConsumptionType {
-  PerOrder = 1,
-  PerProduct = 2,
-  PerDay = 3
-}
-
-export enum LogEntryType {
-  Manual = 1,
-  AutomaticConsumption = 2
-}
-
-export interface PackingMaterialLogDto {
-  id: number;
-  packingMaterialId: number;
-  date: string; // DateOnly as ISO string
-  oldQuantity: number;
-  newQuantity: number;
-  changeAmount: number;
-  logType: LogEntryType;
-  logTypeText: string;
-  userId?: string;
-  createdAt: string;
-}
-
-export interface GetPackingMaterialsListResponse {
-  materials: PackingMaterialDto[];
-}
-
-export interface GetPackingMaterialLogsResponse {
-  material: PackingMaterialDto;
-  logs: PackingMaterialLogDto[];
-}
-
-export interface CreatePackingMaterialRequest {
-  name: string;
-  consumptionRate: number;
-  consumptionType: ConsumptionType;
-  currentQuantity: number;
-}
-
-export interface CreatePackingMaterialResponse {
-  id: number;
-  material: PackingMaterialDto;
-}
-
-export interface UpdatePackingMaterialRequest {
-  id: number;
-  name: string;
-  consumptionRate: number;
-  consumptionType: ConsumptionType;
-}
-
-export interface UpdatePackingMaterialResponse {
-  material: PackingMaterialDto;
-}
+export type ConsumptionHistoryItemDto = MaterialConsumptionHistoryItemDto;
 
 export interface UpdateQuantityRequest {
   newQuantity: number;
-  date: string; // DateOnly as ISO string
+  date: string;
 }
 
-export interface UpdatePackingMaterialQuantityResponse {
-  material: PackingMaterialDto;
+export interface ConsumptionHistoryParams {
+  dateFrom?: string;
+  dateTo?: string;
+  packingMaterialId?: number;
+  consumptionType?: ConsumptionType;
+  productCode?: string;
+  invoiceId?: string;
+  pageNumber?: number;
+  pageSize?: number;
+  sortDescending?: boolean;
 }
 
-// Use the generated types for ProcessDailyConsumption
-export type ProcessDailyConsumptionRequest = GeneratedProcessDailyConsumptionRequest;
-export type ProcessDailyConsumptionResponse = GeneratedProcessDailyConsumptionResponse;
-
-// API client class
-class PackingMaterialsApiClient {
-  private baseUrl: string;
-
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
-  }
-
-  async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
-    const apiClient = getAuthenticatedApiClient();
-    const fullUrl = `${this.baseUrl}${url}`;
-    
-    // Use the API client's fetch method which handles authentication automatically
-    const response = await (apiClient as any).http.fetch(fullUrl, {
-      method: options.method || 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      body: options.body,
-    });
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-
-  async getPackingMaterials(): Promise<GetPackingMaterialsListResponse> {
-    return this.makeRequest<GetPackingMaterialsListResponse>('/api/packing-materials');
-  }
-
-  async createPackingMaterial(request: CreatePackingMaterialRequest): Promise<CreatePackingMaterialResponse> {
-    return this.makeRequest<CreatePackingMaterialResponse>('/api/packing-materials', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
-  }
-
-  async updatePackingMaterial(id: number, request: Omit<UpdatePackingMaterialRequest, 'id'>): Promise<UpdatePackingMaterialResponse> {
-    return this.makeRequest<UpdatePackingMaterialResponse>(`/api/packing-materials/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ ...request, id }),
-    });
-  }
-
-  async updatePackingMaterialQuantity(id: number, request: UpdateQuantityRequest): Promise<UpdatePackingMaterialQuantityResponse> {
-    return this.makeRequest<UpdatePackingMaterialQuantityResponse>(`/api/packing-materials/${id}/quantity`, {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
-  }
-
-  async deletePackingMaterial(id: number): Promise<void> {
-    return this.makeRequest<void>(`/api/packing-materials/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async processDailyConsumption(request: ProcessDailyConsumptionRequest): Promise<ProcessDailyConsumptionResponse> {
-    const apiClient = getAuthenticatedApiClient();
-    return apiClient.packingMaterials_ProcessDailyConsumption(request);
-  }
-
-  async getPackingMaterialLogs(id: number, days: number = 60): Promise<GetPackingMaterialLogsResponse> {
-    return this.makeRequest<GetPackingMaterialLogsResponse>(`/api/packing-materials/${id}/logs?days=${days}`);
-  }
-}
-
-// Create API client instance
-const createApiClient = (): PackingMaterialsApiClient => {
-  const apiClient = getAuthenticatedApiClient();
-  return new PackingMaterialsApiClient((apiClient as any).baseUrl);
-};
-
-// Query keys
 const QUERY_KEYS = {
-  packingMaterials: ['packingMaterials'] as const,
-  packingMaterialLogs: (id: number, days: number) => ['packingMaterials', id, 'logs', days] as const,
+  packingMaterials: ["packingMaterials"] as const,
+  packingMaterialLogs: (id: number, days: number) =>
+    ["packingMaterials", id, "logs", days] as const,
+  consumptionHistory: (params: ConsumptionHistoryParams) =>
+    ["packingMaterials", "consumptionHistory", params] as const,
 };
 
-// Hooks
-export const usePackingMaterials = () => {
-  return useQuery({
+export const usePackingMaterials = () =>
+  useQuery({
     queryKey: QUERY_KEYS.packingMaterials,
-    queryFn: async () => {
-      const client = createApiClient();
-      return client.getPackingMaterials();
-    },
+    queryFn: () => getAuthenticatedApiClient().packingMaterials_GetPackingMaterials(),
   });
-};
 
 export const useCreatePackingMaterial = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async (request: CreatePackingMaterialRequest) => {
-      const client = createApiClient();
-      return client.createPackingMaterial(request);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials });
-    },
+    mutationFn: (request: ICreatePackingMaterialRequest) =>
+      getAuthenticatedApiClient().packingMaterials_CreatePackingMaterial(request as CreatePackingMaterialRequest),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials }),
   });
 };
 
 export const useUpdatePackingMaterial = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async ({ id, ...request }: UpdatePackingMaterialRequest) => {
-      const client = createApiClient();
-      return client.updatePackingMaterial(id, request);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials });
-    },
+    mutationFn: ({ id, ...rest }: IUpdatePackingMaterialRequest) =>
+      getAuthenticatedApiClient().packingMaterials_UpdatePackingMaterial(id!, rest as UpdatePackingMaterialRequest),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials }),
   });
 };
 
 export const useUpdatePackingMaterialQuantity = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async ({ id, ...request }: { id: number } & UpdateQuantityRequest) => {
-      const client = createApiClient();
-      return client.updatePackingMaterialQuantity(id, request);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials });
-    },
+    mutationFn: ({ id, newQuantity, date }: { id: number } & UpdateQuantityRequest) =>
+      getAuthenticatedApiClient().packingMaterials_UpdatePackingMaterialQuantity(id, {
+        newQuantity,
+        date: new Date(date),
+      } as UpdateQuantityRequestGenerated),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials }),
   });
 };
 
 export const useDeletePackingMaterial = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async (id: number) => {
-      const client = createApiClient();
-      return client.deletePackingMaterial(id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials });
-    },
+    mutationFn: (id: number) =>
+      getAuthenticatedApiClient().packingMaterials_DeletePackingMaterial(id),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials }),
   });
 };
 
 export const useProcessDailyConsumption = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async (request: ProcessDailyConsumptionRequest) => {
-      const client = createApiClient();
-      return client.processDailyConsumption(request);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials });
-    },
+    mutationFn: (request: ProcessDailyConsumptionRequest) =>
+      getAuthenticatedApiClient().packingMaterials_ProcessDailyConsumption(request),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.packingMaterials }),
   });
 };
 
-export const usePackingMaterialLogs = (id: number, days: number = 60) => {
-  return useQuery({
+export const usePackingMaterialLogs = (id: number, days: number = 60) =>
+  useQuery({
     queryKey: QUERY_KEYS.packingMaterialLogs(id, days),
-    queryFn: async () => {
-      const client = createApiClient();
-      return client.getPackingMaterialLogs(id, days);
-    },
+    queryFn: () =>
+      getAuthenticatedApiClient().packingMaterials_GetPackingMaterialLogs(id, days),
     enabled: !!id,
   });
-};
+
+export const useConsumptionHistory = (params: ConsumptionHistoryParams) =>
+  useQuery({
+    queryKey: QUERY_KEYS.consumptionHistory(params),
+    queryFn: () =>
+      getAuthenticatedApiClient().packingMaterials_GetConsumptionHistory(
+        params.dateFrom ?? undefined,
+        params.dateTo ?? undefined,
+        params.packingMaterialId ?? undefined,
+        params.consumptionType ?? undefined,
+        params.productCode ?? undefined,
+        params.invoiceId ?? undefined,
+        params.pageNumber ?? undefined,
+        params.pageSize ?? undefined,
+        params.sortDescending ?? undefined,
+      ),
+  });

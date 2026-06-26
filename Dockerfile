@@ -5,13 +5,18 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /app/frontend
 
-# Accept build arguments for React environment variables
-ARG REACT_APP_API_URL=http://localhost:8080
+# Accept build arguments for React environment variables.
+# REACT_APP_API_URL is intentionally empty: runtimeConfig.ts falls back to
+# window.location.origin when empty, so the same image serves frontend + API from one
+# host in stg/prod. A truthy default (e.g. http://localhost:8080) gets baked into the
+# bundle and ships to users, causing ERR_CONNECTION_REFUSED in their browsers.
+ARG REACT_APP_API_URL=
 ARG REACT_APP_USE_MOCK_AUTH=true
 ARG REACT_APP_AZURE_CLIENT_ID=
 ARG REACT_APP_AZURE_AUTHORITY=
 ARG REACT_APP_AZURE_BACKEND_CLIENT_ID=
 ARG REACT_APP_AZURE_TENANT_ID=
+ARG REACT_APP_AI_CONNECTION_STRING=
 
 # Set environment variables for React build
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
@@ -20,6 +25,7 @@ ENV REACT_APP_AZURE_CLIENT_ID=$REACT_APP_AZURE_CLIENT_ID
 ENV REACT_APP_AZURE_AUTHORITY=$REACT_APP_AZURE_AUTHORITY
 ENV REACT_APP_AZURE_BACKEND_CLIENT_ID=$REACT_APP_AZURE_BACKEND_CLIENT_ID
 ENV REACT_APP_AZURE_TENANT_ID=$REACT_APP_AZURE_TENANT_ID
+ENV REACT_APP_AI_CONNECTION_STRING=$REACT_APP_AI_CONNECTION_STRING
 
 # Copy package files and install all dependencies (needed for build)
 COPY frontend/package*.json ./
@@ -63,6 +69,12 @@ RUN apt-get update && apt-get install -y \
     libfreetype6 \
     && ln -sf /usr/share/zoneinfo/Europe/Prague /etc/localtime \
     && echo "Europe/Prague" > /etc/timezone \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js and Plaud CLI (@plaud-ai/cli is a Node.js tool)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g @plaud-ai/cli \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy published backend

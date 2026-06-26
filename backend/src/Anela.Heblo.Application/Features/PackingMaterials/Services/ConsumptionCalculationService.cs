@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Invoices;
+using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using Microsoft.Extensions.Logging;
@@ -8,16 +8,16 @@ namespace Anela.Heblo.Application.Features.PackingMaterials.Services;
 public class ConsumptionCalculationService : IConsumptionCalculationService
 {
     private readonly IPackingMaterialRepository _repository;
-    private readonly IIssuedInvoiceRepository _invoiceRepository;
+    private readonly IInvoiceConsumptionSource _invoiceSource;
     private readonly ILogger<ConsumptionCalculationService> _logger;
 
     public ConsumptionCalculationService(
         IPackingMaterialRepository repository,
-        IIssuedInvoiceRepository invoiceRepository,
+        IInvoiceConsumptionSource invoiceSource,
         ILogger<ConsumptionCalculationService> logger)
     {
         _repository = repository;
-        _invoiceRepository = invoiceRepository;
+        _invoiceSource = invoiceSource;
         _logger = logger;
     }
 
@@ -34,7 +34,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
         _logger.LogInformation("Starting daily consumption processing for {Date}", processingDate);
 
         var materials = (await _repository.GetAllWithAllocationsAsync(cancellationToken)).ToList();
-        var invoices = (await _invoiceRepository.GetHeadersByDateAsync(processingDate, cancellationToken)).ToList();
+        var invoices = await _invoiceSource.GetHeadersByDateAsync(processingDate, cancellationToken);
 
         var allFactRows = new List<PackingMaterialConsumption>();
         var decrementByMaterial = new Dictionary<PackingMaterial, decimal>();
@@ -66,11 +66,19 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
             }
         }
 
-        // Relies on EF change tracking — GetAllWithAllocationsAsync must NOT use AsNoTracking
-        if (processedCount == 0 && materials.Count > 0)
+        // Insert the daily run first; SaveChangesAsync is called inside AddDailyRunAsync.
+        // NOTE: Splitting into two SaveChangesAsync calls introduces a partial-success window:
+        // if the second save (consumption rows) fails after the daily run committed, the date
+        // is marked processed but no consumption data is written. This matches the pre-existing
+        // behaviour where a non-duplicate DbUpdateException after staging left the daily run
+        // uncommitted — the new design makes the daily run commit explicit and first.
+        var dailyRun = new PackingMaterialDailyRun(processingDate, processedCount);
+        var inserted = await _repository.AddDailyRunAsync(dailyRun, cancellationToken);
+        if (!inserted)
         {
-            var marker = materials[0];
-            marker.UpdateQuantity(marker.CurrentQuantity, processingDate, LogEntryType.AutomaticConsumption);
+            _logger.LogWarning("PackingMaterialsDailyRunDuplicateDetected: duplicate daily run for {ProcessingDate} detected, skipping",
+                processingDate);
+            return new ProcessDailyConsumptionResult(false, 0);
         }
 
         if (allFactRows.Count > 0)
@@ -78,7 +86,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
 
         await _repository.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Completed daily consumption processing for {Date}. Processed {ProcessedCount} materials",
+        _logger.LogInformation("PackingMaterialsDailyRunRecorded: daily run recorded for {ProcessingDate}. MaterialsProcessed={MaterialsProcessed}",
             processingDate, processedCount);
 
         return new ProcessDailyConsumptionResult(true, processedCount);
@@ -93,7 +101,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
 
     private static List<PackingMaterialConsumption> BuildFactRows(
         PackingMaterial material,
-        List<IssuedInvoice> invoices,
+        IReadOnlyList<InvoiceConsumptionHeader> invoices,
         DateOnly date)
     {
         return material.ConsumptionType switch
@@ -114,4 +122,5 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
             _ => throw new ArgumentOutOfRangeException(nameof(material.ConsumptionType))
         };
     }
+
 }

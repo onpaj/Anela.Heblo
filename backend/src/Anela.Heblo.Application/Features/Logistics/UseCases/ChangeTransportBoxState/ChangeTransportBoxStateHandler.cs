@@ -1,8 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -13,10 +12,11 @@ namespace Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBox
 public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBoxStateRequest, ChangeTransportBoxStateResponse>
 {
     private readonly ITransportBoxRepository _repository;
+    private readonly IInventoryReservationService _inventoryReservationService;
     private readonly IMediator _mediator;
     private readonly ILogger<ChangeTransportBoxStateHandler> _logger;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IStockUpProcessingService _stockUpProcessingService;
+    private readonly ILogisticsStockOperationService _stockOperationService;
     private readonly TimeProvider _timeProvider;
 
 
@@ -37,20 +37,20 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 
     public ChangeTransportBoxStateHandler(
         ITransportBoxRepository repository,
+        IInventoryReservationService inventoryReservationService,
         IMediator mediator,
         ILogger<ChangeTransportBoxStateHandler> logger,
         ICurrentUserService currentUserService,
-        IStockUpProcessingService stockUpProcessingService,
+        ILogisticsStockOperationService stockOperationService,
         TimeProvider timeProvider)
     {
         _repository = repository;
+        _inventoryReservationService = inventoryReservationService;
         _mediator = mediator;
         _logger = logger;
         _currentUserService = currentUserService;
-        _stockUpProcessingService = stockUpProcessingService;
+        _stockOperationService = stockOperationService;
         _timeProvider = timeProvider;
-
-
     }
 
     public async Task<ChangeTransportBoxStateResponse> Handle(ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
@@ -118,7 +118,17 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             var currentTime = DateTime.SpecifyKind(_timeProvider.GetUtcNow().UtcDateTime, DateTimeKind.Utc);
             var userName = currentUser.IsAuthenticated ? currentUser.Name ?? "Unknown User" : "Anonymous";
 
+            // Capture items before Reset so we can restore inventory
+            var itemsToRestore = box.State == TransportBoxState.Opened && request.NewState == TransportBoxState.New
+                ? box.Items.Where(i => i.SourceInventoryId != null).ToList()
+                : null;
+
             await transition.ChangeStateAsync(box, currentTime, userName);
+
+            if (itemsToRestore != null)
+            {
+                await RestoreInventoryForItemsAsync(itemsToRestore, userName, currentTime, box.Id, box.Code, cancellationToken);
+            }
 
             // Save changes
             await _repository.UpdateAsync(box, cancellationToken);
@@ -219,25 +229,58 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 
     private async Task<ChangeTransportBoxStateResponse?> HandleReceived(TransportBox box, ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
     {
-        foreach (var item in box.Items)
-        {
-            var documentNumber = $"BOX-{box.Id:000000}-{item.ProductCode}";
+        var aggregated = box.Items
+            .GroupBy(i => i.ProductCode)
+            .Select(g => new
+            {
+                ProductCode = g.Key,
+                Amount = (int)Math.Round(g.Sum(i => i.Amount), MidpointRounding.AwayFromZero),
+                LineCount = g.Count()
+            })
+            .ToList();
 
-            await _stockUpProcessingService.CreateOperationAsync(
+        foreach (var group in aggregated)
+        {
+            var documentNumber = $"BOX-{box.Id:000000}-{group.ProductCode}";
+
+            await _stockOperationService.CreateOperationAsync(
                 documentNumber,
-                item.ProductCode,
-                (int)item.Amount,
-                StockUpSourceType.TransportBox,
+                group.ProductCode,
+                group.Amount,
+                LogisticsStockOperationSource.TransportBox,
                 box.Id,
                 cancellationToken);
 
-            _logger.LogDebug("Created StockUpOperation {DocumentNumber} for product {ProductCode}, amount {Amount}",
-                documentNumber, item.ProductCode, item.Amount);
+            _logger.LogDebug("Created StockUpOperation {DocumentNumber} for product {ProductCode}, amount {Amount} (aggregated from {LineCount} item line(s))",
+                documentNumber, group.ProductCode, group.Amount, group.LineCount);
         }
 
-        _logger.LogInformation("Successfully created {Count} StockUpOperations for box {BoxId} ({BoxCode})",
-            box.Items.Count, box.Id, box.Code);
+        _logger.LogInformation("Successfully created {OperationCount} StockUpOperation(s) from {ItemCount} item line(s) for box {BoxId} ({BoxCode})",
+            aggregated.Count, box.Items.Count, box.Id, box.Code);
 
         return null;
+    }
+
+    private async Task RestoreInventoryForItemsAsync(
+        IReadOnlyList<TransportBoxItem> items,
+        string userName,
+        DateTime timestamp,
+        int boxId,
+        string? boxCode,
+        CancellationToken cancellationToken)
+    {
+        foreach (var item in items)
+        {
+            if (item.SourceInventoryId == null) continue;
+
+            await _inventoryReservationService.RestoreAsync(
+                inventoryId: item.SourceInventoryId.Value,
+                amount: (decimal)item.Amount,
+                userName: userName,
+                timestamp: timestamp,
+                boxId: boxId,
+                boxCode: boxCode,
+                cancellationToken: cancellationToken);
+        }
     }
 }

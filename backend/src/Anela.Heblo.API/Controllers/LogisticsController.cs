@@ -4,25 +4,22 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetAvailableGiftPackages;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetGiftPackageDetail;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetManufactureLog;
-using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[FeatureAuthorize(Feature.Warehouse_Logistics)]
 [ApiController]
 [Route("api/logistics")]
 public class LogisticsController : BaseApiController
 {
     private readonly IMediator _mediator;
-    private readonly ICurrentUserService _currentUserService;
 
-    public LogisticsController(IMediator mediator, ICurrentUserService currentUserService)
+    public LogisticsController(IMediator mediator)
     {
         _mediator = mediator;
-        _currentUserService = currentUserService;
     }
 
     /// <summary>
@@ -72,23 +69,11 @@ public class LogisticsController : BaseApiController
     /// Execute gift package manufacturing process
     /// </summary>
     [HttpPost("gift-packages/manufacture")]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     public async Task<ActionResult<CreateGiftPackageManufactureResponse>> CreateGiftPackageManufacture(
         [FromBody] CreateGiftPackageManufactureRequest request,
         CancellationToken cancellationToken)
     {
-        // Set the current user ID
-        var currentUser = _currentUserService.GetCurrentUser();
-
-        // Try to parse the user ID as GUID, fallback to a default GUID if parsing fails
-        if (!Guid.TryParse(currentUser.Id, out var userId))
-        {
-            // If ID is not a valid GUID (e.g., in mock auth scenarios), generate a consistent one
-            // or use a default system user GUID
-            userId = Guid.Parse("00000000-0000-0000-0000-000000000001"); // System/Mock user GUID
-        }
-
-        request.UserId = userId;
-
         var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }
@@ -97,23 +82,11 @@ public class LogisticsController : BaseApiController
     /// Disassemble gift package back to individual components
     /// </summary>
     [HttpPost("gift-packages/disassemble")]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     public async Task<ActionResult<DisassembleGiftPackageResponse>> DisassembleGiftPackage(
         [FromBody] DisassembleGiftPackageRequest request,
         CancellationToken cancellationToken)
     {
-        // Set the current user ID
-        var currentUser = _currentUserService.GetCurrentUser();
-
-        // Try to parse the user ID as GUID, fallback to a default GUID if parsing fails
-        if (!Guid.TryParse(currentUser.Id, out var userId))
-        {
-            // If ID is not a valid GUID (e.g., in mock auth scenarios), generate a consistent one
-            // or use a default system user GUID
-            userId = Guid.Parse("00000000-0000-0000-0000-000000000001"); // System/Mock user GUID
-        }
-
-        request.UserId = userId;
-
         var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }
@@ -122,6 +95,7 @@ public class LogisticsController : BaseApiController
     /// Queue gift package manufacturing process as background job
     /// </summary>
     [HttpPost("gift-packages/manufacture/enqueue")]
+    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     public async Task<ActionResult<EnqueueGiftPackageManufactureResponse>> EnqueueGiftPackageManufacture(
         [FromBody] EnqueueGiftPackageManufactureRequest request,
         CancellationToken cancellationToken)

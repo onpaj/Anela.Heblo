@@ -8,7 +8,6 @@ using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,14 +26,14 @@ public class DownloadFromUrlHandlerTests
     private readonly Mock<IDownloadResilienceService> _resilience;
     private Mock<IHttpClientFactory> _headFactory;
     private readonly Mock<ILogger<DownloadFromUrlHandler>> _logger;
-    private readonly IOptions<ProductExportOptions> _options;
+    private readonly IOptions<FileDownloadOptions> _options;
 
     public DownloadFromUrlHandlerTests()
     {
         _blobStorage = new Mock<IBlobStorageService>();
         _resilience = new Mock<IDownloadResilienceService>();
         _logger = new Mock<ILogger<DownloadFromUrlHandler>>();
-        _options = Options.Create(new ProductExportOptions
+        _options = Options.Create(new FileDownloadOptions
         {
             HeadTimeout = TimeSpan.FromSeconds(5),
         });
@@ -71,7 +70,7 @@ public class DownloadFromUrlHandlerTests
         var client = new HttpClient(handler);
         var factory = new Mock<IHttpClientFactory>();
         factory
-            .Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
             .Returns(client);
         return factory;
     }
@@ -280,7 +279,7 @@ public class DownloadFromUrlHandlerTests
         _resilience.Verify(
             r => r.ExecuteWithResilienceAsync(
                 It.IsAny<Func<CancellationToken, Task<string>>>(),
-                FileStorageModule.ProductExportDownloadClientName,
+                FileStorageModule.FileDownloadClientName,
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

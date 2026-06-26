@@ -17,10 +17,148 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 // Import removed - using default date format for now to fix Jest test issues
-import type { JournalEntryDto } from "../../../api/generated/api-client";
+import type {
+  JournalEntryDto,
+  SearchJournalEntryDto,
+} from "../../../api/generated/api-client";
 import JournalEntryModal from "../../JournalEntryModal";
+import { useScreenView } from '../../../telemetry/useScreenView';
+import { truncateContent } from "./journalPreview";
+
+interface JournalRowProps {
+  id: number;
+  title?: string;
+  entryDate: Date | string;
+  authorLabel: string;
+  contentText: string;
+  tags?: { id?: number; name?: string; color?: string }[];
+  associatedProducts?: string[];
+  onClick: () => void;
+}
+
+const JournalRow: React.FC<JournalRowProps> = ({
+  id,
+  title,
+  entryDate,
+  authorLabel,
+  contentText,
+  tags,
+  associatedProducts,
+  onClick,
+}) => (
+  <tr
+    className="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors duration-150"
+    data-testid="journal-entry"
+    data-entry-id={id}
+    onClick={onClick}
+    title="Klikněte pro editaci záznamu"
+  >
+    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
+      <div className="max-w-48 truncate">
+        {title || "Bez názvu"}
+      </div>
+    </td>
+    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
+      {format(new Date(entryDate), "dd.MM.yyyy")}
+    </td>
+    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
+      <div className="max-w-32 truncate">
+        {authorLabel}
+      </div>
+    </td>
+    <td className="px-4 py-4 text-sm text-gray-700 dark:text-graphite-muted">
+      <div className="max-w-96 line-clamp-2">
+        {contentText}
+      </div>
+    </td>
+    <td className="px-4 py-4 text-sm">
+      <div className="flex flex-wrap gap-1 max-w-48">
+        {tags &&
+          tags.slice(0, 2).map((tag, index) => (
+            <span
+              key={tag.id ?? index}
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border"
+              style={{
+                borderColor: tag.color,
+                color: tag.color,
+              }}
+            >
+              {tag.name}
+            </span>
+          ))}
+        {tags && tags.length > 2 && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-graphite-surface-2 text-gray-600 dark:text-graphite-muted">
+            +{tags.length - 2}
+          </span>
+        )}
+      </div>
+    </td>
+    <td className="px-4 py-4 text-sm">
+      <div className="flex flex-wrap gap-1 max-w-32">
+        {associatedProducts
+          ?.slice(0, 2)
+          .map((product) => (
+            <span
+              key={product}
+              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-graphite-accent/20 text-indigo-800 dark:text-graphite-accent"
+            >
+              {product}
+            </span>
+          ))}
+        {associatedProducts &&
+          associatedProducts.length > 2 && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-graphite-surface-2 text-gray-600 dark:text-graphite-muted">
+              +{associatedProducts.length - 2}
+            </span>
+          )}
+      </div>
+    </td>
+  </tr>
+);
+
+interface SortableHeaderProps {
+  column: string;
+  sortBy: string;
+  sortDescending: boolean;
+  onSort: (column: string) => void;
+  children: React.ReactNode;
+}
+
+const SortableHeader: React.FC<SortableHeaderProps> = ({
+  column,
+  sortBy,
+  sortDescending,
+  onSort,
+  children,
+}) => {
+  const isActive = sortBy === column;
+  const isAscending = isActive && !sortDescending;
+  const isDescending = isActive && sortDescending;
+
+  return (
+    <th
+      scope="col"
+      className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 select-none"
+      onClick={() => onSort(column)}
+    >
+      <div className="flex items-center space-x-1">
+        <span>{children}</span>
+        <div className="flex flex-col">
+          <ChevronUp
+            className={`h-3 w-3 ${isAscending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
+          />
+          <ChevronDown
+            className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
+          />
+        </div>
+      </div>
+    </th>
+  );
+};
 
 const JournalList: React.FC = () => {
+  useScreenView('Journal', 'JournalList');
+
   // Filter states - separate input values from applied filters
   const [searchTextInput, setSearchTextInput] = useState("");
   const [searchTextFilter, setSearchTextFilter] = useState("");
@@ -49,13 +187,16 @@ const JournalList: React.FC = () => {
     sortDirection: sortDescending ? "DESC" : "ASC",
   });
 
-  const searchQuery = useSearchJournalEntries({
-    searchText: searchTextFilter,
-    pageNumber: pageNumber,
-    pageSize: pageSize,
-    sortBy: sortBy,
-    sortDirection: sortDescending ? "DESC" : "ASC",
-  });
+  const searchQuery = useSearchJournalEntries(
+    {
+      searchText: searchTextFilter,
+      pageNumber: pageNumber,
+      pageSize: pageSize,
+      sortBy: sortBy,
+      sortDirection: sortDescending ? "DESC" : "ASC",
+    },
+    isSearchMode,
+  );
 
   const currentQuery = isSearchMode ? searchQuery : entriesQuery;
   const entries = currentQuery.data?.entries || [];
@@ -65,17 +206,10 @@ const JournalList: React.FC = () => {
   const error = currentQuery.error;
 
   // Handler for applying filters
-  const handleApplyFilters = async () => {
+  const handleApplyFilters = () => {
     setSearchTextFilter(searchTextInput);
     setIsSearchMode(searchTextInput.trim() !== "");
     setPageNumber(1); // Reset to first page when applying filters
-
-    // Force data reload by refetching
-    if (searchTextInput.trim()) {
-      await searchQuery.refetch();
-    } else {
-      await entriesQuery.refetch();
-    }
   };
 
   // Handler for Enter key press
@@ -86,14 +220,11 @@ const JournalList: React.FC = () => {
   };
 
   // Handler for clearing all filters
-  const handleClearFilters = async () => {
+  const handleClearFilters = () => {
     setSearchTextInput("");
     setSearchTextFilter("");
     setIsSearchMode(false);
     setPageNumber(1); // Reset to first page when clearing filters
-
-    // Force data reload by refetching
-    await entriesQuery.refetch();
   };
 
   // Sorting handler
@@ -118,12 +249,6 @@ const JournalList: React.FC = () => {
     setPageNumber(1); // Reset to first page when changing page size
   };
 
-  const truncateContent = (content: string, maxLength: number = 150) => {
-    return content.length > maxLength
-      ? content.substring(0, maxLength) + "..."
-      : content;
-  };
-
   // Modal handlers
   const handleOpenNewModal = () => {
     setEditingEntryId(null);
@@ -138,42 +263,6 @@ const JournalList: React.FC = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingEntryId(null);
-    // Refetch data after modal closes
-    if (isSearchMode) {
-      searchQuery.refetch();
-    } else {
-      entriesQuery.refetch();
-    }
-  };
-
-  // Sortable header component
-  const SortableHeader: React.FC<{
-    column: string;
-    children: React.ReactNode;
-  }> = ({ column, children }) => {
-    const isActive = sortBy === column;
-    const isAscending = isActive && !sortDescending;
-    const isDescending = isActive && sortDescending;
-
-    return (
-      <th
-        scope="col"
-        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-        onClick={() => handleSort(column)}
-      >
-        <div className="flex items-center space-x-1">
-          <span>{children}</span>
-          <div className="flex flex-col">
-            <ChevronUp
-              className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
-            />
-            <ChevronDown
-              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
-            />
-          </div>
-        </div>
-      </th>
-    );
   };
 
   // Loading state
@@ -182,7 +271,7 @@ const JournalList: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-          <div className="text-gray-500">Načítání deníku...</div>
+          <div className="text-gray-500 dark:text-graphite-muted">Načítání deníku...</div>
         </div>
       </div>
     );
@@ -192,7 +281,7 @@ const JournalList: React.FC = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-2 text-red-600">
+        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
           <AlertCircle className="h-5 w-5" />
           <div>Chyba při načítání deníku: {error.message}</div>
         </div>
@@ -205,7 +294,7 @@ const JournalList: React.FC = () => {
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
         <div className="flex justify-between items-center">
-          <h1 className="text-lg font-semibold text-gray-900">Deník</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Deník</h1>
           <button
             onClick={handleOpenNewModal}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -218,18 +307,18 @@ const JournalList: React.FC = () => {
       </div>
 
       {/* Filters - Fixed */}
-      <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="flex items-center">
-              <Filter className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm font-medium text-gray-900">Filtry:</span>
+              <Filter className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+              <span className="text-sm font-medium text-gray-900 dark:text-graphite-text">Filtry:</span>
             </div>
 
             <div className="flex-1 max-w-md">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                 </div>
                 <input
                   type="text"
@@ -237,7 +326,7 @@ const JournalList: React.FC = () => {
                   value={searchTextInput}
                   onChange={(e) => setSearchTextInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
                   data-testid="journal-search"
                 />
               </div>
@@ -262,11 +351,11 @@ const JournalList: React.FC = () => {
       </div>
 
       {/* Data Grid - Scrollable */}
-      <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
         <div className="flex-1 overflow-auto">
           {entries.length === 0 ? (
             <div className="p-8 text-center">
-              <div className="text-gray-500 mb-4">
+              <div className="text-gray-500 dark:text-graphite-muted mb-4">
                 {isSearchMode
                   ? "Nenalezeny žádné záznamy odpovídající vašemu hledání."
                   : "Zatím nemáte žádné záznamy v deníku."}
@@ -281,107 +370,81 @@ const JournalList: React.FC = () => {
               )}
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+              <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
                 <tr>
-                  <SortableHeader column="title">Název</SortableHeader>
-                  <SortableHeader column="entryDate">Datum</SortableHeader>
-                  <SortableHeader column="createdByUsername">
+                  <SortableHeader
+                    column="title"
+                    sortBy={sortBy}
+                    sortDescending={sortDescending}
+                    onSort={handleSort}
+                  >
+                    Název
+                  </SortableHeader>
+                  <SortableHeader
+                    column="entryDate"
+                    sortBy={sortBy}
+                    sortDescending={sortDescending}
+                    onSort={handleSort}
+                  >
+                    Datum
+                  </SortableHeader>
+                  <SortableHeader
+                    column="createdByUsername"
+                    sortBy={sortBy}
+                    sortDescending={sortDescending}
+                    onSort={handleSort}
+                  >
                     Autor
                   </SortableHeader>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
                   >
                     Obsah
                   </th>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
                   >
                     Tagy
                   </th>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
                   >
                     Produkty
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {entries.map((entry: JournalEntryDto) => (
-                  <tr
-                    key={entry.id}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
-                    data-testid="journal-entry"
-                    onClick={() => handleOpenEditModal(entry.id!)}
-                    title="Klikněte pro editaci záznamu"
-                  >
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <div className="max-w-48 truncate">
-                        {entry.title || "Bez názvu"}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {format(new Date(entry.entryDate!), "dd.MM.yyyy")}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="max-w-32 truncate">
-                        {entry.createdByUsername || entry.createdByUserId}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-sm text-gray-700">
-                      <div className="max-w-96 line-clamp-2">
-                        {isSearchMode && entry.contentPreview
-                          ? entry.contentPreview
-                          : truncateContent(entry.content!, 150)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-sm">
-                      <div className="flex flex-wrap gap-1 max-w-48">
-                        {entry.tags &&
-                          entry.tags.slice(0, 2).map((tag) => (
-                            <span
-                              key={tag.id}
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border"
-                              style={{
-                                borderColor: tag.color,
-                                color: tag.color,
-                              }}
-                            >
-                              {tag.name}
-                            </span>
-                          ))}
-                        {entry.tags && entry.tags.length > 2 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                            +{entry.tags.length - 2}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-sm">
-                      <div className="flex flex-wrap gap-1 max-w-32">
-                        {entry.associatedProducts
-                          ?.slice(0, 2)
-                          .map((product) => (
-                            <span
-                              key={product}
-                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800"
-                            >
-                              {product}
-                            </span>
-                          ))}
-                        {entry.associatedProducts &&
-                          entry.associatedProducts.length > 2 && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                              +{entry.associatedProducts.length - 2}
-                            </span>
-                          )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
+                {isSearchMode
+                  ? (entries as SearchJournalEntryDto[]).map((entry) => (
+                      <JournalRow
+                        key={entry.id!}
+                        id={entry.id!}
+                        title={entry.title ?? undefined}
+                        entryDate={entry.entryDate!}
+                        authorLabel={entry.createdByUsername || entry.createdByUserId!}
+                        contentText={truncateContent(entry.content!, { searchQuery: searchTextFilter })}
+                        tags={entry.tags}
+                        associatedProducts={entry.associatedProducts}
+                        onClick={() => handleOpenEditModal(entry.id!)}
+                      />
+                    ))
+                  : (entries as JournalEntryDto[]).map((entry) => (
+                      <JournalRow
+                        key={entry.id!}
+                        id={entry.id!}
+                        title={entry.title ?? undefined}
+                        entryDate={entry.entryDate!}
+                        authorLabel={entry.createdByUsername || entry.createdByUserId!}
+                        contentText={truncateContent(entry.content!)}
+                        tags={entry.tags}
+                        associatedProducts={entry.associatedProducts}
+                        onClick={() => handleOpenEditModal(entry.id!)}
+                      />
+                    ))}
               </tbody>
             </table>
           )}
@@ -389,23 +452,23 @@ const JournalList: React.FC = () => {
 
         {/* Pagination Footer */}
         {totalCount > 0 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+          <div className="bg-white dark:bg-graphite-surface px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-graphite-border sm:px-6">
             <div className="flex items-center justify-between w-full">
-              <p className="text-xs text-gray-700">
+              <p className="text-xs text-gray-700 dark:text-graphite-muted">
                 Celkem <span className="font-semibold">{totalCount}</span>{" "}
                 záznamů
                 {isSearchMode ? (
-                  <span className="text-gray-500"> (filtrováno)</span>
+                  <span className="text-gray-500 dark:text-graphite-muted"> (filtrováno)</span>
                 ) : (
                   ""
                 )}
               </p>
               <div className="flex items-center space-x-1">
-                <span className="text-xs text-gray-600">Zobrazit:</span>
+                <span className="text-xs text-gray-600 dark:text-graphite-muted">Zobrazit:</span>
                 <select
                   value={pageSize}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                  className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -416,13 +479,13 @@ const JournalList: React.FC = () => {
             </div>
             <div>
               <nav
-                className="relative z-0 inline-flex rounded shadow-sm -space-x-px"
+                className="relative z-0 inline-flex rounded shadow-sm dark:shadow-soft-dark -space-x-px"
                 aria-label="Pagination"
               >
                 <button
                   onClick={() => handlePageChange(pageNumber - 1)}
                   disabled={pageNumber <= 1}
-                  className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-3 w-3" />
                 </button>
@@ -446,8 +509,8 @@ const JournalList: React.FC = () => {
                       onClick={() => handlePageChange(pageNum)}
                       className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                         pageNum === pageNumber
-                          ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                          : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                          ? "z-10 bg-indigo-50 dark:bg-graphite-accent/10 border-indigo-500 dark:border-graphite-accent text-indigo-600 dark:text-graphite-accent"
+                          : "bg-white dark:bg-graphite-surface border-gray-300 dark:border-graphite-border text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
                       }`}
                     >
                       {pageNum}
@@ -458,7 +521,7 @@ const JournalList: React.FC = () => {
                 <button
                   onClick={() => handlePageChange(pageNumber + 1)}
                   disabled={pageNumber >= totalPages}
-                  className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronRight className="h-3 w-3" />
                 </button>

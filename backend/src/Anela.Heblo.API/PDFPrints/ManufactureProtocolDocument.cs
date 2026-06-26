@@ -1,4 +1,7 @@
+using System.Globalization;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
+using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -58,6 +61,48 @@ public class ManufactureProtocolDocument : IDocument
                 });
 
                 col.Item().PaddingTop(10);
+
+                // Conditions readings section
+                if (_data.ConditionsReadings.Count > 0)
+                {
+                    col.Item().Text("Podmínky výroby").FontSize(11).Bold();
+                    col.Item().PaddingTop(4);
+
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.RelativeColumn(3);   // Fáze
+                            cols.RelativeColumn(2);   // T vnitřní (°C)
+                            cols.RelativeColumn(2);   // RH vnitřní (%)
+                            cols.RelativeColumn(2);   // T venkovní (°C)
+                            cols.RelativeColumn(2);   // RH venkovní (%)
+                            cols.RelativeColumn(3);   // Zaznamenáno
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Element(HeaderCell).Text("Fáze").Bold();
+                            header.Cell().Element(HeaderCell).Text("T vnitřní (°C)").Bold();
+                            header.Cell().Element(HeaderCell).Text("RH vnitřní (%)").Bold();
+                            header.Cell().Element(HeaderCell).Text("T venkovní (°C)").Bold();
+                            header.Cell().Element(HeaderCell).Text("RH venkovní (%)").Bold();
+                            header.Cell().Element(HeaderCell).Text("Zaznamenáno").Bold();
+                        });
+
+                        foreach (var reading in _data.ConditionsReadings)
+                        {
+                            table.Cell().Element(DataCell).Text(StageLabel(reading.Stage) + SourceSuffix(reading.Source));
+                            table.Cell().Element(DataCell).Text(FormatDecimal(reading.InnerTemperature));
+                            table.Cell().Element(DataCell).Text(FormatDecimal(reading.InnerHumidity));
+                            table.Cell().Element(DataCell).Text(FormatDecimal(reading.OuterTemperature));
+                            table.Cell().Element(DataCell).Text(FormatDecimal(reading.OuterHumidity));
+                            table.Cell().Element(DataCell).Text(reading.RecordedAt.ToString("dd.MM.yyyy HH:mm"));
+                        }
+                    });
+
+                    col.Item().PaddingTop(10);
+                }
 
                 // Semi-product section
                 if (_data.SemiProduct != null)
@@ -220,4 +265,23 @@ public class ManufactureProtocolDocument : IDocument
 
     private static IContainer DataCell(IContainer c) =>
         c.Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(3);
+
+    private static string StageLabel(ManufactureOrderState state) => state switch
+    {
+        ManufactureOrderState.SemiProductManufactured => "Polotovar",
+        ManufactureOrderState.Completed => "Dokončeno",
+        _ => state.ToString(),
+    };
+
+    private static string SourceSuffix(ConditionsReadingSource source) => source switch
+    {
+        ConditionsReadingSource.Live => string.Empty,
+        ConditionsReadingSource.Partial => " (Částečné)",
+        ConditionsReadingSource.Unavailable => " (HA nedostupný)",
+        ConditionsReadingSource.Stale => " (Starší údaje)",
+        _ => string.Empty,
+    };
+
+    private static string FormatDecimal(decimal? value) =>
+        value?.ToString("0.0", CultureInfo.InvariantCulture) ?? "—";
 }

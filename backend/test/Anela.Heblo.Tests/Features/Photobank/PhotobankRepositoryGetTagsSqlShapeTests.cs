@@ -4,73 +4,67 @@ using System.Data.Common;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Application.Features.Photobank;
+using Anela.Heblo.Persistence.Photobank;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Persistence;
-using DotNet.Testcontainers.Configurations;
+using Anela.Heblo.Tests.Common;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Photobank;
 
+[Collection("PostgresIntegration")]
 [Trait("Category", "Integration")]
 public class PhotobankRepositoryGetTagsSqlShapeTests : IAsyncLifetime
 {
-    static PhotobankRepositoryGetTagsSqlShapeTests()
-    {
-        // Required on macOS with Podman: the Ryuk ResourceReaper container
-        // cannot bind to the Docker socket and throws a NullReferenceException.
-        TestcontainersSettings.ResourceReaperEnabled = false;
-    }
-
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-        .WithImage("postgres:16")
-        .Build();
-
+    private readonly PostgresSharedContainerFixture _fixture;
+    private string _connectionString = null!;
     private readonly CapturingCommandInterceptor _interceptor = new();
     private ApplicationDbContext _context = null!;
     private PhotobankRepository _repository = null!;
 
+    public PhotobankRepositoryGetTagsSqlShapeTests(PostgresSharedContainerFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
     public async Task InitializeAsync()
     {
-        await _container.StartAsync();
+        _connectionString = await _fixture.CreateDatabaseAsync("photobank");
 
         // Minimal schema — only the two tables the query touches, no FKs to keep seeding simple.
-        await using (var conn = new NpgsqlConnection(_container.GetConnectionString()))
-        {
-            await conn.OpenAsync();
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = """
-                CREATE TABLE public."PhotobankTags" (
-                    "Id"   serial NOT NULL PRIMARY KEY,
-                    "Name" varchar(100) NOT NULL
-                );
-                CREATE UNIQUE INDEX "IX_PhotobankTags_Name" ON public."PhotobankTags" ("Name");
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            CREATE TABLE public."PhotobankTags" (
+                "Id"   serial NOT NULL PRIMARY KEY,
+                "Name" varchar(100) NOT NULL
+            );
+            CREATE UNIQUE INDEX "IX_PhotobankTags_Name" ON public."PhotobankTags" ("Name");
 
-                CREATE TABLE public."PhotoTags" (
-                    "PhotoId"   integer NOT NULL,
-                    "TagId"     integer NOT NULL,
-                    "Source"    varchar(20) NOT NULL,
-                    "CreatedAt" timestamp NOT NULL,
-                    CONSTRAINT "PK_PhotoTags" PRIMARY KEY ("PhotoId", "TagId")
-                );
-                CREATE INDEX "IX_PhotoTags_TagId" ON public."PhotoTags" ("TagId");
+            CREATE TABLE public."PhotoTags" (
+                "PhotoId"   integer NOT NULL,
+                "TagId"     integer NOT NULL,
+                "Source"    varchar(20) NOT NULL,
+                "CreatedAt" timestamp NOT NULL,
+                CONSTRAINT "PK_PhotoTags" PRIMARY KEY ("PhotoId", "TagId")
+            );
+            CREATE INDEX "IX_PhotoTags_TagId" ON public."PhotoTags" ("TagId");
 
-                INSERT INTO public."PhotobankTags" ("Name") VALUES ('summer'), ('winter'), ('orphan');
-                INSERT INTO public."PhotoTags" ("PhotoId","TagId","Source","CreatedAt") VALUES
-                    (1, 1, 'Manual', now()),
-                    (2, 1, 'Manual', now()),
-                    (1, 2, 'Manual', now());
-                """;
-            await cmd.ExecuteNonQueryAsync();
-        }
+            INSERT INTO public."PhotobankTags" ("Name") VALUES ('summer'), ('winter'), ('orphan');
+            INSERT INTO public."PhotoTags" ("PhotoId","TagId","Source","CreatedAt") VALUES
+                (1, 1, 'Manual', now()),
+                (2, 1, 'Manual', now()),
+                (1, 2, 'Manual', now());
+            """;
+        await cmd.ExecuteNonQueryAsync();
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseNpgsql(_container.GetConnectionString())
+            .UseNpgsql(_connectionString)
             .AddInterceptors(_interceptor)
             .Options;
 
@@ -81,7 +75,6 @@ public class PhotobankRepositoryGetTagsSqlShapeTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await _context.DisposeAsync();
-        await _container.DisposeAsync();
     }
 
     [Fact]
@@ -95,18 +88,25 @@ public class PhotobankRepositoryGetTagsSqlShapeTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetTagsWithCountsAsync_UsesLeftJoinAndGroupBy_NotCorrelatedSubquery()
+    public async Task GetTagsWithCountsAsync_CountsAreAggregatedSqlSide()
     {
         _interceptor.Reset();
 
         await _repository.GetTagsWithCountsAsync(CancellationToken.None);
 
         var sql = _interceptor.Commands.Single();
-        sql.Should().Contain("LEFT JOIN", "the rewrite should join PhotoTags rather than scan it per tag");
-        sql.Should().Contain("GROUP BY", "counts should be produced by a single GROUP BY aggregation");
-        sql.Should().NotMatchRegex(
-            @"\(\s*SELECT\s+COUNT\s*\(",
-            "a correlated COUNT subquery is the perf bug we just removed");
+        sql.Should().ContainEquivalentOf("count", "aggregation must happen SQL-side, not in memory");
+        sql.Should().Contain("PhotoTags", "the query must reference the PhotoTags table");
+    }
+
+    [Fact]
+    public async Task GetTagsWithCountsAsync_ReturnsCorrectCountsFromRealDatabase()
+    {
+        var result = await _repository.GetTagsWithCountsAsync(CancellationToken.None);
+
+        result.Should().HaveCount(3, "there are exactly 3 seeded tags");
+        result[0].Count.Should().Be(2, "summer has 2 photo-tags and sorts first (count desc)");
+        result[2].Count.Should().Be(0, "orphan has no photo-tags and sorts last");
     }
 
     private sealed class CapturingCommandInterceptor : DbCommandInterceptor

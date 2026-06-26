@@ -1,6 +1,5 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Xcc;
-using Hangfire;
 using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.API.Infrastructure.Hangfire;
@@ -76,24 +75,11 @@ public class RecurringJobDiscoveryService : IHostedService
                         cronSource = "DB";
                     }
 
-                    var registerMethod = typeof(RecurringJobDiscoveryService)
-                        .GetMethod(
-                            nameof(RegisterRecurringJobInternal),
-                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-
-                    if (registerMethod == null)
-                    {
-                        _logger.LogError("Could not find RegisterRecurringJobInternal method");
-                        continue;
-                    }
-
-                    var genericRegisterMethod = registerMethod.MakeGenericMethod(jobType);
-                    genericRegisterMethod.Invoke(null, new object[]
-                    {
+                    HangfireJobRegistrationHelper.RegisterOrUpdate(
+                        jobType,
                         metadata.JobName,
                         cronExpression,
-                        metadata.TimeZoneId
-                    });
+                        metadata.TimeZoneId);
 
                     _logger.LogInformation(
                         "Registered recurring job: {JobName} ({JobType}) with schedule {Cron} (from {CronSource})",
@@ -124,17 +110,5 @@ public class RecurringJobDiscoveryService : IHostedService
     {
         _logger.LogInformation("Stopping recurring job discovery service");
         return Task.CompletedTask;
-    }
-
-    private static void RegisterRecurringJobInternal<TJob>(
-        string jobName,
-        string cronExpression,
-        string timeZoneId) where TJob : IRecurringJob
-    {
-        RecurringJob.AddOrUpdate<TJob>(
-            jobName,
-            job => job.ExecuteAsync(default),
-            cronExpression,
-            TimeZoneInfo.FindSystemTimeZoneById(timeZoneId));
     }
 }

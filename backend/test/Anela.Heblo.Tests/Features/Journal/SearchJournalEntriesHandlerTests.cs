@@ -53,7 +53,18 @@ public class SearchJournalEntriesHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.SearchEntriesAsync(It.IsAny<JournalSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.SearchEntriesAsync(
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IReadOnlyCollection<int>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResult);
 
         // Act
@@ -66,8 +77,16 @@ public class SearchJournalEntriesHandlerTests
         result.Entries.First().AssociatedProducts.Should().Contain("TON002");
 
         _repositoryMock.Verify(x => x.SearchEntriesAsync(
-            It.Is<JournalSearchCriteria>(r =>
-                r.ProductCodePrefix == "TON002"),
+            It.IsAny<string?>(),
+            It.IsAny<DateTime?>(),
+            It.IsAny<DateTime?>(),
+            It.Is<string?>(p => p == "TON002"),
+            It.IsAny<IReadOnlyCollection<int>?>(),
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -124,7 +143,18 @@ public class SearchJournalEntriesHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.SearchEntriesAsync(It.IsAny<JournalSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.SearchEntriesAsync(
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IReadOnlyCollection<int>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResult);
 
         // Act
@@ -150,5 +180,58 @@ public class SearchJournalEntriesHandlerTests
         };
         entry.AssociateWithProduct(prefix);
         return entry;
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsRawContentFromEntry()
+    {
+        // Arrange: the handler must return content as-is, without truncation.
+        var content = new string('a', 250);
+        var entry = new JournalEntry
+        {
+            Id = 1,
+            Title = "Raw content entry",
+            Content = content,
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "user-1"
+        };
+
+        _repositoryMock
+            .Setup(x => x.SearchEntriesAsync(
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IReadOnlyCollection<int>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<JournalEntry>
+            {
+                Items = new List<JournalEntry> { entry },
+                TotalCount = 1,
+                PageNumber = 1,
+                PageSize = 10
+            });
+
+        var request = new SearchJournalEntriesRequest
+        {
+            SearchText = "aa",
+            PageNumber = 1,
+            PageSize = 10
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert: Content is returned exactly as stored.
+        var hit = result.Entries.Single();
+        hit.Content.Should().Be(content);
+        hit.Content.Should().HaveLength(250);
     }
 }

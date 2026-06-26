@@ -46,7 +46,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
           {Array.from({ length: 12 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-square animate-pulse bg-gray-200 rounded-lg"
+              className="aspect-square animate-pulse bg-gray-200 dark:bg-graphite-hover rounded-lg"
             />
           ))}
         </div>
@@ -56,7 +56,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
 
   if (photos.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-400">
+      <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-graphite-faint">
         <p className="text-sm">Žádné fotografie nenalezeny</p>
       </div>
     );
@@ -79,7 +79,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
                     ? "border-primary-blue ring-2 ring-primary-blue ring-offset-1"
                     : isSelected
                       ? "border-primary-blue/60"
-                      : "border-transparent hover:border-gray-300",
+                      : "border-transparent hover:border-gray-300 dark:hover:border-graphite-border",
                 ].join(" ")}
               >
                 <button
@@ -136,26 +136,26 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
       </div>
 
       {/* Pagination */}
-      <div className="flex-shrink-0 border-t border-gray-200 px-4 py-2 flex items-center justify-between bg-white">
-        <span className="text-xs text-gray-500">
+      <div className="flex-shrink-0 border-t border-gray-200 dark:border-graphite-border px-4 py-2 flex items-center justify-between bg-white dark:bg-graphite-surface">
+        <span className="text-xs text-gray-500 dark:text-graphite-muted">
           {total} {total === 1 ? "fotografie" : total < 5 ? "fotografie" : "fotografií"}
         </span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={!canGoPrev}
-            className="p-1 rounded text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="p-1 rounded text-gray-500 dark:text-graphite-muted hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
             aria-label="Předchozí stránka"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-xs text-gray-600">
+          <span className="text-xs text-gray-600 dark:text-graphite-muted">
             Stránka {page} z {totalPages}
           </span>
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={!canGoNext}
-            className="p-1 rounded text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="p-1 rounded text-gray-500 dark:text-graphite-muted hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
             aria-label="Další stránka"
           >
             <ChevronRight className="w-4 h-4" />

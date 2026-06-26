@@ -4,6 +4,7 @@ using System.Text;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Domain.Features.Marketing;
+using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -13,60 +14,6 @@ namespace Anela.Heblo.Tests.Features.Marketing.Services;
 
 public sealed class MarketingCategoryMapperTests
 {
-    // ---------------------------------------------------------------------------
-    // Helper: minimal IOptionsMonitor<T> implementation for tests
-    // ---------------------------------------------------------------------------
-
-    private sealed class TestOptionsMonitor<T> : IOptionsMonitor<T>
-    {
-        private T _current;
-        private readonly List<Action<T, string?>> _listeners = new();
-
-        public TestOptionsMonitor(T initial)
-        {
-            _current = initial;
-        }
-
-        public T CurrentValue => _current;
-
-        public T Get(string? name) => _current;
-
-        public IDisposable OnChange(Action<T, string?> listener)
-        {
-            _listeners.Add(listener);
-            return new Subscription(() => _listeners.Remove(listener));
-        }
-
-        public void Set(T next)
-        {
-            _current = next;
-            foreach (var l in _listeners.ToArray())
-            {
-                l(next, null);
-            }
-        }
-
-        public void SetNull()
-        {
-            foreach (var l in _listeners.ToArray())
-            {
-                l(default(T)!, null);
-            }
-        }
-
-        private sealed class Subscription : IDisposable
-        {
-            private readonly Action _dispose;
-
-            public Subscription(Action d)
-            {
-                _dispose = d;
-            }
-
-            public void Dispose() => _dispose();
-        }
-    }
-
     // ---------------------------------------------------------------------------
     // Factory helpers
     // ---------------------------------------------------------------------------

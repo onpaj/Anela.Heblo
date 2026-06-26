@@ -15,6 +15,7 @@ namespace Anela.Heblo.Tests.Helpers
         public Uri? LastRequestUri { get; private set; }
         public HttpMethod? LastMethod { get; private set; }
         public string LastRequestBody { get; private set; } = string.Empty;
+        public System.Net.Http.Headers.HttpRequestHeaders? LastRequestHeaders { get; private set; }
 
         public FakeHttpMessageHandler(HttpStatusCode statusCode, string responseBody)
         {
@@ -26,6 +27,7 @@ namespace Anela.Heblo.Tests.Helpers
         {
             LastRequestUri = request.RequestUri;
             LastMethod = request.Method;
+            LastRequestHeaders = request.Headers;
 
             if (request.Content is not null)
             {

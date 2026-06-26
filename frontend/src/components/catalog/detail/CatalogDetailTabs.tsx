@@ -6,28 +6,31 @@ import {
   BookOpen,
   ArrowRight,
   Beaker,
+  FolderOpen,
 } from "lucide-react";
 import { CatalogItemDto, ProductType } from "../../../api/hooks/useCatalog";
-import { JournalEntryDto } from "../../../api/generated/api-client";
+import { SearchJournalEntryDto } from "../../../api/generated/api-client";
 import BasicInfoTab from "./tabs/BasicInfoTab/BasicInfoTab";
 import PurchaseHistoryTab from "./tabs/PurchaseHistoryTab";
 import MarginsTab from "./tabs/MarginsTab/MarginsTab";
 import JournalTab from "./tabs/JournalTab";
 import UsageTab from "./tabs/UsageTab";
 import CompositionTab from "./tabs/CompositionTab";
+import MaterialDocumentsTab from "./tabs/MaterialDocumentsTab";
+import PifDocumentsTab from "./tabs/PifDocumentsTab";
 
 interface CatalogDetailTabsProps {
   item: CatalogItemDto;
-  activeTab: "basic" | "history" | "margins" | "composition" | "journal" | "usage";
+  activeTab: "basic" | "history" | "margins" | "composition" | "journal" | "usage" | "documents" | "pif";
   onTabChange: (
-    tab: "basic" | "history" | "margins" | "composition" | "journal" | "usage",
+    tab: "basic" | "history" | "margins" | "composition" | "journal" | "usage" | "documents" | "pif",
   ) => void;
   detailData: any;
   isLoading: boolean;
-  journalEntries: JournalEntryDto[];
+  journalEntries: SearchJournalEntryDto[];
   onManufactureDifficultyClick: () => void;
   onAddJournalEntry: () => void;
-  onEditJournalEntry: (entry: JournalEntryDto) => void;
+  onEditJournalEntry: (entry: SearchJournalEntryDto) => void;
   onViewAllEntries: () => void;
 }
 
@@ -46,13 +49,13 @@ const CatalogDetailTabs: React.FC<CatalogDetailTabsProps> = ({
   return (
     <div className="flex flex-col overflow-hidden">
       {/* Tab Navigation */}
-      <div className="flex border-b border-gray-200 mb-6">
+      <div className="flex border-b border-gray-200 dark:border-graphite-border mb-6">
         <button
           onClick={() => onTabChange("basic")}
           className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
             activeTab === "basic"
-              ? "border-indigo-500 text-indigo-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
+              ? "border-indigo-500 text-indigo-600 dark:text-graphite-accent dark:border-graphite-accent"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-graphite-muted"
           }`}
         >
           <FileText className="h-4 w-4" />
@@ -112,8 +115,8 @@ const CatalogDetailTabs: React.FC<CatalogDetailTabsProps> = ({
           onClick={() => onTabChange("journal")}
           className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
             activeTab === "journal"
-              ? "border-indigo-500 text-indigo-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
+              ? "border-indigo-500 text-indigo-600 dark:text-graphite-accent dark:border-graphite-accent"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-graphite-muted"
           }`}
         >
           <BookOpen className="h-4 w-4" />
@@ -133,6 +136,37 @@ const CatalogDetailTabs: React.FC<CatalogDetailTabsProps> = ({
           >
             <ArrowRight className="h-4 w-4" />
             <span>Použití</span>
+          </button>
+        )}
+
+        {/* Dokumenty tab - pouze pro Material */}
+        {item?.type === ProductType.Material && (
+          <button
+            onClick={() => onTabChange("documents")}
+            className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
+              activeTab === "documents"
+                ? "border-indigo-500 text-indigo-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <FolderOpen className="h-4 w-4" />
+            <span>Dokumenty</span>
+          </button>
+        )}
+
+        {/* PIF tab - pouze pro Product a SemiProduct */}
+        {(item?.type === ProductType.Product ||
+          item?.type === ProductType.SemiProduct) && (
+          <button
+            onClick={() => onTabChange("pif")}
+            className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
+              activeTab === "pif"
+                ? "border-indigo-500 text-indigo-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <FolderOpen className="h-4 w-4" />
+            <span>PIF</span>
           </button>
         )}
       </div>
@@ -163,6 +197,10 @@ const CatalogDetailTabs: React.FC<CatalogDetailTabsProps> = ({
           <CompositionTab productCode={item.productCode || ""} />
         ) : activeTab === "usage" ? (
           <UsageTab productCode={item.productCode || ""} />
+        ) : activeTab === "documents" ? (
+          <MaterialDocumentsTab productCode={item.productCode || ""} />
+        ) : activeTab === "pif" ? (
+          <PifDocumentsTab productCode={item.productCode || ""} />
         ) : (
           <JournalTab
             productCode={item.productCode || ""}

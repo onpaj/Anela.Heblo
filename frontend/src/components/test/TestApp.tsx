@@ -7,6 +7,8 @@ import Layout from "../Layout/Layout";
 import Dashboard from "../pages/Dashboard";
 import AuthGuard from "../auth/AuthGuard";
 import { ChangelogProvider } from "../../contexts/ChangelogContext";
+import { ThemeProvider } from "../../contexts/ThemeContext";
+import { PermissionsProvider } from "../../auth/PermissionsContext";
 import "../../i18n";
 
 // Test version of App component with mocked configuration
@@ -51,17 +53,21 @@ function TestApp() {
   return (
     <div className="App" data-testid="app">
       <QueryClientProvider client={testQueryClient}>
-        <ChangelogProvider>
-          <MsalProvider instance={msalInstance}>
-            <Router>
-              <AuthGuard>
-                <Layout>
-                  <Dashboard />
-                </Layout>
-              </AuthGuard>
-            </Router>
-          </MsalProvider>
-        </ChangelogProvider>
+        <ThemeProvider>
+          <ChangelogProvider>
+            <MsalProvider instance={msalInstance}>
+              <Router>
+                <AuthGuard>
+                  <PermissionsProvider isAuthenticated={true}>
+                    <Layout>
+                      <Dashboard />
+                    </Layout>
+                  </PermissionsProvider>
+                </AuthGuard>
+              </Router>
+            </MsalProvider>
+          </ChangelogProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </div>
   );

@@ -1,6 +1,6 @@
 using Anela.Heblo.API.Controllers;
-using Anela.Heblo.Application.Features.Logistics.UseCases;
 using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
+using Anela.Heblo.Application.Features.Logistics.UseCases.OpenOrResumeBoxByCode;
 using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -141,5 +141,44 @@ public class TransportBoxControllerTests
 
         // Assert
         Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task OpenOrResumeBoxByCode_Success_Returns200()
+    {
+        // Arrange
+        var response = new OpenOrResumeBoxByCodeResponse { Success = true, Resumed = false };
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<OpenOrResumeBoxByCodeRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await _controller.OpenOrResumeBoxByCode(
+            new OpenOrResumeBoxByCodeRequest { BoxCode = "B001" }, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<OkObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task OpenOrResumeBoxByCode_DuplicateActiveBox_Returns409()
+    {
+        // Arrange
+        var response = new OpenOrResumeBoxByCodeResponse
+        {
+            Success = false,
+            ErrorCode = ErrorCodes.TransportBoxDuplicateActiveBoxFound
+        };
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<OpenOrResumeBoxByCodeRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await _controller.OpenOrResumeBoxByCode(
+            new OpenOrResumeBoxByCodeRequest { BoxCode = "B001" }, CancellationToken.None);
+
+        // Assert
+        var statusResult = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(409, statusResult.StatusCode);
     }
 }

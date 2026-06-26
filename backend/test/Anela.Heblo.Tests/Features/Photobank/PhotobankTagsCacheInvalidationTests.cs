@@ -203,8 +203,10 @@ public class PhotobankTagsCacheInvalidationTests
     public async Task ReapplyRules_InvalidatesCache_AfterSave()
     {
         _repo.Setup(r => r.GetRulesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<TagRule>());
-        _repo.Setup(r => r.ReapplyRulesAsync(It.IsAny<List<TagRule>>(), null, It.IsAny<CancellationToken>()))
-             .ReturnsAsync(3);
+        _repo.Setup(r => r.RemoveRuleTagsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+             .Returns(Task.CompletedTask);
+        _repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+             .Returns(Task.CompletedTask);
 
         var handler = new ReapplyRulesHandler(_repo.Object, _cache.Object);
         await handler.Handle(new ReapplyRulesRequest(), CancellationToken.None);

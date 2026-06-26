@@ -1,16 +1,15 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useOrgChart } from '../api/hooks/useOrgChart';
-import { PositionDto } from '../api/generated/api-client';
-
-// Type aliases for better readability
-type Position = PositionDto;
-
-interface OrganizationData {
-  organization: {
-    name: string;
-    positions: Position[];
-  };
-}
+import { PositionCard } from '../components/OrgChart/PositionCard';
+import { useScreenView } from '../telemetry/useScreenView';
+import {
+  calculateLevels,
+  getAllParentPositionIds,
+  buildTree,
+  getChildren as orgChartGetChildren,
+  Position,
+  OrganizationData,
+} from './orgChartUtils';
 
 interface PositionRect {
   id: string;
@@ -21,6 +20,8 @@ interface PositionRect {
 }
 
 const OrgChartPage: React.FC = () => {
+  useScreenView('Admin', 'OrgChart');
+
   // Fetch organization data from backend
   const { data: orgChartResponse, isLoading, error: queryError } = useOrgChart();
 
@@ -31,38 +32,6 @@ const OrgChartPage: React.FC = () => {
   const [positionRects, setPositionRects] = useState<PositionRect[]>([]);
   const [zoom, setZoom] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Calculate correct level based on parent hierarchy
-  const calculateLevels = (data: OrganizationData): OrganizationData => {
-    const positionMap = new Map(data.organization.positions.map((p) => [p.id!, p]));
-
-    const getLevel = (positionId: string, visited = new Set<string>()): number => {
-      if (visited.has(positionId)) {
-        console.error(`Circular dependency detected for position ${positionId}`);
-        return 1;
-      }
-
-      const position = positionMap.get(positionId);
-      if (!position) return 1;
-      if (!position.parentPositionId) return 1;
-
-      visited.add(positionId);
-      return getLevel(position.parentPositionId, visited) + 1;
-    };
-
-    const updatedPositions = data.organization.positions.map((position) => ({
-      ...position,
-      level: getLevel(position.id!),
-    })) as Position[];
-
-    return {
-      ...data,
-      organization: {
-        ...data.organization,
-        positions: updatedPositions,
-      },
-    };
-  };
 
   // Transform backend response to local format and calculate levels
   const orgData = useMemo(() => {
@@ -134,7 +103,7 @@ const OrgChartPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-xl text-indigo-600">Načítám organizační strukturu...</div>
+        <div className="text-xl text-indigo-600 dark:text-graphite-accent">Načítám organizační strukturu...</div>
       </div>
     );
   }
@@ -150,29 +119,12 @@ const OrgChartPage: React.FC = () => {
   if (!orgData) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-xl text-indigo-600">Načítám organizační strukturu...</div>
+        <div className="text-xl text-indigo-600 dark:text-graphite-accent">Načítám organizační strukturu...</div>
       </div>
     );
   }
 
   const departments = Array.from(new Set(orgData.organization.positions.map((p) => p.department)));
-
-  // Helper function to recursively find all parent positions
-  const getAllParentPositionIds = (positionId: string, allPositions: Position[]): Set<string> => {
-    const parentIds = new Set<string>();
-    const positionMap = new Map(allPositions.map((p) => [p.id!, p]));
-
-    const findParents = (id: string) => {
-      const position = positionMap.get(id);
-      if (position && position.parentPositionId) {
-        parentIds.add(position.parentPositionId);
-        findParents(position.parentPositionId);
-      }
-    };
-
-    findParents(positionId);
-    return parentIds;
-  };
 
   // Filter positions based on department and level
   const filteredPositions = (() => {
@@ -225,137 +177,8 @@ const OrgChartPage: React.FC = () => {
     }
   };
 
-  const getInitials = (name: string | undefined) => {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase();
-  };
-
-  // Build hierarchical tree structure
-  const buildTree = (positions: Position[]): Position[] => {
-    const positionMap = new Map(positions.map((p) => [p.id, p]));
-    const roots: Position[] = [];
-
-    positions.forEach((position) => {
-      if (!position.parentPositionId || !positionMap.has(position.parentPositionId)) {
-        roots.push(position);
-      }
-    });
-
-    return roots;
-  };
-
-  const getChildren = (parentId: string): Position[] => {
-    return filteredPositions.filter((p) => p.parentPositionId === parentId);
-  };
-
-  // Render position card
-  const renderPositionCard = (position: Position): JSX.Element => {
-    const children = getChildren(position.id!);
-
-    return (
-      <div key={position.id} className="flex flex-col items-center">
-        {/* Position card */}
-        <div
-          data-position-id={position.id}
-          className={`bg-white rounded-xl shadow-lg p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 ${getLevelColor(
-            position.level ?? 1
-          )} relative mb-20`}
-        >
-          {(position.employees?.length || 0) > 1 && (
-            <div className="absolute top-3 right-3 bg-indigo-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold">
-              {position.employees?.length}
-            </div>
-          )}
-
-          <div className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold mb-3">
-            {position.department}
-          </div>
-
-          {position.url ? (
-            <a
-              href={position.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-lg font-bold text-gray-900 mb-2 hover:text-indigo-600 transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              {position.title}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-            </a>
-          ) : (
-            <h3 className="text-lg font-bold text-gray-900 mb-2">{position.title}</h3>
-          )}
-          <p className="text-sm text-gray-600 mb-4 leading-relaxed">{position.description}</p>
-
-          <div className="border-t border-gray-200 pt-4 space-y-2">
-            {(position.employees || []).map((emp) => (
-              <div key={emp.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
-                    emp.isPrimary
-                      ? 'bg-gradient-to-br from-pink-400 to-red-500 shadow-md'
-                      : 'bg-gradient-to-br from-indigo-500 to-purple-600'
-                  }`}
-                >
-                  {getInitials(emp.name)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  {emp.url ? (
-                    <a
-                      href={emp.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-semibold text-gray-900 truncate hover:text-indigo-600 transition-colors flex items-center gap-1 cursor-pointer"
-                    >
-                      {emp.name}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-3 w-3 flex-shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                    </a>
-                  ) : (
-                    <div className="text-sm font-semibold text-gray-900 truncate">{emp.name}</div>
-                  )}
-                  <div className="text-xs text-gray-500 truncate">{emp.email}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Children */}
-        {children.length > 0 && (
-          <div className="flex justify-center gap-12">{children.map((child) => renderPositionCard(child))}</div>
-        )}
-      </div>
-    );
-  };
+  const getChildren = (parentId: string): Position[] =>
+    orgChartGetChildren(parentId, filteredPositions);
 
   // Draw connection lines
   const renderConnections = () => {
@@ -363,6 +186,10 @@ const OrgChartPage: React.FC = () => {
 
     const lines: JSX.Element[] = [];
     const filteredPositionIds = new Set(filteredPositions.map((p) => p.id));
+
+    // Connector lines must stay visible in dark mode; the light slate stroke would vanish
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    const connectorStroke = isDarkMode ? '#3C424B' : '#94a3b8';
 
     filteredPositions.forEach((position) => {
       if (!position.parentPositionId) return;
@@ -391,7 +218,7 @@ const OrgChartPage: React.FC = () => {
         <path
           key={`${position.parentPositionId}-${position.id}`}
           d={pathData}
-          stroke="#94a3b8"
+          stroke={connectorStroke}
           strokeWidth="2"
           fill="none"
           strokeDasharray="0"
@@ -406,13 +233,13 @@ const OrgChartPage: React.FC = () => {
   return (
     <div className="h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col">
       {/* Controls - Fixed */}
-      <div className="bg-white border-b border-gray-200 p-4 flex flex-wrap gap-4 items-center shadow-sm">
+      <div className="bg-white dark:bg-graphite-surface border-b border-gray-200 dark:border-graphite-border p-4 flex flex-wrap gap-4 items-center shadow-sm dark:shadow-soft-dark">
         <div className="flex items-center gap-2">
-          <label className="font-semibold text-gray-700">Oddělení:</label>
+          <label className="font-semibold text-gray-700 dark:text-graphite-muted">Oddělení:</label>
           <select
             value={filters.department}
             onChange={(e) => setFilters({ ...filters, department: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            className="px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
           >
             <option value="all">Všechna oddělení</option>
             {departments.sort().map((dept) => (
@@ -424,11 +251,11 @@ const OrgChartPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="font-semibold text-gray-700">Úroveň:</label>
+          <label className="font-semibold text-gray-700 dark:text-graphite-muted">Úroveň:</label>
           <select
             value={filters.level}
             onChange={(e) => setFilters({ ...filters, level: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            className="px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
           >
             <option value="all">Všechny úrovně</option>
             <option value="1">Až po úroveň 1 (Vedení)</option>
@@ -446,46 +273,46 @@ const OrgChartPage: React.FC = () => {
         </button>
 
         <div className="flex items-center gap-2 ml-4">
-          <label className="font-semibold text-gray-700">Zoom:</label>
+          <label className="font-semibold text-gray-700 dark:text-graphite-muted">Zoom:</label>
           <button
             onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
-            className="px-3 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-all text-sm"
+            className="px-3 py-2 bg-gray-200 text-gray-700 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:hover:bg-white/5 font-bold rounded-lg hover:bg-gray-300 transition-all text-sm"
             disabled={zoom <= 0.5}
           >
             −
           </button>
-          <span className="text-sm font-semibold text-gray-700 min-w-[50px] text-center">
+          <span className="text-sm font-semibold text-gray-700 dark:text-graphite-muted min-w-[50px] text-center">
             {Math.round(zoom * 100)}%
           </span>
           <button
             onClick={() => setZoom(Math.min(2, zoom + 0.1))}
-            className="px-3 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-all text-sm"
+            className="px-3 py-2 bg-gray-200 text-gray-700 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:hover:bg-white/5 font-bold rounded-lg hover:bg-gray-300 transition-all text-sm"
             disabled={zoom >= 2}
           >
             +
           </button>
           <button
             onClick={() => setZoom(1)}
-            className="px-3 py-2 bg-gray-100 text-gray-600 text-xs rounded-lg hover:bg-gray-200 transition-all"
+            className="px-3 py-2 bg-gray-100 text-gray-600 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:hover:bg-white/5 text-xs rounded-lg hover:bg-gray-200 transition-all"
           >
             Reset
           </button>
         </div>
 
         <div className="ml-auto flex gap-4">
-          <div className="text-center px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg">
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Pozice</div>
-            <div className="text-xl font-bold text-indigo-600">{filteredPositions.length}</div>
+          <div className="text-center px-3 py-1.5 bg-gray-50 border border-gray-200 dark:bg-graphite-surface-2 dark:border-graphite-border rounded-lg">
+            <div className="text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wide">Pozice</div>
+            <div className="text-xl font-bold text-indigo-600 dark:text-graphite-accent">{filteredPositions.length}</div>
           </div>
-          <div className="text-center px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg">
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Zaměstnanci</div>
-            <div className="text-xl font-bold text-indigo-600">{totalEmployees}</div>
+          <div className="text-center px-3 py-1.5 bg-gray-50 border border-gray-200 dark:bg-graphite-surface-2 dark:border-graphite-border rounded-lg">
+            <div className="text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wide">Zaměstnanci</div>
+            <div className="text-xl font-bold text-indigo-600 dark:text-graphite-accent">{totalEmployees}</div>
           </div>
         </div>
       </div>
 
       {/* Orgchart - Scrollable with wide layout */}
-      <div className="flex-1 overflow-auto bg-gradient-to-b from-gray-50 to-white mb-8">
+      <div className="flex-1 overflow-auto bg-gradient-to-b from-gray-50 to-white dark:from-graphite-bg dark:to-graphite-bg mb-8">
         <div
           className="p-10 min-w-max relative origin-top-left transition-transform duration-200"
           ref={containerRef}
@@ -499,7 +326,14 @@ const OrgChartPage: React.FC = () => {
           {/* Position cards - Hierarchical Tree Layout */}
           <div className="relative" style={{ zIndex: 1 }}>
             <div className="flex justify-center gap-12">
-              {buildTree(filteredPositions).map((root) => renderPositionCard(root))}
+              {buildTree(filteredPositions).map((root) => (
+                <PositionCard
+                  key={root.id}
+                  position={root}
+                  getChildren={getChildren}
+                  getLevelColor={getLevelColor}
+                />
+              ))}
             </div>
           </div>
         </div>

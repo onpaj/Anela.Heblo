@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
-import { useKnowledgeBaseUploadPermission } from '../api/hooks/useKnowledgeBase';
-import { useMarketingWriterPermission } from '../api/hooks/useMarketingWriterPermission';
+import { usePermissionsContext } from '../auth/PermissionsContext';
 import { useKbFeedbackAdapter } from '../components/feedback/adapters/useKbFeedbackAdapter';
 import { useLeafletFeedbackAdapter } from '../components/feedback/adapters/useLeafletFeedbackAdapter';
 import { useArticleFeedbackAdapter } from '../components/feedback/adapters/useArticleFeedbackAdapter';
@@ -15,6 +14,7 @@ import {
   type FeedbackDetail,
   type GenericFeedbackParams,
 } from '../components/feedback/types';
+import { useScreenView } from '../telemetry/useScreenView';
 
 type FeatureTab = 'kb' | 'leaflet' | 'article';
 
@@ -43,8 +43,9 @@ const SECONDARY_LABELS: Record<FeatureTab, string> = {
 };
 
 const MarketingFeedbackPage: React.FC = () => {
-  const hasKb = useKnowledgeBaseUploadPermission();
-  const hasGenAi = useMarketingWriterPermission();
+  const { hasPermission } = usePermissionsContext();
+  const hasKb = hasPermission('customer.knowledge_base.write');
+  const hasGenAi = hasPermission('marketing.article.write') || hasPermission('marketing.leaflet.write');
 
   const [activeTab, setActiveTab] = useState<FeatureTab>('kb');
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
@@ -52,12 +53,14 @@ const MarketingFeedbackPage: React.FC = () => {
   const [leafletParams, setLeafletParams] = useState<GenericFeedbackParams>(DEFAULT_FEEDBACK_PARAMS);
   const [articleParams, setArticleParams] = useState<GenericFeedbackParams>(DEFAULT_FEEDBACK_PARAMS);
 
+  useScreenView('Marketing', 'MarketingFeedback');
+
   const kb = useKbFeedbackAdapter(kbParams);
   const leaflet = useLeafletFeedbackAdapter(leafletParams);
   const article = useArticleFeedbackAdapter(articleParams);
 
   if (!hasKb && !hasGenAi) {
-    return <div className="p-6 text-sm text-gray-500">Přístup odepřen.</div>;
+    return <div className="p-6 text-sm text-gray-500 dark:text-graphite-muted">Přístup odepřen.</div>;
   }
 
   const activeData = { kb, leaflet, article }[activeTab];
@@ -84,22 +87,22 @@ const MarketingFeedbackPage: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
-        <MessageSquare className="w-6 h-6 text-blue-600" />
-        <h1 className="text-2xl font-semibold text-gray-900">Feedback</h1>
+      <div className="px-6 py-4 border-b border-gray-200 dark:border-graphite-border flex items-center gap-3 flex-shrink-0">
+        <MessageSquare className="w-6 h-6 text-blue-600 dark:text-graphite-accent" />
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-graphite-text">Feedback</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {/* Tab bar */}
-        <div className="flex gap-1 border-b border-gray-200">
+        <div className="flex gap-1 border-b border-gray-200 dark:border-graphite-border">
           {(Object.keys(TAB_LABELS) as FeatureTab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => handleTabChange(tab)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab
-                  ? 'border-blue-600 text-blue-700'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-blue-600 text-blue-700 dark:text-graphite-accent dark:border-graphite-accent'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-graphite-muted'
               }`}
             >
               {TAB_LABELS[tab]}
@@ -126,7 +129,7 @@ const MarketingFeedbackPage: React.FC = () => {
         />
 
         {activeData.isError && (
-          <div className="flex items-center justify-center h-32 text-sm text-red-600">
+          <div className="flex items-center justify-center h-32 text-sm text-red-600 dark:text-red-400">
             Nepodařilo se načíst záznamy. Zkuste to znovu.
           </div>
         )}

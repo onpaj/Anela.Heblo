@@ -1,7 +1,8 @@
 using Anela.Heblo.Application.Features.OrgChart.Contracts;
 using Anela.Heblo.Application.Features.OrgChart.UseCases.GetOrganizationStructure;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
@@ -9,9 +10,9 @@ namespace Anela.Heblo.API.Controllers;
 /// <summary>
 /// Controller for organizational chart operations
 /// </summary>
+[FeatureAuthorize(Feature.Anela_OrgChart)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class OrgChartController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -48,7 +49,7 @@ public class OrgChartController : ControllerBase
         {
             _logger.LogError(ex, "Error fetching organizational structure");
             return StatusCode(StatusCodes.Status500InternalServerError,
-                new { error = "Failed to fetch organizational structure", message = ex.Message });
+                new OrgChartResponse(ErrorCodes.InternalServerError));
         }
     }
 }

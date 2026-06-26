@@ -1,6 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, AlertTriangle, XCircle, Clock } from 'lucide-react';
+import {
+  DashboardTileDrillDown,
+  resolveDrillDown,
+} from '../drillDownRoutes';
 
 interface DqtYesterdayStatusTileData {
   status?: 'success' | 'warning' | 'error' | 'no_data';
@@ -12,10 +16,7 @@ interface DqtYesterdayStatusTileData {
     totalChecked?: number;
     totalMismatches?: number;
   } | null;
-  drillDown?: {
-    href: string;
-    enabled: boolean;
-  };
+  drillDown?: DashboardTileDrillDown;
 }
 
 interface DqtYesterdayStatusTileProps {
@@ -32,14 +33,25 @@ const formatYesterdayLabel = (iso?: string): string => {
 
 export const DqtYesterdayStatusTile: React.FC<DqtYesterdayStatusTileProps> = ({ data }) => {
   const navigate = useNavigate();
-  const handleClick = () => navigate('/automation/data-quality');
+  const resolution = resolveDrillDown(data.drillDown);
+
+  const handleClick = () => {
+    if (!resolution) {
+      return;
+    }
+    if (resolution.strategy === 'react-router') {
+      navigate(resolution.url);
+    } else {
+      window.open(resolution.url, '_blank');
+    }
+  };
 
   if (data.status === 'error') {
     return (
       <div className="h-full flex items-center justify-center text-center">
         <div>
-          <XCircle className="h-10 w-10 text-red-500 mx-auto mb-2" />
-          <p className="text-red-600 text-sm">Chyba při načítání dat</p>
+          <XCircle className="h-10 w-10 text-red-500 dark:text-red-400 mx-auto mb-2" />
+          <p className="text-red-600 dark:text-red-400 text-sm">Poslední DQT test selhal</p>
         </div>
       </div>
     );
@@ -48,14 +60,14 @@ export const DqtYesterdayStatusTile: React.FC<DqtYesterdayStatusTileProps> = ({ 
   if (data.status === 'no_data') {
     return (
       <div
-        className="flex flex-col items-center justify-center h-full leading-relaxed min-h-44 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 rounded-lg"
+        className="flex flex-col items-center justify-center h-full leading-relaxed min-h-44 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 transition-colors duration-200 rounded-lg"
         onClick={handleClick}
         style={{ touchAction: 'manipulation' }}
         data-testid="dqt-yesterday-tile"
       >
-        <Clock className="h-10 w-10 text-gray-400 mb-2" />
-        <p className="text-sm text-gray-500">Žádná data</p>
-        <p className="text-xs text-gray-400 mt-1">Včerejší test neproběhl</p>
+        <Clock className="h-10 w-10 text-gray-400 dark:text-graphite-faint mb-2" />
+        <p className="text-sm text-gray-500 dark:text-graphite-muted">Žádná data</p>
+        <p className="text-xs text-gray-400 dark:text-graphite-faint mt-1">Včerejší test neproběhl</p>
       </div>
     );
   }
@@ -66,14 +78,14 @@ export const DqtYesterdayStatusTile: React.FC<DqtYesterdayStatusTileProps> = ({ 
   if (data.status === 'warning' && runStatus === 'Running') {
     return (
       <div
-        className="flex flex-col items-center justify-center h-full leading-relaxed min-h-44 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 rounded-lg"
+        className="flex flex-col items-center justify-center h-full leading-relaxed min-h-44 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 transition-colors duration-200 rounded-lg"
         onClick={handleClick}
         style={{ touchAction: 'manipulation' }}
         data-testid="dqt-yesterday-tile"
       >
-        <Clock className="h-10 w-10 text-amber-500 mb-2" />
-        <p className="text-sm text-amber-600">probíhá</p>
-        <p className="text-xs text-gray-400 mt-1">{dateLabel}</p>
+        <Clock className="h-10 w-10 text-amber-500 dark:text-amber-400 mb-2" />
+        <p className="text-sm text-amber-600 dark:text-amber-400">probíhá</p>
+        <p className="text-xs text-gray-400 dark:text-graphite-faint mt-1">{dateLabel}</p>
       </div>
     );
   }
@@ -81,12 +93,12 @@ export const DqtYesterdayStatusTile: React.FC<DqtYesterdayStatusTileProps> = ({ 
   const totalMismatches = data.data?.totalMismatches ?? 0;
   const totalChecked = data.data?.totalChecked ?? 0;
   const hasMismatches = totalMismatches > 0;
-  const iconColor = hasMismatches ? 'text-red-500' : 'text-green-500';
-  const countColor = hasMismatches ? 'text-red-700' : 'text-green-700';
+  const iconColor = hasMismatches ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-emerald-400';
+  const countColor = hasMismatches ? 'text-red-700 dark:text-red-400' : 'text-green-700 dark:text-emerald-400';
 
   return (
     <div
-      className="flex flex-col items-center justify-center h-full leading-relaxed min-h-44 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 rounded-lg"
+      className="flex flex-col items-center justify-center h-full leading-relaxed min-h-44 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 transition-colors duration-200 rounded-lg"
       onClick={handleClick}
       style={{ touchAction: 'manipulation' }}
       data-testid="dqt-yesterday-tile"
@@ -99,11 +111,11 @@ export const DqtYesterdayStatusTile: React.FC<DqtYesterdayStatusTileProps> = ({ 
         )}
       </div>
       <div className={`text-3xl font-bold mb-1 ${countColor}`}>{totalMismatches}</div>
-      <div className="text-sm text-gray-500">{hasMismatches ? 'neshod' : 'vše OK'}</div>
+      <div className="text-sm text-gray-500 dark:text-graphite-muted">{hasMismatches ? 'neshod' : 'vše OK'}</div>
       {totalChecked > 0 && (
-        <div className="text-xs text-gray-400 mt-1">z {totalChecked} faktur</div>
+        <div className="text-xs text-gray-400 dark:text-graphite-faint mt-1">z {totalChecked} faktur</div>
       )}
-      <div className="text-xs text-gray-400 mt-1">{dateLabel}</div>
+      <div className="text-xs text-gray-400 dark:text-graphite-faint mt-1">{dateLabel}</div>
     </div>
   );
 };

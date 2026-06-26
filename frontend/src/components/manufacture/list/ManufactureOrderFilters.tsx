@@ -10,6 +10,7 @@ import { ManufactureOrderState, ProductType } from "../../../api/generated/api-c
 import { GetManufactureOrdersRequest } from "../../../api/hooks/useManufactureOrders";
 import CatalogAutocomplete from "../../common/CatalogAutocomplete";
 import ResponsiblePersonCombobox from "../../common/ResponsiblePersonCombobox";
+import { useManufactureSettingsQuery } from "../../../api/hooks/useManufactureSettings";
 
 interface ManufactureOrderFiltersProps {
   onFiltersChange: (filters: GetManufactureOrdersRequest) => void;
@@ -21,6 +22,8 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
   onApplyFilters,
 }) => {
   const { t } = useTranslation();
+  const { data: manufactureSettings } = useManufactureSettingsQuery();
+  const manufactureGroupId = manufactureSettings?.manufactureGroupId ?? "";
 
   // Helper function to get translated state label
   const getStateLabel = (state: ManufactureOrderState): string => {
@@ -124,12 +127,12 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
   };
 
   return (
-    <div className="flex-shrink-0 bg-white shadow rounded-lg mb-4">
-      <div className="p-3 border-b border-gray-200">
+    <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg mb-4">
+      <div className="p-3 border-b border-gray-200 dark:border-graphite-border">
         <div className="flex items-center justify-between">
           <button
             onClick={() => setIsFiltersCollapsed(!isFiltersCollapsed)}
-            className="flex items-center space-x-2 text-sm font-medium text-gray-900 hover:text-gray-700"
+            className="flex items-center space-x-2 text-sm font-medium text-gray-900 dark:text-graphite-text hover:text-gray-700 dark:hover:text-graphite-muted"
           >
             <ChevronDown
               className={`h-4 w-4 transition-transform ${
@@ -145,9 +148,9 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
             <div className="flex items-center space-x-3 text-xs">
               {/* Quick filter info */}
               {(orderNumberFilter || stateFilter || responsiblePersonFilter || productCodeFilter || erpDocumentNumberFilter || manualActionRequiredFilter !== null || lotNumberFilter) ? (
-                <span className="text-gray-600">Aktivní filtry</span>
+                <span className="text-gray-600 dark:text-graphite-muted">Aktivní filtry</span>
               ) : (
-                <span className="text-gray-500">Klikněte pro rozbalení filtrů</span>
+                <span className="text-gray-500 dark:text-graphite-muted">Klikněte pro rozbalení filtrů</span>
               )}
               
               {/* Quick apply button when collapsed */}
@@ -169,10 +172,10 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
                     }}
                     className={`flex items-center space-x-1 px-2 py-1 rounded text-xs transition-colors ${
                       manualActionRequiredFilter === true
-                        ? "bg-red-100 text-red-700 border border-red-300"
+                        ? "bg-red-100 text-red-700 border border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-900/40"
                         : manualActionRequiredFilter === false
-                        ? "bg-green-100 text-green-700 border border-green-300"
-                        : "bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200"
+                        ? "bg-green-100 text-green-700 border border-green-300 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-900/40"
+                        : "bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:border-graphite-border dark:hover:bg-graphite-hover"
                     }`}
                     title={
                       manualActionRequiredFilter === true
@@ -221,35 +224,35 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
       </div>
 
       {!isFiltersCollapsed && (
-        <div className="p-3 bg-gray-50">
+        <div className="p-3 bg-gray-50 dark:bg-graphite-surface-2">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 text-xs">
             {/* Order Number */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                 Číslo zakázky
               </label>
               <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400 dark:text-graphite-faint" />
                 <input
                   type="text"
                   placeholder="Číslo zakázky"
                   value={orderNumberInput}
                   onChange={(e) => setOrderNumberInput(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  className="pl-7 w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                  className="pl-7 w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                 />
               </div>
             </div>
 
             {/* State */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                 Stav zakázky
               </label>
               <select
                 value={stateInput}
                 onChange={(e) => setStateInput(e.target.value as ManufactureOrderState | "")}
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               >
                 <option value="">Všechny stavy</option>
                 {Object.values(ManufactureOrderState).map((state) => (
@@ -262,36 +265,37 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
 
             {/* Date From */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                 Od data
               </label>
               <input
                 type="date"
                 value={fromDateInput}
                 onChange={(e) => setFromDateInput(e.target.value)}
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               />
             </div>
 
             {/* Date To */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                 Do data
               </label>
               <input
                 type="date"
                 value={toDateInput}
                 onChange={(e) => setToDateInput(e.target.value)}
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               />
             </div>
 
             {/* Responsible Person */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                 Odpovědná osoba
               </label>
               <ResponsiblePersonCombobox
+                groupId={manufactureGroupId}
                 value={responsiblePersonInput}
                 onChange={(value) => setResponsiblePersonInput(value || "")}
                 placeholder="Odpovědná osoba"
@@ -302,7 +306,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
 
             {/* Product Code */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                 Kód produktu
               </label>
               <CatalogAutocomplete<string>
@@ -318,43 +322,43 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
 
             {/* ERP Document Number */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                 ERP číslo dokladu
               </label>
               <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400 dark:text-graphite-faint" />
                 <input
                   type="text"
                   placeholder="ERP číslo dokladu"
                   value={erpDocumentNumberInput}
                   onChange={(e) => setErpDocumentNumberInput(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  className="pl-7 w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                  className="pl-7 w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                 />
               </div>
             </div>
 
             {/* LOT Number */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                 LOT / Šarže
               </label>
               <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400 dark:text-graphite-faint" />
                 <input
                   type="text"
                   placeholder="LOT / Šarže"
                   value={lotNumberInput}
                   onChange={(e) => setLotNumberInput(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  className="pl-7 w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                  className="pl-7 w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                 />
               </div>
             </div>
 
             {/* Manual Action Required */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                 Ruční zásah
               </label>
               <select
@@ -363,7 +367,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
                   const value = e.target.value;
                   setManualActionRequiredInput(value === "" ? null : value === "true");
                 }}
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
               >
                 <option value="">Vše</option>
                 <option value="true">Vyžaduje ruční zásah</option>

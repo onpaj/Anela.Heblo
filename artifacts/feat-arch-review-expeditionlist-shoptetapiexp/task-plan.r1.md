@@ -1,0 +1,3 @@
+Plan saved to `docs/superpowers/plans/2026-06-09-extract-picking-list-batch-processor.md`.
+
+**Summary:** 10 TDD-style tasks (baseline → skeleton → extract `FlushAsync` body → wire into `CreatePickingList` and remove the local function/constants → four helper-level tests covering callback, enrichment, PATCH success, PATCH failure → driver-level batchIndex regression test → final validation). Each task lands a self-contained commit. The plan grounds every step in actual line numbers and code from `ShoptetApiExpeditionListSource.cs`, preserves the load-bearing `ILogger` (not `ILogger<T>`) parameter type with an explanatory comment, and copies the warning-log template verbatim. Spec coverage and type consistency verified in the self-review.

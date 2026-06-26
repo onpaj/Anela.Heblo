@@ -1,6 +1,6 @@
+using Anela.Heblo.Application.Features.Leaflet.Contracts;
 using Anela.Heblo.Application.Shared.Http;
 using Anela.Heblo.Application.Shared.Rag;
-using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
 using MediatR;
 using Microsoft.Extensions.AI;
@@ -11,8 +11,8 @@ namespace Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
 
 public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, GenerateLeafletResponse>
 {
-    private readonly IKnowledgeBaseRepository _kb;
-    private readonly ILeafletRepository _leaflets;
+    private readonly ILeafletKnowledgeSource _kb;
+    private readonly ILeafletDocumentRepository _leaflets;
     private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddings;
     private readonly IRagQueryExpander _expander;
     private readonly IChatClient _chat;
@@ -20,8 +20,8 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
     private readonly ILogger<GenerateLeafletHandler> _logger;
 
     public GenerateLeafletHandler(
-        IKnowledgeBaseRepository kb,
-        ILeafletRepository leaflets,
+        ILeafletKnowledgeSource kb,
+        ILeafletDocumentRepository leaflets,
         IEmbeddingGenerator<string, Embedding<float>> embeddings,
         IRagQueryExpander expander,
         IChatClient chat,
@@ -90,7 +90,7 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
             _ => throw new ArgumentOutOfRangeException(nameof(request.Audience), request.Audience, "Unknown audience type"),
         };
 
-        var kbContext = string.Join("\n\n---\n\n", kbHits.Select(h => h.Chunk.Content));
+        var kbContext = string.Join("\n\n---\n\n", kbHits.Select(h => h.Content));
         var stage1System = _options.Stage1SystemPrompt
             .Replace("{topic}", request.Topic)
             .Replace("{audience}", audienceLabel)

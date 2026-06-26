@@ -6,7 +6,7 @@ public interface IArticleRepository
     Task<Article?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<Article?> GetForUpdateAsync(Guid id, CancellationToken ct = default);
     Task<(List<Article> Items, int TotalCount)> GetPagedAsync(ArticleStatus? status, int page, int pageSize, CancellationToken ct = default);
-    Task<(IReadOnlyList<Article> Items, int TotalCount)> GetFeedbackPagedAsync(
+    Task<(IReadOnlyList<ArticleFeedbackProjection> Items, int TotalCount)> GetFeedbackPagedAsync(
         bool? hasFeedback,
         string? requestedBy,
         string sortBy,

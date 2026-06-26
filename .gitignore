@@ -17,6 +17,7 @@ TEST_MICROSOFT_TOKEN
 .Trashes
 ehthumbs.db
 Thumbs.db
+*.Iscache
 
 # .NET
 bin/
@@ -25,6 +26,7 @@ obj/
 *.suo
 *.cache
 *.docstates
+*.csproj.lscache
 [Dd]ebug/
 [Rr]elease/
 x64/
@@ -157,4 +159,5 @@ design.r*.md
 spec.md
 spec.r*.md
 task-plan.r*.md
-brief.mdfrontend/node_modules
+brief.md
+frontend/node_modules

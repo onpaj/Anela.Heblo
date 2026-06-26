@@ -17,5 +17,7 @@
         public InvoicePrice ItemPrice { get; set; }
 
         public InvoicePrice BuyPrice { get; set; }
+
+        public bool IsNonStock { get; set; }
     }
 }

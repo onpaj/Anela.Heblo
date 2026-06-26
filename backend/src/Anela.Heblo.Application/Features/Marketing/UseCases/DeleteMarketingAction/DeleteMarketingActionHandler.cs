@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Net;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
 using Anela.Heblo.Application.Features.Marketing.Services;
@@ -20,14 +17,14 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
         private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<DeleteMarketingActionHandler> _logger;
         private readonly IOutlookCalendarSync _outlookSync;
-        private readonly IOptions<MarketingCalendarOptions> _options;
+        private readonly IOptionsMonitor<MarketingCalendarOptions> _options;
 
         public DeleteMarketingActionHandler(
             IMarketingActionRepository repository,
             ICurrentUserService currentUserService,
             ILogger<DeleteMarketingActionHandler> logger,
             IOutlookCalendarSync outlookSync,
-            IOptions<MarketingCalendarOptions> options)
+            IOptionsMonitor<MarketingCalendarOptions> options)
         {
             _repository = repository;
             _currentUserService = currentUserService;
@@ -43,62 +40,63 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
             var currentUser = _currentUserService.GetCurrentUser();
             if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.Id))
             {
-                return new DeleteMarketingActionResponse(ErrorCodes.UnauthorizedMarketingAccess, new Dictionary<string, string>
-                {
-                    { "resource", "marketing_action" },
-                });
-            }
-
-            var action = await _repository.GetByIdAsync(request.Id, cancellationToken);
-            if (action == null)
-            {
-                return new DeleteMarketingActionResponse(ErrorCodes.MarketingActionNotFound, new Dictionary<string, string>
-                {
-                    { "actionId", request.Id.ToString() },
-                });
+                return new DeleteMarketingActionResponse(ErrorCodes.UnauthorizedMarketingAccess,
+                    new Dictionary<string, string> { { "resource", "marketing_action" } });
             }
 
             var now = DateTime.UtcNow;
 
-            if (_options.Value.PushEnabled && !string.IsNullOrEmpty(action.OutlookEventId))
+            var action = await _repository.GetByIdAsync(request.Id, cancellationToken);
+            if (action == null)
+            {
+                return new DeleteMarketingActionResponse(ErrorCodes.MarketingActionNotFound,
+                    new Dictionary<string, string> { { "actionId", request.Id.ToString() } });
+            }
+
+            if (_options.CurrentValue.PushEnabled && !string.IsNullOrEmpty(action.OutlookEventId))
             {
                 try
                 {
                     await _outlookSync.DeleteEventAsync(action.OutlookEventId, cancellationToken);
-                    action.ClearOutlookLink();
                 }
-                catch (Exception ex)
+                catch (OutlookCalendarSyncException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
-                    _logger.LogError(
-                        ex,
-                        "Failed to delete Outlook event {EventId} for MarketingAction {ActionId}; will retry",
-                        action.OutlookEventId,
-                        request.Id);
-                    action.MarkOutlookFailed(ex.Message, now);
+                    _logger.LogInformation(
+                        "Outlook event {EventId} already deleted (404); proceeding with soft-delete. ActionId={ActionId} UserId={UserId}",
+                        action.OutlookEventId, request.Id, currentUser.Id);
                 }
-
-                // Best-effort: persist Outlook sync status. A failure here is non-blocking.
-                try
+                catch (OutlookCalendarSyncException ex)
                 {
-                    await _repository.UpdateAsync(action, cancellationToken);
-                    await _repository.SaveChangesAsync(cancellationToken);
-                }
-                catch (Exception dbEx)
-                {
-                    _logger.LogWarning(dbEx,
-                        "Failed to persist Outlook sync status for MarketingAction {ActionId} before soft delete; continuing with delete",
-                        request.Id);
+                    _logger.LogError(ex,
+                        "Outlook DeleteEvent failed for MarketingAction {ActionId}; user {UserId}",
+                        request.Id, currentUser.Id);
+                    return OutlookError(ex);
                 }
             }
 
-            await _repository.DeleteSoftAsync(request.Id, currentUser.Id, currentUser.Name ?? "Unknown User", cancellationToken);
+            action.SoftDelete(currentUser.Id, currentUser.Name ?? "Unknown User", now);
 
-            _logger.LogInformation(
-                "MarketingAction {ActionId} deleted by user {UserId}",
-                request.Id,
-                currentUser.Id);
+            try
+            {
+                await _repository.UpdateAsync(action, cancellationToken);
+                await _repository.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "DB soft-delete failed after Outlook delete for MarketingAction {ActionId}; Outlook event {EventId} already deleted — DB row still present",
+                    request.Id, action.OutlookEventId);
+                return new DeleteMarketingActionResponse(ErrorCodes.DatabaseError);
+            }
+
+            _logger.LogInformation("MarketingAction {ActionId} deleted by user {UserId}", request.Id, currentUser.Id);
 
             return new DeleteMarketingActionResponse { Id = request.Id };
         }
+
+        private static DeleteMarketingActionResponse OutlookError(OutlookCalendarSyncException ex) =>
+            ex.StatusCode == HttpStatusCode.Forbidden
+                ? new DeleteMarketingActionResponse(ErrorCodes.MarketingCalendarAccessDenied)
+                : new DeleteMarketingActionResponse(ErrorCodes.MarketingCalendarSyncFailed);
     }
 }

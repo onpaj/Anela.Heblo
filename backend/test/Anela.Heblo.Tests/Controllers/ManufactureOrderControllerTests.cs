@@ -7,16 +7,12 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrd
 using Anela.Heblo.Application.Features.Manufacture.UseCases.DuplicateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
-using Anela.Heblo.Application.Features.Manufacture.Services;
-using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
-using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -31,16 +27,12 @@ namespace Anela.Heblo.Tests.Controllers;
 public class ManufactureOrderControllerTests
 {
     private readonly Mock<IMediator> _mediatorMock;
-    private readonly Mock<IConfiguration> _configurationMock;
-    private readonly Mock<IManufactureOrderApplicationService> _applicationServiceMock;
     private readonly ManufactureOrderController _controller;
 
     public ManufactureOrderControllerTests()
     {
         _mediatorMock = new Mock<IMediator>();
-        _configurationMock = new Mock<IConfiguration>();
-        _applicationServiceMock = new Mock<IManufactureOrderApplicationService>();
-        _controller = new ManufactureOrderController(_mediatorMock.Object, _configurationMock.Object, _applicationServiceMock.Object);
+        _controller = new ManufactureOrderController(_mediatorMock.Object);
 
         // Setup HttpContext for BaseApiController.Logger
         var serviceCollection = new ServiceCollection();
@@ -615,120 +607,6 @@ public class ManufactureOrderControllerTests
 
     #endregion
 
-    #region GetResponsiblePersons Tests
-
-    [Fact]
-    public async Task GetResponsiblePersons_Should_Return_Ok_With_Response()
-    {
-        // Arrange
-        var groupId = "manufacture-group-id";
-        _configurationMock
-            .Setup(c => c["ManufactureGroupId"])
-            .Returns(groupId);
-
-        var expectedResponse = new GetGroupMembersResponse
-        {
-            Members = new List<UserDto>
-            {
-                new UserDto
-                {
-                    Id = "user1",
-                    DisplayName = "Test User 1",
-                    Email = "user1@anela.cz"
-                },
-                new UserDto
-                {
-                    Id = "user2",
-                    DisplayName = "Test User 2",
-                    Email = "user2@anela.cz"
-                }
-            }
-        };
-
-        _mediatorMock
-            .Setup(m => m.Send(It.Is<GetGroupMembersRequest>(r => r.GroupId == groupId), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expectedResponse);
-
-        // Act
-        var result = await _controller.GetResponsiblePersons(CancellationToken.None);
-
-        // Assert
-        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
-        var response = okResult.Subject.Value.Should().BeOfType<GetGroupMembersResponse>();
-
-        response.Subject.Members.Should().HaveCount(2);
-        response.Subject.Members[0].Email.Should().Be("user1@anela.cz");
-
-        _mediatorMock.Verify(m => m.Send(It.Is<GetGroupMembersRequest>(r => r.GroupId == groupId), It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task GetResponsiblePersons_Should_Return_BadRequest_When_GroupId_Not_Configured()
-    {
-        // Arrange
-        _configurationMock
-            .Setup(c => c["ManufactureGroupId"])
-            .Returns((string?)null);
-
-        // Act
-        var result = await _controller.GetResponsiblePersons(CancellationToken.None);
-
-        // Assert
-        var badRequestResult = result.Result.Should().BeOfType<BadRequestObjectResult>();
-        badRequestResult.Subject.Value.Should().Be("Manufacture group ID not configured");
-
-        // Verify MediatR was not called
-        _mediatorMock.Verify(m => m.Send(It.IsAny<GetGroupMembersRequest>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GetResponsiblePersons_Should_Return_BadRequest_When_GroupId_Empty()
-    {
-        // Arrange
-        _configurationMock
-            .Setup(c => c["ManufactureGroupId"])
-            .Returns("");
-
-        // Act
-        var result = await _controller.GetResponsiblePersons(CancellationToken.None);
-
-        // Assert
-        var badRequestResult = result.Result.Should().BeOfType<BadRequestObjectResult>();
-        badRequestResult.Subject.Value.Should().Be("Manufacture group ID not configured");
-
-        // Verify MediatR was not called
-        _mediatorMock.Verify(m => m.Send(It.IsAny<GetGroupMembersRequest>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task GetResponsiblePersons_Should_Handle_Failed_Response()
-    {
-        // Arrange
-        var groupId = "manufacture-group-id";
-        _configurationMock
-            .Setup(c => c["ManufactureGroupId"])
-            .Returns(groupId);
-
-        var failedResponse = new GetGroupMembersResponse
-        {
-            Success = false,
-            ErrorCode = ErrorCodes.ResourceNotFound
-        };
-
-        _mediatorMock
-            .Setup(m => m.Send(It.Is<GetGroupMembersRequest>(r => r.GroupId == groupId), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(failedResponse);
-
-        // Act
-        var result = await _controller.GetResponsiblePersons(CancellationToken.None);
-
-        // Assert
-        result.Result.Should().BeOfType<NotFoundObjectResult>();
-        _mediatorMock.Verify(m => m.Send(It.Is<GetGroupMembersRequest>(r => r.GroupId == groupId), It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    #endregion
-
     #region ConfirmSemiProductManufacture Tests
 
     [Fact]
@@ -737,11 +615,14 @@ public class ManufactureOrderControllerTests
         // Arrange
         var orderId = 1;
         var request = new ConfirmSemiProductManufactureRequest { Id = orderId, ActualQuantity = 10m };
-        var result = new ConfirmSemiProductManufactureResult(true, "Potvrzeno se skutečným množstvím 10");
+        var handlerResponse = new ConfirmSemiProductManufactureResponse
+        {
+            Message = "Polotovar byl úspěšně vyroben se skutečným množstvím 10",
+        };
 
-        _applicationServiceMock
-            .Setup(s => s.ConfirmSemiProductManufactureAsync(orderId, request.ActualQuantity, request.ChangeReason, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(result);
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<ConfirmSemiProductManufactureRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(handlerResponse);
 
         // Act
         var actionResult = await _controller.ConfirmSemiProductManufacture(orderId, request);
@@ -756,11 +637,14 @@ public class ManufactureOrderControllerTests
         // Arrange
         var orderId = 1;
         var request = new ConfirmSemiProductManufactureRequest { Id = orderId, ActualQuantity = 10m };
-        var result = new ConfirmSemiProductManufactureResult(false, "DB error", ErrorCodes.InternalServerError);
+        var handlerResponse = new ConfirmSemiProductManufactureResponse(ErrorCodes.InternalServerError)
+        {
+            Message = "DB error",
+        };
 
-        _applicationServiceMock
-            .Setup(s => s.ConfirmSemiProductManufactureAsync(orderId, request.ActualQuantity, request.ChangeReason, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(result);
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<ConfirmSemiProductManufactureRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(handlerResponse);
 
         // Act
         var actionResult = await _controller.ConfirmSemiProductManufacture(orderId, request);
@@ -776,11 +660,14 @@ public class ManufactureOrderControllerTests
         // Arrange
         var orderId = 1;
         var request = new ConfirmSemiProductManufactureRequest { Id = orderId, ActualQuantity = 10m };
-        var result = new ConfirmSemiProductManufactureResult(false, "ERP timeout", ErrorCodes.ErpGatewayError);
+        var handlerResponse = new ConfirmSemiProductManufactureResponse(ErrorCodes.ErpGatewayError)
+        {
+            Message = "ERP timeout",
+        };
 
-        _applicationServiceMock
-            .Setup(s => s.ConfirmSemiProductManufactureAsync(orderId, request.ActualQuantity, request.ChangeReason, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(result);
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<ConfirmSemiProductManufactureRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(handlerResponse);
 
         // Act
         var actionResult = await _controller.ConfirmSemiProductManufacture(orderId, request);
@@ -801,8 +688,158 @@ public class ManufactureOrderControllerTests
 
         // Assert
         actionResult.Result.Should().BeOfType<BadRequestObjectResult>();
-        _applicationServiceMock.Verify(s => s.ConfirmSemiProductManufactureAsync(
-            It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(
+            m => m.Send(It.IsAny<ConfirmSemiProductManufactureRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    #endregion
+
+    #region ConfirmProductCompletion Tests
+
+    [Fact]
+    public async Task ConfirmProductCompletion_Should_Return_Ok_When_Successful()
+    {
+        // Arrange
+        var orderId = 1;
+        var request = new ConfirmProductCompletionRequest
+        {
+            Id = orderId,
+            Products = new List<ProductActualQuantityRequest>
+            {
+                new() { Id = 10, ActualQuantity = 5m },
+            },
+        };
+        var handlerResponse = new ConfirmProductCompletionResponse();
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<ConfirmProductCompletionRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(handlerResponse);
+
+        // Act
+        var actionResult = await _controller.ConfirmProductCompletion(orderId, request);
+
+        // Assert
+        actionResult.Result.Should().BeOfType<OkObjectResult>();
+    }
+
+    [Fact]
+    public async Task ConfirmProductCompletion_Should_Return_Ok_When_RequiresConfirmation()
+    {
+        // Arrange
+        var orderId = 1;
+        var request = new ConfirmProductCompletionRequest
+        {
+            Id = orderId,
+            Products = new List<ProductActualQuantityRequest>
+            {
+                new() { Id = 10, ActualQuantity = 5m },
+            },
+        };
+        var handlerResponse = new ConfirmProductCompletionResponse
+        {
+            RequiresConfirmation = true,
+            Distribution = new ResidueDistributionDto
+            {
+                ActualSemiProductQuantity = 15m,
+                IsWithinAllowedThreshold = false,
+            },
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<ConfirmProductCompletionRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(handlerResponse);
+
+        // Act
+        var actionResult = await _controller.ConfirmProductCompletion(orderId, request);
+
+        // Assert
+        var okResult = actionResult.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var responseValue = okResult.Value.Should().BeOfType<ConfirmProductCompletionResponse>().Subject;
+        responseValue.RequiresConfirmation.Should().BeTrue();
+        responseValue.Distribution.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task ConfirmProductCompletion_Should_Return_BadRequest_When_InvalidOperation()
+    {
+        // Arrange
+        var orderId = 1;
+        var request = new ConfirmProductCompletionRequest
+        {
+            Id = orderId,
+            Products = new List<ProductActualQuantityRequest>
+            {
+                new() { Id = 10, ActualQuantity = 5m },
+            },
+        };
+        var handlerResponse = new ConfirmProductCompletionResponse(ErrorCodes.InvalidOperation)
+        {
+            Message = "workflow failure",
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<ConfirmProductCompletionRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(handlerResponse);
+
+        // Act
+        var actionResult = await _controller.ConfirmProductCompletion(orderId, request);
+
+        // Assert
+        actionResult.Result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task ConfirmProductCompletion_Should_Return_500_When_InternalServerError()
+    {
+        // Arrange
+        var orderId = 1;
+        var request = new ConfirmProductCompletionRequest
+        {
+            Id = orderId,
+            Products = new List<ProductActualQuantityRequest>
+            {
+                new() { Id = 10, ActualQuantity = 5m },
+            },
+        };
+        var handlerResponse = new ConfirmProductCompletionResponse(ErrorCodes.InternalServerError)
+        {
+            Message = "boom",
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<ConfirmProductCompletionRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(handlerResponse);
+
+        // Act
+        var actionResult = await _controller.ConfirmProductCompletion(orderId, request);
+
+        // Assert
+        var statusResult = actionResult.Result.Should().BeOfType<ObjectResult>().Subject;
+        statusResult.StatusCode.Should().Be(500);
+    }
+
+    [Fact]
+    public async Task ConfirmProductCompletion_Should_Return_BadRequest_When_Id_Mismatch()
+    {
+        // Arrange
+        var request = new ConfirmProductCompletionRequest
+        {
+            Id = 2,
+            Products = new List<ProductActualQuantityRequest>
+            {
+                new() { Id = 10, ActualQuantity = 5m },
+            },
+        };
+
+        // Act
+        var actionResult = await _controller.ConfirmProductCompletion(1, request);
+
+        // Assert
+        actionResult.Result.Should().BeOfType<BadRequestObjectResult>();
+        _mediatorMock.Verify(
+            m => m.Send(It.IsAny<ConfirmProductCompletionRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     #endregion

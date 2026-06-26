@@ -1,4 +1,6 @@
+using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Campaigns;
+using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -24,6 +26,8 @@ public static class MetaAdsAdapterServiceCollectionExtensions
             client.BaseAddress = new Uri(settings.BaseUrl);
         })
         .AddHttpMessageHandler<MetaTokenRefreshHandler>();
+
+        services.AddScoped<IRecurringJob, MetaAdsInvoiceImportJob>();
 
         return services;
     }

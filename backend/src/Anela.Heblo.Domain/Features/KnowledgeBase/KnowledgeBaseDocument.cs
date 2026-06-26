@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Shared.Rag;
+
 namespace Anela.Heblo.Domain.Features.KnowledgeBase;
 
 public class KnowledgeBaseDocument
@@ -22,12 +24,4 @@ public enum DocumentStatus
     Processing,
     Indexed,
     Failed
-}
-
-public enum DocumentType
-{
-    KnowledgeBase = 0,
-    Conversation = 1,
-    Leaflet = 2,
-    Article = 3
 }

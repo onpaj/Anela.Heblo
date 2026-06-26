@@ -5,34 +5,62 @@ using Anela.Heblo.Domain.Features.FileStorage;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.FileStorage;
 
 public static class FileStorageModule
 {
-    public const string ProductExportDownloadClientName = "ProductExportDownload";
+    public const string FileDownloadClientName = "FileDownload";
 
-    public static IServiceCollection AddFileStorageModule(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddFileStorageModule(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
         // MediatR handlers are automatically registered by AddMediatR scan
 
-        // Register Azure Blob Storage client
-        var connectionString = configuration["ExpeditionList:BlobConnectionString"];
-        if (!string.IsNullOrEmpty(connectionString))
+        var optionsBuilder = services
+            .AddOptions<FileStorageOptions>()
+            .Bind(configuration.GetSection(FileStorageOptions.SectionName));
+
+        if (!environment.IsDevelopment())
         {
-            services.AddSingleton<BlobServiceClient>(provider => new BlobServiceClient(connectionString));
+            // Fail fast in non-Development environments: missing or whitespace connection string
+            // surfaces at startup, never silently as a write to the storage emulator in production.
+            optionsBuilder
+                .Validate(
+                    o => !string.IsNullOrWhiteSpace(o.BlobConnectionString),
+                    $"{FileStorageOptions.SectionName}:{nameof(FileStorageOptions.BlobConnectionString)} must be configured.")
+                .ValidateOnStart();
         }
-        else
+
+        // Register Azure Blob Storage client. The factory reads the already-validated options,
+        // so ValidateOnStart() runs before any consumer resolves the BlobServiceClient.
+        services.AddSingleton<BlobServiceClient>(provider =>
         {
-            // For development, use Azure Storage Emulator
-            services.AddSingleton<BlobServiceClient>(provider => new BlobServiceClient("UseDevelopmentStorage=true"));
-        }
+            var opts = provider.GetRequiredService<IOptions<FileStorageOptions>>().Value;
+            if (string.IsNullOrWhiteSpace(opts.BlobConnectionString))
+            {
+                // Reachable only in Development — validation blocks the empty path elsewhere.
+                // Log a warning so the storage-emulator fallback is never silent.
+                var logger = provider.GetRequiredService<ILogger<AzureBlobStorageService>>();
+                logger.LogWarning(
+                    "FileStorage:BlobConnectionString is empty in {Environment}; falling back to UseDevelopmentStorage=true.",
+                    environment.EnvironmentName);
+                return new BlobServiceClient("UseDevelopmentStorage=true");
+            }
+
+            return new BlobServiceClient(opts.BlobConnectionString);
+        });
 
         // Register named HttpClient for product export downloads.
         // PooledConnectionLifetime recycles sockets and refreshes DNS every 5 minutes,
         // preventing the stale-socket and DNS-pinning problems of a long-lived singleton HttpClient.
         // AutomaticDecompression handles gzip/brotli responses from the export URL transparently.
-        services.AddHttpClient(ProductExportDownloadClientName)
+        services.AddHttpClient(FileDownloadClientName)
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
             {
                 PooledConnectionLifetime = TimeSpan.FromMinutes(5),
@@ -54,6 +82,8 @@ public static class FileStorageModule
         // Register blob storage service as Singleton so the _containerExists cache survives across requests.
         // BlobServiceClient is already Singleton — no thread-safety concerns.
         services.AddSingleton<IBlobStorageService, AzureBlobStorageService>();
+
+        services.Configure<FileDownloadOptions>(configuration.GetSection("FileStorage:Download"));
 
         return services;
     }

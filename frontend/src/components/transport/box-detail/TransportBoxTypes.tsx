@@ -3,6 +3,8 @@ import {
   CatalogItemDto,
 } from "../../../api/generated/api-client";
 import { LastAddedItem } from "../../../api/hooks/useLastAddedItem";
+import { LastManufacturedEntry } from "../../../api/hooks/useLastManufacturedItems";
+import { ManufacturedProductInventoryItem } from "../../../api/hooks/useManufacturedProductInventory";
 
 export interface TransportBoxDetailProps {
   boxId: number | null;
@@ -25,6 +27,12 @@ export interface TransportBoxInfoProps {
   handleSaveNote: () => void;
 }
 
+export interface AddManufacturedItemInput {
+  item: ManufacturedProductInventoryItem;
+  amount: number;
+  allowNegativeStock?: boolean;
+}
+
 export interface TransportBoxItemsProps {
   transportBox: TransportBoxDto;
   isFormEditable: (fieldType: "items" | "notes" | "boxNumber") => boolean;
@@ -35,9 +43,12 @@ export interface TransportBoxItemsProps {
   selectedProduct: CatalogItemDto | null;
   setSelectedProduct: (product: CatalogItemDto | null) => void;
   handleAddItem: () => void;
+  handleAddManufacturedItem: (input: AddManufacturedItemInput) => Promise<void>;
   // Quick add last item functionality
   lastAddedItem: LastAddedItem | null;
   handleQuickAdd: () => void;
+  // Repeat last box (manufactured)
+  lastManufacturedItems: LastManufacturedEntry[];
 }
 
 export interface TransportBoxHistoryProps {
@@ -80,13 +91,13 @@ export const stateLabels: Record<string, string> = {
 };
 
 export const stateColors: Record<string, string> = {
-  New: "bg-gray-100 text-gray-800",
-  Opened: "bg-blue-100 text-blue-800",
-  InTransit: "bg-yellow-100 text-yellow-800",
-  Received: "bg-purple-100 text-purple-800",
-  Stocked: "bg-green-100 text-green-800",
-  Reserve: "bg-indigo-100 text-indigo-800",
-  Quarantine: "bg-orange-100 text-orange-800",
-  Closed: "bg-gray-100 text-gray-800",
-  Error: "bg-red-100 text-red-800",
+  New: "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted",
+  Opened: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  InTransit: "bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300",
+  Received: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  Stocked: "bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  Reserve: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
+  Quarantine: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  Closed: "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted",
+  Error: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
 };

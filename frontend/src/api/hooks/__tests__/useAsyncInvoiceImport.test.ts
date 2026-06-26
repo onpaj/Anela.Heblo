@@ -2,8 +2,8 @@ import { renderHook, waitFor } from '@testing-library/react';
 import {
     useInvoiceImportJobStatus,
     useRunningInvoiceImportJobs,
-    BackgroundJobInfo
 } from '../useAsyncInvoiceImport';
+import type { IBackgroundJobInfo } from '../../generated/api-client';
 import { getAuthenticatedApiClient } from '../../client';
 import { createMockApiClient, mockAuthenticatedApiClient, createQueryClientWrapper, setupFakeTimers } from '../../testUtils';
 
@@ -29,11 +29,11 @@ describe('useAsyncInvoiceImport - Job Polling Logic', () => {
         it('should poll job status every 2000ms (2 seconds)', async () => {
             // Arrange
             const jobId = 'test-job-123';
-            const mockJobStatus: BackgroundJobInfo = {
+            const mockJobStatus: IBackgroundJobInfo = {
                 id: jobId,
                 jobName: 'Import Invoice',
                 state: 'Processing',
-                createdAt: '2024-01-01T10:00:00Z',
+                createdAt: new Date('2024-01-01T10:00:00Z'),
                 queue: 'default'
             };
 
@@ -89,7 +89,7 @@ describe('useAsyncInvoiceImport - Job Polling Logic', () => {
         it('should have staleTime: 0 (always fetch fresh data)', async () => {
             // Arrange
             const jobId = 'test-job-123';
-            const mockJobStatus: BackgroundJobInfo = {
+            const mockJobStatus: IBackgroundJobInfo = {
                 id: jobId,
                 state: 'Processing'
             };
@@ -152,7 +152,7 @@ describe('useAsyncInvoiceImport - Job Polling Logic', () => {
     describe('useRunningInvoiceImportJobs', () => {
         it('should poll running jobs every 5000ms (5 seconds)', async () => {
             // Arrange
-            const mockJobs: BackgroundJobInfo[] = [
+            const mockJobs: IBackgroundJobInfo[] = [
                 { id: 'job-1', state: 'Processing' },
                 { id: 'job-2', state: 'Enqueued' }
             ];
@@ -208,7 +208,7 @@ describe('useAsyncInvoiceImport - Job Polling Logic', () => {
 
         it('should have staleTime: 0 (always fetch fresh data)', async () => {
             // Arrange
-            const mockJobs: BackgroundJobInfo[] = [];
+            const mockJobs: IBackgroundJobInfo[] = [];
 
             mockFetch.mockResolvedValue({
                 ok: true,

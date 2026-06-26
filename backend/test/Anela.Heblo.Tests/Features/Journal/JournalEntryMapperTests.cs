@@ -179,28 +179,52 @@ public class JournalEntryMapperTests
     }
 
     [Fact]
-    public void ToDto_ContentPreview_IsNullAfterMapping()
+    public void ToSearchDto_MapsAllScalarFields_IncludingContent()
     {
         // Arrange
         var entry = BuildFullEntry();
 
         // Act
-        var dto = JournalEntryMapper.ToDto(entry);
+        var dto = JournalEntryMapper.ToSearchDto(entry);
 
         // Assert
-        dto.ContentPreview.Should().BeNull();
+        dto.Id.Should().Be(42);
+        dto.Title.Should().Be("Test Entry");
+        dto.Content.Should().Be("Test content body");
+        dto.EntryDate.Should().Be(new DateTime(2025, 1, 15));
+        dto.CreatedAt.Should().Be(new DateTime(2025, 1, 15, 10, 0, 0));
+        dto.ModifiedAt.Should().Be(new DateTime(2025, 1, 15, 11, 0, 0));
+        dto.CreatedByUserId.Should().Be("user-001");
+        dto.CreatedByUsername.Should().Be("alice");
+        dto.ModifiedByUserId.Should().Be("user-002");
+        dto.ModifiedByUsername.Should().Be("bob");
     }
 
     [Fact]
-    public void ToDto_HighlightedTerms_IsEmptyAfterMapping()
+    public void ToSearchDto_AssociatedProductsAndTags_AreMappedSameAsToDto()
     {
         // Arrange
         var entry = BuildFullEntry();
 
         // Act
-        var dto = JournalEntryMapper.ToDto(entry);
+        var dto = JournalEntryMapper.ToSearchDto(entry);
 
         // Assert
-        dto.HighlightedTerms.Should().NotBeNull().And.BeEmpty();
+        dto.AssociatedProducts.Should().BeEquivalentTo(new[] { "TON001", "AKL002" });
+        dto.Tags.Should().HaveCount(2);
+        dto.Tags.Select(t => t.Id).Should().BeEquivalentTo(new[] { 10, 20 });
+    }
+
+    [Fact]
+    public void ToSearchDto_PopulatesContentFromEntry()
+    {
+        // Arrange
+        var entry = BuildFullEntry();
+
+        // Act
+        var dto = JournalEntryMapper.ToSearchDto(entry);
+
+        // Assert
+        dto.Content.Should().Be("Test content body");
     }
 }

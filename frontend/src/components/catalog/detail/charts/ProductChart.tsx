@@ -173,8 +173,8 @@ const ProductChart: React.FC<ProductChartProps> = ({
   if (!hasData) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-center text-gray-500">
-          <BarChart3 className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+        <div className="text-center text-gray-500 dark:text-graphite-muted">
+          <BarChart3 className="h-12 w-12 mx-auto mb-2 text-gray-300 dark:text-graphite-faint" />
           <p>Žádná data pro zobrazení grafu</p>
           <p className="text-sm">{chartConfig.label} za posledních 13 měsíců</p>
         </div>

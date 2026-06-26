@@ -1,0 +1,89 @@
+name: 🤖 Claude Code Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check-trigger:
+    name: 🔍 Check Claude trigger
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: 🔍 Check if Claude review is requested
+        id: check
+        run: |
+          COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s %b")
+          echo "📝 Actual HEAD commit message: $COMMIT_MESSAGE"
+          echo "📍 HEAD SHA: $(git rev-parse HEAD)"
+
+          if echo "$COMMIT_MESSAGE" | grep -qE "@claude|@claude-review"; then
+            echo "✅ Claude review requested in commit message"
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏭️ Claude review not requested (add @claude or @claude-review to commit message)"
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+  claude-review:
+    name: 🤖 Claude Code Review
+    needs: check-trigger
+    if: needs.check-trigger.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: 📝 Log trigger info
+        run: |
+          echo "🔍 Claude Review triggered by commit message"
+          echo "Actual commit message: $(git log -1 --pretty=format:'%s %b')"
+          echo "PR: #${{ github.event.pull_request.number }}"
+          echo "SHA: ${{ github.event.pull_request.head.sha }}"
+
+      - name: 🤖 Run Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request and POST your feedback as a PR comment.
+            Use `gh pr comment` for the overall review summary, and
+            `mcp__github_inline_comment__create_inline_comment` (with confirmed: true)
+            for specific line-level issues.
+
+            Focus on:
+            - Code quality, best practices and common patterns (DRY, YAGNI, SOLID, KISS)
+            - Code complexity and maintainability
+            - Domain and concerns separation (should that be on backend or frontend side?)
+            - Potential bugs or issues
+            - Performance considerations
+            - Security concerns
+            - Test coverage
+
+            Be constructive and helpful in your feedback. If the PR looks good, say so briefly.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"

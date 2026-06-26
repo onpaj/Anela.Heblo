@@ -1,7 +1,10 @@
+using Anela.Heblo.Application.Features.Logistics;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -17,7 +20,14 @@ public class GetTransportBoxByIdHandlerTests
     {
         _repositoryMock = new Mock<ITransportBoxRepository>();
         _loggerMock = new Mock<ILogger<GetTransportBoxByIdHandler>>();
-        _handler = new GetTransportBoxByIdHandler(_loggerMock.Object, _repositoryMock.Object);
+
+        var config = new MapperConfiguration(cfg =>
+        {
+            cfg.AddProfile<TransportBoxMappingProfile>();
+        }, NullLoggerFactory.Instance);
+        var mapper = config.CreateMapper();
+
+        _handler = new GetTransportBoxByIdHandler(_loggerMock.Object, _repositoryMock.Object, mapper);
     }
 
     [Fact]

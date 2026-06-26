@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Shared.Rag;
+
 namespace Anela.Heblo.Domain.Features.KnowledgeBase;
 
 public class KnowledgeBaseChunk

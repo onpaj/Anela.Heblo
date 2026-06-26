@@ -27,13 +27,13 @@ const ToastIcon: React.FC<ToastIconProps> = ({
 }) => {
   switch (type) {
     case "success":
-      return <CheckCircle className={`${className} text-green-500`} />;
+      return <CheckCircle className={`${className} text-green-500 dark:text-emerald-400`} />;
     case "error":
-      return <XCircle className={`${className} text-red-500`} />;
+      return <XCircle className={`${className} text-red-500 dark:text-red-400`} />;
     case "warning":
-      return <AlertCircle className={`${className} text-yellow-500`} />;
+      return <AlertCircle className={`${className} text-yellow-500 dark:text-amber-400`} />;
     case "info":
-      return <Info className={`${className} text-blue-500`} />;
+      return <Info className={`${className} text-blue-500 dark:text-blue-400`} />;
   }
 };
 
@@ -51,19 +51,19 @@ const Toast: React.FC<ToastProps> = ({
 
   const getToastStyles = () => {
     const baseStyles =
-      "max-w-2xl w-full bg-white border rounded-lg shadow-lg pointer-events-auto ring-1 ring-black ring-opacity-5 transform transition-all duration-300 ease-in-out";
+      "max-w-2xl w-full bg-white dark:bg-graphite-surface border rounded-lg shadow-lg dark:shadow-soft-dark pointer-events-auto ring-1 ring-black ring-opacity-5 transform transition-all duration-300 ease-in-out";
 
     switch (type) {
       case "success":
-        return `${baseStyles} border-green-200`;
+        return `${baseStyles} border-green-200 dark:border-emerald-900/40`;
       case "error":
-        return `${baseStyles} border-red-200`;
+        return `${baseStyles} border-red-200 dark:border-red-900/40`;
       case "warning":
-        return `${baseStyles} border-yellow-200`;
+        return `${baseStyles} border-yellow-200 dark:border-amber-900/40`;
       case "info":
-        return `${baseStyles} border-blue-200`;
+        return `${baseStyles} border-blue-200 dark:border-blue-900/40`;
       default:
-        return `${baseStyles} border-gray-200`;
+        return `${baseStyles} border-gray-200 dark:border-graphite-border`;
     }
   };
 
@@ -100,8 +100,8 @@ const Toast: React.FC<ToastProps> = ({
             <ToastIcon type={type} />
           </div>
           <div className="ml-3 w-0 flex-1">
-            <p className="text-sm font-medium text-gray-900">{title}</p>
-            {message && <p className="mt-1 text-sm text-gray-500">{message}</p>}
+            <p className="text-sm font-medium text-gray-900 dark:text-graphite-text">{title}</p>
+            {message && <p className="mt-1 text-sm text-gray-500 dark:text-graphite-muted">{message}</p>}
             {action && (
               <div className="mt-3 flex space-x-2">
                 <button
@@ -120,7 +120,7 @@ const Toast: React.FC<ToastProps> = ({
           <div className="ml-4 flex-shrink-0 flex">
             <button
               type="button"
-              className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+              className="inline-flex text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
               onClick={handleClose}
             >
               <span className="sr-only">Zavřít</span>

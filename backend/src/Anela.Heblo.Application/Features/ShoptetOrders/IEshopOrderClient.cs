@@ -5,8 +5,6 @@ public interface IEshopOrderClient
     Task<string> CreateOrderAsync(CreateEshopOrderRequest request, CancellationToken ct = default);
     Task<int> GetOrderStatusIdAsync(string orderCode, CancellationToken ct = default);
     Task UpdateStatusAsync(string orderCode, int statusId, CancellationToken ct = default);
-    Task SetInternalNoteAsync(string orderCode, string note, CancellationToken ct = default);
-
     /// <summary>
     /// Returns the current internal (staff-facing) remark for the given order,
     /// as returned by GET /api/orders/{code}?include=notes → data.order.notes.eshopRemark.
@@ -24,4 +22,11 @@ public interface IEshopOrderClient
     Task DeleteOrderAsync(string orderCode, CancellationToken ct = default);
     Task<List<EshopOrderSummary>> GetRecentOrdersAsync(int count = 20, CancellationToken ct = default);
     Task<List<EshopOrderSummary>> ListByExternalCodePrefixAsync(string prefix, string? emailFilter = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Transitions the order to the configured "packed" state
+    /// (Shoptet "Zabaleno", id 52 by default). Called by the Balení screen
+    /// after a successful scan + shipment creation.
+    /// </summary>
+    Task MarkAsPackedAsync(string orderCode, CancellationToken ct = default);
 }

@@ -4,8 +4,8 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
-using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Services;
 using AutoMapper;
 using FluentAssertions;
@@ -17,7 +17,6 @@ namespace Anela.Heblo.Tests.Features.Catalog;
 public class GetCatalogDetailHandlerFullHistoryTests
 {
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
-    private readonly Mock<ILotsClient> _lotsClientMock;
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly GetCatalogDetailHandler _handler;
@@ -25,11 +24,10 @@ public class GetCatalogDetailHandlerFullHistoryTests
     public GetCatalogDetailHandlerFullHistoryTests()
     {
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
-        _lotsClientMock = new Mock<ILotsClient>();
         _mapperMock = new Mock<IMapper>();
         _timeProviderMock = new Mock<TimeProvider>();
         var loggerMock = new Mock<ILogger<GetCatalogDetailHandler>>();
-        _handler = new GetCatalogDetailHandler(_catalogRepositoryMock.Object, _lotsClientMock.Object, _mapperMock.Object, _timeProviderMock.Object, loggerMock.Object);
+        _handler = new GetCatalogDetailHandler(_catalogRepositoryMock.Object, _mapperMock.Object, _timeProviderMock.Object, loggerMock.Object);
 
         // No longer needed - using pre-calculated margins from CatalogAggregate
     }
@@ -129,6 +127,114 @@ public class GetCatalogDetailHandlerFullHistoryTests
         // Should have fewer records than full history
         Assert.True(result.HistoricalData.PurchaseHistory.Count < 7,
             "Limited history should have fewer records than full history");
+    }
+
+    [Fact]
+    public async Task Handle_Should_Exclude_PreFloor_Records_When_MonthsBack_Is_999()
+    {
+        // Arrange — pre-2020 record below HISTORY_FLOOR_DATE must be excluded by the
+        // unified filter-based Pattern B implementation. This test pins that semantics.
+        var currentDate = new DateTime(2024, 6, 15);
+        var request = new GetCatalogDetailRequest
+        {
+            ProductCode = "TEST002",
+            MonthsBack = 999
+        };
+
+        var catalogItem = new CatalogAggregate
+        {
+            Id = "TEST002",
+            ProductName = "Boundary Fixture"
+        };
+
+        catalogItem.PurchaseHistory = new List<CatalogPurchaseRecord>
+        {
+            new CatalogPurchaseRecord
+            {
+                Date = new DateTime(2019, 12, 31),
+                SupplierName = "Pre-floor Supplier",
+                Amount = 10,
+                PricePerPiece = 1.0M,
+                PriceTotal = 10.0M,
+                DocumentNumber = "PRE-FLOOR-001",
+                ProductCode = "TEST002"
+            },
+            new CatalogPurchaseRecord
+            {
+                Date = new DateTime(2020, 1, 1),
+                SupplierName = "At-floor Supplier",
+                Amount = 20,
+                PricePerPiece = 2.0M,
+                PriceTotal = 40.0M,
+                DocumentNumber = "AT-FLOOR-001",
+                ProductCode = "TEST002"
+            }
+        };
+
+        catalogItem.ManufactureHistory = new List<CatalogManufactureRecord>
+        {
+            new CatalogManufactureRecord
+            {
+                Date = new DateTime(2019, 12, 31),
+                Amount = 5,
+                PricePerPiece = 3.0M,
+                PriceTotal = 15.0M,
+                ProductCode = "TEST002",
+                DocumentNumber = "MFG-PRE-FLOOR-001"
+            },
+            new CatalogManufactureRecord
+            {
+                Date = new DateTime(2020, 1, 1),
+                Amount = 7,
+                PricePerPiece = 4.0M,
+                PriceTotal = 28.0M,
+                ProductCode = "TEST002",
+                DocumentNumber = "MFG-AT-FLOOR-001"
+            }
+        };
+
+        catalogItem.SaleHistorySummary = new SaleHistorySummary
+        {
+            MonthlyData = new Dictionary<string, MonthlySalesSummary>(),
+            LastUpdated = DateTime.UtcNow
+        };
+        catalogItem.PurchaseHistorySummary = new PurchaseHistorySummary
+        {
+            MonthlyData = new Dictionary<string, MonthlyPurchaseSummary>(),
+            LastUpdated = DateTime.UtcNow
+        };
+        catalogItem.ConsumedHistorySummary = new ConsumedHistorySummary
+        {
+            MonthlyData = new Dictionary<string, MonthlyConsumedSummary>(),
+            LastUpdated = DateTime.UtcNow
+        };
+
+        var catalogItemDto = new CatalogItemDto
+        {
+            ProductCode = "TEST002",
+            ProductName = "Boundary Fixture",
+            Price = new PriceDto()
+        };
+
+        _timeProviderMock.Setup(tp => tp.GetUtcNow()).Returns(new DateTimeOffset(currentDate));
+        _catalogRepositoryMock
+            .Setup(r => r.SingleOrDefaultAsync(It.IsAny<System.Linq.Expressions.Expression<System.Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItem);
+        _mapperMock.Setup(m => m.Map<CatalogItemDto>(catalogItem)).Returns(catalogItemDto);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+
+        result.HistoricalData.PurchaseHistory.Select(p => p.Date)
+            .Should().BeEquivalentTo(new[] { new DateTime(2020, 1, 1) },
+                "records with Date < HISTORY_FLOOR_DATE must be excluded under the unified Pattern B filter");
+
+        result.HistoricalData.ManufactureHistory.Select(m => m.Date)
+            .Should().BeEquivalentTo(new[] { new DateTime(2020, 1, 1) },
+                "records with Date < HISTORY_FLOOR_DATE must be excluded under the unified Pattern B filter");
     }
 
     private CatalogAggregate CreateTestCatalogAggregateWithExtensiveHistory()

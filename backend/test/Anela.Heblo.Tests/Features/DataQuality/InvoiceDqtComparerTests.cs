@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Application.Features.DataQuality.Services;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Invoices;
@@ -7,8 +8,8 @@ namespace Anela.Heblo.Tests.Features.DataQuality;
 
 public class InvoiceDqtComparerTests
 {
-    private readonly Mock<IIssuedInvoiceSource> _sourceMock = new();
-    private readonly Mock<IIssuedInvoiceClient> _clientMock = new();
+    private readonly Mock<IInvoiceShoptetSource> _sourceMock = new();
+    private readonly Mock<IInvoiceErpClient> _clientMock = new();
     private readonly InvoiceDqtComparer _sut;
 
     private static readonly DateOnly From = new(2026, 1, 1);
@@ -228,5 +229,52 @@ public class InvoiceDqtComparerTests
         var combined = result.Mismatches.Single(m => m.InvoiceCode == "INV-011");
         Assert.True(combined.MismatchType.HasFlag(InvoiceMismatchType.TotalWithVatDiffers));
         Assert.True(combined.MismatchType.HasFlag(InvoiceMismatchType.ItemsDiffer));
+    }
+
+    [Fact]
+    public async Task DuplicateShoptetInvoiceCode_DoesNotThrow_AndFlagsDuplicate()
+    {
+        // Production crash: Shoptet returned invoice code 126013089 twice → ToDictionary threw.
+        SetupShoptet(MakeInvoice("126013089"), MakeInvoice("126013089"));
+        SetupFlexi(MakeInvoice("126013089"));
+
+        var result = await _sut.CompareAsync(From, To);
+
+        Assert.Equal(1, result.TotalChecked);
+        var mismatch = Assert.Single(result.Mismatches);
+        Assert.Equal("126013089", mismatch.InvoiceCode);
+        Assert.True(mismatch.MismatchType.HasFlag(InvoiceMismatchType.DuplicateInvoiceCode));
+        Assert.Contains("shoptet", mismatch.Details);
+    }
+
+    [Fact]
+    public async Task DuplicateFlexiInvoiceCode_DoesNotThrow_AndFlagsDuplicate()
+    {
+        SetupShoptet(MakeInvoice("INV-DUP"));
+        SetupFlexi(MakeInvoice("INV-DUP"), MakeInvoice("INV-DUP"));
+
+        var result = await _sut.CompareAsync(From, To);
+
+        var mismatch = Assert.Single(result.Mismatches);
+        Assert.Equal("INV-DUP", mismatch.InvoiceCode);
+        Assert.True(mismatch.MismatchType.HasFlag(InvoiceMismatchType.DuplicateInvoiceCode));
+        Assert.Contains("flexi", mismatch.Details);
+    }
+
+    [Fact]
+    public async Task DuplicateItemCodeWithinInvoice_DoesNotThrow_AndReportsDuplicate()
+    {
+        // Production crash: duplicate product codes (e.g. BAL0005M) within an invoice → ToDictionary threw.
+        var shoptetItems = new List<IssuedInvoiceDetailItem> { MakeItem("BAL0005M"), MakeItem("BAL0005M") };
+        var flexiItems = new List<IssuedInvoiceDetailItem> { MakeItem("BAL0005M") };
+
+        SetupShoptet(MakeInvoice("INV-ITEMDUP", items: shoptetItems));
+        SetupFlexi(MakeInvoice("INV-ITEMDUP", items: flexiItems));
+
+        var result = await _sut.CompareAsync(From, To);
+
+        var mismatch = Assert.Single(result.Mismatches);
+        Assert.True(mismatch.MismatchType.HasFlag(InvoiceMismatchType.ItemsDiffer));
+        Assert.Contains("BAL0005M", mismatch.Details);
     }
 }

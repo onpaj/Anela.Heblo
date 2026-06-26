@@ -13,16 +13,16 @@ public class MockAuthenticationSchemeOptions : AuthenticationSchemeOptions
 public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticationSchemeOptions>
 {
     public MockAuthenticationHandler(IOptionsMonitor<MockAuthenticationSchemeOptions> options,
-        ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
-        : base(options, logger, encoder, clock)
+        ILoggerFactory logger, UrlEncoder encoder)
+        : base(options, logger, encoder)
     {
     }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var claims = new[]
+        var identityClaims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, "mock-user-id"),
+            new Claim(ClaimTypes.NameIdentifier, "00000000-0000-0000-0000-000000000000"),
             new Claim(ClaimTypes.Name, "Mock User"),
             new Claim(ClaimTypes.Email, "mock@anela-heblo.com"),
             new Claim("preferred_username", "mock@anela-heblo.com"),
@@ -32,14 +32,17 @@ public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticatio
             // Add Entra ID specific claims
             new Claim("oid", "00000000-0000-0000-0000-000000000000"), // Object ID
             new Claim("tid", "11111111-1111-1111-1111-111111111111"), // Tenant ID
-            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.FinanceReader), // Finance reader role for testing
-            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.HebloUser), // Base role for application access
-            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.SuperUser),
-new Claim("scp", "access_as_user"), // Scopes
-            // Add permission claims for testing
-            new Claim("permission", "FinancialOverview.View")
+            new Claim("scp", "access_as_user"), // Scopes
         };
 
+        // Mock users are super_users: full access via the same wildcard path as production break-glass.
+        var roleClaims = new[]
+        {
+            new Claim(ClaimTypes.Role, AccessMatrix.BaseRole),
+            new Claim(ClaimTypes.Role, AccessRoles.SuperUser),
+        };
+
+        var claims = identityClaims.Concat(roleClaims).ToArray();
         var identity = new ClaimsIdentity(claims, "Mock");
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, "Mock");

@@ -41,9 +41,11 @@ public class DqtYesterdayStatusTileTests
         var doc = ToJsonDoc(result);
         doc.RootElement.GetProperty("status").GetString().Should().Be("no_data");
         doc.RootElement.GetProperty("data").ValueKind.Should().Be(JsonValueKind.Null);
-        doc.RootElement.GetProperty("drillDown").GetProperty("href").GetString()
-            .Should().Be("/automation/data-quality");
-        doc.RootElement.GetProperty("drillDown").GetProperty("enabled").GetBoolean().Should().BeTrue();
+        var drillDown = doc.RootElement.GetProperty("drillDown");
+        drillDown.GetProperty("routeKey").GetString().Should().Be("dataQuality");
+        drillDown.GetProperty("enabled").GetBoolean().Should().BeTrue();
+        drillDown.TryGetProperty("href", out _).Should().BeFalse();
+        drillDown.TryGetProperty("url", out _).Should().BeFalse();
     }
 
     [Fact]
@@ -131,8 +133,11 @@ public class DqtYesterdayStatusTileTests
         var doc = ToJsonDoc(result);
         doc.RootElement.GetProperty("status").GetString().Should().Be("error");
         doc.RootElement.GetProperty("data").ValueKind.Should().Be(JsonValueKind.Null);
-        doc.RootElement.GetProperty("drillDown").GetProperty("href").GetString()
-            .Should().Be("/automation/data-quality");
+        var drillDown = doc.RootElement.GetProperty("drillDown");
+        drillDown.GetProperty("routeKey").GetString().Should().Be("dataQuality");
+        drillDown.GetProperty("enabled").GetBoolean().Should().BeTrue();
+        drillDown.TryGetProperty("href", out _).Should().BeFalse();
+        drillDown.TryGetProperty("url", out _).Should().BeFalse();
     }
 
     [Fact]

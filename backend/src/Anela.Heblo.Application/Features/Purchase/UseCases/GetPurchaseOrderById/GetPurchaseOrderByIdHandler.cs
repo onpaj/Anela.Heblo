@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Purchase;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -12,18 +11,18 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
     private readonly ILogger<GetPurchaseOrderByIdHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
     private readonly ISupplierRepository _supplierRepository;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IMaterialCatalogService _materialCatalog;
 
     public GetPurchaseOrderByIdHandler(
         ILogger<GetPurchaseOrderByIdHandler> logger,
         IPurchaseOrderRepository repository,
         ISupplierRepository supplierRepository,
-        ICatalogRepository catalogRepository)
+        IMaterialCatalogService materialCatalog)
     {
         _logger = logger;
         _repository = repository;
         _supplierRepository = supplierRepository;
-        _catalogRepository = catalogRepository;
+        _materialCatalog = materialCatalog;
     }
 
     public async Task<GetPurchaseOrderByIdResponse> Handle(GetPurchaseOrderByIdRequest request, CancellationToken cancellationToken)
@@ -45,18 +44,11 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
         var supplier = await _supplierRepository.GetByIdAsync(purchaseOrder.SupplierId, cancellationToken);
         var supplierNote = supplier?.Description;
 
-        // Load catalog items to get notes for each material
+        // Batch-load catalog items to get notes for each material (replaces per-id N+1 loop)
         var materialIds = purchaseOrder.Lines.Select(l => l.MaterialId).Distinct().ToList();
-        var catalogItems = new Dictionary<string, CatalogAggregate>();
-
-        foreach (var materialId in materialIds)
-        {
-            var catalogItem = await _catalogRepository.GetByIdAsync(materialId, cancellationToken);
-            if (catalogItem != null)
-            {
-                catalogItems[materialId] = catalogItem;
-            }
-        }
+        var materialLookup = materialIds.Count > 0
+            ? await _materialCatalog.GetByIdsAsync(materialIds, cancellationToken)
+            : (IReadOnlyDictionary<string, MaterialInfo>)new Dictionary<string, MaterialInfo>();
 
         return new GetPurchaseOrderByIdResponse
         {
@@ -73,18 +65,9 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
             Notes = purchaseOrder.Notes,
             TotalAmount = purchaseOrder.TotalAmount,
             IsEditable = purchaseOrder.IsEditable,
-            Lines = purchaseOrder.Lines.Select(l => new PurchaseOrderLineDto
-            {
-                Id = l.Id,
-                MaterialId = l.MaterialId,
-                Code = l.MaterialId, // Code is same as MaterialId
-                MaterialName = l.MaterialName,
-                Quantity = l.Quantity,
-                UnitPrice = l.UnitPrice,
-                LineTotal = l.LineTotal,
-                Notes = l.Notes,
-                CatalogNote = catalogItems.TryGetValue(l.MaterialId, out var catalogItem) ? catalogItem.Note : null
-            }).ToList(),
+            Lines = purchaseOrder.Lines.Select(l =>
+                PurchaseOrderLineDto.FromLine(l, materialLookup.TryGetValue(l.MaterialId, out var material) ? material.Note : null)
+            ).ToList(),
             History = purchaseOrder.History.Select(h => new PurchaseOrderHistoryDto
             {
                 Id = h.Id,

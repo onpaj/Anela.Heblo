@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -11,14 +12,14 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 
 public class SubmitManufactureStockTakingHandlerTests
 {
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<IErpStockDomainService> _erpStockDomainServiceMock;
     private readonly Mock<ILogger<SubmitManufactureStockTakingHandler>> _loggerMock;
     private readonly SubmitManufactureStockTakingHandler _handler;
 
     public SubmitManufactureStockTakingHandlerTests()
     {
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _erpStockDomainServiceMock = new Mock<IErpStockDomainService>();
         _loggerMock = new Mock<ILogger<SubmitManufactureStockTakingHandler>>();
 

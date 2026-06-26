@@ -3,6 +3,7 @@ using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Application.Features.Manufacture.DashboardTiles;
 
+[TileId("manualactionrequired")]
 public class ManualActionRequiredTile : ITile
 {
     private readonly IManufactureOrderRepository _repository;
@@ -15,7 +16,6 @@ public class ManualActionRequiredTile : ITile
     public TileCategory Category => TileCategory.Manufacture;
     public bool DefaultEnabled => true;
     public bool AutoShow => true;
-    public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
     public ManualActionRequiredTile(

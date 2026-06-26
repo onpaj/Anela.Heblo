@@ -42,16 +42,16 @@ public class ClassifyInvoicesHandlerTests
 
         _invoicesClientMock
             .Setup(x => x.GetInvoiceByIdAsync(invoiceId1))
-            .ReturnsAsync(new ReceivedInvoiceDto { InvoiceNumber = invoiceId1, Labels = Array.Empty<string>() });
+            .ReturnsAsync(new ReceivedInvoice { InvoiceNumber = invoiceId1, Labels = Array.Empty<string>() });
         _invoicesClientMock
             .Setup(x => x.GetInvoiceByIdAsync(invoiceId2))
-            .ReturnsAsync(new ReceivedInvoiceDto { InvoiceNumber = invoiceId2, Labels = Array.Empty<string>() });
+            .ReturnsAsync(new ReceivedInvoice { InvoiceNumber = invoiceId2, Labels = Array.Empty<string>() });
         _invoicesClientMock
             .Setup(x => x.GetInvoiceByIdAsync(invoiceId3))
-            .ReturnsAsync(new ReceivedInvoiceDto { InvoiceNumber = invoiceId3, Labels = Array.Empty<string>() });
+            .ReturnsAsync(new ReceivedInvoice { InvoiceNumber = invoiceId3, Labels = Array.Empty<string>() });
 
         _classificationServiceMock
-            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoiceDto>()))
+            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>()))
             .ReturnsAsync(new InvoiceClassificationResult { Result = ClassificationResult.Success });
 
         var request = new ClassifyInvoicesRequest
@@ -79,13 +79,13 @@ public class ClassifyInvoicesHandlerTests
 
         _invoicesClientMock
             .Setup(x => x.GetInvoiceByIdAsync(foundId))
-            .ReturnsAsync(new ReceivedInvoiceDto { InvoiceNumber = foundId, Labels = Array.Empty<string>() });
+            .ReturnsAsync(new ReceivedInvoice { InvoiceNumber = foundId, Labels = Array.Empty<string>() });
         _invoicesClientMock
             .Setup(x => x.GetInvoiceByIdAsync(missingId))
-            .ReturnsAsync((ReceivedInvoiceDto?)null);
+            .ReturnsAsync((ReceivedInvoice?)null);
 
         _classificationServiceMock
-            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoiceDto>()))
+            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>()))
             .ReturnsAsync(new InvoiceClassificationResult { Result = ClassificationResult.Success });
 
         var request = new ClassifyInvoicesRequest
@@ -104,7 +104,7 @@ public class ClassifyInvoicesHandlerTests
     [Fact]
     public async Task Handle_WithNoInvoiceIds_FetchesAllUnclassifiedInvoices()
     {
-        var unclassifiedInvoices = new List<ReceivedInvoiceDto>
+        var unclassifiedInvoices = new List<ReceivedInvoice>
         {
             new() { InvoiceNumber = "UNCLASSIFIED-001", Labels = Array.Empty<string>() }
         };
@@ -114,7 +114,7 @@ public class ClassifyInvoicesHandlerTests
             .ReturnsAsync(unclassifiedInvoices);
 
         _classificationServiceMock
-            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoiceDto>()))
+            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>()))
             .ReturnsAsync(new InvoiceClassificationResult { Result = ClassificationResult.Success });
 
         var request = new ClassifyInvoicesRequest { InvoiceIds = null };

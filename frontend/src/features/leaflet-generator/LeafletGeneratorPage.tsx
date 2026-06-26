@@ -3,13 +3,17 @@ import { FileText } from 'lucide-react';
 import LeafletGenerateTab from './LeafletGenerateTab';
 import LeafletDocumentsTab from './LeafletDocumentsTab';
 import LeafletUploadTab from './LeafletUploadTab';
-import { useMarketingWriterPermission } from '../../api/hooks/useMarketingWriterPermission';
+import { usePermissionsContext } from '../../auth/PermissionsContext';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 type Tab = 'generate' | 'documents' | 'upload';
 
 export default function LeafletGeneratorPage() {
-  const canUpload = useMarketingWriterPermission();
+  const { hasPermission } = usePermissionsContext();
+  const canUpload = hasPermission('marketing.leaflet.write');
   const [activeTab, setActiveTab] = useState<Tab>('generate');
+
+  useScreenView('Marketing', 'LeafletGenerator');
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'generate', label: 'Generovat' },

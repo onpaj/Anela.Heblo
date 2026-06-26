@@ -3,6 +3,7 @@ using System.Text.Json;
 using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
+using Anela.Heblo.Domain.Features.Invoices;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 

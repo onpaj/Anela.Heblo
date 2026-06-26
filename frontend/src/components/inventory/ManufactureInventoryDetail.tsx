@@ -234,29 +234,29 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-        <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl">
+        <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl dark:bg-graphite-surface dark:shadow-soft-dark">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Wrench className="h-5 w-5 mr-2 text-indigo-600" />
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-graphite-border">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center dark:text-graphite-text">
+              <Wrench className="h-5 w-5 mr-2 text-indigo-600 dark:text-graphite-accent" />
               Inventarizace materiálu
             </h3>
             <button
               onClick={onClose}
-              className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-graphite-faint dark:hover:text-graphite-muted"
             >
               <X className="h-6 w-6" />
             </button>
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex border-b border-gray-200">
+          <div className="flex border-b border-gray-200 dark:border-graphite-border">
             <button
               onClick={() => setActiveTab('inventory')}
               className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'inventory'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-indigo-500 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted dark:hover:text-graphite-text dark:hover:border-graphite-border'
               }`}
             >
               <Wrench className="h-4 w-4 inline mr-2" />
@@ -266,8 +266,8 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
               onClick={() => setActiveTab('history')}
               className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'history'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-indigo-500 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted dark:hover:text-graphite-text dark:hover:border-graphite-border'
               }`}
             >
               <History className="h-4 w-4 inline mr-2" />
@@ -276,8 +276,8 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
           </div>
 
           {/* Product Name - Full Width */}
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <h4 className="text-2xl font-bold text-gray-900 text-center">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 dark:bg-graphite-surface-2 dark:border-graphite-border">
+            <h4 className="text-2xl font-bold text-gray-900 text-center dark:text-graphite-text">
               {effectiveItem?.productName || item.productName}
             </h4>
           </div>
@@ -302,7 +302,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                 <div className="w-full flex items-center justify-center">
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                    <div className="text-gray-500">Načítání detailních údajů...</div>
+                    <div className="text-gray-500 dark:text-graphite-muted">Načítání detailních údajů...</div>
                   </div>
                 </div>
               )}
@@ -310,7 +310,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
               {/* Error State */}
               {detailError && (
                 <div className="w-full flex items-center justify-center">
-                  <div className="text-red-600">
+                  <div className="text-red-600 dark:text-red-400">
                     Chyba při načítání detailů: {detailError.message}
                   </div>
                 </div>
@@ -320,21 +320,21 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
               {!detailLoading && !detailError && (
               <>
                 {/* Left Section - Lots Management (2/3 for lots, full width for no lots) */}
-                <div className={`${effectiveItem?.hasLots ? 'w-full lg:w-2/3' : 'w-full'} p-6 bg-gray-50`}>
+                <div className={`${effectiveItem?.hasLots ? 'w-full lg:w-2/3' : 'w-full'} p-6 bg-gray-50 dark:bg-graphite-surface-2`}>
                   <div className="h-full flex items-center justify-center">
                     {effectiveItem?.hasLots ? (
                       /* Lots List */
                       <div className="w-full">
                         <div className="mb-4">
-                          <h5 className="text-lg font-semibold text-gray-900 text-center">
+                          <h5 className="text-lg font-semibold text-gray-900 text-center dark:text-graphite-text">
                             Aktuální sarže
                           </h5>
                         </div>
-                        <div className="w-full bg-white rounded-lg border border-gray-300 min-h-[20rem] max-h-[24rem] overflow-y-auto">
+                        <div className="w-full bg-white rounded-lg border border-gray-300 min-h-[20rem] max-h-[24rem] overflow-y-auto dark:bg-graphite-surface dark:border-graphite-border">
                           {editableLots && editableLots.length > 0 ? (
                             <div className="space-y-2 p-4">
                               {editableLots.map((lot, index) => (
-                                <div key={lot.lotCode || index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                <div key={lot.lotCode || index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200 dark:bg-graphite-surface-2 dark:border-graphite-border">
                                   {/* Lot Code Input - smaller */}
                                   <div className="w-32">
                                     <input
@@ -342,7 +342,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                                       value={lot.lotCode || ''}
                                       onChange={(e) => updateLotCode(index, e.target.value)}
                                       placeholder={lot.isNew ? "Sarže" : "Bez kódu"}
-                                      className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                      className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                                       readOnly={!lot.isNew}
                                       title={lot.isNew ? "Zadejte kód sarže" : "Kód sarže (jen pro čtení)"}
                                     />
@@ -354,7 +354,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                                       type="date"
                                       value={lot.expiration ? formatLocalDate(lot.expiration) : ''}
                                       onChange={(e) => updateLotExpiration(index, e.target.value)}
-                                      className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                      className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                                       readOnly={!lot.isNew}
                                       title={lot.isNew ? "Datum expirace" : "Datum expirace (jen pro čtení)"}
                                     />
@@ -376,14 +376,14 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                                           e.currentTarget.blur();
                                         }
                                       }}
-                                      className="flex-1 text-center border border-gray-300 rounded px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-w-0"
+                                      className="flex-1 text-center border border-gray-300 rounded px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-w-0 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                                       title="Množství"
                                     />
                                    
                                     {lot.isNew && (
                                       <button
                                         onClick={() => removeLot(index)}
-                                        className="w-8 h-8 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500 flex-shrink-0"
+                                        className="w-8 h-8 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500 flex-shrink-0 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/30"
                                         type="button"
                                         title="Odstranit sarži"
                                       >
@@ -395,10 +395,10 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                               ))}
 
                               {/* Add New Lot Button */}
-                              <div className="mt-4 pt-4 border-t border-gray-200">
+                              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-graphite-border">
                                 <button
                                   onClick={addNewLot}
-                                  className="w-full flex items-center justify-center space-x-2 py-2 px-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  className="w-full flex items-center justify-center space-x-2 py-2 px-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-graphite-border dark:text-graphite-muted dark:hover:border-graphite-accent dark:hover:text-graphite-accent"
                                   type="button"
                                 >
                                   <Plus className="h-4 w-4" />
@@ -407,12 +407,12 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                               </div>
 
                               {/* Total Amount */}
-                              <div className="mt-4 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                              <div className="mt-4 p-3 bg-indigo-50 rounded-lg border border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-900/40">
                                 <div className="flex justify-between items-center">
-                                  <div className="text-sm font-medium text-indigo-700">
+                                  <div className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
                                     Celkové množství:
                                   </div>
-                                  <div className="text-lg font-bold text-indigo-800">
+                                  <div className="text-lg font-bold text-indigo-800 dark:text-indigo-200">
                                     {totalLotAmount.toFixed(2)}
                                   </div>
                                 </div>
@@ -421,17 +421,17 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                           ) : (
                             <div className="h-full flex flex-col">
                               <div className="flex-1 flex items-center justify-center">
-                                <div className="text-center text-gray-500">
-                                  <Wrench className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                                <div className="text-center text-gray-500 dark:text-graphite-muted">
+                                  <Wrench className="h-8 w-8 mx-auto mb-2 text-gray-400 dark:text-graphite-faint" />
                                   <p className="text-sm">Žádné sarže</p>
                                   <p className="text-xs">nejsou k dispozici</p>
                                 </div>
                               </div>
                               {/* Add New Lot Button */}
-                              <div className="p-4 border-t bg-gray-50">
+                              <div className="p-4 border-t bg-gray-50 dark:border-graphite-border dark:bg-graphite-surface-2">
                                 <button
                                   onClick={addNewLot}
-                                  className="w-full flex items-center justify-center space-x-2 py-2 px-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  className="w-full flex items-center justify-center space-x-2 py-2 px-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-graphite-border dark:text-graphite-muted dark:hover:border-graphite-accent dark:hover:text-graphite-accent"
                                   type="button"
                                 >
                                   <Plus className="h-4 w-4" />
@@ -445,7 +445,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                     ) : (
                       /* Product Image for non-lot materials */
                       <div className="w-full">
-                        <div className="w-full bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center min-h-[24rem]">
+                        <div className="w-full bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center min-h-[24rem] dark:bg-graphite-hover">
                           {effectiveItem?.image ? (
                             <img 
                               src={effectiveItem.image} 
@@ -463,8 +463,8 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                             className={`w-full h-full flex items-center justify-center ${effectiveItem?.image ? 'hidden' : 'flex'}`}
                             style={{ display: effectiveItem?.image ? 'none' : 'flex' }}
                           >
-                            <div className="text-center text-gray-500">
-                              <Wrench className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                            <div className="text-center text-gray-500 dark:text-graphite-muted">
+                              <Wrench className="h-12 w-12 mx-auto mb-2 text-gray-400 dark:text-graphite-faint" />
                               <p className="text-sm">Obrázek materiálu</p>
                               <p className="text-xs">není dostupný</p>
                             </div>
@@ -477,26 +477,26 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
                 {/* Right Section - Product Info & Quantity Management (1/3 for lots) */}
                 {effectiveItem?.hasLots ? (
-                  <div className="w-full lg:w-1/3 p-6 bg-white border-l border-gray-200">
+                  <div className="w-full lg:w-1/3 p-6 bg-white border-l border-gray-200 dark:bg-graphite-surface dark:border-graphite-border">
                     <div className="space-y-6">
                       {/* Product Info */}
-                      <div className="space-y-3 pb-4 border-b border-gray-200">
+                      <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-graphite-border">
                         {/* Product Code */}
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-600">
+                          <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted">
                             Kód materiálu:
                           </span>
-                          <span className="text-sm text-gray-900 font-mono">
+                          <span className="text-sm text-gray-900 font-mono dark:text-graphite-text">
                             {effectiveItem?.productCode}
                           </span>
                         </div>
 
                         {/* Location */}
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-600">
+                          <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted">
                             Pozice:
                           </span>
-                          <span className="text-sm text-gray-900">
+                          <span className="text-sm text-gray-900 dark:text-graphite-text">
                             {effectiveItem?.location || "Není uvedeno"}
                           </span>
                         </div>
@@ -504,20 +504,20 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
                       {/* Current Stock Display */}
                       <div className="text-center">
-                        <div className="text-sm font-medium text-gray-600 mb-2">
+                        <div className="text-sm font-medium text-gray-600 mb-2 dark:text-graphite-muted">
                           Celkové množství ze sarží
                         </div>
-                        <div className="text-4xl font-bold text-green-600 mb-2">
+                        <div className="text-4xl font-bold text-green-600 mb-2 dark:text-emerald-400">
                           {totalLotAmount.toFixed(2)}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-500 dark:text-graphite-muted">
                           (ERP sklad: {currentStock})
                         </div>
                       </div>
 
                       {/* Lot-based instruction */}
-                      <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="text-sm text-blue-800">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200 dark:bg-blue-900/30 dark:border-blue-900/40">
+                        <div className="text-sm text-blue-800 dark:text-blue-300">
                           Pro inventarizaci materiálu se sarží upravte množství jednotlivých sarží vlevo.
                           Celkové množství se bude počítat automaticky.
                         </div>
@@ -543,13 +543,13 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
                       {/* Error Message */}
                       {submitStockTaking.error && (
-                        <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200 flex items-start space-x-2">
-                          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                        <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200 flex items-start space-x-2 dark:bg-red-900/30 dark:border-red-900/40">
+                          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0 dark:text-red-400" />
                           <div>
-                            <div className="text-sm font-medium text-red-800">
+                            <div className="text-sm font-medium text-red-800 dark:text-red-300">
                               Chyba při inventarizaci materiálu
                             </div>
-                            <div className="text-sm text-red-700 mt-1">
+                            <div className="text-sm text-red-700 mt-1 dark:text-red-400">
                               {submitStockTaking.error?.message || "Došlo k neočekávané chybě"}
                             </div>
                           </div>
@@ -558,9 +558,9 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
                       {/* Success Message */}
                       {submitStockTaking.isSuccess && (
-                        <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 flex items-start space-x-2">
-                          <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                          <div className="text-sm font-medium text-green-800">
+                        <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 flex items-start space-x-2 dark:bg-emerald-900/30 dark:border-emerald-900/40">
+                          <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0 dark:text-emerald-400" />
+                          <div className="text-sm font-medium text-green-800 dark:text-emerald-300">
                             Inventarizace materiálu byla úspěšně dokončena
                           </div>
                         </div>
@@ -568,9 +568,9 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
                       {/* Difference Display */}
                       {editableLots.some(lot => lot.amount !== lot.originalAmount) && (
-                        <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200 dark:bg-amber-900/30 dark:border-amber-900/40">
                           <div className="text-center">
-                            <span className="text-sm font-medium text-yellow-800">
+                            <span className="text-sm font-medium text-yellow-800 dark:text-amber-300">
                               Celkový rozdíl: {totalLotAmount > (effectiveItem?.lots?.reduce((sum, lot) => sum + (lot.amount ?? 0), 0) || 0) ? "+" : ""}{(totalLotAmount - (effectiveItem?.lots?.reduce((sum, lot) => sum + (lot.amount ?? 0), 0) || 0)).toFixed(2)}
                             </span>
                           </div>
@@ -580,26 +580,26 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                   </div>
                 ) : (
                   /* Right Section for non-lot materials - quantity management */
-                  <div className="w-full p-6 bg-white">
+                  <div className="w-full p-6 bg-white dark:bg-graphite-surface">
                     <div className="max-w-md mx-auto space-y-6">
                       {/* Product Info */}
-                      <div className="space-y-3 pb-4 border-b border-gray-200">
+                      <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-graphite-border">
                         {/* Product Code */}
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-600">
+                          <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted">
                             Kód materiálu:
                           </span>
-                          <span className="text-sm text-gray-900 font-mono">
+                          <span className="text-sm text-gray-900 font-mono dark:text-graphite-text">
                             {effectiveItem?.productCode}
                           </span>
                         </div>
 
                         {/* Location */}
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-600">
+                          <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted">
                             Pozice:
                           </span>
-                          <span className="text-sm text-gray-900">
+                          <span className="text-sm text-gray-900 dark:text-graphite-text">
                             {effectiveItem?.location || "Není uvedeno"}
                           </span>
                         </div>
@@ -607,17 +607,17 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
                       {/* Current Stock Display */}
                       <div className="text-center">
-                        <div className="text-sm font-medium text-gray-600 mb-2">
+                        <div className="text-sm font-medium text-gray-600 mb-2 dark:text-graphite-muted">
                           Aktuální množství na skladě (ERP)
                         </div>
-                        <div className="text-6xl font-bold text-green-600 mb-4">
+                        <div className="text-6xl font-bold text-green-600 mb-4 dark:text-emerald-400">
                           {currentStock}
                         </div>
                       </div>
 
                       {/* Quantity Input */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-graphite-muted">
                           Nové množství po inventarizaci
                         </label>
                         <div className="flex items-center space-x-3 mb-4">
@@ -626,7 +626,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                               const newValue = Math.max(0, newQuantity - 1);
                               setNewQuantity(Math.round(newValue * 100) / 100);
                             }}
-                            className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold"
+                            className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-white/5 dark:hover:text-graphite-text"
                             type="button"
                           >
                             <Minus className="h-5 w-5" />
@@ -641,14 +641,14 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                               const roundedValue = Math.round(Math.max(0, isNaN(value) ? 0 : value) * 100) / 100;
                               setNewQuantity(roundedValue);
                             }}
-                            className="flex-1 text-center border border-gray-300 rounded-lg px-4 py-3 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent touch-manipulation"
+                            className="flex-1 text-center border border-gray-300 rounded-lg px-4 py-3 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent touch-manipulation dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                           />
                           <button
                             onClick={() => {
                               const newValue = newQuantity + 1;
                               setNewQuantity(Math.round(newValue * 100) / 100);
                             }}
-                            className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold"
+                            className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-white/5 dark:hover:text-graphite-text"
                             type="button"
                           >
                             <Plus className="h-5 w-5" />
@@ -676,13 +676,13 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
                       {/* Error Message */}
                       {submitStockTaking.error && (
-                        <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200 flex items-start space-x-2">
-                          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                        <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200 flex items-start space-x-2 dark:bg-red-900/30 dark:border-red-900/40">
+                          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0 dark:text-red-400" />
                           <div>
-                            <div className="text-sm font-medium text-red-800">
+                            <div className="text-sm font-medium text-red-800 dark:text-red-300">
                               Chyba při inventarizaci materiálu
                             </div>
-                            <div className="text-sm text-red-700 mt-1">
+                            <div className="text-sm text-red-700 mt-1 dark:text-red-400">
                               {submitStockTaking.error?.message || "Došlo k neočekávané chybě"}
                             </div>
                           </div>
@@ -691,9 +691,9 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
                       {/* Success Message */}
                       {submitStockTaking.isSuccess && (
-                        <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 flex items-start space-x-2">
-                          <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                          <div className="text-sm font-medium text-green-800">
+                        <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 flex items-start space-x-2 dark:bg-emerald-900/30 dark:border-emerald-900/40">
+                          <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0 dark:text-emerald-400" />
+                          <div className="text-sm font-medium text-green-800 dark:text-emerald-300">
                             Inventarizace materiálu byla úspěšně dokončena
                           </div>
                         </div>
@@ -701,9 +701,9 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
                       {/* Difference Display */}
                       {newQuantity !== currentStock && (
-                        <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200 dark:bg-amber-900/30 dark:border-amber-900/40">
                           <div className="text-center">
-                            <span className="text-sm font-medium text-yellow-800">
+                            <span className="text-sm font-medium text-yellow-800 dark:text-amber-300">
                               Rozdíl: {newQuantity > currentStock ? "+" : ""}{(newQuantity - currentStock).toFixed(2)}
                             </span>
                           </div>
@@ -723,7 +723,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                 <div className="flex items-center justify-center h-64">
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                    <div className="text-gray-500">Načítání historie inventur...</div>
+                    <div className="text-gray-500 dark:text-graphite-muted">Načítání historie inventur...</div>
                   </div>
                 </div>
               )}
@@ -731,7 +731,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
               {/* History Error State */}
               {historyError && (
                 <div className="flex items-center justify-center h-64">
-                  <div className="text-red-600">
+                  <div className="text-red-600 dark:text-red-400">
                     Chyba při načítání historie: {historyError.message}
                   </div>
                 </div>
@@ -741,57 +741,57 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
               {!historyLoading && !historyError && historyData && (
                 <div>
                   <div className="mb-4">
-                    <h5 className="text-lg font-semibold text-gray-900">
+                    <h5 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
                       Historie inventur materiálu ({historyData.totalCount || 0})
                     </h5>
                   </div>
 
                   {historyData.items && historyData.items.length > 0 ? (
                     <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+                        <thead className="bg-gray-50 dark:bg-graphite-surface-2">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-graphite-muted">
                               Datum
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-graphite-muted">
                               Staré množství
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-graphite-muted">
                               Nové množství
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-graphite-muted">
                               Rozdíl
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-graphite-muted">
                               Uživatel
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-white divide-y divide-gray-200 dark:bg-graphite-surface dark:divide-graphite-border">
                           {historyData.items?.map((record, index) => (
-                            <tr key={record.id || index} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <tr key={record.id || index} className="hover:bg-gray-50 dark:hover:bg-white/5">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                                 {record.date ? new Date(record.date).toLocaleString('cs-CZ') : 'N/A'}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                                 {record.amountOld !== undefined ? record.amountOld.toFixed(2) : 'N/A'}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                                 {record.amountNew !== undefined ? record.amountNew.toFixed(2) : 'N/A'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">
                                 <span className={`${
-                                  (record.difference || 0) > 0 
-                                    ? 'text-green-600' 
-                                    : (record.difference || 0) < 0 
-                                    ? 'text-red-600' 
-                                    : 'text-gray-600'
+                                  (record.difference || 0) > 0
+                                    ? 'text-green-600 dark:text-emerald-400'
+                                    : (record.difference || 0) < 0
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-gray-600 dark:text-graphite-muted'
                                 }`}>
                                   {(record.difference || 0) > 0 ? '+' : ''}{record.difference !== undefined ? record.difference.toFixed(2) : '0.00'}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
                                 {record.user || 'N/A'}
                               </td>
                             </tr>
@@ -801,8 +801,8 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <History className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                      <p className="text-gray-500">
+                      <History className="h-12 w-12 mx-auto text-gray-400 mb-4 dark:text-graphite-faint" />
+                      <p className="text-gray-500 dark:text-graphite-muted">
                         Žádné záznamy inventur pro tento materiál
                       </p>
                     </div>

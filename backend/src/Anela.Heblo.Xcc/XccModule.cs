@@ -1,4 +1,5 @@
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
+using Anela.Heblo.Xcc.Services.Concurrency;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Services.Dashboard.Tiles;
 using Microsoft.Extensions.Configuration;
@@ -17,10 +18,12 @@ public static class XccModule
         // Register background refresh services with configuration support
         services.AddBackgroundRefresh(configuration);
 
+        // Register concurrency services
+        services.AddSingleton<IKeyedAsyncLock, KeyedAsyncLock>();
+
         // Register dashboard services
         services.Configure<DashboardOptions>(configuration.GetSection(DashboardOptions.SectionName));
         services.AddSingleton<ITileRegistry, TileRegistry>();
-        services.AddScoped<IDashboardService, DashboardService>();
 
         // Register system tiles
         services.RegisterTile<BackgroundTaskStatusTile>();

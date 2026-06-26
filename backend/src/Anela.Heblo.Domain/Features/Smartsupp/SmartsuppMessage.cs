@@ -7,6 +7,7 @@ public class SmartsuppMessage
     public SmartsuppConversation Conversation { get; set; } = null!;
     public SmartsuppMessageAuthorType AuthorType { get; set; }
     public string? SubType { get; set; }
+    public string? MessageType { get; set; }
     public string? AuthorName { get; set; }
     public string? Content { get; set; }
     public string? TriggerName { get; set; }

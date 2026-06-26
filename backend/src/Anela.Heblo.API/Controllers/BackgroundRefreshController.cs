@@ -1,12 +1,13 @@
+using Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[FeatureAuthorize(Feature.Admin_Administration)]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class BackgroundRefreshController : ControllerBase
 {
     private readonly ILogger<BackgroundRefreshController> _logger;
@@ -57,6 +58,7 @@ public class BackgroundRefreshController : ControllerBase
     }
 
     [HttpPost("tasks/{taskId}/force-refresh")]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult> ForceRefresh(string taskId, CancellationToken cancellationToken)
     {
         try
@@ -76,6 +78,43 @@ public class BackgroundRefreshController : ControllerBase
         {
             _logger.LogError(ex, "Unexpected error during force refresh of task '{TaskId}'", taskId);
             return StatusCode(500, new { Error = "An unexpected error occurred during force refresh" });
+        }
+    }
+
+    [HttpPost("tiers/{tier}/run")]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
+    public async Task<ActionResult> RunHydrationTier(int tier, CancellationToken cancellationToken)
+    {
+        var tasksInTier = _taskRegistry.GetRegisteredTasks()
+            .Where(t => t.HydrationTier == tier && t.Enabled)
+            .OrderBy(t => t.TaskId)
+            .ToList();
+
+        if (tasksInTier.Count == 0)
+        {
+            return NotFound(new { Error = $"No enabled tasks found for tier {tier}" });
+        }
+
+        _logger.LogInformation("Manual hydration of tier {Tier} requested ({TaskCount} tasks)", tier, tasksInTier.Count);
+
+        try
+        {
+            foreach (var task in tasksInTier)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await _taskRegistry.ForceRefreshAsync(task.TaskId, cancellationToken);
+            }
+
+            return Ok(new { Message = $"Tier {tier} hydration completed ({tasksInTier.Count} tasks)" });
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499, new { Error = "Hydration was cancelled" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Manual hydration of tier {Tier} failed", tier);
+            return StatusCode(500, new { Error = "An unexpected error occurred during tier hydration" });
         }
     }
 

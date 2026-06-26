@@ -9,6 +9,7 @@ import {
   ManufactureOutputMonth,
 } from "../../api/hooks/useManufactureOutput";
 import ManufactureOutputModal from "./ManufactureOutputModal";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 // Color palette for products (from highest weighted value to lowest)
 const PRODUCT_COLORS = [
@@ -32,6 +33,7 @@ const PRODUCT_COLORS = [
 const OTHER_COLOR = "#9CA3AF"; // Gray for other products
 
 const ManufactureOutput: React.FC = () => {
+  useScreenView('Manufacturing', 'ManufactureOutput');
   const { data, isLoading, error, refetch } = useManufactureOutputQuery(13);
   const [selectedMonth, setSelectedMonth] =
     useState<ManufactureOutputMonth | null>(null);
@@ -248,7 +250,7 @@ const ManufactureOutput: React.FC = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-red-600">
+        <div className="text-red-600 dark:text-red-400">
           Chyba při načítání dat: {(error as Error).message}
         </div>
       </div>
@@ -256,19 +258,19 @@ const ManufactureOutput: React.FC = () => {
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-gray-50">
+    <div className="absolute inset-0 flex flex-col bg-gray-50 dark:bg-graphite-surface-2">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+      <div className="bg-white dark:bg-graphite-surface border-b border-gray-200 dark:border-graphite-border px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Factory className="h-6 w-6 text-indigo-600" />
-            <h1 className="text-2xl font-semibold text-gray-900">
+            <Factory className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-graphite-text">
               Souhrn výroby
             </h1>
           </div>
           <button
             onClick={() => refetch()}
-            className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="flex items-center px-4 py-2 bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark text-sm font-medium text-gray-700 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Obnovit
@@ -278,35 +280,35 @@ const ManufactureOutput: React.FC = () => {
 
       {/* Summary Stats */}
       {summaryStats && (
-        <div className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
+        <div className="bg-white dark:bg-graphite-surface border-b border-gray-200 dark:border-graphite-border px-6 py-3 flex-shrink-0">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Celkový výtlak</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-graphite-muted">Celkový výtlak</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
                 {summaryStats.totalOutput.toFixed(1)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Průměr za měsíc</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-graphite-muted">Průměr za měsíc</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
                 {summaryStats.avgMonthlyOutput.toFixed(1)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Nejproduktivnější měsíc</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-graphite-muted">Nejproduktivnější měsíc</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
                 {summaryStats.maxMonth}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-graphite-muted">
                 ({summaryStats.maxMonthValue.toFixed(1)})
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Nejproduktivnější produkt</p>
-              <p className="text-lg font-semibold text-gray-900 truncate">
+              <p className="text-sm text-gray-600 dark:text-graphite-muted">Nejproduktivnější produkt</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-graphite-text truncate">
                 {summaryStats.topProduct}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-graphite-muted">
                 ({summaryStats.topProductValue.toFixed(1)})
               </p>
             </div>
@@ -316,12 +318,12 @@ const ManufactureOutput: React.FC = () => {
 
       {/* Chart - takes full remaining height */}
       <div className="flex-1 p-4 min-h-0">
-        <div className="bg-white rounded-lg shadow p-4 h-full flex flex-col">
+        <div className="bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark p-4 h-full flex flex-col">
           <div className="flex items-center justify-between mb-3 flex-shrink-0">
-            <h2 className="text-lg font-medium text-gray-900">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-graphite-text">
               Vážený výtlak výroby za posledních 13 měsíců
             </h2>
-            <TrendingUp className="h-5 w-5 text-gray-400" />
+            <TrendingUp className="h-5 w-5 text-gray-400 dark:text-graphite-faint" />
           </div>
 
           {chartData && (

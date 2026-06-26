@@ -181,6 +181,8 @@ export interface IngredientDto {
   productName: string;
   amount: number;
   unit: string;
+  order: number;
+  phaseLabel?: string | null;
 }
 
 export interface ProductCompositionResponse {

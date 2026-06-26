@@ -287,6 +287,40 @@ export const ExpectedDashboardStats = {
 } as const;
 
 /**
+ * Well-known packing/balení orders for testing
+ */
+export const TestPackingOrders: Record<string, string | null> = {
+  // Multi-package order in packing state
+  // TODO: Set a real multi-package packing order code from staging environment
+  multiPackagePacking: null,
+
+  // An order in packing state (statusId 26) that has NO existing Shoptet shipment.
+  // Set a real staging order code here before running E2E tests.
+  // Throw (never skip) if missing — see CLAUDE.md rule.
+  noShipmentPacking: null,
+
+  // An order in packing state that ALREADY HAS a Shoptet shipment.
+  // Used to test the reuse/create-new choice.
+  existingShipmentPacking: null
+};
+
+export interface MaterialContainerFixture {
+  codePrefix: string;
+  materialCode: string;
+  lotCode: string;
+}
+
+/**
+ * Fixture for material container (lot identification) E2E tests.
+ * materialCode: AKL001 (Bisabolol) — stable material present on staging per docs/testing/test-data-fixtures.md
+ */
+export const materialContainerFixtures: MaterialContainerFixture = {
+  codePrefix: 'M999',
+  materialCode: 'AKL001',
+  lotCode: 'E2E-LOT',
+};
+
+/**
  * Helper function to verify test data exists
  * Use this at the beginning of tests to fail fast if data is missing
  */

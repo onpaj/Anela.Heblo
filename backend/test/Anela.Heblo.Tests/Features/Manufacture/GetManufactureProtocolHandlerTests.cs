@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -26,7 +27,8 @@ public class GetManufactureProtocolHandlerTests
     [Fact]
     public async Task Handle_NonCompletedOrder_Throws()
     {
-        var order = new ManufactureOrder { Id = 1, State = ManufactureOrderState.Planned, OrderNumber = "MO-2026-001" };
+        var order = new ManufactureOrder { Id = 1, OrderNumber = "MO-2026-001" };
+        order.InitializeState(ManufactureOrderState.Planned, DateTime.UtcNow, "test");
         _repositoryMock
             .Setup(r => r.GetOrderByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
@@ -157,15 +159,55 @@ public class GetManufactureProtocolHandlerTests
         capturedData.Notes[0].Text.Should().Be("Test note");
     }
 
+    [Fact]
+    public async Task Handle_CompletedOrder_MapsConditionsReadingsToProtocolData()
+    {
+        var order = BuildCompletedOrder();
+        _repositoryMock
+            .Setup(r => r.GetOrderByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        _flexiMock
+            .Setup(x => x.GetErpDocumentItemsAsync(It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ManufactureErpDocumentItem>());
+
+        ManufactureProtocolData? capturedData = null;
+        _rendererMock
+            .Setup(r => r.Render(It.IsAny<ManufactureProtocolData>()))
+            .Callback<ManufactureProtocolData>(d => capturedData = d)
+            .Returns(PdfMagicBytes);
+
+        await _handler.Handle(new GetManufactureProtocolRequest { Id = 1 }, CancellationToken.None);
+
+        capturedData.Should().NotBeNull();
+        capturedData!.ConditionsReadings.Should().HaveCount(2);
+
+        var first = capturedData.ConditionsReadings[0];
+        first.Stage.Should().Be(ManufactureOrderState.SemiProductManufactured);
+        first.InnerTemperature.Should().Be(21.4m);
+        first.InnerHumidity.Should().Be(45.2m);
+        first.OuterTemperature.Should().Be(18.9m);
+        first.OuterHumidity.Should().Be(52.1m);
+        first.RecordedAt.Should().Be(new DateTime(2026, 4, 1, 10, 30, 0, DateTimeKind.Utc));
+        first.Source.Should().Be(ConditionsReadingSource.Live);
+
+        var second = capturedData.ConditionsReadings[1];
+        second.Stage.Should().Be(ManufactureOrderState.Completed);
+        second.InnerTemperature.Should().Be(22.0m);
+        second.InnerHumidity.Should().BeNull();
+        second.OuterTemperature.Should().BeNull();
+        second.OuterHumidity.Should().BeNull();
+        second.RecordedAt.Should().Be(new DateTime(2026, 4, 2, 14, 0, 0, DateTimeKind.Utc));
+        second.Source.Should().Be(ConditionsReadingSource.Partial);
+    }
+
     private static ManufactureOrder BuildCompletedOrder()
     {
-        return new ManufactureOrder
+        var order = new ManufactureOrder
         {
             Id = 1,
             OrderNumber = "MO-2026-001",
-            State = ManufactureOrderState.Completed,
             CreatedDate = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
-            StateChangedAt = new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc),
             ResponsiblePerson = "Jana Nováková",
             ManufactureType = ManufactureType.MultiPhase,
             SemiProduct = new ManufactureOrderSemiProduct
@@ -202,6 +244,31 @@ public class GetManufactureProtocolHandlerTests
             DocMaterialIssueForProduct = null, // Optional — not present in this order
             DocProductReceipt = "V-PROD-001",
             DocProductReceiptDate = new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc),
+            ConditionsReadings = new List<ManufactureOrderConditionsReading>
+            {
+                new()
+                {
+                    Stage = ManufactureOrderState.SemiProductManufactured,
+                    InnerTemperature = 21.4m,
+                    InnerHumidity = 45.2m,
+                    OuterTemperature = 18.9m,
+                    OuterHumidity = 52.1m,
+                    RecordedAt = new DateTime(2026, 4, 1, 10, 30, 0, DateTimeKind.Utc),
+                    Source = ConditionsReadingSource.Live,
+                },
+                new()
+                {
+                    Stage = ManufactureOrderState.Completed,
+                    InnerTemperature = 22.0m,
+                    InnerHumidity = null,
+                    OuterTemperature = null,
+                    OuterHumidity = null,
+                    RecordedAt = new DateTime(2026, 4, 2, 14, 0, 0, DateTimeKind.Utc),
+                    Source = ConditionsReadingSource.Partial,
+                },
+            },
         };
+        order.InitializeState(ManufactureOrderState.Completed, new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc), null!);
+        return order;
     }
 }

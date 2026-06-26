@@ -8,9 +8,9 @@ public class GetLeafletDocumentsHandler : IRequestHandler<GetLeafletDocumentsReq
     private static readonly int[] AllowedPageSizes = [10, 20, 50];
     private static readonly string[] AllowedSortColumns = ["Filename", "Status", "IngestedAt", "IndexedAt"];
 
-    private readonly ILeafletRepository _leafletRepository;
+    private readonly ILeafletDocumentRepository _leafletRepository;
 
-    public GetLeafletDocumentsHandler(ILeafletRepository leafletRepository)
+    public GetLeafletDocumentsHandler(ILeafletDocumentRepository leafletRepository)
     {
         _leafletRepository = leafletRepository;
     }

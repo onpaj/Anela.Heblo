@@ -46,19 +46,21 @@ jest.mock("../../../api/hooks/useManufacturingStockAnalysis", () => ({
   formatPercentage: (value: number) => `${value}%`,
   formatWarehouseStock: (item: any) => {
     const totalStock = (item.currentStock || 0).toLocaleString("cs-CZ");
-    const transportStock = item.transportStock || 0;
-    
-    if (transportStock === 0) {
+    const transport = item.transportStock || 0;
+    const manufactured = item.manufacturedStock || 0;
+    if (transport === 0 && manufactured === 0) {
       return totalStock;
     }
-    
     const erpStock = item.erpStock || 0;
     const eshopStock = item.eshopStock || 0;
-    const primaryStock = item.primaryStockSource === "Erp" 
-      ? erpStock.toLocaleString("cs-CZ")
-      : eshopStock.toLocaleString("cs-CZ");
-    const transportStockFormatted = transportStock.toLocaleString("cs-CZ");
-    return `${totalStock} (${primaryStock}+${transportStockFormatted})`;
+    const primaryStock =
+      item.primaryStockSource === "Erp"
+        ? erpStock.toLocaleString("cs-CZ")
+        : eshopStock.toLocaleString("cs-CZ");
+    const parts = [primaryStock];
+    if (transport !== 0) parts.push(transport.toLocaleString("cs-CZ"));
+    if (manufactured !== 0) parts.push(manufactured.toLocaleString("cs-CZ"));
+    return `${totalStock} (${parts.join("+")})`;
   },
   getTimePeriodDisplayText: (timePeriod: any) =>
     timePeriod === "Q9M" ? "9M (6 měsíců + prognóza 3 měsíce)" : "Minulý kvartal",
@@ -535,6 +537,69 @@ describe("ManufacturingStockAnalysis", () => {
     render(<ManufacturingStockAnalysis />, { wrapper: createWrapper() });
 
     expect(screen.getByText("1.5x")).toBeInTheDocument();
+  });
+
+  it("renders the Vyrobeno column with the manufactured stock value", () => {
+    mockUseManufacturingStockAnalysisQuery.mockReturnValue({
+      data: {
+        items: [
+          {
+            code: "PROD001",
+            name: "Product One",
+            currentStock: 112,
+            erpStock: 100,
+            eshopStock: 0,
+            transportStock: 0,
+            manufacturedStock: 12,
+            primaryStockSource: "Erp",
+            reserve: 0,
+            quarantine: 0,
+            planned: 0,
+            salesInPeriod: 50,
+            dailySalesRate: 2,
+            optimalDaysSetup: 20,
+            stockDaysAvailable: 56,
+            minimumStock: 10,
+            overstockPercentage: 280,
+            batchSize: "25",
+            productFamily: "PROD00",
+            severity: "Adequate",
+            isConfigured: true,
+          },
+        ],
+        summary: {
+          totalProducts: 1,
+          criticalCount: 0,
+          majorCount: 0,
+          minorCount: 0,
+          adequateCount: 1,
+          unconfiguredCount: 0,
+          analysisPeriodStart: "2023-01-01T00:00:00Z",
+          analysisPeriodEnd: "2023-03-31T23:59:59Z",
+          productFamilies: ["PROD00"],
+        },
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    render(
+      <BrowserRouter>
+        <QueryClientProvider client={new QueryClient()}>
+          <ToastProvider>
+            <PlanningListProvider>
+              <ManufacturingStockAnalysis />
+            </PlanningListProvider>
+          </ToastProvider>
+        </QueryClientProvider>
+      </BrowserRouter>,
+    );
+
+    expect(screen.getByText("Vyrobeno")).toBeInTheDocument();
+    expect(screen.getByText("12")).toBeInTheDocument();
   });
 
   it("renders Q9M option in time period dropdown", () => {

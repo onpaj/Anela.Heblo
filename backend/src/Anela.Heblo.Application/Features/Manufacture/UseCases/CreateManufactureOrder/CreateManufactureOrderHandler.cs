@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -11,20 +12,20 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
 {
     private readonly IManufactureOrderRepository _repository;
     private readonly IProductNameFormatter _productNameFormatter;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
     private readonly ICurrentUserService _currentUserService;
     private readonly TimeProvider _timeProvider;
 
     public CreateManufactureOrderHandler(
         IManufactureOrderRepository repository,
         IProductNameFormatter productNameFormatter,
-        ICatalogRepository catalogRepository,
+        IManufactureCatalogSource catalogSource,
         ICurrentUserService currentUserService,
         TimeProvider timeProvider)
     {
         _repository = repository;
         _productNameFormatter = productNameFormatter;
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
         _currentUserService = currentUserService;
         _timeProvider = timeProvider;
     }
@@ -35,31 +36,33 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
     {
         var currentUser = _currentUserService.GetCurrentUser();
 
-        // Generate unique order number
-        var orderNumber = await _repository.GenerateOrderNumberAsync(cancellationToken);
+        // Cache one TimeProvider reading so the year, CreatedDate, StateChangedAt,
+        // expiration date, and lot number on the new row all derive from the same instant.
+        var now = _timeProvider.GetUtcNow();
+
+        // Generate unique order number using the UTC year — must agree with CreatedDate below.
+        var orderNumber = await _repository.GenerateOrderNumberAsync(now.Year, cancellationToken);
 
         // Create the manufacture order
         var order = new ManufactureOrder
         {
             OrderNumber = orderNumber,
-            CreatedDate = DateTime.UtcNow,
+            CreatedDate = now.DateTime,
             CreatedByUser = currentUser.Name,
             ResponsiblePerson = request.ResponsiblePerson,
             PlannedDate = request.PlannedDate,
-            ManufactureType = request.ManufactureType,
-            State = ManufactureOrderState.Draft,
-            StateChangedAt = DateTime.UtcNow,
-            StateChangedByUser = currentUser.Name
+            ManufactureType = request.ManufactureType
         };
+        order.InitializeState(ManufactureOrderState.Draft, now.DateTime, currentUser.Name);
 
-        var semiproduct = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+        var semiproduct = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
         if (semiproduct == null)
         {
             return new CreateManufactureOrderResponse(ErrorCodes.ProductNotFound);
         }
 
-        var expirationDate = ManufactureOrderExtensions.GetDefaultExpiration(_timeProvider.GetUtcNow().DateTime, semiproduct.Properties.ExpirationMonths);
-        var lotNumber = ManufactureOrderExtensions.GetDefaultLot(_timeProvider.GetUtcNow().DateTime);
+        var expirationDate = ManufactureOrderExtensions.GetDefaultExpiration(now.DateTime, semiproduct.Properties.ExpirationMonths);
+        var lotNumber = ManufactureOrderExtensions.GetDefaultLot(now.DateTime);
 
         // Create the semi-product entry
         if (request.ManufactureType == ManufactureType.MultiPhase)

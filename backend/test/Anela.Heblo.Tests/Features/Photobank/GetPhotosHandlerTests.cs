@@ -161,4 +161,26 @@ public class GetPhotosHandlerTests
 
         _repositoryMock.Verify(r => r.GetPhotosAsync(null, @"^report_\d+", true, false, 1, 48, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Handle_InvalidRegexPattern_ReturnsStructuredError()
+    {
+        // Arrange
+        const string invalidPattern = "(unclosed";
+
+        _repositoryMock
+            .Setup(r => r.GetPhotosAsync(null, invalidPattern, true, false, 1, 48, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidPhotoSearchPatternException(invalidPattern));
+
+        var request = new GetPhotosRequest { Search = invalidPattern, UseRegex = true };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.PhotobankInvalidRegexPattern);
+        result.Params.Should().ContainKey("pattern");
+        result.Params!["pattern"].Should().Be(invalidPattern);
+    }
 }

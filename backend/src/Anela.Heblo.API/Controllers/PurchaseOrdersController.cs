@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrderById;
+using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrderHistory;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrders;
 using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
@@ -8,13 +9,13 @@ using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderInvo
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrderStatus;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.API.Infrastructure;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[FeatureAuthorize(Feature.Purchase_PurchaseOrders)]
 [ApiController]
 [Route("api/purchase-orders")]
 public class PurchaseOrdersController : BaseApiController
@@ -36,6 +37,7 @@ public class PurchaseOrdersController : BaseApiController
     }
 
     [HttpPost]
+    [FeatureAuthorize(Feature.Purchase_PurchaseOrders, AccessLevel.Write)]
     public async Task<ActionResult<CreatePurchaseOrderResponse>> CreatePurchaseOrder(
         [FromBody] CreatePurchaseOrderRequest request,
         CancellationToken cancellationToken)
@@ -67,6 +69,7 @@ public class PurchaseOrdersController : BaseApiController
     }
 
     [HttpPut("{id:int}")]
+    [FeatureAuthorize(Feature.Purchase_PurchaseOrders, AccessLevel.Write)]
     public async Task<ActionResult<UpdatePurchaseOrderResponse>> UpdatePurchaseOrder(
         [FromRoute] int id,
         [FromBody] UpdatePurchaseOrderRequest request,
@@ -89,6 +92,7 @@ public class PurchaseOrdersController : BaseApiController
     }
 
     [HttpPut("{id:int}/status")]
+    [FeatureAuthorize(Feature.Purchase_PurchaseOrders, AccessLevel.Write)]
     public async Task<ActionResult<UpdatePurchaseOrderStatusResponse>> UpdatePurchaseOrderStatus(
         [FromRoute] int id,
         [FromBody] UpdatePurchaseOrderStatusRequest request,
@@ -111,6 +115,7 @@ public class PurchaseOrdersController : BaseApiController
     }
 
     [HttpPut("{id:int}/invoice-acquired")]
+    [FeatureAuthorize(Feature.Purchase_PurchaseOrders, AccessLevel.Write)]
     public async Task<ActionResult<UpdatePurchaseOrderInvoiceAcquiredResponse>> UpdateInvoiceAcquired(
         [FromRoute] int id,
         [FromBody] UpdatePurchaseOrderInvoiceAcquiredRequest request,
@@ -132,23 +137,12 @@ public class PurchaseOrdersController : BaseApiController
         [FromRoute] int id,
         CancellationToken cancellationToken)
     {
-        var request = new GetPurchaseOrderByIdRequest(id);
-        var response = await _mediator.Send(request, cancellationToken);
-
-        if (!response.Success)
-        {
-            return HandleResponse<ListResponse<PurchaseOrderHistoryDto>>(new ListResponse<PurchaseOrderHistoryDto>(response.ErrorCode!.Value, response.Params));
-        }
-
-        var listResponse = new ListResponse<PurchaseOrderHistoryDto>
-        {
-            Items = response.History,
-            TotalCount = response.History.Count
-        };
-        return Ok(listResponse);
+        var response = await _mediator.Send(new GetPurchaseOrderHistoryRequest(id), cancellationToken);
+        return HandleResponse(response);
     }
 
     [HttpPost("recalculate-purchase-price")]
+    [FeatureAuthorize(Feature.Purchase_PurchaseOrders, AccessLevel.Write)]
     public async Task<ActionResult<RecalculatePurchasePriceResponse>> RecalculatePurchasePrice(
         [FromBody] RecalculatePurchasePriceRequest request,
         CancellationToken cancellationToken)

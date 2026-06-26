@@ -11,6 +11,25 @@
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <script>
+      // Apply the saved theme before the bundle loads to avoid a flash of light mode.
+      // Light is the default; dark is only applied when explicitly saved.
+      (function () {
+        try {
+          if (localStorage.getItem('anela-theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <script>
+      var p = location.pathname;
+      if (p === '/terminal' || p.startsWith('/terminal/')) {
+        document.querySelector('link[rel="manifest"]').setAttribute('href', '/manifest.terminal.json');
+      } else if (p === '/baleni' || p.startsWith('/baleni/')) {
+        document.querySelector('link[rel="manifest"]').setAttribute('href', '/manifest.baleni.json');
+      }
+    </script>
     <title>Anela Heblo</title>
   </head>
   <body>

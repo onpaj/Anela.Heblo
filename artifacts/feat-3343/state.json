@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-3343",
+  "issue_number": 3343,
+  "created_at": "2026-06-25T11:14:50.468059Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T11:17:11.861419Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-25T11:19:45.172461Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T11:20:03.056402Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-25T11:22:03.940432Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T11:30:22.912913Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-06-25T11:30:33.922168Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-auth-helper-url",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T11:24:39.229642Z"
+    },
+    {
+      "name": "fix-navigation-spec",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T11:26:52.156109Z"
+    },
+    {
+      "name": "fix-spec-url-assertions",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T11:28:50.597679Z"
+    },
+    {
+      "name": "verify-no-remaining-occurrences",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T11:30:22.667999Z"
+    }
+  ]
+}

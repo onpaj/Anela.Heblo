@@ -34,27 +34,31 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
             return new DuplicateManufactureOrderResponse(ErrorCodes.OrderNotFound);
         }
 
-        // Generate unique order number for the duplicate
-        var orderNumber = await _repository.GenerateOrderNumberAsync(cancellationToken);
+        // Cache one TimeProvider reading so the year, CreatedDate, StateChangedAt,
+        // PlannedDate, expiration date, and lot number on the duplicate row all derive from the same instant.
+        var now = _timeProvider.GetUtcNow();
 
-        // Get the current date for lot number and expiration calculations
-        var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime);
+        // Generate unique order number for the duplicate using the UTC year.
+        var orderNumber = await _repository.GenerateOrderNumberAsync(now.Year, cancellationToken);
+
+        // Today (UTC) for lot number and expiration calculations
+        var today = DateOnly.FromDateTime(now.DateTime);
 
         // Create the duplicate order
         var duplicateOrder = new ManufactureOrder
         {
             OrderNumber = orderNumber,
-            CreatedDate = DateTime.UtcNow,
-            CreatedByUser = currentUser.Name,
+            CreatedDate = now.DateTime,
+            CreatedByUser = currentUser.GetDisplayName(),
             ResponsiblePerson = sourceOrder.ResponsiblePerson,
-            PlannedDate = today,
-            State = ManufactureOrderState.Draft,
-            StateChangedAt = DateTime.UtcNow,
-            StateChangedByUser = currentUser.Name
+            PlannedDate = today
         };
+        duplicateOrder.InitializeState(ManufactureOrderState.Draft, now.DateTime, currentUser.GetDisplayName());
 
-        var expirationDate = ManufactureOrderExtensions.GetDefaultExpiration(_timeProvider.GetUtcNow().DateTime, sourceOrder.SemiProduct.ExpirationMonths);
-        var lotNumber = ManufactureOrderExtensions.GetDefaultLot(_timeProvider.GetUtcNow().DateTime);
+        var expirationDate = sourceOrder.SemiProduct != null
+            ? ManufactureOrderExtensions.GetDefaultExpiration(now.DateTime, sourceOrder.SemiProduct.ExpirationMonths)
+            : (DateOnly?)null;
+        var lotNumber = ManufactureOrderExtensions.GetDefaultLot(now.DateTime);
 
         // Duplicate the semi-product with updated lot number and expiration date
         if (sourceOrder.SemiProduct != null)

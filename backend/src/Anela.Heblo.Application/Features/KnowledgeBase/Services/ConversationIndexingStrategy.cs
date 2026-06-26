@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Shared.Rag;
 using Microsoft.Extensions.AI;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;

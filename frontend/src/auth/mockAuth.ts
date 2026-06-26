@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { UserInfo } from "./useAuth";
 import { StoredUserInfo, UserStorage } from "./userStorage";
+import { ACCESS_ROLES } from "./accessMatrix.generated";
 
 // Types for the centralized mock auth service
 interface AuthResult {
@@ -23,7 +24,7 @@ export const createMockUser = (): MockUser => {
     name: "Mock User",
     email: "mock@anela-heblo.com",
     initials: "MU",
-    roles: ["finance_reader", "super_user", "marketing_reader"],
+    roles: [...ACCESS_ROLES],
   };
 };
 

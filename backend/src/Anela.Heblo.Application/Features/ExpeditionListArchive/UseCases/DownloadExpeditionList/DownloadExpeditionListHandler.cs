@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
 using Microsoft.Extensions.Options;
@@ -10,7 +9,7 @@ public class DownloadExpeditionListHandler : IRequestHandler<DownloadExpeditionL
     private readonly IBlobStorageService _blobStorageService;
     private readonly string _containerName;
 
-    public DownloadExpeditionListHandler(IBlobStorageService blobStorageService, IOptions<PrintPickingListOptions> options)
+    public DownloadExpeditionListHandler(IBlobStorageService blobStorageService, IOptions<ExpeditionListArchiveOptions> options)
     {
         _blobStorageService = blobStorageService;
         _containerName = options.Value.BlobContainerName;
@@ -20,7 +19,7 @@ public class DownloadExpeditionListHandler : IRequestHandler<DownloadExpeditionL
     {
         if (!BlobPathValidator.IsValid(request.BlobPath))
         {
-            return DownloadExpeditionListResponse.Fail("Invalid blob path.");
+            return DownloadExpeditionListResponse.Fail();
         }
 
         var stream = await _blobStorageService.DownloadAsync(_containerName, request.BlobPath, cancellationToken);

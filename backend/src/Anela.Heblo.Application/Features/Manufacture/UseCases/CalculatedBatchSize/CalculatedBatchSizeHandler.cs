@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -8,12 +9,12 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBy
 public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeRequest, CalculatedBatchSizeResponse>
 {
     private readonly IManufactureClient _manufactureClient;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
 
-    public CalculatedBatchSizeHandler(IManufactureClient manufactureClient, ICatalogRepository catalogRepository)
+    public CalculatedBatchSizeHandler(IManufactureClient manufactureClient, IManufactureCatalogSource catalogSource)
     {
         _manufactureClient = manufactureClient;
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
     }
 
     public async Task<CalculatedBatchSizeResponse> Handle(CalculatedBatchSizeRequest request, CancellationToken cancellationToken)
@@ -21,7 +22,7 @@ public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeReq
         try
         {
             var template = await _manufactureClient.GetManufactureTemplateAsync(request.ProductCode, cancellationToken);
-            var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+            var product = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
 
             if (template == null)
             {
@@ -50,14 +51,15 @@ public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeReq
 
             // Batch-load all ingredient catalog entries in a single call (avoids N+1 queries)
             var ingredientCodes = template.Ingredients.Select(i => i.ProductCode).ToHashSet();
-            var ingredientCatalogEntries = await _catalogRepository.FindAsync(
-                x => ingredientCodes.Contains(x.ProductCode),
-                cancellationToken);
-            var ingredientCatalogByCode = ingredientCatalogEntries.ToDictionary(x => x.ProductCode);
+            var ingredientCatalogByCode = await _catalogSource.GetByIdsAsync(ingredientCodes, cancellationToken);
+
+            var sortedIngredients = template.Ingredients
+                .OrderBy(i => i.Order == 0 ? int.MaxValue : i.Order)
+                .ThenBy(i => i.ProductName);
 
             // Create ingredients list with stock information
             var ingredientsWithStock = new List<CalculatedIngredientDto>();
-            foreach (var ingredient in template.Ingredients)
+            foreach (var ingredient in sortedIngredients)
             {
                 ingredientCatalogByCode.TryGetValue(ingredient.ProductCode, out var ingredientCatalog);
 
@@ -74,7 +76,8 @@ public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeReq
                     CalculatedAmount = Math.Round(ingredient.Amount * scaleFactor, 2),
                     Price = ingredient.Price,
                     StockTotal = ingredientCatalog?.Stock?.Total ?? 0,
-                    LastStockTaking = lastStockTaking
+                    LastStockTaking = lastStockTaking,
+                    PhaseLabel = ingredient.PhaseLabel,
                 });
             }
 

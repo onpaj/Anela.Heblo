@@ -1,0 +1,1 @@
+Spec written to `artifacts/feat-arch-review-expeditionlist-combinedprint/spec.md`. It captures the refactor: strip `[FromKeyedServices]` from `CombinedPrintQueueSink`, move the class from `Anela.Heblo.Application` to `Anela.Heblo.API`, and replace the `"Combined"` DI registration with an explicit factory delegate. Status: COMPLETE.

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { GenerateArticleRequest } from '../../api/generated/api-client';
 import { useGenerateArticleMutation } from '../../api/hooks/useArticles';
-import { useMarketingWriterPermission } from '../../api/hooks/useMarketingWriterPermission';
+import { usePermissionsContext } from '../../auth/PermissionsContext';
 
 interface ArticleGenerationFormProps {
   onArticleCreated: (articleId: string) => void;
@@ -22,7 +22,8 @@ const LENGTH_OPTIONS = [
 ];
 
 export default function ArticleGenerationForm({ onArticleCreated }: ArticleGenerationFormProps) {
-  const canGenerate = useMarketingWriterPermission();
+  const { hasPermission } = usePermissionsContext();
+  const canGenerate = hasPermission('marketing.article.write');
   const { mutate: generate, isPending, error } = useGenerateArticleMutation();
 
   const [topic, setTopic] = useState('');
@@ -30,6 +31,7 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
   const [length, setLength] = useState('medium (1000w)');
   const [audience, setAudience] = useState('');
   const [angle, setAngle] = useState('');
+  const [languageNote, setLanguageNote] = useState('');
   const [useKnowledgeBase, setUseKnowledgeBase] = useState(true);
   const [useWebSearch, setUseWebSearch] = useState(true);
   const [styleGuideDriveId, setStyleGuideDriveId] = useState('');
@@ -48,6 +50,7 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
       length,
       audience: audience.trim() || undefined,
       angle: angle.trim() || undefined,
+      languageNote: languageNote.trim() || undefined,
       useKnowledgeBase,
       useWebSearch,
       styleGuideDriveId: styleGuideDriveId.trim() || undefined,
@@ -125,6 +128,18 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
           value={angle}
           onChange={(e) => setAngle(e.target.value)}
           placeholder="Např. zaměřit se na vědecké studie"
+          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Poznámka k tónu / jazyku</label>
+        <input
+          type="text"
+          value={languageNote}
+          onChange={(e) => setLanguageNote(e.target.value)}
+          placeholder="Např. krátké věty, vyhýbat se odborným termínům"
+          maxLength={500}
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>

@@ -54,11 +54,11 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
 
   if (tiles.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+      <div className="flex items-center justify-center h-64 bg-gray-50 dark:bg-graphite-surface-2 rounded-lg border-2 border-dashed border-gray-300 dark:border-graphite-border">
         <div className="text-center">
-          <div className="text-gray-400 text-lg mb-2">📊</div>
-          <p className="text-gray-600 font-medium">Žádné dlaždice k zobrazení</p>
-          <p className="text-gray-500 text-sm">Přidejte dlaždice v nastavení</p>
+          <div className="text-gray-400 dark:text-graphite-faint text-lg mb-2">📊</div>
+          <p className="text-gray-600 dark:text-graphite-muted font-medium">Žádné dlaždice k zobrazení</p>
+          <p className="text-gray-500 dark:text-graphite-muted text-sm">Přidejte dlaždice v nastavení</p>
         </div>
       </div>
     );

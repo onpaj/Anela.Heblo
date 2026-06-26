@@ -2,6 +2,10 @@ import React from "react";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import MarketingActionModal from "../MarketingActionModal";
 import { MarketingActionDto } from "../../list/MarketingActionGrid";
+import {
+  MarketingActionType,
+  MarketingFolderType,
+} from "../../../../api/generated/api-client";
 
 const mockCreateMutateAsync = jest.fn();
 const mockUpdateMutateAsync = jest.fn();
@@ -66,28 +70,30 @@ beforeEach(() => {
 // ─── CREATE ────────────────────────────────────────────────────────────────────
 
 describe("MarketingActionModal — create", () => {
-  it("submits actionType as a number, not a label string", async () => {
+  it("submits actionType as the string enum value, not a label string", async () => {
     render(<MarketingActionModal {...defaultProps} />);
     fillRequiredFields();
     submitForm();
 
     await waitFor(() =>
       expect(mockCreateMutateAsync).toHaveBeenCalledWith(
-        expect.objectContaining({ actionType: 0 }),
+        expect.objectContaining({ actionType: MarketingActionType.SocialMedia }),
       ),
     );
-    expect(typeof mockCreateMutateAsync.mock.calls[0][0].actionType).toBe("number");
+    expect(typeof mockCreateMutateAsync.mock.calls[0][0].actionType).toBe("string");
   });
 
-  it('submits "Ostatní" actionType as 99, not 5', async () => {
+  it('submits "Ostatní" (Meeting) actionType as the Meeting enum value', async () => {
     render(<MarketingActionModal {...defaultProps} />);
     fillRequiredFields();
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "99" } });
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: MarketingActionType.Meeting },
+    });
     submitForm();
 
     await waitFor(() =>
       expect(mockCreateMutateAsync).toHaveBeenCalledWith(
-        expect.objectContaining({ actionType: 99 }),
+        expect.objectContaining({ actionType: MarketingActionType.Meeting }),
       ),
     );
   });
@@ -119,11 +125,7 @@ describe("MarketingActionModal — create", () => {
     fillRequiredFields();
     submitForm();
 
-    await waitFor(() =>
-      expect(
-        screen.getByText("Nepodařilo se uložit akci. Zkuste to znovu."),
-      ).toBeInTheDocument(),
-    );
+    await screen.findByText("Nepodařilo se uložit akci. Zkuste to znovu.");
   });
 });
 
@@ -169,13 +171,13 @@ describe("MarketingActionModal — edit field population", () => {
     expect(dates[0]).toHaveValue("2026-04-15");
   });
 
-  it('restores actionType "Meeting" (backend name) to select value 99', () => {
+  it('restores actionType "Meeting" (backend name) to select value "Meeting"', () => {
     render(<MarketingActionModal {...defaultProps} existingAction={existingAction} />);
     const actionTypeSelect = screen.getAllByRole("combobox")[0] as HTMLSelectElement;
-    expect(actionTypeSelect.value).toBe("99");
+    expect(actionTypeSelect.value).toBe(MarketingActionType.Meeting);
   });
 
-  it("restores actionType by backend enum name (Newsletter → 2)", () => {
+  it("restores actionType by backend enum name (Newsletter → Newsletter)", () => {
     render(
       <MarketingActionModal
         {...defaultProps}
@@ -183,18 +185,7 @@ describe("MarketingActionModal — edit field population", () => {
       />,
     );
     const actionTypeSelect = screen.getAllByRole("combobox")[0] as HTMLSelectElement;
-    expect(actionTypeSelect.value).toBe("2");
-  });
-
-  it("restores actionType by numeric string (e.g. '2')", () => {
-    render(
-      <MarketingActionModal
-        {...defaultProps}
-        existingAction={{ ...existingAction, actionType: "2" }}
-      />,
-    );
-    const actionTypeSelect = screen.getAllByRole("combobox")[0] as HTMLSelectElement;
-    expect(actionTypeSelect.value).toBe("2");
+    expect(actionTypeSelect.value).toBe(MarketingActionType.Newsletter);
   });
 
   it("populates associatedProducts chips", () => {
@@ -218,7 +209,7 @@ describe("MarketingActionModal — edit submit", () => {
     folderLinks: [{ path: "folder/key", label: "Složka", folderType: "Campaign" }],
   };
 
-  it("submits actionType as number 99 when editing Meeting", async () => {
+  it("submits actionType as the Meeting enum value when editing Meeting", async () => {
     render(<MarketingActionModal {...defaultProps} existingAction={existingAction} />);
     submitForm();
 
@@ -226,19 +217,19 @@ describe("MarketingActionModal — edit submit", () => {
       expect(mockUpdateMutateAsync).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 1,
-          request: expect.objectContaining({ actionType: 99 }),
+          request: expect.objectContaining({ actionType: MarketingActionType.Meeting }),
         }),
       ),
     );
   });
 
-  it("submits folderType as number (Campaign → 3)", async () => {
+  it("submits folderType as the Campaign enum value", async () => {
     render(<MarketingActionModal {...defaultProps} existingAction={existingAction} />);
     submitForm();
 
     await waitFor(() => {
       const { request } = mockUpdateMutateAsync.mock.calls[0][0];
-      expect(request.folderLinks[0].folderType).toBe(3);
+      expect(request.folderLinks[0].folderType).toBe(MarketingFolderType.Campaign);
     });
   });
 });
@@ -279,9 +270,7 @@ describe("MarketingActionModal — delete", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /smazat/i }));
 
-    await waitFor(() =>
-      expect(screen.getByText("Nepodařilo se smazat akci.")).toBeInTheDocument(),
-    );
+    await screen.findByText("Nepodařilo se smazat akci.");
   });
 });
 

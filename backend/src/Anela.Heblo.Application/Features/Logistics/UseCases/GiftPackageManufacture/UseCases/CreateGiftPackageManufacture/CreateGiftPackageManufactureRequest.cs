@@ -7,5 +7,4 @@ public class CreateGiftPackageManufactureRequest : IRequest<CreateGiftPackageMan
     public string GiftPackageCode { get; set; } = null!;
     public int Quantity { get; set; }
     public bool AllowStockOverride { get; set; }
-    public Guid UserId { get; set; }
 }

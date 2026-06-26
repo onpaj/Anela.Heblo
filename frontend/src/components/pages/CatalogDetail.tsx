@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { X, Package, Loader2, AlertCircle } from "lucide-react";
 import { CatalogItemDto, useCatalogDetail } from "../../api/hooks/useCatalog";
-import { JournalEntryDto } from "../../api/generated/api-client";
+import { SearchJournalEntryDto } from "../../api/generated/api-client";
 import { useJournalEntriesByProduct } from "../../api/hooks/useJournal";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,6 +18,7 @@ import {
 import CatalogDetailTabs from "../catalog/detail/CatalogDetailTabs";
 import CatalogDetailChartSection from "../catalog/detail/CatalogDetailChartSection";
 import CatalogDetailModals from "../catalog/detail/CatalogDetailModals";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 ChartJS.register(
   CategoryScale,
@@ -46,17 +47,35 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
   defaultTab = "basic",
 }) => {
   const [activeTab, setActiveTab] = useState<
-    "basic" | "history" | "margins" | "composition" | "journal" | "usage"
+    "basic" | "history" | "margins" | "composition" | "journal" | "usage" | "documents" | "pif"
   >(defaultTab as any);
   const [activeChartTab, setActiveChartTab] = useState<"input" | "output">(
     "output",
   );
   const [showJournalModal, setShowJournalModal] = useState(false);
   const [selectedJournalEntry, setSelectedJournalEntry] = useState<
-    JournalEntryDto | undefined
+    SearchJournalEntryDto | undefined
   >(undefined);
   const [showManufactureDifficultyModal, setShowManufactureDifficultyModal] =
     useState(false);
+
+  const tabToSubScreen: Record<typeof activeTab, string> = {
+    basic: 'BasicTab',
+    history: 'HistoryTab',
+    margins: 'MarginsTab',
+    composition: 'CompositionTab',
+    journal: 'JournalTab',
+    usage: 'UsageTab',
+    documents: 'DocumentsTab',
+    pif: 'PifTab',
+  };
+  useScreenView('Catalog', 'CatalogDetail', isOpen ? tabToSubScreen[activeTab] : undefined);
+  useScreenView(
+    'Catalog',
+    'CatalogDetail',
+    isOpen && activeTab === 'history' ? (activeChartTab === 'input' ? 'ChartInput' : 'ChartOutput') : undefined,
+  );
+
   const navigate = useNavigate();
 
   // Determine which productCode to use - from prop or from item
@@ -120,9 +139,9 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
         onClick={handleBackdropClick}
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       >
-        <div className="bg-white rounded-lg p-8 flex items-center space-x-3">
+        <div className="bg-white dark:bg-graphite-surface rounded-lg p-8 flex items-center space-x-3">
           <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-          <span className="text-gray-600">Načítám detail produktu...</span>
+          <span className="text-gray-600 dark:text-graphite-muted">Načítám detail produktu...</span>
         </div>
       </div>
     );
@@ -138,42 +157,42 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-[95vw] w-full max-h-[95vh] overflow-hidden">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-[95vw] w-full max-h-[95vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-graphite-border">
           <div className="flex items-center space-x-3">
-            <Package className="h-6 w-6 text-indigo-600" />
+            <Package className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">
                 {effectiveItem.productName}
               </h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-graphite-muted">
                 Kód: {effectiveItem.productCode}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 transition-colors"
           >
             <X className="h-6 w-6" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(95vh-120px)]">
+        <div className="p-6 flex-1 overflow-y-auto">
           {detailLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                <div className="text-gray-500">
+                <div className="text-gray-500 dark:text-graphite-muted">
                   Načítání detailů produktu...
                 </div>
               </div>
             </div>
           ) : detailError ? (
             <div className="flex items-center justify-center h-64">
-              <div className="flex items-center space-x-2 text-red-600">
+              <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
                 <AlertCircle className="h-5 w-5" />
                 <div>Chyba při načítání detailů: {detailError.message}</div>
               </div>
@@ -219,7 +238,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex justify-end p-6 border-t border-gray-200 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2">
           <button
             onClick={onClose}
             className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"

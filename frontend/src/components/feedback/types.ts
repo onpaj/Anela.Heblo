@@ -14,6 +14,7 @@ export interface FeedbackRow {
   secondaryText?: string;
   createdAt: string;
   userId?: string;
+  userName?: string;
   precisionScore?: number | null;
   styleScore?: number | null;
   hasFeedback: boolean;

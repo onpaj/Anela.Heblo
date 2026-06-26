@@ -1,9 +1,10 @@
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Persistence.Repositories;
+using Anela.Heblo.Xcc.Persistance;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Persistence.Features.Invoices;
+namespace Anela.Heblo.Persistence.Invoices;
 
 /// <summary>
 /// Repository implementation for IssuedInvoice entity
@@ -29,59 +30,6 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
         return await DbSet
             .Include(x => x.SyncHistory)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-    }
-
-    public async Task<IEnumerable<IssuedInvoice>> FindBySyncStatusAsync(bool? isSynced, CancellationToken cancellationToken = default)
-    {
-        var query = DbSet.AsQueryable();
-
-        if (isSynced.HasValue)
-        {
-            query = query.Where(x => x.IsSynced == isSynced.Value);
-        }
-
-        return await query
-            .OrderByDescending(x => x.InvoiceDate)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<IEnumerable<IssuedInvoice>> FindByInvoiceDateRangeAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken = default)
-    {
-        return await DbSet
-            .Where(x => x.InvoiceDate >= fromDate.Date && x.InvoiceDate <= toDate.Date)
-            .OrderByDescending(x => x.InvoiceDate)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<IEnumerable<IssuedInvoice>> FindByCustomerNameAsync(string customerName, CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(customerName))
-        {
-            return new List<IssuedInvoice>();
-        }
-
-        var searchTerm = customerName.Trim().ToLower();
-
-        return await DbSet
-            .Where(x => x.CustomerName != null && x.CustomerName.ToLower().Contains(searchTerm))
-            .OrderByDescending(x => x.InvoiceDate)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<IEnumerable<IssuedInvoice>> FindWithCriticalErrorsAsync(CancellationToken cancellationToken = default)
-    {
-        return await DbSet
-            .Where(x => x.ErrorType != null && x.ErrorType != IssuedInvoiceErrorType.InvoicePaired)
-            .OrderByDescending(x => x.LastSyncTime ?? x.InvoiceDate)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<IEnumerable<IssuedInvoice>> FindStaleInvoicesAsync(DateTime beforeDate, CancellationToken cancellationToken = default)
-    {
-        return await DbSet
-            .Where(x => !x.IsSynced || (x.LastSyncTime.HasValue && x.LastSyncTime.Value < beforeDate))
-            .OrderByDescending(x => x.InvoiceDate)
-            .ToListAsync(cancellationToken);
     }
 
     public async Task<IssuedInvoiceSyncStats> GetSyncStatsAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken = default)
@@ -111,7 +59,6 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
 
     public override async Task<IssuedInvoice> AddAsync(IssuedInvoice entity, CancellationToken cancellationToken = default)
     {
-        // Set audit fields for new entities
         entity.CreationTime = DateTime.UtcNow;
         entity.ConcurrencyStamp = Guid.NewGuid().ToString();
 
@@ -120,7 +67,6 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
 
     public override async Task UpdateAsync(IssuedInvoice entity, CancellationToken cancellationToken = default)
     {
-        // Set audit fields for updates
         entity.LastModificationTime = DateTime.UtcNow;
         entity.ConcurrencyStamp = Guid.NewGuid().ToString();
 
@@ -131,7 +77,6 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
     {
         var query = DbSet.AsQueryable();
 
-        // Apply filters
         if (!string.IsNullOrWhiteSpace(filters.InvoiceId))
         {
             var invoiceId = filters.InvoiceId.Trim();
@@ -168,15 +113,12 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
             query = query.Where(x => x.ErrorType.HasValue);
         }
 
-        // Apply sorting
         query = ApplySorting(query, filters.SortBy, filters.SortDescending);
 
-        // Apply pagination
         List<IssuedInvoice> items;
         int totalCount;
         if (filters.PageSize == 0)
         {
-            // PageSize = 0 means return all items without pagination; derive count from loaded list to avoid a second DB round-trip
             items = await query.ToListAsync(cancellationToken);
             totalCount = items.Count;
         }

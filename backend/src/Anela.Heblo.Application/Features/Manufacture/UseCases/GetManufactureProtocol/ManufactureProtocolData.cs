@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 
@@ -16,6 +17,7 @@ public class ManufactureProtocolData
 
     public List<ManufactureProtocolErpDocument> ErpDocuments { get; set; } = new();
     public List<ManufactureProtocolNote> Notes { get; set; } = new();
+    public List<ManufactureProtocolConditionsReading> ConditionsReadings { get; set; } = new();
 
     public DateTime GeneratedAt { get; set; }
 }
@@ -53,4 +55,15 @@ public class ManufactureProtocolNote
     public DateTime CreatedAt { get; set; }
     public string CreatedByUser { get; set; } = null!;
     public string Text { get; set; } = null!;
+}
+
+public class ManufactureProtocolConditionsReading
+{
+    public ManufactureOrderState Stage { get; set; }
+    public decimal? InnerTemperature { get; set; }
+    public decimal? InnerHumidity { get; set; }
+    public decimal? OuterTemperature { get; set; }
+    public decimal? OuterHumidity { get; set; }
+    public DateTime RecordedAt { get; set; }
+    public ConditionsReadingSource Source { get; set; }
 }

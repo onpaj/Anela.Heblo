@@ -7,25 +7,24 @@ using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Persistence.Campaigns;
 using Anela.Heblo.Persistence.GridLayouts;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Catalog.Inventory;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
 using Anela.Heblo.Persistence.BackgroundJobs;
+using Anela.Heblo.Persistence.Catalog.Inventory;
 using Anela.Heblo.Persistence.DataQuality;
 using Anela.Heblo.Persistence.Catalog.Stock;
 using Anela.Heblo.Persistence.Dashboard;
 using Anela.Heblo.Persistence.Features.Bank;
 using Anela.Heblo.Persistence.Infrastructure;
-using Anela.Heblo.Persistence.InvoiceClassification;
-using Anela.Heblo.Persistence.Features.Article;
-using Anela.Heblo.Persistence.Features.Leaflet;
-using Anela.Heblo.Persistence.KnowledgeBase;
-using Anela.Heblo.Xcc.Services.Dashboard;
+using Anela.Heblo.Persistence.Infrastructure.Resilience;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Pgvector;
 
@@ -87,8 +86,31 @@ public static class PersistenceModule
             services.AddSingleton(dataSource); // Register for DI-managed disposal
         }
 
+        // Register material container code generator — real implementation needs NpgsqlDataSource (raw ADO.NET
+        // for sequence access); fall back to NullMaterialContainerCodeGenerator when running in-memory so that
+        // DI validation and tests can start without a live database.
+        if (!useInMemory && connectionString != "InMemory" && dataSource != null)
+        {
+            services.AddScoped<IMaterialContainerCodeGenerator, MaterialContainerCodeGenerator>();
+        }
+        else
+        {
+            services.AddScoped<IMaterialContainerCodeGenerator, NullMaterialContainerCodeGenerator>();
+        }
+
         // Register interceptors
         services.AddScoped<PostgresExceptionLoggingInterceptor>();
+        services.AddScoped<NpgsqlConnectionInterceptor>();
+
+        // Register exception translator (used by GridLayoutRepository to surface domain exceptions
+        // and log SqlState/Operation at the Persistence boundary — distinct from the SaveChanges
+        // interceptor which has no operation context and does not fire on read paths).
+        services.AddScoped<PostgresExceptionTranslator>();
+
+        // Resilience pipeline + metrics — singleton so the Polly pipeline is built once.
+        services.Configure<DbResilienceOptions>(configuration.GetSection(DbResilienceOptions.SectionName));
+        services.AddSingleton<DbResilienceMetrics>();
+        services.AddSingleton<IDbResiliencePipelineProvider, DbResiliencePipelineProvider>();
 
         // Register DbContext
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
@@ -100,8 +122,18 @@ public static class PersistenceModule
             }
             else
             {
-                options.UseNpgsql(dataSource!);
-                options.AddInterceptors(sp.GetRequiredService<PostgresExceptionLoggingInterceptor>());
+                options.UseNpgsql(dataSource!, npgsql =>
+                {
+                    npgsql.ExecutionStrategy(deps =>
+                        new PollyExecutionStrategy(
+                            deps,
+                            sp.GetRequiredService<IDbResiliencePipelineProvider>(),
+                            sp.GetRequiredService<DbResilienceMetrics>(),
+                            sp.GetRequiredService<ILogger<PollyExecutionStrategy>>()));
+                });
+                options.AddInterceptors(
+                    sp.GetRequiredService<PostgresExceptionLoggingInterceptor>(),
+                    sp.GetRequiredService<NpgsqlConnectionInterceptor>());
             }
         });
 

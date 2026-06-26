@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -8,16 +9,16 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactur
 
 public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufactureStockTakingRequest, SubmitManufactureStockTakingResponse>
 {
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IManufactureCatalogSource _catalogSource;
     private readonly ILogger<SubmitManufactureStockTakingHandler> _logger;
     private readonly IErpStockDomainService _erpStockDomainService;
 
     public SubmitManufactureStockTakingHandler(
-        ICatalogRepository catalogRepository,
+        IManufactureCatalogSource catalogSource,
         ILogger<SubmitManufactureStockTakingHandler> logger,
         IErpStockDomainService erpStockDomainService)
     {
-        _catalogRepository = catalogRepository;
+        _catalogSource = catalogSource;
         _logger = logger;
         _erpStockDomainService = erpStockDomainService;
     }
@@ -30,7 +31,7 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
         try
         {
             // Get the current product to check if it's a material
-            var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
+            var product = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
             if (product == null)
             {
                 _logger.LogWarning("Product with code {ProductCode} not found", request.ProductCode);

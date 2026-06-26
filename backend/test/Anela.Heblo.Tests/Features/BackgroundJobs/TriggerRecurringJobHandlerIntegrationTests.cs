@@ -1,3 +1,4 @@
+using Anela.Heblo.API.Infrastructure.Hangfire;
 using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.TriggerRecurringJob;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
@@ -35,7 +36,7 @@ public class TriggerRecurringJobHandlerIntegrationTests
         var mockEnqueuerLogger = new Mock<ILogger<HangfireJobEnqueuer>>();
 
         mockStatusChecker
-            .Setup(x => x.IsJobEnabledAsync("test-async-job", It.IsAny<CancellationToken>()))
+            .Setup(x => x.IsJobEnabledAsync("test-async-job", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
 
         var jobs = new List<IRecurringJob>
@@ -69,7 +70,7 @@ public class TriggerRecurringJobHandlerIntegrationTests
 
         // Verify status was checked
         mockStatusChecker.Verify(
-            x => x.IsJobEnabledAsync("test-async-job", It.IsAny<CancellationToken>()),
+            x => x.IsJobEnabledAsync("test-async-job", It.IsAny<CancellationToken>(), true),
             Times.Once);
     }
 
@@ -85,7 +86,7 @@ public class TriggerRecurringJobHandlerIntegrationTests
         var mockEnqueuerLogger = new Mock<ILogger<HangfireJobEnqueuer>>();
 
         mockStatusChecker
-            .Setup(x => x.IsJobEnabledAsync("async-test", It.IsAny<CancellationToken>()))
+            .Setup(x => x.IsJobEnabledAsync("async-test", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
 
         var jobs = new List<IRecurringJob>
@@ -138,7 +139,7 @@ public class TriggerRecurringJobHandlerIntegrationTests
         var mockEnqueuerLogger = new Mock<ILogger<HangfireJobEnqueuer>>();
 
         mockStatusChecker
-            .Setup(x => x.IsJobEnabledAsync("disabled-job", It.IsAny<CancellationToken>()))
+            .Setup(x => x.IsJobEnabledAsync("disabled-job", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(false);
 
         var jobs = new List<IRecurringJob>
@@ -172,7 +173,7 @@ public class TriggerRecurringJobHandlerIntegrationTests
 
         // Verify status check was skipped
         mockStatusChecker.Verify(
-            x => x.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            x => x.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), true),
             Times.Never);
     }
 

@@ -85,6 +85,7 @@ export interface LeafletFeedbackSummary {
   durationMs: number;
   createdAt: string;
   userId: string | null;
+  userName: string | null;
   precisionScore: number | null;
   styleScore: number | null;
   feedbackComment: string | null;

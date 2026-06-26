@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.IndexDocument;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Shared.Rag;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -22,7 +23,7 @@ public class KnowledgeBaseIngestionJobTests
 
     private KnowledgeBaseIngestionJob CreateJob(KnowledgeBaseOptions options)
     {
-        _statusChecker.Setup(s => s.IsJobEnabledAsync("knowledge-base-ingestion", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _statusChecker.Setup(s => s.IsJobEnabledAsync("knowledge-base-ingestion", It.IsAny<CancellationToken>(), true)).ReturnsAsync(true);
         return new KnowledgeBaseIngestionJob(
             _oneDrive.Object,
             _mediator.Object,

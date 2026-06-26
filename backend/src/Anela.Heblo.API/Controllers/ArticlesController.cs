@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Article.Admin;
 using Anela.Heblo.Application.Features.Article.UseCases.GenerateArticle;
 using Anela.Heblo.Application.Features.Article.UseCases.GetArticle;
 using Anela.Heblo.Application.Features.Article.UseCases.GetArticleTrace;
@@ -7,12 +8,11 @@ using Anela.Heblo.Application.Features.Article.UseCases.SubmitFeedback;
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[FeatureAuthorize(Feature.Marketing_Article)]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class ArticlesController : BaseApiController
@@ -25,7 +25,7 @@ public sealed class ArticlesController : BaseApiController
     }
 
     [HttpPost("generate")]
-    [Authorize(Policy = AuthorizationConstants.Policies.MarketingReader)]
+    [FeatureAuthorize(Feature.Marketing_Article, AccessLevel.Write)]
     public async Task<ActionResult<GenerateArticleResponse>> Generate(
         [FromBody] GenerateArticleRequest request,
         CancellationToken ct = default)
@@ -68,6 +68,8 @@ public sealed class ArticlesController : BaseApiController
         return HandleResponse(result);
     }
 
+    [ProducesResponseType(typeof(SubmitArticleFeedbackResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SubmitArticleFeedbackResponse), StatusCodes.Status409Conflict)]
     [HttpPost("{id:guid}/feedback")]
     public async Task<ActionResult<SubmitArticleFeedbackResponse>> SubmitFeedback(
         Guid id,
@@ -80,7 +82,7 @@ public sealed class ArticlesController : BaseApiController
     }
 
     [HttpGet("feedback/list")]
-    [Authorize(Policy = AuthorizationConstants.Policies.MarketingReader)]
+    [FeatureAuthorize(Feature.Marketing_Article, AccessLevel.Write)]
     public async Task<ActionResult<GetArticleFeedbackListResponse>> FeedbackList(
         [FromQuery] bool? hasFeedback = null,
         [FromQuery] string? requestedBy = null,
@@ -99,6 +101,16 @@ public sealed class ArticlesController : BaseApiController
             Page = page,
             PageSize = pageSize,
         }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("admin/backfill-requested-by")]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
+    public async Task<ActionResult<BackfillArticleRequestedByResponse>> BackfillRequestedBy(
+        [FromBody] BackfillArticleRequestedByCommand request,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(request, ct);
         return HandleResponse(result);
     }
 }

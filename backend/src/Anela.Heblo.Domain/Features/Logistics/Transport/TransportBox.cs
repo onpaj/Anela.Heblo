@@ -100,12 +100,20 @@ public class TransportBox : Entity<int>
     }
 
 
-    public TransportBoxItem AddItem(string productCode, string productName, double amount, DateTime date, string userName)
+    public TransportBoxItem AddItem(
+        string productCode,
+        string productName,
+        double amount,
+        DateTime date,
+        string userName,
+        string? lotNumber = null,
+        DateOnly? expirationDate = null,
+        int? sourceInventoryId = null)
     {
         CheckState(TransportBoxState.Opened, TransportBoxState.Opened);
-        var newItem = new TransportBoxItem(productCode, productName, amount, date, userName);
+        var newItem = new TransportBoxItem(productCode, productName, amount, date, userName,
+            lotNumber, expirationDate, sourceInventoryId);
         _items.Add(newItem);
-
         return newItem;
     }
 
@@ -121,12 +129,13 @@ public class TransportBox : Entity<int>
     }
 
 
-    public void Reset(DateTime date, string userName)
+    public IReadOnlyList<TransportBoxItem> Reset(DateTime date, string userName)
     {
-        // According to specification: Reset is allowed only from Opened state  
+        var itemsBeforeClear = _items.ToList();
         _items.Clear();
         Code = null;
         ChangeState(TransportBoxState.New, date, userName, TransportBoxState.Opened);
+        return itemsBeforeClear;
     }
 
     public void ToTransit(DateTime date, string userName)

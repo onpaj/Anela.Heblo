@@ -69,6 +69,19 @@ public class GetManufactureProtocolHandler : IRequestHandler<GetManufactureProto
                 CreatedByUser = n.CreatedByUser,
                 Text = n.Text,
             }).ToList(),
+            ConditionsReadings = order.ConditionsReadings
+                .OrderBy(r => r.RecordedAt)
+                .Select(r => new ManufactureProtocolConditionsReading
+                {
+                    Stage = r.Stage,
+                    InnerTemperature = r.InnerTemperature,
+                    InnerHumidity = r.InnerHumidity,
+                    OuterTemperature = r.OuterTemperature,
+                    OuterHumidity = r.OuterHumidity,
+                    RecordedAt = r.RecordedAt,
+                    Source = r.Source,
+                })
+                .ToList(),
             GeneratedAt = DateTime.UtcNow,
         };
 

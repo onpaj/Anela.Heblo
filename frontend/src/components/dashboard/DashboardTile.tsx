@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DashboardTile as DashboardTileType } from '../../api/hooks/useDashboard';
 import { TileHeader, TileContent } from './tiles';
+import { useTelemetry } from '../../telemetry/useTelemetry';
 
 interface DashboardTileProps {
   tile: DashboardTileType;
@@ -26,6 +27,8 @@ const DashboardTile: React.FC<DashboardTileProps> = ({
     id: tile.tileId,
     disabled: isDragDisabled
   });
+
+  const { trackEvent } = useTelemetry();
 
   const style = isDragDisabled ? {} : {
     transform: CSS.Transform.toString(transform),
@@ -53,13 +56,14 @@ const DashboardTile: React.FC<DashboardTileProps> = ({
       ref={setNodeRef}
       style={style}
       className={`
-        bg-white rounded-lg shadow-sm border border-gray-200
+        bg-white dark:bg-graphite-surface rounded-lg shadow-sm dark:shadow-soft-dark border border-gray-200 dark:border-graphite-border
         hover:shadow-md transition-shadow duration-200
         flex flex-col
         ${getSizeClasses()}
         ${className}
       `}
       data-testid={`dashboard-tile-${tile.tileId}`}
+      onClick={() => { if (!isDragging) trackEvent('DashboardTileClicked', { tileId: tile.tileId }); }}
     >
       <TileHeader
         title={tile.title}

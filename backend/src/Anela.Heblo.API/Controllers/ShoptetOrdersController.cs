@@ -1,12 +1,12 @@
 using Anela.Heblo.Application.Features.ShoptetOrders.UseCases.BlockOrderProcessing;
+using Anela.Heblo.Application.Features.ShoptetOrders.UseCases.GetPackingOrder;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json.Serialization;
 
 namespace Anela.Heblo.API.Controllers;
 
-[Authorize]
+[FeatureAuthorize(Feature.Warehouse_Expedition)]
 [ApiController]
 [Route("api/shoptet-orders")]
 public class ShoptetOrdersController : BaseApiController
@@ -39,10 +39,15 @@ public class ShoptetOrdersController : BaseApiController
 
         return NoContent();
     }
-}
 
-public class BlockOrderRequest
-{
-    [JsonPropertyName("note")]
-    public string Note { get; set; } = string.Empty;
+    /// <summary>
+    /// Loads a single order for the Balení packing screen: header, customer, shipping
+    /// method, cooling status, and expanded item list with product images.
+    /// </summary>
+    [HttpGet("{code}/packing")]
+    public async Task<ActionResult<GetPackingOrderResponse>> GetPackingOrder(string code)
+    {
+        var response = await _mediator.Send(new GetPackingOrderRequest { Code = code });
+        return HandleResponse(response);
+    }
 }
