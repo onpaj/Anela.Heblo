@@ -21,16 +21,16 @@
       "updated_at": "2026-06-26T00:23:29.353003Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-26T00:24:28.547532Z"
     }
   },
   "tasks": [
     {
       "name": "fix-dashboard-tile-timeout",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-26T00:24:37.863547Z"
     },
     {
       "name": "fix-classification-combined-filters",
