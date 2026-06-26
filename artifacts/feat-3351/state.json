@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "fix-dashboard-tile-timeout",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-26T00:24:37.863547Z"
+      "updated_at": "2026-06-26T00:26:06.566515Z"
     },
     {
       "name": "fix-classification-combined-filters",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-26T00:26:06.760003Z"
     },
     {
       "name": "fix-classification-pagination-wait",
