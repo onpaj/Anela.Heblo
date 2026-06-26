@@ -63,7 +63,13 @@ public class MeetingTasksMcpTools
             };
 
             var response = await _mediator.Send(request, cancellationToken);
-            return JsonSerializer.Serialize(response);
+            return JsonSerializer.Serialize(new
+            {
+                response.Items,
+                response.TotalCount,
+                response.PageNumber,
+                response.PageSize
+            });
         }
         catch (McpException)
         {
