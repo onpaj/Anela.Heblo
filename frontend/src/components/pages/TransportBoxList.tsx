@@ -20,7 +20,11 @@ import {
   useTransportBoxesQuery,
   useTransportBoxSummaryQuery,
   GetTransportBoxesRequest,
+  transportBoxKeys,
 } from "../../api/hooks/useTransportBoxes";
+import { useQueryClient } from "@tanstack/react-query";
+import { useIsTouchLayout } from "../../hooks/useMediaQuery";
+import TransportBoxTouchPanel from "../transport/touch/TransportBoxTouchPanel";
 import { CatalogAutocomplete } from "../common/CatalogAutocomplete";
 import {
   catalogItemToCodeAndName,
@@ -84,6 +88,14 @@ const TransportBoxList: React.FC = () => {
 
   // State for collapsible sections
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
+
+  // Touch entry: on narrow screens show the touch panel instead of the table.
+  // `showAllOnTouch` lets touch users fall back to the full table on demand.
+  const isTouch = useIsTouchLayout();
+  const [showAllOnTouch, setShowAllOnTouch] = useState(false);
+  const showTouchPanel = isTouch && !showAllOnTouch;
+
+  const queryClient = useQueryClient();
 
   useScreenView('Logistics', 'TransportBoxes');
 
@@ -190,6 +202,9 @@ const TransportBoxList: React.FC = () => {
     setSelectedBoxId(null);
     // Refresh data in case anything was changed in the detail modal
     refetch();
+    // Also refresh the touch panel's open-box cards (a box may have been
+    // created via open-by-code, filled, or moved to another state).
+    queryClient.invalidateQueries({ queryKey: transportBoxKeys.all });
   };
 
   // Handle "Open New Box" button click - create box directly and show detail
@@ -295,8 +310,26 @@ const TransportBoxList: React.FC = () => {
         />
       )}
 
-      {/* Controls - Single Collapsible Block */}
-      <div className="flex-shrink-0 bg-white rounded-lg shadow mb-4">
+      {showTouchPanel ? (
+        <TransportBoxTouchPanel
+          onOpenBox={handleRowClick}
+          onShowAll={() => setShowAllOnTouch(true)}
+        />
+      ) : (
+        <>
+          {isTouch && (
+            <button
+              type="button"
+              onClick={() => setShowAllOnTouch(false)}
+              className="flex-shrink-0 self-start mb-3 flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Zpět na dotykové zobrazení
+            </button>
+          )}
+
+          {/* Controls - Single Collapsible Block */}
+          <div className="flex-shrink-0 bg-white rounded-lg shadow mb-4">
         <div className="p-3 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <button
@@ -868,6 +901,8 @@ const TransportBoxList: React.FC = () => {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Transport Box Detail Modal */}
       <TransportBoxDetail

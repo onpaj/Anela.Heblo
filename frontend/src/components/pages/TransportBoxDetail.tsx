@@ -456,8 +456,8 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div
-        className="relative top-2 mx-auto p-3 border w-11/12 max-w-7xl shadow-lg rounded-md bg-white mb-4 flex flex-col"
-        style={{ maxHeight: "calc(100vh - 2rem)", minHeight: "900px" }}
+        className="relative top-2 mx-auto p-3 border w-11/12 max-w-7xl shadow-lg rounded-md bg-white mb-4 flex flex-col lg:min-h-[900px]"
+        style={{ maxHeight: "calc(100vh - 2rem)" }}
       >
         {/* Header - Fixed */}
         <div className="flex items-start justify-between mb-4 flex-shrink-0">
