@@ -12,14 +12,13 @@
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <script>
-      // Apply the saved theme before the bundle loads to avoid a flash of light mode.
+      // Apply the saved theme before the bundle loads to avoid a flash of dark mode.
+      // Light is the default; dark is only applied when explicitly saved.
       (function () {
         try {
-          var t = localStorage.getItem('anela-theme');
-          if (t !== 'light' && t !== 'dark') {
-            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          if (localStorage.getItem('anela-theme') === 'dark') {
+            document.documentElement.classList.add('dark');
           }
-          if (t === 'dark') document.documentElement.classList.add('dark');
         } catch (e) {}
       })();
     </script>
