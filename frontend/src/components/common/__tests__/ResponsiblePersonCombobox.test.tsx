@@ -10,6 +10,11 @@ jest.mock('../../../api/hooks/useUserManagement', () => ({
     useResponsiblePersonsQuery: () => mockUseResponsiblePersonsQuery(),
 }));
 
+jest.mock('../../../contexts/ThemeContext', () => ({
+    useTheme: () => ({ theme: 'light', toggle: jest.fn() }),
+    ThemeProvider: ({ children }: any) => children,
+}));
+
 // Mock PermissionsContext
 const mockHasPermission = jest.fn();
 jest.mock('../../../auth/PermissionsContext', () => ({

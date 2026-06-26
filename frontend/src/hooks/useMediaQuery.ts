@@ -49,3 +49,16 @@ export function useMediaQuery(query: string): boolean {
 export function useIsMobile(): boolean {
   return useMediaQuery('(max-width: 767px)');
 }
+
+// Touch layout covers phones and portrait tablets — anything below Tailwind's
+// `lg` breakpoint (1024px), matching the layout switch used across detail views.
+const TOUCH_LAYOUT_MAX_WIDTH_PX = 1023;
+
+/**
+ * Hook to detect narrow/touch layouts (phones and portrait tablets, <1024px).
+ * Used to swap dense desktop tables for touch-friendly entry screens.
+ * @returns boolean indicating if current viewport should use the touch layout
+ */
+export function useIsTouchLayout(): boolean {
+  return useMediaQuery(`(max-width: ${TOUCH_LAYOUT_MAX_WIDTH_PX}px)`);
+}
