@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import JournalEntryForm from "../JournalEntryForm";
 import { useCreateJournalEntry, useUpdateJournalEntry, useJournalTags, useCreateJournalTag } from "../../api/hooks/useJournal";
 import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
+import { ThemeProvider } from "../../contexts/ThemeContext";
 
 jest.mock("../../api/hooks/useJournal");
 jest.mock("../../api/hooks/useCatalogAutocomplete");
@@ -28,7 +29,9 @@ const createTestQueryClient = () =>
   new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <QueryClientProvider client={createTestQueryClient()}>{children}</QueryClientProvider>
+  <QueryClientProvider client={createTestQueryClient()}>
+    <ThemeProvider>{children}</ThemeProvider>
+  </QueryClientProvider>
 );
 
 describe("JournalEntryForm — associated products", () => {

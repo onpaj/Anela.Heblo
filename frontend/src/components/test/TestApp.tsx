@@ -54,19 +54,21 @@ function TestApp() {
     <div className="App" data-testid="app">
       <ThemeProvider>
       <QueryClientProvider client={testQueryClient}>
-        <ChangelogProvider>
-          <MsalProvider instance={msalInstance}>
-            <Router>
-              <AuthGuard>
-                <PermissionsProvider isAuthenticated={true}>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                </PermissionsProvider>
-              </AuthGuard>
-            </Router>
-          </MsalProvider>
-        </ChangelogProvider>
+        <ThemeProvider>
+          <ChangelogProvider>
+            <MsalProvider instance={msalInstance}>
+              <Router>
+                <AuthGuard>
+                  <PermissionsProvider isAuthenticated={true}>
+                    <Layout>
+                      <Dashboard />
+                    </Layout>
+                  </PermissionsProvider>
+                </AuthGuard>
+              </Router>
+            </MsalProvider>
+          </ChangelogProvider>
+        </ThemeProvider>
       </QueryClientProvider>
       </ThemeProvider>
     </div>
