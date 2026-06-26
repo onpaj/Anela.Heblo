@@ -40,15 +40,15 @@
     },
     {
       "name": "register-adapter-in-di",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-26T09:30:59.843670Z"
+      "updated_at": "2026-06-26T09:33:19.910267Z"
     },
     {
       "name": "update-handler",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-26T09:33:20.116825Z"
     },
     {
       "name": "update-handler-tests",
