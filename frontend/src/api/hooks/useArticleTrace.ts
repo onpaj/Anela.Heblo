@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { ArticleGenerationStepStatus } from '../generated/api-client';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export interface ArticleGenerationStep {
   id: string;
   stepName: string;
   sequence: number;
-  status: string;
+  status: ArticleGenerationStepStatus;
   startedAt: string;
   finishedAt: string | null;
   durationMs: number | null;
@@ -32,7 +33,7 @@ export const useArticleTraceQuery = (id: string, enabled: boolean) => {
           id: step.id ?? '',
           stepName: step.stepName ?? '',
           sequence: step.sequence ?? 0,
-          status: step.status ?? '',
+          status: step.status ?? ArticleGenerationStepStatus.Running,
           startedAt: step.startedAt?.toISOString() ?? '',
           finishedAt: step.finishedAt?.toISOString() ?? null,
           durationMs: step.durationMs ?? null,
