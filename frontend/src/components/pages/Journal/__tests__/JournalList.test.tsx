@@ -4,12 +4,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import "@testing-library/jest-dom";
 import JournalList from "../JournalList";
+import { ThemeProvider } from "../../../../contexts/ThemeContext";
 import * as useJournalHooks from "../../../../api/hooks/useJournal";
 import * as useCatalogAutocompleteHook from "../../../../api/hooks/useCatalogAutocomplete";
 import type {
   JournalEntryDto,
   JournalTagDto,
 } from "../../../../api/generated/api-client";
+
+jest.mock("../../../../contexts/ThemeContext", () => ({
+  useTheme: () => ({ theme: "light", toggle: jest.fn() }),
+  ThemeProvider: ({ children }: any) => children,
+}));
 
 // Mock telemetry to avoid dependency on @microsoft/applicationinsights-web
 jest.mock("../../../../telemetry/useScreenView", () => ({
@@ -54,7 +60,9 @@ const createWrapper = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>{children}</BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

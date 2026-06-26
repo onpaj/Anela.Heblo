@@ -1,6 +1,6 @@
 import { Loader2 } from 'lucide-react';
 import { ArticleListItem, IN_PROGRESS_STATUSES } from '../../api/hooks/useArticles';
-import { ArticleStatus } from '../../api/generated/api-client';
+import { ARTICLE_STATUS_LABELS, ARTICLE_STATUS_COLORS } from './articleStatusConfig';
 
 interface ArticleListProps {
   items: ArticleListItem[];
@@ -8,22 +8,6 @@ interface ArticleListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
-
-const STATUS_LABELS: Record<ArticleStatus, string> = {
-  [ArticleStatus.Queued]: 'Ve frontě',
-  [ArticleStatus.Researching]: 'Výzkum',
-  [ArticleStatus.Writing]: 'Psaní',
-  [ArticleStatus.Generated]: 'Vygenerováno',
-  [ArticleStatus.Failed]: 'Chyba',
-};
-
-const STATUS_COLORS: Record<ArticleStatus, string> = {
-  [ArticleStatus.Queued]: 'bg-gray-100 text-gray-700 dark:bg-graphite-surface-2 dark:text-graphite-muted',
-  [ArticleStatus.Researching]: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-  [ArticleStatus.Writing]: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
-  [ArticleStatus.Generated]: 'bg-green-100 text-green-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-  [ArticleStatus.Failed]: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-};
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('cs-CZ', {
   day: '2-digit',
@@ -75,12 +59,12 @@ export default function ArticleList({ items, isLoading, selectedId, onSelect }: 
                 <p className="text-xs text-gray-400 dark:text-graphite-faint mt-1">{formatDate(item.createdAt)}</p>
               </div>
               <span
-                className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[item.status]}`}
+                className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${ARTICLE_STATUS_COLORS[item.status]}`}
               >
                 {IN_PROGRESS_STATUSES.has(item.status) && (
                   <Loader2 className="w-3 h-3 animate-spin" />
                 )}
-                {STATUS_LABELS[item.status]}
+                {ARTICLE_STATUS_LABELS[item.status]}
               </span>
             </div>
           </button>

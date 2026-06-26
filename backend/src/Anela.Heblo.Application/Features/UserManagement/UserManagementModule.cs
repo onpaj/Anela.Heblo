@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Article.Contracts;
+using Anela.Heblo.Application.Features.Authorization.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.Infrastructure;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Application.Features.UserManagement.Validators;
@@ -18,6 +19,7 @@ public static class UserManagementModule
 
         // Cross-module: IArticleUserResolver delegates to IGraphService (Mock or real) from adapter layer.
         services.AddScoped<IArticleUserResolver, GraphArticleUserResolver>();
+        services.AddScoped<IEntraAccessUserSource, EntraAccessUserSourceAdapter>();
 
         services.AddScoped<IValidator<GetGroupMembersRequest>, GetGroupMembersRequestValidator>();
         services.AddScoped<

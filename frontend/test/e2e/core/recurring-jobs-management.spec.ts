@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { navigateToApp } from '../helpers/e2e-auth-helper';
 
+// NOTE: The recurring jobs count grows as new IRecurringJob implementations are added.
+// As of 2026-06-25, staging has 24 jobs (12 original + 12 added since initial test authoring).
+// Assertions use toBeGreaterThanOrEqual(24) so tests survive future additions without modification.
+// To update the minimum, check: SELECT COUNT(*) FROM recurring_job_configurations on staging.
 test.describe('Recurring Jobs Management', () => {
   test.beforeEach(async ({ page }) => {
     // Establish E2E authentication session with full frontend setup
@@ -34,7 +38,7 @@ test.describe('Recurring Jobs Management', () => {
     await expect(page.getByText('Actions').first()).toBeVisible();
   });
 
-  test('should display all 12 recurring jobs', async ({ page }) => {
+  test('should display all recurring jobs', async ({ page }) => {
     // Wait for table to load
     await page.waitForSelector('table tbody tr', { timeout: 10000 });
 
@@ -42,8 +46,8 @@ test.describe('Recurring Jobs Management', () => {
     const rows = page.locator('table tbody tr');
     const rowCount = await rows.count();
 
-    // Verify we have 12 jobs
-    expect(rowCount).toBe(12);
+    // Verify we have at least 24 jobs (count grows as new IRecurringJob implementations are added)
+    expect(rowCount).toBeGreaterThanOrEqual(24);
   });
 
   test('should display job details correctly', async ({ page }) => {
@@ -209,10 +213,10 @@ test.describe('Recurring Jobs Management', () => {
     // Verify table is still visible
     await expect(page.locator('table')).toBeVisible();
 
-    // Verify we still have 12 jobs
+    // Verify we still have at least 24 jobs
     const rows = page.locator('table tbody tr');
     const rowCount = await rows.count();
-    expect(rowCount).toBe(12);
+    expect(rowCount).toBeGreaterThanOrEqual(24);
   });
 
   test('should display correct job names', async ({ page }) => {
@@ -292,8 +296,8 @@ test.describe('Recurring Jobs Management', () => {
     const toggleButtons = page.locator('button[role="switch"]');
     const buttonCount = await toggleButtons.count();
 
-    // Verify we have toggle buttons for all 12 jobs
-    expect(buttonCount).toBe(12);
+    // Verify we have toggle buttons for all jobs (at least 24)
+    expect(buttonCount).toBeGreaterThanOrEqual(24);
 
     // Check each button has proper ARIA attributes
     for (let i = 0; i < buttonCount; i++) {
@@ -689,8 +693,8 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
     const runNowButtons = page.getByText('Run Now');
     const buttonCount = await runNowButtons.count();
 
-    // Verify we have buttons for all 12 jobs
-    expect(buttonCount).toBe(12);
+    // Verify we have Run Now buttons for all jobs (at least 24)
+    expect(buttonCount).toBeGreaterThanOrEqual(24);
 
     // Check first button has proper aria-label
     const firstButton = runNowButtons.first();

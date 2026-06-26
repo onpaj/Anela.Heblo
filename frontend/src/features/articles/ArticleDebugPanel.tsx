@@ -1,21 +1,22 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { ArticleGenerationStepStatus } from '../../api/generated/api-client';
 import { useArticleTraceQuery, ArticleGenerationStep } from '../../api/hooks/useArticleTrace';
 
 interface ArticleDebugPanelProps {
   articleId: string;
 }
 
-const STEP_STATUS_COLORS: Record<string, string> = {
-  Running: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-  Succeeded: 'bg-green-100 text-green-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-  Failed: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+const STEP_STATUS_COLORS: Record<ArticleGenerationStepStatus, string> = {
+  [ArticleGenerationStepStatus.Running]: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  [ArticleGenerationStepStatus.Succeeded]: 'bg-green-100 text-green-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  [ArticleGenerationStepStatus.Failed]: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
 };
 
-const STEP_STATUS_LABELS: Record<string, string> = {
-  Running: 'Běží',
-  Succeeded: 'Dokončeno',
-  Failed: 'Chyba',
+const STEP_STATUS_LABELS: Record<ArticleGenerationStepStatus, string> = {
+  [ArticleGenerationStepStatus.Running]: 'Běží',
+  [ArticleGenerationStepStatus.Succeeded]: 'Dokončeno',
+  [ArticleGenerationStepStatus.Failed]: 'Chyba',
 };
 
 function PrettyJson({ raw }: { raw: string }) {
@@ -37,7 +38,7 @@ function StepCard({ step }: { step: ArticleGenerationStep }) {
         <span className="text-xs font-medium text-gray-500 dark:text-graphite-muted">#{step.sequence}</span>
         <span className="text-sm font-semibold text-gray-800 dark:text-graphite-text">{step.stepName}</span>
         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${colorClass}`}>
-          {step.status === 'Running' && <Loader2 className="w-3 h-3 animate-spin" />}
+          {step.status === ArticleGenerationStepStatus.Running && <Loader2 className="w-3 h-3 animate-spin" />}
           {label}
         </span>
         {step.model && (
@@ -48,7 +49,7 @@ function StepCard({ step }: { step: ArticleGenerationStep }) {
         )}
       </div>
 
-      {step.status === 'Failed' && step.errorMessage && (
+      {step.status === ArticleGenerationStepStatus.Failed && step.errorMessage && (
         <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded p-2">{step.errorMessage}</p>
       )}
 
