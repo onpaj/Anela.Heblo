@@ -21,16 +21,16 @@
       "updated_at": "2026-06-26T07:23:04.130588Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-26T07:23:28.882950Z"
+      "status": "completed",
+      "updated_at": "2026-06-26T07:40:45.267770Z"
     }
   },
   "tasks": [
     {
       "name": "fix-step-status-type-safety",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-26T07:23:29.113048Z"
+      "updated_at": "2026-06-26T07:40:38.981964Z"
     }
   ]
 }
