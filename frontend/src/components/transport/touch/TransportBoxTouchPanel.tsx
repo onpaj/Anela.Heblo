@@ -20,13 +20,13 @@ const TransportBoxTouchPanel: React.FC<TransportBoxTouchPanelProps> = ({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/* Open-by-code action */}
-      <div className="flex-shrink-0 rounded-lg bg-white p-4 shadow">
+      <div className="flex-shrink-0 rounded-lg bg-white p-4 shadow dark:bg-graphite-surface dark:shadow-soft-dark">
         <OpenBoxByCodeField onOpenBox={onOpenBox} />
       </div>
 
       {/* Open boxes to resume */}
-      <div className="flex min-h-0 flex-1 flex-col rounded-lg bg-white shadow">
-        <h2 className="flex-shrink-0 border-b border-gray-200 p-4 text-sm font-medium text-gray-700">
+      <div className="flex min-h-0 flex-1 flex-col rounded-lg bg-white shadow dark:bg-graphite-surface dark:shadow-soft-dark">
+        <h2 className="flex-shrink-0 border-b border-gray-200 p-4 text-sm font-medium text-gray-700 dark:border-graphite-border dark:text-graphite-text">
           Otevřené boxy
         </h2>
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -38,7 +38,7 @@ const TransportBoxTouchPanel: React.FC<TransportBoxTouchPanelProps> = ({
       <button
         type="button"
         onClick={onShowAll}
-        className="flex flex-shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+        className="flex flex-shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text dark:hover:bg-white/5"
       >
         <Table2 className="h-4 w-4" />
         Zobrazit všechny boxy

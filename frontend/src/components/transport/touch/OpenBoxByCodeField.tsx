@@ -48,13 +48,13 @@ const OpenBoxByCodeField: React.FC<OpenBoxByCodeFieldProps> = ({
     <form onSubmit={handleSubmit} className="space-y-2">
       <label
         htmlFor="open-box-code"
-        className="block text-sm font-medium text-gray-700"
+        className="block text-sm font-medium text-gray-700 dark:text-graphite-muted"
       >
         Otevřít box
       </label>
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <ScanLine className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <ScanLine className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-graphite-faint" />
           <input
             id="open-box-code"
             type="text"
@@ -65,7 +65,7 @@ const OpenBoxByCodeField: React.FC<OpenBoxByCodeFieldProps> = ({
             onChange={(e) => setCode(e.target.value)}
             disabled={openBox.isPending}
             placeholder="Naskenujte nebo zadejte kód (B001)"
-            className="h-14 w-full rounded-xl border border-gray-300 pl-11 pr-3 text-lg uppercase focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="h-14 w-full rounded-xl border border-gray-300 pl-11 pr-3 text-lg uppercase focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint"
           />
         </div>
         <button
@@ -79,7 +79,7 @@ const OpenBoxByCodeField: React.FC<OpenBoxByCodeFieldProps> = ({
       </div>
 
       {error && (
-        <p className="flex items-center gap-1 text-sm text-red-600">
+        <p className="flex items-center gap-1 text-sm text-red-600 dark:text-red-400">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           {error}
         </p>

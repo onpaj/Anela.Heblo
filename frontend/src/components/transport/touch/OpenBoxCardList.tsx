@@ -22,7 +22,7 @@ const OpenBoxCardList: React.FC<OpenBoxCardListProps> = ({ onOpenBox }) => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-10 text-gray-500">
+      <div className="flex items-center justify-center py-10 text-gray-500 dark:text-graphite-muted">
         <RefreshCw className="h-6 w-6 animate-spin" />
         <span className="ml-2 text-sm">Načítání otevřených boxů…</span>
       </div>
@@ -31,7 +31,7 @@ const OpenBoxCardList: React.FC<OpenBoxCardListProps> = ({ onOpenBox }) => {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
         Nepodařilo se načíst otevřené boxy.
       </div>
     );
@@ -41,8 +41,8 @@ const OpenBoxCardList: React.FC<OpenBoxCardListProps> = ({ onOpenBox }) => {
 
   if (boxes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 text-center text-gray-500">
-        <PackageOpen className="mb-3 h-10 w-10 text-gray-300" />
+      <div className="flex flex-col items-center justify-center py-10 text-center text-gray-500 dark:text-graphite-muted">
+        <PackageOpen className="mb-3 h-10 w-10 text-gray-300 dark:text-graphite-faint" />
         <p className="text-sm">
           Žádný otevřený box — naskenujte nebo zadejte kód a začněte.
         </p>
