@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import ResponsiblePersonCombobox from '../ResponsiblePersonCombobox';
+import { ThemeProvider } from '../../../contexts/ThemeContext';
 
 // Mock the useUserManagement hook
 const mockUseResponsiblePersonsQuery = jest.fn();
@@ -31,7 +32,9 @@ const createWrapper = () => {
     });
 
     return ({ children }: { children: ReactNode }) => (
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        <QueryClientProvider client={queryClient}>
+            <ThemeProvider>{children}</ThemeProvider>
+        </QueryClientProvider>
     );
 };
 
