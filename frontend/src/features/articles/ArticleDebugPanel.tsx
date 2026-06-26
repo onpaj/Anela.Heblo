@@ -7,9 +7,9 @@ interface ArticleDebugPanelProps {
 }
 
 const STEP_STATUS_COLORS: Record<string, string> = {
-  Running: 'bg-blue-100 text-blue-700 dark:bg-graphite-surface-2 dark:text-graphite-accent',
-  Succeeded: 'bg-green-100 text-green-700 dark:bg-graphite-surface-2 dark:text-graphite-text',
-  Failed: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400',
+  Running: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  Succeeded: 'bg-green-100 text-green-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  Failed: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
 };
 
 const STEP_STATUS_LABELS: Record<string, string> = {
@@ -34,14 +34,14 @@ function StepCard({ step }: { step: ArticleGenerationStep }) {
   return (
     <div className="border dark:border-graphite-border rounded p-3 space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs font-medium text-gray-500 dark:text-graphite-faint">#{step.sequence}</span>
+        <span className="text-xs font-medium text-gray-500 dark:text-graphite-muted">#{step.sequence}</span>
         <span className="text-sm font-semibold text-gray-800 dark:text-graphite-text">{step.stepName}</span>
         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${colorClass}`}>
           {step.status === 'Running' && <Loader2 className="w-3 h-3 animate-spin" />}
           {label}
         </span>
         {step.model && (
-          <span className="text-xs text-gray-500 dark:text-graphite-faint ml-auto">{step.model}</span>
+          <span className="text-xs text-gray-500 dark:text-graphite-muted ml-auto">{step.model}</span>
         )}
         {step.durationMs != null && (
           <span className="text-xs text-gray-400 dark:text-graphite-faint">{step.durationMs} ms</span>
@@ -49,19 +49,19 @@ function StepCard({ step }: { step: ArticleGenerationStep }) {
       </div>
 
       {step.status === 'Failed' && step.errorMessage && (
-        <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 rounded p-2">{step.errorMessage}</p>
+        <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded p-2">{step.errorMessage}</p>
       )}
 
       {step.inputJson && (
         <details className="text-xs">
-          <summary className="cursor-pointer text-gray-500 dark:text-graphite-faint hover:text-gray-700 dark:hover:text-graphite-muted select-none">Vstup (InputJson)</summary>
+          <summary className="cursor-pointer text-gray-500 dark:text-graphite-muted hover:text-gray-700 dark:hover:text-graphite-muted select-none">Vstup (InputJson)</summary>
           <PrettyJson raw={step.inputJson} />
         </details>
       )}
 
       {step.outputJson && (
         <details className="text-xs">
-          <summary className="cursor-pointer text-gray-500 dark:text-graphite-faint hover:text-gray-700 dark:hover:text-graphite-muted select-none">Výstup (OutputJson)</summary>
+          <summary className="cursor-pointer text-gray-500 dark:text-graphite-muted hover:text-gray-700 dark:hover:text-graphite-muted select-none">Výstup (OutputJson)</summary>
           <PrettyJson raw={step.outputJson} />
         </details>
       )}
@@ -95,7 +95,7 @@ export default function ArticleDebugPanel({ articleId }: ArticleDebugPanelProps)
             <p className="text-xs text-red-600 dark:text-red-400">Nepodařilo se načíst průběh generování.</p>
           )}
           {data && data.steps.length === 0 && (
-            <p className="text-xs text-gray-500 dark:text-graphite-faint">Žádné kroky k zobrazení.</p>
+            <p className="text-xs text-gray-500 dark:text-graphite-muted">Žádné kroky k zobrazení.</p>
           )}
           {data && data.steps.map((step) => (
             <StepCard key={step.id} step={step} />

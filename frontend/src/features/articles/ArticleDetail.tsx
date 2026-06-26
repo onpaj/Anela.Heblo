@@ -19,10 +19,10 @@ const STATUS_LABELS: Record<ArticleStatus, string> = {
 
 const STATUS_COLORS: Record<ArticleStatus, string> = {
   [ArticleStatus.Queued]: 'bg-gray-100 text-gray-700 dark:bg-graphite-surface-2 dark:text-graphite-muted',
-  [ArticleStatus.Researching]: 'bg-blue-100 text-blue-700 dark:bg-graphite-surface-2 dark:text-graphite-accent',
-  [ArticleStatus.Writing]: 'bg-purple-100 text-purple-700 dark:bg-graphite-surface-2 dark:text-graphite-accent-strong',
-  [ArticleStatus.Generated]: 'bg-green-100 text-green-700 dark:bg-graphite-surface-2 dark:text-graphite-text',
-  [ArticleStatus.Failed]: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400',
+  [ArticleStatus.Researching]: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  [ArticleStatus.Writing]: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  [ArticleStatus.Generated]: 'bg-green-100 text-green-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  [ArticleStatus.Failed]: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
 };
 
 function HtmlContent({ html }: { html: string }) {
@@ -35,6 +35,7 @@ function HtmlContent({ html }: { html: string }) {
 
   return (
     <iframe
+      key={isDark ? 'dark' : 'light'}
       srcDoc={srcdoc}
       sandbox="allow-same-origin"
       className="w-full border-0 rounded"
@@ -53,7 +54,7 @@ function HtmlContent({ html }: { html: string }) {
 
 function InProgressView({ article }: { article: ArticleDetailType }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 gap-4 text-gray-500 dark:text-graphite-faint">
+    <div className="flex flex-col items-center justify-center py-16 gap-4 text-gray-500 dark:text-graphite-muted">
       <Loader2 className="w-8 h-8 animate-spin text-blue-500 dark:text-graphite-accent" />
       <p className="text-sm">{STATUS_LABELS[article.status]}</p>
     </div>
@@ -67,8 +68,8 @@ function ArticleView({ article }: { article: ArticleDetailType }) {
         {article.title && (
           <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text mb-1">{article.title}</h2>
         )}
-        <p className="text-sm text-gray-500 dark:text-graphite-faint">{article.topic}</p>
-        <div className="flex flex-wrap gap-2 mt-2 text-xs text-gray-500 dark:text-graphite-faint">
+        <p className="text-sm text-gray-500 dark:text-graphite-muted">{article.topic}</p>
+        <div className="flex flex-wrap gap-2 mt-2 text-xs text-gray-500 dark:text-graphite-muted">
           <span>{article.scope}</span>
           <span>·</span>
           <span>{article.length}</span>
@@ -113,7 +114,7 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
       </div>
 
       {article.status === ArticleStatus.Failed && article.errorMessage && (
-        <div className="mb-4 rounded bg-red-50 border border-red-200 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:border-red-800 dark:text-red-400">
+        <div className="mb-4 rounded bg-red-50 border border-red-200 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400">
           {article.errorMessage}
         </div>
       )}

@@ -78,7 +78,7 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
           minLength={3}
           maxLength={500}
           required
-          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
+          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
         />
       </div>
 
@@ -88,7 +88,7 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
           <select
             value={scope}
             onChange={(e) => setScope(e.target.value)}
-            className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
+            className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
           >
             {SCOPE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -101,7 +101,7 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
           <select
             value={length}
             onChange={(e) => setLength(e.target.value)}
-            className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
+            className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
           >
             {LENGTH_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -117,7 +117,7 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
           value={audience}
           onChange={(e) => setAudience(e.target.value)}
           placeholder="Např. zákazníci 30–50 let zajímající se o přírodní kosmetiku"
-          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
+          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
         />
       </div>
 
@@ -128,7 +128,7 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
           value={angle}
           onChange={(e) => setAngle(e.target.value)}
           placeholder="Např. zaměřit se na vědecké studie"
-          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
+          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
         />
       </div>
 
@@ -140,7 +140,7 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
           onChange={(e) => setLanguageNote(e.target.value)}
           placeholder="Např. krátké věty, vyhýbat se odborným termínům"
           maxLength={500}
-          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
+          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
         />
       </div>
 
@@ -166,21 +166,21 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
       </div>
 
       <details className="text-sm">
-        <summary className="cursor-pointer text-gray-500 dark:text-graphite-faint select-none">Stylový průvodce (volitelné)</summary>
+        <summary className="cursor-pointer text-gray-500 dark:text-graphite-muted select-none">Stylový průvodce (volitelné)</summary>
         <div className="mt-2 space-y-2">
           <input
             type="text"
             value={styleGuideDriveId}
             onChange={(e) => setStyleGuideDriveId(e.target.value)}
             placeholder="OneDrive Drive ID"
-            className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
+            className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
           />
           <input
             type="text"
             value={styleGuideItemPath}
             onChange={(e) => setStyleGuideItemPath(e.target.value)}
             placeholder="Cesta k souboru (např. Documents/style-guide.txt)"
-            className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
+            className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-graphite-accent"
           />
         </div>
       </details>

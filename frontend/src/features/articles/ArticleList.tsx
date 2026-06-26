@@ -19,10 +19,10 @@ const STATUS_LABELS: Record<ArticleStatus, string> = {
 
 const STATUS_COLORS: Record<ArticleStatus, string> = {
   [ArticleStatus.Queued]: 'bg-gray-100 text-gray-700 dark:bg-graphite-surface-2 dark:text-graphite-muted',
-  [ArticleStatus.Researching]: 'bg-blue-100 text-blue-700 dark:bg-graphite-surface-2 dark:text-graphite-accent',
-  [ArticleStatus.Writing]: 'bg-purple-100 text-purple-700 dark:bg-graphite-surface-2 dark:text-graphite-accent-strong',
-  [ArticleStatus.Generated]: 'bg-green-100 text-green-700 dark:bg-graphite-surface-2 dark:text-graphite-text',
-  [ArticleStatus.Failed]: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400',
+  [ArticleStatus.Researching]: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  [ArticleStatus.Writing]: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  [ArticleStatus.Generated]: 'bg-green-100 text-green-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  [ArticleStatus.Failed]: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
 };
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('cs-CZ', {
@@ -48,7 +48,7 @@ export default function ArticleList({ items, isLoading, selectedId, onSelect }: 
 
   if (items.length === 0) {
     return (
-      <p className="text-sm text-gray-500 dark:text-graphite-faint py-4 text-center">
+      <p className="text-sm text-gray-500 dark:text-graphite-muted py-4 text-center">
         Zatím žádné články. Vytvořte první pomocí formuláře.
       </p>
     );
@@ -60,8 +60,8 @@ export default function ArticleList({ items, isLoading, selectedId, onSelect }: 
         <li key={item.id}>
           <button
             onClick={() => onSelect(item.id)}
-            className={`w-full text-left px-3 py-3 hover:bg-gray-50 dark:hover:bg-graphite-hover transition-colors ${
-              selectedId === item.id ? 'bg-blue-50 dark:bg-graphite-surface' : ''
+            className={`w-full text-left px-3 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${
+              selectedId === item.id ? 'bg-blue-50 dark:bg-graphite-accent/10' : ''
             }`}
           >
             <div className="flex items-start justify-between gap-2">
@@ -70,7 +70,7 @@ export default function ArticleList({ items, isLoading, selectedId, onSelect }: 
                   {item.title ?? item.topic}
                 </p>
                 {item.title && (
-                  <p className="text-xs text-gray-500 dark:text-graphite-faint truncate">{item.topic}</p>
+                  <p className="text-xs text-gray-500 dark:text-graphite-muted truncate">{item.topic}</p>
                 )}
                 <p className="text-xs text-gray-400 dark:text-graphite-faint mt-1">{formatDate(item.createdAt)}</p>
               </div>

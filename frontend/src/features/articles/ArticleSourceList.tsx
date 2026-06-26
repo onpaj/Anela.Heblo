@@ -8,8 +8,8 @@ interface ArticleSourceListProps {
 }
 
 function SourceIcon({ type }: { type: string }) {
-  if (type === 'Web') return <Globe className="w-4 h-4 text-blue-500 dark:text-graphite-accent shrink-0" />;
-  return <BookOpen className="w-4 h-4 text-green-600 dark:text-graphite-accent shrink-0" />;
+  if (type === 'Web') return <Globe className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0" />;
+  return <BookOpen className="w-4 h-4 text-green-600 dark:text-emerald-400 shrink-0" />;
 }
 
 const ArticleSourceList: React.FC<ArticleSourceListProps> = ({ sources }) => {
@@ -32,7 +32,7 @@ const ArticleSourceList: React.FC<ArticleSourceListProps> = ({ sources }) => {
                     href={source.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-graphite-accent hover:underline flex items-center gap-1"
+                    className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                   >
                     {source.title}
                     <ExternalLink className="w-3 h-3" />
@@ -41,7 +41,7 @@ const ArticleSourceList: React.FC<ArticleSourceListProps> = ({ sources }) => {
                   <button
                     type="button"
                     onClick={() => setSelectedChunkId(source.knowledgeBaseChunkId)}
-                    className="text-green-700 dark:text-graphite-accent hover:underline text-left"
+                    className="text-green-700 dark:text-emerald-400 hover:underline text-left"
                   >
                     {source.title}
                   </button>
