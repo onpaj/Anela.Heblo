@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "create-background-refresh-module",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-27T06:24:35.440221Z"
+      "updated_at": "2026-06-27T06:26:09.714339Z"
     },
     {
       "name": "move-dtos-to-new-module",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-27T06:26:09.904154Z"
     },
     {
       "name": "wire-module-into-application-root",
