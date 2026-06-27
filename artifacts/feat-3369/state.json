@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3369",
+  "issue_number": 3369,
+  "created_at": "2026-06-26T08:15:00.217415Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-26T08:18:00.764215Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-26T08:22:20.108894Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-26T08:22:31.365643Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-26T08:25:09.374465Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-26T08:47:40.598710Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-06-26T08:47:51.385496Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "introduce-graph-service-exception-wrappers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-26T08:33:00.433450Z"
+    },
+    {
+      "name": "decouple-handler-and-add-arch-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-26T08:47:40.388764Z"
+    }
+  ]
+}
