@@ -84,7 +84,10 @@ public class E2ESessionService : IE2ESessionService
             new Claim("tid", environmentName), // Use environment as tenant for testing
             new Claim(ClaimTypes.Role, AccessRoles.Base), // Base role for application access
             new Claim("scp", "access_as_user"),
-            new Claim("permission", "FinancialOverview.View")
+            // Grant the finance overview read role so E2E tests can reach /api/FinancialOverview.
+            // FeatureAuthorize checks the role claim (permission strings were renamed away from the
+            // old "FinancialOverview.View" form), so a stale "permission" claim no longer matches.
+            new Claim(ClaimTypes.Role, AccessRoles.FinanceFinancialOverviewRead)
         };
     }
 }

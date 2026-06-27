@@ -12,10 +12,10 @@ test.describe('Marketing Calendar — Calendar View', () => {
   });
 
   test('should render day-of-week header row', async ({ page }) => {
-    // Calendar grid must show Czech weekday abbreviations Mon–Sun
-    const expectedHeaders = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
+    // FullCalendar (cs locale) renders weekday column headers with full Czech day names
+    const expectedHeaders = ['pondělí', 'úterý', 'středa', 'čtvrtek', 'pátek', 'sobota', 'neděle'];
     for (const day of expectedHeaders) {
-      await expect(page.locator(`text="${day}"`).first()).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole('columnheader', { name: day }).first()).toBeVisible({ timeout: 10000 });
     }
   });
 
@@ -23,33 +23,24 @@ test.describe('Marketing Calendar — Calendar View', () => {
     // Wait for loading to finish
     await expect(page.locator('text=Načítání...').first()).not.toBeVisible({ timeout: 15000 });
 
-    // Day numbers 1–31 appear in the calendar grid
-    const dayOne = page.locator('text="1"').first();
-    await expect(dayOne).toBeVisible({ timeout: 10000 });
+    // The calendar grid renders day cells as grid cells
+    const dayCell = page.getByRole('gridcell').first();
+    await expect(dayCell).toBeVisible({ timeout: 10000 });
   });
 
   test('should navigate to previous month', async ({ page }) => {
-    const czechMonths = [
-      'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
-      'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec',
-    ];
-
-    const now = new Date();
-    const prevMonthIndex = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-    const prevMonthName = czechMonths[prevMonthIndex];
-    const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-
-    // CalendarNavigation renders prev/next as icon buttons; locate by position in nav row
-    // The period label sits between the navigation buttons — click the first button before it
-    const periodLabel = page.locator(`text=/${czechMonths[now.getMonth()]}/`).first();
+    // The period label shows the visible month/range with the year, e.g. "Červen – Červenec 2026".
+    // (The 5-week grid spans parts of two months, so the label is a start–end range, not a single
+    // month name — assert the label changes after navigating rather than guessing the exact text.)
+    const periodLabel = page.locator('span').filter({ hasText: /20\d\d/ }).first();
     await expect(periodLabel).toBeVisible({ timeout: 10000 });
+    const labelBefore = await periodLabel.textContent();
 
-    // Prev button is the first sibling button before the period label
-    const navButtons = page.locator('button').filter({ hasText: /^$/ }); // icon-only buttons
-    await navButtons.first().click();
+    // CalendarNavigation renders the prev button with accessible name "Předchozí"
+    await page.getByRole('button', { name: 'Předchozí' }).click();
 
-    await expect(page.locator(`text=/${prevMonthName}/`).first()).toBeVisible({ timeout: 5000 });
-    await expect(page.locator(`text=/${prevYear}/`).first()).toBeVisible();
+    // Navigating to the previous period updates the visible period label
+    await expect(periodLabel).not.toHaveText(labelBefore ?? '', { timeout: 5000 });
   });
 
   test('should navigate to next month', async ({ page }) => {

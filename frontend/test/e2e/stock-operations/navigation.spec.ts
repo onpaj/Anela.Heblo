@@ -45,10 +45,10 @@ test.describe('Stock Operations - Navigation & Initial Load', () => {
     await navigateToStockOperations(page);
     await waitForTableUpdate(page);
 
-    // Verify data loaded - check for table content instead of spinners
-    // (multiple spinners exist on page, so checking for data presence is more reliable)
-    const tableBody = page.locator('tbody');
-    await expect(tableBody).toBeVisible();
+    // Verify loading finished and a result container rendered. Stock operations are transient,
+    // so the data table may be absent — accept either the table body or the empty-state message.
+    const resultContainer = page.locator('tbody').or(page.getByText('Žádné výsledky'));
+    await expect(resultContainer.first()).toBeVisible();
 
     console.log('✅ Loading state test completed');
   });

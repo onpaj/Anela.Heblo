@@ -413,28 +413,37 @@ export async function navigateToMarketingCalendar(page: any): Promise<void> {
 
   const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
 
-  // Try sidebar navigation first
-  try {
-    console.log('🧭 Attempting UI navigation to marketing calendar via sidebar...');
-    const marketingSection = page.locator('button').filter({ hasText: 'Marketing' }).first();
-    if (await marketingSection.isVisible({ timeout: 5000 })) {
-      await marketingSection.click();
-      await waitForLoadingComplete(page);
+  // The page renders a desktop calendar grid or the MobileAgendaView depending on
+  // viewport width, each with a different heading. Wait for whichever applies.
+  const viewport = page.viewportSize();
+  const isMobile = viewport ? viewport.width < 768 : false;
+  const headingText = isMobile ? 'Kalendář' : 'Marketingový kalendář';
 
-      // Note: 'Kalendář' here is the sidebar <a> link text, not the view-toggle button
-      const calendarLink = page.locator('text="Kalendář"').first();
-      if (await calendarLink.isVisible({ timeout: 5000 })) {
-        await calendarLink.click();
-        await page.waitForLoadState('domcontentloaded');
+  // Try sidebar navigation first (desktop only — on mobile the sidebar is collapsed
+  // off-screen, so clicking it just times out before falling back to direct nav).
+  if (!isMobile) {
+    try {
+      console.log('🧭 Attempting UI navigation to marketing calendar via sidebar...');
+      const marketingSection = page.locator('button').filter({ hasText: 'Marketing' }).first();
+      if (await marketingSection.isVisible({ timeout: 5000 })) {
+        await marketingSection.click();
         await waitForLoadingComplete(page);
-        // Wait for the page heading to confirm calendar page is loaded
-        await page.locator('h1').filter({ hasText: 'Marketingový kalendář' }).waitFor({ timeout: 15000 });
-        console.log('✅ UI navigation to marketing calendar successful');
-        return;
+
+        // Note: 'Kalendář' here is the sidebar <a> link text, not the view-toggle button
+        const calendarLink = page.locator('text="Kalendář"').first();
+        if (await calendarLink.isVisible({ timeout: 5000 })) {
+          await calendarLink.click();
+          await page.waitForLoadState('domcontentloaded');
+          await waitForLoadingComplete(page);
+          // Wait for the page heading to confirm calendar page is loaded
+          await page.locator('h1').filter({ hasText: headingText }).waitFor({ timeout: 15000 });
+          console.log('✅ UI navigation to marketing calendar successful');
+          return;
+        }
       }
+    } catch (e) {
+      console.log('❌ UI navigation failed:', (e as Error).message);
     }
-  } catch (e) {
-    console.log('❌ UI navigation failed:', (e as Error).message);
   }
 
   // Fall back to direct navigation
@@ -443,7 +452,7 @@ export async function navigateToMarketingCalendar(page: any): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
   await waitForLoadingComplete(page);
   // Wait for the page heading to confirm calendar page is loaded
-  await page.locator('h1').filter({ hasText: 'Marketingový kalendář' }).waitFor({ timeout: 15000 });
+  await page.locator('h1').filter({ hasText: headingText }).waitFor({ timeout: 15000 });
 
   console.log('✅ Direct navigation to marketing calendar completed');
 }
