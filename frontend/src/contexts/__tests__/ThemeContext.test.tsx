@@ -1,6 +1,9 @@
 import { render, screen, act } from "@testing-library/react";
 import { ThemeProvider, useTheme } from "../ThemeContext";
 
+// Override the global mock from setupTests.ts so the real ThemeContext is tested.
+jest.unmock("../ThemeContext");
+
 const STORAGE_KEY = "anela-theme";
 
 // Mock window.matchMedia (always reports dark, to prove the OS preference is ignored)

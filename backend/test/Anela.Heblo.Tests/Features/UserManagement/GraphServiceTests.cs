@@ -431,7 +431,7 @@ public class GraphServiceTests
             .ThrowsAsync(new MsalUiRequiredException("err", "msg"));
 
         // Act & Assert
-        await Assert.ThrowsAsync<MsalUiRequiredException>(() => service.GetGroupMembersAsync("group-1"));
+        await Assert.ThrowsAsync<GraphServiceAuthException>(() => service.GetGroupMembersAsync("group-1"));
         factoryMock.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
     }
 
