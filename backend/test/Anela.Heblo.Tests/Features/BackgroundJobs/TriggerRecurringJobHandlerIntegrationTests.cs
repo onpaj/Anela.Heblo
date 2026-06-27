@@ -56,8 +56,7 @@ public class TriggerRecurringJobHandlerIntegrationTests
 
         var request = new TriggerRecurringJobRequest
         {
-            JobName = "test-async-job",
-            ForceDisabled = false
+            JobName = "test-async-job"
         };
 
         // Act
@@ -106,8 +105,7 @@ public class TriggerRecurringJobHandlerIntegrationTests
 
         var request = new TriggerRecurringJobRequest
         {
-            JobName = "async-test",
-            ForceDisabled = false
+            JobName = "async-test"
         };
 
         // Act - This should NOT throw ArgumentException about Expression type mismatch
@@ -128,53 +126,6 @@ public class TriggerRecurringJobHandlerIntegrationTests
         Assert.NotNull(result);
         Assert.True(result.Success);
         Assert.NotNull(result.JobId);
-    }
-
-    [Fact]
-    public async Task Handle_WithDisabledJob_CanBeTriggeredWithForceFlag()
-    {
-        // Arrange - Hangfire is already configured by the fixture
-        var mockStatusChecker = new Mock<IRecurringJobStatusChecker>();
-        var mockHandlerLogger = new Mock<ILogger<TriggerRecurringJobHandler>>();
-        var mockEnqueuerLogger = new Mock<ILogger<HangfireJobEnqueuer>>();
-
-        mockStatusChecker
-            .Setup(x => x.IsJobEnabledAsync("disabled-job", It.IsAny<CancellationToken>(), true))
-            .ReturnsAsync(false);
-
-        var jobs = new List<IRecurringJob>
-        {
-            new TestAsyncRecurringJob("disabled-job")
-        };
-
-        // Create BackgroundJobClient using the configured storage
-        var backgroundJobClient = new BackgroundJobClient(JobStorage.Current);
-        var jobEnqueuer = new HangfireJobEnqueuer(mockEnqueuerLogger.Object, backgroundJobClient);
-
-        var handler = new TriggerRecurringJobHandler(
-            jobs,
-            mockStatusChecker.Object,
-            jobEnqueuer,
-            mockHandlerLogger.Object);
-
-        var request = new TriggerRecurringJobRequest
-        {
-            JobName = "disabled-job",
-            ForceDisabled = true
-        };
-
-        // Act
-        var result = await handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        Assert.True(result.Success);
-        Assert.NotNull(result.JobId);
-        Assert.NotEmpty(result.JobId);
-
-        // Verify status check was skipped
-        mockStatusChecker.Verify(
-            x => x.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), true),
-            Times.Never);
     }
 
     /// <summary>
