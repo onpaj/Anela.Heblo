@@ -1,8 +1,9 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.BackgroundRefresh.UseCases.ForceRefreshTask;
 
-public class ForceRefreshTaskResponse
+public class ForceRefreshTaskResponse : BaseResponse
 {
-    public bool Success { get; init; }
-    public bool NotFound { get; init; }
-    public string? ErrorMessage { get; init; }
+    public bool NotFound { get; set; }
+    public string? ErrorMessage { get; set; }
 }

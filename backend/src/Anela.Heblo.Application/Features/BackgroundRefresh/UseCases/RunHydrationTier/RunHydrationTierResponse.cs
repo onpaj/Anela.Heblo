@@ -1,10 +1,11 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.BackgroundRefresh.UseCases.RunHydrationTier;
 
-public class RunHydrationTierResponse
+public class RunHydrationTierResponse : BaseResponse
 {
-    public bool Success { get; init; }
-    public bool NotFound { get; init; }
-    public bool Cancelled { get; init; }
-    public string? ErrorMessage { get; init; }
-    public int TaskCount { get; init; }
+    public bool NotFound { get; set; }
+    public bool Cancelled { get; set; }
+    public string? ErrorMessage { get; set; }
+    public int TaskCount { get; set; }
 }

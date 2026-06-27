@@ -1,8 +1,9 @@
 using Anela.Heblo.Application.Features.BackgroundRefresh.Contracts;
+using Anela.Heblo.Application.Shared;
 
 namespace Anela.Heblo.Application.Features.BackgroundRefresh.UseCases.GetAllHistory;
 
-public class GetAllHistoryResponse
+public class GetAllHistoryResponse : BaseResponse
 {
-    public required IReadOnlyList<RefreshTaskExecutionLogDto> History { get; init; }
+    public IReadOnlyList<RefreshTaskExecutionLogDto> History { get; set; } = [];
 }
