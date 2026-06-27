@@ -34,15 +34,15 @@
     },
     {
       "name": "move-dtos-to-new-module",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-27T06:26:09.904154Z"
+      "updated_at": "2026-06-27T06:28:02.289329Z"
     },
     {
       "name": "wire-module-into-application-root",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-27T06:28:02.475239Z"
     },
     {
       "name": "update-controller-namespace",
