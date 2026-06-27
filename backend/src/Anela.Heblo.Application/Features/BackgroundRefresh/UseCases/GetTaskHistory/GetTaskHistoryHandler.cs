@@ -15,6 +15,10 @@ public class GetTaskHistoryHandler : IRequestHandler<GetTaskHistoryRequest, GetT
 
     public Task<GetTaskHistoryResponse> Handle(GetTaskHistoryRequest request, CancellationToken cancellationToken)
     {
+        var taskExists = _taskRegistry.GetRegisteredTasks().Any(t => t.TaskId == request.TaskId);
+        if (!taskExists)
+            return Task.FromResult(new GetTaskHistoryResponse { Success = false });
+
         var history = _taskRegistry.GetExecutionHistory(request.TaskId, request.MaxRecords)
             .Select(MapToDto)
             .ToList();

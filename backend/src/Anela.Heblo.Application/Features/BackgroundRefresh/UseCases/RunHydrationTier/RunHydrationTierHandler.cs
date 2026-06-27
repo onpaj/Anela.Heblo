@@ -35,7 +35,7 @@ public class RunHydrationTierHandler : IRequestHandler<RunHydrationTierRequest, 
                 await _taskRegistry.ForceRefreshAsync(task.TaskId, cancellationToken);
             }
 
-            return new RunHydrationTierResponse { Success = true, TaskCount = tasksInTier.Count };
+            return new RunHydrationTierResponse { TaskCount = tasksInTier.Count };
         }
         catch (OperationCanceledException)
         {
