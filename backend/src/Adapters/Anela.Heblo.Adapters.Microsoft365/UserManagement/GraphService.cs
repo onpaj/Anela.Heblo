@@ -168,12 +168,14 @@ public class GraphService : IGraphService
         {
             _logger.LogError(msalEx, "Failed to acquire Graph API application token. MSAL Error: {ErrorCode} - {ErrorDescription}. GroupId: {GroupId}, Scope: {Scope}",
                 msalEx.ErrorCode, msalEx.Message, groupId, "https://graph.microsoft.com/.default");
-            throw;
+            throw new GraphServiceAuthException(
+                $"Failed to acquire Graph API token for group {groupId}: {msalEx.Message}", msalEx);
         }
         catch (Microsoft.Graph.Models.ODataErrors.ODataError odataEx)
         {
             _logger.LogError(odataEx, "Microsoft Graph OData error fetching group members for group {GroupId}. Error: {ErrorCode}", groupId, odataEx.Error?.Code);
-            throw;
+            throw new GraphServiceException(
+                $"Microsoft Graph OData error fetching group members for group {groupId}: {odataEx.Error?.Code}", odataEx);
         }
         catch (UnauthorizedAccessException authEx)
         {
