@@ -166,11 +166,11 @@ const RecurringJobsPage: React.FC = () => {
     <div className="flex flex-col h-full w-full">
       {/* Header - Fixed, title only */}
       <div className="flex-shrink-0 mb-3">
-        <h1 className="text-lg font-semibold text-gray-900">Správa Recurring Jobs</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Správa Recurring Jobs</h1>
       </div>
 
       {/* Main Content - Scrollable */}
-      <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
         {/* Action bar inside content */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-graphite-border flex items-center justify-between">
           <div className="flex items-center">

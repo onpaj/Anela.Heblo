@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.GridLayouts;
 using Anela.Heblo.Application.Features.MarketingInvoices;
 using Anela.Heblo.Application.Features.BackgroundJobs;
+using Anela.Heblo.Application.Features.BackgroundRefresh;
 using Anela.Heblo.Application.Features.Bank;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Catalog.Inventory;
@@ -78,6 +79,7 @@ public static class ApplicationModule
         services.AddConfigurationModule();
         services.AddAnalyticsModule(configuration);
         services.AddBackgroundJobsModule();
+        services.AddBackgroundRefreshModule();
         services.AddBankModule(configuration);
         services.AddCatalogModule(configuration);
         services.AddDashboardModule();

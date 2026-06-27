@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3365",
+  "issue_number": 3365,
+  "created_at": "2026-06-26T05:15:15.680984Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-26T05:20:18.574629Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-26T05:20:18.768939Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-26T05:20:18.945985Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-26T05:20:19.129877Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-26T05:40:40.273954Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-06-26T05:42:35.401713Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "dark-mode-article-components",
+      "status": "completed",
+      "revision": 3,
+      "updated_at": "2026-06-26T05:40:40.083218Z"
+    }
+  ]
+}

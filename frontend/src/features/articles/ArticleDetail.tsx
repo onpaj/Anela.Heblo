@@ -11,14 +11,16 @@ interface ArticleDetailProps {
 }
 
 function HtmlContent({ html }: { html: string }) {
+  const isDark = document.documentElement.classList.contains('dark');
   const srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-    body{font-family:system-ui,sans-serif;line-height:1.6;color:#1f2937;padding:1rem;margin:0}
-    h1,h2,h3{color:#111827}p{margin:0 0 1em}ul,ol{padding-left:1.5em}
-    a{color:#2563eb}
+    body{font-family:system-ui,sans-serif;line-height:1.6;color:${isDark ? '#E6E8EC' : '#1f2937'};background:${isDark ? '#202327' : 'transparent'};padding:1rem;margin:0}
+    h1,h2,h3{color:${isDark ? '#E6E8EC' : '#111827'}}p{margin:0 0 1em}ul,ol{padding-left:1.5em}
+    a{color:${isDark ? '#38BDF8' : '#2563eb'}}
   </style></head><body>${html}</body></html>`;
 
   return (
     <iframe
+      key={isDark ? 'dark' : 'light'}
       srcDoc={srcdoc}
       sandbox="allow-same-origin"
       className="w-full border-0 rounded"
@@ -37,8 +39,8 @@ function HtmlContent({ html }: { html: string }) {
 
 function InProgressView({ article }: { article: ArticleDetailType }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 gap-4 text-gray-500">
-      <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+    <div className="flex flex-col items-center justify-center py-16 gap-4 text-gray-500 dark:text-graphite-muted">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-500 dark:text-graphite-accent" />
       <p className="text-sm">{ARTICLE_STATUS_LABELS[article.status]}</p>
     </div>
   );
@@ -49,10 +51,10 @@ function ArticleView({ article }: { article: ArticleDetailType }) {
     <div>
       <div className="mb-4">
         {article.title && (
-          <h2 className="text-xl font-semibold text-gray-900 mb-1">{article.title}</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text mb-1">{article.title}</h2>
         )}
-        <p className="text-sm text-gray-500">{article.topic}</p>
-        <div className="flex flex-wrap gap-2 mt-2 text-xs text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-graphite-muted">{article.topic}</p>
+        <div className="flex flex-wrap gap-2 mt-2 text-xs text-gray-500 dark:text-graphite-muted">
           <span>{article.scope}</span>
           <span>·</span>
           <span>{article.length}</span>
@@ -74,13 +76,13 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400 dark:text-graphite-faint" />
       </div>
     );
   }
 
   if (error || !article) {
-    return <p className="text-sm text-red-600 py-4">Článek se nepodařilo načíst.</p>;
+    return <p className="text-sm text-red-600 dark:text-red-400 py-4">Článek se nepodařilo načíst.</p>;
   }
 
   return (
@@ -97,7 +99,7 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
       </div>
 
       {article.status === ArticleStatus.Failed && article.errorMessage && (
-        <div className="mb-4 rounded bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+        <div className="mb-4 rounded bg-red-50 border border-red-200 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400">
           {article.errorMessage}
         </div>
       )}
