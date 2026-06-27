@@ -1,25 +1,29 @@
 # PR Context
 
-- **PR**: #3359 — #3347: fix recurring-jobs E2E count assertions (12 → ≥24)
-- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3359
-- **Branch**: `feature/3347-Fix-Jobs-Investigate-Recurring-Jobs-Showing-24-Ins` → `main`
+- **PR**: #3361 — #3348: fix(catalog): resolve pagination-reset inconsistency on text filter
+- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3361
+- **Branch**: `feature/3348-Fix-Catalog-Resolve-Pagination-Reset-Inconsistency` → `main`
 - **State**: open
 - **Author**: onpaj
-- **Changes**: +558 / -9 across 11 files
-- **Absorbed**: no main backmerge needed (base SHA unchanged); all tests passing; pushed 4de66208
+- **Changes**: +869 / -72 across 15 files
+- **Absorbed**: already up to date with `main`, failing CI fixed, all 285 test suites passing
 
 ## Description
 
-Closes #3347
+Closes #3348
 
-The recurring-jobs E2E suite had four `toBe(12)` assertions that staging now fails because the app has 24 registered `IRecurringJob` implementations. Replaced with `toBeGreaterThanOrEqual(24)`.
+Applying a text filter (name or code) on the catalog page failed to reset pagination to page 1. When a user was on page 2 and applied a filter, the URL retained `page=2` instead of dropping it, causing the API to return page 2 of the (now smaller) filtered result set — often an empty page.
+
+The root cause was a race condition between two concurrent state updates in `handleApplyFilters`: `setPageNumber(1)` and `setSearchParams(params)`. A redundant `useEffect` depending on `[pageNumber, searchParams, setSearchParams]` fired with stale `pageNumber=2` after `searchParams` updated first, re-writing `page=2` to the URL before `pageNumber=1` resolved.
+
+Removed the "Sync URL parameter with page number state" `useEffect` (previously lines 257–275 of `CatalogList.tsx`). This was the only effect that wrote the `page` URL parameter based on `pageNumber` state changes.
 
 ## What pr-autoabsorb fixed
 
-The PR's own frontend CI was failing due to pre-existing issues on main that showed up in the full test run:
+`ThemeContext.test.tsx` (2 tests) was failing because `setupTests.ts` globally mocks
+`ThemeContext` for all test suites, replacing `ThemeProvider` with a passthrough and
+`useTheme()` with a static `"light"` return. ThemeContext.test.tsx needs the real
+implementation to assert storage persistence and toggle behaviour. Fixed by adding
+`jest.unmock("../ThemeContext")` at the top of that test file.
 
-1. **`useTheme` errors** (34 tests across 5 suites) — `ThemeContext`/`ThemeProvider` and `ThemeToggle` had been added to `main` after this branch was cut. Components like `CatalogAutocomplete`, `ResponsiblePersonCombobox`, `ThemeToggle` call `useTheme()` which throws outside a `ThemeProvider`. Fixed by adding a global `jest.mock("./contexts/ThemeContext", ...)` in `setupTests.ts`.
-
-2. **Stale `PositionCard` snapshots** (2 tests) — Dark-mode Tailwind classes (`dark:bg-graphite-surface`, `dark:shadow-soft-dark`, etc.) were added to `PositionCard.tsx` on main but the snapshot file was not regenerated. Fixed by running `jest --updateSnapshot`.
-
-Result: 280/280 frontend test suites, 2314 tests passing.
+Result: 285/285 frontend test suites, 2339 tests passing.
