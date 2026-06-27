@@ -9,16 +9,16 @@
       "updated_at": "2026-06-27T06:18:03.019938Z"
     },
     "architecting": {
-      "status": "in_progress",
-      "updated_at": "2026-06-27T06:18:03.291011Z"
+      "status": "completed",
+      "updated_at": "2026-06-27T06:22:07.582138Z"
     },
     "designing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-06-27T06:22:07.847353Z"
     },
     "planning": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-27T06:22:08.132708Z"
     },
     "developing": {
       "status": "pending",
