@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3348",
+  "issue_number": 3348,
+  "created_at": "2026-06-25T16:14:54.650508Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T16:30:55.208596Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-25T16:33:08.282239Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T16:33:22.980243Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-25T16:35:13.753072Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-25T16:47:29.145078Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-06-25T16:47:34.591853Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-catalog-pagination-race",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T16:45:49.563234Z"
+    },
+    {
+      "name": "update-e2e-test-assertions",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-25T16:47:28.886511Z"
+    }
+  ]
+}

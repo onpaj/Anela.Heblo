@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
+namespace Anela.Heblo.Application.Features.BackgroundRefresh.Contracts;
 
 public class RefreshTaskExecutionLogDto
 {
