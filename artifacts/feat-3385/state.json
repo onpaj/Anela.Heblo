@@ -21,8 +21,8 @@
       "updated_at": "2026-06-27T06:24:10.327500Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-27T06:24:35.256249Z"
+      "status": "completed",
+      "updated_at": "2026-06-27T06:38:31.970811Z"
     }
   },
   "tasks": [
@@ -52,9 +52,9 @@
     },
     {
       "name": "verify-build-and-regenerate-client",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-27T06:30:28.459318Z"
+      "updated_at": "2026-06-27T06:38:31.789952Z"
     }
   ]
 }
