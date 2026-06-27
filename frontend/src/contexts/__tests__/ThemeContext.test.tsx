@@ -1,3 +1,7 @@
+// setupTests.ts mocks ThemeContext globally for all other tests; this file
+// tests the real implementation, so unmock it first.
+jest.unmock("../ThemeContext");
+
 import { render, screen, act } from "@testing-library/react";
 import { ThemeProvider, useTheme } from "../ThemeContext";
 
