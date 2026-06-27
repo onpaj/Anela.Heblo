@@ -4,6 +4,12 @@ import { waitForPageLoad } from '../helpers/wait-helpers'
 
 const MOBILE_VIEWPORT = devices['iPhone 12'].viewport
 
+// Root cause fixed in this branch: the synthetic E2E user (E2ESessionService.CreateSyntheticUserClaims)
+// carried only the `heblo_user` role plus a stale `permission=FinancialOverview.View` claim, but
+// FeatureAuthorize(Finance_FinancialOverview) checks the `finance.financial_overview.read` ROLE
+// (permission strings were renamed in the RenamePermissionStrings migration). That mismatch made
+// /api/FinancialOverview return 403. The synthetic user now carries the finance read role, so these
+// pass against a build that includes that backend change.
 test.describe('Financial Overview — mobile viewport', () => {
   test.use({ viewport: MOBILE_VIEWPORT })
 

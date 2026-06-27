@@ -50,8 +50,8 @@ test.describe('Invoice Classification History', () => {
       return;
     }
 
-    // Expand to 50 per page to maximise chance of multiple pages being present.
-    await pageSizeSelect.selectOption('50');
+    // Stay at 10 per page: with a small dataset, enlarging the page size would collapse the
+    // result to a single page and unmount the entire pagination nav we drive below.
     await page.waitForTimeout(1000);
 
     const nextButton = paginationNav.locator('button').last();

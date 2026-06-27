@@ -482,24 +482,27 @@ test.describe('Classification History - Combined Filters', () => {
     const noRecords = await hasNoRecordsMessage(page);
     expect(filteredCount > 0 || noRecords).toBe(true);
 
-    // Verify first row matches all filters
-    const filteredRows = getTableRows(page);
-    const filteredFirstRow = filteredRows.first();
+    // The date filter applies to the classification Timestamp, not the invoiceDate shown in the
+    // row, so a single-day window built from the displayed invoiceDate may legitimately match no
+    // rows. Only assert row contents when results were actually returned.
+    if (filteredCount > 0) {
+      const filteredFirstRow = getTableRows(page).first();
 
-    // Extract invoice number from the first <div> in the combined cell (column 0)
-    const filteredInvoiceNumber = await filteredFirstRow
-      .locator('td')
-      .nth(0)
-      .locator('div')
-      .nth(0)
-      .textContent();
-    const filteredCompanyName = await filteredFirstRow
-      .locator('td')
-      .nth(1)
-      .textContent();
+      // Extract invoice number from the first <div> in the combined cell (column 0)
+      const filteredInvoiceNumber = await filteredFirstRow
+        .locator('td')
+        .nth(0)
+        .locator('div')
+        .nth(0)
+        .textContent();
+      const filteredCompanyName = await filteredFirstRow
+        .locator('td')
+        .nth(1)
+        .textContent();
 
-    expect(filteredInvoiceNumber?.trim()).toContain(invoiceNumber!.trim());
-    expect(filteredCompanyName?.trim()).toContain(companyName!.trim());
+      expect(filteredInvoiceNumber?.trim()).toContain(invoiceNumber!.trim());
+      expect(filteredCompanyName?.trim()).toContain(companyName!.trim());
+    }
   });
 
   test('should persist combined filters after pagination', async ({ page }) => {
