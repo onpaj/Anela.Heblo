@@ -1,6 +1,12 @@
 using Anela.Heblo.Application.Features.BackgroundRefresh.Contracts;
+using Anela.Heblo.Application.Features.BackgroundRefresh.UseCases.ForceRefreshTask;
+using Anela.Heblo.Application.Features.BackgroundRefresh.UseCases.GetAllHistory;
+using Anela.Heblo.Application.Features.BackgroundRefresh.UseCases.GetBackgroundRefreshTasks;
+using Anela.Heblo.Application.Features.BackgroundRefresh.UseCases.GetTaskHistory;
+using Anela.Heblo.Application.Features.BackgroundRefresh.UseCases.GetTaskStatus;
+using Anela.Heblo.Application.Features.BackgroundRefresh.UseCases.RunHydrationTier;
 using Anela.Heblo.Domain.Features.Authorization;
-using Anela.Heblo.Xcc.Services.BackgroundRefresh;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
@@ -10,170 +16,65 @@ namespace Anela.Heblo.API.Controllers;
 [Route("api/[controller]")]
 public class BackgroundRefreshController : ControllerBase
 {
-    private readonly ILogger<BackgroundRefreshController> _logger;
-    private readonly IBackgroundRefreshTaskRegistry _taskRegistry;
+    private readonly IMediator _mediator;
 
-    public BackgroundRefreshController(
-        ILogger<BackgroundRefreshController> logger,
-        IBackgroundRefreshTaskRegistry taskRegistry)
+    public BackgroundRefreshController(IMediator mediator)
     {
-        _logger = logger;
-        _taskRegistry = taskRegistry;
+        _mediator = mediator;
     }
 
     [HttpGet("tasks")]
-    public ActionResult<IEnumerable<RefreshTaskDto>> GetRegisteredTasks()
+    public async Task<ActionResult<IEnumerable<RefreshTaskDto>>> GetRegisteredTasks(CancellationToken cancellationToken)
     {
-        var tasks = _taskRegistry.GetRegisteredTasks()
-            .Select(task =>
-            {
-                var lastExecution = _taskRegistry.GetLastExecution(task.TaskId);
-                return MapToDto(task, lastExecution);
-            })
-            .ToList();
-
-        return Ok(tasks);
+        var result = await _mediator.Send(new GetBackgroundRefreshTasksRequest(), cancellationToken);
+        return Ok(result.Tasks);
     }
 
     [HttpGet("tasks/{taskId}/history")]
-    public ActionResult<IEnumerable<RefreshTaskExecutionLogDto>> GetTaskHistory(
+    public async Task<ActionResult<IEnumerable<RefreshTaskExecutionLogDto>>> GetTaskHistory(
         string taskId,
-        [FromQuery] int maxRecords = 50)
+        [FromQuery] int maxRecords = 50,
+        CancellationToken cancellationToken = default)
     {
-        var history = _taskRegistry.GetExecutionHistory(taskId, maxRecords)
-            .Select(MapToDto)
-            .ToList();
-
-        return Ok(history);
+        var result = await _mediator.Send(new GetTaskHistoryRequest { TaskId = taskId, MaxRecords = maxRecords }, cancellationToken);
+        return Ok(result.History);
     }
 
     [HttpGet("history")]
-    public ActionResult<IEnumerable<RefreshTaskExecutionLogDto>> GetAllHistory([FromQuery] int maxRecords = 100)
+    public async Task<ActionResult<IEnumerable<RefreshTaskExecutionLogDto>>> GetAllHistory(
+        [FromQuery] int maxRecords = 100,
+        CancellationToken cancellationToken = default)
     {
-        var history = _taskRegistry.GetExecutionHistory(null, maxRecords)
-            .Select(MapToDto)
-            .ToList();
-
-        return Ok(history);
+        var result = await _mediator.Send(new GetAllHistoryRequest { MaxRecords = maxRecords }, cancellationToken);
+        return Ok(result.History);
     }
 
     [HttpPost("tasks/{taskId}/force-refresh")]
     [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult> ForceRefresh(string taskId, CancellationToken cancellationToken)
     {
-        try
-        {
-            _logger.LogInformation("Force refresh requested for task '{TaskId}' by user", taskId);
-
-            await _taskRegistry.ForceRefreshAsync(taskId, cancellationToken);
-
-            return Ok(new { Message = $"Task '{taskId}' refresh initiated successfully" });
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning("Force refresh failed for task '{TaskId}': {Error}", taskId, ex.Message);
-            return NotFound(new { Error = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error during force refresh of task '{TaskId}'", taskId);
-            return StatusCode(500, new { Error = "An unexpected error occurred during force refresh" });
-        }
+        var result = await _mediator.Send(new ForceRefreshTaskRequest { TaskId = taskId }, cancellationToken);
+        if (result.NotFound) return NotFound(new { Error = result.ErrorMessage });
+        if (!result.Success) return StatusCode(500, new { Error = result.ErrorMessage });
+        return Ok(new { Message = $"Task '{taskId}' refresh initiated successfully" });
     }
 
     [HttpPost("tiers/{tier}/run")]
     [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
     public async Task<ActionResult> RunHydrationTier(int tier, CancellationToken cancellationToken)
     {
-        var tasksInTier = _taskRegistry.GetRegisteredTasks()
-            .Where(t => t.HydrationTier == tier && t.Enabled)
-            .OrderBy(t => t.TaskId)
-            .ToList();
-
-        if (tasksInTier.Count == 0)
-        {
-            return NotFound(new { Error = $"No enabled tasks found for tier {tier}" });
-        }
-
-        _logger.LogInformation("Manual hydration of tier {Tier} requested ({TaskCount} tasks)", tier, tasksInTier.Count);
-
-        try
-        {
-            foreach (var task in tasksInTier)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                await _taskRegistry.ForceRefreshAsync(task.TaskId, cancellationToken);
-            }
-
-            return Ok(new { Message = $"Tier {tier} hydration completed ({tasksInTier.Count} tasks)" });
-        }
-        catch (OperationCanceledException)
-        {
-            return StatusCode(499, new { Error = "Hydration was cancelled" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Manual hydration of tier {Tier} failed", tier);
-            return StatusCode(500, new { Error = "An unexpected error occurred during tier hydration" });
-        }
+        var result = await _mediator.Send(new RunHydrationTierRequest { Tier = tier }, cancellationToken);
+        if (result.NotFound) return NotFound(new { Error = result.ErrorMessage });
+        if (result.Cancelled) return StatusCode(499, new { Error = "Hydration was cancelled" });
+        if (!result.Success) return StatusCode(500, new { Error = result.ErrorMessage });
+        return Ok(new { Message = $"Tier {tier} hydration completed ({result.TaskCount} tasks)" });
     }
 
     [HttpGet("tasks/{taskId}/status")]
-    public ActionResult<RefreshTaskStatusDto> GetTaskStatus(string taskId)
+    public async Task<ActionResult<RefreshTaskStatusDto>> GetTaskStatus(string taskId, CancellationToken cancellationToken)
     {
-        var task = _taskRegistry.GetRegisteredTasks()
-            .FirstOrDefault(t => t.TaskId == taskId);
-
-        if (task == null)
-        {
-            return NotFound(new { Error = $"Task '{taskId}' not found" });
-        }
-
-        var lastExecution = _taskRegistry.GetLastExecution(taskId);
-
-        var status = new RefreshTaskStatusDto
-        {
-            TaskId = taskId,
-            Enabled = task.Enabled,
-            RefreshInterval = task.RefreshInterval,
-            LastExecution = lastExecution != null ? MapToDto(lastExecution) : null
-        };
-
-        return Ok(status);
-    }
-
-    private static RefreshTaskDto MapToDto(RefreshTaskConfiguration task, RefreshTaskExecutionLog? lastExecution)
-    {
-        DateTime? nextScheduledRun = null;
-
-        if (task.Enabled && lastExecution?.CompletedAt != null)
-        {
-            nextScheduledRun = lastExecution.CompletedAt.Value.Add(task.RefreshInterval);
-        }
-
-        return new RefreshTaskDto
-        {
-            TaskId = task.TaskId,
-            InitialDelay = task.InitialDelay,
-            RefreshInterval = task.RefreshInterval,
-            Enabled = task.Enabled,
-            HydrationTier = task.HydrationTier,
-            NextScheduledRun = nextScheduledRun,
-            LastExecution = lastExecution != null ? MapToDto(lastExecution) : null
-        };
-    }
-
-    private static RefreshTaskExecutionLogDto MapToDto(RefreshTaskExecutionLog log)
-    {
-        return new RefreshTaskExecutionLogDto
-        {
-            TaskId = log.TaskId,
-            StartedAt = log.StartedAt,
-            CompletedAt = log.CompletedAt,
-            Status = log.Status.ToString(),
-            ErrorMessage = log.ErrorMessage,
-            Duration = log.Duration,
-            Metadata = log.Metadata
-        };
+        var result = await _mediator.Send(new GetTaskStatusRequest { TaskId = taskId }, cancellationToken);
+        if (!result.Found) return NotFound(new { Error = $"Task '{taskId}' not found" });
+        return Ok(result.Status);
     }
 }
