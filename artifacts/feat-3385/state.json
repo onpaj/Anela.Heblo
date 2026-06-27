@@ -21,16 +21,16 @@
       "updated_at": "2026-06-27T06:24:10.327500Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-27T06:24:35.256249Z"
     }
   },
   "tasks": [
     {
       "name": "create-background-refresh-module",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-27T06:24:35.440221Z"
     },
     {
       "name": "move-dtos-to-new-module",
