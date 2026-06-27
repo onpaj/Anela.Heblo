@@ -6,9 +6,8 @@ public static class BackgroundRefreshModule
 {
     public static IServiceCollection AddBackgroundRefreshModule(this IServiceCollection services)
     {
-        // No Application-layer services to register yet.
-        // BackgroundRefreshController wires directly to IBackgroundRefreshTaskRegistry (Xcc).
-        // MediatR handlers will be added here when the HTTP surface is migrated to CQRS.
+        // MediatR handlers are automatically registered by the assembly scan in ApplicationModule.
+        // IBackgroundRefreshTaskRegistry is registered as a singleton by XccModule — do not re-register.
         return services;
     }
 }
