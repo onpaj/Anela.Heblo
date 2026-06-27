@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { navigateToMarketingCalendar } from '../helpers/e2e-auth-helper';
 
 // Action type labels as rendered in MarketingActionModal dropdown (Czech)
-const ACTION_TYPE_OPTIONS = ['Sociální sítě', 'Událost', 'Email', 'PR', 'Fotografie', 'Ostatní'];
+const ACTION_TYPE_OPTIONS = ['Sociální sítě', 'Blog', 'Newsletter', 'PR', 'Akce', 'Porada'];
 
 test.describe('Marketing Calendar — Create New Record', () => {
   test.beforeEach(async ({ page }) => {
@@ -81,12 +81,13 @@ test.describe('Marketing Calendar — Create New Record', () => {
     await page.locator('button').filter({ hasText: 'Nová akce' }).click();
     await expect(page.locator('button').filter({ hasText: 'Vytvořit' }).first()).toBeVisible({ timeout: 5000 });
 
-    // Fill title — first text input in the modal
-    const titleInput = page.locator('input[type="text"]').first();
+    // Fill title — the title <input> has no explicit type attribute, so target the first
+    // non-date input inside the modal form (input[type="text"] would not match it).
+    const titleInput = page.locator('#marketing-action-form input:not([type="date"])').first();
     await titleInput.fill(uniqueTitle);
 
     // Select action type
-    await page.locator('select').first().selectOption({ label: 'Událost' });
+    await page.locator('select').first().selectOption({ label: 'Akce' });
 
     // Set date range (far future to avoid polluting visible calendar months)
     const dateInputs = page.locator('input[type="date"]');
@@ -127,11 +128,11 @@ test.describe('Marketing Calendar — Create New Record', () => {
     await page.locator('button').filter({ hasText: 'Nová akce' }).click();
     await expect(page.locator('button').filter({ hasText: 'Vytvořit' }).first()).toBeVisible({ timeout: 5000 });
 
-    // Title
-    await page.locator('input[type="text"]').first().fill(uniqueTitle);
+    // Title — first non-date input in the modal form (title input has no explicit type)
+    await page.locator('#marketing-action-form input:not([type="date"])').first().fill(uniqueTitle);
 
     // Type
-    await page.locator('select').first().selectOption({ label: 'Email' });
+    await page.locator('select').first().selectOption({ label: 'Newsletter' });
 
     // Dates
     const dateInputs = page.locator('input[type="date"]');
