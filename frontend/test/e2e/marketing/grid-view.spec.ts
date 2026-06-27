@@ -27,11 +27,11 @@ test.describe('Marketing Calendar — Grid (List) View', () => {
   });
 
   test('should display table column headers', async ({ page }) => {
-    // MarketingActionGrid columns: Název, Typ, Od, Do
-    await expect(page.locator('text=Název').first()).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=Typ').first()).toBeVisible();
-    await expect(page.locator('text=Od').first()).toBeVisible();
-    await expect(page.locator('text=Do').first()).toBeVisible();
+    // MarketingActionGrid columns: Název, Typ, Od, Do (exact — "Od" is a substring of "Produkty")
+    await expect(page.getByRole('columnheader', { name: 'Název', exact: true })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('columnheader', { name: 'Typ', exact: true })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Od', exact: true })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Do', exact: true })).toBeVisible();
   });
 
   test('should filter rows by search text returning no results', async ({ page }) => {
@@ -128,14 +128,9 @@ test.describe('Marketing Calendar — Grid (List) View', () => {
       return;
     }
 
-    // Pagination controls rendered by MarketingActionGrid
-    const nextButton = page.locator('button').filter({ hasText: /Další/ }).first();
-    const prevButton = page.locator('button').filter({ hasText: /Předchozí/ }).first();
-
-    // At least one pagination button should be present
-    const hasNext = await nextButton.isVisible().catch(() => false);
-    const hasPrev = await prevButton.isVisible().catch(() => false);
-
-    expect(hasNext || hasPrev).toBe(true);
+    // MarketingActionGrid renders icon-only prev/next buttons around a "N / M" page indicator,
+    // shown only when more than one page exists.
+    const pageIndicator = page.locator('text=/\\d+\\s*\\/\\s*\\d+/').first();
+    await expect(pageIndicator).toBeVisible({ timeout: 10000 });
   });
 });

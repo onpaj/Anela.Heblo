@@ -9,7 +9,8 @@ test.describe('Marketing Calendar — Mobile Agenda View', () => {
   });
 
   test('renders the mobile agenda view, not the desktop calendar grid', async ({ page }) => {
-    await expect(page.locator('h1').filter({ hasText: 'Marketingový kalendář' })).toBeVisible({ timeout: 10000 });
+    // MobileAgendaView uses the short heading "Kalendář" (desktop uses "Marketingový kalendář")
+    await expect(page.locator('h1.mobile-agenda__title')).toHaveText('Kalendář', { timeout: 10000 });
     // Desktop month calendar must NOT be present
     await expect(page.locator('[data-testid="marketing-month-calendar"]')).not.toBeVisible();
     // Desktop view toggle buttons must NOT be present
