@@ -27,8 +27,7 @@ public class TriggerRecurringJobHandler : IRequestHandler<TriggerRecurringJobReq
 
     public async Task<TriggerRecurringJobResponse> Handle(TriggerRecurringJobRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Attempting to trigger job {JobName} (forceDisabled={ForceDisabled})",
-            request.JobName, request.ForceDisabled);
+        _logger.LogInformation("Attempting to trigger job {JobName}", request.JobName);
 
         // Find the job instance
         var job = _jobs.FirstOrDefault(j => j.Metadata.JobName == request.JobName);
@@ -43,31 +42,25 @@ public class TriggerRecurringJobHandler : IRequestHandler<TriggerRecurringJobReq
                 ErrorCodes.RecurringJobNotFound,
                 new Dictionary<string, string>
                 {
-                    { "jobName", request.JobName },
-                    { "forceDisabled", request.ForceDisabled.ToString() }
+                    { "jobName", request.JobName }
                 }
             );
         }
 
-        // Check if job is enabled (unless forced)
-        if (!request.ForceDisabled)
+        var isEnabled = await _statusChecker.IsJobEnabledAsync(request.JobName, cancellationToken);
+        if (!isEnabled)
         {
-            var isEnabled = await _statusChecker.IsJobEnabledAsync(request.JobName, cancellationToken);
-            if (!isEnabled)
-            {
-                _logger.LogWarning(
-                    "Job {JobName} is disabled. Use forceDisabled=true to trigger anyway. ErrorCode={ErrorCode}",
-                    request.JobName,
-                    (int)ErrorCodes.RecurringJobDisabled);
-                return new TriggerRecurringJobResponse(
-                    ErrorCodes.RecurringJobDisabled,
-                    new Dictionary<string, string>
-                    {
-                        { "jobName", request.JobName },
-                        { "forceDisabled", request.ForceDisabled.ToString() }
-                    }
-                );
-            }
+            _logger.LogWarning(
+                "Job {JobName} is disabled. ErrorCode={ErrorCode}",
+                request.JobName,
+                (int)ErrorCodes.RecurringJobDisabled);
+            return new TriggerRecurringJobResponse(
+                ErrorCodes.RecurringJobDisabled,
+                new Dictionary<string, string>
+                {
+                    { "jobName", request.JobName }
+                }
+            );
         }
 
         // Enqueue the job for immediate execution via Hangfire
@@ -83,8 +76,7 @@ public class TriggerRecurringJobHandler : IRequestHandler<TriggerRecurringJobReq
                 ErrorCodes.RecurringJobEnqueueFailed,
                 new Dictionary<string, string>
                 {
-                    { "jobName", request.JobName },
-                    { "forceDisabled", request.ForceDisabled.ToString() }
+                    { "jobName", request.JobName }
                 }
             );
         }
