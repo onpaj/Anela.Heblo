@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3387",
+  "issue_number": 3387,
+  "created_at": "2026-06-27T08:14:41.157006Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-27T08:16:43.305947Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-27T08:18:06.500060Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-27T08:19:07.566958Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-27T08:19:46.140042Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-27T08:22:02.484490Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-06-27T08:22:07.046352Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-dark-mode-variants-recurringjobspage",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-27T08:21:57.761336Z"
+    }
+  ]
+}
