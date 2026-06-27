@@ -21,16 +21,16 @@
       "updated_at": "2026-06-27T08:19:46.140042Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-27T08:20:04.884744Z"
     }
   },
   "tasks": [
     {
       "name": "add-dark-mode-variants-recurringjobspage",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-27T08:20:05.169483Z"
     }
   ]
 }
