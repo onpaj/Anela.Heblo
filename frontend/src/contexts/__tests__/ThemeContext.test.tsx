@@ -1,6 +1,10 @@
 import { render, screen, act } from "@testing-library/react";
 import { ThemeProvider, useTheme } from "../ThemeContext";
 
+// setupTests.ts globally mocks ThemeContext for other suites. Hoisted by
+// babel-jest so it runs before the imports above, restoring the real module.
+jest.unmock("../ThemeContext");
+
 const STORAGE_KEY = "anela-theme";
 
 // Mock window.matchMedia (always reports dark, to prove the OS preference is ignored)
