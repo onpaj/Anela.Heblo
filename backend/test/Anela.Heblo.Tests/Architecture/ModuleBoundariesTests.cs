@@ -831,6 +831,91 @@ public class ModuleBoundariesTests
             "Found:\n  " + string.Join("\n  ", orphanRelocations));
     }
 
+    // Allowlist for Application -> SDK exception types.
+    // The types below legitimately reference Microsoft.Identity.Client or
+    // Microsoft.Graph.Models.ODataErrors types as part of their wrapping role or as
+    // pre-existing violations out of scope for the feat-3369 decoupling.
+    // All new Application types must use the wrapper types (GraphServiceAuthException /
+    // GraphServiceException) defined in UserManagement.Contracts instead.
+    // Entries must have a justification comment and should be removed once the underlying
+    // violation is fixed.
+    private static readonly HashSet<string> SdkExceptionAllowlist = new(StringComparer.Ordinal)
+    {
+        // GraphArticleUserResolver is the wrapping boundary for SDK auth/service exceptions.
+        // It converts MsalException → ArticleUserResolverAuthException and
+        // ODataError → ArticleUserResolverServiceException so callers stay decoupled.
+        // Remove once refactored to delegate through IGraphService.
+        "Anela.Heblo.Application.Features.UserManagement.Infrastructure.GraphArticleUserResolver",
+
+        // GraphPlannerService.AcquireDelegatedTokenAsync catches MsalUiRequiredException
+        // directly as a pre-existing pattern out of scope for feat-3369.
+        // Compiler-generated async state machine (<AcquireDelegatedTokenAsync>d__N) is
+        // covered by the declaring-type check below.
+        // Track as follow-up: introduce a MeetingTasks-owned auth exception wrapper.
+        "Anela.Heblo.Application.Features.MeetingTasks.Services.GraphPlannerService",
+
+        // GraphCatalogDocumentsStorage.AcquireDelegatedTokenAsync catches MsalUiRequiredException
+        // directly as a pre-existing pattern out of scope for feat-3369.
+        // Compiler-generated async state machine (<AcquireDelegatedTokenAsync>d__N) is
+        // covered by the declaring-type check below.
+        // Track as follow-up: introduce a CatalogDocuments-owned auth exception wrapper.
+        "Anela.Heblo.Application.Features.CatalogDocuments.Services.GraphCatalogDocumentsStorage",
+    };
+
+    [Fact]
+    public void Application_types_should_not_catch_SDK_exception_types_directly()
+    {
+        // Enforces the boundary introduced by feat-3369: Application-layer consumers must
+        // catch only the wrapper types (GraphServiceAuthException / GraphServiceException)
+        // rather than SDK-specific types. This prevents accidental reintroduction of
+        // Microsoft.Identity.Client or Microsoft.Graph.Models.ODataErrors references
+        // in Application layer signatures (fields, properties, method parameters, return types).
+        const string ApplicationNamespacePrefix = "Anela.Heblo.Application";
+
+        var forbiddenPrefixes = new[]
+        {
+            "Microsoft.Identity.Client",
+            "Microsoft.Graph.Models.ODataErrors",
+        };
+
+        var assembly = Assembly.Load("Anela.Heblo.Application");
+        var applicationTypes = assembly.GetTypes()
+            .Where(t => t.Namespace is not null
+                && t.Namespace.StartsWith(ApplicationNamespacePrefix, StringComparison.Ordinal))
+            .ToList();
+
+        var violations = new List<string>();
+
+        foreach (var applicationType in applicationTypes)
+        {
+            // Skip types that are explicitly allowlisted (legitimate wrapping boundaries).
+            var typeName = applicationType.FullName ?? string.Empty;
+            if (SdkExceptionAllowlist.Contains(typeName))
+                continue;
+
+            // Also skip compiler-generated nested types whose declaring type is allowlisted.
+            var declaringType = applicationType.DeclaringType;
+            if (declaringType is not null && SdkExceptionAllowlist.Contains(declaringType.FullName ?? string.Empty))
+                continue;
+
+            foreach (var (referencedType, memberDescription) in EnumerateReferencedTypes(applicationType))
+            {
+                if (!IsForbidden(referencedType, forbiddenPrefixes))
+                    continue;
+
+                violations.Add($"{applicationType.FullName} -> {referencedType.FullName} (via {memberDescription})");
+            }
+        }
+
+        violations.Should().BeEmpty(
+            "Application layer must not reference Microsoft.Identity.Client or " +
+            "Microsoft.Graph.Models.ODataErrors types directly in signatures. " +
+            "Catch GraphServiceAuthException / GraphServiceException (defined in " +
+            "UserManagement.Contracts) instead, or add an allowlist entry with justification " +
+            "if this type is a legitimate wrapping boundary. " +
+            "Found:\n  " + string.Join("\n  ", violations));
+    }
+
     private static bool IsForbidden(Type type, IReadOnlyList<string> forbiddenPrefixes)
     {
         if (type.Namespace is null)

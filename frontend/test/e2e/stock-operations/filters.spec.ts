@@ -9,6 +9,7 @@ import {
   clearProductSelection,
   searchDocumentNumber,
   clearDocumentNumber,
+  getDocumentNumberInput,
   setDateFrom,
   setDateTo,
   clearDateFilters,
@@ -17,6 +18,11 @@ import {
   selectStateFilter,
   selectSourceType,
 } from '../helpers/stock-operations-test-helpers';
+import { TestCatalogItems } from '../fixtures/test-data';
+
+// The stock-operations product filter autocomplete only returns finished products
+// (ProductType.Product/Goods), so material codes like AKL001 are excluded. Use a real finished product.
+const TEST_PRODUCT = TestCatalogItems.duvenyPanJasmin; // DEO001005 — Důvěrný pan Jasmín 5ml
 
 test.describe('Stock Operations - Advanced Filters', () => {
   test.describe('H. Product Autocomplete Filter', () => {
@@ -41,8 +47,8 @@ test.describe('Stock Operations - Advanced Filters', () => {
       await navigateToStockOperations(page);
       await waitForTableUpdate(page);
 
-      // Use a known product code from test data
-      await searchProduct(page, 'AKL001');
+      // Use a known finished-product code from test data
+      await searchProduct(page, TEST_PRODUCT.code);
 
       // Verify search results appear
       const options = page.locator('[role="option"]');
@@ -59,7 +65,7 @@ test.describe('Stock Operations - Advanced Filters', () => {
       await waitForTableUpdate(page);
 
       // Search by partial product name
-      await searchProduct(page, 'Bisabolol');
+      await searchProduct(page, TEST_PRODUCT.name);
 
       // Verify search results appear
       const options = page.locator('[role="option"]');
@@ -76,7 +82,7 @@ test.describe('Stock Operations - Advanced Filters', () => {
       await waitForTableUpdate(page);
 
       // Select a product first
-      await selectProductFromDropdown(page, 'AKL001');
+      await selectProductFromDropdown(page, TEST_PRODUCT.code);
       await waitForTableUpdate(page);
 
       // Clear selection
@@ -99,7 +105,7 @@ test.describe('Stock Operations - Advanced Filters', () => {
       const rowsBefore = await getRowCount(page);
 
       // Select a specific product
-      await selectProductFromDropdown(page, 'AKL001');
+      await selectProductFromDropdown(page, TEST_PRODUCT.code);
 
       // Apply filters
       const applyButton = getApplyFiltersButton(page);
@@ -110,7 +116,7 @@ test.describe('Stock Operations - Advanced Filters', () => {
 
       // Verify filtering occurred (row count changed or URL has productCode param)
       const url = page.url();
-      const hasProductParam = url.includes('productCode=AKL001');
+      const hasProductParam = url.includes(`productCode=`);
 
       if (hasProductParam) {
         console.log('   ✅ Product filter applied (URL param present)');
@@ -133,10 +139,12 @@ test.describe('Stock Operations - Advanced Filters', () => {
       await navigateToStockOperations(page);
       await waitForTableUpdate(page);
 
-      // Get a document number from the first row
-      const firstRow = page.locator('tbody tr').first();
-      const docNumberCell = firstRow.locator('td').nth(1); // Assuming 2nd column is doc number
-      const docNumber = await docNumberCell.textContent();
+      // Stock operations are transient — if the table is empty there is no row to harvest a
+      // document number from, so skip the search portion gracefully.
+      const rowCount = await page.locator('tbody tr').count();
+      const docNumber = rowCount > 0
+        ? await page.locator('tbody tr').first().locator('td').nth(1).textContent()
+        : null;
 
       if (docNumber && docNumber.trim()) {
         await searchDocumentNumber(page, docNumber.trim());
@@ -196,7 +204,7 @@ test.describe('Stock Operations - Advanced Filters', () => {
       await clearDocumentNumber(page);
 
       // Verify input is empty
-      const input = page.locator('input[type="text"]').filter({ has: page.locator('svg') }).first();
+      const input = getDocumentNumberInput(page);
       const value = await input.inputValue();
       expect(value).toBe('');
 
@@ -413,7 +421,7 @@ test.describe('Stock Operations - Advanced Filters', () => {
       // Apply all filter types
       await selectStateFilter(page, 'All');
       await selectSourceType(page, 'TransportBox');
-      await selectProductFromDropdown(page, 'AKL001');
+      await selectProductFromDropdown(page, TEST_PRODUCT.code);
       await searchDocumentNumber(page, 'DOC');
 
       const sevenDaysAgo = new Date();
@@ -432,7 +440,7 @@ test.describe('Stock Operations - Advanced Filters', () => {
       const url = page.url();
       expect(url).toContain('state=All');
       expect(url).toContain('sourceType=TransportBox');
-      expect(url).toContain('productCode=AKL001');
+      expect(url).toContain(`productCode=${TEST_PRODUCT.code}`);
       expect(url).toContain('documentNumber=DOC');
       expect(url).toContain('createdFrom=');
       expect(url).toContain('createdTo=');
