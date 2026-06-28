@@ -21,16 +21,16 @@
       "updated_at": "2026-06-28T07:25:54.271695Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-28T07:26:25.485011Z"
     }
   },
   "tasks": [
     {
       "name": "replace-manual-dtos-and-raw-fetch-calls",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-28T07:26:25.743435Z"
     },
     {
       "name": "update-tests-for-typed-client-methods",
