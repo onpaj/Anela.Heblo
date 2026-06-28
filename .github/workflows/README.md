@@ -63,11 +63,12 @@ This directory contains the CI/CD workflows for the Anela Heblo project.
 │  ┌──────────────────────────┐     │
 │  │ e2e-nightly-regression.yml │    │
 │  │                          │     │
-│  │  1. Health Checks        │     │
-│  │  2. Run E2E Tests        │     │
-│  │  3. Upload Artifacts     │     │
-│  │  4. Create/Close Issue   │     │
-│  │  5. Teams Notification   │     │
+│  │  1. Deploy main → Staging │    │
+│  │  2. Health Checks        │     │
+│  │  3. Run E2E Tests        │     │
+│  │  4. Upload Artifacts     │     │
+│  │  5. Create/Close Issue   │     │
+│  │  6. Teams Notification   │     │
 │  └──────────────────────────┘     │
 │                                     │
 │  Runs daily at 2:00 AM CET         │
@@ -152,14 +153,16 @@ This directory contains the CI/CD workflows for the Anela Heblo project.
 - **Manual:** Via `workflow_dispatch` with optional test pattern filter
 
 **What it does:**
-1. **Health Checks** - Validate staging endpoints (`/health/live`, `/health/ready`)
-2. **Run E2E Tests** - Full Playwright test suite against staging
-3. **Upload Artifacts** - HTML report, screenshots, test logs (30 day retention)
-4. **Create/Update Issue** - GitHub issue on failure (auto-closes on success)
-5. **Teams Notification** - Optional webhook notification
+1. **Deploy main → Staging** - Push the current `main` (`latest` image) to the `heblo-test` web app so tests run against fresh code, then wait for `/health/ready`
+2. **Health Checks** - Validate staging endpoints (`/health/live`, `/health/ready`)
+3. **Run E2E Tests** - Full Playwright test suite against staging
+4. **Upload Artifacts** - HTML report, screenshots, test logs (30 day retention)
+5. **Create/Update Issue** - GitHub issue on failure (auto-closes on success)
+6. **Teams Notification** - Optional webhook notification
 
 **Key Features:**
 - ✅ Nightly execution (results ready in morning)
+- ✅ Auto-deploys current main to staging before testing (no more stale-deployment gap)
 - ✅ Full E2E coverage
 - ✅ Health pre-checks
 - ✅ Automatic issue tracking
@@ -182,6 +185,9 @@ gh workflow run e2e-nightly-regression.yml -f test_pattern=catalog
 
 # Run with different browser
 gh workflow run e2e-nightly-regression.yml -f browser=firefox
+
+# Skip the staging deploy and test whatever is already deployed
+gh workflow run e2e-nightly-regression.yml -f deploy_staging=false
 ```
 
 ## How to...
