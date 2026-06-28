@@ -38,15 +38,17 @@ public class ArgumentExceptionHandlerTests
     }
 
     [Fact]
-    public async Task TryHandleAsync_WhenArgumentNullException_Returns400()
+    public async Task TryHandleAsync_WhenArgumentNullException_ReturnsFalseToPreventMessageLeak()
     {
+        // ArgumentNullException messages contain internal parameter names — must not be surfaced.
         var (handler, context, body) = CreateSut();
-        var exception = new ArgumentNullException("param");
+        var exception = new ArgumentNullException("mediator");
 
         var handled = await handler.TryHandleAsync(context, exception, CancellationToken.None);
 
-        handled.Should().BeTrue();
-        context.Response.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+        handled.Should().BeFalse();
+        body.Length.Should().Be(0);
+        context.Response.StatusCode.Should().Be(StatusCodes.Status200OK);
     }
 
     [Fact]

@@ -24,7 +24,10 @@ public sealed class ArgumentExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        if (exception is not ArgumentException argumentException)
+        // Exclude ArgumentNullException — its message reveals internal parameter names
+        // (e.g. "Value cannot be null. (Parameter 'mediator')") and should not be
+        // surfaced to API clients. Let it fall through to the default 500 handler.
+        if (exception is not ArgumentException argumentException || exception is ArgumentNullException)
         {
             return false;
         }
