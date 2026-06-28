@@ -21,16 +21,16 @@
       "updated_at": "2026-06-28T06:23:06.377500Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-28T06:23:55.519109Z"
     }
   },
   "tasks": [
     {
       "name": "implement-exception-handlers",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-28T06:23:55.748505Z"
     },
     {
       "name": "implement-controller-cleanup",
