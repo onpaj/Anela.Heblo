@@ -1,6 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useBankStatementAccounts } from '../useBankStatements';
-import { getAuthenticatedApiClient } from '../../client';
 import { mockAuthenticatedApiClient, createQueryClientWrapper } from '../../testUtils';
 
 jest.mock('../../client');

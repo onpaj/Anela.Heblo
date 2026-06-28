@@ -233,7 +233,7 @@ const ImportTab: React.FC = () => {
   };
 
   // Status indicator for import result
-  const getImportStatusIcon = (importResult: string) => {
+  const getImportStatusIcon = (importResult: string | undefined) => {
     if (importResult === "OK") {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300">
