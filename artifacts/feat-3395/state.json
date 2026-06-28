@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "replace-manual-dtos-and-raw-fetch-calls",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-28T07:26:25.743435Z"
+      "updated_at": "2026-06-28T07:30:36.278119Z"
     },
     {
       "name": "update-tests-for-typed-client-methods",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-28T07:30:36.516802Z"
     },
     {
       "name": "build-and-lint-verification",
