@@ -25,5 +25,36 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "extend-build-aggregate-helper",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-test-fr1-default-product-type-filter",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-test-fr2-explicit-product-type-filter",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-test-fr3-unknown-sort-field-fallback",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "verify-all-tests-pass",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
