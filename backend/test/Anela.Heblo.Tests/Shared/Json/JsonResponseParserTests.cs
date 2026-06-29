@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Anela.Heblo.Application.Shared.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -7,6 +9,25 @@ namespace Anela.Heblo.Tests.Shared.Json;
 public class JsonResponseParserTests
 {
     private sealed record TestOutput(string? Value);
+
+    // Simulates the System.Text.Json behaviour seen in production where a string token
+    // is encountered where a number is expected — the internal reader throws
+    // InvalidOperationException directly rather than the more common JsonException.
+    private sealed class ThrowsInvalidOperationConverter : JsonConverter<int>
+    {
+        public override int Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            => throw new InvalidOperationException("Cannot get the value of a token type 'String' as a number.");
+
+        public override void Write(Utf8JsonWriter writer, int value, JsonSerializerOptions options)
+            => writer.WriteNumberValue(value);
+    }
+
+    private sealed class TestOutputWithStringId
+    {
+        [JsonPropertyName("id")]
+        [JsonConverter(typeof(ThrowsInvalidOperationConverter))]
+        public int Id { get; set; }
+    }
 
     private static TestOutput? Run(string raw)
         => JsonResponseParser.ParseOrFallback<TestOutput>(raw, null!, NullLogger.Instance);
@@ -93,6 +114,26 @@ public class JsonResponseParserTests
     {
         var success = JsonResponseParser.TryParse<TestOutput>(
             "not json at all", out var result, NullLogger.Instance);
+
+        success.Should().BeFalse();
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ParseOrFallback_InvalidOperationExceptionFromConverter_Returns_Fallback()
+    {
+        var fallback = new TestOutputWithStringId { Id = -1 };
+        var result = JsonResponseParser.ParseOrFallback(
+            """{"id":42}""", fallback, NullLogger.Instance);
+
+        result.Should().BeSameAs(fallback);
+    }
+
+    [Fact]
+    public void TryParse_InvalidOperationExceptionFromConverter_ReturnsFalse_AndResultIsNull()
+    {
+        var success = JsonResponseParser.TryParse<TestOutputWithStringId>(
+            """{"id":42}""", out var result, NullLogger.Instance);
 
         success.Should().BeFalse();
         result.Should().BeNull();
