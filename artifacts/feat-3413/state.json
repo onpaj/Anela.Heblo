@@ -10,15 +10,15 @@
     },
     "architecting": {
       "status": "completed",
-      "updated_at": "2026-06-29T15:22:35.798342Z"
+      "updated_at": "2026-06-29T15:22:48.802342Z"
     },
     "designing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-06-29T15:22:57.870358Z"
     },
     "planning": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-06-29T15:25:35.417227Z"
     },
     "developing": {
       "status": "pending",
