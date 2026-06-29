@@ -280,10 +280,10 @@ public static class CatalogModule
 
                 await catalogRepository.WaitForCurrentMergeAsync(ct);
                 var products = await catalogRepository.GetAllAsync(ct);
-                var twoYearsAgo = DateOnly.FromDateTime(DateTime.Now.AddYears(-2));
+                var twoYearsAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-2));
                 var minDate = new DateOnly(2025, 1, 1); // No M2 margins available for older data
                 var dateFrom = twoYearsAgo > minDate ? twoYearsAgo : minDate;
-                var dateTo = DateOnly.FromDateTime(DateTime.Now).AddMonths(-1); // Current month is not accurate
+                var dateTo = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-1); // Current month is not accurate
 
                 foreach (var product in products)
                 {
