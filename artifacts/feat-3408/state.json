@@ -5,8 +5,8 @@
   "max_revisions": 3,
   "phases": {
     "analyzing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-29T10:15:54.931947Z"
     },
     "architecting": {
       "status": "pending",
