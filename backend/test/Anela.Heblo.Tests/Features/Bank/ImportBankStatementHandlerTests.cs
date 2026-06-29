@@ -477,7 +477,7 @@ public class ImportBankStatementHandlerTests
         _mockRepository.Setup(r => r.GetExistingResultsByTransferIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, string>());
         _mockBankClient.Setup(x => x.GetStatementAsync("ERR"))
-            .ReturnsAsync(new BankStatementData { Data = "abo", ItemCount = 2 });
+            .ReturnsAsync(new BankStatementData { Data = "abo", ItemCount = 1 });
         // Import service returns a business-level failure (not an exception).
         _mockImportService.Setup(x => x.ImportStatementAsync(1, "abo"))
             .ReturnsAsync(Result<bool>.Failure("import-error"));

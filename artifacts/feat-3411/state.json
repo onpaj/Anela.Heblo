@@ -21,16 +21,20 @@
       "updated_at": "2026-06-29T13:26:05.723776Z"
     },
     "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-29T13:28:37.136589Z"
+    },
+    "code-review": {
       "status": "in_progress",
-      "updated_at": "2026-06-29T13:26:19.882803Z"
+      "updated_at": "2026-06-29T13:28:44.082549Z"
     }
   },
   "tasks": [
     {
       "name": "add-missing-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-29T13:26:20.077685Z"
+      "updated_at": "2026-06-29T13:28:36.931813Z"
     }
   ]
 }
