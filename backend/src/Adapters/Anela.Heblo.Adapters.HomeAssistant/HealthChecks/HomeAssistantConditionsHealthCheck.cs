@@ -29,7 +29,7 @@ public sealed class HomeAssistantConditionsHealthCheck : IHealthCheck
 
         if (observed is null)
         {
-            return Task.FromResult(HealthCheckResult.Unhealthy(
+            return Task.FromResult(HealthCheckResult.Degraded(
                 "No HomeAssistant snapshot has been observed yet."));
         }
 
@@ -50,8 +50,8 @@ public sealed class HomeAssistantConditionsHealthCheck : IHealthCheck
             ConditionsReadingSource.Partial or ConditionsReadingSource.Stale
                 => HealthCheckResult.Degraded($"HomeAssistant snapshot is {observed.Source}.", data: data),
             ConditionsReadingSource.Unavailable
-                => HealthCheckResult.Unhealthy("HomeAssistant snapshot is Unavailable.", data: data),
-            _ => HealthCheckResult.Unhealthy("Unknown snapshot source.", data: data),
+                => HealthCheckResult.Degraded("HomeAssistant snapshot is Unavailable.", data: data),
+            _ => HealthCheckResult.Degraded("Unknown snapshot source.", data: data),
         });
     }
 }
