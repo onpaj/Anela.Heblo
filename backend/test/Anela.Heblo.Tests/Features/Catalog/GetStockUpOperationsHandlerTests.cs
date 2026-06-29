@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockUpOperations;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using AutoMapper;
-using MockQueryable;
 using Moq;
 using Xunit;
 
@@ -25,36 +24,33 @@ public class GetStockUpOperationsHandlerTests
         _handler = new GetStockUpOperationsHandler(_repositoryMock.Object, _mapperMock.Object);
     }
 
+    private void SetupQueryAsync(List<StockUpOperation> items, int? totalCount = null)
+    {
+        var count = totalCount ?? items.Count;
+        _repositoryMock
+            .Setup(r => r.QueryAsync(It.IsAny<StockUpOperationFilter>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((items, count));
+        _mapperMock
+            .Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
+            .Returns((List<StockUpOperation> source) => source.Select(_ => new StockUpOperationDto()).ToList());
+    }
+
     #region State Filter Tests
 
     [Fact]
     public async Task Handle_StateFilter_Active_ReturnsOnlyActiveOperations()
     {
         // Arrange
-        var request = new GetStockUpOperationsRequest
-        {
-            State = "Active"
-        };
+        var request = new GetStockUpOperationsRequest { State = "Active" };
 
-        var operations = new List<StockUpOperation>
+        // Repository returns the pre-filtered result (Pending + Submitted + Failed = 3)
+        var activeOperations = new List<StockUpOperation>
         {
             new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1), // Pending
             new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),  // Submitted
             new("DOC-003", "PROD3", 8, StockUpSourceType.TransportBox, 3),  // Failed
-            new("DOC-004", "PROD4", 15, StockUpSourceType.TransportBox, 4), // Completed
         };
-
-        operations[1].MarkAsSubmitted(DateTime.UtcNow);
-        operations[2].MarkAsSubmitted(DateTime.UtcNow);
-        operations[2].MarkAsFailed(DateTime.UtcNow, "Test error");
-        operations[3].MarkAsSubmitted(DateTime.UtcNow);
-        operations[3].MarkAsCompleted(DateTime.UtcNow);
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(activeOperations);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -69,24 +65,13 @@ public class GetStockUpOperationsHandlerTests
     public async Task Handle_StateFilter_Pending_ReturnsOnlyPendingOperations()
     {
         // Arrange
-        var request = new GetStockUpOperationsRequest
-        {
-            State = "Pending"
-        };
+        var request = new GetStockUpOperationsRequest { State = "Pending" };
 
-        var operations = new List<StockUpOperation>
+        var pendingOperations = new List<StockUpOperation>
         {
             new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1), // Pending
-            new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),  // Submitted
         };
-
-        operations[1].MarkAsSubmitted(DateTime.UtcNow);
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(pendingOperations);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -100,25 +85,13 @@ public class GetStockUpOperationsHandlerTests
     public async Task Handle_StateFilter_Completed_ReturnsOnlyCompletedOperations()
     {
         // Arrange
-        var request = new GetStockUpOperationsRequest
+        var request = new GetStockUpOperationsRequest { State = "Completed" };
+
+        var completedOperations = new List<StockUpOperation>
         {
-            State = "Completed"
+            new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2), // Completed
         };
-
-        var operations = new List<StockUpOperation>
-        {
-            new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1), // Pending
-            new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),  // Completed
-        };
-
-        operations[1].MarkAsSubmitted(DateTime.UtcNow);
-        operations[1].MarkAsCompleted(DateTime.UtcNow);
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(completedOperations);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -136,23 +109,14 @@ public class GetStockUpOperationsHandlerTests
     public async Task Handle_SourceTypeFilter_TransportBox_ReturnsOnlyTransportBoxOperations()
     {
         // Arrange
-        var request = new GetStockUpOperationsRequest
-        {
-            SourceType = StockUpSourceType.TransportBox
-        };
+        var request = new GetStockUpOperationsRequest { SourceType = StockUpSourceType.TransportBox };
 
-        var operations = new List<StockUpOperation>
+        var transportBoxOps = new List<StockUpOperation>
         {
             new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1),
-            new("DOC-002", "PROD2", 5, StockUpSourceType.GiftPackageManufacture, 1),
             new("DOC-003", "PROD3", 8, StockUpSourceType.TransportBox, 2),
         };
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(transportBoxOps);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -166,23 +130,14 @@ public class GetStockUpOperationsHandlerTests
     public async Task Handle_SourceTypeFilter_GiftPackageManufacture_ReturnsOnlyGPMOperations()
     {
         // Arrange
-        var request = new GetStockUpOperationsRequest
-        {
-            SourceType = StockUpSourceType.GiftPackageManufacture
-        };
+        var request = new GetStockUpOperationsRequest { SourceType = StockUpSourceType.GiftPackageManufacture };
 
-        var operations = new List<StockUpOperation>
+        var gpmOps = new List<StockUpOperation>
         {
-            new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1),
             new("DOC-002", "PROD2", 5, StockUpSourceType.GiftPackageManufacture, 1),
             new("DOC-003", "PROD3", 8, StockUpSourceType.GiftPackageManufacture, 2),
         };
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(gpmOps);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -200,23 +155,14 @@ public class GetStockUpOperationsHandlerTests
     public async Task Handle_SourceIdFilter_ReturnsOnlyMatchingSourceId()
     {
         // Arrange
-        var request = new GetStockUpOperationsRequest
-        {
-            SourceId = 123
-        };
+        var request = new GetStockUpOperationsRequest { SourceId = 123 };
 
-        var operations = new List<StockUpOperation>
+        var matchingOps = new List<StockUpOperation>
         {
             new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 123),
-            new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 456),
             new("DOC-003", "PROD3", 8, StockUpSourceType.GiftPackageManufacture, 123),
         };
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(matchingOps);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -234,23 +180,13 @@ public class GetStockUpOperationsHandlerTests
     public async Task Handle_ProductCodeFilter_ExactMatch_ReturnsOnlyMatchingProduct()
     {
         // Arrange
-        var request = new GetStockUpOperationsRequest
-        {
-            ProductCode = "PROD123"
-        };
+        var request = new GetStockUpOperationsRequest { ProductCode = "PROD123" };
 
-        var operations = new List<StockUpOperation>
+        var matchingOps = new List<StockUpOperation>
         {
             new("DOC-001", "PROD123", 10, StockUpSourceType.TransportBox, 1),
-            new("DOC-002", "PROD456", 5, StockUpSourceType.TransportBox, 2),
-            new("DOC-003", "PROD1234", 8, StockUpSourceType.TransportBox, 3), // Should NOT match (exact match required)
         };
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(matchingOps);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -268,24 +204,16 @@ public class GetStockUpOperationsHandlerTests
     public async Task Handle_DocumentNumberFilter_PartialMatch_ReturnsMatchingDocuments()
     {
         // Arrange
-        var request = new GetStockUpOperationsRequest
-        {
-            DocumentNumber = "doc"
-        };
+        var request = new GetStockUpOperationsRequest { DocumentNumber = "doc" };
 
-        var operations = new List<StockUpOperation>
+        // Repository returns case-insensitive partial matches: DOC-001, DOC-002, document-004
+        var matchingOps = new List<StockUpOperation>
         {
             new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1),
             new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),
-            new("INV-003", "PROD3", 8, StockUpSourceType.TransportBox, 3),
-            new("document-004", "PROD4", 15, StockUpSourceType.TransportBox, 4), // Should match (case-insensitive)
+            new("document-004", "PROD4", 15, StockUpSourceType.TransportBox, 4),
         };
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(matchingOps);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -303,30 +231,15 @@ public class GetStockUpOperationsHandlerTests
     public async Task Handle_CreatedFromFilter_ReturnsOperationsAfterDate()
     {
         // Arrange
-        var cutoffDate = new DateTime(2025, 1, 15);
-        var request = new GetStockUpOperationsRequest
-        {
-            CreatedFrom = cutoffDate
-        };
+        var request = new GetStockUpOperationsRequest { CreatedFrom = new DateTime(2025, 1, 15) };
 
-        var operations = new List<StockUpOperation>
+        // Repository returns items at or after 2025-01-15
+        var matchingOps = new List<StockUpOperation>
         {
-            new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1),
             new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),
             new("DOC-003", "PROD3", 8, StockUpSourceType.TransportBox, 3),
         };
-
-        // Set creation dates via reflection (CreatedAt is typically set in constructor, but we need to test filtering)
-        // In real scenario, these would be set by the database/entity framework
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[0], new DateTime(2025, 1, 10));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[1], new DateTime(2025, 1, 15));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[2], new DateTime(2025, 1, 20));
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(matchingOps);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -340,28 +253,15 @@ public class GetStockUpOperationsHandlerTests
     public async Task Handle_CreatedToFilter_ReturnsOperationsBeforeDate()
     {
         // Arrange
-        var cutoffDate = new DateTime(2025, 1, 15);
-        var request = new GetStockUpOperationsRequest
-        {
-            CreatedTo = cutoffDate
-        };
+        var request = new GetStockUpOperationsRequest { CreatedTo = new DateTime(2025, 1, 15) };
 
-        var operations = new List<StockUpOperation>
+        // Repository returns items strictly before 2025-01-16 (entire day of 2025-01-15 included)
+        var matchingOps = new List<StockUpOperation>
         {
             new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1),
             new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),
-            new("DOC-003", "PROD3", 8, StockUpSourceType.TransportBox, 3),
         };
-
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[0], new DateTime(2025, 1, 10, 10, 0, 0));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[1], new DateTime(2025, 1, 15, 23, 59, 59));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[2], new DateTime(2025, 1, 16, 0, 0, 1));
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(matchingOps);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -381,24 +281,13 @@ public class GetStockUpOperationsHandlerTests
             CreatedTo = new DateTime(2025, 1, 20)
         };
 
-        var operations = new List<StockUpOperation>
+        // Repository returns items within the range
+        var matchingOps = new List<StockUpOperation>
         {
-            new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1),
             new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),
             new("DOC-003", "PROD3", 8, StockUpSourceType.TransportBox, 3),
-            new("DOC-004", "PROD4", 15, StockUpSourceType.TransportBox, 4),
         };
-
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[0], new DateTime(2025, 1, 5));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[1], new DateTime(2025, 1, 15));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[2], new DateTime(2025, 1, 20, 23, 59, 59));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[3], new DateTime(2025, 1, 25));
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(matchingOps);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -416,11 +305,7 @@ public class GetStockUpOperationsHandlerTests
     public async Task Handle_SortById_Descending_ReturnsSortedOperations()
     {
         // Arrange
-        var request = new GetStockUpOperationsRequest
-        {
-            SortBy = "id",
-            SortDescending = true
-        };
+        var request = new GetStockUpOperationsRequest { SortBy = "id", SortDescending = true };
 
         var operations = new List<StockUpOperation>
         {
@@ -428,17 +313,7 @@ public class GetStockUpOperationsHandlerTests
             new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),
             new("DOC-003", "PROD3", 8, StockUpSourceType.TransportBox, 3),
         };
-
-        // Set IDs via reflection
-        typeof(StockUpOperation).GetProperty("Id")!.SetValue(operations[0], 10);
-        typeof(StockUpOperation).GetProperty("Id")!.SetValue(operations[1], 20);
-        typeof(StockUpOperation).GetProperty("Id")!.SetValue(operations[2], 15);
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(operations);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -446,18 +321,14 @@ public class GetStockUpOperationsHandlerTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal(3, result.TotalCount);
-        // Verify sorting would be: 20, 15, 10 (descending by ID)
+        // Sorting is handled by the repository; handler just passes the filter through
     }
 
     [Fact]
     public async Task Handle_SortByCreatedAt_Ascending_ReturnsSortedOperations()
     {
         // Arrange
-        var request = new GetStockUpOperationsRequest
-        {
-            SortBy = "createdAt",
-            SortDescending = false
-        };
+        var request = new GetStockUpOperationsRequest { SortBy = "createdAt", SortDescending = false };
 
         var operations = new List<StockUpOperation>
         {
@@ -465,16 +336,7 @@ public class GetStockUpOperationsHandlerTests
             new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),
             new("DOC-003", "PROD3", 8, StockUpSourceType.TransportBox, 3),
         };
-
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[0], new DateTime(2025, 1, 20));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[1], new DateTime(2025, 1, 10));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[2], new DateTime(2025, 1, 15));
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(operations);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -482,7 +344,7 @@ public class GetStockUpOperationsHandlerTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal(3, result.TotalCount);
-        // Verify sorting would be: 2025-01-10, 2025-01-15, 2025-01-20 (ascending)
+        // Sorting is handled by the repository; handler just passes the filter through
     }
 
     [Fact]
@@ -496,15 +358,7 @@ public class GetStockUpOperationsHandlerTests
             new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1),
             new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),
         };
-
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[0], new DateTime(2025, 1, 10));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[1], new DateTime(2025, 1, 20));
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(operations);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -512,7 +366,7 @@ public class GetStockUpOperationsHandlerTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal(2, result.TotalCount);
-        // Default should be CreatedAt DESC
+        // Default should be CreatedAt DESC — enforced by repository
     }
 
     #endregion
@@ -523,25 +377,15 @@ public class GetStockUpOperationsHandlerTests
     public async Task Handle_Pagination_ReturnsCorrectPageSize()
     {
         // Arrange
-        var request = new GetStockUpOperationsRequest
-        {
-            PageSize = 2,
-            Page = 1
-        };
+        var request = new GetStockUpOperationsRequest { PageSize = 2, Page = 1 };
 
-        var operations = new List<StockUpOperation>
+        // Repository returns page 1 (2 items) with total count of 4
+        var pageItems = new List<StockUpOperation>
         {
             new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1),
             new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),
-            new("DOC-003", "PROD3", 8, StockUpSourceType.TransportBox, 3),
-            new("DOC-004", "PROD4", 15, StockUpSourceType.TransportBox, 4),
         };
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(pageItems, totalCount: 4);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -556,25 +400,15 @@ public class GetStockUpOperationsHandlerTests
     public async Task Handle_Pagination_SecondPage_ReturnsCorrectOperations()
     {
         // Arrange
-        var request = new GetStockUpOperationsRequest
-        {
-            PageSize = 2,
-            Page = 2
-        };
+        var request = new GetStockUpOperationsRequest { PageSize = 2, Page = 2 };
 
-        var operations = new List<StockUpOperation>
+        // Repository returns page 2 (2 items) with total count of 4
+        var pageItems = new List<StockUpOperation>
         {
-            new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1),
-            new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),
             new("DOC-003", "PROD3", 8, StockUpSourceType.TransportBox, 3),
             new("DOC-004", "PROD4", 15, StockUpSourceType.TransportBox, 4),
         };
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(pageItems, totalCount: 4);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -591,15 +425,11 @@ public class GetStockUpOperationsHandlerTests
         // Arrange
         var request = new GetStockUpOperationsRequest(); // No pagination specified
 
-        var operations = Enumerable.Range(1, 100)
+        // Repository returns first 50 items with total count of 100
+        var pageItems = Enumerable.Range(1, 50)
             .Select(i => new StockUpOperation($"DOC-{i:D3}", $"PROD{i}", 10, StockUpSourceType.TransportBox, i))
             .ToList();
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(pageItems, totalCount: 100);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -624,24 +454,13 @@ public class GetStockUpOperationsHandlerTests
             SourceType = StockUpSourceType.TransportBox
         };
 
-        var operations = new List<StockUpOperation>
+        // Repository returns pre-filtered: TransportBox + Active (Pending + Failed only)
+        var matchingOps = new List<StockUpOperation>
         {
-            new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1), // Pending - Match
-            new("DOC-002", "PROD2", 5, StockUpSourceType.TransportBox, 2),  // Completed - No match
-            new("DOC-003", "PROD3", 8, StockUpSourceType.GiftPackageManufacture, 3), // Pending GPM - No match
-            new("DOC-004", "PROD4", 15, StockUpSourceType.TransportBox, 4), // Failed - Match
+            new("DOC-001", "PROD1", 10, StockUpSourceType.TransportBox, 1), // Pending
+            new("DOC-004", "PROD4", 15, StockUpSourceType.TransportBox, 4), // Failed
         };
-
-        operations[1].MarkAsSubmitted(DateTime.UtcNow);
-        operations[1].MarkAsCompleted(DateTime.UtcNow);
-        operations[3].MarkAsSubmitted(DateTime.UtcNow);
-        operations[3].MarkAsFailed(DateTime.UtcNow, "Test error");
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(matchingOps);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -670,24 +489,12 @@ public class GetStockUpOperationsHandlerTests
             Page = 1
         };
 
-        var operations = new List<StockUpOperation>
+        // Repository returns the single matching result
+        var matchingOps = new List<StockUpOperation>
         {
             new("BOX-001", "PROD1", 10, StockUpSourceType.TransportBox, 123), // Match
-            new("BOX-002", "PROD1", 5, StockUpSourceType.TransportBox, 456),  // Wrong SourceId
-            new("INV-003", "PROD1", 8, StockUpSourceType.TransportBox, 123),  // Wrong DocumentNumber
-            new("BOX-004", "PROD2", 15, StockUpSourceType.TransportBox, 123), // Wrong ProductCode
         };
-
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[0], new DateTime(2025, 6, 15));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[1], new DateTime(2025, 6, 15));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[2], new DateTime(2025, 6, 15));
-        typeof(StockUpOperation).GetProperty("CreatedAt")!.SetValue(operations[3], new DateTime(2025, 6, 15));
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
-
-        _mapperMock.Setup(m => m.Map<List<StockUpOperationDto>>(It.IsAny<List<StockUpOperation>>()))
-            .Returns((List<StockUpOperation> source) => source.Select(op => new StockUpOperationDto()).ToList());
+        SetupQueryAsync(matchingOps);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);

@@ -1,10 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockUpOperationsSummary;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using MockQueryable;
 using Moq;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -28,10 +25,10 @@ public class GetStockUpOperationsSummaryHandlerTests
     {
         // Arrange
         var request = new GetStockUpOperationsSummaryRequest();
-        var emptyOperations = new List<StockUpOperation>();
 
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(emptyOperations.BuildMock());
+        _repositoryMock
+            .Setup(r => r.GetActiveCountsAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((0, 0, 0));
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -53,23 +50,12 @@ public class GetStockUpOperationsSummaryHandlerTests
             SourceType = StockUpSourceType.GiftPackageManufacture
         };
 
-        var operations = new List<StockUpOperation>
-        {
-            new("GPM-000001-PROD1", "PROD1", 10, StockUpSourceType.GiftPackageManufacture, 1),
-            new("GPM-000001-PROD2", "PROD2", 5, StockUpSourceType.GiftPackageManufacture, 1),
-            new("GPM-000002-PROD3", "PROD3", 8, StockUpSourceType.GiftPackageManufacture, 2),
-            new("BOX-000001-PROD4", "PROD4", 15, StockUpSourceType.TransportBox, 1),
-        };
-
-        // Set states via reflection or state transition methods
-        operations[0].MarkAsSubmitted(System.DateTime.UtcNow);
-        operations[1].MarkAsSubmitted(System.DateTime.UtcNow);
-        operations[1].MarkAsFailed(System.DateTime.UtcNow, "Test error");
-        // operations[2] stays Pending
-        operations[3].MarkAsSubmitted(System.DateTime.UtcNow);
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
+        // GPM operations: 1 Pending (GPM-000002-PROD3), 1 Submitted (GPM-000001-PROD1), 1 Failed (GPM-000001-PROD2)
+        _repositoryMock
+            .Setup(r => r.GetActiveCountsAsync(
+                It.Is<StockUpSourceType?>(st => st == StockUpSourceType.GiftPackageManufacture),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((1, 1, 1)); // (Pending, Submitted, Failed)
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -88,15 +74,10 @@ public class GetStockUpOperationsSummaryHandlerTests
         // Arrange
         var request = new GetStockUpOperationsSummaryRequest(); // No SourceType filter
 
-        var operations = new List<StockUpOperation>
-        {
-            new("GPM-000001-PROD1", "PROD1", 10, StockUpSourceType.GiftPackageManufacture, 1),
-            new("BOX-000001-PROD2", "PROD2", 5, StockUpSourceType.TransportBox, 1),
-        };
-
-        // Both pending
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
+        // Both operations are pending (one GPM, one TransportBox)
+        _repositoryMock
+            .Setup(r => r.GetActiveCountsAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((2, 0, 0)); // (Pending, Submitted, Failed)
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -114,24 +95,11 @@ public class GetStockUpOperationsSummaryHandlerTests
     {
         // Arrange — one operation per state. Completed must be excluded; Failed must be counted.
         var request = new GetStockUpOperationsSummaryRequest();
-        var now = System.DateTime.UtcNow;
 
-        var pending = new StockUpOperation("GPM-Pending", "P1", 1, StockUpSourceType.GiftPackageManufacture, 1);
-
-        var submitted = new StockUpOperation("GPM-Submitted", "P2", 1, StockUpSourceType.GiftPackageManufacture, 1);
-        submitted.MarkAsSubmitted(now);
-
-        var completed = new StockUpOperation("GPM-Completed", "P3", 1, StockUpSourceType.GiftPackageManufacture, 1);
-        completed.MarkAsCompleted(now); // StockUpOperation.MarkAsCompleted can transition from Pending directly
-
-        var failed = new StockUpOperation("GPM-Failed", "P4", 1, StockUpSourceType.GiftPackageManufacture, 1);
-        failed.MarkAsSubmitted(now);
-        failed.MarkAsFailed(now, "boom");
-
-        var operations = new List<StockUpOperation> { pending, submitted, completed, failed };
-
-        _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations.BuildMock());
+        // Repository only counts active states (Pending, Submitted, Failed); Completed is excluded
+        _repositoryMock
+            .Setup(r => r.GetActiveCountsAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((1, 1, 1)); // (Pending, Submitted, Failed) — Completed excluded
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
