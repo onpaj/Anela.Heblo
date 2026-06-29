@@ -102,49 +102,40 @@ jobs:
           FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
           FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
 
+      - name: 🔀 Merge coverage reports
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.4.3 || true
+          reportgenerator \
+            -reports:"coverage/**/*.cobertura.xml" \
+            -targetdir:"coverage/merged" \
+            -reporttypes:Cobertura
+
       - name: 📊 Process coverage files for CodeCov
         run: |
-          # Find all coverage.cobertura.xml files and fix paths for CodeCov
-          find ./coverage -name "coverage.cobertura.xml" -type f | while read file; do
-            echo "Processing coverage file: $file"
+          # Fix paths in merged file for CodeCov
+          echo "Processing merged coverage file..."
+          echo "Original paths:"
+          grep -o 'filename="[^"]*"' coverage/merged/Cobertura.xml | head -5
 
-            # First show original paths for debugging
-            echo "Original paths in $file:"
-            grep -o 'filename="[^"]*"' "$file" | head -5
+          sed -i 's|filename="|filename="backend/src/|g' coverage/merged/Cobertura.xml
 
-            # Replace relative paths with paths relative to repository root for CodeCov
-            # The original paths are like: filename="Anela.Heblo.Application/ApplicationModule.cs"
-            # We need: filename="backend/src/Anela.Heblo.Application/ApplicationModule.cs"
-            sed -i 's|filename="|filename="backend/src/|g' "$file"
+          echo "Processed paths:"
+          grep -o 'filename="[^"]*"' coverage/merged/Cobertura.xml | head -5
 
-            # Show processed paths for debugging
-            echo "Processed paths in $file:"
-            grep -o 'filename="[^"]*"' "$file" | head -5
-            echo "---"
-          done
-
-          # Verify coverage files exist
-          echo "=== Coverage files found ==="
-          find ./coverage -name "coverage.cobertura.xml" -type f -exec echo "Found: {}" \;
-
-          # Count total coverage files
-          COVERAGE_COUNT=$(find ./coverage -name "coverage.cobertura.xml" -type f | wc -l)
-          echo "Total coverage files: $COVERAGE_COUNT"
-
-          if [ "$COVERAGE_COUNT" -eq "0" ]; then
-            echo "❌ ERROR: No coverage files found!"
+          # Verify merged coverage file exists
+          if [ ! -f coverage/merged/Cobertura.xml ]; then
+            echo "❌ ERROR: Merged coverage file not found!"
             exit 1
           fi
+          echo "✅ Merged coverage file ready."
         env:
           ASPNETCORE_ENVIRONMENT: Automation
 
       - name: 📊 Prepare coverage file list
         id: coverage-files
         run: |
-          # Find all coverage files and create a comma-separated list
-          COVERAGE_FILES=$(find ./coverage -name "coverage.cobertura.xml" -type f | tr '\n' ',' | sed 's/,$//')
-          echo "files=$COVERAGE_FILES" >> $GITHUB_OUTPUT
-          echo "Found coverage files: $COVERAGE_FILES"
+          echo "files=coverage/merged/Cobertura.xml" >> $GITHUB_OUTPUT
+          echo "Merged coverage file: coverage/merged/Cobertura.xml"
 
       - name: 📊 Upload coverage reports
         continue-on-error: true
