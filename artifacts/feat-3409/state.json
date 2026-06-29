@@ -5,25 +5,36 @@
   "max_revisions": 3,
   "phases": {
     "analyzing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-29T11:15:57.564693Z"
+      "status": "completed",
+      "updated_at": "2026-06-29T11:17:23.517656Z"
     },
     "architecting": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-06-29T11:18:03.618175Z"
     },
     "designing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-06-29T11:18:24.159929Z"
     },
     "planning": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-06-29T11:19:02.716160Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-06-29T11:26:47.661096Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-06-29T11:27:25.296171Z"
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-refresh-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-29T11:26:44.729447Z"
+    }
+  ]
 }
