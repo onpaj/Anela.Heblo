@@ -21,16 +21,16 @@
       "updated_at": "2026-06-29T12:22:14.779696Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-29T12:22:44.433764Z"
     }
   },
   "tasks": [
     {
       "name": "add-reserve-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-29T12:22:44.633742Z"
     }
   ]
 }
