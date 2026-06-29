@@ -21,16 +21,20 @@
       "updated_at": "2026-06-29T17:27:01.465027Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-29T17:28:08.542798Z"
+      "status": "completed",
+      "updated_at": "2026-06-29T18:05:46.260509Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-06-29T18:08:05.027317Z"
     }
   },
   "tasks": [
     {
       "name": "add-coverage-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-29T17:28:08.803499Z"
+      "updated_at": "2026-06-29T18:05:46.057480Z"
     }
   ]
 }
