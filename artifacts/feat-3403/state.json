@@ -21,16 +21,16 @@
       "updated_at": "2026-06-29T06:21:28.668449Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-29T06:21:53.504369Z"
     }
   },
   "tasks": [
     {
       "name": "fix-datetime-utcnow",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-29T06:21:53.734764Z"
     }
   ]
 }
