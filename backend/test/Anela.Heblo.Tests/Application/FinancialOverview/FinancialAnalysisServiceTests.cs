@@ -280,4 +280,84 @@ public class FinancialAnalysisServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(creditItems);
     }
+
+    [Fact]
+    public async Task RefreshFinancialDataAsync_WhenDatesNull_UsesDefaultDateRange()
+    {
+        // Arrange — fresh service with MonthsToCache=3 so the expected range is predictable
+        var options3 = Options.Create(new FinancialAnalysisOptions { MonthsToCache = 3 });
+        var cache3 = new MemoryCache(new MemoryCacheOptions());
+        var service3 = new FinancialAnalysisService(
+            _ledgerServiceMock.Object,
+            _stockValueServiceMock.Object,
+            NullLogger<FinancialAnalysisService>.Instance,
+            options3,
+            cache3);
+
+        // No financial_last_refresh set, so throttle check passes.
+        var now = DateTime.UtcNow;
+        var expectedEndDate = new DateTime(now.Year, now.Month, 1).AddDays(-1); // last day of previous month
+        var expectedStartMonth = expectedEndDate.AddMonths(-2);
+        var expectedStartDate = new DateTime(expectedStartMonth.Year, expectedStartMonth.Month, 1);
+
+        // Act
+        await service3.RefreshFinancialDataAsync(startDate: null, endDate: null);
+
+        // Assert — ledger must be called with dates within the computed default range
+        _ledgerServiceMock.Verify(
+            x => x.GetLedgerItems(
+                It.Is<DateTime>(d => d >= expectedStartDate),
+                It.Is<DateTime>(d => d <= expectedEndDate),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.AtLeast(1),
+            "ledger must be called within the computed default date range when both dates are null");
+    }
+
+    [Fact]
+    public async Task RefreshFinancialDataAsync_WhenOutsideThrottleWindow_CallsServicesOncePerMonth()
+    {
+        // Arrange — fresh cache so the throttle check passes.
+        // MonthsToCache=4 → endDate=last-day-of-prev-month, startDate=endDate-3months.
+        // The loop iterates while currentDate (first-of-month) >= startDate (last-of-month-3-earlier),
+        // which always yields exactly 3 months of actual calls regardless of which month we're in.
+        var cache4 = new MemoryCache(new MemoryCacheOptions());
+        var options4 = Options.Create(new FinancialAnalysisOptions { MonthsToCache = 4 });
+        var service4 = new FinancialAnalysisService(
+            _ledgerServiceMock.Object,
+            _stockValueServiceMock.Object,
+            NullLogger<FinancialAnalysisService>.Instance,
+            options4,
+            cache4);
+
+        // Act
+        await service4.RefreshFinancialDataAsync(startDate: null, endDate: null);
+
+        // Assert — each of the 3 months triggers 2 ledger calls (debit + credit) and 1 stock call
+        _ledgerServiceMock.Verify(
+            x => x.GetLedgerItems(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(6),
+            "ledger should be called twice per month (debit + credit) × 3 months = 6 total calls");
+
+        _stockValueServiceMock.Verify(
+            x => x.GetStockValueChangesAsync(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(3),
+            "stock service should be called once per month × 3 months = 3 total calls");
+
+        // Assert the refresh timestamp is persisted after a successful run
+        cache4.TryGetValue("financial_last_refresh", out DateTime? lastRefresh).Should().BeTrue(
+            "last refresh timestamp should be cached after a successful refresh");
+        lastRefresh.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+    }
 }
