@@ -16,6 +16,10 @@ public interface IStockUpOperationRepository
         CancellationToken ct = default);
 
     IQueryable<StockUpOperation> GetAll();
+
+    Task<(List<StockUpOperation> Items, int TotalCount)> QueryAsync(StockUpOperationFilter filter, CancellationToken ct = default);
+    Task<(int Pending, int Submitted, int Failed)> GetActiveCountsAsync(StockUpSourceType? sourceType, CancellationToken ct = default);
+
     Task<StockUpOperation> AddAsync(StockUpOperation operation, CancellationToken ct = default);
     Task UpdateAsync(StockUpOperation operation, CancellationToken ct = default);
     Task<int> SaveChangesAsync(CancellationToken ct = default);
