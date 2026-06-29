@@ -21,16 +21,16 @@
       "updated_at": "2026-06-29T17:27:01.465027Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-29T17:28:08.542798Z"
     }
   },
   "tasks": [
     {
       "name": "add-coverage-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-29T17:28:08.803499Z"
     }
   ]
 }
