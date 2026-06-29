@@ -105,6 +105,7 @@ public class MarketingInvoiceImportService : IMarketingInvoiceImportService
                     stagedCount, source.Platform);
                 result.Failed += stagedCount;
                 // result.Imported intentionally stays 0 — nothing was committed.
+                throw;
             }
         }
 
