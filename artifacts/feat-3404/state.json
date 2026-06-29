@@ -21,16 +21,16 @@
       "updated_at": "2026-06-29T07:16:49.184791Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-29T07:16:53.591986Z"
     }
   },
   "tasks": [
     {
       "name": "delete-dead-comments",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-29T07:16:53.929968Z"
     }
   ]
 }
