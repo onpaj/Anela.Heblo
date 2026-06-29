@@ -17,6 +17,8 @@ import {
   Users,
   ExternalLink,
   FileText,
+  Database,
+  TrendingUp,
   Megaphone,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
@@ -377,6 +379,31 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "/admin/access",
           key: "/admin/access",
         },
+      ],
+    },
+    {
+      id: 'knowledgebase',
+      name: 'Knowledgebase',
+      icon: Database,
+      type: 'section' as const,
+      items: [
+        {
+          id: 'kb-poradenstvi',
+          name: 'Poradenství',
+          href: '/knowledge-base',
+        },
+        ...(hasRole('knowledge_base_manager')
+          ? [{ id: 'kb-feedback', name: 'Feedback', href: '/knowledge-base/feedback' }]
+          : []),
+      ],
+    },
+    {
+      id: 'marketing',
+      name: 'Marketing',
+      icon: TrendingUp,
+      type: 'section' as const,
+      items: [
+        { id: 'campaigns', name: 'Campaigns', href: '/campaigns' },
       ],
     },
   ];

@@ -1,7 +1,9 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.Campaigns;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.MetaAds;
 
@@ -11,11 +13,22 @@ public static class MetaAdsAdapterServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.Configure<MetaAdsSettings>(configuration.GetSection(MetaAdsSettings.ConfigurationKey));
-        services.AddHttpClient<MetaAdsTransactionSource>();
-        services.AddScoped<IMarketingTransactionSource>(sp =>
-            sp.GetRequiredService<MetaAdsTransactionSource>());
+        services.AddOptions<MetaAdsSettings>()
+            .Bind(configuration.GetSection(MetaAdsSettings.ConfigKey))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddTransient<MetaTokenRefreshHandler>();
+
+        services.AddHttpClient<IMetaAdsClient, MetaAdsClient>((sp, client) =>
+        {
+            var settings = sp.GetRequiredService<IOptions<MetaAdsSettings>>().Value;
+            client.BaseAddress = new Uri(settings.BaseUrl);
+        })
+        .AddHttpMessageHandler<MetaTokenRefreshHandler>();
+
         services.AddScoped<IRecurringJob, MetaAdsInvoiceImportJob>();
+
         return services;
     }
 }

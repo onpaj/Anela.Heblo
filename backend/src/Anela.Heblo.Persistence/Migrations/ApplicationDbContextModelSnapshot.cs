@@ -481,6 +481,14 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("BankStatements", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Campaigns.Ad", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AdSetId")
+                        .HasColumnType("uuid");
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.Inventory.Lot", b =>
                 {
                     b.Property<int>("Id")
@@ -492,6 +500,142 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PlatformAdId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdSetId");
+
+                    b.HasIndex("PlatformAdId")
+                        .IsUnique();
+
+                    b.ToTable("Ads", "dbo");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Campaigns.AdAdSet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<decimal?>("DailyBudget")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PlatformAdSetId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.HasIndex("PlatformAdSetId")
+                        .IsUnique();
+
+                    b.ToTable("AdAdSets", "dbo");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Campaigns.AdCampaign", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<decimal?>("DailyBudget")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<decimal?>("LifetimeBudget")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Objective")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Platform")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PlatformCampaignId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Platform", "PlatformCampaignId")
+                        .IsUnique();
+
+                    b.ToTable("AdCampaigns", "dbo");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Campaigns.AdDailyMetric", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AdId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Clicks")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("Conversions")
+                        .HasColumnType("bigint");
                     b.Property<string>("CreatedBy")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -556,6 +700,65 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<long>("Impressions")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("Revenue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Spend")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("AdDailyMetrics", "dbo");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Campaigns.AdSyncLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AdSetsSynced")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AdsSynced")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CampaignsSynced")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("MetricRowsSynced")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Platform")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Platform", "StartedAt");
+
+                    b.ToTable("AdSyncLogs", "dbo");
                     b.Property<string>("CreatedBy")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -3846,6 +4049,39 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Campaigns.Ad", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Campaigns.AdAdSet", "AdSet")
+                        .WithMany("Ads")
+                        .HasForeignKey("AdSetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AdSet");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Campaigns.AdAdSet", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Campaigns.AdCampaign", "Campaign")
+                        .WithMany("AdSets")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Campaigns.AdDailyMetric", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Campaigns.Ad", "Ad")
+                        .WithMany("DailyMetrics")
+                        .HasForeignKey("AdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ad");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.InvoiceClassification.ClassificationHistory", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.InvoiceClassification.ClassificationRule", "ClassificationRule")
@@ -4165,6 +4401,19 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("Steps");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Campaigns.Ad", b =>
+                {
+                    b.Navigation("DailyMetrics");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Campaigns.AdAdSet", b =>
+                {
+                    b.Navigation("Ads");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Campaigns.AdCampaign", b =>
+                {
+                    b.Navigation("AdSets");
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Authorization.Entities.AppUser", b =>
                 {
                     b.Navigation("UserGroups");

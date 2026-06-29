@@ -8,6 +8,7 @@ using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.Bank;
+using Anela.Heblo.Domain.Features.Campaigns;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
@@ -118,6 +119,13 @@ public class ApplicationDbContext : DbContext
 
     // Grid Layouts module
     public DbSet<GridLayout> GridLayouts { get; set; } = null!;
+
+    // Campaigns module
+    public DbSet<AdCampaign> AdCampaigns { get; set; } = null!;
+    public DbSet<AdAdSet> AdAdSets { get; set; } = null!;
+    public DbSet<Ad> Ads { get; set; } = null!;
+    public DbSet<AdDailyMetric> AdDailyMetrics { get; set; } = null!;
+    public DbSet<AdSyncLog> AdSyncLogs { get; set; } = null!;
 
     // Marketing Invoices module
     public DbSet<ImportedMarketingTransaction> ImportedMarketingTransactions { get; set; } = null!;
