@@ -241,33 +241,6 @@ public static class CatalogModule
             (r, ct) => r.RefreshManufactureDifficultySettingsData(null, ct)
         );
 
-        // COMMENTED OUT - Old services replaced by new cost source architecture
-        // services.RegisterRefreshTask<ISalesCostCalculationService>(
-        //     nameof(ISalesCostCalculationService.Reload),
-        //     async (serviceProvider, ct) =>
-        //     {
-        //         var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
-        //         var costService = serviceProvider.GetRequiredService<ISalesCostCalculationService>();
-        //
-        //         await catalogRepository.WaitForCurrentMergeAsync(ct);
-        //         await costService.Reload();
-        //     }
-        // );
-
-        // COMMENTED OUT - Old services replaced by new cost source architecture
-        // services.RegisterRefreshTask<IManufactureCostCalculationService>(
-        //     nameof(IManufactureCostCalculationService.Reload),
-        //     async (serviceProvider, ct) =>
-        //     {
-        //         var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
-        //         var manufactureCostService = serviceProvider.GetRequiredService<IManufactureCostCalculationService>();
-        //
-        //         await catalogRepository.WaitForCurrentMergeAsync(ct);
-        //         var catalogData = await catalogRepository.GetAllAsync(ct);
-        //         await manufactureCostService.Reload(catalogData.ToList());
-        //     }
-        // );
-
         // Cost source refresh tasks (Tier 2 - after catalog refresh)
         // Sources compute costs and populate cache
         services.RegisterRefreshTask<IMaterialCostProvider>(
