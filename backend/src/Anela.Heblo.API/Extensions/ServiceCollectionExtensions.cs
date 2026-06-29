@@ -132,8 +132,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(TimeProvider.System);
 
         // Global exception → HTTP mapping for infrastructure exceptions.
+        // Handler order is significant — first match wins.
         // Business errors continue to flow through BaseApiController.HandleResponse.
         services.AddExceptionHandler<UnauthorizedAccessExceptionHandler>();
+        services.AddExceptionHandler<ValidationExceptionHandler>();
+        services.AddExceptionHandler<ArgumentExceptionHandler>();
         services.AddProblemDetails();
 
         // Register HttpClient for E2E testing middleware
