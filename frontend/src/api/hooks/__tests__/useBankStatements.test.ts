@@ -1,33 +1,31 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useBankStatementAccounts } from '../useBankStatements';
-import { getAuthenticatedApiClient } from '../../client';
-import { createMockApiClient, mockAuthenticatedApiClient, createQueryClientWrapper } from '../../testUtils';
+import { mockAuthenticatedApiClient, createQueryClientWrapper } from '../../testUtils';
 
 jest.mock('../../client');
 
 describe('useBankStatements - Account Listing', () => {
-    let mockFetch: jest.Mock;
-    let mockClient: any;
+    let mockClient: {
+        bankStatements_GetAccounts: jest.Mock;
+        bankStatements_GetBankStatements: jest.Mock;
+        bankStatements_ImportStatements: jest.Mock;
+    };
 
     beforeEach(() => {
-        const mock = createMockApiClient();
-        mockClient = mock.mockClient;
-        mockFetch = mock.mockFetch;
-        mockAuthenticatedApiClient(mockClient);
-    });
-
-    afterEach(() => {
         jest.clearAllMocks();
+        mockClient = {
+            bankStatements_GetAccounts: jest.fn(),
+            bankStatements_GetBankStatements: jest.fn(),
+            bankStatements_ImportStatements: jest.fn(),
+        };
+        mockAuthenticatedApiClient(mockClient);
     });
 
     describe('useBankStatementAccounts', () => {
         it('should return Comgate CZK account from backend', async () => {
-            mockFetch.mockResolvedValue({
-                ok: true,
-                json: () => Promise.resolve([
-                    { name: 'ComgateCZK', accountNumber: '2301495165/2010', provider: 'Comgate', currency: 'CZK' }
-                ])
-            });
+            mockClient.bankStatements_GetAccounts.mockResolvedValue([
+                { name: 'ComgateCZK', accountNumber: '2301495165/2010', provider: 'Comgate', currency: 'CZK' }
+            ]);
 
             const { wrapper } = createQueryClientWrapper();
             const { result } = renderHook(() => useBankStatementAccounts(), { wrapper });
@@ -44,12 +42,9 @@ describe('useBankStatements - Account Listing', () => {
         });
 
         it('should return ShoptetPay account from backend', async () => {
-            mockFetch.mockResolvedValue({
-                ok: true,
-                json: () => Promise.resolve([
-                    { name: 'ShoptetPay-CZK', accountNumber: '', provider: 'ShoptetPay', currency: 'CZK' }
-                ])
-            });
+            mockClient.bankStatements_GetAccounts.mockResolvedValue([
+                { name: 'ShoptetPay-CZK', accountNumber: '', provider: 'ShoptetPay', currency: 'CZK' }
+            ]);
 
             const { wrapper } = createQueryClientWrapper();
             const { result } = renderHook(() => useBankStatementAccounts(), { wrapper });
@@ -65,14 +60,11 @@ describe('useBankStatements - Account Listing', () => {
         });
 
         it('should return all configured accounts including ShoptetPay', async () => {
-            mockFetch.mockResolvedValue({
-                ok: true,
-                json: () => Promise.resolve([
-                    { name: 'ComgateCZK', accountNumber: '2301495165/2010', provider: 'Comgate', currency: 'CZK' },
-                    { name: 'ComgateEUR', accountNumber: '2501837465/2010', provider: 'Comgate', currency: 'EUR' },
-                    { name: 'ShoptetPay-CZK', accountNumber: '', provider: 'ShoptetPay', currency: 'CZK' },
-                ])
-            });
+            mockClient.bankStatements_GetAccounts.mockResolvedValue([
+                { name: 'ComgateCZK', accountNumber: '2301495165/2010', provider: 'Comgate', currency: 'CZK' },
+                { name: 'ComgateEUR', accountNumber: '2501837465/2010', provider: 'Comgate', currency: 'EUR' },
+                { name: 'ShoptetPay-CZK', accountNumber: '', provider: 'ShoptetPay', currency: 'CZK' },
+            ]);
 
             const { wrapper } = createQueryClientWrapper();
             const { result } = renderHook(() => useBankStatementAccounts(), { wrapper });
@@ -89,13 +81,10 @@ describe('useBankStatements - Account Listing', () => {
         });
 
         it('should expose value and label for every account', async () => {
-            mockFetch.mockResolvedValue({
-                ok: true,
-                json: () => Promise.resolve([
-                    { name: 'ComgateCZK', accountNumber: '2301495165/2010', provider: 'Comgate', currency: 'CZK' },
-                    { name: 'ShoptetPay-CZK', accountNumber: '', provider: 'ShoptetPay', currency: 'CZK' },
-                ])
-            });
+            mockClient.bankStatements_GetAccounts.mockResolvedValue([
+                { name: 'ComgateCZK', accountNumber: '2301495165/2010', provider: 'Comgate', currency: 'CZK' },
+                { name: 'ShoptetPay-CZK', accountNumber: '', provider: 'ShoptetPay', currency: 'CZK' },
+            ]);
 
             const { wrapper } = createQueryClientWrapper();
             const { result } = renderHook(() => useBankStatementAccounts(), { wrapper });
@@ -113,21 +102,16 @@ describe('useBankStatements - Account Listing', () => {
             });
         });
 
-        it('should call /api/bank-statements/accounts endpoint', async () => {
-            mockFetch.mockResolvedValue({
-                ok: true,
-                json: () => Promise.resolve([])
-            });
+        it('should call bankStatements_GetAccounts on the api client', async () => {
+            mockClient.bankStatements_GetAccounts.mockResolvedValue([]);
 
             const { wrapper } = createQueryClientWrapper();
             const { result } = renderHook(() => useBankStatementAccounts(), { wrapper });
 
             await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-            expect(mockFetch).toHaveBeenCalledWith(
-                expect.stringContaining('/api/bank-statements/accounts'),
-                expect.any(Object)
-            );
+            expect(mockClient.bankStatements_GetAccounts).toHaveBeenCalledTimes(1);
+            expect(mockClient.bankStatements_GetAccounts).toHaveBeenCalledWith();
         });
     });
 });

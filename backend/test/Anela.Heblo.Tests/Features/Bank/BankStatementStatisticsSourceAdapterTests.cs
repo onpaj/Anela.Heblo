@@ -3,6 +3,7 @@ using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Persistence;
+using Anela.Heblo.Persistence.Features.Bank;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -21,7 +22,7 @@ public sealed class BankStatementStatisticsSourceAdapterTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _adapter = new BankStatementStatisticsSourceAdapter(_context);
+        _adapter = new BankStatementStatisticsSourceAdapter(new BankStatementImportRepository(_context));
     }
 
     public void Dispose() => _context.Dispose();

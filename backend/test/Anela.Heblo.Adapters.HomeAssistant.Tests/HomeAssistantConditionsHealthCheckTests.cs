@@ -27,11 +27,11 @@ public class HomeAssistantConditionsHealthCheckTests
         new(21m, 55m, 18m, 72m, recordedAt, source);
 
     [Fact]
-    public async Task CheckHealthAsync_NoSnapshot_ReturnsUnhealthy()
+    public async Task CheckHealthAsync_NoSnapshot_ReturnsDegraded()
     {
         var c = new HomeAssistantSnapshotCoordinator();
         var result = await CreateCheck(c).CheckHealthAsync(new HealthCheckContext());
-        result.Status.Should().Be(HealthStatus.Unhealthy);
+        result.Status.Should().Be(HealthStatus.Degraded);
     }
 
     [Fact]
@@ -71,11 +71,11 @@ public class HomeAssistantConditionsHealthCheckTests
     }
 
     [Fact]
-    public async Task CheckHealthAsync_LastObservedUnavailable_ReturnsUnhealthy()
+    public async Task CheckHealthAsync_LastObservedUnavailable_ReturnsDegraded()
     {
         var c = new HomeAssistantSnapshotCoordinator();
         c.RecordObserved(Snap(ConditionsReadingSource.Unavailable, DateTime.UtcNow));
         var result = await CreateCheck(c).CheckHealthAsync(new HealthCheckContext());
-        result.Status.Should().Be(HealthStatus.Unhealthy);
+        result.Status.Should().Be(HealthStatus.Degraded);
     }
 }

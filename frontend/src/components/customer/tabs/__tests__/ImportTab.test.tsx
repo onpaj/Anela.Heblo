@@ -1,36 +1,27 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { createQueryClientWrapper, createMockApiClient, mockAuthenticatedApiClient } from '../../../../api/testUtils';
+import { createQueryClientWrapper, mockAuthenticatedApiClient } from '../../../../api/testUtils';
 import ImportTab from '../ImportTab';
 
 jest.mock('../../../../api/client');
 
 describe('ImportTab filters', () => {
-  let mockFetch: jest.Mock;
-  let mockClient: any;
+  let mockGetBankStatements: jest.Mock;
+  let mockGetAccounts: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    const mock = createMockApiClient();
-    mockClient = mock.mockClient;
-    mockFetch = mock.mockFetch;
-    mockAuthenticatedApiClient(mockClient);
+    mockGetBankStatements = jest.fn().mockResolvedValue({ items: [], totalCount: 0 });
+    mockGetAccounts = jest.fn().mockResolvedValue([]);
 
-    // Mock responses based on endpoint
-    mockFetch.mockImplementation((url: string) => {
-      if (url.includes('/api/bank-statements/accounts')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([])
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ items: [], totalCount: 0 })
-      });
-    });
+    const mockClient = {
+      bankStatements_GetBankStatements: mockGetBankStatements,
+      bankStatements_GetAccounts: mockGetAccounts,
+      bankStatements_ImportStatements: jest.fn(),
+    };
+    mockAuthenticatedApiClient(mockClient);
   });
 
   function renderComponentWithWrapper() {
@@ -38,11 +29,8 @@ describe('ImportTab filters', () => {
     return render(<ImportTab />, { wrapper });
   }
 
-  function getListEndpointCalls() {
-    return mockFetch.mock.calls.filter((call) => {
-      const urlString = Array.isArray(call) && typeof call[0] === 'string' ? call[0] : '';
-      return urlString.includes('/api/bank-statements') && !urlString.includes('/accounts');
-    });
+  function getListCalls() {
+    return mockGetBankStatements.mock.calls;
   }
 
   it('does not send filter values until Filtrovat is clicked', async () => {
@@ -53,11 +41,11 @@ describe('ImportTab filters', () => {
     fireEvent.change(screen.getByPlaceholderText('Účet...'), { target: { value: 'Shoptet' } });
 
     // Check that the hook was called initially with empty filters
-    const listCalls = getListEndpointCalls();
+    const listCalls = getListCalls();
     expect(listCalls.length).toBeGreaterThan(0);
-    const initialUrl = listCalls[0][0] as string;
-    expect(initialUrl).not.toContain('transferId=ABC');
-    expect(initialUrl).not.toContain('account=Shoptet');
+    const initialCall = listCalls[0];
+    expect(initialCall[1]).toBeFalsy();   // transferId not sent
+    expect(initialCall[2]).toBeFalsy();   // account not sent
   });
 
   it('sends trimmed committed filters on Filtrovat click and resets page', async () => {
@@ -71,16 +59,16 @@ describe('ImportTab filters', () => {
     fireEvent.click(filterButton);
 
     await waitFor(() => {
-      const listCalls = getListEndpointCalls();
+      const listCalls = getListCalls();
       expect(listCalls.length).toBeGreaterThan(1);
     });
 
-    const listCalls = getListEndpointCalls();
-    const latestUrl = listCalls[listCalls.length - 1][0] as string;
+    const listCalls = getListCalls();
+    const latestCall = listCalls[listCalls.length - 1];
 
-    expect(latestUrl).toContain('transferId=ABC');
-    expect(latestUrl).toContain('account=Shoptet');
-    expect(latestUrl).toContain('skip=0');
+    expect(latestCall[1]).toBe('ABC');      // transferId trimmed
+    expect(latestCall[2]).toBe('Shoptet'); // account trimmed
+    expect(latestCall[8]).toBe(0);          // skip reset to 0
   });
 
   it('sends errorsOnly=true on Filtrovat click when checkbox is checked', async () => {
@@ -94,9 +82,9 @@ describe('ImportTab filters', () => {
     fireEvent.click(filterButton);
 
     await waitFor(() => {
-      const listCalls = getListEndpointCalls();
-      const latestUrl = listCalls[listCalls.length - 1][0] as string;
-      expect(latestUrl).toContain('errorsOnly=true');
+      const listCalls = getListCalls();
+      const latestCall = listCalls[listCalls.length - 1];
+      expect(latestCall[7]).toBe(true);  // errorsOnly param
     });
   });
 
@@ -114,14 +102,14 @@ describe('ImportTab filters', () => {
     fireEvent.click(filterButton);
 
     await waitFor(() => {
-      const listCalls = getListEndpointCalls();
+      const listCalls = getListCalls();
       expect(listCalls.length).toBeGreaterThan(0);
     });
 
-    const listCalls = getListEndpointCalls();
-    const latestUrl = listCalls[listCalls.length - 1][0] as string;
-    expect(latestUrl).toContain('dateFrom=2026-01-01');
-    expect(latestUrl).toContain('dateTo=2026-01-31');
+    const listCalls = getListCalls();
+    const latestCall = listCalls[listCalls.length - 1];
+    expect(latestCall[5]).toBe('2026-01-01');  // dateFrom
+    expect(latestCall[6]).toBe('2026-01-31');  // dateTo
   });
 
   it('blocks Filtrovat and shows inline error when dateFrom > dateTo', async () => {
@@ -134,7 +122,7 @@ describe('ImportTab filters', () => {
     fireEvent.change(dateInputs[0], { target: { value: '2026-02-01' } });
     fireEvent.change(dateInputs[1], { target: { value: '2026-01-01' } });
 
-    const initialCallCount = getListEndpointCalls().length;
+    const initialCallCount = getListCalls().length;
 
     const filterButton = await screen.findByText('Filtrovat');
     fireEvent.click(filterButton);
@@ -142,7 +130,7 @@ describe('ImportTab filters', () => {
     // No new API call should be made (filter blocked)
     // Wait a bit to ensure no new call is being made
     await new Promise((resolve) => setTimeout(resolve, 100));
-    const finalCallCount = getListEndpointCalls().length;
+    const finalCallCount = getListCalls().length;
 
     expect(finalCallCount).toBe(initialCallCount);
     expect(screen.getByText(/"Od" musí být dříve/)).toBeInTheDocument();
@@ -161,9 +149,9 @@ describe('ImportTab filters', () => {
 
     // Wait for the filter to be applied
     await waitFor(() => {
-      const listCalls = getListEndpointCalls();
-      const latestUrl = listCalls[listCalls.length - 1][0] as string;
-      expect(latestUrl).toContain('transferId=ABC');
+      const listCalls = getListCalls();
+      const latestCall = listCalls[listCalls.length - 1];
+      expect(latestCall[1]).toBe('ABC');  // transferId
     });
 
     // Verify input still has the value
@@ -185,7 +173,7 @@ describe('ImportTab filters', () => {
     expect(screen.getByText('Vymazat')).toBeInTheDocument();
 
     // Verify that after clearing, when we look at the API calls, the most recent one sent does not have the filter
-    const listCalls = getListEndpointCalls();
+    const listCalls = getListCalls();
     // Should have at least 2 calls: initial + after filter
     expect(listCalls.length).toBeGreaterThanOrEqual(2);
   });
