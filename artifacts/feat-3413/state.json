@@ -46,15 +46,15 @@
     },
     {
       "name": "add-test-fr3-unknown-sort-field-fallback",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-29T15:47:02.477400Z"
+      "updated_at": "2026-06-29T15:51:30.318947Z"
     },
     {
       "name": "verify-all-tests-pass",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-29T15:51:30.510893Z"
     }
   ]
 }
