@@ -97,16 +97,19 @@ public class GetProductMarginsHandlerTests
             .Which.Should().Be(discriminatingKey);
     }
 
-    private static CatalogAggregate BuildAggregate(string productCode, IEnumerable<DateTime> monthlyKeys)
+    private static CatalogAggregate BuildAggregate(
+        string productCode,
+        IEnumerable<DateTime>? monthlyKeys = null,
+        ProductType type = ProductType.Product)
     {
         var aggregate = new CatalogAggregate
         {
             Id = productCode,
             ProductName = "Test Product",
-            Type = ProductType.Product
+            Type = type
         };
 
-        foreach (var key in monthlyKeys)
+        foreach (var key in monthlyKeys ?? Enumerable.Empty<DateTime>())
         {
             aggregate.Margins.MonthlyData[key] = new MarginData();
         }
