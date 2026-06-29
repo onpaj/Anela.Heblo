@@ -128,7 +128,7 @@ public class MarketingInvoiceImportServiceTests
     }
 
     [Fact]
-    public async Task ImportAsync_FinalSaveChangesThrows_ReportsAllStagedAsFailed_DoesNotThrow()
+    public async Task ImportAsync_FinalSaveChangesThrows_Rethrows()
     {
         // Arrange
         var from = new DateTime(2026, 4, 1);
@@ -153,13 +153,10 @@ public class MarketingInvoiceImportServiceTests
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("flush failed"));
 
-        // Act
-        var result = await _service.ImportAsync(_mockSource.Object, from, to);
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.ImportAsync(_mockSource.Object, from, to));
 
-        // Assert
-        Assert.Equal(0, result.Imported);
-        Assert.Equal(0, result.Skipped);
-        Assert.Equal(2, result.Failed);
         _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -374,5 +371,38 @@ public class MarketingInvoiceImportServiceTests
                 null,
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ImportAsync_FinalSaveChangesThrows_ExceptionTypeIsPreserved()
+    {
+        // Arrange
+        var from = new DateTime(2026, 4, 1);
+        var to = new DateTime(2026, 4, 2);
+
+        var transactions = new List<MarketingTransaction>
+        {
+            new() { TransactionId = "TX-001", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+        };
+
+        _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transactions);
+
+        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
+
+        _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("flush failed"));
+
+        // Act
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.ImportAsync(_mockSource.Object, from, to));
+
+        // Assert — exception type propagates unchanged (proves `throw;` not `throw ex;`)
+        Assert.IsType<InvalidOperationException>(ex);
+        Assert.Equal("flush failed", ex.Message);
     }
 }
