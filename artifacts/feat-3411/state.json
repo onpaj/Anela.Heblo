@@ -21,16 +21,16 @@
       "updated_at": "2026-06-29T13:26:05.723776Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-29T13:26:19.882803Z"
     }
   },
   "tasks": [
     {
       "name": "add-missing-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-29T13:26:20.077685Z"
     }
   ]
 }
