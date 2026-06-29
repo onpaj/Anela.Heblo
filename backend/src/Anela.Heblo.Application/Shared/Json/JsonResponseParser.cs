@@ -41,6 +41,14 @@ public static class JsonResponseParser
                 handlerName, cleaned[..Math.Min(cleaned.Length, 500)]);
             return fallback;
         }
+        catch (InvalidOperationException ex)
+        {
+            // System.Text.Json throws InvalidOperationException (not JsonException) when a token
+            // type mismatch occurs during deserialization (e.g. LLM returns "123" where int expected).
+            logger.LogWarning(ex, "{HandlerName}: failed to parse JSON response (token type mismatch), using fallback. Cleaned input: {CleanedHead}",
+                handlerName, cleaned[..Math.Min(cleaned.Length, 500)]);
+            return fallback;
+        }
     }
 
     public static bool TryParse<T>(
@@ -67,6 +75,14 @@ public static class JsonResponseParser
         catch (JsonException ex)
         {
             logger.LogWarning(ex, "{HandlerName}: failed to parse JSON. Cleaned head: {CleanedHead}",
+                handlerName, cleaned[..Math.Min(cleaned.Length, 500)]);
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            // System.Text.Json throws InvalidOperationException (not JsonException) when a token
+            // type mismatch occurs during deserialization (e.g. LLM returns "123" where int expected).
+            logger.LogWarning(ex, "{HandlerName}: failed to parse JSON (token type mismatch). Cleaned head: {CleanedHead}",
                 handlerName, cleaned[..Math.Min(cleaned.Length, 500)]);
             return false;
         }
