@@ -34,15 +34,15 @@
     },
     {
       "name": "add-test-fr1-default-product-type-filter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-29T15:30:38.680756Z"
+      "updated_at": "2026-06-29T15:40:35.964100Z"
     },
     {
       "name": "add-test-fr2-explicit-product-type-filter",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-29T15:40:36.161217Z"
     },
     {
       "name": "add-test-fr3-unknown-sort-field-fallback",
