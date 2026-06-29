@@ -17,6 +17,7 @@ import {
   Users,
   ExternalLink,
   FileText,
+  Database,
   Megaphone,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
@@ -75,6 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const openBaleni = () => {
     window.open(`${window.location.origin}/baleni`, "_blank", "noopener,noreferrer");
   };
+
 
   const openTerminal = () => {
     window.open(`${window.location.origin}/terminal`, "_blank", "noopener,noreferrer");
@@ -172,6 +174,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: Megaphone,
       type: "section" as const,
       items: [
+        { id: "naklady", name: "Náklady", href: "/marketing/costs", key: "/marketing/costs" },
         { id: "marketing-calendar", name: "Kalendář", href: "/marketing/calendar", key: "/marketing/calendar" },
         { id: "photobank", name: "Fotobanka", href: "/marketing/photobank", key: "/marketing/photobank" },
         { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator", key: "/leaflet-generator" },
@@ -452,11 +455,9 @@ const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ) : (
               <div className="flex items-center justify-center w-full">
-                <img
-                  src="/logo192.png"
-                  alt="Anela Heblo"
-                  className="w-8 h-8 rounded"
-                />
+                <div className="w-8 h-8 bg-primary-blue rounded flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">A</span>
+                </div>
               </div>
             )}
           </div>

@@ -44,20 +44,25 @@ import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
-import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
-import ArticlesPage from "./pages/ArticlesPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
+import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
 import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
 import PhotobankPage from "./components/marketing/photobank/pages/PhotobankPage";
 import PhotobankSettingsPage from "./components/marketing/photobank/pages/PhotobankSettingsPage";
+import ArticlesPage from "./pages/ArticlesPage";
+import DataQualityPage from "./pages/customer/DataQualityPage";
+import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
+import TerminalLayout from "./components/terminal/TerminalLayout";
+import TerminalHome from "./components/terminal/TerminalHome";
+import ComingSoonPage from "./components/terminal/ComingSoonPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import RequireMenuPath from "./components/auth/RequireMenuPath";
 import { StatusBar } from "./components/StatusBar";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
-import DataQualityPage from "./pages/customer/DataQualityPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
+import MarketingCostsList from "./components/pages/MarketingCostsList";
 import SmartsuppChatsPage from "./components/customer-support/smartsupp/pages/SmartsuppChatsPage";
 import ExpeditionSettingsPage from "./pages/customer/ExpeditionSettingsPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
@@ -77,12 +82,8 @@ import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog"
 import { FeatureFlagProvider } from "./features/feature-flags/FeatureFlagProvider";
 import { PermissionsProvider } from "./auth/PermissionsContext";
 import { OpenFeatureProvider } from "@openfeature/react-sdk";
-import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
-import TerminalLayout from "./components/terminal/TerminalLayout";
-import TerminalHome from "./components/terminal/TerminalHome";
 import TransportBoxCheck from "./components/terminal/TransportBoxCheck";
 import TransportBoxReceive from "./components/terminal/TransportBoxReceive";
-import ComingSoonPage from "./components/terminal/ComingSoonPage";
 import BoxFillWorkflow from "./components/terminal/box-fill/BoxFillWorkflow";
 import LotIdentificationHome from "./components/terminal/lot-identification/LotIdentificationHome";
 import PoPickStep from "./components/terminal/lot-identification/PoPickStep";
@@ -411,6 +412,7 @@ function App() {
                         <Route path="/finance/overview" element={guard("/finance/overview", <FinancialOverview />)} />
                         <Route path="/finance/bank-statements" element={<BankStatementImportChart />} />
                         <Route path="/analytics/product-margin-summary" element={guard("/analytics/product-margin-summary", <ProductMarginSummary />)} />
+                        <Route path="/marketing/costs" element={<MarketingCostsList />} />
                         <Route path="/catalog" element={guard("/catalog", <CatalogList />)} />
                         <Route path="/purchase/orders" element={guard("/purchase/orders", <PurchaseOrderList />)} />
                         <Route path="/purchase/stock-analysis" element={guard("/purchase/stock-analysis", <PurchaseStockAnalysis />)} />

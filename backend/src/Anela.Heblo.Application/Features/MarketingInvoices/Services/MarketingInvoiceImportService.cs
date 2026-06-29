@@ -22,6 +22,11 @@ public class MarketingInvoiceImportService : IMarketingInvoiceImportService
         DateTime to,
         CancellationToken ct = default)
     {
+        if (from > to)
+        {
+            throw new ArgumentException($"'from' ({from:yyyy-MM-dd}) must be before or equal to 'to' ({to:yyyy-MM-dd}).", nameof(from));
+        }
+
         _logger.LogInformation(
             "Starting marketing invoice import for platform {Platform} from {From:yyyy-MM-dd} to {To:yyyy-MM-dd}",
             source.Platform, from, to);

@@ -2602,6 +2602,10 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("Description");
 
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("ErrorMessage");
+
                     b.Property<DateTime>("ImportedAt")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("ImportedAt");
@@ -2627,6 +2631,13 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnName("TransactionId");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ImportedAt")
+                        .HasDatabaseName("IX_imported_marketing_transactions_ImportedAt");
+
+                    b.HasIndex("IsSynced")
+                        .HasDatabaseName("IX_imported_marketing_transactions_IsSynced_False")
+                        .HasFilter("\"IsSynced\" = false");
 
                     b.HasIndex("Platform", "TransactionId")
                         .IsUnique()

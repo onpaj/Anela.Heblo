@@ -49,7 +49,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
 
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .ReturnsAsync(2);
 
         // Act
         var result = await _service.ImportAsync(_mockSource.Object, from, to);
@@ -92,7 +92,7 @@ public class MarketingInvoiceImportServiceTests
     }
 
     [Fact]
-    public async Task ImportAsync_PerTransactionError_CountsAsFailed_DoesNotAbortRun()
+    public async Task ImportAsync_ExistsCheckThrows_CountsAsFailed_DoesNotAbortRun()
     {
         // Arrange
         var from = new DateTime(2026, 4, 1);
@@ -107,7 +107,12 @@ public class MarketingInvoiceImportServiceTests
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
-        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        // First transaction check throws
+        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", "TX-001", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("DB read failed"));
+
+        // Second transaction succeeds
+        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", "TX-002", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         _mockRepository.Setup(x => x.AddAsync(It.Is<ImportedMarketingTransaction>(t => t.TransactionId == "TX-001"), It.IsAny<CancellationToken>()))
