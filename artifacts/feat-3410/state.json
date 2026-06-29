@@ -21,16 +21,20 @@
       "updated_at": "2026-06-29T12:22:14.779696Z"
     },
     "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-29T12:28:14.829271Z"
+    },
+    "code-review": {
       "status": "in_progress",
-      "updated_at": "2026-06-29T12:22:44.433764Z"
+      "updated_at": "2026-06-29T12:28:20.537299Z"
     }
   },
   "tasks": [
     {
       "name": "add-reserve-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-29T12:22:44.633742Z"
+      "updated_at": "2026-06-29T12:28:14.619603Z"
     }
   ]
 }
