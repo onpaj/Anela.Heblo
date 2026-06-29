@@ -21,16 +21,20 @@
       "updated_at": "2026-06-29T07:16:49.184791Z"
     },
     "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-29T07:19:49.555643Z"
+    },
+    "code-review": {
       "status": "in_progress",
-      "updated_at": "2026-06-29T07:16:53.591986Z"
+      "updated_at": "2026-06-29T07:19:57.943563Z"
     }
   },
   "tasks": [
     {
       "name": "delete-dead-comments",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-29T07:16:53.929968Z"
+      "updated_at": "2026-06-29T07:19:49.319385Z"
     }
   ]
 }
