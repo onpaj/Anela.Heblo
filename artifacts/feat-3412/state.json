@@ -21,16 +21,16 @@
       "updated_at": "2026-06-29T14:33:41.263351Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-29T14:34:18.709883Z"
     }
   },
   "tasks": [
     {
       "name": "fix-coverage-merge",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-29T14:34:18.955796Z"
     }
   ]
 }
