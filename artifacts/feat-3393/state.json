@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3393",
+  "issue_number": 3393,
+  "created_at": "2026-06-28T05:14:58.249026Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-28T05:16:59.930157Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-28T05:19:40.188577Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-28T05:20:13.320200Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-28T05:21:59.275652Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-28T05:36:05.197787Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-06-28T05:36:09.521474Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extract-daily-statistics-into-repository",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-28T05:35:58.421714Z"
+    }
+  ]
+}
