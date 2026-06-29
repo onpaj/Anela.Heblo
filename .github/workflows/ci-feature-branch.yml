@@ -104,7 +104,8 @@ jobs:
 
       - name: 🔀 Merge coverage reports
         run: |
-          dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.4.3 || true
+          dotnet tool update --global dotnet-reportgenerator-globaltool --version 5.4.3
+          export PATH="$HOME/.dotnet/tools:$PATH"
           reportgenerator \
             -reports:"coverage/**/*.cobertura.xml" \
             -targetdir:"coverage/merged" \
@@ -112,8 +113,13 @@ jobs:
 
       - name: 📊 Process coverage files for CodeCov
         run: |
+          # Verify merged coverage file exists before processing
+          if [ ! -f coverage/merged/Cobertura.xml ]; then
+            echo "❌ ERROR: Merged coverage file not found!"
+            exit 1
+          fi
+
           # Fix paths in merged file for CodeCov
-          echo "Processing merged coverage file..."
           echo "Original paths:"
           grep -o 'filename="[^"]*"' coverage/merged/Cobertura.xml | head -5
 
@@ -121,15 +127,7 @@ jobs:
 
           echo "Processed paths:"
           grep -o 'filename="[^"]*"' coverage/merged/Cobertura.xml | head -5
-
-          # Verify merged coverage file exists
-          if [ ! -f coverage/merged/Cobertura.xml ]; then
-            echo "❌ ERROR: Merged coverage file not found!"
-            exit 1
-          fi
           echo "✅ Merged coverage file ready."
-        env:
-          ASPNETCORE_ENVIRONMENT: Automation
 
       - name: 📊 Prepare coverage file list
         id: coverage-files
