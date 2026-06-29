@@ -752,6 +752,58 @@ public class UpdateManufactureOrderStatusHandlerTests
     }
 
     [Fact]
+    public async Task Handle_TransitionToCompleted_WhenAllProductsHaveZeroOrNullQuantity_DoesNotCallAddRangeAsync()
+    {
+        // Arrange
+        var order = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
+        order.Products = new List<ManufactureOrderProduct>
+        {
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-ZERO",
+                ProductName = "Zero Quantity",
+                ActualQuantity = 0m,
+                ManufactureOrderId = ValidOrderId
+            },
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-NULL",
+                ProductName = "Null Quantity",
+                ActualQuantity = null,
+                ManufactureOrderId = ValidOrderId
+            }
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder o, CancellationToken _) => o);
+
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.Completed
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+
+        _inventoryRepositoryMock.Verify(
+            r => r.AddRangeAsync(It.IsAny<IEnumerable<ManufacturedProductInventoryItem>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        _catalogRepositoryMock.Verify(
+            r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_TransitionFromCompleted_DoesNotTouchInventory()
     {
         // Arrange
