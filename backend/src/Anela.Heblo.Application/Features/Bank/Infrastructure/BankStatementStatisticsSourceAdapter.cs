@@ -1,16 +1,15 @@
 using Anela.Heblo.Domain.Features.Analytics;
-using Anela.Heblo.Persistence;
-using Microsoft.EntityFrameworkCore;
+using Anela.Heblo.Domain.Features.Bank;
 
 namespace Anela.Heblo.Application.Features.Bank.Infrastructure;
 
 internal sealed class BankStatementStatisticsSourceAdapter : IBankStatementStatisticsSource
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IBankStatementImportRepository _repository;
 
-    public BankStatementStatisticsSourceAdapter(ApplicationDbContext dbContext)
+    public BankStatementStatisticsSourceAdapter(IBankStatementImportRepository repository)
     {
-        _dbContext = dbContext;
+        _repository = repository;
     }
 
     public async Task<IReadOnlyList<DailyBankStatementStatistics>> GetDailyStatisticsAsync(
@@ -24,57 +23,7 @@ internal sealed class BankStatementStatisticsSourceAdapter : IBankStatementStati
         if (endDate.Kind != DateTimeKind.Utc)
             endDate = endDate.ToUniversalTime();
 
-        var startDateUnspecified = DateTime.SpecifyKind(startDate, DateTimeKind.Unspecified);
-        var endDateUnspecified = DateTime.SpecifyKind(endDate, DateTimeKind.Unspecified);
-
-        List<DailyBankStatementStatistics> results;
-
-        if (dateType == BankStatementDateType.StatementDate)
-        {
-            var rawResults = await _dbContext.BankStatements
-                .Where(b => b.StatementDate >= startDateUnspecified && b.StatementDate <= endDateUnspecified)
-                .GroupBy(b => new { Year = b.StatementDate.Year, Month = b.StatementDate.Month, Day = b.StatementDate.Day })
-                .Select(g => new
-                {
-                    Year = g.Key.Year,
-                    Month = g.Key.Month,
-                    Day = g.Key.Day,
-                    ImportCount = g.Count(),
-                    TotalItemCount = g.Sum(b => b.ItemCount)
-                })
-                .OrderBy(d => new DateTime(d.Year, d.Month, d.Day))
-                .ToListAsync(cancellationToken);
-
-            results = rawResults.Select(r => new DailyBankStatementStatistics
-            {
-                Date = DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
-                ImportCount = r.ImportCount,
-                TotalItemCount = r.TotalItemCount
-            }).ToList();
-        }
-        else
-        {
-            var rawResults = await _dbContext.BankStatements
-                .Where(b => b.ImportDate >= startDateUnspecified && b.ImportDate <= endDateUnspecified)
-                .GroupBy(b => new { Year = b.ImportDate.Year, Month = b.ImportDate.Month, Day = b.ImportDate.Day })
-                .Select(g => new
-                {
-                    Year = g.Key.Year,
-                    Month = g.Key.Month,
-                    Day = g.Key.Day,
-                    ImportCount = g.Count(),
-                    TotalItemCount = g.Sum(b => b.ItemCount)
-                })
-                .OrderBy(d => new DateTime(d.Year, d.Month, d.Day))
-                .ToListAsync(cancellationToken);
-
-            results = rawResults.Select(r => new DailyBankStatementStatistics
-            {
-                Date = DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
-                ImportCount = r.ImportCount,
-                TotalItemCount = r.TotalItemCount
-            }).ToList();
-        }
+        var results = await _repository.GetDailyStatisticsAsync(startDate, endDate, dateType, cancellationToken);
 
         var resultsByDate = results.ToDictionary(r => r.Date.Date);
         var filledResults = new List<DailyBankStatementStatistics>();
