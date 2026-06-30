@@ -619,6 +619,17 @@ public class ModuleBoundariesTests
             },
             Allowlist: ShoptetApiAdaptersLogisticsAllowlist,
             InspectedAssembly: "Anela.Heblo.Adapters.ShoptetApi"),
+
+        new ModuleBoundaryRule(
+            Name: "FinancialOverview -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.FinancialOverview",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
     };
 
     [Theory]
