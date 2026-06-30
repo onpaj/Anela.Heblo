@@ -109,7 +109,7 @@ public static class ServiceCollectionExtensions
             .AddCheck<HomeAssistantConditionsHealthCheck>(
                 name: "homeassistant-conditions",
                 failureStatus: HealthStatus.Degraded,
-                tags: new[] { "ready", "homeassistant" });
+                tags: new[] { "homeassistant" });
 
         // Add database health check via the shared NpgsqlDataSource so the probe
         // reuses the application connection pool instead of opening a fresh connection
