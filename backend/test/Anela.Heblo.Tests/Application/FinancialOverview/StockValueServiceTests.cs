@@ -1,5 +1,4 @@
-using Anela.Heblo.Application.Features.FinancialOverview;
-using Anela.Heblo.Application.Features.FinancialOverview.Services;
+using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.FinancialOverview;
@@ -13,16 +12,16 @@ public class StockValueServiceTests
 {
     private readonly Mock<IErpStockClient> _stockClientMock;
     private readonly Mock<IProductPriceErpClient> _priceClientMock;
-    private readonly Mock<ILogger<StockValueService>> _loggerMock;
-    private readonly StockValueService _service;
+    private readonly Mock<ILogger<FinancialOverviewStockValueAdapter>> _loggerMock;
+    private readonly FinancialOverviewStockValueAdapter _service;
 
     public StockValueServiceTests()
     {
         _stockClientMock = new Mock<IErpStockClient>();
         _priceClientMock = new Mock<IProductPriceErpClient>();
-        _loggerMock = new Mock<ILogger<StockValueService>>();
+        _loggerMock = new Mock<ILogger<FinancialOverviewStockValueAdapter>>();
 
-        _service = new StockValueService(
+        _service = new FinancialOverviewStockValueAdapter(
             _stockClientMock.Object,
             _priceClientMock.Object,
             _loggerMock.Object);

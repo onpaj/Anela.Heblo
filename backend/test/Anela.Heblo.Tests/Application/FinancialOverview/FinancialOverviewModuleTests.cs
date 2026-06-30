@@ -1,3 +1,5 @@
+using Anela.Heblo.Application.Features.Catalog;
+using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.FinancialOverview.Services;
 using Anela.Heblo.Domain.Accounting.Ledger;
@@ -22,11 +24,15 @@ public class FinancialOverviewModuleTests
         var services = new ServiceCollection();
         var configuration = CreateMockConfiguration();
 
-        // Add required dependencies for StockValueService
+        // Add required dependencies for FinancialOverviewStockValueAdapter (registered in CatalogModule)
         services.AddSingleton(Mock.Of<IErpStockClient>());
         services.AddSingleton(Mock.Of<IProductPriceErpClient>());
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+
+        // IStockValueService is now registered by CatalogModule (adapter pattern).
+        // Register the adapter directly to satisfy FinancialOverview's dependency.
+        services.AddScoped<IStockValueService, FinancialOverviewStockValueAdapter>();
 
         // Act
         services.AddFinancialOverviewModule(configuration);
@@ -38,7 +44,7 @@ public class FinancialOverviewModuleTests
 
         stockValueService.Should().NotBeNull();
         financialAnalysisService.Should().NotBeNull();
-        stockValueService.Should().BeOfType<StockValueService>();
+        stockValueService.Should().BeOfType<FinancialOverviewStockValueAdapter>();
         financialAnalysisService.Should().BeOfType<FinancialAnalysisService>();
     }
 
@@ -78,11 +84,15 @@ public class FinancialOverviewModuleTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Add required dependencies for StockValueService
+        // Add required dependencies for FinancialOverviewStockValueAdapter (registered in CatalogModule)
         services.AddSingleton(Mock.Of<IErpStockClient>());
         services.AddSingleton(Mock.Of<IProductPriceErpClient>());
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+
+        // IStockValueService is now registered by CatalogModule (adapter pattern).
+        // Register the adapter directly to satisfy FinancialOverview's dependency.
+        services.AddScoped<IStockValueService, FinancialOverviewStockValueAdapter>();
 
         // Act
         services.AddFinancialOverviewModule(CreateMockConfiguration());
@@ -91,7 +101,7 @@ public class FinancialOverviewModuleTests
         // Assert
         var stockValueService = serviceProvider.GetRequiredService<IStockValueService>();
         stockValueService.Should().NotBeNull();
-        stockValueService.Should().BeOfType<StockValueService>();
+        stockValueService.Should().BeOfType<FinancialOverviewStockValueAdapter>();
     }
 
     [Fact]
@@ -146,6 +156,10 @@ public class FinancialOverviewModuleTests
         services.AddSingleton(Mock.Of<IProductPriceErpClient>());
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+
+        // IStockValueService is now registered by CatalogModule (adapter pattern).
+        // Register the adapter directly to satisfy FinancialOverview's dependency.
+        services.AddScoped<IStockValueService, FinancialOverviewStockValueAdapter>();
 
         // Act & Assert - Registering the module and resolving IStockValueService must not
         // require BuildServiceProvider during registration (antipattern guard).

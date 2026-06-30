@@ -13,8 +13,6 @@ public static class FinancialOverviewModule
         // Ensure memory cache is available for financial analysis caching
         services.AddMemoryCache();
 
-        services.AddScoped<IStockValueService, StockValueService>();
-
         // Register financial analysis service as scoped (uses IMemoryCache for caching)
         services.AddScoped<IFinancialAnalysisService, FinancialAnalysisService>();
 
