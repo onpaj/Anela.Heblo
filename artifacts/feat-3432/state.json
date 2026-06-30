@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3432",
+  "issue_number": 3432,
+  "created_at": "2026-06-30T07:15:02.439503Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-30T07:17:12.321816Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-30T07:19:27.690114Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-30T07:19:42.035606Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-30T07:21:32.445035Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-30T07:42:45.131746Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-06-30T07:42:53.196238Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "remove-timestamp-from-domain-entity",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-30T07:42:44.927969Z"
+    }
+  ]
+}

@@ -86,4 +86,22 @@ public class GetConfigurationHandlerTests
         response.Version.Should().Be("1.2.3");
         response.UseMockAuth.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Handle_SetsTimestampAtResponseConstructionTime()
+    {
+        // Arrange
+        var handler = CreateHandler(new Dictionary<string, string?>
+        {
+            [ConfigurationConstants.APP_VERSION] = "1.0.0"
+        });
+        var before = DateTime.UtcNow;
+
+        // Act
+        var response = await handler.Handle(new GetConfigurationRequest(), CancellationToken.None);
+
+        // Assert
+        response.Timestamp.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+        response.Timestamp.Should().BeOnOrAfter(before);
+    }
 }
