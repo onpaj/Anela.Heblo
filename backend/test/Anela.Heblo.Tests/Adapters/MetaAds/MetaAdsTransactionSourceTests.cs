@@ -4,6 +4,8 @@ using Anela.Heblo.Adapters.MetaAds;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Retry;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Adapters.MetaAds;
@@ -229,11 +231,21 @@ public class MetaAdsTransactionSourceTests
             BaseAddress = new Uri("https://graph.facebook.com/")
         };
 
+        var testPipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new RetryStrategyOptions
+            {
+                ShouldHandle = new PredicateBuilder()
+                    .Handle<HttpRequestException>(ex => ex.StatusCode == HttpStatusCode.TooManyRequests),
+                MaxRetryAttempts = 3,
+                Delay = TimeSpan.Zero,
+            })
+            .Build();
+
         var source = new MetaAdsTransactionSource(
             httpClient,
             Options.Create(settings),
             NullLogger<MetaAdsTransactionSource>.Instance,
-            MetaAdsTransactionSource.BuildTestPipeline());
+            testPipeline);
 
         var from = DateTimeOffset.FromUnixTimeSeconds(1744300800).UtcDateTime.AddDays(-1);
         var to = DateTimeOffset.FromUnixTimeSeconds(1744300800).UtcDateTime.AddDays(1);

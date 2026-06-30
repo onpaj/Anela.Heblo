@@ -136,18 +136,6 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
             })
             .Build();
 
-    /// <summary>Zero-delay pipeline for unit tests.</summary>
-    internal static ResiliencePipeline BuildTestPipeline() =>
-        new ResiliencePipelineBuilder()
-            .AddRetry(new RetryStrategyOptions
-            {
-                ShouldHandle = new PredicateBuilder()
-                    .Handle<HttpRequestException>(ex => ex.StatusCode == HttpStatusCode.TooManyRequests),
-                MaxRetryAttempts = 3,
-                Delay = TimeSpan.Zero,
-            })
-            .Build();
-
     // ── Internal deserialization models ──────────────────────────────────────
 
     private sealed class MetaTransactionsResponse
