@@ -21,16 +21,16 @@
       "updated_at": "2026-06-30T09:23:51.588109Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-30T09:24:08.287528Z"
     }
   },
   "tasks": [
     {
       "name": "extract-map-to-dto",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-30T09:24:08.536672Z"
     }
   ]
 }
