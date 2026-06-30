@@ -16,7 +16,7 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.RetagPhotos;
 using Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule;
 using Anela.Heblo.Application.Features.Photobank.Validators;
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Persistence.Photobank;
 using FluentValidation;
@@ -40,7 +40,7 @@ public static class PhotobankModule
         services.AddScoped<IPhotobankTagsCache, PhotobankTagsCache>();
 
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
-        var bypassJwtValidation = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, false);
+        var bypassJwtValidation = configuration.GetValue<bool>(InfrastructureConfigurationKeys.BYPASS_JWT_VALIDATION, false);
 
         if (useMockAuth || bypassJwtValidation)
         {

@@ -1,7 +1,7 @@
 using Hangfire.Dashboard;
 using System.Security.Claims;
 using Anela.Heblo.API.Infrastructure;
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Domain.Features.Authorization;
 
 namespace Anela.Heblo.API.Infrastructure.Hangfire;
@@ -24,8 +24,8 @@ public class HangfireDashboardTokenAuthorizationFilter : IDashboardAuthorization
     public bool Authorize(DashboardContext context)
     {
         var httpContext = context.GetHttpContext();
-        var useMockAuth = _configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, defaultValue: false);
-        var bypassJwtValidation = _configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, defaultValue: false);
+        var useMockAuth = _configuration.GetValue<bool>(InfrastructureConfigurationKeys.USE_MOCK_AUTH, defaultValue: false);
+        var bypassJwtValidation = _configuration.GetValue<bool>(InfrastructureConfigurationKeys.BYPASS_JWT_VALIDATION, defaultValue: false);
 
         // Check if we should use mock authentication
         if (useMockAuth || bypassJwtValidation)
