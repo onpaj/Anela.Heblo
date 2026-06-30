@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "update-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-30T06:22:16.295302Z"
+      "updated_at": "2026-06-30T06:25:08.804340Z"
     },
     {
       "name": "fix-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-30T06:25:09.001931Z"
     }
   ]
 }
