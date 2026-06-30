@@ -2,9 +2,7 @@ using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Domain.Features.Configuration;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
-using NSubstitute;
 
 namespace Anela.Heblo.Tests.Features.Configuration;
 
@@ -12,14 +10,14 @@ public class GetConfigurationHandlerTests
 {
     private static GetConfigurationHandler CreateHandler(Dictionary<string, string?> configData)
     {
+        // Ensure every test has an environment value; callers may override by supplying their own key.
+        configData.TryAdd("ASPNETCORE_ENVIRONMENT", "Test");
+
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(configData)
             .Build();
 
-        var environment = Substitute.For<IHostEnvironment>();
-        environment.EnvironmentName.Returns("Test");
-
-        return new GetConfigurationHandler(configuration, environment, NullLogger<GetConfigurationHandler>.Instance);
+        return new GetConfigurationHandler(configuration, NullLogger<GetConfigurationHandler>.Instance);
     }
 
     [Fact]
