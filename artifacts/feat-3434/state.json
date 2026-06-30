@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3434",
+  "issue_number": 3434,
+  "created_at": "2026-06-30T09:16:06.640597Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-30T09:19:44.983012Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-30T09:21:49.158733Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-30T09:22:10.698720Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-30T09:23:51.588109Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-30T09:31:19.854709Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-06-30T09:33:14.811221Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extract-map-to-dto",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-30T09:31:14.559866Z"
+    }
+  ]
+}
