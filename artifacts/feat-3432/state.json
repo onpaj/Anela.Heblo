@@ -21,16 +21,16 @@
       "updated_at": "2026-06-30T07:21:32.445035Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-30T07:21:57.920446Z"
     }
   },
   "tasks": [
     {
       "name": "remove-timestamp-from-domain-entity",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-30T07:21:58.117671Z"
     }
   ]
 }
