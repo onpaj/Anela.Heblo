@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.API.Infrastructure;
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Domain.Features.Authorization;
 
 namespace Anela.Heblo.API.Extensions;
@@ -16,8 +16,8 @@ public static class AuthenticationExtensions
     {
         // Mock authentication is ONLY controlled by UseMockAuth configuration variable
         // Environment name does NOT influence authentication mode (per updated specification)
-        var useMockAuth = builder.Configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, defaultValue: false);
-        var bypassJwtValidation = builder.Configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, defaultValue: false);
+        var useMockAuth = builder.Configuration.GetValue<bool>(InfrastructureConfigurationKeys.USE_MOCK_AUTH, defaultValue: false);
+        var bypassJwtValidation = builder.Configuration.GetValue<bool>(InfrastructureConfigurationKeys.BYPASS_JWT_VALIDATION, defaultValue: false);
 
         // Log authentication mode for debugging
         logger.LogInformation("Authentication Configuration - Environment: {Environment}, UseMockAuth: {UseMockAuth}, BypassJwtValidation: {BypassJwtValidation}",
