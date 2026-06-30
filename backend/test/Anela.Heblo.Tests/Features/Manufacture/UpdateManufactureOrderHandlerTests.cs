@@ -364,11 +364,9 @@ public class UpdateManufactureOrderHandlerTests
             CreatedDate = DateTime.UtcNow.AddDays(-1),
             CreatedByUser = "Original User",
             ResponsiblePerson = "Original Person",
-            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
-            State = ManufactureOrderState.Draft,
-            StateChangedAt = DateTime.UtcNow.AddDays(-1),
-            StateChangedByUser = "Original User"
+            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(5))
         };
+        order.InitializeState(ManufactureOrderState.Draft, DateTime.UtcNow.AddDays(-1), "Original User");
 
         order.SemiProduct = new ManufactureOrderSemiProduct
         {

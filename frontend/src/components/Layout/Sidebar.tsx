@@ -20,6 +20,7 @@ import {
   Megaphone,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
+import { ThemeToggle } from "../common/ThemeToggle";
 import { useChangelogContext } from "../../contexts/ChangelogContext";
 import { ACCESS_ROUTES } from "../../auth/accessMatrix.generated";
 import { usePermissionsContext } from "../../auth/PermissionsContext";
@@ -416,7 +417,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar */}
       <div
         className={`
-        fixed top-0 left-0 z-40 bottom-0 bg-white border-r border-gray-200 shadow-sm transform transition-all duration-300 ease-in-out
+        fixed top-0 left-0 z-40 bottom-0 bg-white dark:bg-graphite-chrome border-r border-gray-200 dark:border-graphite-border shadow-sm dark:shadow-soft-dark transform transition-all duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0
         ${isCollapsed ? "w-16" : "w-4/5 max-w-[280px] md:w-64"}
       `}
@@ -424,14 +425,14 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex flex-col h-full">
           {/* App Title / Mobile Menu */}
           <div
-            className={`${isCollapsed ? "h-16 px-2" : "h-16 px-4"} flex items-center border-b border-gray-200 flex-shrink-0`}
+            className={`${isCollapsed ? "h-16 px-2" : "h-16 px-4"} flex items-center border-b border-gray-200 dark:border-graphite-border flex-shrink-0`}
           >
             {!isCollapsed ? (
               <div className="flex items-center justify-between w-full">
                 {/* Mobile menu button - only visible on mobile */}
                 <button
                   type="button"
-                  className="md:hidden p-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="md:hidden p-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale dark:text-graphite-muted dark:hover:text-graphite-accent dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary"
                   onClick={onMenuClick}
                 >
                   <Menu className="h-5 w-5" />
@@ -444,7 +445,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     alt="Anela Heblo"
                     className="w-8 h-8 rounded"
                   />
-                  <span className="ml-3 text-lg font-semibold text-gray-900">
+                  <span className="ml-3 text-lg font-semibold text-gray-900 dark:text-graphite-text">
                     Anela Heblo
                   </span>
                 </div>
@@ -483,13 +484,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                             flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-300
                             ${
                               isActive
-                                ? "bg-secondary-blue-pale text-primary-blue border-r-2 border-primary-blue"
-                                : "text-neutral-slate hover:bg-secondary-blue-pale/50 hover:text-neutral-slate"
+                                ? "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent border-r-2 border-primary-blue dark:border-graphite-accent"
+                                : "text-neutral-slate dark:text-graphite-text hover:bg-secondary-blue-pale/50 dark:hover:bg-white/5 hover:text-neutral-slate"
                             }
                           `}
                         >
                           <IconComponent
-                            className={`mr-3 h-5 w-5 ${isActive ? "text-primary-blue" : "text-neutral-gray"}`}
+                            className={`mr-3 h-5 w-5 ${isActive ? "text-primary-blue dark:text-graphite-accent" : "text-neutral-gray dark:text-graphite-muted"}`}
                           />
                           {section.name}
                         </Link>
@@ -505,14 +506,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                             flex items-center justify-center p-2 rounded-md transition-colors duration-300
                             ${
                               isActive
-                                ? "bg-secondary-blue-pale text-primary-blue"
-                                : "text-neutral-slate hover:bg-secondary-blue-pale/50 hover:text-neutral-slate"
+                                ? "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent"
+                                : "text-neutral-slate dark:text-graphite-text hover:bg-secondary-blue-pale/50 dark:hover:bg-white/5 hover:text-neutral-slate"
                             }
                           `}
                           title={section.name}
                         >
                           <IconComponent
-                            className={`h-5 w-5 ${isActive ? "text-primary-blue" : "text-neutral-gray"}`}
+                            className={`h-5 w-5 ${isActive ? "text-primary-blue dark:text-graphite-accent" : "text-neutral-gray dark:text-graphite-muted"}`}
                           />
                         </Link>
                       )}
@@ -532,21 +533,21 @@ const Sidebar: React.FC<SidebarProps> = ({
                             w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md transition-colors duration-300
                             ${
                               isActive
-                                ? "bg-secondary-blue-pale text-primary-blue"
-                                : "text-neutral-slate hover:bg-secondary-blue-pale/50 hover:text-neutral-slate"
+                                ? "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent"
+                                : "text-neutral-slate dark:text-graphite-text hover:bg-secondary-blue-pale/50 dark:hover:bg-white/5 hover:text-neutral-slate"
                             }
                           `}
                         >
                           <div className="flex items-center">
                             <IconComponent
-                              className={`mr-3 h-5 w-5 ${isActive ? "text-primary-blue" : "text-neutral-gray"}`}
+                              className={`mr-3 h-5 w-5 ${isActive ? "text-primary-blue dark:text-graphite-accent" : "text-neutral-gray dark:text-graphite-muted"}`}
                             />
                             {section.name}
                           </div>
                           {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-gray-400 transition-transform duration-300" />
+                            <ChevronDown className="h-4 w-4 text-gray-400 dark:text-graphite-faint transition-transform duration-300" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-400 transition-transform duration-300" />
+                            <ChevronRight className="h-4 w-4 text-gray-400 dark:text-graphite-faint transition-transform duration-300" />
                           )}
                         </button>
 
@@ -571,8 +572,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                       flex items-center justify-between w-full text-left px-3 py-2 text-sm rounded-md transition-colors duration-300
                                       ${
                                         isSubActive
-                                          ? "bg-secondary-blue-pale text-primary-blue font-medium"
-                                          : "text-neutral-gray hover:bg-secondary-blue-pale/30 hover:text-neutral-slate"
+                                          ? "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent font-medium"
+                                          : "text-neutral-gray dark:text-graphite-muted hover:bg-secondary-blue-pale/30 dark:hover:bg-white/5 hover:text-neutral-slate dark:hover:text-graphite-text"
                                       }
                                     `}
                                   >
@@ -597,8 +598,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     block px-3 py-2 text-sm rounded-md transition-colors duration-300
                                     ${
                                       isSubActive
-                                        ? "bg-secondary-blue-pale text-primary-blue font-medium"
-                                        : "text-neutral-gray hover:bg-secondary-blue-pale/30 hover:text-neutral-slate"
+                                        ? "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent font-medium"
+                                        : "text-neutral-gray dark:text-graphite-muted hover:bg-secondary-blue-pale/30 dark:hover:bg-white/5 hover:text-neutral-slate dark:hover:text-graphite-text"
                                     }
                                   `}
                                 >
@@ -621,14 +622,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                           flex items-center justify-center p-2 rounded-md transition-colors duration-300
                           ${
                             isActive
-                              ? "bg-secondary-blue-pale text-primary-blue"
-                              : "text-neutral-slate hover:bg-secondary-blue-pale/50 hover:text-neutral-slate"
+                              ? "bg-secondary-blue-pale dark:bg-graphite-accent/10 text-primary-blue dark:text-graphite-accent"
+                              : "text-neutral-slate dark:text-graphite-text hover:bg-secondary-blue-pale/50 dark:hover:bg-white/5 hover:text-neutral-slate"
                           }
                         `}
                         title={section.name}
                       >
                         <IconComponent
-                          className={`h-5 w-5 ${isActive ? "text-primary-blue" : "text-neutral-gray"}`}
+                          className={`h-5 w-5 ${isActive ? "text-primary-blue dark:text-graphite-accent" : "text-neutral-gray dark:text-graphite-muted"}`}
                         />
                       </button>
                     )}
@@ -640,43 +641,45 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Changelog and User Profile at bottom */}
           <div
-            className={`border-t border-gray-200 ${isCollapsed ? "px-2" : "px-3"} flex flex-col flex-shrink-0`}
+            className={`border-t border-gray-200 dark:border-graphite-border ${isCollapsed ? "px-2" : "px-3"} flex flex-col flex-shrink-0`}
           >
             {/* Changelog button */}
             {!isCollapsed ? (
-              <div className="py-2">
+              <div className="py-2 flex items-center gap-1">
                 <button
                   type="button"
                   onClick={openModal}
-                  className="w-full flex items-center px-2 py-2 text-sm font-medium text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale rounded-md transition-colors"
+                  className="flex-1 flex items-center px-2 py-2 text-sm font-medium text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale dark:text-graphite-muted dark:hover:text-graphite-accent dark:hover:bg-white/5 rounded-md transition-colors"
                   title="Co je nové"
                 >
                   <Newspaper className="h-4 w-4 mr-3" />
                   Co je nové
                 </button>
+                <ThemeToggle className="flex-shrink-0" />
               </div>
             ) : (
-              <div className="py-2 flex justify-center">
+              <div className="py-2 flex flex-col items-center gap-1">
                 <button
                   type="button"
                   onClick={openModal}
-                  className="p-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale transition-colors"
+                  className="p-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale dark:text-graphite-muted dark:hover:text-graphite-accent dark:hover:bg-white/5 transition-colors"
                   title="Co je nové"
                 >
                   <Newspaper className="h-4 w-4" />
                 </button>
+                <ThemeToggle />
               </div>
             )}
 
             {/* User Profile and Toggle button */}
             {!isCollapsed ? (
-              <div className="relative flex items-center justify-between h-16 py-2 border-t border-gray-100">
+              <div className="relative flex items-center justify-between h-16 py-2 border-t border-gray-100 dark:border-graphite-border">
                 <div className="flex-1 min-w-0">
                   <UserProfile />
                 </div>
                 <button
                   type="button"
-                  className="hidden md:flex p-1.5 ml-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary transition-colors flex-shrink-0"
+                  className="hidden md:flex p-1.5 ml-2 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale dark:text-graphite-muted dark:hover:text-graphite-accent dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary transition-colors flex-shrink-0"
                   onClick={onToggleCollapse}
                   title="Collapse sidebar"
                 >
@@ -684,13 +687,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="relative flex flex-col items-center py-2 space-y-2 border-t border-gray-100">
+              <div className="relative flex flex-col items-center py-2 space-y-2 border-t border-gray-100 dark:border-graphite-border">
                 <div className="w-full flex justify-center">
                   <UserProfile compact />
                 </div>
                 <button
                   type="button"
-                  className="hidden md:flex p-1.5 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                  className="hidden md:flex p-1.5 rounded-md text-neutral-gray hover:text-primary-blue hover:bg-secondary-blue-pale dark:text-graphite-muted dark:hover:text-graphite-accent dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
                   onClick={onToggleCollapse}
                   title="Expand sidebar"
                 >

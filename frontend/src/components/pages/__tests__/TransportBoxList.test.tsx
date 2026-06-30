@@ -24,6 +24,7 @@ jest.mock("../../../auth/PermissionsContext", () => ({
 jest.mock("../../../api/hooks/useTransportBoxes", () => ({
   useTransportBoxesQuery: jest.fn(),
   useTransportBoxSummaryQuery: jest.fn(),
+  transportBoxKeys: { all: ["transport-boxes"] },
 }));
 
 // Mock the StockUp operations hook

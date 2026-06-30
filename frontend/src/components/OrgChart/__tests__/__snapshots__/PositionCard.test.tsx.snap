@@ -6,29 +6,29 @@ exports[`PositionCard renders a leaf position with data-position-id on the outer
     class="flex flex-col items-center"
   >
     <div
-      class="bg-white rounded-xl shadow-lg p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 level-1 relative mb-20"
+      class="bg-white dark:bg-graphite-surface rounded-xl shadow-lg dark:shadow-soft-dark p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 level-1 relative mb-20"
       data-position-id="pos-1"
     >
       <div
-        class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold mb-3"
+        class="inline-block bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-semibold mb-3"
       >
         Executive
       </div>
       <h3
-        class="text-lg font-bold text-gray-900 mb-2"
+        class="text-lg font-bold text-gray-900 dark:text-graphite-text mb-2"
       >
         CEO
       </h3>
       <p
-        class="text-sm text-gray-600 mb-4 leading-relaxed"
+        class="text-sm text-gray-600 dark:text-graphite-muted mb-4 leading-relaxed"
       >
         Top of the org
       </p>
       <div
-        class="border-t border-gray-200 pt-4 space-y-2"
+        class="border-t border-gray-200 dark:border-graphite-border pt-4 space-y-2"
       >
         <div
-          class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+          class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
         >
           <div
             class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 bg-gradient-to-br from-indigo-500 to-purple-600"
@@ -39,12 +39,12 @@ exports[`PositionCard renders a leaf position with data-position-id on the outer
             class="flex-1 min-w-0"
           >
             <div
-              class="text-sm font-semibold text-gray-900 truncate"
+              class="text-sm font-semibold text-gray-900 dark:text-graphite-text truncate"
             >
               Alice Anderson
             </div>
             <div
-              class="text-xs text-gray-500 truncate"
+              class="text-xs text-gray-500 dark:text-graphite-muted truncate"
             >
               a@example.com
             </div>
@@ -62,26 +62,26 @@ exports[`PositionCard renders a recursive position with one child 1`] = `
     class="flex flex-col items-center"
   >
     <div
-      class="bg-white rounded-xl shadow-lg p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 level-2 relative mb-20"
+      class="bg-white dark:bg-graphite-surface rounded-xl shadow-lg dark:shadow-soft-dark p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 level-2 relative mb-20"
       data-position-id="parent"
     >
       <div
-        class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold mb-3"
+        class="inline-block bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-semibold mb-3"
       >
         Sales
       </div>
       <h3
-        class="text-lg font-bold text-gray-900 mb-2"
+        class="text-lg font-bold text-gray-900 dark:text-graphite-text mb-2"
       >
         Manager
       </h3>
       <p
-        class="text-sm text-gray-600 mb-4 leading-relaxed"
+        class="text-sm text-gray-600 dark:text-graphite-muted mb-4 leading-relaxed"
       >
         Manages the team
       </p>
       <div
-        class="border-t border-gray-200 pt-4 space-y-2"
+        class="border-t border-gray-200 dark:border-graphite-border pt-4 space-y-2"
       />
     </div>
     <div
@@ -91,26 +91,26 @@ exports[`PositionCard renders a recursive position with one child 1`] = `
         class="flex flex-col items-center"
       >
         <div
-          class="bg-white rounded-xl shadow-lg p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 level-3 relative mb-20"
+          class="bg-white dark:bg-graphite-surface rounded-xl shadow-lg dark:shadow-soft-dark p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 level-3 relative mb-20"
           data-position-id="child"
         >
           <div
-            class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold mb-3"
+            class="inline-block bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-semibold mb-3"
           >
             Sales
           </div>
           <h3
-            class="text-lg font-bold text-gray-900 mb-2"
+            class="text-lg font-bold text-gray-900 dark:text-graphite-text mb-2"
           >
             Rep
           </h3>
           <p
-            class="text-sm text-gray-600 mb-4 leading-relaxed"
+            class="text-sm text-gray-600 dark:text-graphite-muted mb-4 leading-relaxed"
           >
             Sells things
           </p>
           <div
-            class="border-t border-gray-200 pt-4 space-y-2"
+            class="border-t border-gray-200 dark:border-graphite-border pt-4 space-y-2"
           />
         </div>
       </div>

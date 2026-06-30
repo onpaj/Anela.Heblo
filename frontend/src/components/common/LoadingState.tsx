@@ -14,7 +14,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({
     <div className={`flex items-center justify-center ${className}`}>
       <div className="flex items-center space-x-2">
         <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-        <div className="text-gray-500">{message}</div>
+        <div className="text-gray-500 dark:text-graphite-muted">{message}</div>
       </div>
     </div>
   );

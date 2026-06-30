@@ -10,7 +10,7 @@ test.describe('Stock Operations - Navigation & Initial Load', () => {
     await navigateToStockOperations(page);
 
     // Verify URL
-    expect(page.url()).toContain('/stock-operations');
+    expect(page.url()).toContain('/stock-up-operations');
 
     // Verify page title
     const title = await page.locator('h1').textContent();
@@ -45,10 +45,10 @@ test.describe('Stock Operations - Navigation & Initial Load', () => {
     await navigateToStockOperations(page);
     await waitForTableUpdate(page);
 
-    // Verify data loaded - check for table content instead of spinners
-    // (multiple spinners exist on page, so checking for data presence is more reliable)
-    const tableBody = page.locator('tbody');
-    await expect(tableBody).toBeVisible();
+    // Verify loading finished and a result container rendered. Stock operations are transient,
+    // so the data table may be absent — accept either the table body or the empty-state message.
+    const resultContainer = page.locator('tbody').or(page.getByText('Žádné výsledky'));
+    await expect(resultContainer.first()).toBeVisible();
 
     console.log('✅ Loading state test completed');
   });
@@ -92,8 +92,8 @@ test.describe('Stock Operations - Navigation & Initial Load', () => {
     });
 
     // Navigate to stock operations page (will trigger failed API call)
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
-    await page.goto(`${baseUrl}/stock-operations`);
+    const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+    await page.goto(`${baseUrl}/stock-up-operations`);
     await page.waitForTimeout(3000);
 
     // Check for error message

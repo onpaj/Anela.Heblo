@@ -116,10 +116,8 @@ public class ModuleBoundariesTests
     };
 
     // Allowlist for Catalog -> Manufacture. Pre-existing handler-level IManufactureClient injections
-    // and ManufactureHistoryRecord return-type leak from CatalogRepository/ICatalogManufactureSource
     // are out of scope for the 2026-06-01 CatalogRepository decoupling. Track as follow-ups:
     //   - Migrate the three handlers off IManufactureClient onto a Catalog-owned contract.
-    //   - Introduce a Catalog-owned CatalogManufactureHistoryRecord DTO and map in the adapter.
     private static readonly HashSet<string> CatalogManufactureAllowlist = new(StringComparer.Ordinal)
     {
         // Follow-up: migrate UpdateProductCompositionOrderHandler off IManufactureClient.
@@ -130,20 +128,6 @@ public class ModuleBoundariesTests
 
         // Follow-up: migrate GetProductUsageHandler off IManufactureClient.
         "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage.GetProductUsageHandler -> Anela.Heblo.Domain.Features.Manufacture.IManufactureClient",
-
-        // Deliberate pragmatic leak: ManufactureHistoryRecord flows through Catalog's cache layer.
-        // All entries below are tracked under the same follow-up: introduce Catalog-owned
-        // CatalogManufactureHistoryRecord DTO and map in the ManufactureCatalogSourceAdapter.
-        "Anela.Heblo.Application.Features.Catalog.CatalogRepository -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        "Anela.Heblo.Application.Features.Catalog.Contracts.ICatalogManufactureSource -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogCacheStore -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogDataRefreshService -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogMergeService -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        // Cost providers in Catalog.CostProviders compute costs from ManufactureHistoryRecord.
-        "Anela.Heblo.Application.Features.Catalog.CostProviders.FlatManufactureCostProvider -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        "Anela.Heblo.Application.Features.Catalog.CostProviders.ManufactureBasedMaterialCostProvider -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
-        // GetCatalogDetailHandler maps ManufactureHistoryRecord from CatalogAggregate into response DTOs.
-        "Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail.GetCatalogDetailHandler -> Anela.Heblo.Domain.Features.Manufacture.ManufactureHistoryRecord",
 
         // GetProductUsageResponse holds ManufactureTemplate in its payload.
         // Follow-up: introduce Catalog-owned ManufactureTemplateDto.
@@ -235,8 +219,8 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler+<Handle>d__9 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus.UpdateManufactureOrderStatusHandler+<>c__DisplayClass10_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus.UpdateManufactureOrderStatusHandler+<WriteDownInventoryAsync>d__10 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus.UpdateManufactureOrderStatusHandler+<>c__DisplayClass9_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus.UpdateManufactureOrderStatusHandler+<WriteDownInventoryAsync>d__9 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
 
         // Domain enums/types reached via CatalogAggregate properties.
         // Same follow-up as above.
@@ -265,6 +249,16 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingType",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.ManufactureStockTakingHistoryItemDto -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingType",
+
+        // ManufactureCatalogSourceAdapter produces CatalogManufactureRecord (the Catalog-owned DTO)
+        // in its GetManufactureHistoryAsync return type. IProductionActivityAnalyzer and
+        // ProductionActivityAnalyzer consume CatalogManufactureRecord as method parameters.
+        // These are deliberate: the adapter is the mapping boundary and the analyzer is a Manufacture
+        // service that operates on the mapped type. Track removal under the same ProductCatalogSnapshot
+        // follow-up: once a Manufacture-owned projection is introduced, remove these entries.
+        "Anela.Heblo.Application.Features.Manufacture.Infrastructure.ManufactureCatalogSourceAdapter -> Anela.Heblo.Domain.Features.Catalog.ManufactureHistory.CatalogManufactureRecord",
+        "Anela.Heblo.Application.Features.Manufacture.Services.IProductionActivityAnalyzer -> Anela.Heblo.Domain.Features.Catalog.ManufactureHistory.CatalogManufactureRecord",
+        "Anela.Heblo.Application.Features.Manufacture.Services.ProductionActivityAnalyzer -> Anela.Heblo.Domain.Features.Catalog.ManufactureHistory.CatalogManufactureRecord",
     };
 
     // Allowlist for ExpeditionList -> Logistics.
@@ -276,6 +270,61 @@ public class ModuleBoundariesTests
     {
         "Anela.Heblo.Application.Features.ExpeditionList.Contracts.ExpeditionPickingRequest -> Anela.Heblo.Domain.Features.Logistics.Carriers",
     };
+
+    // Allowlist for ShoptetApi Adapters -> Catalog.
+    // ShoptetApiExpeditionListSource retains ICatalogRepository injection — out of scope.
+    // Track as follow-up; remove when ShoptetApiExpeditionListSource is decoupled.
+    private static readonly HashSet<string> ShoptetApiAdaptersCatalogAllowlist =
+        new(StringComparer.Ordinal)
+        {
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Catalog.ICatalogRepository",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Catalog.CatalogProperties",
+
+            // PickingListBatchProcessor retains ICatalogRepository injection (used in EnrichBatchAsync).
+            // Out of scope; remove when PickingListBatchProcessor is decoupled.
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.PickingListBatchProcessor -> Anela.Heblo.Domain.Features.Catalog.ICatalogRepository",
+            // Compiler-generated async state machine <EnrichBatchAsync>d__8 captures CatalogAggregate;
+            // covered by declaring-type entry for PickingListBatchProcessor -> CatalogAggregate.
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.PickingListBatchProcessor -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+
+            // ShoptetStockClient implements IEshopStockClient and returns Catalog.Stock types directly.
+            // The adapter is the mapping boundary; out of scope for this PR.
+            "Anela.Heblo.Adapters.ShoptetApi.Stock.ShoptetStockClient -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStock",
+            "Anela.Heblo.Adapters.ShoptetApi.Stock.ShoptetStockClient -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStockSupply",
+
+            // HeurekaProductFeedClient implements IProductEshopUrlSource and returns ProductEshopUrl.
+            // The adapter is the mapping boundary; out of scope for this PR.
+            "Anela.Heblo.Adapters.ShoptetApi.EshopUrl.HeurekaProductFeedClient -> Anela.Heblo.Domain.Features.Catalog.EshopUrl.ProductEshopUrl",
+        };
+
+    // Allowlist for ShoptetApi Adapters -> Logistics.
+    // ShoptetApiExpeditionListSource retains ICarrierCoolingRepository — out of scope.
+    // ShippingMethodRegistry/ShippingMethod reference Carriers/DeliveryHandling by design.
+    private static readonly HashSet<string> ShoptetApiAdaptersLogisticsAllowlist =
+        new(StringComparer.Ordinal)
+        {
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Logistics.ICarrierCoolingRepository",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Logistics.CarrierCoolingSetting",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Logistics.Carriers",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Logistics.DeliveryHandling",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShippingMethodRegistry -> Anela.Heblo.Domain.Features.Logistics.Carriers",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShippingMethodRegistry -> Anela.Heblo.Domain.Features.Logistics.DeliveryHandling",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShippingMethod -> Anela.Heblo.Domain.Features.Logistics.Carriers",
+
+            // ShippingMethodCatalog implements IShippingMethodCatalog and exposes Carriers/DeliveryHandling
+            // directly on its public API surface (method return types and parameters).
+            // Out of scope for this PR; remove when ShippingMethodCatalog uses a Logistics-owned contract.
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShippingMethodCatalog -> Anela.Heblo.Domain.Features.Logistics.Carriers",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShippingMethodCatalog -> Anela.Heblo.Domain.Features.Logistics.DeliveryHandling",
+
+            // ShoptetApiExpeditionListSource retains IGiftSettingRepository/GiftSetting — out of scope.
+            // Also implements IPickingListSource which surface PrintPickingListResult/Request.
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Logistics.GiftSettings.IGiftSettingRepository",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Domain.Features.Logistics.GiftSettings.GiftSetting",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Application.Features.Logistics.Picking.PrintPickingListResult",
+            "Anela.Heblo.Adapters.ShoptetApi.Expedition.ShoptetApiExpeditionListSource -> Anela.Heblo.Application.Features.Logistics.Picking.PrintPickingListRequest",
+        };
 
     // Allowlist for Packaging -> ShoptetOrders. The Packaging module legitimately consumes
     // the IPackingOrderClient / IEshopOrderClient contracts (and their DTOs) defined in
@@ -546,6 +595,30 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Application.Features.ShoptetOrders",
             },
             Allowlist: PackagingShoptetOrdersAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "ShoptetApi Adapters -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Adapters.ShoptetApi",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: ShoptetApiAdaptersCatalogAllowlist,
+            InspectedAssembly: "Anela.Heblo.Adapters.ShoptetApi"),
+
+        new ModuleBoundaryRule(
+            Name: "ShoptetApi Adapters -> Logistics",
+            InspectedNamespacePrefix: "Anela.Heblo.Adapters.ShoptetApi",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Logistics",
+                "Anela.Heblo.Application.Features.Logistics",
+                "Anela.Heblo.Persistence.Logistics",
+            },
+            Allowlist: ShoptetApiAdaptersLogisticsAllowlist,
+            InspectedAssembly: "Anela.Heblo.Adapters.ShoptetApi"),
     };
 
     [Theory]
@@ -706,18 +779,17 @@ public class ModuleBoundariesTests
     [Fact]
     public void Domain_must_not_reference_Application_and_relocated_invoice_types_must_be_gone()
     {
-        // NFR-6: after relocating IssuedInvoiceFilters, PaginatedResult<T>, and
-        // IIssuedInvoiceRepository out of Domain, the Domain assembly must
+        // NFR-6: after relocating PaginatedResult<T> out of Domain, the Domain assembly must
         // (a) not reference any Anela.Heblo.Application.* type, and
-        // (b) not contain types with the three relocated names anywhere under
-        // Anela.Heblo.Domain.Features.Invoices.
+        // (b) not contain PaginatedResult<T> anywhere under Anela.Heblo.Domain.Features.Invoices.
+        // Note: IIssuedInvoiceRepository and IssuedInvoiceFilters were intentionally moved
+        // INTO Domain (from Persistence) by PR #3212 to fix the Clean Architecture dependency
+        // inversion — repository interfaces belong in Domain, not in Persistence.
         const string DomainNamespacePrefix = "Anela.Heblo.Domain";
         const string ForbiddenPrefix = "Anela.Heblo.Application";
         var relocatedTypeNames = new HashSet<string>(StringComparer.Ordinal)
         {
-            "IssuedInvoiceFilters",
             "PaginatedResult`1",
-            "IIssuedInvoiceRepository",
         };
 
         var assembly = Assembly.Load("Anela.Heblo.Domain");
@@ -757,6 +829,91 @@ public class ModuleBoundariesTests
             "Relocated types (IssuedInvoiceFilters, PaginatedResult<T>, IIssuedInvoiceRepository) " +
             "must not exist in Anela.Heblo.Domain after the 2026-06-02 relocation. " +
             "Found:\n  " + string.Join("\n  ", orphanRelocations));
+    }
+
+    // Allowlist for Application -> SDK exception types.
+    // The types below legitimately reference Microsoft.Identity.Client or
+    // Microsoft.Graph.Models.ODataErrors types as part of their wrapping role or as
+    // pre-existing violations out of scope for the feat-3369 decoupling.
+    // All new Application types must use the wrapper types (GraphServiceAuthException /
+    // GraphServiceException) defined in UserManagement.Contracts instead.
+    // Entries must have a justification comment and should be removed once the underlying
+    // violation is fixed.
+    private static readonly HashSet<string> SdkExceptionAllowlist = new(StringComparer.Ordinal)
+    {
+        // GraphArticleUserResolver is the wrapping boundary for SDK auth/service exceptions.
+        // It converts MsalException → ArticleUserResolverAuthException and
+        // ODataError → ArticleUserResolverServiceException so callers stay decoupled.
+        // Remove once refactored to delegate through IGraphService.
+        "Anela.Heblo.Application.Features.UserManagement.Infrastructure.GraphArticleUserResolver",
+
+        // GraphPlannerService.AcquireDelegatedTokenAsync catches MsalUiRequiredException
+        // directly as a pre-existing pattern out of scope for feat-3369.
+        // Compiler-generated async state machine (<AcquireDelegatedTokenAsync>d__N) is
+        // covered by the declaring-type check below.
+        // Track as follow-up: introduce a MeetingTasks-owned auth exception wrapper.
+        "Anela.Heblo.Application.Features.MeetingTasks.Services.GraphPlannerService",
+
+        // GraphCatalogDocumentsStorage.AcquireDelegatedTokenAsync catches MsalUiRequiredException
+        // directly as a pre-existing pattern out of scope for feat-3369.
+        // Compiler-generated async state machine (<AcquireDelegatedTokenAsync>d__N) is
+        // covered by the declaring-type check below.
+        // Track as follow-up: introduce a CatalogDocuments-owned auth exception wrapper.
+        "Anela.Heblo.Application.Features.CatalogDocuments.Services.GraphCatalogDocumentsStorage",
+    };
+
+    [Fact]
+    public void Application_types_should_not_catch_SDK_exception_types_directly()
+    {
+        // Enforces the boundary introduced by feat-3369: Application-layer consumers must
+        // catch only the wrapper types (GraphServiceAuthException / GraphServiceException)
+        // rather than SDK-specific types. This prevents accidental reintroduction of
+        // Microsoft.Identity.Client or Microsoft.Graph.Models.ODataErrors references
+        // in Application layer signatures (fields, properties, method parameters, return types).
+        const string ApplicationNamespacePrefix = "Anela.Heblo.Application";
+
+        var forbiddenPrefixes = new[]
+        {
+            "Microsoft.Identity.Client",
+            "Microsoft.Graph.Models.ODataErrors",
+        };
+
+        var assembly = Assembly.Load("Anela.Heblo.Application");
+        var applicationTypes = assembly.GetTypes()
+            .Where(t => t.Namespace is not null
+                && t.Namespace.StartsWith(ApplicationNamespacePrefix, StringComparison.Ordinal))
+            .ToList();
+
+        var violations = new List<string>();
+
+        foreach (var applicationType in applicationTypes)
+        {
+            // Skip types that are explicitly allowlisted (legitimate wrapping boundaries).
+            var typeName = applicationType.FullName ?? string.Empty;
+            if (SdkExceptionAllowlist.Contains(typeName))
+                continue;
+
+            // Also skip compiler-generated nested types whose declaring type is allowlisted.
+            var declaringType = applicationType.DeclaringType;
+            if (declaringType is not null && SdkExceptionAllowlist.Contains(declaringType.FullName ?? string.Empty))
+                continue;
+
+            foreach (var (referencedType, memberDescription) in EnumerateReferencedTypes(applicationType))
+            {
+                if (!IsForbidden(referencedType, forbiddenPrefixes))
+                    continue;
+
+                violations.Add($"{applicationType.FullName} -> {referencedType.FullName} (via {memberDescription})");
+            }
+        }
+
+        violations.Should().BeEmpty(
+            "Application layer must not reference Microsoft.Identity.Client or " +
+            "Microsoft.Graph.Models.ODataErrors types directly in signatures. " +
+            "Catch GraphServiceAuthException / GraphServiceException (defined in " +
+            "UserManagement.Contracts) instead, or add an allowlist entry with justification " +
+            "if this type is a legitimate wrapping boundary. " +
+            "Found:\n  " + string.Join("\n  ", violations));
     }
 
     private static bool IsForbidden(Type type, IReadOnlyList<string> forbiddenPrefixes)

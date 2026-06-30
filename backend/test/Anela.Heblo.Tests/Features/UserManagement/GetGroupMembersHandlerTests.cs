@@ -1,7 +1,6 @@
 using Xunit;
 using Moq;
 using Microsoft.Extensions.Logging;
-using Microsoft.Identity.Client;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
@@ -69,14 +68,14 @@ public class GetGroupMembersHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenGraphServiceThrowsMsalException_ReturnsConfigurationError()
+    public async Task Handle_WhenGraphServiceThrowsAuthException_ReturnsConfigurationError()
     {
         // Arrange
         var groupId = "test-group-id";
         var request = new GetGroupMembersRequest { GroupId = groupId };
         _mockGraphService
             .Setup(x => x.GetGroupMembersAsync(groupId, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new MsalUiRequiredException("error_code", "Token acquisition failed"));
+            .ThrowsAsync(new GraphServiceAuthException("Token acquisition failed", new Exception()));
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -88,14 +87,14 @@ public class GetGroupMembersHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenGraphServiceThrowsODataError_ReturnsExternalServiceError()
+    public async Task Handle_WhenGraphServiceThrowsServiceException_ReturnsExternalServiceError()
     {
         // Arrange
         var groupId = "test-group-id";
         var request = new GetGroupMembersRequest { GroupId = groupId };
         _mockGraphService
             .Setup(x => x.GetGroupMembersAsync(groupId, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Microsoft.Graph.Models.ODataErrors.ODataError());
+            .ThrowsAsync(new GraphServiceException("Graph API error", new Exception()));
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);

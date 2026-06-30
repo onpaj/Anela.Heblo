@@ -136,9 +136,9 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     console.log('✅ Case-insensitive search working correctly');
   });
 
-  // SKIPPED: Test is ready but needs code deployment to staging.
-  // Fix confirmed in CatalogList.tsx (handleApplyFilters immediately updates URL params).
-  // Race condition resolved — test unskipped per e2e-test-map.md audit.
+  // Root cause fixed in this branch: redundant page<->URL sync effects in CatalogList.tsx
+  // re-introduced a stale `page` param during filter apply, so applying a filter on page 2 didn't
+  // reset to page 1. Those redundant effects were removed; this passes against a build with that fix.
   test('should reset to page 1 when applying name filter', async ({ page }) => {
     // First, navigate to page 2 if possible
     const url = new URL(page.url());
@@ -262,8 +262,7 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     console.log('✅ Partial code matching working correctly');
   });
 
-  // Fix confirmed in CatalogList.tsx (handleApplyFilters immediately updates URL params).
-  // Race condition resolved — test unskipped per e2e-test-map.md audit.
+  // Root cause fixed in this branch (same CatalogList page<->URL sync fix as the name-filter test).
   test('should reset to page 1 when applying code filter', async ({ page }) => {
     // Navigate to page 2
     const url = new URL(page.url());

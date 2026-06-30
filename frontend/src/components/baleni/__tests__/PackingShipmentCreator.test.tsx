@@ -46,7 +46,7 @@ const someOrder: PackingOrder = {
   isCooled: false,
   customerNote: null,
   eshopNote: null,
-  eligibility: { isEligible: true, warningTitle: null, warningBody: null },
+  eligibility: { isEligible: true },
   items: [],
   shippingAddress: null,
 };
@@ -59,6 +59,7 @@ const newShipment: ScanShipment = {
     labelZpl: null,
   }],
   alreadyExisted: false,
+  pendingCompletion: true,
 };
 
 const existingShipment: ScanShipment = {
@@ -97,6 +98,7 @@ describe('PackingShipmentCreator', () => {
   it('shows PackingLabelPrinter immediately when shipment is new', () => {
     render(<PackingShipmentCreator order={someOrder} scanShipment={newShipment} />);
     expect(screen.getByTestId('label-printer')).toBeInTheDocument();
+    expect(screen.queryByTestId('label-print-modal')).not.toBeInTheDocument();
   });
 
   it('shows dialog when shipment already existed', () => {

@@ -103,7 +103,7 @@ const OrgChartPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-xl text-indigo-600">Načítám organizační strukturu...</div>
+        <div className="text-xl text-indigo-600 dark:text-graphite-accent">Načítám organizační strukturu...</div>
       </div>
     );
   }
@@ -119,7 +119,7 @@ const OrgChartPage: React.FC = () => {
   if (!orgData) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-xl text-indigo-600">Načítám organizační strukturu...</div>
+        <div className="text-xl text-indigo-600 dark:text-graphite-accent">Načítám organizační strukturu...</div>
       </div>
     );
   }
@@ -187,6 +187,10 @@ const OrgChartPage: React.FC = () => {
     const lines: JSX.Element[] = [];
     const filteredPositionIds = new Set(filteredPositions.map((p) => p.id));
 
+    // Connector lines must stay visible in dark mode; the light slate stroke would vanish
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    const connectorStroke = isDarkMode ? '#3C424B' : '#94a3b8';
+
     filteredPositions.forEach((position) => {
       if (!position.parentPositionId) return;
 
@@ -214,7 +218,7 @@ const OrgChartPage: React.FC = () => {
         <path
           key={`${position.parentPositionId}-${position.id}`}
           d={pathData}
-          stroke="#94a3b8"
+          stroke={connectorStroke}
           strokeWidth="2"
           fill="none"
           strokeDasharray="0"
@@ -229,13 +233,13 @@ const OrgChartPage: React.FC = () => {
   return (
     <div className="h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col">
       {/* Controls - Fixed */}
-      <div className="bg-white border-b border-gray-200 p-4 flex flex-wrap gap-4 items-center shadow-sm">
+      <div className="bg-white dark:bg-graphite-surface border-b border-gray-200 dark:border-graphite-border p-4 flex flex-wrap gap-4 items-center shadow-sm dark:shadow-soft-dark">
         <div className="flex items-center gap-2">
-          <label className="font-semibold text-gray-700">Oddělení:</label>
+          <label className="font-semibold text-gray-700 dark:text-graphite-muted">Oddělení:</label>
           <select
             value={filters.department}
             onChange={(e) => setFilters({ ...filters, department: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            className="px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
           >
             <option value="all">Všechna oddělení</option>
             {departments.sort().map((dept) => (
@@ -247,11 +251,11 @@ const OrgChartPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="font-semibold text-gray-700">Úroveň:</label>
+          <label className="font-semibold text-gray-700 dark:text-graphite-muted">Úroveň:</label>
           <select
             value={filters.level}
             onChange={(e) => setFilters({ ...filters, level: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            className="px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
           >
             <option value="all">Všechny úrovně</option>
             <option value="1">Až po úroveň 1 (Vedení)</option>
@@ -269,46 +273,46 @@ const OrgChartPage: React.FC = () => {
         </button>
 
         <div className="flex items-center gap-2 ml-4">
-          <label className="font-semibold text-gray-700">Zoom:</label>
+          <label className="font-semibold text-gray-700 dark:text-graphite-muted">Zoom:</label>
           <button
             onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
-            className="px-3 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-all text-sm"
+            className="px-3 py-2 bg-gray-200 text-gray-700 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:hover:bg-white/5 font-bold rounded-lg hover:bg-gray-300 transition-all text-sm"
             disabled={zoom <= 0.5}
           >
             −
           </button>
-          <span className="text-sm font-semibold text-gray-700 min-w-[50px] text-center">
+          <span className="text-sm font-semibold text-gray-700 dark:text-graphite-muted min-w-[50px] text-center">
             {Math.round(zoom * 100)}%
           </span>
           <button
             onClick={() => setZoom(Math.min(2, zoom + 0.1))}
-            className="px-3 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-all text-sm"
+            className="px-3 py-2 bg-gray-200 text-gray-700 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:hover:bg-white/5 font-bold rounded-lg hover:bg-gray-300 transition-all text-sm"
             disabled={zoom >= 2}
           >
             +
           </button>
           <button
             onClick={() => setZoom(1)}
-            className="px-3 py-2 bg-gray-100 text-gray-600 text-xs rounded-lg hover:bg-gray-200 transition-all"
+            className="px-3 py-2 bg-gray-100 text-gray-600 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:hover:bg-white/5 text-xs rounded-lg hover:bg-gray-200 transition-all"
           >
             Reset
           </button>
         </div>
 
         <div className="ml-auto flex gap-4">
-          <div className="text-center px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg">
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Pozice</div>
-            <div className="text-xl font-bold text-indigo-600">{filteredPositions.length}</div>
+          <div className="text-center px-3 py-1.5 bg-gray-50 border border-gray-200 dark:bg-graphite-surface-2 dark:border-graphite-border rounded-lg">
+            <div className="text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wide">Pozice</div>
+            <div className="text-xl font-bold text-indigo-600 dark:text-graphite-accent">{filteredPositions.length}</div>
           </div>
-          <div className="text-center px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg">
-            <div className="text-xs text-gray-500 uppercase tracking-wide">Zaměstnanci</div>
-            <div className="text-xl font-bold text-indigo-600">{totalEmployees}</div>
+          <div className="text-center px-3 py-1.5 bg-gray-50 border border-gray-200 dark:bg-graphite-surface-2 dark:border-graphite-border rounded-lg">
+            <div className="text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wide">Zaměstnanci</div>
+            <div className="text-xl font-bold text-indigo-600 dark:text-graphite-accent">{totalEmployees}</div>
           </div>
         </div>
       </div>
 
       {/* Orgchart - Scrollable with wide layout */}
-      <div className="flex-1 overflow-auto bg-gradient-to-b from-gray-50 to-white mb-8">
+      <div className="flex-1 overflow-auto bg-gradient-to-b from-gray-50 to-white dark:from-graphite-bg dark:to-graphite-bg mb-8">
         <div
           className="p-10 min-w-max relative origin-top-left transition-transform duration-200"
           ref={containerRef}

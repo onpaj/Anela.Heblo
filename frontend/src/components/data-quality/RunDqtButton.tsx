@@ -65,7 +65,7 @@ const RunDqtButton: React.FC = () => {
         <select
           value={testType}
           onChange={(e) => setTestType(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+          className="border border-gray-300 dark:border-graphite-border rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-graphite-surface-2 dark:text-graphite-text"
         >
           {TEST_TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -78,7 +78,7 @@ const RunDqtButton: React.FC = () => {
         <button
           type="button"
           onClick={() => setShowDatePicker((v) => !v)}
-          className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md px-3 py-2 hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-1 text-sm text-gray-600 dark:text-graphite-muted hover:text-gray-900 dark:hover:text-graphite-text border border-gray-300 dark:border-graphite-border rounded-md px-3 py-2 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
         >
           Vlastní období
           {showDatePicker ? (
@@ -111,20 +111,20 @@ const RunDqtButton: React.FC = () => {
 
       {/* Date picker */}
       {showDatePicker && (
-        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-          <label className="text-sm text-gray-700 font-medium">Od</label>
+        <div className="flex items-center gap-3 bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-lg p-3 shadow-sm dark:shadow-soft-dark">
+          <label className="text-sm text-gray-700 dark:text-graphite-muted font-medium">Od</label>
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+            className="border border-gray-300 dark:border-graphite-border rounded-md px-2 py-1 text-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
           />
-          <label className="text-sm text-gray-700 font-medium">Do</label>
+          <label className="text-sm text-gray-700 dark:text-graphite-muted font-medium">Do</label>
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
-            className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+            className="border border-gray-300 dark:border-graphite-border rounded-md px-2 py-1 text-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
           />
         </div>
       )}
@@ -134,8 +134,8 @@ const RunDqtButton: React.FC = () => {
         <div
           className={`flex items-center gap-2 text-sm px-3 py-2 rounded-md ${
             feedback.type === 'success'
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
+              ? 'bg-green-50 dark:bg-emerald-900/30 text-green-700 dark:text-emerald-300 border border-green-200 dark:border-emerald-900/40'
+              : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/40'
           }`}
         >
           {feedback.type === 'success' ? (

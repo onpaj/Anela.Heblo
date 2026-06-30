@@ -463,31 +463,27 @@ public class GetManufactureOrdersHandlerTests
 
     private static List<ManufactureOrder> CreateSampleOrders()
     {
-        return new List<ManufactureOrder>
+        var first = new ManufactureOrder
         {
-            new ManufactureOrder
-            {
-                Id = 1,
-                OrderNumber = "MO-2024-001",
-                CreatedDate = DateTime.UtcNow.AddDays(-5),
-                CreatedByUser = "User1",
-                ResponsiblePerson = "John Doe",
-                State = ManufactureOrderState.Draft,
-                StateChangedAt = DateTime.UtcNow.AddDays(-5),
-                StateChangedByUser = "User1"
-            },
-            new ManufactureOrder
-            {
-                Id = 2,
-                OrderNumber = "MO-2024-002",
-                CreatedDate = DateTime.UtcNow.AddDays(-3),
-                CreatedByUser = "User2",
-                ResponsiblePerson = "Jane Doe",
-                State = ManufactureOrderState.SemiProductManufactured,
-                StateChangedAt = DateTime.UtcNow.AddDays(-2),
-                StateChangedByUser = "User2"
-            }
+            Id = 1,
+            OrderNumber = "MO-2024-001",
+            CreatedDate = DateTime.UtcNow.AddDays(-5),
+            CreatedByUser = "User1",
+            ResponsiblePerson = "John Doe"
         };
+        first.InitializeState(ManufactureOrderState.Draft, DateTime.UtcNow.AddDays(-5), "User1");
+
+        var second = new ManufactureOrder
+        {
+            Id = 2,
+            OrderNumber = "MO-2024-002",
+            CreatedDate = DateTime.UtcNow.AddDays(-3),
+            CreatedByUser = "User2",
+            ResponsiblePerson = "Jane Doe"
+        };
+        second.InitializeState(ManufactureOrderState.SemiProductManufactured, DateTime.UtcNow.AddDays(-2), "User2");
+
+        return new List<ManufactureOrder> { first, second };
     }
 
     private static List<ManufactureOrderDto> CreateSampleOrderDtos()

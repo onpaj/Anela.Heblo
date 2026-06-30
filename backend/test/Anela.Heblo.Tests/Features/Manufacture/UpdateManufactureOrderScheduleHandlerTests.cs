@@ -82,7 +82,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
         // Arrange
         var request = CreateValidRequest();
         var existingOrder = CreateExistingOrder();
-        existingOrder.State = ManufactureOrderState.Cancelled;
+        existingOrder.InitializeState(ManufactureOrderState.Cancelled, DateTime.UtcNow.AddDays(-1), "Original User");
 
         _repositoryMock
             .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
@@ -104,7 +104,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
         // Arrange
         var request = CreateValidRequest();
         var existingOrder = CreateExistingOrder();
-        existingOrder.State = ManufactureOrderState.Completed;
+        existingOrder.InitializeState(ManufactureOrderState.Completed, DateTime.UtcNow.AddDays(-1), "Original User");
 
         _repositoryMock
             .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
@@ -349,7 +349,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
 
     private static ManufactureOrder CreateExistingOrder()
     {
-        return new ManufactureOrder
+        var order = new ManufactureOrder
         {
             Id = ValidOrderId,
             OrderNumber = "MO-2024-001",
@@ -357,9 +357,6 @@ public class UpdateManufactureOrderScheduleHandlerTests
             CreatedByUser = "Original User",
             ResponsiblePerson = "Test User",
             PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
-            State = ManufactureOrderState.Draft,
-            StateChangedAt = DateTime.UtcNow.AddDays(-1),
-            StateChangedByUser = "Original User",
             SemiProduct = new ManufactureOrderSemiProduct
             {
                 Id = 1,
@@ -380,5 +377,7 @@ public class UpdateManufactureOrderScheduleHandlerTests
             },
             Notes = new List<ManufactureOrderNote>()
         };
+        order.InitializeState(ManufactureOrderState.Draft, DateTime.UtcNow.AddDays(-1), "Original User");
+        return order;
     }
 }

@@ -49,13 +49,13 @@ const CatalogDetailTabs: React.FC<CatalogDetailTabsProps> = ({
   return (
     <div className="flex flex-col overflow-hidden">
       {/* Tab Navigation */}
-      <div className="flex border-b border-gray-200 mb-6">
+      <div className="flex border-b border-gray-200 dark:border-graphite-border mb-6">
         <button
           onClick={() => onTabChange("basic")}
           className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
             activeTab === "basic"
-              ? "border-indigo-500 text-indigo-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
+              ? "border-indigo-500 text-indigo-600 dark:text-graphite-accent dark:border-graphite-accent"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-graphite-muted"
           }`}
         >
           <FileText className="h-4 w-4" />
@@ -115,8 +115,8 @@ const CatalogDetailTabs: React.FC<CatalogDetailTabsProps> = ({
           onClick={() => onTabChange("journal")}
           className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
             activeTab === "journal"
-              ? "border-indigo-500 text-indigo-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
+              ? "border-indigo-500 text-indigo-600 dark:text-graphite-accent dark:border-graphite-accent"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-graphite-muted"
           }`}
         >
           <BookOpen className="h-4 w-4" />

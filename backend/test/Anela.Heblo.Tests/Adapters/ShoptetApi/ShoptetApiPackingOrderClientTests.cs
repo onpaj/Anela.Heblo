@@ -4,9 +4,8 @@ using System.Text.Json;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition.Model;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
-using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Application.Features.ShoptetOrders;
+using Anela.Heblo.Application.Features.ShoptetOrders.Contracts;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -52,6 +51,7 @@ public class ShoptetApiPackingOrderClientTests
                     Code = code,
                     FullName = "Jan Novák",
                     Shipping = new OrderShippingSummary { Guid = shippingGuid, Name = shippingName },
+                    Status = new OrderStatusSummary { Id = 26 },
                     Items = new List<ExpeditionOrderItemDto>
                     {
                         new() { ItemType = "product", Code = "P001", Name = "Krém", Amount = 2m },
@@ -61,39 +61,39 @@ public class ShoptetApiPackingOrderClientTests
         };
     }
 
-    private static ICatalogRepository CatalogWith(params CatalogAggregate[] items)
+    private static IPackingProductSource ProductSourceWith(params (string code, PackingProductInfo info)[] items)
     {
-        var mock = new Mock<ICatalogRepository>();
-        mock.Setup(c => c.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(items.ToDictionary(i => i.ProductCode, i => i));
+        var mock = new Mock<IPackingProductSource>();
+        mock.Setup(s => s.GetByCodesAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(items.ToDictionary(i => i.code, i => i.info));
         return mock.Object;
     }
 
-    private static ICarrierCoolingRepository CoolingWith(params CarrierCoolingSetting[] settings)
+    private static IPackingCarrierCoolingSource CoolingSourceWith(params PackingCarrierCoolingSetting[] settings)
     {
-        var mock = new Mock<ICarrierCoolingRepository>();
-        mock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+        var mock = new Mock<IPackingCarrierCoolingSource>();
+        mock.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings);
         return mock.Object;
     }
 
     private static ShoptetApiPackingOrderClient BuildSut(
         ShoptetOrderClient orderClient,
-        ICatalogRepository catalog,
-        ICarrierCoolingRepository cooling,
-        int defaultWeightGrams = 500)
+        IPackingProductSource productSource,
+        IPackingCarrierCoolingSource coolingSource,
+        int defaultWeightGrams = 0)
     {
         var settings = Options.Create(new ShoptetApiSettings { DefaultItemWeightGrams = defaultWeightGrams });
         var orderSettings = Options.Create(new ShoptetOrdersSettings());
         var logger = NullLogger<ShoptetApiPackingOrderClient>.Instance;
-        return new ShoptetApiPackingOrderClient(orderClient, catalog, cooling, logger, settings, orderSettings);
+        return new ShoptetApiPackingOrderClient(orderClient, productSource, coolingSource, logger, settings, orderSettings);
     }
 
     [Fact]
     public async Task GetPackingOrderAsync_ReturnsNull_WhenOrderNotFound()
     {
         var orderClient = BuildOrderClient(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
-        var sut = BuildSut(orderClient, CatalogWith(), CoolingWith());
+        var sut = BuildSut(orderClient, ProductSourceWith(), CoolingSourceWith());
 
         var result = await sut.GetPackingOrderAsync("999999", CancellationToken.None);
 
@@ -105,13 +105,9 @@ public class ShoptetApiPackingOrderClientTests
     {
         var orderClient = BuildOrderClient(_ =>
             Json(DetailResponse("250001", PplDoRukyGuid, "PPL (do ruky)")));
-        var catalog = CatalogWith(new CatalogAggregate
-        {
-            ProductCode = "P001",
-            Image = "https://img/p001.jpg",
-            Properties = new CatalogProperties { Cooling = Cooling.None },
-        });
-        var sut = BuildSut(orderClient, catalog, CoolingWith());
+        var productSource = ProductSourceWith(
+            ("P001", new PackingProductInfo { ImageUrl = "https://img/p001.jpg", Cooling = Cooling.None }));
+        var sut = BuildSut(orderClient, productSource, CoolingSourceWith());
 
         var result = await sut.GetPackingOrderAsync("250001", CancellationToken.None);
 
@@ -130,14 +126,11 @@ public class ShoptetApiPackingOrderClientTests
     {
         var orderClient = BuildOrderClient(_ =>
             Json(DetailResponse("250002", PplDoRukyGuid, "PPL chlazený balík (do ruky)")));
-        var catalog = CatalogWith(new CatalogAggregate
-        {
-            ProductCode = "P001",
-            Properties = new CatalogProperties { Cooling = Cooling.L1 },
-        });
-        var cooling = CoolingWith(
-            new CarrierCoolingSetting(Carriers.PPL, DeliveryHandling.NaRuky, Cooling.L1, "test"));
-        var sut = BuildSut(orderClient, catalog, cooling);
+        var productSource = ProductSourceWith(
+            ("P001", new PackingProductInfo { Cooling = Cooling.L1 }));
+        var coolingSource = CoolingSourceWith(
+            new PackingCarrierCoolingSetting { CarrierName = "PPL", DeliveryHandlingName = "NaRuky", Cooling = Cooling.L1 });
+        var sut = BuildSut(orderClient, productSource, coolingSource);
 
         var result = await sut.GetPackingOrderAsync("250002", CancellationToken.None);
 
@@ -150,12 +143,9 @@ public class ShoptetApiPackingOrderClientTests
     {
         var orderClient = BuildOrderClient(_ =>
             Json(DetailResponse("250003", PplDoRukyGuid, "PPL (do ruky)")));
-        var catalog = CatalogWith(new CatalogAggregate
-        {
-            ProductCode = "P001",
-            Properties = new CatalogProperties { Cooling = Cooling.L1 },
-        });
-        var sut = BuildSut(orderClient, catalog, CoolingWith());
+        var productSource = ProductSourceWith(
+            ("P001", new PackingProductInfo { Cooling = Cooling.L1 }));
+        var sut = BuildSut(orderClient, productSource, CoolingSourceWith());
 
         var result = await sut.GetPackingOrderAsync("250003", CancellationToken.None);
 
@@ -173,7 +163,7 @@ public class ShoptetApiPackingOrderClientTests
             EshopRemark = "Stálý zákazník",
         };
         var orderClient = BuildOrderClient(_ => Json(detail));
-        var sut = BuildSut(orderClient, CatalogWith(), CoolingWith());
+        var sut = BuildSut(orderClient, ProductSourceWith(), CoolingSourceWith());
 
         var result = await sut.GetPackingOrderAsync("250004", CancellationToken.None);
 
@@ -186,7 +176,7 @@ public class ShoptetApiPackingOrderClientTests
     {
         var orderClient = BuildOrderClient(_ =>
             Json(DetailResponse("250005", PplDoRukyGuid, "PPL (do ruky)")));
-        var sut = BuildSut(orderClient, CatalogWith(), CoolingWith());
+        var sut = BuildSut(orderClient, ProductSourceWith(), CoolingSourceWith());
 
         var result = await sut.GetPackingOrderAsync("250005", CancellationToken.None);
 
@@ -195,87 +185,72 @@ public class ShoptetApiPackingOrderClientTests
     }
 
     [Fact]
-    public async Task GetPackingOrderAsync_MapsOrderStatusId()
+    public async Task GetPackingOrderAsync_MapsOrderStatusId_FromSingleIncludeResponse()
     {
-        // The status is read from the base /api/orders/{code} endpoint (no ?include),
-        // so route the fake handler: ?include= -> expedition detail, plain -> status.
+        // status is a base field returned on the ?include=stockLocation,notes response,
+        // so the packing flow reads it from that single call — no second/plain request.
+        var requestCount = 0;
+        var detail = DetailResponse("250006", PplDoRukyGuid, "PPL (do ruky)");
         var orderClient = BuildOrderClient(req =>
-            req.RequestUri!.Query.Contains("include")
-                ? Json(DetailResponse("250006", PplDoRukyGuid, "PPL (do ruky)"))
-                : Json(new { data = new { order = new { code = "250006", status = new { id = 26 } } } }));
-        var sut = BuildSut(orderClient, CatalogWith(), CoolingWith());
+        {
+            requestCount++;
+            req.RequestUri!.Query.Should().Contain("include");
+            return Json(detail);
+        });
+        var sut = BuildSut(orderClient, ProductSourceWith(), CoolingSourceWith());
 
         var result = await sut.GetPackingOrderAsync("250006", CancellationToken.None);
 
         result!.StatusId.Should().Be(26);
+        requestCount.Should().Be(1);
     }
 
     [Fact]
-    public async Task GetPackingOrderAsync_PopulatesWeightGramsFromCatalogGrossWeight()
+    public async Task GetPackingOrderAsync_PopulatesWeightGramsFromCatalog()
     {
-        // Arrange — catalog has both GrossWeight and NetWeight; GrossWeight should win.
-        var catalog = CatalogWith(new CatalogAggregate
-        {
-            ProductCode = "P001",
-            GrossWeight = 350.0,
-            NetWeight = 300.0,
-            Properties = new CatalogProperties { Cooling = Cooling.None },
-        });
+        var productSource = ProductSourceWith(
+            ("P001", new PackingProductInfo { WeightGrams = 350, Cooling = Cooling.None }));
         var orderClient = BuildOrderClient(_ =>
             Json(DetailResponse("250007", PplDoRukyGuid, "PPL (do ruky)")));
-        var sut = BuildSut(orderClient, catalog, CoolingWith());
+        var sut = BuildSut(orderClient, productSource, CoolingSourceWith());
 
-        // Act
         var result = await sut.GetPackingOrderAsync("250007", CancellationToken.None);
 
-        // Assert
         result.Should().NotBeNull();
         result!.Items.Should().ContainSingle();
-        result.Items[0].WeightGrams.Should().Be(350); // GrossWeight = 350g wins
-    }
-
-    [Fact]
-    public async Task GetPackingOrderAsync_FallsBackToNetWeightWhenGrossWeightIsNull()
-    {
-        // Arrange — catalog has only NetWeight.
-        var catalog = CatalogWith(new CatalogAggregate
-        {
-            ProductCode = "P001",
-            GrossWeight = null,
-            NetWeight = 250.0,
-            Properties = new CatalogProperties { Cooling = Cooling.None },
-        });
-        var orderClient = BuildOrderClient(_ =>
-            Json(DetailResponse("250008", PplDoRukyGuid, "PPL (do ruky)")));
-        var sut = BuildSut(orderClient, catalog, CoolingWith());
-
-        // Act
-        var result = await sut.GetPackingOrderAsync("250008", CancellationToken.None);
-
-        // Assert
-        result!.Items[0].WeightGrams.Should().Be(250); // NetWeight fallback
+        result.Items[0].WeightGrams.Should().Be(350);
     }
 
     [Fact]
     public async Task GetPackingOrderAsync_FallsBackToDefaultWeightWhenCatalogHasNoWeight()
     {
-        // Arrange — catalog entry has neither GrossWeight nor NetWeight.
-        var catalog = CatalogWith(new CatalogAggregate
-        {
-            ProductCode = "P001",
-            GrossWeight = null,
-            NetWeight = null,
-            Properties = new CatalogProperties { Cooling = Cooling.None },
-        });
+        // Arrange — catalog entry has no WeightGrams set (null).
+        var productSource = ProductSourceWith(
+            ("P001", new PackingProductInfo { WeightGrams = null, Cooling = Cooling.None }));
+        var orderClient = BuildOrderClient(_ =>
+            Json(DetailResponse("250008", PplDoRukyGuid, "PPL (do ruky)")));
+        var sut = BuildSut(orderClient, productSource, CoolingSourceWith());
+
+        // Act
+        var result = await sut.GetPackingOrderAsync("250008", CancellationToken.None);
+
+        // Assert
+        result!.Items[0].WeightGrams.Should().Be(0); // DefaultItemWeightGrams fallback (weightless)
+    }
+
+    [Fact]
+    public async Task GetPackingOrderAsync_FallsBackToDefaultWeightWhenProductNotInCatalog()
+    {
+        // Arrange — product not in catalog at all.
         var orderClient = BuildOrderClient(_ =>
             Json(DetailResponse("250009", PplDoRukyGuid, "PPL (do ruky)")));
-        var sut = BuildSut(orderClient, catalog, CoolingWith());
+        var sut = BuildSut(orderClient, ProductSourceWith(), CoolingSourceWith());
 
         // Act
         var result = await sut.GetPackingOrderAsync("250009", CancellationToken.None);
 
         // Assert
-        result!.Items[0].WeightGrams.Should().Be(500); // DefaultItemWeightGrams fallback
+        result!.Items[0].WeightGrams.Should().Be(0); // DefaultItemWeightGrams fallback (weightless)
     }
 
     [Fact]
@@ -288,7 +263,7 @@ public class ShoptetApiPackingOrderClientTests
             requestedQuery = req.RequestUri!.Query;
             return Json(new { data = new { paginator = new { totalCount = 26 } } });
         });
-        var sut = BuildSut(orderClient, CatalogWith(), CoolingWith());
+        var sut = BuildSut(orderClient, ProductSourceWith(), CoolingSourceWith());
 
         // Act
         var count = await sut.GetOrdersBeingProcessedCountAsync(CancellationToken.None);
@@ -308,7 +283,7 @@ public class ShoptetApiPackingOrderClientTests
             requestedQuery = req.RequestUri!.Query;
             return Json(new { data = new { paginator = new { totalCount = 3 } } });
         });
-        var sut = BuildSut(orderClient, CatalogWith(), CoolingWith());
+        var sut = BuildSut(orderClient, ProductSourceWith(), CoolingSourceWith());
 
         // Act
         var count = await sut.GetOrdersBeingPackedCountAsync(CancellationToken.None);

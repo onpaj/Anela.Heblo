@@ -47,7 +47,7 @@ public class TriggerRecurringJobHandlerTests
     {
         // Arrange
         var handler = CreateHandler(jobs: Array.Empty<IRecurringJob>());
-        var request = new TriggerRecurringJobRequest { JobName = "missing-job", ForceDisabled = false };
+        var request = new TriggerRecurringJobRequest { JobName = "missing-job" };
 
         // Act
         var response = await handler.Handle(request, CancellationToken.None);
@@ -59,7 +59,7 @@ public class TriggerRecurringJobHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenJobIsDisabledAndForceDisabledIsFalse_ReturnsRecurringJobDisabled()
+    public async Task Handle_WhenJobIsDisabled_ReturnsRecurringJobDisabled()
     {
         // Arrange
         var statusChecker = new Mock<IRecurringJobStatusChecker>();
@@ -71,7 +71,7 @@ public class TriggerRecurringJobHandlerTests
             jobs: new[] { CreateJob("disabled-job") },
             statusChecker: statusChecker);
 
-        var request = new TriggerRecurringJobRequest { JobName = "disabled-job", ForceDisabled = false };
+        var request = new TriggerRecurringJobRequest { JobName = "disabled-job" };
 
         // Act
         var response = await handler.Handle(request, CancellationToken.None);
@@ -101,7 +101,7 @@ public class TriggerRecurringJobHandlerTests
             statusChecker: statusChecker,
             enqueuer: enqueuer);
 
-        var request = new TriggerRecurringJobRequest { JobName = "enabled-job", ForceDisabled = false };
+        var request = new TriggerRecurringJobRequest { JobName = "enabled-job" };
 
         // Act
         var response = await handler.Handle(request, CancellationToken.None);

@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { waitForLoadingComplete, waitForDropdownOptions } from './wait-helpers';
+import { waitForLoadingComplete } from './wait-helpers';
 
 // Czech UI text labels
 const UI_LABELS = {
@@ -279,7 +279,9 @@ export async function openProductAutocomplete(page: Page): Promise<void> {
   console.log('📂 Opening product autocomplete dropdown');
   const input = getProductAutocomplete(page);
   await input.click();
-  await waitForDropdownOptions(page);
+  // CatalogAutocomplete (react-select) renders no [role=option]s until ≥2 chars are typed —
+  // on open it only shows the "Začněte psát pro vyhledávání" hint. Wait for the listbox, not options.
+  await expect(page.locator('[role="listbox"]')).toBeVisible({ timeout: 5000 });
   console.log('✅ Product autocomplete opened');
 }
 
@@ -293,7 +295,7 @@ export async function searchProduct(page: Page, searchTerm: string): Promise<voi
   // Register the response promise BEFORE triggering fill() to avoid a race
   // condition where the API response arrives before the listener is registered.
   const responsePromise = page.waitForResponse(
-    r => r.url().includes('/api/catalog') && r.status() === 200,
+    r => /\/api\/Catalog\/autocomplete/i.test(r.url()) && r.status() === 200,
     { timeout: 15000 }
   );
   await input.fill(searchTerm);
@@ -344,15 +346,8 @@ export async function clearProductSelection(page: Page): Promise<void> {
  * Get document number filter input
  */
 export function getDocumentNumberInput(page: Page): Locator {
-  // Find input with placeholder or label for document number
-  // More specific: look for input with search functionality near filter panel
-  return page.locator('input[type="text"]').filter({
-    hasText: ''
-  }).or(
-    page.locator('input[placeholder*="Číslo dokladu"]')
-  ).or(
-    page.locator('input[placeholder*="doklad"]')
-  ).first();
+  // The document-number filter input has placeholder "Hledat číslo dokladu..."
+  return page.locator('input[placeholder="Hledat číslo dokladu..."]').first();
 }
 
 /**

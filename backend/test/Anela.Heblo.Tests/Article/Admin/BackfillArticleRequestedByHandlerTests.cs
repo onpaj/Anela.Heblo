@@ -4,7 +4,6 @@ using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Article;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Identity.Client;
 using Moq;
 using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
 
@@ -183,10 +182,10 @@ public class BackfillArticleRequestedByHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenResolverThrowsMsalException_ReturnsConfigurationError()
+    public async Task Handle_WhenResolverThrowsAuthException_ReturnsConfigurationError()
     {
         _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new MsalUiRequiredException("err_code", "token failed"));
+            .ThrowsAsync(new ArticleUserResolverAuthException("token failed", new Exception()));
 
         var response = await CreateHandler().Handle(
             new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = false }, default);
@@ -196,10 +195,10 @@ public class BackfillArticleRequestedByHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenResolverThrowsODataError_ReturnsExternalServiceError()
+    public async Task Handle_WhenResolverThrowsServiceException_ReturnsExternalServiceError()
     {
         _userResolver.Setup(r => r.ResolveByGroupAsync(GroupId, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Microsoft.Graph.Models.ODataErrors.ODataError());
+            .ThrowsAsync(new ArticleUserResolverServiceException("service error", new Exception()));
 
         var response = await CreateHandler().Handle(
             new BackfillArticleRequestedByCommand { GroupId = GroupId, DryRun = false }, default);

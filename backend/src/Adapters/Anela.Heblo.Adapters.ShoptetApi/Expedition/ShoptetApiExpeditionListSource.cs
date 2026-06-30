@@ -17,7 +17,8 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 
 public class ShoptetApiExpeditionListSource : IPickingListSource
 {
-    private readonly ShoptetOrderClient _client;
+    private readonly IShoptetExpeditionOrderSource _client;
+    private readonly IEshopOrderClient _eshopOrderClient;
     private readonly TimeProvider _timeProvider;
     private readonly ICatalogRepository _catalog;
     private readonly ICarrierCoolingRepository _carrierCooling;
@@ -26,7 +27,8 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
 
     public ShoptetApiExpeditionListSource(
-        ShoptetOrderClient client,
+        IShoptetExpeditionOrderSource client,
+        IEshopOrderClient eshopOrderClient,
         TimeProvider timeProvider,
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling,
@@ -35,6 +37,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
     {
         _client = client;
+        _eshopOrderClient = eshopOrderClient;
         _timeProvider = timeProvider;
         _catalog = catalog;
         _carrierCooling = carrierCooling;
@@ -48,11 +51,14 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         Func<IList<string>, Task>? onBatchFilesReady,
         CancellationToken cancellationToken = default)
     {
-        var allOrders = await FetchAllOrdersAsync(request.SourceStateId, cancellationToken);
+        var allOrders = string.IsNullOrEmpty(request.OrderCode)
+            ? await FetchAllOrdersAsync(request.SourceStateId, cancellationToken)
+            : await FetchSingleOrderAsync(request.OrderCode, cancellationToken);
         var ordersByMethod = BuildOrdersByMethod(allOrders, request.Carriers);
 
         var exportedFiles = new List<string>();
         var processedCodes = new List<string>();
+        var skippedCodes = new List<string>();
         var timestamp = _timeProvider.GetFilenameTimestamp();
 
         var allSettings = await _carrierCooling.GetAllAsync(cancellationToken);
@@ -68,19 +74,27 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
 
         foreach (var (method, orders) in ordersByMethod)
             await BatchAndFlushAsync(method, orders, coolingMatrix, coolingTextMatrix,
-                giftSetting, processor, timestamp, exportedFiles, processedCodes, onBatchFilesReady, cancellationToken);
+                giftSetting, processor, timestamp, request.NoteStateId, exportedFiles, processedCodes,
+                skippedCodes, onBatchFilesReady, cancellationToken);
 
         if (request.ChangeOrderState)
         {
             foreach (var code in processedCodes)
-                await _client.UpdateStatusAsync(code, request.DesiredStateId, cancellationToken);
+                await _eshopOrderClient.UpdateStatusAsync(code, request.DesiredStateId, cancellationToken);
         }
 
         return new PrintPickingListResult
         {
             ExportedFiles = exportedFiles,
             TotalCount = processedCodes.Count,
+            SkippedCount = skippedCodes.Count,
         };
+    }
+
+    private async Task<List<OrderSummary>> FetchSingleOrderAsync(string code, CancellationToken ct)
+    {
+        var order = await _client.GetOrderByCodeAsync(code, ct);
+        return order is null ? new List<OrderSummary>() : new List<OrderSummary> { order };
     }
 
     private async Task<List<OrderSummary>> FetchAllOrdersAsync(int statusId, CancellationToken ct)
@@ -136,15 +150,30 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         GiftSetting giftSetting,
         PickingListBatchProcessor processor,
         string timestamp,
+        int noteStateId,
         List<string> exportedFiles,
         List<string> processedCodes,
+        List<string> skippedCodes,
         Func<IList<string>, Task>? onBatchFilesReady,
         CancellationToken cancellationToken)
     {
+        var validateAddress = ShippingMethodRegistry.ResolveDeliveryHandling(method) == DeliveryHandling.NaRuky;
         var allExpeditionOrders = new List<ExpeditionOrder>();
         foreach (var (code, shippingGuid, totalWithVat, currencyCode) in orders)
         {
             var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
+
+            if (validateAddress)
+            {
+                var missing = ExpeditionAddressValidator.GetMissingFields(detail.DeliveryAddress ?? detail.BillingAddress);
+                if (missing.Count > 0)
+                {
+                    await FlagIncompleteAddressAsync(code, missing, noteStateId, cancellationToken);
+                    skippedCodes.Add(code);
+                    continue;
+                }
+            }
+
             var expeditionOrder = MapToExpeditionOrder(detail);
             expeditionOrder.CarrierCooling = ResolveCarrierCooling(shippingGuid, coolingMatrix);
             expeditionOrder.CoolingText = ResolveCarrierCoolingText(shippingGuid, coolingTextMatrix);
@@ -180,6 +209,37 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             var finalPath = await processor.FlushAsync(
                 currentBatch, method, batchIndex, timestamp, onBatchFilesReady, cancellationToken);
             exportedFiles.Add(finalPath);
+        }
+    }
+
+    private async Task FlagIncompleteAddressAsync(
+        string code,
+        IReadOnlyList<string> missingFields,
+        int noteStateId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _eshopOrderClient.UpdateStatusAsync(code, noteStateId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex,
+                "Failed to move order {Code} with incomplete address to note state {NoteStateId}",
+                code, noteStateId);
+        }
+
+        try
+        {
+            var note = $"Robot expedice: neúplná adresa – chybí: {string.Join(", ", missingFields)}.";
+            var current = await _client.GetEshopRemarkAsync(code, cancellationToken);
+            var updated = string.IsNullOrEmpty(current) ? note : $"{current}\n{note}";
+            await _client.UpdateEshopRemarkAsync(code, updated, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "Order {Code} flagged with incomplete address but the note could not be appended", code);
         }
     }
 
@@ -247,6 +307,22 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             : Cooling.None;
     }
 
+    internal static Cooling ResolveCarrierCooling(
+        string shippingGuid,
+        IReadOnlyDictionary<(string CarrierName, string DeliveryHandlingName), Cooling> matrix)
+    {
+        if (!ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method))
+            return Cooling.None;
+
+        var handling = ShippingMethodRegistry.ResolveDeliveryHandling(method);
+        if (!handling.HasValue)
+            return Cooling.None;
+
+        return matrix.TryGetValue((method.Carrier.ToString(), handling.Value.ToString()), out var cooling)
+            ? cooling
+            : Cooling.None;
+    }
+
     internal static string? ResolveCarrierCoolingText(
         string shippingGuid,
         IReadOnlyDictionary<(Carriers, DeliveryHandling), string?> matrix)
@@ -303,7 +379,6 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             }
             else if (string.Equals(item.ItemType, "product-set", StringComparison.OrdinalIgnoreCase))
             {
-                var setQuantity = (int)(item.Amount ?? 1);
                 if (!setItemsByParentId.TryGetValue(item.ItemId, out var setComponents))
                     continue;
 
@@ -315,7 +390,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                         Name = component.Name ?? string.Empty,
                         Variant = component.VariantName ?? string.Empty,
                         WarehousePosition = string.Empty, // Shoptet completion API does not return stock locations for set components
-                        Quantity = (int)(component.Amount ?? 0) * setQuantity,
+                        // Shoptet's completion amount is already the order total
+                        // (component-per-set * set count), so it is used as-is.
+                        Quantity = (int)(component.Amount ?? 0),
                         Unit = component.Unit ?? string.Empty,
                         UnitPrice = 0m,
                         IsFromSet = true,

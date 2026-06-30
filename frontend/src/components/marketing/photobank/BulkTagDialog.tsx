@@ -102,20 +102,20 @@ export default function BulkTagDialog({
       onClick={handleBackdropClick}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-md p-6"
+        className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark w-full max-w-md p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby="bulk-tag-dialog-title"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 id="bulk-tag-dialog-title" className="text-base font-semibold text-gray-900">
+          <h2 id="bulk-tag-dialog-title" className="text-base font-semibold text-gray-900 dark:text-graphite-text">
             Hromadné štítkování
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600"
             aria-label="Zavřít"
           >
             <X className="w-5 h-5" />
@@ -125,7 +125,7 @@ export default function BulkTagDialog({
         <form onSubmit={handleSubmit}>
           {/* Filter summary */}
           <div className="mb-3">
-            <p className="text-xs text-gray-500 mb-1.5">Bude aplikováno na:</p>
+            <p className="text-xs text-gray-500 dark:text-graphite-muted mb-1.5">Bude aplikováno na:</p>
             <div className="flex flex-wrap gap-1.5">
               {search && <FilterChip label={`Název: "${search}"`} />}
               {selectedTagNames.map((name) => (
@@ -135,7 +135,7 @@ export default function BulkTagDialog({
           </div>
 
           {/* Count line */}
-          <p className="text-xs text-gray-500 mb-4">
+          <p className="text-xs text-gray-500 dark:text-graphite-muted mb-4">
             Celkem <strong>{totalMatching}</strong> fotek.
           </p>
 
@@ -143,7 +143,7 @@ export default function BulkTagDialog({
           <div className="mb-4">
             <label
               htmlFor="bulk-tag-input"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1"
             >
               Štítek
             </label>
@@ -158,16 +158,16 @@ export default function BulkTagDialog({
                   setShowSuggestions(true);
                   setErrorMessage(null);
                 }}
-                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-blue"
+                className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md focus:outline-none focus:ring-1 focus:ring-primary-blue"
                 placeholder="Zadejte název štítku"
                 autoComplete="off"
               />
               {showSuggestions && suggestions.length > 0 && tagName.length > 0 && (
-                <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-sm mt-1 max-h-48 overflow-y-auto">
+                <ul className="absolute z-10 w-full bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark mt-1 max-h-48 overflow-y-auto">
                   {suggestions.map((tag) => (
                     <li
                       key={tag.id}
-                      className="px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer"
+                      className="px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer"
                       onMouseDown={(e) => {
                         // Prevent blur before click registers
                         e.preventDefault();
@@ -186,7 +186,7 @@ export default function BulkTagDialog({
 
           {/* Inline error */}
           {errorMessage && (
-            <p className="text-sm text-red-600 mb-3">{errorMessage}</p>
+            <p className="text-sm text-red-600 dark:text-red-400 mb-3">{errorMessage}</p>
           )}
 
           {/* Footer buttons */}
@@ -194,7 +194,7 @@ export default function BulkTagDialog({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border rounded-md text-gray-700 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
             >
               Zrušit
             </button>

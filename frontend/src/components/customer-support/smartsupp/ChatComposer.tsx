@@ -110,27 +110,27 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
         onGenerate={requestGeneration}
       />
       {pendingTopic !== null && (
-        <div className="flex items-center justify-between border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs">
-          <span className="text-amber-800">Přepsat rozepsanou odpověď?</span>
+        <div className="flex items-center justify-between border-t border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/30 px-4 py-2 text-xs">
+          <span className="text-amber-800 dark:text-amber-300">Přepsat rozepsanou odpověď?</span>
           <div className="flex gap-3">
             <button
               type="button"
               onClick={confirmOverwrite}
-              className="font-medium text-amber-800 hover:text-amber-900"
+              className="font-medium text-amber-800 dark:text-amber-300 hover:text-amber-900"
             >
               Přepsat
             </button>
             <button
               type="button"
               onClick={cancelOverwrite}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 dark:text-graphite-muted hover:text-gray-700"
             >
               Zrušit
             </button>
           </div>
         </div>
       )}
-      <div className="flex flex-col gap-2 border-t border-gray-200 bg-white p-3">
+      <div className="flex flex-col gap-2 border-t border-gray-200 dark:border-graphite-border bg-white dark:bg-graphite-surface p-3">
         {isAiDraft && (
           <DraftReplyToolbar
             sources={sources}
@@ -147,14 +147,14 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
             onKeyDown={handleKeyDown}
             placeholder={isLoading ? "Generuji návrh odpovědi…" : "Napište odpověď..."}
             rows={isExpanded ? 14 : 5}
-            className="w-full resize-none rounded-md border border-gray-200 py-2 pl-3 pr-9 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-50"
+            className="w-full resize-none rounded-md border border-gray-200 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint py-2 pl-3 pr-9 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-50 dark:disabled:bg-graphite-surface-2"
           />
           <button
             type="button"
             onClick={() => setIsExpanded((v) => !v)}
             aria-label={isExpanded ? "Zmenšit" : "Zvětšit"}
             title={isExpanded ? "Zmenšit" : "Zvětšit"}
-            className="absolute right-2 top-2 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="absolute right-2 top-2 rounded p-1 text-gray-400 dark:text-graphite-faint hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-600"
           >
             {isExpanded ? (
               <Minimize2 className="h-4 w-4" />
@@ -164,10 +164,10 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
           </button>
         </div>
         {sendError && (
-          <p className="text-xs text-red-500">{sendError}</p>
+          <p className="text-xs text-red-500 dark:text-red-400">{sendError}</p>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-400 dark:text-graphite-faint">
             {draft.length} / {MAX_CHARS}
           </span>
           <button

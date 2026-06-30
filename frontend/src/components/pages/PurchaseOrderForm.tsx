@@ -466,12 +466,12 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-7xl w-full h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-graphite-border flex-shrink-0">
           <div className="flex items-center space-x-3">
-            <Package className="h-6 w-6 text-indigo-600" />
-            <h2 className="text-xl font-semibold text-gray-900">
+            <Package className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">
               {isEditMode
                 ? "Upravit nákupní objednávku"
                 : "Nová nákupní objednávka"}
@@ -479,7 +479,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 dark:text-graphite-faint dark:hover:text-graphite-muted transition-colors"
           >
             <X className="h-6 w-6" />
           </button>
@@ -511,8 +511,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
 
             {/* Submit Error - moved to top */}
             {errors.submit && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <p className="text-sm text-red-600">{errors.submit}</p>
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-md p-4">
+                <p className="text-sm text-red-600 dark:text-red-400">{errors.submit}</p>
               </div>
             )}
 
@@ -526,9 +526,9 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
 
             {/* Materials from Planning List */}
             {purchasePlanningItems.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/40 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-blue-900 flex items-center">
+                  <h3 className="text-sm font-medium text-blue-900 dark:text-blue-300 flex items-center">
                     <Package className="h-4 w-4 mr-2" />
                     Materiály z plánovacího seznamu 
                     <span className="ml-1">
@@ -539,14 +539,14 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                   {/* Toggle switch - only show when supplier is selected */}
                   {formData.selectedSupplier && (
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs text-blue-700">
+                      <span className="text-xs text-blue-700 dark:text-blue-300">
                         {showAllPlanningItems ? "Zobrazit vše" : `Pouze ${formData.selectedSupplier.name}`}
                       </span>
                       <button
                         type="button"
                         onClick={() => setShowAllPlanningItems(!showAllPlanningItems)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                          showAllPlanningItems ? 'bg-gray-200' : 'bg-blue-600'
+                          showAllPlanningItems ? 'bg-gray-200 dark:bg-graphite-hover' : 'bg-blue-600'
                         }`}
                       >
                         <span
@@ -561,14 +561,14 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                 
                 {filteredPlanningItems.length === 0 ? (
                   <div className="text-center py-4">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-graphite-muted">
                       {formData.selectedSupplier && !showAllPlanningItems
                         ? `Žádné materiály od dodavatele "${formData.selectedSupplier.name}".`
                         : "Žádné materiály v plánovacím seznamu."
                       }
                     </p>
                     {formData.selectedSupplier && !showAllPlanningItems && (
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-graphite-muted mt-1">
                         Klikněte na přepínač výše pro zobrazení všech materiálů.
                       </p>
                     )}
@@ -578,14 +578,14 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                     {filteredPlanningItems.map((item) => (
                       <div
                         key={item.productCode}
-                        className="bg-white border border-blue-100 rounded-md p-3 flex justify-between items-center"
+                        className="bg-white dark:bg-graphite-surface border border-blue-100 dark:border-blue-900/40 rounded-md p-3 flex justify-between items-center"
                       >
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 truncate">
+                          <div className="text-sm font-medium text-gray-900 dark:text-graphite-text truncate">
                             {item.productName}
                           </div>
-                          <div className="text-xs text-gray-500">{item.productCode}</div>
-                          <div className="text-xs text-blue-600 truncate">
+                          <div className="text-xs text-gray-500 dark:text-graphite-muted">{item.productCode}</div>
+                          <div className="text-xs text-blue-600 dark:text-blue-400 truncate">
                             {item.supplier}
                           </div>
                         </div>
@@ -600,7 +600,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                     ))}
                   </div>
                 )}
-                <p className="text-xs text-blue-700 mt-2">
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
                   Klikněte na "Přidat" pro vložení materiálu do objednávky
                 </p>
               </div>
@@ -620,7 +620,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-3 p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+          <div className="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2 flex-shrink-0">
             <button
               type="button"
               onClick={onClose}

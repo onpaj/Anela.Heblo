@@ -1,0 +1,42 @@
+{
+  "feature_id": "feat-3299",
+  "issue_number": 3299,
+  "created_at": "2026-06-23T06:14:10.244152Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-23T06:15:31.120955Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-23T06:17:17.688016Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-23T06:18:18.207132Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-23T06:19:21.352004Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-23T06:23:31.558123Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "remove-groupid-parameter-from-signature",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-23T06:22:34.076910Z"
+    },
+    {
+      "name": "update-call-site",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-23T06:23:23.895612Z"
+    }
+  ]
+}

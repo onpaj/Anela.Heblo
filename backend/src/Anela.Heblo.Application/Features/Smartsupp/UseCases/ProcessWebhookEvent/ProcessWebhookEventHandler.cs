@@ -2,9 +2,7 @@ using System.Diagnostics;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 
@@ -49,32 +47,21 @@ public class ProcessWebhookEventHandler : IRequestHandler<ProcessWebhookEventReq
             return new ProcessWebhookEventResponse { Handled = false, Reason = outcome };
         }
 
-        // Max 2 attempts: retry once on a 23505 unique violation (concurrent insert race).
-        for (var attempt = 0; ; attempt++)
+        try
         {
-            try
-            {
-                await reaction.HandleAsync(ctx, cancellationToken);
-                await _repository.SaveChangesAsync(cancellationToken);
-                _metrics.RecordReceived(ctx.EventName, "handled", sw.Elapsed.TotalMilliseconds);
-                _logger.LogInformation("smartsupp webhook handled {Event} in {ElapsedMs}ms",
-                    ctx.EventName, (int)sw.Elapsed.TotalMilliseconds);
-                return new ProcessWebhookEventResponse { Handled = true };
-            }
-            catch (DbUpdateException ex) when (IsUniqueViolation(ex) && attempt == 0)
-            {
-                _logger.LogWarning(ex,
-                    "smartsupp webhook unique violation on {Event} for account {AccountId}, retrying once",
-                    ctx.EventName, ctx.AccountId);
-                _repository.DiscardChanges();
-            }
-            catch (Exception ex)
-            {
-                _metrics.RecordReceived(ctx.EventName, "error", sw.Elapsed.TotalMilliseconds);
-                _logger.LogError(ex, "smartsupp webhook reaction failed for {Event} ({Reaction})",
-                    ctx.EventName, reaction.GetType().Name);
-                throw;
-            }
+            await reaction.HandleAsync(ctx, cancellationToken);
+            await _repository.SaveChangesAsync(cancellationToken);
+            _metrics.RecordReceived(ctx.EventName, "handled", sw.Elapsed.TotalMilliseconds);
+            _logger.LogInformation("smartsupp webhook handled {Event} in {ElapsedMs}ms",
+                ctx.EventName, (int)sw.Elapsed.TotalMilliseconds);
+            return new ProcessWebhookEventResponse { Handled = true };
+        }
+        catch (Exception ex)
+        {
+            _metrics.RecordReceived(ctx.EventName, "error", sw.Elapsed.TotalMilliseconds);
+            _logger.LogError(ex, "smartsupp webhook reaction failed for {Event} ({Reaction})",
+                ctx.EventName, reaction.GetType().Name);
+            throw;
         }
     }
 
@@ -84,7 +71,4 @@ public class ProcessWebhookEventHandler : IRequestHandler<ProcessWebhookEventReq
         if (eventName.StartsWith("app.", StringComparison.Ordinal)) return "ignored";
         return "unknown";
     }
-
-    private static bool IsUniqueViolation(DbUpdateException ex) =>
-        ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 }

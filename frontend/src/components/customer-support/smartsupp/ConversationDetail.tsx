@@ -81,25 +81,25 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-3">
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-graphite-border flex items-center gap-3">
         {onBack && (
           <button
             type="button"
             data-testid="back-to-list-btn"
             onClick={onBack}
             aria-label="Zpět"
-            className="md:hidden flex items-center justify-center min-h-[40px] min-w-[40px] p-1 -ml-1 text-gray-600 flex-shrink-0"
+            className="md:hidden flex items-center justify-center min-h-[40px] min-w-[40px] p-1 -ml-1 text-gray-600 dark:text-graphite-muted flex-shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
         )}
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-gray-900 truncate">{displayName}</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-graphite-text truncate">{displayName}</h3>
             <StatusPill status={liveStatus} />
           </div>
           {conversation.contactEmail && (
-            <p className="text-xs text-gray-500 truncate">{conversation.contactEmail}</p>
+            <p className="text-xs text-gray-500 dark:text-graphite-muted truncate">{conversation.contactEmail}</p>
           )}
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -113,7 +113,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
               onClick={handleClose}
               disabled={isClosing}
               aria-label="Uzavřít konverzaci"
-              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-2.5 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-graphite-border px-2.5 py-1.5 text-sm font-medium text-gray-700 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isClosing && <Loader2 className="h-4 w-4 animate-spin" />}
               Uzavřít konverzaci
@@ -125,7 +125,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
               data-testid="open-contact-details-btn"
               onClick={onOpenContactDetails}
               aria-label="Detail kontaktu"
-              className="md:hidden flex items-center justify-center min-h-[40px] min-w-[40px] p-1 text-gray-600"
+              className="md:hidden flex items-center justify-center min-h-[40px] min-w-[40px] p-1 text-gray-600 dark:text-graphite-muted"
             >
               <Info className="w-5 h-5" />
             </button>
@@ -135,10 +135,10 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
 
       <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
         {isLoading && (
-          <div className="text-sm text-gray-400 text-center py-8">Načítání zpráv...</div>
+          <div className="text-sm text-gray-400 dark:text-graphite-faint text-center py-8">Načítání zpráv...</div>
         )}
         {!isLoading && messages.length === 0 && (
-          <div className="text-sm text-gray-400 text-center py-8">Žádné zprávy</div>
+          <div className="text-sm text-gray-400 dark:text-graphite-faint text-center py-8">Žádné zprávy</div>
         )}
         {grouped.map((g) => (
           <div key={g.day}>

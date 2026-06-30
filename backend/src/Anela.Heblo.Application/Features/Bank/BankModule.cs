@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Bank.Infrastructure;
+using Anela.Heblo.Application.Features.Bank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementList;
 using Anela.Heblo.Application.Features.Bank.Validators;
 using Anela.Heblo.Domain.Features.Analytics;
@@ -21,6 +22,9 @@ public static class BankModule
 
         // Repository (implementation lives in the Persistence layer)
         services.AddScoped<IBankStatementImportRepository, BankStatementImportRepository>();
+        services.AddScoped<IBankImportStateRepository, BankImportStateRepository>();
+        services.Configure<BankImportWatermarkOptions>(
+            configuration.GetSection(BankImportWatermarkOptions.SectionName));
 
         services.AddScoped<IValidator<GetBankStatementListRequest>, GetBankStatementListRequestValidator>();
         services.AddScoped<

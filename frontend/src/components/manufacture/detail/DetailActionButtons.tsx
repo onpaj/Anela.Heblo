@@ -36,7 +36,7 @@ export const DetailActionButtons: React.FC<DetailActionButtonsProps> = ({
   isPrintingProtocol,
 }) => {
   return (
-    <div className="border-t border-gray-200 p-3 flex-shrink-0">
+    <div className="border-t border-gray-200 dark:border-graphite-border p-3 flex-shrink-0">
       <div className="flex items-center justify-between">
         {/* Cancel button on the left */}
         <div>

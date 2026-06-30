@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Bank;
 using Microsoft.EntityFrameworkCore;
 
@@ -83,9 +84,114 @@ public class BankStatementImportRepository : IBankStatementImportRepository
 
     public async Task<BankStatementImport> AddAsync(BankStatementImport bankStatement)
     {
-        _context.BankStatements.Add(bankStatement);
-        await _context.SaveChangesAsync();
+        var entry = _context.BankStatements.Add(bankStatement);
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // A failed INSERT leaves the entity tracked as Added; detach it so it cannot
+            // be re-attempted by a later SaveChanges on the shared scoped DbContext.
+            entry.State = EntityState.Detached;
+            throw;
+        }
         return bankStatement;
+    }
+
+    public async Task<IReadOnlyDictionary<string, string>> GetExistingResultsByTransferIdsAsync(
+        IReadOnlyCollection<string> transferIds, CancellationToken cancellationToken = default)
+    {
+        if (transferIds.Count == 0)
+            return new Dictionary<string, string>();
+
+        // Dedup against the GLOBAL unique constraint (IX_BankStatements_TransferId), not by
+        // account/date, so a statement already stored under a different window is still detected.
+        return await _context.BankStatements
+            .AsNoTracking()
+            .Where(bs => transferIds.Contains(bs.TransferId))
+            .Select(bs => new { bs.TransferId, bs.ImportResult })
+            .ToDictionaryAsync(x => x.TransferId, x => x.ImportResult, cancellationToken);
+    }
+
+    public async Task<DateTime?> GetMaxStatementDateAsync(string account, CancellationToken cancellationToken = default)
+        => await _context.BankStatements
+            .AsNoTracking()
+            .Where(bs => bs.Account == account)
+            .Select(bs => (DateTime?)bs.StatementDate)
+            .MaxAsync(cancellationToken);
+
+    public async Task<BankStatementImport?> GetByTransferIdAsync(
+        string transferId, CancellationToken cancellationToken = default)
+        => await _context.BankStatements.FirstOrDefaultAsync(bs => bs.TransferId == transferId, cancellationToken);
+
+    public async Task<BankStatementImport> UpdateAsync(BankStatementImport bankStatement)
+    {
+        var entry = _context.BankStatements.Update(bankStatement);
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            entry.State = EntityState.Detached;
+            throw;
+        }
+        return bankStatement;
+    }
+
+    public async Task<IReadOnlyList<DailyBankStatementStatistics>> GetDailyStatisticsAsync(
+        DateTime startDate,
+        DateTime endDate,
+        BankStatementDateType dateType,
+        CancellationToken cancellationToken = default)
+    {
+        var startUnspecified = DateTime.SpecifyKind(startDate, DateTimeKind.Unspecified);
+        var endUnspecified = DateTime.SpecifyKind(endDate, DateTimeKind.Unspecified);
+
+        var rawResults = dateType switch
+        {
+            BankStatementDateType.StatementDate => await _context.BankStatements
+                .AsNoTracking()
+                .Where(b => b.StatementDate >= startUnspecified && b.StatementDate <= endUnspecified)
+                .GroupBy(b => new { b.StatementDate.Year, b.StatementDate.Month, b.StatementDate.Day })
+                .Select(g => new
+                {
+                    g.Key.Year,
+                    g.Key.Month,
+                    g.Key.Day,
+                    ImportCount = g.Count(),
+                    TotalItemCount = g.Sum(b => b.ItemCount)
+                })
+                .OrderBy(d => new DateTime(d.Year, d.Month, d.Day))
+                .ToListAsync(cancellationToken),
+
+            BankStatementDateType.ImportDate => await _context.BankStatements
+                .AsNoTracking()
+                .Where(b => b.ImportDate >= startUnspecified && b.ImportDate <= endUnspecified)
+                .GroupBy(b => new { b.ImportDate.Year, b.ImportDate.Month, b.ImportDate.Day })
+                .Select(g => new
+                {
+                    g.Key.Year,
+                    g.Key.Month,
+                    g.Key.Day,
+                    ImportCount = g.Count(),
+                    TotalItemCount = g.Sum(b => b.ItemCount)
+                })
+                .OrderBy(d => new DateTime(d.Year, d.Month, d.Day))
+                .ToListAsync(cancellationToken),
+
+            _ => throw new ArgumentOutOfRangeException(nameof(dateType), dateType, null)
+        };
+
+        return rawResults
+            .Select(r => new DailyBankStatementStatistics
+            {
+                Date = DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
+                ImportCount = r.ImportCount,
+                TotalItemCount = r.TotalItemCount
+            })
+            .ToList();
     }
 
     private static string EscapeLike(string value) =>

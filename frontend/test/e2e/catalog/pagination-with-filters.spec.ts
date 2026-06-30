@@ -1,8 +1,3 @@
-// TODO(e2e-map): 5 tests in this file assert BUGGY behaviour caused by a React Query +
-// useEffect race in CatalogList.tsx — after clicking page 2, a refetch resets pagination
-// to page 1. Assertions reflect the current broken state. Once the race condition is fixed,
-// update the assertions (marked with "TODO: Change to X when pagination bug is fixed").
-// See docs/testing/e2e-test-map.md § catalog/pagination-with-filters.spec.ts for details.
 import { test, expect } from '@playwright/test';
 import { navigateToCatalog } from '../helpers/e2e-auth-helper';
 import {
@@ -110,33 +105,12 @@ test.describe('Catalog Pagination with Filters E2E Tests', () => {
       const currentPage = await getCurrentPageNumber(page);
       console.log(`   Current page number from URL: ${currentPage}`);
 
-      // KNOWN BUG: Pagination with filters causes automatic reset to page 1
-      // Root cause: After clicking page 2, React Query refetches data which triggers
-      // useEffect hooks that reset pagination state, removing the page parameter from URL.
-      // Expected behavior: Should stay on page 2 with filter applied
-      // Actual behavior: Automatically resets to page 1 after brief page 2 API call
-      //
-      // Workaround test: Verify that:
-      // 1. API call for page 2 was made (confirms click worked)
-      // 2. Filter is maintained (confirms filter state is preserved)
-      // 3. Page resets to 1 (documents the bug)
-      //
-      // TODO(e2e-map): Once bug is fixed in application, change assertion to expect(currentPage).toBe(2)
-
-      // For now, document that the bug exists
-      if (currentPage === 1 && firstRowCode === newFirstRowCode) {
-        console.log('⚠️  APPLICATION BUG CONFIRMED: Pagination was reset to page 1 after clicking page 2');
-        console.log('   This is a known issue that needs to be fixed in the React component');
-      }
-
-      // Verify filter is still applied (this should work even with the bug)
+      // Verify filter is still applied
       await validateFilteredResults(page, { productType: 'Produkt' }, { maxRowsToCheck: 5 });
 
-      // Current buggy behavior: Page resets to 1
-      // When bug is fixed, this line should be changed to: expect(currentPage).toBe(2);
-      expect(currentPage).toBe(1); // TODO(e2e-map): Change to 2 when pagination race condition is fixed
+      expect(currentPage).toBe(2);
 
-      console.log('✅ Test passed (with documented pagination reset bug)');
+      console.log('✅ Test passed');
     } else {
       console.log('ℹ️ No page 2 available (not enough filtered results)');
     }
@@ -289,27 +263,15 @@ test.describe('Catalog Pagination with Filters E2E Tests', () => {
     await pageSizeSelect.selectOption('20');
     await waitForTableUpdate(page);
 
-    // KNOWN BUG: Page size changes don't reset pagination to page 1
-    // Root cause: Same pagination state management issue as other tests
-    // Expected behavior: Changing page size should reset to page 1 to show beginning of results
-    // Actual behavior: Stays on page 2 after changing page size (confusing UX)
-    //
-    // This is related to the React Query refetch and state management bug
-    // where pagination state isn't properly reset on filter/page size changes.
-    //
-    // TODO(e2e-map): Once bug is fixed, change assertion to expect(currentPage).toBe(1)
-
     const currentPage = await getCurrentPageNumber(page);
     console.log(`📍 Current page after page size change: ${currentPage}`);
 
-    // Current buggy behavior: Page stays on 2
-    // When bug is fixed, this line should be changed to: expect(currentPage).toBe(1);
-    expect(currentPage).toBe(2); // TODO(e2e-map): Change to 1 when pagination reset bug is fixed
+    expect(currentPage).toBe(1);
 
-    // Verify filter is still applied despite the pagination bug
+    // Verify filter is still applied
     await validateFilteredResults(page, { productType: 'Produkt' }, { maxRowsToCheck: 5 });
 
-    console.log('✅ Test passed (with documented pagination reset bug - stays on page 2)');
+    console.log('✅ Test passed');
   });
 
   test('should maintain filter when changing page size', async ({ page }) => {

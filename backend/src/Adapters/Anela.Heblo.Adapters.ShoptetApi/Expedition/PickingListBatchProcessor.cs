@@ -11,7 +11,7 @@ internal sealed class PickingListBatchProcessor
     internal const int CoolingAdditionalFieldIndex = 6;
 
     private readonly ICatalogRepository _catalog;
-    private readonly ShoptetOrderClient _client;
+    private readonly IShoptetExpeditionOrderSource _client;
     private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
     // Logger parameter is intentionally typed as the base ILogger (not ILogger<PickingListBatchProcessor>)
     // so the log category remains "ShoptetApiExpeditionListSource". Ops alerting filters on that category;
@@ -20,7 +20,7 @@ internal sealed class PickingListBatchProcessor
 
     public PickingListBatchProcessor(
         ICatalogRepository catalog,
-        ShoptetOrderClient client,
+        IShoptetExpeditionOrderSource client,
         Func<ExpeditionProtocolData, byte[]> generateDocument,
         ILogger logger)
     {

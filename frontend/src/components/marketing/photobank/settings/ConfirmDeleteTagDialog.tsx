@@ -28,28 +28,28 @@ const ConfirmDeleteTagDialog: React.FC<Props> = ({
 
       {/* Dialog */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="relative bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-md w-full p-6">
           {/* Close button */}
           <button
             onClick={onCancel}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            className="absolute top-4 right-4 text-gray-400 dark:text-graphite-faint hover:text-gray-600"
             aria-label="Zavřít"
           >
             <X className="h-5 w-5" />
           </button>
 
           {/* Icon */}
-          <div className="flex items-center justify-center w-12 h-12 mx-auto bg-yellow-100 rounded-full mb-4">
-            <AlertTriangle className="h-6 w-6 text-yellow-600" />
+          <div className="flex items-center justify-center w-12 h-12 mx-auto bg-yellow-100 dark:bg-amber-900/30 rounded-full mb-4">
+            <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-amber-400" />
           </div>
 
           {/* Title */}
-          <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-graphite-text text-center mb-2">
             Smazat štítek?
           </h3>
 
           {/* Message */}
-          <p className="text-sm text-gray-600 text-center mb-6">
+          <p className="text-sm text-gray-600 dark:text-graphite-muted text-center mb-6">
             {`Štítek „${tagName}" je přiřazen k ${assignmentCount} fotografiím. Smazáním ho odstraníte ze všech fotografií. Pokračovat?`}
           </p>
 
@@ -57,7 +57,7 @@ const ConfirmDeleteTagDialog: React.FC<Props> = ({
           <div className="flex gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
             >
               Zrušit
             </button>

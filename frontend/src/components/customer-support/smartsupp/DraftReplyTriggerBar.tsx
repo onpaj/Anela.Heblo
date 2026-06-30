@@ -21,7 +21,7 @@ function DraftReplyTriggerBar({
   const [topicPickerOpen, setTopicPickerOpen] = useState(false);
 
   return (
-    <div className="border-t border-gray-100 bg-gray-50 px-4 py-2">
+    <div className="border-t border-gray-100 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2 px-4 py-2">
       {/* Desktop: chip row + generate button */}
       <div className="hidden md:flex flex-wrap items-center gap-2">
         {DRAFT_REPLY_HINTS.map((hint) => (
@@ -30,7 +30,7 @@ function DraftReplyTriggerBar({
             type="button"
             disabled={disabled}
             onClick={() => onGenerate(hint.label)}
-            className="inline-flex items-center rounded-full px-3 py-1 text-xs bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center rounded-full px-3 py-1 text-xs bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border text-gray-700 dark:text-graphite-muted hover:bg-blue-50 dark:hover:bg-graphite-accent/10 hover:border-blue-300 dark:hover:border-graphite-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {hint.label}
           </button>
@@ -54,7 +54,7 @@ function DraftReplyTriggerBar({
           type="button"
           disabled={disabled}
           onClick={() => setTopicPickerOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px]"
+          className="inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm border border-gray-200 dark:border-graphite-border bg-white dark:bg-graphite-surface text-gray-700 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px]"
         >
           <Tag className="w-4 h-4" />
           Témata
@@ -72,7 +72,7 @@ function DraftReplyTriggerBar({
         </button>
       </div>
 
-      {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{error}</p>}
 
       <TopicPickerSheet
         isOpen={topicPickerOpen}

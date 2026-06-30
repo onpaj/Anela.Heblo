@@ -15,11 +15,11 @@ const MISMATCH_FLAG_LABELS: Record<string, string> = {
 };
 
 const FLAG_COLORS: Record<string, string> = {
-  MissingInFlexi: 'bg-red-100 text-red-700',
-  MissingInShoptet: 'bg-orange-100 text-orange-700',
-  TotalWithVatDiffers: 'bg-yellow-100 text-yellow-700',
-  TotalWithoutVatDiffers: 'bg-yellow-100 text-yellow-700',
-  ItemsDiffer: 'bg-purple-100 text-purple-700',
+  MissingInFlexi: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  MissingInShoptet: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  TotalWithVatDiffers: 'bg-yellow-100 text-yellow-700 dark:bg-amber-900/30 dark:text-amber-300',
+  TotalWithoutVatDiffers: 'bg-yellow-100 text-yellow-700 dark:bg-amber-900/30 dark:text-amber-300',
+  ItemsDiffer: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
 };
 
 const PRODUCT_PAIRING_FLAGS: Record<number, string> = {
@@ -56,16 +56,16 @@ const InvoiceResultRow: React.FC<{ result: InvoiceDqtResultDto }> = ({ result })
     <>
       <tr
         onClick={() => setExpanded((v) => !v)}
-        className="cursor-pointer hover:bg-gray-50 transition-colors"
+        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
       >
         <td className="px-3 py-2">
           {expanded ? (
-            <ChevronDown className="h-4 w-4 text-gray-400" />
+            <ChevronDown className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
           ) : (
-            <ChevronRight className="h-4 w-4 text-gray-400" />
+            <ChevronRight className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
           )}
         </td>
-        <td className="px-3 py-2 text-sm font-medium text-gray-900 whitespace-nowrap">
+        <td className="px-3 py-2 text-sm font-medium text-gray-900 dark:text-graphite-text whitespace-nowrap">
           {result.invoiceCode}
         </td>
         <td className="px-3 py-2">
@@ -74,7 +74,7 @@ const InvoiceResultRow: React.FC<{ result: InvoiceDqtResultDto }> = ({ result })
               <span
                 key={flag}
                 className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                  FLAG_COLORS[flag] ?? 'bg-gray-100 text-gray-700'
+                  FLAG_COLORS[flag] ?? 'bg-gray-100 text-gray-700 dark:bg-graphite-surface-2 dark:text-graphite-muted'
                 }`}
               >
                 {MISMATCH_FLAG_LABELS[flag] ?? flag}
@@ -85,21 +85,21 @@ const InvoiceResultRow: React.FC<{ result: InvoiceDqtResultDto }> = ({ result })
       </tr>
       {expanded && (
         <tr>
-          <td colSpan={3} className="px-3 py-3 bg-gray-50 border-t border-gray-200">
+          <td colSpan={3} className="px-3 py-3 bg-gray-50 dark:bg-graphite-surface-2 border-t border-gray-200 dark:border-graphite-border">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">
+                <p className="text-xs font-semibold text-gray-500 dark:text-graphite-muted mb-1 uppercase tracking-wider">
                   Shoptet
                 </p>
-                <pre className="text-xs bg-white border border-gray-200 rounded p-2 overflow-auto max-h-48 text-gray-800 whitespace-pre-wrap break-all">
+                <pre className="text-xs bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded p-2 overflow-auto max-h-48 text-gray-800 dark:text-graphite-muted whitespace-pre-wrap break-all">
                   {prettyPrint(result.shoptetValue) || '—'}
                 </pre>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">
+                <p className="text-xs font-semibold text-gray-500 dark:text-graphite-muted mb-1 uppercase tracking-wider">
                   Flexi
                 </p>
-                <pre className="text-xs bg-white border border-gray-200 rounded p-2 overflow-auto max-h-48 text-gray-800 whitespace-pre-wrap break-all">
+                <pre className="text-xs bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded p-2 overflow-auto max-h-48 text-gray-800 dark:text-graphite-muted whitespace-pre-wrap break-all">
                   {prettyPrint(result.flexiValue) || '—'}
                 </pre>
               </div>
@@ -116,7 +116,7 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
 
   if (!runId) {
     return (
-      <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
+      <div className="flex items-center justify-center h-40 text-gray-400 dark:text-graphite-faint text-sm">
         Vyberte test ke zobrazení výsledků.
       </div>
     );
@@ -125,8 +125,8 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-40">
-        <div className="flex items-center gap-2 text-gray-500">
-          <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+        <div className="flex items-center gap-2 text-gray-500 dark:text-graphite-muted">
+          <Loader2 className="h-5 w-5 animate-spin text-indigo-500 dark:text-graphite-accent" />
           Načítání výsledků...
         </div>
       </div>
@@ -136,7 +136,7 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-40">
-        <div className="flex items-center gap-2 text-red-600">
+        <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
           <AlertCircle className="h-5 w-5" />
           Chyba při načítání výsledků: {(error as Error).message}
         </div>
@@ -155,7 +155,7 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
 
   if (hasNoResults) {
     return (
-      <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
+      <div className="flex items-center justify-center h-40 text-gray-400 dark:text-graphite-faint text-sm">
         Žádné neshody nalezeny pro tento test.
       </div>
     );
@@ -187,15 +187,15 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
                     {flagLabels.map((label) => (
                       <span
                         key={label}
-                        className="inline-block mr-1 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-800"
+                        className="inline-block mr-1 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300"
                       >
                         {label}
                       </span>
                     ))}
                   </td>
-                  <td className="py-1.5 pr-4 text-gray-600 text-xs">{row.hebloValue ?? '—'}</td>
-                  <td className="py-1.5 pr-4 text-gray-600 text-xs">{row.shoptetValue ?? '—'}</td>
-                  <td className="py-1.5 text-gray-500 text-xs">{row.details ?? ''}</td>
+                  <td className="py-1.5 pr-4 text-gray-600 dark:text-graphite-muted text-xs">{row.hebloValue ?? '—'}</td>
+                  <td className="py-1.5 pr-4 text-gray-600 dark:text-graphite-muted text-xs">{row.shoptetValue ?? '—'}</td>
+                  <td className="py-1.5 text-gray-500 dark:text-graphite-muted text-xs">{row.details ?? ''}</td>
                 </tr>
               );
             })}
@@ -207,19 +207,19 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
 
   return (
     <div className="overflow-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50 sticky top-0 z-10">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+        <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
           <tr>
             <th className="px-3 py-3 w-8" />
-            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
               Faktura
             </th>
-            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
               Neshody
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
           {results.map((result) => (
             <InvoiceResultRow key={result.id} result={result} />
           ))}

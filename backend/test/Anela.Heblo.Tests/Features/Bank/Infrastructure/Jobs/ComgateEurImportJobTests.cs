@@ -2,9 +2,11 @@ using System.Reflection;
 using Anela.Heblo.Application.Features.Bank;
 using Anela.Heblo.Application.Features.Bank.Infrastructure.Jobs;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.Bank;
 using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -25,32 +27,33 @@ public sealed class ComgateEurImportJobTests
     }
 
     [Fact]
-    public void GetParameters_ReturnsComgateEurAccount_WithYesterdayDateRange()
+    public void AccountName_IsComgateEur_WireContractStable()
     {
-        var job = CreateJob();
-        var beforeYesterday = DateTime.Today.AddDays(-1);
+        GetAccountName(CreateJob()).Should().Be(BankAccountNames.ComgateEur).And.Be("ComgateEUR");
+    }
 
-        var parameters = InvokeGetParameters(job);
-
-        parameters.AccountName.Should().Be(BankAccountNames.ComgateEur);
-        // Guard against accidental rename of the constant value — the wire
-        // contract with BankAccountSettings.Accounts[].Name must stay stable.
-        parameters.AccountName.Should().Be("ComgateEUR");
-        parameters.DateFrom.Should().Be(parameters.DateTo);
-        parameters.DateFrom.Should().BeOnOrAfter(beforeYesterday.AddDays(-1));
-        parameters.DateFrom.Should().BeOnOrBefore(beforeYesterday.AddDays(1));
+    [Fact]
+    public void GetTargetEndDate_ReturnsYesterday()
+    {
+        var today = new DateTime(2026, 6, 15);
+        InvokeGetTargetEndDate(CreateJob(), today).Should().Be(new DateTime(2026, 6, 14));
     }
 
     private static ComgateEurImportJob CreateJob() => new(
         Mock.Of<IMediator>(),
         NullLoggerFactory.Instance,
-        Mock.Of<IRecurringJobStatusChecker>());
+        Mock.Of<IRecurringJobStatusChecker>(),
+        Mock.Of<IBankImportStateRepository>(),
+        Mock.Of<IBankStatementImportRepository>(),
+        Options.Create(new BankImportWatermarkOptions()));
 
-    private static BankImportJobParameters InvokeGetParameters(ComgateEurImportJob job)
-    {
-        var method = typeof(ComgateEurImportJob).GetMethod(
-            "GetParameters",
-            BindingFlags.Instance | BindingFlags.NonPublic)!;
-        return (BankImportJobParameters)method.Invoke(job, null)!;
-    }
+    private static string GetAccountName(BankImportJobBase job) =>
+        (string)typeof(BankImportJobBase)
+            .GetProperty("AccountName", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(job)!;
+
+    private static DateTime InvokeGetTargetEndDate(BankImportJobBase job, DateTime today) =>
+        (DateTime)typeof(BankImportJobBase)
+            .GetMethod("GetTargetEndDate", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(job, new object[] { today })!;
 }

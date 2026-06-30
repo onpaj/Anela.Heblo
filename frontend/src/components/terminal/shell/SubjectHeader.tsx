@@ -19,7 +19,7 @@ export const SubjectHeader: React.FC<SubjectHeaderProps> = ({
   if (!code) {
     return (
       <div data-testid="subject-empty"
-           className="flex items-center gap-3 px-4 py-4 text-neutral-gray">
+           className="flex items-center gap-3 px-4 py-4 text-neutral-gray dark:text-graphite-muted">
         <ScanLine className="h-6 w-6" />
         <span className="text-base font-medium">{emptyPrompt}</span>
       </div>
@@ -27,10 +27,10 @@ export const SubjectHeader: React.FC<SubjectHeaderProps> = ({
   }
   return (
     <div data-testid="subject-header"
-         className="flex items-center justify-between gap-3 px-4 py-3 bg-white border-b border-border-light">
+         className="flex items-center justify-between gap-3 px-4 py-3 bg-white dark:bg-graphite-surface border-b border-border-light dark:border-graphite-border">
       <div className="min-w-0">
-        <div className="font-mono text-lg font-semibold text-neutral-slate truncate">{code}</div>
-        {facts && <div className="text-sm text-neutral-gray truncate">{facts}</div>}
+        <div className="font-mono text-lg font-semibold text-neutral-slate dark:text-graphite-text truncate">{code}</div>
+        {facts && <div className="text-sm text-neutral-gray dark:text-graphite-muted truncate">{facts}</div>}
       </div>
       {state && <TransportBoxStateBadge state={state} size="md" />}
     </div>

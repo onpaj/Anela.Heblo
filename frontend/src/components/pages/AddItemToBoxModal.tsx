@@ -105,11 +105,11 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-md w-full mx-4">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-graphite-border">
           <div className="flex items-center">
-            <Package className="h-5 w-5 text-indigo-600 mr-2" />
-            <h2 className="text-lg font-medium text-gray-900">
+            <Package className="h-5 w-5 text-indigo-600 dark:text-graphite-accent mr-2" />
+            <h2 className="text-lg font-medium text-gray-900 dark:text-graphite-text">
               Přidání položky do boxu
             </h2>
           </div>
@@ -117,7 +117,7 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
             onClick={handleClose}
             disabled={isLoading}
             aria-label="close"
-            className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 disabled:opacity-50"
           >
             <X className="h-5 w-5" />
           </button>
@@ -138,14 +138,14 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
           }}
         >
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md text-sm">
+            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-graphite-border text-red-700 dark:text-red-300 rounded-md text-sm">
               {error}
             </div>
           )}
           <div className="mb-4">
             <label
               htmlFor="product"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2"
             >
               Produkt/Materiál
             </label>
@@ -160,7 +160,7 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
           <div className="mb-4">
             <label
               htmlFor="amount"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2"
             >
               Množství
             </label>
@@ -176,7 +176,7 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
               placeholder="0"
               min="0.01"
               step="0.01"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -185,7 +185,7 @@ const AddItemToBoxModal: React.FC<AddItemToBoxModalProps> = ({
               type="button"
               onClick={handleClose}
               disabled={isLoading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Zrušit
             </button>

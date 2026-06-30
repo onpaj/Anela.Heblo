@@ -125,7 +125,7 @@ function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabe
   if (printError) {
     return (
       <div className="flex flex-col items-center gap-3">
-        <p className="text-center text-red-600">
+        <p className="text-center text-red-600 dark:text-red-400">
           {printError.status === 404
             ? `Štítek ${printError.packageNumber} zatím nebyl u dopravce vygenerován.`
             : `Štítek ${printError.packageNumber} se nepodařilo načíst${printError.status ? ` (chyba ${printError.status})` : ''}.`}

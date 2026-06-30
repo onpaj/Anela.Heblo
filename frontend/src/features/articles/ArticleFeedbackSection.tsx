@@ -17,19 +17,19 @@ const ArticleFeedbackSection: React.FC<ArticleFeedbackSectionProps> = ({ article
     const precision = article.precisionScore ?? '-';
     const style = article.styleScore ?? '-';
     return (
-      <div className="mt-6 border-t pt-4 space-y-1">
-        <p className="text-sm font-medium text-gray-700">
+      <div className="mt-6 border-t dark:border-graphite-border pt-4 space-y-1">
+        <p className="text-sm font-medium text-gray-700 dark:text-graphite-muted">
           Hodnocení: Přesnost {precision}/5, Styl {style}/5
         </p>
         {article.feedbackComment && (
-          <p data-testid="article-feedback-comment" className="text-sm text-gray-600 whitespace-pre-wrap">{article.feedbackComment}</p>
+          <p data-testid="article-feedback-comment" className="text-sm text-gray-600 dark:text-graphite-muted whitespace-pre-wrap">{article.feedbackComment}</p>
         )}
       </div>
     );
   }
 
   return (
-    <div className="mt-6 border-t pt-4">
+    <div className="mt-6 border-t dark:border-graphite-border pt-4">
       <RagFeedbackForm
         onSubmit={(data) =>
           submitFeedback.mutate(data, {
@@ -43,7 +43,7 @@ const ArticleFeedbackSection: React.FC<ArticleFeedbackSectionProps> = ({ article
         alreadySubmitted={alreadySubmitted}
       />
       {submitFeedback.isError && (
-        <p className="mt-2 text-sm text-red-600">Odeslání selhalo. Zkuste to znovu.</p>
+        <p className="mt-2 text-sm text-red-600 dark:text-red-400">Odeslání selhalo. Zkuste to znovu.</p>
       )}
     </div>
   );

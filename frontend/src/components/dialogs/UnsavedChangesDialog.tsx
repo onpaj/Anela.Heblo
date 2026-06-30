@@ -28,28 +28,28 @@ const UnsavedChangesDialog: React.FC<UnsavedChangesDialogProps> = ({
 
       {/* Dialog */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="relative bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-md w-full p-6">
           {/* Close button */}
           <button
             onClick={onKeepEditing}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            className="absolute top-4 right-4 text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
           </button>
 
           {/* Icon */}
-          <div className="flex items-center justify-center w-12 h-12 mx-auto bg-yellow-100 rounded-full mb-4">
-            <AlertTriangle className="h-6 w-6 text-yellow-600" />
+          <div className="flex items-center justify-center w-12 h-12 mx-auto bg-yellow-100 dark:bg-amber-900/30 rounded-full mb-4">
+            <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-amber-400" />
           </div>
 
           {/* Title */}
-          <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-graphite-text text-center mb-2">
             Unsaved changes
           </h3>
 
           {/* Message */}
-          <div className="text-sm text-gray-600 text-center mb-6">
+          <div className="text-sm text-gray-600 dark:text-graphite-muted text-center mb-6">
             <p>You have unsaved changes. Save them before leaving?</p>
           </div>
 
@@ -58,14 +58,14 @@ const UnsavedChangesDialog: React.FC<UnsavedChangesDialogProps> = ({
             <button
               onClick={onKeepEditing}
               disabled={isSaving}
-              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface-2 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
             >
               Keep editing
             </button>
             <button
               onClick={onDiscard}
               disabled={isSaving}
-              className="flex-1 px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-300 bg-white dark:bg-graphite-surface-2 border border-red-300 dark:border-red-900/40 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
             >
               Discard changes
             </button>

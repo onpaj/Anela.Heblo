@@ -12,8 +12,8 @@ const WarehouseStatistics: React.FC = () => {
     return (
       <div className="container mx-auto p-6 max-w-7xl">
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-blue"></div>
-          <span className="ml-2 text-neutral-gray">Načítám statistiky skladu...</span>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-blue dark:border-graphite-accent"></div>
+          <span className="ml-2 text-neutral-gray dark:text-graphite-muted">Načítám statistiky skladu...</span>
         </div>
       </div>
     );
@@ -25,10 +25,10 @@ const WarehouseStatistics: React.FC = () => {
         <div className="flex justify-center items-center py-12">
           <div className="text-center">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-neutral-slate mb-2">
+            <h3 className="text-lg font-medium text-neutral-slate dark:text-graphite-text mb-2">
               Chyba při načítání statistik
             </h3>
-            <p className="text-neutral-gray">
+            <p className="text-neutral-gray dark:text-graphite-muted">
               {error instanceof Error ? error.message : "Neznámá chyba"}
             </p>
           </div>
@@ -41,8 +41,8 @@ const WarehouseStatistics: React.FC = () => {
     return (
       <div className="container mx-auto p-6 max-w-7xl">
         <div className="text-center py-12">
-          <Package className="h-12 w-12 text-neutral-gray mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-neutral-slate">
+          <Package className="h-12 w-12 text-neutral-gray dark:text-graphite-muted mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-neutral-slate dark:text-graphite-text">
             Žádné statistiky skladu
           </h3>
         </div>
@@ -66,15 +66,15 @@ const WarehouseStatistics: React.FC = () => {
   };
 
   const getUtilizationColor = (percentage: number) => {
-    if (percentage > 100) return "text-red-600";
-    if (percentage > 80) return "text-yellow-600";
-    return "text-green-600";
+    if (percentage > 100) return "text-red-600 dark:text-red-400";
+    if (percentage > 80) return "text-yellow-600 dark:text-amber-400";
+    return "text-green-600 dark:text-emerald-400";
   };
 
   const getUtilizationBgColor = (percentage: number) => {
-    if (percentage > 100) return "bg-red-100";
-    if (percentage > 80) return "bg-yellow-100";
-    return "bg-green-100";
+    if (percentage > 100) return "bg-red-100 dark:bg-red-900/30";
+    if (percentage > 80) return "bg-yellow-100 dark:bg-amber-900/30";
+    return "bg-green-100 dark:bg-emerald-900/30";
   };
 
   const getProgressBarColor = (percentage: number) => {
@@ -90,14 +90,14 @@ const WarehouseStatistics: React.FC = () => {
       {/* Page Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-neutral-slate">
+          <h1 className="text-3xl font-bold text-neutral-slate dark:text-graphite-text">
             Statistiky skladu
           </h1>
-          <p className="text-neutral-gray mt-1">
+          <p className="text-neutral-gray dark:text-graphite-muted mt-1">
             Přehled stavu a naplněnosti skladu
           </p>
         </div>
-        <div className="flex items-center text-sm text-neutral-gray">
+        <div className="flex items-center text-sm text-neutral-gray dark:text-graphite-muted">
           <Clock className="h-4 w-4 mr-2" />
           Aktualizováno: {lastUpdated}
         </div>
@@ -108,16 +108,16 @@ const WarehouseStatistics: React.FC = () => {
         {/* Total Quantity */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-neutral-gray">
+            <CardTitle className="text-sm font-medium text-neutral-gray dark:text-graphite-muted">
               Celkové množství kusů
             </CardTitle>
-            <Hash className="h-4 w-4 text-neutral-gray" />
+            <Hash className="h-4 w-4 text-neutral-gray dark:text-graphite-muted" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-neutral-slate">
+            <div className="text-2xl font-bold text-neutral-slate dark:text-graphite-text">
               {formatNumber(statistics.totalQuantity ?? 0)}
             </div>
-            <p className="text-xs text-neutral-gray">
+            <p className="text-xs text-neutral-gray dark:text-graphite-muted">
               kusů na skladě (eshop)
             </p>
           </CardContent>
@@ -126,16 +126,16 @@ const WarehouseStatistics: React.FC = () => {
         {/* Total Weight */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-neutral-gray">
+            <CardTitle className="text-sm font-medium text-neutral-gray dark:text-graphite-muted">
               Celková hmotnost
             </CardTitle>
-            <Weight className="h-4 w-4 text-neutral-gray" />
+            <Weight className="h-4 w-4 text-neutral-gray dark:text-graphite-muted" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-neutral-slate">
+            <div className="text-2xl font-bold text-neutral-slate dark:text-graphite-text">
               {formatWeight(statistics.totalWeight ?? 0)}
             </div>
-            <p className="text-xs text-neutral-gray">
+            <p className="text-xs text-neutral-gray dark:text-graphite-muted">
               celková hmotnost skladových zásob
             </p>
           </CardContent>
@@ -144,16 +144,16 @@ const WarehouseStatistics: React.FC = () => {
         {/* Warehouse Utilization */}
         <Card className={getUtilizationBgColor(statistics.warehouseUtilizationPercentage ?? 0)}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-neutral-gray">
+            <CardTitle className="text-sm font-medium text-neutral-gray dark:text-graphite-muted">
               Naplněnost skladu
             </CardTitle>
-            <Gauge className="h-4 w-4 text-neutral-gray" />
+            <Gauge className="h-4 w-4 text-neutral-gray dark:text-graphite-muted" />
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${getUtilizationColor(statistics.warehouseUtilizationPercentage ?? 0)}`}>
               {formatPercentage(statistics.warehouseUtilizationPercentage ?? 0)}
             </div>
-            <p className="text-xs text-neutral-gray">
+            <p className="text-xs text-neutral-gray dark:text-graphite-muted">
               kapacita {formatWeight(statistics.warehouseCapacityKg ?? 0)}
             </p>
           </CardContent>
@@ -162,16 +162,16 @@ const WarehouseStatistics: React.FC = () => {
         {/* Total Product Count */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-neutral-gray">
+            <CardTitle className="text-sm font-medium text-neutral-gray dark:text-graphite-muted">
               Počet produktů
             </CardTitle>
-            <Package className="h-4 w-4 text-neutral-gray" />
+            <Package className="h-4 w-4 text-neutral-gray dark:text-graphite-muted" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-neutral-slate">
+            <div className="text-2xl font-bold text-neutral-slate dark:text-graphite-text">
               {formatNumber(statistics.totalProductCount ?? 0)}
             </div>
-            <p className="text-xs text-neutral-gray">
+            <p className="text-xs text-neutral-gray dark:text-graphite-muted">
               různých produktů v katalogu
             </p>
           </CardContent>
@@ -181,7 +181,7 @@ const WarehouseStatistics: React.FC = () => {
       {/* Detailed Utilization Card */}
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold text-neutral-slate">
+          <CardTitle className="text-lg font-semibold text-neutral-slate dark:text-graphite-text">
             Detail naplněnosti skladu
           </CardTitle>
         </CardHeader>
@@ -190,14 +190,14 @@ const WarehouseStatistics: React.FC = () => {
             {/* Capacity Bar */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-neutral-slate">
+                <span className="text-sm font-medium text-neutral-slate dark:text-graphite-text">
                   Využití kapacity
                 </span>
                 <span className={`text-sm font-semibold ${getUtilizationColor(statistics.warehouseUtilizationPercentage ?? 0)}`}>
                   {formatPercentage(statistics.warehouseUtilizationPercentage ?? 0)}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
+              <div className="w-full bg-gray-200 dark:bg-graphite-hover rounded-full h-3">
                 <div
                   className={`h-3 rounded-full transition-all duration-500 ${getProgressBarColor(statistics.warehouseUtilizationPercentage ?? 0)}`}
                   style={{
@@ -206,7 +206,7 @@ const WarehouseStatistics: React.FC = () => {
                 ></div>
               </div>
               {(statistics.warehouseUtilizationPercentage ?? 0) > 100 && (
-                <div className="mt-2 text-sm text-red-600 font-medium">
+                <div className="mt-2 text-sm text-red-600 dark:text-red-400 font-medium">
                   ⚠️ Sklad překračuje maximální kapacitu!
                 </div>
               )}
@@ -214,23 +214,23 @@ const WarehouseStatistics: React.FC = () => {
 
             {/* Weight Details */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-lg font-semibold text-neutral-slate">
+              <div className="text-center p-4 bg-gray-50 dark:bg-graphite-surface-2 rounded-lg">
+                <div className="text-lg font-semibold text-neutral-slate dark:text-graphite-text">
                   {formatWeight(statistics.totalWeight ?? 0)}
                 </div>
-                <div className="text-xs text-neutral-gray">Aktuální hmotnost</div>
+                <div className="text-xs text-neutral-gray dark:text-graphite-muted">Aktuální hmotnost</div>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-lg font-semibold text-neutral-slate">
+              <div className="text-center p-4 bg-gray-50 dark:bg-graphite-surface-2 rounded-lg">
+                <div className="text-lg font-semibold text-neutral-slate dark:text-graphite-text">
                   {formatWeight(statistics.warehouseCapacityKg ?? 0)}
                 </div>
-                <div className="text-xs text-neutral-gray">Maximální kapacita</div>
+                <div className="text-xs text-neutral-gray dark:text-graphite-muted">Maximální kapacita</div>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-lg font-semibold text-neutral-slate">
+              <div className="text-center p-4 bg-gray-50 dark:bg-graphite-surface-2 rounded-lg">
+                <div className="text-lg font-semibold text-neutral-slate dark:text-graphite-text">
                   {formatWeight((statistics.warehouseCapacityKg ?? 0) - (statistics.totalWeight ?? 0))}
                 </div>
-                <div className="text-xs text-neutral-gray">
+                <div className="text-xs text-neutral-gray dark:text-graphite-muted">
                   {(statistics.totalWeight ?? 0) > (statistics.warehouseCapacityKg ?? 0)
                     ? "Překročeno o" 
                     : "Zbývající kapacita"}

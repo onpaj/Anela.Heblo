@@ -39,7 +39,7 @@ public sealed class GetArticleTraceHandler : IRequestHandler<GetArticleTraceRequ
                     Id = s.Id,
                     StepName = s.StepName,
                     Sequence = s.Sequence,
-                    Status = s.Status.ToString(),
+                    Status = s.Status,
                     StartedAt = s.StartedAt,
                     FinishedAt = s.FinishedAt,
                     DurationMs = s.DurationMs,

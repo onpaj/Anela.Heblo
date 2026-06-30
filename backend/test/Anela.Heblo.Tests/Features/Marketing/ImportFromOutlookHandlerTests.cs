@@ -738,4 +738,68 @@ public class ImportFromOutlookHandlerTests
         result.Updated.Should().Be(1);
         existingAction.Title.Should().Be("New Title");
     }
+
+    [Fact]
+    public async Task Handle_WhenMultipleNewEvents_PersistsBatchWithSingleSaveChanges()
+    {
+        // Regression for the per-event SaveChangesAsync (issue #3153): the whole
+        // import must be persisted in one round-trip, not one save per event.
+        var events = new List<OutlookEventDto>
+        {
+            BuildEvent(id: "evt-a", subject: "Event A"),
+            BuildEvent(id: "evt-b", subject: "Event B"),
+            BuildEvent(id: "evt-c", subject: "Event C"),
+        };
+
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(events);
+
+        var nextId = 0;
+        _repositoryMock
+            .Setup(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MarketingAction a, CancellationToken _) => { a.Id = ++nextId; return a; });
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.Created.Should().Be(3);
+        result.Items.Should().OnlyContain(i => i.Status == ImportStatus.Created && i.CreatedActionId != null);
+        _repositoryMock.Verify(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+        _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenBatchSaveFails_ReportsAllStagedEventsAsFailed()
+    {
+        // The single batch save is atomic: if it throws (e.g. a DB constraint
+        // violation), none of the staged rows were written, so every staged
+        // event must be reported as Failed rather than Created.
+        var events = new List<OutlookEventDto>
+        {
+            BuildEvent(id: "evt-a", subject: "Event A"),
+            BuildEvent(id: "evt-b", subject: "Event B"),
+        };
+
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(events);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Simulated batch DB failure"));
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        result.Created.Should().Be(0);
+        result.Failed.Should().Be(2);
+        result.Items.Should().HaveCount(2);
+        result.Items.Should().OnlyContain(i => i.Status == ImportStatus.Failed && i.Error == "Simulated batch DB failure");
+        // The batch is saved exactly once — failure is not retried per-event.
+        _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

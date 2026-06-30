@@ -109,7 +109,7 @@ public static class ServiceCollectionExtensions
             .AddCheck<HomeAssistantConditionsHealthCheck>(
                 name: "homeassistant-conditions",
                 failureStatus: HealthStatus.Degraded,
-                tags: new[] { "ready", "homeassistant" });
+                tags: new[] { "homeassistant" });
 
         // Add database health check via the shared NpgsqlDataSource so the probe
         // reuses the application connection pool instead of opening a fresh connection
@@ -132,8 +132,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(TimeProvider.System);
 
         // Global exception → HTTP mapping for infrastructure exceptions.
+        // Handler order is significant — first match wins.
         // Business errors continue to flow through BaseApiController.HandleResponse.
         services.AddExceptionHandler<UnauthorizedAccessExceptionHandler>();
+        services.AddExceptionHandler<ValidationExceptionHandler>();
+        services.AddExceptionHandler<ArgumentExceptionHandler>();
         services.AddProblemDetails();
 
         // Register HttpClient for E2E testing middleware
@@ -366,6 +369,9 @@ public static class ServiceCollectionExtensions
 
         // Register configuration options
         services.Configure<HangfireOptions>(configuration.GetSection(HangfireOptions.ConfigurationKey));
+
+        // Register global job filter for Activity-based telemetry (App Insights correlation)
+        GlobalJobFilters.Filters.Add(new HangfireJobActivityFilter());
 
         return services;
     }

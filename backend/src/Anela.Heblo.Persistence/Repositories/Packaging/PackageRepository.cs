@@ -185,6 +185,117 @@ public class PackageRepository : IPackageRepository
         return (total, byPacker);
     }
 
+    public async Task<PackingStatistics> GetPackingStatisticsAsync(
+        DateTimeOffset fromUtc,
+        DateTimeOffset toUtc,
+        TimeZoneInfo localZone,
+        CancellationToken ct = default)
+    {
+        // Npgsql requires UTC DateTimeOffset values for timestamptz comparisons.
+        var from = fromUtc.ToUniversalTime();
+        var to = toUtc.ToUniversalTime();
+
+        // Project the minimal columns for the window, then aggregate in memory. The
+        // window is bounded (default 30 days), so the row count stays small and we
+        // avoid provider-specific local-time GroupBy translation.
+        var rows = await _db.Packages
+            .AsNoTracking()
+            .Where(p => p.PackedAt >= from && p.PackedAt < to)
+            .Select(p => new StatRow(
+                p.PackedAt,
+                p.OrderCode,
+                p.PackageNumber,
+                p.ShippingProviderCode,
+                p.ShippingProviderName,
+                p.PackedByUserId,
+                p.PackedBy,
+                p.TrackingNumber != null))
+            .ToListAsync(ct);
+
+        return Aggregate(rows, localZone);
+    }
+
+    private sealed record StatRow(
+        DateTimeOffset PackedAt,
+        string OrderCode,
+        string PackageNumber,
+        string ShippingProviderCode,
+        string? ShippingProviderName,
+        Guid? PackedByUserId,
+        string? PackedBy,
+        bool HasTracking);
+
+    private static PackingStatistics Aggregate(IReadOnlyList<StatRow> rows, TimeZoneInfo localZone)
+    {
+        // Pre-compute each row's local timestamp once so all groupings stay consistent.
+        var local = rows
+            .Select(r => new { Row = r, Local = TimeZoneInfo.ConvertTime(r.PackedAt, localZone) })
+            .ToList();
+
+        var throughputDaily = local
+            .GroupBy(x => DateOnly.FromDateTime(x.Local.DateTime))
+            .Select(g => new DailyThroughput(
+                g.Key,
+                g.Select(x => x.Row.OrderCode).Distinct().Count(),
+                g.Count()))
+            .OrderBy(d => d.Date)
+            .ToList();
+
+        var hourHeatmap = local
+            .GroupBy(x => new { Day = IsoDayOfWeek(x.Local.DayOfWeek), x.Local.Hour })
+            .Select(g => new HourBucket(g.Key.Day, g.Key.Hour, g.Count()))
+            .OrderBy(h => h.DayOfWeek).ThenBy(h => h.Hour)
+            .ToList();
+
+        var byPacker = local
+            .Where(x => x.Row.PackedByUserId != null)
+            .GroupBy(x => x.Row.PackedByUserId)
+            .Select(g => new PackerThroughput(
+                g.Key,
+                g.Select(x => x.Row.PackedBy).FirstOrDefault(n => n != null),
+                g.Select(x => x.Row.OrderCode).Distinct().Count(),
+                g.Count()))
+            .OrderByDescending(p => p.OrderCount)
+            .ToList();
+
+        var byCarrier = local
+            .GroupBy(x => x.Row.ShippingProviderCode)
+            .Select(g => new CarrierThroughput(
+                g.Key,
+                g.Select(x => x.Row.ShippingProviderName).FirstOrDefault(n => n != null),
+                g.Count()))
+            .OrderByDescending(c => c.PackageCount)
+            .ToList();
+
+        var packagesPerOrder = rows
+            .GroupBy(r => r.OrderCode)
+            .Select(g => Math.Min(3, g.Select(r => r.PackageNumber).Distinct().Count()))
+            .GroupBy(bucket => bucket)
+            .Select(g => new PackagesPerOrderBucket(g.Key, g.Count()))
+            .OrderBy(b => b.PackageCount)
+            .ToList();
+
+        var attributedDays = local
+            .Where(x => x.Row.PackedByUserId != null)
+            .Select(x => DateOnly.FromDateTime(x.Local.DateTime))
+            .ToList();
+        var attributionSince = attributedDays.Count == 0 ? (DateOnly?)null : attributedDays.Min();
+
+        return new PackingStatistics(
+            TotalPackages: rows.Count,
+            TotalOrders: rows.Select(r => r.OrderCode).Distinct().Count(),
+            PackagesWithTracking: rows.Count(r => r.HasTracking),
+            PackerAttributionSince: attributionSince,
+            ThroughputDaily: throughputDaily,
+            HourHeatmap: hourHeatmap,
+            ByPacker: byPacker,
+            ByCarrier: byCarrier,
+            PackagesPerOrder: packagesPerOrder);
+    }
+
+    // .NET DayOfWeek has Sunday = 0; convert to ISO where Monday = 1 .. Sunday = 7.
+    private static int IsoDayOfWeek(DayOfWeek day) => day == DayOfWeek.Sunday ? 7 : (int)day;
+
     private static string EscapeLike(string value) =>
         value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 }

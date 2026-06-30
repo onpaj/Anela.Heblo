@@ -22,9 +22,9 @@ function formatDayLabel(dateStr: string): string {
 
 const DaySeparator: React.FC<DaySeparatorProps> = ({ date }) => (
   <div className="flex items-center my-3" data-testid="day-separator">
-    <div className="flex-1 h-px bg-gray-200" />
-    <span className="mx-3 text-xs text-gray-400 font-medium">{formatDayLabel(date)}</span>
-    <div className="flex-1 h-px bg-gray-200" />
+    <div className="flex-1 h-px bg-gray-200 dark:bg-graphite-border" />
+    <span className="mx-3 text-xs text-gray-400 dark:text-graphite-faint font-medium">{formatDayLabel(date)}</span>
+    <div className="flex-1 h-px bg-gray-200 dark:bg-graphite-border" />
   </div>
 );
 

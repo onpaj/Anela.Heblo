@@ -299,26 +299,23 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
 
     public async Task<FeedbackAggregateStats> GetFeedbackStatsAsync(CancellationToken ct = default)
     {
-        var totalQuestions = await _context.KnowledgeBaseQuestionLogs
-            .CountAsync(ct);
-
-        var totalWithFeedback = await _context.KnowledgeBaseQuestionLogs
-            .CountAsync(l => l.PrecisionScore != null || l.StyleScore != null, ct);
-
-        var avgPrecision = await _context.KnowledgeBaseQuestionLogs
-            .Where(l => l.PrecisionScore != null)
-            .AverageAsync(l => (double?)l.PrecisionScore, ct);
-
-        var avgStyle = await _context.KnowledgeBaseQuestionLogs
-            .Where(l => l.StyleScore != null)
-            .AverageAsync(l => (double?)l.StyleScore, ct);
+        var row = await _context.KnowledgeBaseQuestionLogs
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                TotalQuestions = g.Count(),
+                TotalWithFeedback = g.Count(l => l.PrecisionScore != null || l.StyleScore != null),
+                AvgPrecision = g.Average(l => (double?)l.PrecisionScore),
+                AvgStyle = g.Average(l => (double?)l.StyleScore),
+            })
+            .FirstOrDefaultAsync(ct);
 
         return new FeedbackAggregateStats
         {
-            TotalQuestions = totalQuestions,
-            TotalWithFeedback = totalWithFeedback,
-            AvgPrecisionScore = avgPrecision.HasValue ? Math.Round(avgPrecision.Value, 1) : null,
-            AvgStyleScore = avgStyle.HasValue ? Math.Round(avgStyle.Value, 1) : null,
+            TotalQuestions = row?.TotalQuestions ?? 0,
+            TotalWithFeedback = row?.TotalWithFeedback ?? 0,
+            AvgPrecisionScore = row?.AvgPrecision.HasValue == true ? Math.Round(row.AvgPrecision.Value, 1) : null,
+            AvgStyleScore = row?.AvgStyle.HasValue == true ? Math.Round(row.AvgStyle.Value, 1) : null,
         };
     }
 }

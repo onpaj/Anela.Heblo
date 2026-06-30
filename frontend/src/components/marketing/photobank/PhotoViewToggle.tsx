@@ -16,7 +16,7 @@ function buttonClass(isActive: boolean, isFirst: boolean, isLast: boolean): stri
   const rounded = isFirst && isLast ? "rounded" : isFirst ? "rounded-l" : isLast ? "rounded-r" : "";
   const active = isActive
     ? "bg-primary-blue text-white"
-    : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50";
+    : "bg-white dark:bg-graphite-surface text-gray-600 dark:text-graphite-muted border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5";
   return `w-8 h-8 flex items-center justify-center ${rounded} ${active}`;
 }
 

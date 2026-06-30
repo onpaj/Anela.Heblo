@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Invoices.Contracts;
-using Anela.Heblo.Persistence.Invoices;
+using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Application.Features.Invoices.UseCases.GetIssuedInvoiceDetail;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Features.Invoices.Contracts;

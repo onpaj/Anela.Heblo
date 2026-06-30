@@ -51,18 +51,4 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
         public string TimeZone { get; set; } = string.Empty;
     }
 
-    internal class GraphEventCollection
-    {
-        [JsonPropertyName("value")]
-        public List<OutlookEventDto> Value { get; set; } = new();
-
-        [JsonPropertyName("@odata.nextLink")]
-        public string? NextLink { get; set; }
-    }
-
-    internal class OutlookEventIdPayload
-    {
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
-    }
 }

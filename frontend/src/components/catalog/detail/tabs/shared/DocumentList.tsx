@@ -15,7 +15,7 @@ interface DocumentListProps {
 export default function DocumentList({ files, isLoading, onUploadClick }: DocumentListProps) {
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8 text-gray-500 text-sm">
+      <div className="flex items-center justify-center py-8 text-gray-500 dark:text-graphite-muted text-sm">
         Načítání…
       </div>
     );
@@ -23,12 +23,12 @@ export default function DocumentList({ files, isLoading, onUploadClick }: Docume
 
   if (files.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 gap-3 text-gray-500 text-sm">
+      <div className="flex flex-col items-center justify-center py-8 gap-3 text-gray-500 dark:text-graphite-muted text-sm">
         <span>Žádné dokumenty</span>
         {onUploadClick && (
           <button
             onClick={onUploadClick}
-            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium dark:text-graphite-accent"
           >
             Nahrát soubor
           </button>
@@ -38,19 +38,19 @@ export default function DocumentList({ files, isLoading, onUploadClick }: Docume
   }
 
   return (
-    <ul className="divide-y divide-gray-100">
+    <ul className="divide-y divide-gray-100 dark:divide-graphite-border">
       {files.map((file) => (
-        <li key={file.webUrl} className="flex items-center justify-between py-3 px-1 hover:bg-gray-50 rounded">
+        <li key={file.webUrl} className="flex items-center justify-between py-3 px-1 hover:bg-gray-50 rounded dark:hover:bg-white/5">
           <a
             href={file.webUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-indigo-600 hover:text-indigo-800 hover:underline truncate max-w-xs"
+            className="text-sm text-indigo-600 hover:text-indigo-800 hover:underline truncate max-w-xs dark:text-graphite-accent"
             title={file.name}
           >
             {file.name}
           </a>
-          <div className="flex items-center gap-4 text-xs text-gray-500 ml-4 shrink-0">
+          <div className="flex items-center gap-4 text-xs text-gray-500 ml-4 shrink-0 dark:text-graphite-muted">
             <span>{formatFileSize(file.sizeBytes)}</span>
             <span>{new Date(file.modifiedAt).toLocaleDateString('cs-CZ')}</span>
           </div>

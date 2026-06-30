@@ -33,11 +33,11 @@ interface ManufactureOrderWeeklyCalendarProps {
 }
 
 const stateColors: Record<ManufactureOrderState, string> = {
-  [ManufactureOrderState.Draft]: "bg-gray-100 text-gray-800 border-gray-200",
-  [ManufactureOrderState.Planned]: "bg-blue-100 text-blue-800 border-blue-200",
-  [ManufactureOrderState.SemiProductManufactured]: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  [ManufactureOrderState.Completed]: "bg-green-100 text-green-800 border-green-200",
-  [ManufactureOrderState.Cancelled]: "bg-red-100 text-red-800 border-red-200",
+  [ManufactureOrderState.Draft]: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:border-graphite-border",
+  [ManufactureOrderState.Planned]: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900/40",
+  [ManufactureOrderState.SemiProductManufactured]: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-900/40",
+  [ManufactureOrderState.Completed]: "bg-green-100 text-green-800 border-green-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-900/40",
+  [ManufactureOrderState.Cancelled]: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-900/40",
 };
 
 type ErpDocumentStatus = 'pending' | 'failed' | 'success' | 'warning';
@@ -99,28 +99,28 @@ const ErpStatusIndicator: React.FC<{
   const getStatusIcon = () => {
     switch (status) {
       case 'success':
-        return <Check className="h-3 w-3 text-green-600" />;
+        return <Check className="h-3 w-3 text-green-600 dark:text-emerald-400" />;
       case 'failed':
-        return <X className="h-3 w-3 text-red-600" />;
+        return <X className="h-3 w-3 text-red-600 dark:text-red-400" />;
       case 'warning':
-        return <AlertCircle className="h-3 w-3 text-orange-600" />;
+        return <AlertCircle className="h-3 w-3 text-orange-600 dark:text-orange-300" />;
       case 'pending':
       default:
-        return <HelpCircle className="h-3 w-3 text-gray-400" />;
+        return <HelpCircle className="h-3 w-3 text-gray-400 dark:text-graphite-faint" />;
     }
   };
 
   const getStatusBg = () => {
     switch (status) {
       case 'success':
-        return 'bg-green-50 border-green-200';
+        return 'bg-green-50 border-green-200 dark:bg-emerald-900/20 dark:border-emerald-900/40';
       case 'failed':
-        return 'bg-red-50 border-red-200';
+        return 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-900/40';
       case 'warning':
-        return 'bg-orange-50 border-orange-200';
+        return 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-900/40';
       case 'pending':
       default:
-        return 'bg-gray-50 border-gray-200';
+        return 'bg-gray-50 border-gray-200 dark:bg-graphite-surface-2 dark:border-graphite-border';
     }
   };
 
@@ -408,14 +408,14 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-graphite-surface-2">
       {/* Compact Header */}
-      <div className="flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 mb-2">
-        <div className="p-2 border-b border-gray-200">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface rounded-lg shadow-sm dark:shadow-soft-dark border border-gray-200 dark:border-graphite-border mb-2">
+        <div className="p-2 border-b border-gray-200 dark:border-graphite-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4 text-indigo-600" />
-              <h2 className="text-sm font-semibold text-gray-900">
+              <Calendar className="h-4 w-4 text-indigo-600 dark:text-graphite-accent" />
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-graphite-text">
                 Týdenní kalendář výrobních zakázek
               </h2>
             </div>
@@ -424,32 +424,32 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
               {updateScheduleMutation.isPending && (
                 <div className="flex items-center space-x-2 mr-2">
                   <Loader2 className="h-3 w-3 animate-spin text-indigo-500" />
-                  <span className="text-xs text-indigo-600">Aktualizace rozpisu...</span>
+                  <span className="text-xs text-indigo-600 dark:text-graphite-accent">Aktualizace rozpisu...</span>
                 </div>
               )}
               <button
                 onClick={() => navigateWeek('prev')}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded transition-colors"
                 title="Předchozí týden"
               >
-                <ChevronLeft className="h-3 w-3 text-gray-600" />
+                <ChevronLeft className="h-3 w-3 text-gray-600 dark:text-graphite-muted" />
               </button>
               <button
                 onClick={goToCurrentWeek}
-                className="px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                className="px-2 py-1 text-xs font-medium text-indigo-600 dark:text-graphite-accent hover:bg-indigo-50 dark:hover:bg-graphite-accent/10 rounded transition-colors"
                 title="Přejít na aktuální týden"
               >
                 Dnes
               </button>
-              <span className="text-sm font-medium text-gray-900 min-w-[160px] text-center">
+              <span className="text-sm font-medium text-gray-900 dark:text-graphite-text min-w-[160px] text-center">
                 {formatWeekRange(startDate, endDate)}
               </span>
               <button
                 onClick={() => navigateWeek('next')}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded transition-colors"
                 title="Následující týden"
               >
-                <ChevronRight className="h-3 w-3 text-gray-600" />
+                <ChevronRight className="h-3 w-3 text-gray-600 dark:text-graphite-muted" />
               </button>
             </div>
           </div>
@@ -457,18 +457,18 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
       </div>
 
       {/* Calendar Content */}
-      <div className="flex-1 flex flex-col bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="flex-1 flex flex-col bg-white dark:bg-graphite-surface rounded-lg shadow-sm dark:shadow-soft-dark border border-gray-200 dark:border-graphite-border overflow-hidden">
         <div className="p-4 flex-1 overflow-y-auto h-full flex flex-col">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                <div className="text-gray-500">Načítání týdenního kalendáře...</div>
+                <div className="text-gray-500 dark:text-graphite-muted">Načítání týdenního kalendáře...</div>
               </div>
             </div>
           ) : error ? (
             <div className="flex items-center justify-center h-64">
-              <div className="flex items-center space-x-2 text-red-600">
+              <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
                 <AlertCircle className="h-5 w-5" />
                 <div>Chyba při načítání kalendáře</div>
               </div>
@@ -486,23 +486,23 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                   return (
                     <div 
                       key={index}
-                      className={`border border-gray-200 rounded-lg min-h-[400px] flex flex-col ${
-                        isToday ? 'border-indigo-300 bg-indigo-50' : 'bg-white'
+                      className={`border border-gray-200 dark:border-graphite-border rounded-lg min-h-[400px] flex flex-col ${
+                        isToday ? 'border-indigo-300 bg-indigo-50 dark:border-graphite-accent dark:bg-graphite-accent/10' : 'bg-white dark:bg-graphite-surface'
                       } ${
-                        draggedOverDay === dateKey ? 'border-indigo-500 bg-indigo-100' : ''
+                        draggedOverDay === dateKey ? 'border-indigo-500 bg-indigo-100 dark:border-graphite-accent dark:bg-graphite-accent/20' : ''
                       }`}
                       onDragOver={(e) => handleDragOver(e, dateKey)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, day)}
                     >
                       {/* Day Header - Keep compact but readable */}
-                      <div className={`p-2 border-b border-gray-200 ${
-                        isToday ? 'bg-indigo-100' : 'bg-gray-50'
+                      <div className={`p-2 border-b border-gray-200 dark:border-graphite-border ${
+                        isToday ? 'bg-indigo-100 dark:bg-graphite-accent/20' : 'bg-gray-50 dark:bg-graphite-surface-2'
                       }`}>
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className={`text-sm font-medium text-center ${
-                              isToday ? 'text-indigo-700' : 'text-gray-700'
+                              isToday ? 'text-indigo-700 dark:text-graphite-accent' : 'text-gray-700 dark:text-graphite-muted'
                             }`}>
                               {dayInfo.compact}
                             </div>
@@ -536,7 +536,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                             onClick={() => handleEventClick(event)}
                             className={`
                               p-3 rounded-lg transition-all border min-h-[200px] flex flex-col
-                              ${event.state ? stateColors[event.state] : 'bg-gray-100 text-gray-800 border-gray-200'}
+                              ${event.state ? stateColors[event.state] : 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:border-graphite-border'}
                               ${isDraggable ? 'cursor-move hover:shadow-md hover:scale-[1.02] transform' : 'cursor-pointer opacity-75'}
                               ${draggedEvent?.id === event.id ? 'opacity-50 scale-95' : ''}
                               ${isCompletedOrCancelled ? 'border-dashed' : ''}
@@ -561,7 +561,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                     <span>{event.semiProduct?.productName || event.orderNumber}</span>
                                   </div>
                                   {event.semiProduct?.productCode && (
-                                    <div className="text-xs text-gray-600 truncate">
+                                    <div className="text-xs text-gray-600 dark:text-graphite-muted truncate">
                                       {event.semiProduct.productCode}
                                     </div>
                                   )}
@@ -610,7 +610,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
 
                             {/* Semi-product Information - Compact - Hide for SinglePhase */}
                             {event.semiProduct && event.manufactureType !== ManufactureType.SinglePhase && (
-                              <div className="mb-2 p-1.5 bg-white bg-opacity-50 rounded border">
+                              <div className="mb-2 p-1.5 bg-white bg-opacity-50 dark:bg-white/5 rounded border dark:border-graphite-border">
                                 <div className="flex items-center justify-center space-x-2">
                                   <div className="flex items-center space-x-1">
                                     <Hash className="h-3 w-3" />
@@ -647,11 +647,11 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                       product.productCode === event.semiProduct?.productCode;
                                     const displayQuantity = getProductDisplayQuantity(product, event.state);
                                     return (
-                                    <div key={idx} className={`text-xs p-2 rounded ${isDirect ? 'bg-amber-100 bg-opacity-70 border border-amber-300' : 'bg-white bg-opacity-30'}`}>
-                                      <div className={`font-medium truncate ${isDirect ? 'text-amber-800' : ''}`} title={product.productName}>
+                                    <div key={idx} className={`text-xs p-2 rounded ${isDirect ? 'bg-amber-100 bg-opacity-70 border border-amber-300 dark:bg-amber-900/30 dark:border-amber-900/40' : 'bg-white bg-opacity-30 dark:bg-white/5'}`}>
+                                      <div className={`font-medium truncate ${isDirect ? 'text-amber-800 dark:text-amber-300' : ''}`} title={product.productName}>
                                         {product.productName}
                                       </div>
-                                      <div className={`flex items-center justify-between ${isDirect ? 'text-amber-700' : 'text-gray-600'}`}>
+                                      <div className={`flex items-center justify-between ${isDirect ? 'text-amber-700 dark:text-amber-400' : 'text-gray-600 dark:text-graphite-muted'}`}>
                                         <span className="truncate">{product.productCode}</span>
                                         <span>{displayQuantity?.toFixed(2)} {isDirect ? 'g' : 'ks'}</span>
                                       </div>
@@ -677,9 +677,9 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                         
                         {dayEvents.length === 0 && (
                           <div className={`text-center text-sm py-8 transition-colors ${
-                            draggedOverDay === dateKey 
-                              ? 'text-indigo-600 font-medium' 
-                              : 'text-gray-400'
+                            draggedOverDay === dateKey
+                              ? 'text-indigo-600 dark:text-graphite-accent font-medium'
+                              : 'text-gray-400 dark:text-graphite-faint'
                           }`}>
                             {draggedOverDay === dateKey ? 'Pusťte zde pro změnu data' : 'Žádné zakázky'}
                           </div>
@@ -695,14 +695,19 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
       </div>
 
       {/* Legend */}
-      <div className="flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 mt-2">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface rounded-lg shadow-sm dark:shadow-soft-dark border border-gray-200 dark:border-graphite-border mt-2">
         <div className="p-2">
           <div className="flex flex-wrap gap-3 text-xs">
-            <span className="font-medium text-gray-700">Stavy zakázek:</span>
+            <span className="font-medium text-gray-700 dark:text-graphite-muted">Stavy zakázek:</span>
             {Object.entries(stateColors).slice(0, 4).map(([state, colorClass]) => (
               <div key={state} className="flex items-center space-x-1">
-                <div className={`w-3 h-3 rounded ${colorClass.split(' ')[0]} border`}></div>
-                <span className="text-gray-600 capitalize">
+                <div
+                  className={`w-3 h-3 rounded ${colorClass
+                    .split(' ')
+                    .filter((c) => c.startsWith("bg-") || c.startsWith("dark:bg-"))
+                    .join(" ")} border dark:border-graphite-border`}
+                ></div>
+                <span className="text-gray-600 dark:text-graphite-muted capitalize">
                   {state}
                 </span>
               </div>
@@ -714,15 +719,15 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
       {/* Quick Planning Modal */}
       {showQuickPlanningModal && selectedPlanningDate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-md w-full mx-4">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-graphite-border">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
                 Rychlé plánování
               </h3>
               <button
                 onClick={() => setShowQuickPlanningModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted"
               >
                 ×
               </button>
@@ -730,7 +735,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
 
             {/* Content */}
             <div className="p-4">
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 dark:text-graphite-muted mb-4">
                 Datum: {selectedPlanningDate.toLocaleDateString('cs-CZ')}
               </p>
               
@@ -739,20 +744,20 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                   <button
                     key={item.productCode}
                     onClick={() => handlePlanningItemClick(item)}
-                    className="w-full text-left p-3 rounded border border-gray-200 hover:bg-gray-50 transition-colors"
+                    className="w-full text-left p-3 rounded border border-gray-200 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                   >
-                    <div className="font-medium text-gray-900">{item.productName}</div>
-                    <div className="text-sm text-gray-500">{item.productCode}</div>
+                    <div className="font-medium text-gray-900 dark:text-graphite-text">{item.productName}</div>
+                    <div className="text-sm text-gray-500 dark:text-graphite-muted">{item.productCode}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-gray-50 rounded-b-lg">
+            <div className="p-4 bg-gray-50 dark:bg-graphite-surface-2 rounded-b-lg">
               <button
                 onClick={() => setShowQuickPlanningModal(false)}
-                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded transition-colors"
+                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-graphite-surface-2 dark:hover:bg-graphite-hover dark:text-graphite-muted py-2 px-4 rounded transition-colors"
               >
                 Zrušit
               </button>

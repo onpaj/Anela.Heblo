@@ -794,17 +794,16 @@ public class UpdateManufactureOrderStatusHandlerTests
 
     private static ManufactureOrder CreateOrderInState(ManufactureOrderState state)
     {
-        return new ManufactureOrder
+        var order = new ManufactureOrder
         {
             Id = ValidOrderId,
             OrderNumber = "MO-2024-001",
             CreatedDate = DateTime.UtcNow.AddDays(-1),
             CreatedByUser = "Original User",
             ResponsiblePerson = "Test Person",
-            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)),
-            State = state,
-            StateChangedAt = DateTime.UtcNow.AddDays(-1),
-            StateChangedByUser = "Original User"
+            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7))
         };
+        order.InitializeState(state, DateTime.UtcNow.AddDays(-1), "Original User");
+        return order;
     }
 }

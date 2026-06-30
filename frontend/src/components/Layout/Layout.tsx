@@ -25,7 +25,7 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
     location.pathname.startsWith("/admin/access/groups/");
 
   return (
-    <div className="h-[calc(100vh-2rem)] md:h-[calc(100vh-1.5rem)] bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-2rem)] md:h-[calc(100vh-1.5rem)] bg-gray-50 dark:bg-graphite-bg flex flex-col overflow-hidden">
       {/* TopBar for mobile menu */}
       <TopBar onMenuClick={() => setSidebarOpen(true)} />
 
@@ -49,7 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
           {isFullHeightPage ? (
             children
           ) : (
-            <div className="p-3 md:p-4 bg-gray-50 min-h-full flex flex-col">
+            <div className="p-3 md:p-4 bg-gray-50 dark:bg-graphite-bg min-h-full flex flex-col">
               <div className="w-full flex-1 flex flex-col min-h-0">{children}</div>
             </div>
           )}

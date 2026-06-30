@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-3385",
+  "issue_number": 3385,
+  "created_at": "2026-06-27T06:15:11.960430Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-27T06:18:03.019938Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-27T06:22:07.582138Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-27T06:22:07.847353Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-27T06:24:10.327500Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-27T06:38:31.970811Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-06-27T06:38:42.548938Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "create-background-refresh-module",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-27T06:26:09.714339Z"
+    },
+    {
+      "name": "move-dtos-to-new-module",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-27T06:28:02.289329Z"
+    },
+    {
+      "name": "wire-module-into-application-root",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-27T06:29:18.516080Z"
+    },
+    {
+      "name": "update-controller-namespace",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-27T06:30:28.269633Z"
+    },
+    {
+      "name": "verify-build-and-regenerate-client",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-27T06:38:31.789952Z"
+    }
+  ]
+}

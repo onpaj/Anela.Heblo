@@ -72,17 +72,17 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-md w-full">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-graphite-border">
           <div className="flex items-center space-x-3">
-            <TrendingDown className="h-6 w-6 text-indigo-600" />
-            <h3 className="text-lg font-medium text-gray-900">Odečíst spotřebu</h3>
+            <TrendingDown className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text">Odečíst spotřebu</h3>
           </div>
           <button
             onClick={handleClose}
             disabled={processDailyConsumptionMutation.isPending}
-            className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted disabled:opacity-50"
           >
             <X className="h-6 w-6" />
           </button>
@@ -92,43 +92,43 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Date Picker */}
           <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
               Vyberte datum pro odečtení spotřeby
             </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <Calendar className="absolute left-3 top-3 h-5 w-5 text-gray-400 dark:text-graphite-faint" />
               <input
                 type="date"
                 id="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-graphite-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
                 required
                 disabled={processDailyConsumptionMutation.isPending}
               />
             </div>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-gray-500 dark:text-graphite-muted">
               Systém načte faktury za vybraný den a odečte odpovídající spotřebu materiálů
             </p>
           </div>
 
           {/* Error Message */}
           {(processDailyConsumptionMutation.error || localError) && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 px-4 py-3 rounded">
               {localError || processDailyConsumptionMutation.error?.message || 'Nepodařilo se odečíst spotřebu. Zkuste to znovu.'}
             </div>
           )}
 
           {/* Success Message */}
           {successMessage && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+            <div className="bg-green-50 dark:bg-emerald-900/30 border border-green-200 dark:border-emerald-900/40 text-green-700 dark:text-emerald-300 px-4 py-3 rounded">
               {successMessage}
             </div>
           )}
 
           {/* Info Message — zero consumption */}
           {infoMessage && (
-            <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
+            <div className="bg-yellow-50 dark:bg-amber-900/30 border border-yellow-200 dark:border-amber-900/40 text-yellow-700 dark:text-amber-300 px-4 py-3 rounded">
               {infoMessage}
             </div>
           )}
@@ -139,7 +139,7 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
               type="button"
               onClick={handleClose}
               disabled={processDailyConsumptionMutation.isPending}
-              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface-2 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
             >
               Zrušit
             </button>

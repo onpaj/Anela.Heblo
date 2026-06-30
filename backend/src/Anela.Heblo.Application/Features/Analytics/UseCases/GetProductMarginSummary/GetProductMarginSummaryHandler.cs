@@ -14,21 +14,24 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
     private readonly IAnalyticsRepository _analyticsRepository;
     private readonly IMarginCalculator _marginCalculator;
     private readonly IMonthlyBreakdownGenerator _monthlyBreakdownGenerator;
+    private readonly TimeWindowParser _timeWindowParser;
 
     public GetProductMarginSummaryHandler(
         IAnalyticsRepository analyticsRepository,
         IMarginCalculator marginCalculator,
-        IMonthlyBreakdownGenerator monthlyBreakdownGenerator)
+        IMonthlyBreakdownGenerator monthlyBreakdownGenerator,
+        TimeWindowParser timeWindowParser)
     {
         _analyticsRepository = analyticsRepository;
         _marginCalculator = marginCalculator;
         _monthlyBreakdownGenerator = monthlyBreakdownGenerator;
+        _timeWindowParser = timeWindowParser;
     }
 
     public async Task<GetProductMarginSummaryResponse> Handle(GetProductMarginSummaryRequest request, CancellationToken cancellationToken)
     {
         // 1. Parse time window and calculate date range
-        var (fromDate, toDate) = TimeWindowParser.ParseTimeWindow(request.TimeWindow);
+        var (fromDate, toDate) = _timeWindowParser.ParseTimeWindow(request.TimeWindow);
         var dateRange = new DateRange(fromDate, toDate);
 
         // 2. Stream products with Product/Goods types that have sales in the period

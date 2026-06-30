@@ -13,6 +13,7 @@ import { TestRouterWrapper } from "../../../test-utils/router-wrapper";
 jest.mock("../../../api/hooks/useTransportBoxes", () => ({
   useTransportBoxesQuery: jest.fn(),
   useTransportBoxSummaryQuery: jest.fn(),
+  transportBoxKeys: { all: ["transport-boxes"] },
 }));
 
 // Mock the StockUp operations hook

@@ -142,4 +142,29 @@ public class ContactSyncServiceTests
         state.LastErrorMessage.Should().Contain("Flexi unreachable");
         state.Watermark.Should().BeNull();
     }
+
+    [Fact]
+    public void Map_WhenLastUpdateIsUnspecifiedKind_ReturnsKindUtcLastModified()
+    {
+        // Regression test: SDK returns Kind=Unspecified representing Prague local time.
+        // DateTimeOffset.DateTime always strips offset and returns Kind=Unspecified,
+        // so passing any DateTimeOffset exercises the Unspecified path in ConvertTimeToUtc.
+        var unspecified = new DateTime(2025, 6, 19, 10, 0, 0, DateTimeKind.Unspecified);
+        var dto = new ContactFlexiDto
+        {
+            Id = 99L,
+            Code = "TEST99",
+            Name = "Test Contact",
+            CIN = "CIN00000099",
+            VATIN = "CZ00000099",
+            LastUpdate = new DateTimeOffset(unspecified, TimeSpan.Zero),
+        };
+
+        var contact = ContactSyncService.Map(dto);
+
+        Assert.NotNull(contact.LastModified);
+        Assert.Equal(TimeSpan.Zero, contact.LastModified!.Value.Offset);
+        var expected = TimeZoneInfo.ConvertTimeToUtc(unspecified, TimeZoneInfo.Local);
+        Assert.Equal(expected, contact.LastModified.Value.UtcDateTime);
+    }
 }

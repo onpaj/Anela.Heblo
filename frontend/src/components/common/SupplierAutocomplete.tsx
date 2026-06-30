@@ -139,9 +139,15 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className={`block w-full px-3 py-1.5 pr-8 text-sm border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 ${
-            error ? "border-red-300" : "border-gray-300"
-          } ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
+          className={`block w-full px-3 py-1.5 pr-8 text-sm border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:text-graphite-text dark:placeholder-graphite-faint ${
+            error
+              ? "border-red-300 dark:border-red-500"
+              : "border-gray-300 dark:border-graphite-border"
+          } ${
+            disabled
+              ? "bg-gray-100 dark:bg-graphite-surface cursor-not-allowed"
+              : "bg-white dark:bg-graphite-surface-2"
+          }`}
           autoComplete="off"
           role="combobox"
           aria-expanded={isOpen}
@@ -163,11 +169,11 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
         <div
           ref={dropdownRef}
           id="supplier-listbox"
-          className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-10 w-full mt-1 bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-md shadow-lg max-h-60 overflow-y-auto"
           role="listbox"
         >
           {isLoading && searchTerm ? (
-            <div className="px-3 py-2 text-sm text-gray-500 flex items-center">
+            <div className="px-3 py-2 text-sm text-gray-500 dark:text-graphite-muted flex items-center">
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               Hledám dodavatele...
             </div>
@@ -177,7 +183,7 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
                 key={supplier.id}
                 role="option"
                 tabIndex={-1}
-                className="px-3 py-2 cursor-pointer hover:bg-indigo-50 focus:bg-indigo-50 focus:outline-none"
+                className="px-3 py-2 cursor-pointer hover:bg-indigo-50 dark:hover:bg-graphite-hover focus:bg-indigo-50 dark:focus:bg-graphite-hover focus:outline-none"
                 onClick={() => handleSupplierSelect(supplier)}
                 onKeyDown={(e) => handleOptionKeyDown(e, supplier, index)}
                 aria-selected={false}
@@ -186,15 +192,15 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
                   <Building2 className="h-4 w-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-900 truncate">
+                      <span className="text-sm font-medium text-gray-900 dark:text-graphite-text truncate">
                         {supplier.name || "N/A"}
                       </span>
-                      <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                      <span className="text-xs text-gray-500 dark:text-graphite-muted ml-2 flex-shrink-0">
                         {supplier.code || "N/A"}
                       </span>
                     </div>
                     {(supplier.email || supplier.phone) && (
-                      <div className="text-xs text-gray-500 mt-0.5">
+                      <div className="text-xs text-gray-500 dark:text-graphite-muted mt-0.5">
                         {supplier.email && (
                           <span className="mr-3">{supplier.email}</span>
                         )}
@@ -202,7 +208,7 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
                       </div>
                     )}
                     {supplier.note && (
-                      <div className="text-xs text-gray-400 mt-0.5 truncate">
+                      <div className="text-xs text-gray-400 dark:text-graphite-faint mt-0.5 truncate">
                         {supplier.note}
                       </div>
                     )}
@@ -211,11 +217,11 @@ const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
               </div>
             ))
           ) : searchTerm && searchTerm.length >= 2 ? (
-            <div className="px-3 py-2 text-sm text-gray-500">
+            <div className="px-3 py-2 text-sm text-gray-500 dark:text-graphite-muted">
               Žádní dodavatelé nenalezeni pro "{searchTerm}"
             </div>
           ) : (
-            <div className="px-3 py-2 text-sm text-gray-500">
+            <div className="px-3 py-2 text-sm text-gray-500 dark:text-graphite-muted">
               Začněte psát pro vyhledání dodavatelů...
             </div>
           )}

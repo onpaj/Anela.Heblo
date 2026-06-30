@@ -11,11 +11,11 @@ import ChunkDetailModal from './ChunkDetailModal';
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const colorMap: Record<string, string> = {
-    indexed: 'bg-green-100 text-green-800',
-    processing: 'bg-yellow-100 text-yellow-800',
-    failed: 'bg-red-100 text-red-800',
+    indexed: 'bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+    processing: 'bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300',
+    failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
   };
-  const classes = colorMap[status.toLowerCase()] ?? 'bg-gray-100 text-gray-800';
+  const classes = colorMap[status.toLowerCase()] ?? 'bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted';
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${classes}`}>
       {status}
@@ -29,15 +29,15 @@ const ConfirmDeleteDialog: React.FC<{
   onCancel: () => void;
 }> = ({ document, onConfirm, onCancel }) => (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
-      <h2 className="text-lg font-semibold mb-2">Smazat dokument?</h2>
-      <p className="text-sm text-gray-600 mb-4">
+    <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark p-6 max-w-sm w-full">
+      <h2 className="text-lg font-semibold mb-2 dark:text-graphite-text">Smazat dokument?</h2>
+      <p className="text-sm text-gray-600 dark:text-graphite-muted mb-4">
         Opravdu chcete smazat <strong>{document.filename}</strong>? Tato akce je nevratná.
       </p>
       <div className="flex justify-end gap-2">
         <button
           onClick={onCancel}
-          className="px-4 py-2 text-sm rounded border border-gray-300 hover:bg-gray-50"
+          className="px-4 py-2 text-sm rounded border border-gray-300 dark:border-graphite-border dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
         >
           Zrušit
         </button>
@@ -218,17 +218,17 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
     const isActive = sortBy === column;
     return (
       <th
-        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 select-none"
         onClick={() => handleSort(column)}
       >
         <div className="flex items-center space-x-1">
           <span>{children}</span>
           <div className="flex flex-col">
             <ChevronUp
-              className={`h-3 w-3 ${isActive && !sortDescending ? 'text-indigo-600' : 'text-gray-300'}`}
+              className={`h-3 w-3 ${isActive && !sortDescending ? 'text-indigo-600 dark:text-graphite-accent' : 'text-gray-300 dark:text-graphite-faint'}`}
             />
             <ChevronDown
-              className={`h-3 w-3 -mt-1 ${isActive && sortDescending ? 'text-indigo-600' : 'text-gray-300'}`}
+              className={`h-3 w-3 -mt-1 ${isActive && sortDescending ? 'text-indigo-600 dark:text-graphite-accent' : 'text-gray-300 dark:text-graphite-faint'}`}
             />
           </div>
         </div>
@@ -240,31 +240,31 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
     return (
       <div className="space-y-2 animate-pulse">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-10 bg-gray-100 rounded" />
+          <div key={i} className="h-10 bg-gray-100 dark:bg-graphite-surface-2 rounded" />
         ))}
       </div>
     );
   }
 
   if (error) {
-    return <div className="text-red-600 text-sm">Nepodařilo se načíst dokumenty.</div>;
+    return <div className="text-red-600 dark:text-red-400 text-sm">Nepodařilo se načíst dokumenty.</div>;
   }
 
   return (
     <>
       {/* Filter bar */}
-      <div className="bg-white shadow rounded-lg p-4 mb-4">
+      <div className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="flex items-center">
-              <Filter className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm font-medium text-gray-900">Filtry:</span>
+              <Filter className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+              <span className="text-sm font-medium text-gray-900 dark:text-graphite-text">Filtry:</span>
             </div>
 
             <div className="flex-1 max-w-xs">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                 </div>
                 <input
                   type="text"
@@ -272,7 +272,7 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                   onChange={(e) => setFilenameInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()}
                   placeholder="Název souboru..."
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
                 />
               </div>
             </div>
@@ -284,7 +284,7 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                   setStatusFilter(e.target.value);
                   setPageNumber(1);
                 }}
-                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
                 <option value="">Vše (stav)</option>
                 <option value="indexed">Indexováno</option>
@@ -300,7 +300,7 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                   setContentTypeFilter(e.target.value);
                   setPageNumber(1);
                 }}
-                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
                 <option value="">Vše (typ)</option>
                 {(contentTypesData?.contentTypes ?? []).map((ct) => (
@@ -330,39 +330,39 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
       </div>
 
       {documents.length === 0 ? (
-        <div className="text-gray-500 text-sm text-center py-8">
+        <div className="text-gray-500 dark:text-graphite-muted text-sm text-center py-8">
           Žádné dokumenty neodpovídají zadaným filtrům.
         </div>
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border text-sm">
+              <thead className="bg-gray-50 dark:bg-graphite-surface-2">
                 <tr>
                   <SortableHeader column="Filename">Soubor</SortableHeader>
                   <SortableHeader column="Status">Stav</SortableHeader>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Typ</th>
                   <SortableHeader column="CreatedAt">Vytvořeno</SortableHeader>
                   <SortableHeader column="IndexedAt">Indexováno</SortableHeader>
                   {canDelete && <th className="px-6 py-3" />}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-graphite-border">
                 {documents.map((doc) => (
                   <tr
                     key={doc.id}
-                    className={`hover:bg-gray-50 ${doc.firstChunkId ? 'cursor-pointer' : ''}`}
+                    className={`hover:bg-gray-50 dark:hover:bg-white/5 ${doc.firstChunkId ? 'cursor-pointer' : ''}`}
                     onClick={() => doc.firstChunkId && setSelectedChunkId(doc.firstChunkId)}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{doc.filename}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">{doc.filename}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <StatusBadge status={doc.status} />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doc.contentType}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">{doc.contentType}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
                       {new Date(doc.createdAt).toLocaleDateString('cs-CZ')}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
                       {doc.indexedAt
                         ? new Date(doc.indexedAt).toLocaleDateString('cs-CZ')
                         : '–'}
@@ -372,7 +372,7 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                         <button
                           onClick={(e) => { e.stopPropagation(); setPendingDelete(doc); }}
                           title="Smazat dokument"
-                          className="text-gray-400 hover:text-red-600 transition-colors"
+                          className="text-gray-400 dark:text-graphite-faint hover:text-red-600 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -385,38 +385,38 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
           </div>
 
           {/* Pagination footer */}
-          <div className="bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
+          <div className="bg-white dark:bg-graphite-surface px-3 py-2 flex items-center justify-between border-t border-gray-200 dark:border-graphite-border text-xs">
             <div className="flex-1 flex justify-between sm:hidden">
               <button
                 onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
                 disabled={pageNumber <= 1}
-                className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Předchozí
               </button>
               <button
                 onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))}
                 disabled={pageNumber >= totalPages}
-                className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Další
               </button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div className="flex items-center space-x-3">
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray-600 dark:text-graphite-muted">
                   {Math.min((pageNumber - 1) * pageSize + 1, data?.totalCount ?? 0)}–
                   {Math.min(pageNumber * pageSize, data?.totalCount ?? 0)} z {data?.totalCount ?? 0}
                 </p>
                 <div className="flex items-center space-x-1">
-                  <span className="text-xs text-gray-600">Zobrazit:</span>
+                  <span className="text-xs text-gray-600 dark:text-graphite-muted">Zobrazit:</span>
                   <select
                     value={pageSize}
                     onChange={(e) => {
                       setPageSize(parseInt(e.target.value, 10));
                       setPageNumber(1);
                     }}
-                    className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                    className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -432,7 +432,7 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                   <button
                     onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
                     disabled={pageNumber <= 1}
-                    className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="h-3 w-3" />
                   </button>
@@ -454,8 +454,8 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                         onClick={() => setPageNumber(pageNum)}
                         className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                           pageNum === pageNumber
-                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-graphite-accent/10 dark:border-graphite-accent dark:text-graphite-accent'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 dark:bg-graphite-surface dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-white/5'
                         }`}
                       >
                         {pageNum}
@@ -466,7 +466,7 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                   <button
                     onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))}
                     disabled={pageNumber >= totalPages}
-                    className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronRight className="h-3 w-3" />
                   </button>

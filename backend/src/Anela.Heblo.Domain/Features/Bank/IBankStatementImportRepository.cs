@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Features.Analytics;
+
 namespace Anela.Heblo.Domain.Features.Bank;
 
 public interface IBankStatementImportRepository
@@ -12,4 +14,19 @@ public interface IBankStatementImportRepository
 
     Task<BankStatementImport?> GetByIdAsync(int id);
     Task<BankStatementImport> AddAsync(BankStatementImport bankStatement);
+
+    Task<IReadOnlyDictionary<string, string>> GetExistingResultsByTransferIdsAsync(
+        IReadOnlyCollection<string> transferIds, CancellationToken cancellationToken = default);
+
+    Task<DateTime?> GetMaxStatementDateAsync(string account, CancellationToken cancellationToken = default);
+
+    Task<BankStatementImport?> GetByTransferIdAsync(string transferId, CancellationToken cancellationToken = default);
+
+    Task<BankStatementImport> UpdateAsync(BankStatementImport bankStatement);
+
+    Task<IReadOnlyList<DailyBankStatementStatistics>> GetDailyStatisticsAsync(
+        DateTime startDate,
+        DateTime endDate,
+        BankStatementDateType dateType,
+        CancellationToken cancellationToken = default);
 }

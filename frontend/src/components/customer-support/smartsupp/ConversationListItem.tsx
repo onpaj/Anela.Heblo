@@ -38,9 +38,9 @@ const ConversationListItem: React.FC<ConversationListItemProps> = ({
   const isUnread = conversation.isUnread;
 
   const containerClasses = [
-    "w-full text-left px-4 py-3 flex items-start gap-3 border-b border-gray-100 transition-colors",
-    isSelected ? "bg-blue-50" : "hover:bg-gray-50",
-    isUnread ? "border-l-4 border-l-blue-500" : "",
+    "w-full text-left px-4 py-3 flex items-start gap-3 border-b border-gray-100 dark:border-graphite-border transition-colors",
+    isSelected ? "bg-blue-50 dark:bg-graphite-accent/10" : "hover:bg-gray-50 dark:hover:bg-white/5",
+    isUnread ? "border-l-4 border-l-blue-500 dark:border-l-graphite-accent" : "",
   ].join(" ");
 
   return (
@@ -58,14 +58,14 @@ const ConversationListItem: React.FC<ConversationListItemProps> = ({
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <span className={`text-sm text-gray-900 truncate ${isUnread ? "font-semibold" : "font-medium"}`}>
+          <span className={`text-sm text-gray-900 dark:text-graphite-text truncate ${isUnread ? "font-semibold" : "font-medium"}`}>
             {displayName ?? "Neznámý"}
           </span>
-          <span className="text-xs text-gray-400 flex-shrink-0">{relativeTime}</span>
+          <span className="text-xs text-gray-400 dark:text-graphite-faint flex-shrink-0">{relativeTime}</span>
         </div>
         <div className="flex items-center gap-2 mt-1">
           <StatusPill status={conversation.status} />
-          <span className="text-xs text-gray-500 truncate flex-1">
+          <span className="text-xs text-gray-500 dark:text-graphite-muted truncate flex-1">
             {conversation.lastMessagePreview ?? ""}
           </span>
         </div>

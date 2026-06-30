@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Anela.Heblo.Application.Features.Photobank;
+using Anela.Heblo.Persistence.Photobank;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Persistence;
 using FluentAssertions;

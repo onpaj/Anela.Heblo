@@ -20,7 +20,7 @@ function CoolingTab() {
       )}
 
       {error && (
-        <div className="mx-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+        <div className="mx-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-300 text-sm">
           Nepodařilo se načíst nastavení chlazení. Zkuste obnovit stránku.
         </div>
       )}

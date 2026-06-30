@@ -161,21 +161,16 @@ test.describe('Catalog Combined Filters E2E Tests', () => {
     // Apply filter
     await applyProductNameFilter(page, 'Krém');
 
-    // KNOWN APPLICATION BUG: Applying filters does not reset pagination to page 1
-    // Expected: Page should reset to 1 when filters change
-    // Actual: Page remains on page 2 after applying filter
-    // This is the same pagination reset bug documented in catalog-pagination-with-filters.spec.ts
-    // TODO: Change expectation to toBe(1) when backend pagination reset is implemented
     currentPage = await getCurrentPageFromUrl(page);
-    expect(currentPage).toBe(2); // Should be 1 when bug is fixed
+    expect(currentPage).toBe(1);
 
-    // Verify filter was still applied correctly despite pagination bug
+    // Verify filter was still applied correctly
     const rowCount = await getRowCount(page);
     if (rowCount > 0) {
       await validateFilteredResults(page, { productName: 'Krém' }, { maxRowsToCheck: 5 });
     }
 
-    console.log('✅ Test passed (with documented pagination reset bug - stays on page 2)');
+    console.log('✅ Test passed');
   });
 
   // ============================================================================

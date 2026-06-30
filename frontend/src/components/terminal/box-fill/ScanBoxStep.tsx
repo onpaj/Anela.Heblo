@@ -33,7 +33,7 @@ const ScanBoxStep: React.FC<ScanBoxStepProps> = ({ onBoxReady, lastSentBoxCode }
       {lastSentBoxCode && (
         <div
           role="status"
-          className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2"
+          className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-lg px-3 py-2"
         >
           <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
           Box <span className="font-mono font-semibold">{lastSentBoxCode}</span> byl odeslán do přepravy.
@@ -50,13 +50,13 @@ const ScanBoxStep: React.FC<ScanBoxStepProps> = ({ onBoxReady, lastSentBoxCode }
       {error && (
         <div
           role="alert"
-          className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+          className="flex items-center gap-2 text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-lg px-3 py-2"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           {error}
         </div>
       )}
-      <p className="text-sm text-neutral-gray">
+      <p className="text-sm text-neutral-gray dark:text-graphite-muted">
         Naskenujte kód prázdného nebo rozpracovaného boxu pro zahájení plnění.
       </p>
     </div>

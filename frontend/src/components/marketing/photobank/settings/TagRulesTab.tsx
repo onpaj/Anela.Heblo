@@ -62,18 +62,18 @@ const TagRulesTab: React.FC = () => {
   const sortedRules = [...rules].sort((a, b) => a.sortOrder - b.sortOrder);
 
   if (isLoading) {
-    return <div className="text-sm text-gray-500">Načítání...</div>;
+    return <div className="text-sm text-gray-500 dark:text-graphite-muted">Načítání...</div>;
   }
 
   return (
     <div className="space-y-6">
       {sortedRules.length === 0 ? (
-        <p className="text-sm text-gray-500">Žádná pravidla nejsou nakonfigurována.</p>
+        <p className="text-sm text-gray-500 dark:text-graphite-muted">Žádná pravidla nejsou nakonfigurována.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm divide-y divide-gray-200">
+          <table className="min-w-full text-sm divide-y divide-gray-200 dark:divide-graphite-border">
             <thead>
-              <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <tr className="text-left text-xs font-semibold text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                 <th className="py-2 pr-4">Vzor cesty</th>
                 <th className="py-2 pr-4">Štítek</th>
                 <th className="py-2 pr-4">Pořadí</th>
@@ -81,7 +81,7 @@ const TagRulesTab: React.FC = () => {
                 <th className="py-2"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-graphite-border">
               {sortedRules.map((rule) => (
                 <tr key={rule.id}>
                   <td className="py-2 pr-4 font-mono text-xs">{rule.pathPattern}</td>
@@ -91,8 +91,8 @@ const TagRulesTab: React.FC = () => {
                     <span
                       className={`px-1.5 py-0.5 rounded text-xs ${
                         rule.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-600'
+                          ? 'bg-green-100 dark:bg-emerald-900/30 text-green-800 dark:text-emerald-300'
+                          : 'bg-gray-100 dark:bg-graphite-surface-2 text-gray-600 dark:text-graphite-muted'
                       }`}
                     >
                       {rule.isActive ? 'Ano' : 'Ne'}
@@ -102,7 +102,7 @@ const TagRulesTab: React.FC = () => {
                     <button
                       onClick={() => handleDelete(rule.id)}
                       disabled={deletingId === rule.id}
-                      className="p-1 text-gray-400 hover:text-red-500 rounded disabled:opacity-50"
+                      className="p-1 text-gray-400 dark:text-graphite-faint hover:text-red-500 rounded disabled:opacity-50"
                       aria-label={`Smazat pravidlo ${rule.pathPattern}`}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -119,24 +119,24 @@ const TagRulesTab: React.FC = () => {
         <button
           onClick={handleReapply}
           disabled={reapplyRules.isPending}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {reapplyRules.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
           Re-aplikovat pravidla
         </button>
         {reapplyMessage && (
-          <span className="text-sm text-green-700">{reapplyMessage}</span>
+          <span className="text-sm text-green-700 dark:text-emerald-400">{reapplyMessage}</span>
         )}
         {reapplyError && (
-          <span className="text-sm text-red-600">{reapplyError}</span>
+          <span className="text-sm text-red-600 dark:text-red-400">{reapplyError}</span>
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3 border-t border-gray-200 pt-4">
-        <h3 className="text-sm font-semibold text-gray-700">Přidat pravidlo</h3>
+      <form onSubmit={handleSubmit} className="space-y-3 border-t border-gray-200 dark:border-graphite-border pt-4">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-graphite-muted">Přidat pravidlo</h3>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="pathPattern" className="block text-xs text-gray-500 mb-1">
+            <label htmlFor="pathPattern" className="block text-xs text-gray-500 dark:text-graphite-muted mb-1">
               Pattern (regex) *
             </label>
             <input
@@ -146,11 +146,11 @@ const TagRulesTab: React.FC = () => {
               onChange={(e) => setPathPattern(e.target.value)}
               placeholder="/Fotky/Produkty/*"
               required
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
             />
           </div>
           <div>
-            <label htmlFor="tagName" className="block text-xs text-gray-500 mb-1">
+            <label htmlFor="tagName" className="block text-xs text-gray-500 dark:text-graphite-muted mb-1">
               Štítek *
             </label>
             <input
@@ -160,11 +160,11 @@ const TagRulesTab: React.FC = () => {
               onChange={(e) => setTagName(e.target.value)}
               placeholder="produkty"
               required
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
             />
           </div>
           <div>
-            <label htmlFor="sortOrder" className="block text-xs text-gray-500 mb-1">
+            <label htmlFor="sortOrder" className="block text-xs text-gray-500 dark:text-graphite-muted mb-1">
               Pořadí
             </label>
             <input
@@ -172,7 +172,7 @@ const TagRulesTab: React.FC = () => {
               type="number"
               value={sortOrder}
               onChange={(e) => setSortOrder(Number(e.target.value))}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
             />
           </div>
         </div>
@@ -184,7 +184,7 @@ const TagRulesTab: React.FC = () => {
           {addRule.isPending ? 'Přidávám...' : 'Přidat pravidlo'}
         </button>
         {submitError && (
-          <p className="text-red-600 text-sm mt-2">{submitError}</p>
+          <p className="text-red-600 dark:text-red-400 text-sm mt-2">{submitError}</p>
         )}
       </form>
     </div>

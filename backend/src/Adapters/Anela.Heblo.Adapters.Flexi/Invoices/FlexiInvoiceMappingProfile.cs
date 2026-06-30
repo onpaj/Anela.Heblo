@@ -63,7 +63,7 @@ public class FlexiInvoiceMappingProfile : BaseFlexiProfile
             .ForMember(dest => dest.SumTotalC, opt => opt.MapFrom(src => src.ItemPrice.CurrencyCode != "CZK" ? (decimal?)Math.Round(src.ItemPrice.TotalWithVat, 2) : null))
             .ForMember(dest => dest.Currency, opt => opt.MapFrom(src => $"code:{src.ItemPrice.CurrencyCode}"))
             .ForMember(dest => dest.PriceList, opt => opt.MapFrom(src => string.IsNullOrEmpty(src.Code) || src.Code.StartsWith("SHIPPING") || src.Code.StartsWith("BILLING") ? null : $"code:{src.Code}"))
-            .ForMember(dest => dest.Store, opt => opt.MapFrom(src => string.IsNullOrEmpty(src.Code) || src.Code.StartsWith("SHIPPING") || src.Code.StartsWith("BILLING") ? null : "code:ZBOZI"))
+            .ForMember(dest => dest.Store, opt => opt.MapFrom(src => src.IsNonStock || string.IsNullOrEmpty(src.Code) || src.Code.StartsWith("SHIPPING") || src.Code.StartsWith("BILLING") ? null : "code:ZBOZI"))
             .ForMember(dest => dest.VatRateType, opt => opt.MapFrom(src => MapVatRateType(src.ItemPrice.VatRate)))
             .ForMember(dest => dest.PriceVatType, opt => opt.MapFrom(src => "typCeny.bezDph"))
             .ForMember(dest => dest.CopyCategoryVatReport, opt => opt.MapFrom(src => true))

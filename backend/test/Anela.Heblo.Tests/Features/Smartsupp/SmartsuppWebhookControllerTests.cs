@@ -311,6 +311,14 @@ public class SmartsuppWebhookFactory : HebloWebApplicationFactory
     protected override void ConfigureTestServices(IServiceCollection services)
     {
         services.AddSingleton<ISmartsuppWebhookMetrics, NoOpSmartsuppWebhookMetrics>();
+
+        // Replace ISmartsuppRepository with a no-op stub: the InMemory provider rejects
+        // ExecuteSqlInterpolatedAsync. Controller tests verify HTTP/audit behavior; repository
+        // persistence is tested in SmartsuppRepositoryUpsertIntegrationTests.
+        foreach (var d in services.Where(s => s.ServiceType == typeof(ISmartsuppRepository)).ToList())
+            services.Remove(d);
+        services.AddScoped<ISmartsuppRepository, NoOpSmartsuppRepository>();
+
         if (_replaceReactionsWithThrowing)
         {
             foreach (var d in services.Where(s => s.ServiceType ==
@@ -354,4 +362,41 @@ internal sealed class ThrowingReaction
     public Task HandleAsync(
         Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions.WebhookEventContext ctx,
         CancellationToken cancellationToken) => throw new InvalidOperationException("boom");
+}
+
+internal sealed class NoOpSmartsuppRepository : ISmartsuppRepository
+{
+    public Task<(List<SmartsuppConversation> Items, int Total)> ListConversationsAsync(
+        SmartsuppConversationStatus status, int page, int pageSize, CancellationToken cancellationToken) =>
+        Task.FromResult((new List<SmartsuppConversation>(), 0));
+
+    public Task<SmartsuppConversation?> GetConversationAsync(string id, CancellationToken cancellationToken) =>
+        Task.FromResult<SmartsuppConversation?>(null);
+
+    public Task UpsertContactAsync(SmartsuppContact contact, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task BackfillConversationDenormFieldsAsync(SmartsuppContact contact, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task<List<string>> ListOrphanContactConversationIdsAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(new List<string>());
+
+    public Task UpsertConversationAsync(SmartsuppConversation conversation, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task UpsertMessagesAsync(string conversationId, List<SmartsuppMessage> messages, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task<List<OpenConversationRef>> ListOpenConversationRefsAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(new List<OpenConversationRef>());
+
+    public Task<List<SmartsuppConversation>> ListConversationsForContactAsync(
+        string contactId, string excludeConversationId, CancellationToken cancellationToken) =>
+        Task.FromResult(new List<SmartsuppConversation>());
+
+    public Task MarkConversationResolvedAsync(string conversationId, DateTime finishedAt, DateTime syncedAt, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task UpdateMessageDeliveryStatusAsync(string messageId, string status, DateTime? deliveredAt, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task UpdateVisitorCacheAsync(string conversationId, string? userAgent, string? os, string? browser,
+        string? browserVersion, int? visitsCount, DateTime fetchedAt, CancellationToken cancellationToken) => Task.CompletedTask;
 }

@@ -1,0 +1,48 @@
+{
+  "feature_id": "feat-3263",
+  "issue_number": 3263,
+  "created_at": "2026-06-22T15:14:04.010209Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-22T15:18:50.229454Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-22T15:21:29.740056Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-22T15:22:50.181888Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-22T15:25:37.754700Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-22T15:52:45.950970Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "create-domain-exceptions",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T15:32:16.811407Z"
+    },
+    {
+      "name": "update-interface-and-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T15:34:37.967089Z"
+    },
+    {
+      "name": "fix-handler-and-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-22T15:52:42.030226Z"
+    }
+  ]
+}

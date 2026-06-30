@@ -11,6 +11,7 @@ using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
@@ -212,7 +213,7 @@ public class CatalogRepositoryCacheOptimizationTests
             .ReturnsAsync(new List<ManufactureDifficultySetting>());
 
         _manufactureSourceMock.Setup(x => x.GetManufactureHistoryAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ManufactureHistoryRecord>());
+            .ReturnsAsync(new List<CatalogManufactureRecord>());
 
         _transportSourceMock.Setup(x => x.GetProductsInTransportAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int>());

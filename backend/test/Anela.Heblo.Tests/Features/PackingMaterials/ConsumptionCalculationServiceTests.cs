@@ -369,7 +369,10 @@ public class ConsumptionCalculationServiceTests
         materialRepo.SetMaterials(new[] { material });
         var invoiceRepo = new MockInvoiceConsumptionSource();
 
-        // Set up a non-duplicate DbUpdateException (no inner PostgresException)
+        // Set up a non-duplicate DbUpdateException (no inner PostgresException).
+        // After the refactor, AddDailyRunAsync returns true (mock default), so execution
+        // reaches the second SaveChangesAsync (consumption rows + quantity updates), where
+        // this exception is thrown.
         var unrelatedEx = new Microsoft.EntityFrameworkCore.DbUpdateException("some other db error", new Exception("inner"));
         materialRepo.SetSaveChangesException(unrelatedEx);
 
@@ -379,5 +382,25 @@ public class ConsumptionCalculationServiceTests
         var thrown = await Assert.ThrowsAsync<Microsoft.EntityFrameworkCore.DbUpdateException>(
             () => service.ProcessDailyConsumptionAsync(date));
         Assert.Same(unrelatedEx, thrown);
+    }
+
+    [Fact]
+    public async Task ProcessDailyConsumptionAsync_ReturnsWasRunFalse_WhenAddDailyRunReturnsFalse()
+    {
+        // Arrange — simulate concurrent duplicate: AddDailyRunAsync returns false
+        var date = new DateOnly(2025, 6, 15);
+        var materialRepo = new MockPackingMaterialRepository();
+        materialRepo.SetAddDailyRunReturns(date, false);
+        var invoiceSource = new MockInvoiceConsumptionSource();
+
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
+
+        // Act
+        var result = await service.ProcessDailyConsumptionAsync(date);
+
+        // Assert
+        Assert.False(result.WasRun);
+        Assert.Equal(0, result.MaterialsProcessed);
+        Assert.Empty(materialRepo.AddedConsumptionRows);
     }
 }

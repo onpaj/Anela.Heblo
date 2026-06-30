@@ -33,7 +33,6 @@ internal sealed class CatalogAnalyticsSourceAdapter : IAnalyticsProductSource
                 cancellationToken.ThrowIfCancellationRequested();
                 yield return MapToAnalyticsProduct(product, fromDate, toDate);
             }
-            GC.Collect();
         }
     }
 

@@ -80,7 +80,7 @@ public class LedgerSyncServiceTests
 
         // Assert — lastUpdateFrom should equal InitialBackfillFrom when no watermark
         client.Verify(c => c.GetChangedSinceAsync(
-            new DateTime(2024, 1, 1), 10, 0, It.IsAny<CancellationToken>()), Times.Once);
+            new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), 10, 0, It.IsAny<CancellationToken>()), Times.Once);
         result.IsSuccess.Should().BeTrue();
         result.RowsFetched.Should().Be(1);
     }
@@ -183,5 +183,34 @@ public class LedgerSyncServiceTests
         state!.LastRunStatus.Should().Be("FAILED");
         state.Watermark.Should().Be(originalWatermark);
         state.LastErrorMessage.Should().Contain("Flexi unreachable");
+    }
+
+    [Fact]
+    public void Map_WhenLastUpdateIsUnspecifiedKind_ReturnsKindUtcLastModified()
+    {
+        // Regression test: SDK returns Kind=Unspecified representing Prague local time.
+        // Map() must call ConvertTimeToUtc, not ToUniversalTime().
+        // DateTimeOffset.DateTime always strips offset and returns Kind=Unspecified,
+        // so passing any DateTimeOffset exercises the Unspecified path in ConvertTimeToUtc.
+        var unspecified = new DateTime(2025, 6, 19, 10, 0, 0, DateTimeKind.Unspecified);
+        var dto = new LedgerItemFlexiDto
+        {
+            Id = 99,
+            AccountingDate = unspecified,
+            LastUpdate = new DateTimeOffset(unspecified, TimeSpan.Zero),
+            AmountLocal = 100.0,
+            ParSymbol = "CODE99",
+            DebitAccountShowAs = "501000",
+            CreditAccountShowAs = "221000",
+            CurrencyRef = "code:CZK",
+            Description = "Regression test entry",
+        };
+
+        var entry = LedgerSyncService.Map(dto);
+
+        Assert.NotNull(entry.LastModified);
+        Assert.Equal(TimeSpan.Zero, entry.LastModified!.Value.Offset);
+        var expected = TimeZoneInfo.ConvertTimeToUtc(unspecified, TimeZoneInfo.Local);
+        Assert.Equal(expected, entry.LastModified.Value.UtcDateTime);
     }
 }

@@ -19,7 +19,7 @@ const FinishPoStep = () => {
 
   return (
     <div className="space-y-4 pt-2">
-      <h2 className="text-lg font-semibold text-neutral-slate">
+      <h2 className="text-lg font-semibold text-neutral-slate dark:text-graphite-text">
         Označit objednávku jako přijatou?
       </h2>
       <button
@@ -33,7 +33,7 @@ const FinishPoStep = () => {
       <button
         type="button"
         onClick={() => navigate('/terminal/lot-identification')}
-        className="w-full h-12 border border-border-light text-neutral-slate rounded-xl"
+        className="w-full h-12 border border-border-light dark:border-graphite-border text-neutral-slate dark:text-graphite-text rounded-xl"
       >
         Ponechat ve stavu „V přepravě"
       </button>

@@ -123,16 +123,16 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
         onClick={(e) => e.target === e.currentTarget && handleClose()}
         onKeyDown={handleKeyDown}
       >
-        <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
+        <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-graphite-border">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-orange-500 dark:text-orange-300" />
               Potvrdit distribuci zbytku
             </h2>
             <button
               onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted transition-colors"
               disabled={isLoading}
             >
               <X className="h-4 w-4" />
@@ -142,14 +142,14 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
           {/* Content */}
           <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(90vh-120px)]">
             {/* Warning banner */}
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+            <div className="bg-orange-50 border border-orange-200 dark:bg-orange-900/20 dark:border-orange-900/40 rounded-lg p-3">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-300 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-orange-800">
+                  <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
                     Rozdíl: <span className="font-bold">{diffPctFormatted}%</span>
                   </p>
-                  <p className="text-sm text-orange-700 mt-0.5">
+                  <p className="text-sm text-orange-700 dark:text-orange-400 mt-0.5">
                     Přesahuje povolený práh {allowedPct}%. Zkontrolujte upravenou distribuci před potvrzením.
                   </p>
                 </div>
@@ -158,35 +158,35 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
 
             {/* Distribution table */}
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
-                <thead className="bg-gray-50">
+              <table className="min-w-full text-sm border border-gray-200 dark:border-graphite-border rounded-lg overflow-hidden">
+                <thead className="bg-gray-50 dark:bg-graphite-surface-2">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produkt</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Kusů</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Teoreticky (g)</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Upraveno (g)</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">g/ks (stará BoM)</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">g/ks (nová BoM)</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Produkt</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Kusů</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Teoreticky (g)</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Upraveno (g)</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">g/ks (stará BoM)</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">g/ks (nová BoM)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-graphite-border">
                   {(distributionPreview.products ?? []).map((item, idx) => {
                     const theoretical = (item.actualPieces ?? 0) * (item.theoreticalGramsPerUnit ?? 0);
                     return (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 text-gray-900 font-medium">
+                      <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-white/5">
+                        <td className="px-3 py-2 text-gray-900 dark:text-graphite-text font-medium">
                           {item.productName}
-                          <span className="ml-1 text-xs text-gray-400">{item.productCode}</span>
+                          <span className="ml-1 text-xs text-gray-400 dark:text-graphite-faint">{item.productCode}</span>
                         </td>
-                        <td className="px-3 py-2 text-right text-gray-700">{item.actualPieces}</td>
-                        <td className="px-3 py-2 text-right text-gray-700">{theoretical.toFixed(1)}</td>
-                        <td className="px-3 py-2 text-right font-medium text-orange-700">
+                        <td className="px-3 py-2 text-right text-gray-700 dark:text-graphite-muted">{item.actualPieces}</td>
+                        <td className="px-3 py-2 text-right text-gray-700 dark:text-graphite-muted">{theoretical.toFixed(1)}</td>
+                        <td className="px-3 py-2 text-right font-medium text-orange-700 dark:text-orange-400">
                           {(item.adjustedConsumption ?? 0).toFixed(1)}
                         </td>
-                        <td className="px-3 py-2 text-right text-gray-500">
+                        <td className="px-3 py-2 text-right text-gray-500 dark:text-graphite-muted">
                           {(item.theoreticalGramsPerUnit ?? 0).toFixed(4)}
                         </td>
-                        <td className="px-3 py-2 text-right text-gray-700 font-medium">
+                        <td className="px-3 py-2 text-right text-gray-700 dark:text-graphite-muted font-medium">
                           {(item.adjustedGramsPerUnit ?? 0).toFixed(4)}
                         </td>
                       </tr>
@@ -201,7 +201,7 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
               <button
                 type="button"
                 onClick={onBackFromDistribution}
-                className="flex-1 px-3 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors text-sm"
+                className="flex-1 px-3 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 dark:text-graphite-muted dark:bg-graphite-surface-2 dark:hover:bg-graphite-hover transition-colors text-sm"
                 disabled={isLoading}
               >
                 Zpět
@@ -235,16 +235,16 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
       onClick={(e) => e.target === e.currentTarget && handleClose()}
       onKeyDown={handleKeyDown}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Package className="h-4 w-4 text-indigo-600" />
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-graphite-border">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text flex items-center gap-2">
+            <Package className="h-4 w-4 text-indigo-600 dark:text-graphite-accent" />
             Potvrdit dokončení výroby
           </h2>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted transition-colors"
             disabled={isLoading}
           >
             <X className="h-4 w-4" />
@@ -254,9 +254,9 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-4 space-y-3 overflow-y-auto max-h-[calc(90vh-120px)]">
           {/* Info */}
-          <div className="bg-blue-50 rounded-lg p-3">
-            <h3 className="font-medium text-gray-900 mb-1">Dokončení výroby produktů</h3>
-            <p className="text-sm text-gray-600">
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+            <h3 className="font-medium text-gray-900 dark:text-graphite-text mb-1">Dokončení výroby produktů</h3>
+            <p className="text-sm text-gray-600 dark:text-graphite-muted">
               Potvrďte skutečné množství vyrobených produktů
             </p>
           </div>
@@ -268,21 +268,21 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
               return (
                 <div
                   key={product.id}
-                  className={`border rounded-lg p-3 ${isDirectRow ? "border-amber-300 bg-amber-50" : "border-gray-200"}`}
+                  className={`border rounded-lg p-3 ${isDirectRow ? "border-amber-300 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20" : "border-gray-200 dark:border-graphite-border"}`}
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-gray-900 truncate text-sm">{product.productName}</h4>
+                        <h4 className="font-medium text-gray-900 dark:text-graphite-text truncate text-sm">{product.productName}</h4>
                         {isDirectRow && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-200 text-amber-800 flex-shrink-0">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-200 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 flex-shrink-0">
                             Přímý výstup
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-1">
-                        <p className="text-xs text-gray-600">{product.productCode}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-600 dark:text-graphite-muted">{product.productCode}</p>
+                        <p className="text-xs text-gray-500 dark:text-graphite-muted">
                           Plánované: <span className="font-medium">{product.plannedQuantity}{isDirectRow ? "g" : ""}</span>
                         </p>
                       </div>
@@ -291,9 +291,9 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <label
                         htmlFor={`quantity-${product.id}`}
-                        className="text-sm font-medium text-gray-700 whitespace-nowrap"
+                        className="text-sm font-medium text-gray-700 dark:text-graphite-muted whitespace-nowrap"
                       >
-                        Skutečné <span className="text-red-500">*</span>
+                        Skutečné <span className="text-red-500 dark:text-red-400">*</span>
                       </label>
                       <div className="flex items-center gap-1">
                         <input
@@ -301,13 +301,13 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
                           id={`quantity-${product.id}`}
                           value={actualQuantities[product.id] || ''}
                           onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                          className="w-20 px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center font-semibold text-sm"
+                          className="w-20 px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center font-semibold text-sm dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                           min="0"
                           step={isDirectRow ? "0.1" : "1"}
                           disabled={isLoading}
                           required
                         />
-                        {isDirectRow && <span className="text-sm text-gray-600">g</span>}
+                        {isDirectRow && <span className="text-sm text-gray-600 dark:text-graphite-muted">g</span>}
                       </div>
                     </div>
                   </div>
@@ -318,9 +318,9 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
 
           {/* Error Message */}
           {error && (
-            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
-              <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
-              <span className="text-xs text-red-600">{error}</span>
+            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-900/40 rounded">
+              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+              <span className="text-xs text-red-600 dark:text-red-400">{error}</span>
             </div>
           )}
 
@@ -329,7 +329,7 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 px-3 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors text-sm"
+              className="flex-1 px-3 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 dark:text-graphite-muted dark:bg-graphite-surface-2 dark:hover:bg-graphite-hover transition-colors text-sm"
               disabled={isLoading}
             >
               Zrušit

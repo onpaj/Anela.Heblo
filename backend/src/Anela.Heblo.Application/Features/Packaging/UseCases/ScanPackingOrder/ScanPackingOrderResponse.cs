@@ -46,8 +46,6 @@ public class ShippingAddress
 public class ScanOrderEligibility
 {
     public bool IsEligible { get; set; }
-    public string? WarningTitle { get; set; }
-    public string? WarningBody { get; set; }
 }
 
 public class ScanShipmentData

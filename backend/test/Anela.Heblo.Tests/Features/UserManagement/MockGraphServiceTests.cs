@@ -1,3 +1,4 @@
+using Anela.Heblo.Adapters.Microsoft365.UserManagement;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using Microsoft.Extensions.Logging;
 using Moq;

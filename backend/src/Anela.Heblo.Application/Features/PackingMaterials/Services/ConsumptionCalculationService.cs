@@ -66,22 +66,25 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
             }
         }
 
-        if (allFactRows.Count > 0)
-            await _repository.AddConsumptionRowsAsync(allFactRows, cancellationToken);
-
+        // Insert the daily run first; SaveChangesAsync is called inside AddDailyRunAsync.
+        // NOTE: Splitting into two SaveChangesAsync calls introduces a partial-success window:
+        // if the second save (consumption rows) fails after the daily run committed, the date
+        // is marked processed but no consumption data is written. This matches the pre-existing
+        // behaviour where a non-duplicate DbUpdateException after staging left the daily run
+        // uncommitted — the new design makes the daily run commit explicit and first.
         var dailyRun = new PackingMaterialDailyRun(processingDate, processedCount);
-        await _repository.AddDailyRunAsync(dailyRun, cancellationToken);
-
-        try
+        var inserted = await _repository.AddDailyRunAsync(dailyRun, cancellationToken);
+        if (!inserted)
         {
-            await _repository.SaveChangesAsync(cancellationToken);
-        }
-        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (IsDuplicateDailyRunViolation(ex))
-        {
-            _logger.LogWarning("PackingMaterialsDailyRunDuplicateDetected: duplicate daily run for {ProcessingDate} detected, rolling back",
+            _logger.LogWarning("PackingMaterialsDailyRunDuplicateDetected: duplicate daily run for {ProcessingDate} detected, skipping",
                 processingDate);
             return new ProcessDailyConsumptionResult(false, 0);
         }
+
+        if (allFactRows.Count > 0)
+            await _repository.AddConsumptionRowsAsync(allFactRows, cancellationToken);
+
+        await _repository.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("PackingMaterialsDailyRunRecorded: daily run recorded for {ProcessingDate}. MaterialsProcessed={MaterialsProcessed}",
             processingDate, processedCount);
@@ -120,8 +123,4 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
         };
     }
 
-    private static bool IsDuplicateDailyRunViolation(Microsoft.EntityFrameworkCore.DbUpdateException ex) =>
-        ex.InnerException is Npgsql.PostgresException pg
-        && pg.SqlState == Npgsql.PostgresErrorCodes.UniqueViolation
-        && string.Equals(pg.ConstraintName, "IX_PackingMaterialDailyRuns_Date", StringComparison.Ordinal);
 }

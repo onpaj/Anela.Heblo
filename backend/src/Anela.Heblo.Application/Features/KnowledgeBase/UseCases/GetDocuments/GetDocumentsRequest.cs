@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.KnowledgeBase.Contracts;
 using Anela.Heblo.Application.Shared;
 using MediatR;
 
@@ -23,13 +24,3 @@ public class GetDocumentsResponse : BaseResponse
     public int TotalPages => PageSize > 0 ? (int)Math.Ceiling(TotalCount / (double)PageSize) : 0;
 }
 
-public class DocumentSummary
-{
-    public Guid Id { get; set; }
-    public string Filename { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public string ContentType { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; }
-    public DateTime? IndexedAt { get; set; }
-    public Guid? FirstChunkId { get; set; }
-}

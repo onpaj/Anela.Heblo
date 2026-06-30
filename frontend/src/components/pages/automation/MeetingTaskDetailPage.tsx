@@ -34,9 +34,9 @@ const EMPTY_FORM: TaskFormData = { title: "", description: "", assignee: "", ass
 
 function TranscriptStatusBadge({ status }: { status: string }) {
   const colorMap: Record<string, string> = {
-    PendingReview: "bg-yellow-100 text-yellow-800",
-    Approved: "bg-green-100 text-green-800",
-    PartiallyApproved: "bg-blue-100 text-blue-800",
+    PendingReview: "bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300",
+    Approved: "bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+    PartiallyApproved: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   };
   const labelMap: Record<string, string> = {
     PendingReview: "Ke kontrole",
@@ -49,7 +49,7 @@ function TranscriptStatusBadge({ status }: { status: string }) {
     PartiallyApproved: <CheckCircle2 className="w-3.5 h-3.5 mr-1" />,
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colorMap[status] ?? "bg-gray-100 text-gray-800"}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colorMap[status] ?? "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted"}`}>
       {iconMap[status]}
       {labelMap[status] ?? status}
     </span>
@@ -72,7 +72,7 @@ function AssigneePicker({ users, value, onChange }: AssigneePickerProps) {
         const user = users.find((u) => u.email === email);
         onChange(user?.displayName ?? "", email);
       }}
-      className="flex-1 border border-gray-300 rounded-md px-2 py-1 text-sm"
+      className="flex-1 border border-gray-300 rounded-md px-2 py-1 text-sm dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text"
     >
       <option value="">— vyberte řešitele —</option>
       {users.map((u) => (
@@ -135,11 +135,11 @@ const MeetingTaskDetailPage: React.FC = () => {
   };
 
   if (detail.isLoading) {
-    return <div className="p-8 text-gray-500">Nacitani...</div>;
+    return <div className="p-8 text-gray-500 dark:text-graphite-muted">Nacitani...</div>;
   }
   const transcript = detail.data?.transcript;
   if (!transcript) {
-    return <div className="p-8 text-gray-500">Zaznam nenalezen</div>;
+    return <div className="p-8 text-gray-500 dark:text-graphite-muted">Zaznam nenalezen</div>;
   }
 
   const tasks: ProposedTaskDto[] = transcript.tasks;
@@ -215,15 +215,15 @@ const MeetingTaskDetailPage: React.FC = () => {
   return (
     <div className="flex flex-col w-full overflow-auto" style={{ height: PAGE_CONTAINER_HEIGHT }}>
       <div className="px-4 sm:px-6 lg:px-8 py-3">
-        <Link to="/automation/meeting-tasks" className="inline-flex items-center text-sm text-indigo-700 hover:underline">
+        <Link to="/automation/meeting-tasks" className="inline-flex items-center text-sm text-indigo-700 dark:text-graphite-accent hover:underline">
           <ArrowLeft className="w-4 h-4 mr-1" /> Zpet na seznam
         </Link>
       </div>
 
       <div className="px-4 sm:px-6 lg:px-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{transcript.subject}</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-graphite-text">{transcript.subject}</h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-graphite-muted">
             {new Date(transcript.plaudCreatedAt).toLocaleString("cs-CZ")} · {transcript.plaudRecordingId}
           </p>
         </div>
@@ -232,10 +232,10 @@ const MeetingTaskDetailPage: React.FC = () => {
           {transcript.accessLevel && (
             <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
               transcript.accessLevel === 'Public'
-                ? 'bg-green-100 text-green-800'
+                ? 'bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300'
                 : transcript.accessLevel === 'Restricted'
-                ? 'bg-yellow-100 text-yellow-800'
-                : 'bg-gray-100 text-gray-600'
+                ? 'bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300'
+                : 'bg-gray-100 text-gray-600 dark:bg-graphite-surface-2 dark:text-graphite-muted'
             }`}>
               {transcript.accessLevel === 'Private' && 'Soukromé'}
               {transcript.accessLevel === 'Public' && 'Veřejné'}
@@ -252,7 +252,7 @@ const MeetingTaskDetailPage: React.FC = () => {
                   'text/markdown',
                 )
               }
-              className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+              className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5 dark:text-graphite-muted"
             >
               <Download className="w-4 h-4 mr-1" aria-hidden="true" />
               Stáhnout souhrn
@@ -268,7 +268,7 @@ const MeetingTaskDetailPage: React.FC = () => {
                   'text/plain',
                 )
               }
-              className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+              className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5 dark:text-graphite-muted"
             >
               <Download className="w-4 h-4 mr-1" aria-hidden="true" />
               Stáhnout přepis
@@ -278,7 +278,7 @@ const MeetingTaskDetailPage: React.FC = () => {
             type="button"
             onClick={handleReimport}
             disabled={reimport.isPending}
-            className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5 dark:text-graphite-muted disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-4 h-4 mr-1 ${reimport.isPending ? 'animate-spin' : ''}`} />
             Reimport
@@ -286,7 +286,7 @@ const MeetingTaskDetailPage: React.FC = () => {
           {isMeetingManager && (
             <button
               onClick={() => setAccessModalOpen(true)}
-              className="px-3 py-1 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+              className="px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5 dark:text-graphite-muted"
             >
               Spravovat přístup
             </button>
@@ -296,14 +296,14 @@ const MeetingTaskDetailPage: React.FC = () => {
 
       {reimportError && (
         <div className="px-4 sm:px-6 lg:px-8 mt-2">
-          <p className="text-sm text-red-600">{reimportError}</p>
+          <p className="text-sm text-red-600 dark:text-red-400">{reimportError}</p>
         </div>
       )}
 
       <div className="px-4 sm:px-6 lg:px-8 mt-4">
         <div
           data-explainable="true"
-          className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 prose prose-sm prose-blue max-w-none"
+          className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 prose prose-sm prose-blue max-w-none dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-300 dark:prose-invert"
         >
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{transcript.summary}</ReactMarkdown>
         </div>
@@ -314,7 +314,7 @@ const MeetingTaskDetailPage: React.FC = () => {
           type="button"
           aria-expanded={transcriptOpen}
           onClick={() => setTranscriptOpen((v) => !v)}
-          className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900"
+          className="inline-flex items-center text-sm font-medium text-gray-700 dark:text-graphite-muted hover:text-gray-900 dark:hover:text-graphite-text"
         >
           {transcriptOpen ? (
             <ChevronDown className="w-4 h-4 mr-1" />
@@ -324,14 +324,14 @@ const MeetingTaskDetailPage: React.FC = () => {
           Přepis schůzky
         </button>
         {transcriptOpen && (
-          <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 whitespace-pre-wrap max-h-96 overflow-auto">
+          <div className="mt-2 rounded-md border border-gray-200 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2 p-3 text-sm text-gray-800 dark:text-graphite-muted whitespace-pre-wrap max-h-96 overflow-auto">
             {transcript.rawTranscript}
           </div>
         )}
       </div>
 
       <div className="px-4 sm:px-6 lg:px-8 mt-6 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
           Navrhovane ulohy ({tasks.length})
         </h2>
         <div className="flex gap-2">
@@ -347,7 +347,7 @@ const MeetingTaskDetailPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setAddingTask((v) => !v)}
-            className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+            className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-white dark:bg-graphite-surface text-gray-700 dark:text-graphite-muted border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5"
           >
             <Plus className="w-4 h-4 mr-1" /> Pridat ulohu
           </button>
@@ -356,25 +356,25 @@ const MeetingTaskDetailPage: React.FC = () => {
 
       {approveAllError && (
         <div className="px-4 sm:px-6 lg:px-8 mt-2">
-          <p className="text-sm text-red-600">{approveAllError}</p>
+          <p className="text-sm text-red-600 dark:text-red-400">{approveAllError}</p>
         </div>
       )}
 
       {addingTask && (
         <div className="px-4 sm:px-6 lg:px-8 mt-3">
-          <div className="bg-white border border-gray-200 rounded-md p-3 space-y-2">
+          <div className="bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-md p-3 space-y-2">
             <input
               type="text"
               placeholder="Nazev ulohy"
               value={addForm.title}
               onChange={(e) => setAddForm({ ...addForm, title: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
+              className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
             />
             <textarea
               placeholder="Popis"
               value={addForm.description}
               onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
+              className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
             />
             <div className="flex gap-2">
               <AssigneePicker
@@ -388,14 +388,14 @@ const MeetingTaskDetailPage: React.FC = () => {
                 type="date"
                 value={addForm.dueDate ?? ""}
                 onChange={(e) => setAddForm({ ...addForm, dueDate: e.target.value || null })}
-                className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                className="border border-gray-300 rounded-md px-2 py-1 text-sm dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text"
               />
             </div>
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => { setAddingTask(false); setAddForm(EMPTY_FORM); }}
-                className="px-2 py-1 text-sm text-gray-700 hover:underline"
+                className="px-2 py-1 text-sm text-gray-700 dark:text-graphite-muted hover:underline"
               >
                 Zrusit
               </button>
@@ -416,10 +416,10 @@ const MeetingTaskDetailPage: React.FC = () => {
         {tasks.map((t) => {
           const isEditing = editingTaskId === t.id;
           const cardClass = t.status === "Approved"
-            ? "bg-green-50 border-green-200"
+            ? "bg-green-50 border-green-200 dark:bg-emerald-900/20 dark:border-emerald-900/40"
             : t.status === "Rejected"
-              ? "bg-gray-50 border-gray-200 opacity-60"
-              : "bg-white border-gray-200";
+              ? "bg-gray-50 border-gray-200 opacity-60 dark:bg-graphite-surface-2 dark:border-graphite-border"
+              : "bg-white border-gray-200 dark:bg-graphite-surface dark:border-graphite-border";
           return (
             <div key={t.id} className={`border rounded-md p-3 ${cardClass}`}>
               {!isEditing ? (
@@ -431,23 +431,23 @@ const MeetingTaskDetailPage: React.FC = () => {
                     <div className={`font-medium ${t.status === "Rejected" ? "line-through" : ""}`}>
                       {t.title}
                       {t.isManuallyAdded && (
-                        <span className="ml-2 text-xs text-gray-500">(rucne pridano)</span>
+                        <span className="ml-2 text-xs text-gray-500 dark:text-graphite-muted">(rucne pridano)</span>
                       )}
                       {t.externalTaskId && (
-                        <span className="ml-2 text-xs text-green-700">(odeslano do TODO)</span>
+                        <span className="ml-2 text-xs text-green-700 dark:text-emerald-400">(odeslano do TODO)</span>
                       )}
                     </div>
                     {t.description && (
-                      <div className="text-sm text-gray-700 mt-1 prose prose-sm max-w-none">
+                      <div className="text-sm text-gray-700 dark:text-graphite-muted mt-1 prose prose-sm max-w-none dark:prose-invert">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{t.description}</ReactMarkdown>
                       </div>
                     )}
-                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <div className="text-xs text-gray-500 dark:text-graphite-muted mt-1 flex items-center gap-1">
                       <span>
                         {t.assignee}{t.dueDate ? ` · ${new Date(t.dueDate).toLocaleDateString("cs-CZ")}` : ""}
                       </span>
                       {!t.assigneeEmail && (
-                        <span className="inline-flex items-center text-amber-700 bg-amber-100 rounded-full px-1.5 py-0.5">
+                        <span className="inline-flex items-center text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30 rounded-full px-1.5 py-0.5">
                           <AlertTriangle className="w-3 h-3 mr-1" /> neznámý uživatel
                         </span>
                       )}
@@ -459,7 +459,7 @@ const MeetingTaskDetailPage: React.FC = () => {
                         type="button"
                         title="Schvalit"
                         onClick={(e) => { e.stopPropagation(); changeStatus(t.id, "Approved"); }}
-                        className="p-1 rounded-md text-green-700 hover:bg-green-100"
+                        className="p-1 rounded-md text-green-700 dark:text-emerald-400 hover:bg-green-100 dark:hover:bg-emerald-900/30"
                       >
                         <Check className="w-4 h-4" />
                       </button>
@@ -467,7 +467,7 @@ const MeetingTaskDetailPage: React.FC = () => {
                         type="button"
                         title="Zamitnout"
                         onClick={(e) => { e.stopPropagation(); changeStatus(t.id, "Rejected"); }}
-                        className="p-1 rounded-md text-red-700 hover:bg-red-100"
+                        className="p-1 rounded-md text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -480,12 +480,12 @@ const MeetingTaskDetailPage: React.FC = () => {
                     type="text"
                     value={editForm.title}
                     onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                    className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                   />
                   <textarea
                     value={editForm.description}
                     onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                    className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
+                    className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                   />
                   <div className="flex gap-2">
                     <AssigneePicker
@@ -499,11 +499,11 @@ const MeetingTaskDetailPage: React.FC = () => {
                       type="date"
                       value={editForm.dueDate ?? ""}
                       onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value || null })}
-                      className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                      className="border border-gray-300 rounded-md px-2 py-1 text-sm dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text"
                     />
                   </div>
                   <div className="flex justify-end gap-2">
-                    <button type="button" onClick={cancelEdit} className="px-2 py-1 text-sm text-gray-700 hover:underline">
+                    <button type="button" onClick={cancelEdit} className="px-2 py-1 text-sm text-gray-700 dark:text-graphite-muted hover:underline">
                       Zrusit
                     </button>
                     <button
@@ -522,7 +522,7 @@ const MeetingTaskDetailPage: React.FC = () => {
         })}
       </div>
 
-      <div className="sticky bottom-0 mt-6 px-4 sm:px-6 lg:px-8 py-3 bg-white border-t border-gray-200 flex justify-end">
+      <div className="sticky bottom-0 mt-6 px-4 sm:px-6 lg:px-8 py-3 bg-white dark:bg-graphite-surface border-t border-gray-200 dark:border-graphite-border flex justify-end">
         <button
           type="button"
           disabled={approvedCount === 0}
@@ -535,30 +535,30 @@ const MeetingTaskDetailPage: React.FC = () => {
 
       {submitOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg p-5 max-w-md w-full">
-            <h3 className="text-lg font-semibold text-gray-900">Odeslat schvalene ulohy do Microsoft TODO?</h3>
-            <p className="text-sm text-gray-600 mt-2">
+          <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-lg dark:shadow-soft-dark p-5 max-w-md w-full">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Odeslat schvalene ulohy do Microsoft TODO?</h3>
+            <p className="text-sm text-gray-600 dark:text-graphite-muted mt-2">
               Odeslete se schvalene ulohy ({approvedCount}). Tato akce je nevratna.
             </p>
             {submitToTodo.isError && (
-              <p className="text-sm text-red-600 mt-2">
+              <p className="text-sm text-red-600 dark:text-red-400 mt-2">
                 Odeslani selhalo: {submitToTodo.error instanceof Error ? submitToTodo.error.message : String(submitToTodo.error)}
               </p>
             )}
             {submitToTodo.data && submitToTodo.data.failedCount > 0 && (
-              <div className="mt-3 p-3 rounded border border-red-200 bg-red-50">
-                <p className="text-sm font-medium text-red-800">
+              <div className="mt-3 p-3 rounded border border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-900/20">
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">
                   Odeslání selhalo: {submitToTodo.data.failedCount} z {submitToTodo.data.successCount + submitToTodo.data.failedCount} úloh.
                 </p>
                 {submitToTodo.data.errors.length > 0 && (
-                  <ul className="mt-2 list-disc list-inside text-sm text-red-700 space-y-1">
+                  <ul className="mt-2 list-disc list-inside text-sm text-red-700 dark:text-red-300 space-y-1">
                     {submitToTodo.data.errors.map((err, i) => (
                       <li key={i}>{err}</li>
                     ))}
                   </ul>
                 )}
                 {submitToTodo.data.errors.some(e => e.includes('consent required') || e.includes('Tasks.ReadWrite')) && (
-                  <p className="mt-2 text-sm text-red-700">
+                  <p className="mt-2 text-sm text-red-700 dark:text-red-300">
                     Microsoft 365 vyžaduje souhlas administrátora pro práci s úkoly v Planneru. Odhlaste se a znovu se přihlaste po udělení souhlasu.
                   </p>
                 )}
@@ -569,7 +569,7 @@ const MeetingTaskDetailPage: React.FC = () => {
                 type="button"
                 onClick={closeSubmitModal}
                 disabled={submitToTodo.isPending}
-                className="px-3 py-1.5 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+                className="px-3 py-1.5 rounded-md text-sm text-gray-700 dark:text-graphite-muted hover:bg-gray-100 dark:hover:bg-white/5"
               >
                 Zrusit
               </button>

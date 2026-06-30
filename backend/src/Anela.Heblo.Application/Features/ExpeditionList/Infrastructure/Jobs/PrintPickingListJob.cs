@@ -51,6 +51,7 @@ public class PrintPickingListJob : IRecurringJob
                 Carriers = ExpeditionPickingRequest.DefaultCarriers,
                 SourceStateId = _options.Value.SourceStateId,
                 DesiredStateId = _options.Value.DesiredStateId,
+                NoteStateId = _options.Value.NoteStateId,
                 ChangeOrderState = _options.Value.ChangeOrderStateByDefault,
                 SendToPrinter = _options.Value.SendToPrinterByDefault,
             };
@@ -61,7 +62,9 @@ public class PrintPickingListJob : IRecurringJob
 
             var result = await _expeditionListService.PrintPickingListAsync(request, emailList, cancellationToken);
 
-            _logger.LogInformation("{JobName} completed. Total orders: {TotalCount}", Metadata.JobName, result.TotalCount);
+            _logger.LogInformation(
+                "{JobName} completed. Processed orders: {TotalCount}, skipped (incomplete address): {SkippedCount}",
+                Metadata.JobName, result.TotalCount, result.SkippedCount);
         }
         catch (Exception ex)
         {

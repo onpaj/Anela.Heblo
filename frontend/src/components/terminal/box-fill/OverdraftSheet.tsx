@@ -29,8 +29,8 @@ const OverdraftSheet: React.FC<OverdraftSheetProps> = ({
         <div className="flex items-start gap-3">
           <AlertCircle className="h-6 w-6 text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-neutral-slate">{item.productName}</p>
-            <p className="text-sm text-neutral-gray mt-1">
+            <p className="font-semibold text-neutral-slate dark:text-graphite-text">{item.productName}</p>
+            <p className="text-sm text-neutral-gray dark:text-graphite-muted mt-1">
               Na skladě je pouze <strong>{item.amount}</strong>, požadováno <strong>{requestedAmount}</strong>.
             </p>
           </div>
@@ -49,11 +49,11 @@ const OverdraftSheet: React.FC<OverdraftSheetProps> = ({
           onClick={onAddRemaining}
           disabled={isSubmitting}
           data-testid="overdraft-add-remaining"
-          className="w-full py-4 text-base font-semibold text-neutral-slate bg-gray-100 rounded-xl disabled:opacity-50"
+          className="w-full py-4 text-base font-semibold text-neutral-slate dark:text-graphite-text bg-gray-100 dark:bg-graphite-surface-2 rounded-xl disabled:opacity-50"
         >
           Přidat pouze zbývající ({item.amount} ks)
         </button>
-        <button type="button" onClick={onCancel} disabled={isSubmitting} className="w-full py-2 text-sm text-neutral-gray disabled:opacity-50">
+        <button type="button" onClick={onCancel} disabled={isSubmitting} className="w-full py-2 text-sm text-neutral-gray dark:text-graphite-muted disabled:opacity-50">
           Zrušit
         </button>
       </div>

@@ -29,13 +29,13 @@ export const MobileNotice: React.FC = () => {
   }
 
   return (
-    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+    <div className="bg-yellow-50 dark:bg-amber-900/30 border-l-4 border-yellow-400 dark:border-amber-500 p-4">
       <div className="flex items-start">
         <div className="flex-shrink-0">
-          <AlertCircle className="h-5 w-5 text-yellow-400" />
+          <AlertCircle className="h-5 w-5 text-yellow-400 dark:text-amber-400" />
         </div>
         <div className="ml-3 flex-1">
-          <p className="text-sm text-yellow-800">
+          <p className="text-sm text-yellow-800 dark:text-amber-300">
             Tato stránka je optimalizována pro desktop. Některé funkce nemusí na mobilním zařízení fungovat správně.
           </p>
         </div>
@@ -43,7 +43,7 @@ export const MobileNotice: React.FC = () => {
           <button
             type="button"
             onClick={handleDismiss}
-            className="inline-flex rounded-md bg-yellow-50 p-1.5 text-yellow-500 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50"
+            className="inline-flex rounded-md bg-yellow-50 dark:bg-amber-900/30 p-1.5 text-yellow-500 dark:text-amber-400 hover:bg-yellow-100 dark:hover:bg-amber-900/50 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50"
             aria-label="Zavřít upozornění"
           >
             <X className="h-5 w-5" />

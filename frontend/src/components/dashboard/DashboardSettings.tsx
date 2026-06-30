@@ -69,18 +69,18 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg border border-gray-200 h-full flex flex-col">
+    <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-lg dark:shadow-soft-dark border border-gray-200 dark:border-graphite-border h-full flex flex-col">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-6 py-4 border-b border-gray-200 dark:border-graphite-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Settings className="h-5 w-5 text-gray-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Nastavení dashboardu</h2>
+            <Settings className="h-5 w-5 text-gray-600 dark:text-graphite-muted" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Nastavení dashboardu</h2>
           </div>
           {onClose && (
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted transition-colors"
             >
               ✕
             </button>
@@ -88,11 +88,11 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
         </div>
         
         {newTilesCount > 0 && (
-          <div className="mt-3 bg-blue-50 p-3 rounded-lg">
-            <p className="text-sm text-blue-800">
+          <div className="mt-3 bg-blue-50 dark:bg-graphite-accent/10 p-3 rounded-lg">
+            <p className="text-sm text-blue-800 dark:text-graphite-accent">
               <strong>Nové dlaždice k dispozici ({newTilesCount})</strong>
             </p>
-            <p className="text-xs text-blue-600 mt-1">
+            <p className="text-xs text-blue-600 dark:text-graphite-accent mt-1">
               Byly přidány nové dlaždice. Můžete je aktivovat níže.
             </p>
           </div>
@@ -100,7 +100,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="px-6 py-3 border-b border-gray-100">
+      <div className="px-6 py-3 border-b border-gray-100 dark:border-graphite-border">
         <div className="flex space-x-1">
           {[
             { key: 'all', label: 'Vše', count: safeAvailableTiles.length },
@@ -112,9 +112,9 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
               onClick={() => setFilter(tab.key)}
               className={`
                 px-3 py-1.5 rounded-md text-sm font-medium transition-colors
-                ${filter === tab.key 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                ${filter === tab.key
+                  ? 'bg-blue-100 dark:bg-graphite-accent/10 text-blue-700 dark:text-graphite-accent'
+                  : 'text-gray-600 dark:text-graphite-muted hover:text-gray-900 dark:hover:text-graphite-text hover:bg-gray-50 dark:hover:bg-white/5'
                 }
               `}
             >
@@ -137,22 +137,22 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
                 key={tile.tileId}
                 className={`
                   p-4 rounded-lg border transition-all
-                  ${isEnabled ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'}
+                  ${isEnabled ? 'border-green-200 dark:border-emerald-400/30 bg-green-50 dark:bg-emerald-400/15' : 'border-gray-200 dark:border-graphite-border bg-white dark:bg-graphite-surface'}
                   ${isNew ? 'ring-2 ring-blue-200' : ''}
                 `}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
-                      <h3 className="font-medium text-gray-900">{tile.title}</h3>
+                      <h3 className="font-medium text-gray-900 dark:text-graphite-text">{tile.title}</h3>
                       <SizeBadge size={tile.size} />
                       {isNew && (
-                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                        <span className="px-2 py-0.5 bg-blue-100 dark:bg-graphite-accent/10 text-blue-700 dark:text-graphite-accent rounded-full text-xs font-medium">
                           Nová
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{tile.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-graphite-muted mt-1">{tile.description}</p>
                     <div className="mt-2">
                       <CategoryBadge category={tile.category} />
                     </div>
@@ -164,9 +164,9 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
                     className={`
                       flex items-center space-x-1 px-3 py-1.5 rounded-md text-sm font-medium
                       transition-colors disabled:opacity-50
-                      ${isEnabled 
-                        ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-                        : 'bg-green-100 text-green-700 hover:bg-green-200'
+                      ${isEnabled
+                        ? 'bg-red-100 dark:bg-red-400/15 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-400/25'
+                        : 'bg-green-100 dark:bg-emerald-400/15 text-green-700 dark:text-emerald-400 hover:bg-green-200 dark:hover:bg-emerald-400/25'
                       }
                     `}
                   >
@@ -189,7 +189,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
         </div>
 
         {filteredTiles.length === 0 && (
-          <div className="col-span-full text-center py-8 text-gray-500">
+          <div className="col-span-full text-center py-8 text-gray-500 dark:text-graphite-muted">
             <p>Žádné dlaždice v této kategorii</p>
           </div>
         )}

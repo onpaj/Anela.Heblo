@@ -55,7 +55,11 @@ public class CreateOrderShipmentHandler
             var totalWeightGrams = order.Items.Sum(i => i.WeightGrams * i.Quantity);
             if (totalWeightGrams == 0)
             {
-                return new CreateOrderShipmentResponse(ErrorCodes.ShipmentOrderWeightUnavailable);
+                // Carriers reject a 0 kg package; fall back to a default package weight.
+                _logger.LogWarning(
+                    "Order {OrderCode} has no known item weights; using fallback package weight {Fallback}g",
+                    request.OrderCode, _settings.FallbackPackageWeightGrams);
+                totalWeightGrams = _settings.FallbackPackageWeightGrams;
             }
 
             var packageWeightGrams = Math.Max(totalWeightGrams, _settings.MinPackageWeightGrams);

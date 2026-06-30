@@ -35,7 +35,7 @@ export default function BulkTagButton({
       disabled={isDisabled}
       title={tooltip}
       onClick={onOpenDialog}
-      className="flex items-center gap-1.5 px-2 py-1 text-sm border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+      className="flex items-center gap-1.5 px-2 py-1 text-sm border border-gray-200 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
     >
       <Tag className="w-4 h-4" />
       Otagovat

@@ -5,8 +5,6 @@ namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEven
 
 public static class SmartsuppPayloadMapper
 {
-    private const int LastMessagePreviewMaxLength = 200;
-
     public static SmartsuppConversation MapConversation(JsonElement data, DateTime syncedAt)
     {
         var statusStr = TryGetString(data, "status")?.ToLowerInvariant();
@@ -39,9 +37,7 @@ public static class SmartsuppPayloadMapper
             Referer = TryGetString(data, "referer"),
             Channel = channel,
             LastMessageAt = ReadOptionalUtc(data, "last_message_at"),
-            LastMessagePreview = lastMessageText?.Length > LastMessagePreviewMaxLength
-                ? lastMessageText[..LastMessagePreviewMaxLength]
-                : lastMessageText,
+            LastMessagePreview = lastMessageText,
             TagsJson = data.TryGetProperty("tags", out var tags) ? tags.GetRawText() : null,
             VariablesJson = data.TryGetProperty("variables", out var vars) ? vars.GetRawText() : null,
             AssignedAgentIdsJson = data.TryGetProperty("assigned_agent_ids", out var agentIds) ? agentIds.GetRawText() : null,

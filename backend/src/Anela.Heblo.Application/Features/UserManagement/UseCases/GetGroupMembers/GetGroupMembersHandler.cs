@@ -3,7 +3,6 @@ using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Microsoft.Identity.Client;
 
 namespace Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 
@@ -32,7 +31,7 @@ public class GetGroupMembersHandler : IRequestHandler<GetGroupMembersRequest, Ge
                 Members = members
             };
         }
-        catch (MsalException ex)
+        catch (GraphServiceAuthException ex)
         {
             _logger.LogError(ex, "Failed to handle GetGroupMembers for {GroupId}", request.GroupId);
 
@@ -43,7 +42,7 @@ public class GetGroupMembersHandler : IRequestHandler<GetGroupMembersRequest, Ge
                 Members = new List<UserDto>()
             };
         }
-        catch (Microsoft.Graph.Models.ODataErrors.ODataError ex)
+        catch (GraphServiceException ex)
         {
             _logger.LogError(ex, "Failed to handle GetGroupMembers for {GroupId}", request.GroupId);
 

@@ -26,6 +26,6 @@ Follow the **superpowers:brainstorming** skill injected above as your context fi
 
 **No writing-plans transition:** Do NOT invoke the writing-plans skill. After the user approves the spec, tell them:
 
-> "Spec saved to `brief.md`. It will be uploaded to Azure as your feature brief once you exit this session. Run `agentharness implement <feature-id>` to start the pipeline."
+> "Spec saved to `brief.md`. It will be uploaded to Azure as your feature brief once you exit this session. Run `/oneshot <issue-number>` to start the pipeline."
 
 Do NOT submit to the pipeline yourself — the upload happens automatically after this session ends.

@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -52,7 +53,7 @@ public class FlatManufactureCostProviderTests
         var product = new CatalogAggregate
         {
             ProductCode = productCode,
-            ManufactureHistory = new List<ManufactureHistoryRecord>
+            ManufactureHistory = new List<CatalogManufactureRecord>
             {
                 new() { Date = month1.AddDays(14), Amount = 10, ProductCode = productCode },
                 new() { Date = month2.AddDays(14), Amount = 20, ProductCode = productCode },
@@ -119,7 +120,7 @@ public class FlatManufactureCostProviderTests
         var product1 = new CatalogAggregate
         {
             ProductCode = product1Code,
-            ManufactureHistory = new List<ManufactureHistoryRecord>
+            ManufactureHistory = new List<CatalogManufactureRecord>
             {
                 new() { Date = month1.AddDays(14), Amount = 10, ProductCode = product1Code }
             }
@@ -136,7 +137,7 @@ public class FlatManufactureCostProviderTests
         var product2 = new CatalogAggregate
         {
             ProductCode = product2Code,
-            ManufactureHistory = new List<ManufactureHistoryRecord>
+            ManufactureHistory = new List<CatalogManufactureRecord>
             {
                 new() { Date = month1.AddDays(14), Amount = 20, ProductCode = product2Code }
             }
@@ -197,7 +198,7 @@ public class FlatManufactureCostProviderTests
         var product = new CatalogAggregate
         {
             ProductCode = productCode,
-            ManufactureHistory = new List<ManufactureHistoryRecord>()
+            ManufactureHistory = new List<CatalogManufactureRecord>()
         };
 
         var catalogRepositoryMock = new Mock<ICatalogRepository>();
@@ -243,7 +244,7 @@ public class FlatManufactureCostProviderTests
         var product = new CatalogAggregate
         {
             ProductCode = productCode,
-            ManufactureHistory = new List<ManufactureHistoryRecord>
+            ManufactureHistory = new List<CatalogManufactureRecord>
             {
                 new() { Date = month1.AddDays(14), Amount = 10, ProductCode = productCode }
             }
@@ -302,7 +303,7 @@ public class FlatManufactureCostProviderTests
         var product1 = new CatalogAggregate
         {
             ProductCode = productCode,
-            ManufactureHistory = new List<ManufactureHistoryRecord>() // No history
+            ManufactureHistory = new List<CatalogManufactureRecord>() // No history
         };
         product1.ManufactureDifficultySettings.Assign(
             new List<ManufactureDifficultySetting>
@@ -315,7 +316,7 @@ public class FlatManufactureCostProviderTests
         var product2 = new CatalogAggregate
         {
             ProductCode = otherProductCode,
-            ManufactureHistory = new List<ManufactureHistoryRecord>
+            ManufactureHistory = new List<CatalogManufactureRecord>
             {
                 new() { Date = month1.AddDays(14), Amount = 10, ProductCode = otherProductCode }
             }

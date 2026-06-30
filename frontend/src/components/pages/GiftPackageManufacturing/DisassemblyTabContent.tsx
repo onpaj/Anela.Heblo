@@ -22,16 +22,16 @@ const DisassemblyTabContent: React.FC<DisassemblyTabContentProps> = ({
   const isValid = quantity > 0 && quantity <= maxQuantity;
 
   return (
-    <div className="flex-1 p-3 sm:p-4 bg-red-50/30">
+    <div className="flex-1 p-3 sm:p-4 bg-red-50/30 dark:bg-red-900/10">
       {/* Warning Banner */}
-      <div className="mb-4 p-3 bg-red-100 border-2 border-red-200 rounded-lg">
+      <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border-2 border-red-200 dark:border-graphite-border rounded-lg">
         <div className="flex items-start">
-          <AlertTriangle className="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
+          <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mr-2 flex-shrink-0 mt-0.5" />
           <div>
-            <div className="text-sm font-semibold text-red-800">
+            <div className="text-sm font-semibold text-red-800 dark:text-red-300">
               Pozor: Destruktivní operace
             </div>
-            <div className="text-xs text-red-700 mt-1">
+            <div className="text-xs text-red-700 dark:text-red-300 mt-1">
               Rozebráním balíčku vrátíte komponenty zpět na sklad a odeberete hotový výrobek.
             </div>
           </div>
@@ -39,14 +39,14 @@ const DisassemblyTabContent: React.FC<DisassemblyTabContentProps> = ({
       </div>
 
       {/* Statistics Card */}
-      <div className="mb-4 p-3 bg-white border-2 border-red-200 rounded-lg">
-        <div className="text-sm font-medium text-gray-700 mb-2">Dostupné k rozebírání</div>
-        <div className="text-2xl font-bold text-gray-900">{maxQuantity} ks</div>
-        <div className="text-xs text-gray-500 mt-1">Aktuální sklad hotových balíčků</div>
+      <div className="mb-4 p-3 bg-white dark:bg-graphite-surface border-2 border-red-200 dark:border-graphite-border rounded-lg">
+        <div className="text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">Dostupné k rozebírání</div>
+        <div className="text-2xl font-bold text-gray-900 dark:text-graphite-text">{maxQuantity} ks</div>
+        <div className="text-xs text-gray-500 dark:text-graphite-muted mt-1">Aktuální sklad hotových balíčků</div>
       </div>
 
-      <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-4 flex items-center">
-        <PackageOpen className="h-4 w-4 mr-2 text-red-600" />
+      <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-graphite-text mb-4 flex items-center">
+        <PackageOpen className="h-4 w-4 mr-2 text-red-600 dark:text-red-400" />
         Množství k rozebírání
       </h3>
 
@@ -55,7 +55,7 @@ const DisassemblyTabContent: React.FC<DisassemblyTabContentProps> = ({
         <div className="flex items-center space-x-2 mb-3">
           <button
             onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            className="w-16 h-16 flex items-center justify-center bg-white border-2 border-red-300 rounded-xl text-red-700 hover:bg-red-50 hover:text-red-900 hover:border-red-400 active:bg-red-100 touch-manipulation text-3xl font-bold transition-all duration-150 shadow-sm"
+            className="w-16 h-16 flex items-center justify-center bg-white dark:bg-graphite-surface border-2 border-red-300 dark:border-graphite-border rounded-xl text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-900 dark:hover:text-red-300 hover:border-red-400 active:bg-red-100 touch-manipulation text-3xl font-bold transition-all duration-150 shadow-sm dark:shadow-soft-dark"
             type="button"
             disabled={isPending}
           >
@@ -70,12 +70,12 @@ const DisassemblyTabContent: React.FC<DisassemblyTabContentProps> = ({
               const val = parseInt(e.target.value) || 1;
               setQuantity(Math.min(maxQuantity, Math.max(1, val)));
             }}
-            className="flex-1 text-center border-2 border-red-300 rounded-xl px-3 py-4 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 touch-manipulation shadow-sm min-w-0"
+            className="flex-1 text-center border-2 border-red-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-xl px-3 py-4 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 touch-manipulation shadow-sm dark:shadow-soft-dark min-w-0"
             disabled={isPending}
           />
           <button
             onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
-            className="w-16 h-16 flex items-center justify-center bg-white border-2 border-red-300 rounded-xl text-red-700 hover:bg-red-50 hover:text-red-900 hover:border-red-400 active:bg-red-100 touch-manipulation text-3xl font-bold transition-all duration-150 shadow-sm"
+            className="w-16 h-16 flex items-center justify-center bg-white dark:bg-graphite-surface border-2 border-red-300 dark:border-graphite-border rounded-xl text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-900 dark:hover:text-red-300 hover:border-red-400 active:bg-red-100 touch-manipulation text-3xl font-bold transition-all duration-150 shadow-sm dark:shadow-soft-dark"
             type="button"
             disabled={isPending}
           >
@@ -87,7 +87,7 @@ const DisassemblyTabContent: React.FC<DisassemblyTabContentProps> = ({
         <div className="grid grid-cols-2 gap-2 mb-4">
           <button
             onClick={() => setQuantity(Math.max(1, Math.floor(maxQuantity / 2)))}
-            className="px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors touch-manipulation text-center"
+            className="px-3 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors touch-manipulation text-center"
             type="button"
             disabled={isPending || maxQuantity < 1}
           >
@@ -95,7 +95,7 @@ const DisassemblyTabContent: React.FC<DisassemblyTabContentProps> = ({
           </button>
           <button
             onClick={() => setQuantity(maxQuantity)}
-            className="px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors touch-manipulation text-center"
+            className="px-3 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors touch-manipulation text-center"
             type="button"
             disabled={isPending || maxQuantity < 1}
           >
@@ -108,22 +108,22 @@ const DisassemblyTabContent: React.FC<DisassemblyTabContentProps> = ({
       <div
         className={`p-3 rounded-lg mb-4 ${
           isValid
-            ? "bg-green-100 border border-green-200"
-            : "bg-red-100 border border-red-200"
+            ? "bg-green-100 dark:bg-emerald-900/30 border border-green-200 dark:border-graphite-border"
+            : "bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-graphite-border"
         }`}
       >
         <div className="flex items-center">
           {isValid ? (
             <>
-              <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-              <span className="text-sm font-medium text-green-800">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-emerald-400 mr-2" />
+              <span className="text-sm font-medium text-green-800 dark:text-emerald-300">
                 Množství je v pořádku
               </span>
             </>
           ) : (
             <>
-              <AlertTriangle className="h-4 w-4 text-red-600 mr-2" />
-              <span className="text-sm font-medium text-red-800">
+              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 mr-2" />
+              <span className="text-sm font-medium text-red-800 dark:text-red-300">
                 {quantity > maxQuantity
                   ? `Překročen maximální dostupný počet (max: ${maxQuantity})`
                   : "Množství musí být větší než 0"}
@@ -140,7 +140,7 @@ const DisassemblyTabContent: React.FC<DisassemblyTabContentProps> = ({
         className={`w-full flex items-center justify-center px-6 py-4 text-lg font-semibold rounded-lg transition-colors touch-manipulation ${
           isValid && !isPending
             ? "text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            : "text-gray-400 bg-gray-200 cursor-not-allowed"
+            : "text-gray-400 dark:text-graphite-faint bg-gray-200 dark:bg-graphite-hover cursor-not-allowed"
         }`}
       >
         {isPending ? (

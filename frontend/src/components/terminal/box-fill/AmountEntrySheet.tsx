@@ -36,8 +36,8 @@ const AmountEntrySheet: React.FC<AmountEntrySheetProps> = ({
         className="space-y-4"
       >
         <div>
-          <p className="font-semibold text-neutral-slate">{item.productName}</p>
-          <p className="text-xs text-neutral-gray font-mono">
+          <p className="font-semibold text-neutral-slate dark:text-graphite-text">{item.productName}</p>
+          <p className="text-xs text-neutral-gray dark:text-graphite-muted font-mono">
             {item.productCode}
             {item.lotNumber ? ` • Šarže: ${item.lotNumber}` : ""} • Sklad: {item.amount}
           </p>
@@ -61,10 +61,10 @@ const AmountEntrySheet: React.FC<AmountEntrySheetProps> = ({
           min="0.01"
           placeholder="Množství"
           data-testid="amount-entry-input"
-          className="w-full px-4 py-3 text-lg border border-border-light rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-blue"
+          className="w-full px-4 py-3 text-lg border border-border-light dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-blue"
         />
         {error && (
-          <div role="alert" className="flex items-center gap-1 text-xs text-red-600">
+          <div role="alert" className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
             <AlertCircle className="h-3 w-3" /> {error}
           </div>
         )}
@@ -73,7 +73,7 @@ const AmountEntrySheet: React.FC<AmountEntrySheetProps> = ({
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="flex-1 py-3 text-base font-medium text-neutral-slate bg-gray-100 rounded-xl disabled:opacity-50"
+            className="flex-1 py-3 text-base font-medium text-neutral-slate dark:text-graphite-text bg-gray-100 dark:bg-graphite-surface-2 rounded-xl disabled:opacity-50"
           >
             Zrušit
           </button>

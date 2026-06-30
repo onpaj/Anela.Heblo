@@ -93,22 +93,22 @@ const TerminalHome: React.FC = () => {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-md mx-auto w-full p-4 space-y-4">
-        <h1 className="text-xl font-bold text-neutral-slate">Vyberte operaci</h1>
+        <h1 className="text-xl font-bold text-neutral-slate dark:text-graphite-text">Vyberte operaci</h1>
         <div className="grid grid-cols-2 gap-4">
           {WORKFLOWS.map(({ id, title, description, href, icon: Icon, comingSoon }) => (
             <Link
               key={id}
               to={href}
               data-testid={`workflow-tile-${id}`}
-              className="flex flex-col gap-2 bg-white border border-border-light rounded-xl p-4 shadow-soft hover:border-primary-blue hover:shadow-hover transition-all min-h-[140px]"
+              className="flex flex-col gap-2 bg-white dark:bg-graphite-surface border border-border-light dark:border-graphite-border rounded-xl p-4 shadow-soft dark:shadow-soft-dark hover:border-primary-blue dark:hover:border-graphite-accent hover:shadow-hover transition-all min-h-[140px]"
             >
-              <div className="flex-shrink-0 w-12 h-12 bg-secondary-blue-pale rounded-xl flex items-center justify-center">
-                <Icon className="h-6 w-6 text-primary-blue" />
+              <div className="flex-shrink-0 w-12 h-12 bg-secondary-blue-pale dark:bg-graphite-surface-2 rounded-xl flex items-center justify-center">
+                <Icon className="h-6 w-6 text-primary-blue dark:text-graphite-accent" />
               </div>
-              <p className="text-base font-semibold text-neutral-slate">{title}</p>
-              <p className="text-sm text-neutral-gray">{description}</p>
+              <p className="text-base font-semibold text-neutral-slate dark:text-graphite-text">{title}</p>
+              <p className="text-sm text-neutral-gray dark:text-graphite-muted">{description}</p>
               {comingSoon && (
-                <span className="text-xs text-neutral-gray italic mt-auto">Brzy k dispozici</span>
+                <span className="text-xs text-neutral-gray dark:text-graphite-muted italic mt-auto">Brzy k dispozici</span>
               )}
             </Link>
           ))}

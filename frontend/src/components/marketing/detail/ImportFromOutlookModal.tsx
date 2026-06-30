@@ -66,29 +66,29 @@ const ImportFromOutlookModal: React.FC<ImportFromOutlookModalProps> = ({ isOpen,
       aria-modal='true'
       aria-labelledby={modalTitleId}
     >
-      <div className='bg-white rounded-xl shadow-xl w-full max-w-md p-6'>
-        <h2 id={modalTitleId} className='text-lg font-semibold text-gray-900 mb-4'>
+      <div className='bg-white dark:bg-graphite-surface rounded-xl shadow-xl dark:shadow-soft-dark w-full max-w-md p-6'>
+        <h2 id={modalTitleId} className='text-lg font-semibold text-gray-900 dark:text-graphite-text mb-4'>
           Import z Outlooku
         </h2>
         <div className='space-y-4'>
           <div>
-            <label htmlFor='import-from-date' className='block text-sm font-medium text-gray-700 mb-1'>Od</label>
+            <label htmlFor='import-from-date' className='block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1'>Od</label>
             <input
               id='import-from-date'
               type='date'
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className='w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500'
+              className='w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500'
             />
           </div>
           <div>
-            <label htmlFor='import-to-date' className='block text-sm font-medium text-gray-700 mb-1'>Do</label>
+            <label htmlFor='import-to-date' className='block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1'>Do</label>
             <input
               id='import-to-date'
               type='date'
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className='w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500'
+              className='w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500'
             />
           </div>
           <div className='flex items-center gap-2'>
@@ -97,13 +97,13 @@ const ImportFromOutlookModal: React.FC<ImportFromOutlookModalProps> = ({ isOpen,
               type='checkbox'
               checked={dryRun}
               onChange={(e) => setDryRun(e.target.checked)}
-              className='h-4 w-4 text-indigo-600 border-gray-300 rounded'
+              className='h-4 w-4 text-indigo-600 border-gray-300 dark:border-graphite-border rounded'
             />
-            <label htmlFor='dryRun' className='text-sm text-gray-700'>Jen simulace (dry run)</label>
+            <label htmlFor='dryRun' className='text-sm text-gray-700 dark:text-graphite-muted'>Jen simulace (dry run)</label>
           </div>
 
           {result && (
-            <div className='rounded-lg bg-gray-50 border border-gray-200 p-3 text-sm text-gray-700'>
+            <div className='rounded-lg bg-gray-50 dark:bg-graphite-surface-2 border border-gray-200 dark:border-graphite-border p-3 text-sm text-gray-700 dark:text-graphite-muted'>
               <p>Vytvořeno: <strong>{result.created}</strong></p>
               <p>Přeskočeno: <strong>{result.skipped}</strong></p>
               <p>Chyb: <strong>{result.failed}</strong></p>
@@ -115,14 +115,14 @@ const ImportFromOutlookModal: React.FC<ImportFromOutlookModalProps> = ({ isOpen,
           )}
 
           {importMutation.isError && (
-            <p className='text-sm text-red-600'>Import selhal. Zkuste to znovu.</p>
+            <p className='text-sm text-red-600 dark:text-red-400'>Import selhal. Zkuste to znovu.</p>
           )}
         </div>
 
         <div className='mt-6 flex justify-end gap-3'>
           <button
             onClick={onClose}
-            className='px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'
+            className='px-4 py-2 text-sm text-gray-700 dark:text-graphite-muted border border-gray-300 dark:border-graphite-border rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors'
           >
             Zavřít
           </button>

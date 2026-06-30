@@ -59,8 +59,8 @@ export const LowStockAlertTile: React.FC<LowStockAlertTileProps> = ({ data }) =>
     return (
       <div className="h-full flex items-center justify-center text-center">
         <div>
-          <div className="text-red-500 text-2xl mb-2">⚠️</div>
-          <p className="text-red-600 text-sm">{data.error || 'Chyba při načítání dat'}</p>
+          <div className="text-red-500 dark:text-red-400 text-2xl mb-2">⚠️</div>
+          <p className="text-red-600 dark:text-red-400 text-sm">{data.error || 'Chyba při načítání dat'}</p>
         </div>
       </div>
     );
@@ -74,8 +74,8 @@ export const LowStockAlertTile: React.FC<LowStockAlertTileProps> = ({ data }) =>
     return (
       <div className="h-full flex items-center justify-center text-center">
         <div>
-          <div className="text-green-500 text-2xl mb-2">✅</div>
-          <p className="text-green-600 text-sm font-medium">Všechny produkty mají dostatečnou zásobu</p>
+          <div className="text-green-500 dark:text-emerald-400 text-2xl mb-2">✅</div>
+          <p className="text-green-600 dark:text-emerald-400 text-sm font-medium">Všechny produkty mají dostatečnou zásobu</p>
         </div>
       </div>
     );
@@ -97,21 +97,21 @@ export const LowStockAlertTile: React.FC<LowStockAlertTileProps> = ({ data }) =>
           {products.slice(0, 2).map((product) => (
             <div
               key={product.productCode}
-              className="p-3 md:p-2 min-h-12 hover:bg-gray-50 active:bg-gray-100 cursor-pointer transition-colors duration-200 rounded border border-gray-100"
+              className="p-3 md:p-2 min-h-12 hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 cursor-pointer transition-colors duration-200 rounded border border-gray-100 dark:border-graphite-border"
               onClick={() => handleRowClick(product)}
               style={{ touchAction: 'manipulation' }}
             >
               {/* Two line product row */}
               <div>
                 <div className="flex items-center justify-between text-base md:text-xs">
-                  <div className="font-medium text-gray-900 truncate">
+                  <div className="font-medium text-gray-900 dark:text-graphite-text truncate">
                     {product.productName}
                   </div>
-                  <div className="font-mono text-sm md:text-xs text-gray-600">
+                  <div className="font-mono text-sm md:text-xs text-gray-600 dark:text-graphite-muted">
                     {formatNumber(product.eshopStock)} / {formatNumber(product.reserveStock)} / {formatNumber(product.transportStock)}
                   </div>
                 </div>
-                <div className="text-sm md:text-xs text-gray-500">
+                <div className="text-sm md:text-xs text-gray-500 dark:text-graphite-muted">
                   {product.productCode}
                 </div>
               </div>
@@ -121,7 +121,7 @@ export const LowStockAlertTile: React.FC<LowStockAlertTileProps> = ({ data }) =>
             <div className="text-center pt-1">
               <button
                 onClick={handleClick}
-                className="text-sm md:text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                className="text-sm md:text-xs text-blue-600 dark:text-graphite-accent hover:text-blue-800 dark:hover:text-graphite-accent-strong hover:underline"
                 title={tooltip}
               >
                 +{totalCount - 2} dalších

@@ -1,0 +1,78 @@
+{
+  "feature_id": "feat-3286",
+  "issue_number": 3286,
+  "created_at": "2026-06-23T03:15:27.464431Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-23T03:18:04.839711Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-23T03:22:05.880221Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-23T03:23:50.658486Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-23T03:27:22.994816Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-23T04:37:51.959837Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-shared-test-helpers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-23T03:32:58.131936Z"
+    },
+    {
+      "name": "fr1-blobname-from-url-path",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-23T03:47:11.730463Z"
+    },
+    {
+      "name": "fr2-generated-blobname-extension",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-23T03:50:32.923876Z"
+    },
+    {
+      "name": "fr3-extension-from-contenttype-all-arms",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-23T03:56:03.568962Z"
+    },
+    {
+      "name": "fr4-contenttype-from-extension-all-arms",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-23T04:12:42.326823Z"
+    },
+    {
+      "name": "fr5-container-cache-download-path",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-23T04:15:48.746488Z"
+    },
+    {
+      "name": "fr6-virtual-directories-trailing-slash",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-23T04:19:16.925978Z"
+    },
+    {
+      "name": "full-suite-verification",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-23T04:37:44.537546Z"
+    }
+  ]
+}

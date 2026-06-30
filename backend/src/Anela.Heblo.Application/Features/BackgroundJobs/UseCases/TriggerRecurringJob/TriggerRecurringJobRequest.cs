@@ -5,5 +5,4 @@ namespace Anela.Heblo.Application.Features.BackgroundJobs.UseCases.TriggerRecurr
 public class TriggerRecurringJobRequest : IRequest<TriggerRecurringJobResponse>
 {
     public string JobName { get; set; } = string.Empty;
-    public bool ForceDisabled { get; set; }
 }

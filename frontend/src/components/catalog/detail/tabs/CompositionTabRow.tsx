@@ -35,9 +35,9 @@ export const CompositionTabRow: React.FC<CompositionTabRowProps> = ({
   // Build Fáze cell class names using left/top/bottom borders as a bracket indicator.
   const fazeCellClasses = [
     'py-3 px-3 text-center w-16',
-    phaseLabel ? 'border-l-2 border-indigo-400' : '',
-    phaseLabel && isFirstInPhase ? 'border-t-2 border-indigo-400' : '',
-    phaseLabel && isLastInPhase ? 'border-b-2 border-indigo-400' : '',
+    phaseLabel ? 'border-l-2 border-indigo-400 dark:border-graphite-accent' : '',
+    phaseLabel && isFirstInPhase ? 'border-t-2 border-indigo-400 dark:border-graphite-accent' : '',
+    phaseLabel && isLastInPhase ? 'border-b-2 border-indigo-400 dark:border-graphite-accent' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -46,21 +46,21 @@ export const CompositionTabRow: React.FC<CompositionTabRowProps> = ({
     <tr
       ref={setNodeRef}
       style={style}
-      className={`hover:bg-gray-50 ${isDragging ? 'bg-indigo-50' : ''}`}
+      className={`hover:bg-gray-50 dark:hover:bg-white/5 ${isDragging ? 'bg-indigo-50 dark:bg-graphite-accent/10' : ''}`}
     >
       {isEditMode && (
         <td
-          className="py-3 px-2 w-8 text-gray-400 cursor-grab active:cursor-grabbing"
+          className="py-3 px-2 w-8 text-gray-400 dark:text-graphite-faint cursor-grab active:cursor-grabbing"
           {...attributes}
           {...listeners}
         >
           <GripVertical className="h-4 w-4" />
         </td>
       )}
-      <td className="py-3 px-4 text-right text-gray-700 w-16">{displayOrder}</td>
-      <td className="py-3 px-4 text-gray-900">{ingredient.productName}</td>
-      <td className="py-3 px-4 text-gray-900 font-medium">{ingredient.productCode}</td>
-      <td className="py-3 px-4 text-right text-gray-900 font-medium">
+      <td className="py-3 px-4 text-right text-gray-700 dark:text-graphite-muted w-16">{displayOrder}</td>
+      <td className="py-3 px-4 text-gray-900 dark:text-graphite-text">{ingredient.productName}</td>
+      <td className="py-3 px-4 text-gray-900 dark:text-graphite-text font-medium">{ingredient.productCode}</td>
+      <td className="py-3 px-4 text-right text-gray-900 dark:text-graphite-text font-medium">
         {ingredient.amount.toLocaleString('cs-CZ', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 4,
@@ -69,7 +69,7 @@ export const CompositionTabRow: React.FC<CompositionTabRowProps> = ({
       {isEditMode && (
         <td className={fazeCellClasses}>
           {isFirstInPhase && phaseLabel ? (
-            <span className="text-indigo-600 font-bold text-sm">{phaseLabel}</span>
+            <span className="text-indigo-600 dark:text-graphite-accent font-bold text-sm">{phaseLabel}</span>
           ) : null}
         </td>
       )}

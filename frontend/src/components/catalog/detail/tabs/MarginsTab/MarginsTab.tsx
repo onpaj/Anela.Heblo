@@ -29,7 +29,7 @@ const MarginsTab: React.FC<MarginsTabProps> = ({
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-          <div className="text-gray-500">Načítání dat o marži...</div>
+          <div className="text-gray-500 dark:text-graphite-muted">Načítání dat o marži...</div>
         </div>
       </div>
     );
@@ -38,8 +38,8 @@ const MarginsTab: React.FC<MarginsTabProps> = ({
   if (manufactureCostHistory.length === 0 && marginHistory.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center text-gray-500">
-          <TrendingUp className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+        <div className="text-center text-gray-500 dark:text-graphite-muted">
+          <TrendingUp className="h-12 w-12 mx-auto mb-2 text-gray-300 dark:text-graphite-faint" />
           <p className="text-lg font-medium">
             Žádné údaje o marži
           </p>

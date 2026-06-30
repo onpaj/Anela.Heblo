@@ -210,7 +210,7 @@ const FinancialOverview: React.FC = () => {
       <div className="w-full max-w-none px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-          <span className="ml-2 text-gray-600">Načítám finanční data...</span>
+          <span className="ml-2 text-gray-600 dark:text-graphite-muted">Načítám finanční data...</span>
         </div>
       </div>
     );
@@ -219,14 +219,14 @@ const FinancialOverview: React.FC = () => {
   if (error) {
     return (
       <div className="w-full max-w-none px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900/50 rounded-lg">
           <div className="flex items-center">
             <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
-            <h3 className="text-red-800 font-medium">
+            <h3 className="text-red-800 dark:text-red-300 font-medium">
               Chyba při načítání finančních dat
             </h3>
           </div>
-          <p className="mt-1 text-red-700 text-sm">
+          <p className="mt-1 text-red-700 dark:text-red-300 text-sm">
             {error.message || "Neznámá chyba"}
           </p>
         </div>
@@ -240,8 +240,8 @@ const FinancialOverview: React.FC = () => {
       style={{ height: PAGE_CONTAINER_HEIGHT }}
     >
       <div className="flex-shrink-0 mb-3">
-        <h1 className="text-lg font-semibold text-gray-900">Finanční přehled</h1>
-        <p className="mt-1 text-gray-600">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Finanční přehled</h1>
+        <p className="mt-1 text-gray-600 dark:text-graphite-muted">
           Přehled příjmů, nákladů a celkové bilance firmy
         </p>
       </div>
@@ -265,7 +265,7 @@ const FinancialOverview: React.FC = () => {
           <div
             className={`grid grid-cols-2 md:grid-cols-2 ${includeStockData ? "xl:grid-cols-6" : "lg:grid-cols-4"} gap-4 mb-6`}
           >
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="bg-white dark:bg-graphite-surface overflow-hidden shadow dark:shadow-soft-dark rounded-lg">
               <div className="p-3">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -273,10 +273,10 @@ const FinancialOverview: React.FC = () => {
                   </div>
                   <div className="ml-3 w-0 flex-1">
                     <dl>
-                      <dt className="text-xs font-medium text-gray-500 truncate">
+                      <dt className="text-xs font-medium text-gray-500 dark:text-graphite-muted truncate">
                         Celkové příjmy
                       </dt>
-                      <dd className="text-sm font-medium text-gray-900">
+                      <dd className="text-sm font-medium text-gray-900 dark:text-graphite-text">
                         {formatCurrency(data.summary.totalIncome)}
                       </dd>
                     </dl>
@@ -285,7 +285,7 @@ const FinancialOverview: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="bg-white dark:bg-graphite-surface overflow-hidden shadow dark:shadow-soft-dark rounded-lg">
               <div className="p-3">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -293,10 +293,10 @@ const FinancialOverview: React.FC = () => {
                   </div>
                   <div className="ml-3 w-0 flex-1">
                     <dl>
-                      <dt className="text-xs font-medium text-gray-500 truncate">
+                      <dt className="text-xs font-medium text-gray-500 dark:text-graphite-muted truncate">
                         Celkové náklady
                       </dt>
-                      <dd className="text-sm font-medium text-gray-900">
+                      <dd className="text-sm font-medium text-gray-900 dark:text-graphite-text">
                         {formatCurrency(data.summary.totalExpenses)}
                       </dd>
                     </dl>
@@ -305,7 +305,7 @@ const FinancialOverview: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="bg-white dark:bg-graphite-surface overflow-hidden shadow dark:shadow-soft-dark rounded-lg">
               <div className="p-3">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -315,11 +315,11 @@ const FinancialOverview: React.FC = () => {
                   </div>
                   <div className="ml-3 w-0 flex-1">
                     <dl>
-                      <dt className="text-xs font-medium text-gray-500 truncate">
+                      <dt className="text-xs font-medium text-gray-500 dark:text-graphite-muted truncate">
                         Účetní bilance
                       </dt>
                       <dd
-                        className={`text-sm font-medium ${data.summary.totalBalance >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                        className={`text-sm font-medium ${data.summary.totalBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}
                       >
                         {formatCurrency(data.summary.totalBalance)}
                       </dd>
@@ -329,7 +329,7 @@ const FinancialOverview: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="bg-white dark:bg-graphite-surface overflow-hidden shadow dark:shadow-soft-dark rounded-lg">
               <div className="p-3">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -339,11 +339,11 @@ const FinancialOverview: React.FC = () => {
                   </div>
                   <div className="ml-3 w-0 flex-1">
                     <dl>
-                      <dt className="text-xs font-medium text-gray-500 truncate">
+                      <dt className="text-xs font-medium text-gray-500 dark:text-graphite-muted truncate">
                         Průměrná měsíční bilance
                       </dt>
                       <dd
-                        className={`text-sm font-medium ${data.summary.averageMonthlyBalance >= 0 ? "text-blue-600" : "text-red-600"}`}
+                        className={`text-sm font-medium ${data.summary.averageMonthlyBalance >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}
                       >
                         {formatCurrency(data.summary.averageMonthlyBalance)}
                       </dd>
@@ -355,7 +355,7 @@ const FinancialOverview: React.FC = () => {
 
             {includeStockData && data.summary.stockSummary && (
               <>
-                <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="bg-white dark:bg-graphite-surface overflow-hidden shadow dark:shadow-soft-dark rounded-lg">
                   <div className="p-3">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
@@ -365,11 +365,11 @@ const FinancialOverview: React.FC = () => {
                       </div>
                       <div className="ml-3 w-0 flex-1">
                         <dl>
-                          <dt className="text-xs font-medium text-gray-500 truncate">
+                          <dt className="text-xs font-medium text-gray-500 dark:text-graphite-muted truncate">
                             Změna hodnoty skladu
                           </dt>
                           <dd
-                            className={`text-sm font-medium ${data.summary.stockSummary.totalStockValueChange && data.summary.stockSummary.totalStockValueChange >= 0 ? "text-purple-600" : "text-orange-600"}`}
+                            className={`text-sm font-medium ${data.summary.stockSummary.totalStockValueChange && data.summary.stockSummary.totalStockValueChange >= 0 ? "text-purple-600 dark:text-purple-400" : "text-orange-600 dark:text-amber-400"}`}
                           >
                             {formatCurrency(
                               data.summary.stockSummary.totalStockValueChange || 0,
@@ -381,7 +381,7 @@ const FinancialOverview: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="bg-white dark:bg-graphite-surface overflow-hidden shadow dark:shadow-soft-dark rounded-lg">
                   <div className="p-3">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
@@ -391,11 +391,11 @@ const FinancialOverview: React.FC = () => {
                       </div>
                       <div className="ml-3 w-0 flex-1">
                         <dl>
-                          <dt className="text-xs font-medium text-gray-500 truncate">
+                          <dt className="text-xs font-medium text-gray-500 dark:text-graphite-muted truncate">
                             Celková bilance vč. skladu
                           </dt>
                           <dd
-                            className={`text-sm font-medium ${data.summary.stockSummary.totalBalanceWithStock && data.summary.stockSummary.totalBalanceWithStock >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                            className={`text-sm font-medium ${data.summary.stockSummary.totalBalanceWithStock && data.summary.stockSummary.totalBalanceWithStock >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}
                           >
                             {formatCurrency(
                               data.summary.stockSummary.totalBalanceWithStock || 0,
@@ -428,15 +428,15 @@ const FinancialOverview: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsDataExpanded((prev) => !prev)}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-white shadow sm:rounded-md text-left"
+                  className="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark sm:rounded-md text-left"
                 >
-                  <span className="text-base font-medium text-gray-900">
+                  <span className="text-base font-medium text-gray-900 dark:text-graphite-text">
                     Měsíční data ({data.data.length})
                   </span>
                   {isDataExpanded ? (
-                    <ChevronUp className="h-5 w-5 text-gray-500" />
+                    <ChevronUp className="h-5 w-5 text-gray-500 dark:text-graphite-muted" />
                   ) : (
-                    <ChevronDown className="h-5 w-5 text-gray-500" />
+                    <ChevronDown className="h-5 w-5 text-gray-500 dark:text-graphite-muted" />
                   )}
                 </button>
                 {isDataExpanded && (
@@ -449,12 +449,12 @@ const FinancialOverview: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="bg-white shadow sm:rounded-md mb-8">
-                <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+              <div className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark sm:rounded-md mb-8">
+                <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-graphite-border">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-graphite-text">
                     Měsíční data
                   </h3>
-                  <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                  <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-graphite-muted">
                     Detailní rozpis příjmů, nákladů a bilance po jednotlivých
                     měsících{includeStockData ? " (včetně skladových dat)" : ""}
                   </p>
@@ -471,11 +471,11 @@ const FinancialOverview: React.FC = () => {
         {/* Empty state */}
         {data?.data && data.data.length === 0 && (
           <div className="text-center py-12">
-            <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
+            <DollarSign className="mx-auto h-12 w-12 text-gray-400 dark:text-graphite-faint" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-graphite-text">
               Žádná finanční data
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-graphite-muted">
               Pro vybrané období nejsou k dispozici žádná finanční data.
             </p>
           </div>

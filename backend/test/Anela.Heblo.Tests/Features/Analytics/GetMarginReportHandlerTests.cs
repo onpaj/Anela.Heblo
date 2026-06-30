@@ -11,6 +11,7 @@ using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -36,7 +37,8 @@ public class GetMarginReportHandlerTests
             _analyticsRepositoryMock.Object,
             _productFilterServiceMock.Object,
             _reportBuilderServiceMock.Object,
-            new MarginCalculator());
+            new MarginCalculator(),
+            NullLogger<GetMarginReportHandler>.Instance);
 
         // Set up default service behaviors for all tests
         SetupDefaultServiceMocks();
@@ -448,7 +450,6 @@ public class GetMarginReportHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
-        result.Params.Should().ContainKey("details");
     }
 
     private static async IAsyncEnumerable<T> ThrowAsync<T>(Exception exception)

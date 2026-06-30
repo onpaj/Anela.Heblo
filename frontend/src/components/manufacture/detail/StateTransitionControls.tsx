@@ -18,11 +18,11 @@ interface StateTransitionControlsProps {
 }
 
 const stateColors: Record<ManufactureOrderState, string> = {
-  [ManufactureOrderState.Draft]: "bg-gray-100 text-gray-800",
-  [ManufactureOrderState.Planned]: "bg-blue-100 text-blue-800",
-  [ManufactureOrderState.SemiProductManufactured]: "bg-yellow-100 text-yellow-800",
-  [ManufactureOrderState.Completed]: "bg-green-100 text-green-800",
-  [ManufactureOrderState.Cancelled]: "bg-red-100 text-red-800",
+  [ManufactureOrderState.Draft]: "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted",
+  [ManufactureOrderState.Planned]: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  [ManufactureOrderState.SemiProductManufactured]: "bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300",
+  [ManufactureOrderState.Completed]: "bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  [ManufactureOrderState.Cancelled]: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
 };
 
 export const StateTransitionControls: React.FC<StateTransitionControlsProps> = ({
@@ -53,7 +53,7 @@ export const StateTransitionControls: React.FC<StateTransitionControlsProps> = (
       
       {/* Current State Display - Always visible */}
       {order && order.state !== undefined && (
-        <div className="flex items-center px-4 py-2 bg-gray-100 border-2 border-gray-300 rounded-lg">
+        <div className="flex items-center px-4 py-2 bg-gray-100 dark:bg-graphite-surface-2 border-2 border-gray-300 dark:border-graphite-border rounded-lg">
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${stateColors[order.state as ManufactureOrderState]}`}>
             {getStateLabel(order.state)}
           </span>

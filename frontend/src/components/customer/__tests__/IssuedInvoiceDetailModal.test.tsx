@@ -254,6 +254,41 @@ describe('IssuedInvoiceDetailModal - Re-Import from Detail Modal', () => {
         consoleErrorSpy.mockRestore();
     });
 
+    it('renders sync history when syncTime arrives as an ISO string (imported invoice)', async () => {
+        // Arrange - the detail hook returns raw wire JSON, so date fields are ISO
+        // STRINGS, not Date objects. Regression for the blank-screen crash where the
+        // modal called `.getTime()` directly on a string syncTime.
+        mockUseIssuedInvoiceDetail.mockReturnValue({
+            data: {
+                invoice: {
+                    id: 'INV-IMP-001',
+                    invoiceDate: '2026-06-01',
+                    price: 5000,
+                    currency: 'CZK',
+                    isSynced: false,
+                    errorType: null,
+                    syncHistory: [
+                        { id: 1, isSuccess: false, syncTime: '2026-06-01T10:00:00Z' },
+                        { id: 2, isSuccess: true, syncTime: '2026-06-02T10:00:00Z' },
+                    ],
+                },
+            },
+            isLoading: false,
+            error: null,
+        });
+
+        // Act + Assert - must render without throwing during render
+        renderComponent('INV-IMP-001');
+
+        await waitFor(() => {
+            expect(screen.getByText(/Detail faktury INV-IMP-001/i)).toBeInTheDocument();
+        });
+
+        // Import-history section renders the attempt count and a sync row
+        expect(screen.getByText(/pokus/i)).toBeInTheDocument();
+        expect(screen.getByText(/Import úspěšný/i)).toBeInTheDocument();
+    });
+
     it('should call all callbacks in correct order: enqueue -> onJobStarted -> onClose -> onInvoiceUpdated', async () => {
         // Arrange
         const callOrder: string[] = [];

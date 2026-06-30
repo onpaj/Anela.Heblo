@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Anela.Heblo.Adapters.Microsoft365.UserManagement;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using FluentAssertions;
@@ -47,13 +48,21 @@ public sealed class GetAppRoleMembersTests
         }
         """;
 
-    // User detail response for the assigned user
-    private static readonly string UserDetailResponse = $$"""
+    // Batch response for the single assigned user (Graph $batch format)
+    private static readonly string BatchUserResponse = $$"""
         {
-          "id": "{{TestUserId}}",
-          "displayName": "Test User",
-          "mail": "test.user@example.com",
-          "userPrincipalName": "test.user@example.com"
+          "responses": [
+            {
+              "id": "0",
+              "status": 200,
+              "body": {
+                "id": "{{TestUserId}}",
+                "displayName": "Test User",
+                "mail": "test.user@example.com",
+                "userPrincipalName": "test.user@example.com"
+              }
+            }
+          ]
         }
         """;
 
@@ -136,7 +145,7 @@ public sealed class GetAppRoleMembersTests
         var handler = new QueuedHttpMessageHandler();
         handler.Enqueue(HttpStatusCode.OK, SpResponse);
         handler.Enqueue(HttpStatusCode.OK, AssignmentsResponse);
-        handler.Enqueue(HttpStatusCode.OK, UserDetailResponse);
+        handler.Enqueue(HttpStatusCode.OK, BatchUserResponse);
 
         var service = BuildService(handler, TestClientId, out _, out _);
 

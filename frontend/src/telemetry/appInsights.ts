@@ -1,5 +1,6 @@
 import { ApplicationInsights } from '@microsoft/applicationinsights-web';
 import { ReactPlugin } from '@microsoft/applicationinsights-react-js';
+import { generateW3CId } from '@microsoft/applicationinsights-core-js';
 
 export const reactPlugin = new ReactPlugin();
 
@@ -57,4 +58,16 @@ export function initAppInsights(connectionString: string): ApplicationInsights |
 
 export function getAppInsights(): ApplicationInsights | null {
   return instance;
+}
+
+// Starts a fresh AI operation (new W3C trace + span id) so subsequently
+// auto-tracked fetches correlate under a new operation id instead of reusing the
+// one assigned at page load. Without this every request in the SPA session
+// collapses into a single end-to-end transaction.
+export function startNewTelemetryOperation(name?: string): void {
+  const ctx = instance?.getTraceCtx();
+  if (!ctx) return;
+  ctx.traceId = generateW3CId();
+  ctx.spanId = generateW3CId().substring(0, 16);
+  if (name) ctx.pageName = name;
 }

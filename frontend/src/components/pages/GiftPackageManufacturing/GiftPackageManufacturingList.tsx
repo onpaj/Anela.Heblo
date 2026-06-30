@@ -309,17 +309,17 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
     return (
       <th
         scope="col"
-        className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none ${className}`}
+        className={`px-6 py-3 text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 select-none ${className}`}
         onClick={() => handleSort(column)}
       >
         <div className="flex items-center space-x-1">
           <span>{children}</span>
           <div className="flex flex-col">
             <ChevronUp
-              className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
+              className={`h-3 w-3 ${isAscending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
             />
             <ChevronDown
-              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
+              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
             />
           </div>
         </div>
@@ -331,13 +331,13 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
   const getRowColorClass = (severity: GiftPackageSeverity) => {
     switch (severity) {
       case GiftPackageSeverity.Critical:
-        return "bg-red-50/30 hover:bg-red-50/50";
+        return "bg-red-50/30 hover:bg-red-50/50 dark:bg-red-900/10 dark:hover:bg-red-900/20";
       case GiftPackageSeverity.Severe:
-        return "bg-orange-50/30 hover:bg-orange-50/50";
+        return "bg-orange-50/30 hover:bg-orange-50/50 dark:bg-orange-900/10 dark:hover:bg-orange-900/20";
       case GiftPackageSeverity.Optimal:
-        return "bg-emerald-50/30 hover:bg-emerald-50/50";
+        return "bg-emerald-50/30 hover:bg-emerald-50/50 dark:bg-emerald-900/10 dark:hover:bg-emerald-900/20";
       default:
-        return "hover:bg-gray-50";
+        return "hover:bg-gray-50 dark:hover:bg-white/5";
     }
   };
   
@@ -364,21 +364,21 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
   
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 px-4 py-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-graphite-surface-2 px-4 py-8">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-graphite-border rounded-lg p-6">
             <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
-              <h3 className="text-lg font-medium text-red-800">
+              <AlertTriangle className="h-5 w-5 text-red-400 dark:text-red-400 mr-2" />
+              <h3 className="text-lg font-medium text-red-800 dark:text-red-300">
                 Chyba při načítání dat
               </h3>
             </div>
-            <p className="mt-2 text-sm text-red-700">
+            <p className="mt-2 text-sm text-red-700 dark:text-red-300">
               {error instanceof Error ? error.message : "Neočekávaná chyba"}
             </p>
             <button
               onClick={() => refetch()}
-              className="mt-4 bg-red-100 hover:bg-red-200 text-red-800 px-4 py-2 rounded-md text-sm font-medium"
+              className="mt-4 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-800 dark:text-red-300 px-4 py-2 rounded-md text-sm font-medium"
             >
               Zkusit znovu
             </button>
@@ -395,18 +395,18 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
     >
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
-        <h1 className="text-lg font-semibold text-gray-900">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
           Výroba dárkových balíčků
         </h1>
       </div>
 
       {/* Controls - Single Collapsible Block */}
-      <div className="flex-shrink-0 bg-white rounded-lg shadow mb-4">
-        <div className="p-3 border-b border-gray-200">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark mb-4">
+        <div className="p-3 border-b border-gray-200 dark:border-graphite-border">
           <div className="flex items-center justify-between">
             <button
               onClick={() => setIsControlsCollapsed(!isControlsCollapsed)}
-              className="flex items-center space-x-2 text-sm font-medium text-gray-900 hover:text-gray-700"
+              className="flex items-center space-x-2 text-sm font-medium text-gray-900 dark:text-graphite-text hover:text-gray-700"
             >
               {isControlsCollapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -415,7 +415,7 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
               )}
               <span>Filtry a nastavení</span>
               {summary && (
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 dark:text-graphite-muted">
                   ({summary.totalPackages} balíčků)
                 </span>
               )}
@@ -437,7 +437,7 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                   {/* Search field when collapsed */}
                   <div className="flex-1 max-w-xs">
                     <div className="relative">
-                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400 dark:text-graphite-faint" />
                       <input
                         type="text"
                         value={filters.searchTerm || ""}
@@ -445,7 +445,7 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                           handleFilterChange({ searchTerm: e.target.value })
                         }
                         placeholder="Vyhledat..."
-                        className="pl-7 w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                        className="pl-7 w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -456,7 +456,7 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
               <button
                 onClick={() => refetch()}
                 disabled={giftPackageLoading}
-                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark text-xs font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
               >
                 <RefreshCw
                   className={`h-3 w-3 mr-1 ${giftPackageLoading ? "animate-spin" : ""}`}
@@ -465,7 +465,7 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
               </button>
               <button
                 onClick={handleExport}
-                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark text-xs font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5"
               >
                 <Download className="h-3 w-3 mr-1" />
                 {isControlsCollapsed ? "" : "Export"}
@@ -473,7 +473,7 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
 
               {/* Help */}
               <div className="relative group">
-                <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                <HelpCircle className="h-4 w-4 text-gray-400 dark:text-graphite-faint cursor-help" />
                 <div className="absolute right-0 top-6 w-80 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
                   <div className="space-y-2">
                     <div className="flex items-start">
@@ -532,28 +532,28 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
       </div>
 
       {/* Results Table */}
-      <div className="flex-1 bg-white rounded-lg shadow overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark overflow-hidden flex flex-col min-h-0">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-            <span className="ml-2 text-gray-600">Načítání balíčků...</span>
+            <RefreshCw className="h-8 w-8 animate-spin text-gray-400 dark:text-graphite-faint" />
+            <span className="ml-2 text-gray-600 dark:text-graphite-muted">Načítání balíčků...</span>
           </div>
         ) : filteredPackages.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <Package className="h-12 w-12 text-gray-400 dark:text-graphite-faint mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-2">
                 Žádné výsledky
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-graphite-muted">
                 Zkuste upravit filtry nebo vyhledávací kritéria.
               </p>
             </div>
           </div>
         ) : (
           <div className="flex-1 overflow-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+              <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
                 <tr>
                   <SortableHeader
                     column={GiftPackageSortBy.ProductCode}
@@ -600,11 +600,11 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                   </SortableHeader>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                 {filteredPackages.map((pkg) => (
                   <tr
                     key={pkg.code}
-                    className={`${getRowColorClass(pkg.severity)} hover:bg-gray-50 cursor-pointer transition-colors duration-150`}
+                    className={`${getRowColorClass(pkg.severity)} hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors duration-150`}
                     onClick={() => onPackageClick(pkg)}
                     title="Klikněte pro zobrazení komponent balíčku a výrobu"
                   >
@@ -619,7 +619,7 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <div className="text-sm text-gray-900 truncate">
+                            <div className="text-sm text-gray-900 dark:text-graphite-text truncate">
                               {pkg.name}
                             </div>
                             <button
@@ -627,13 +627,13 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                                 e.stopPropagation();
                                 onCatalogDetailClick(pkg.code);
                               }}
-                              className="flex-shrink-0 text-gray-400 hover:text-indigo-600 transition-colors"
+                              className="flex-shrink-0 text-gray-400 dark:text-graphite-faint hover:text-indigo-600 dark:hover:text-graphite-accent transition-colors"
                               title="Zobrazit detail produktu"
                             >
                               <Info className="h-4 w-4" />
                             </button>
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-500 dark:text-graphite-muted">
                             {pkg.code}
                           </div>
                         </div>
@@ -641,46 +641,46 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                     </td>
 
                     {/* Available Stock */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 dark:text-graphite-text">
                       <div className="font-bold">
                         {pkg.availableStock.toFixed(0)}
                       </div>
                     </td>
                     {/* Suggested Quantity */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 dark:text-graphite-text">
                       <div className={`font-bold ${
-                        pkg.suggestedQuantity > 0 ? "text-orange-600" : "text-green-600"
+                        pkg.suggestedQuantity > 0 ? "text-orange-600 dark:text-orange-400" : "text-green-600 dark:text-emerald-400"
                       }`}>
                         {pkg.suggestedQuantity}
                       </div>
-                      <div className="text-xs text-gray-500 md:hidden">
+                      <div className="text-xs text-gray-500 dark:text-graphite-muted md:hidden">
                         {pkg.dailySales.toFixed(1)}/den
                       </div>
                     </td>
                     {/* NS% (StockCoveragePercent) */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 dark:text-graphite-text">
                       <div className={`font-bold ${
-                        pkg.stockCoveragePercent >= 100 ? "text-green-600" : 
-                        pkg.stockCoveragePercent >= 50 ? "text-orange-600" : "text-red-600"
+                        pkg.stockCoveragePercent >= 100 ? "text-green-600 dark:text-emerald-400" :
+                        pkg.stockCoveragePercent >= 50 ? "text-orange-600 dark:text-orange-400" : "text-red-600 dark:text-red-400"
                       }`}>
                         {pkg.stockCoveragePercent.toFixed(0)}%
                       </div>
                     </td>
                     {/* Daily Sales - Hidden on mobile */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden md:table-cell">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 dark:text-graphite-text hidden md:table-cell">
                       <div>{pkg.dailySales.toFixed(1)}</div>
-                      <div className="text-xs text-gray-500 md:hidden">
+                      <div className="text-xs text-gray-500 dark:text-graphite-muted md:hidden">
                         {pkg.dailySales.toFixed(1)}/den
                       </div>
                     </td>
                     {/* NS dní (OverstockOptimal) */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 dark:text-graphite-text">
                       <div className="font-bold">
                         {pkg.overstockOptimal}
                       </div>
                     </td>
                     {/* NS min (OverstockMinimal) */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 dark:text-graphite-text">
                       <div className="font-bold">
                         {pkg.overstockMinimal}
                       </div>
@@ -694,26 +694,26 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
 
         {/* Pagination - Compact */}
         {totalCount > 0 && (
-          <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
+          <div className="flex-shrink-0 bg-white dark:bg-graphite-surface px-3 py-2 flex items-center justify-between border-t border-gray-200 dark:border-graphite-border text-xs">
             <div className="flex-1 flex justify-between sm:hidden">
               <button
                 onClick={() => handlePageChange(filters.pageNumber - 1)}
                 disabled={filters.pageNumber <= 1}
-                className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Předchozí
               </button>
               <button
                 onClick={() => handlePageChange(filters.pageNumber + 1)}
                 disabled={filters.pageNumber >= totalPages}
-                className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Další
               </button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div className="flex items-center space-x-3">
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray-600 dark:text-graphite-muted">
                   {(filters.pageNumber - 1) * filters.pageSize + 1}-
                   {Math.min(
                     filters.pageNumber * filters.pageSize,
@@ -722,13 +722,13 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                   z {totalCount}
                 </p>
                 <div className="flex items-center space-x-1">
-                  <span className="text-xs text-gray-600">Zobrazit:</span>
+                  <span className="text-xs text-gray-600 dark:text-graphite-muted">Zobrazit:</span>
                   <select
                     value={filters.pageSize}
                     onChange={(e) =>
                       handlePageSizeChange(Number(e.target.value))
                     }
-                    className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                    className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -739,13 +739,13 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
               </div>
               <div>
                 <nav
-                  className="relative z-0 inline-flex rounded shadow-sm -space-x-px"
+                  className="relative z-0 inline-flex rounded shadow-sm dark:shadow-soft-dark -space-x-px"
                   aria-label="Pagination"
                 >
                   <button
                     onClick={() => handlePageChange(filters.pageNumber - 1)}
                     disabled={filters.pageNumber <= 1}
-                    className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="h-3 w-3" />
                   </button>
@@ -769,8 +769,8 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                         onClick={() => handlePageChange(pageNum)}
                         className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                           pageNum === filters.pageNumber
-                            ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                            : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                            ? "z-10 bg-indigo-50 dark:bg-graphite-accent/10 border-indigo-500 dark:border-graphite-accent text-indigo-600 dark:text-graphite-accent"
+                            : "bg-white dark:bg-graphite-surface border-gray-300 dark:border-graphite-border text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
                         }`}
                       >
                         {pageNum}
@@ -781,7 +781,7 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                   <button
                     onClick={() => handlePageChange(filters.pageNumber + 1)}
                     disabled={filters.pageNumber >= totalPages}
-                    className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronRight className="h-3 w-3" />
                   </button>

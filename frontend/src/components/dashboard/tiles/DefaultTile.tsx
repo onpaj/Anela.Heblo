@@ -7,7 +7,7 @@ interface DefaultTileProps {
 export const DefaultTile: React.FC<DefaultTileProps> = ({ data }) => {
   return (
     <div className="h-full">
-      <pre className="text-xs text-gray-600 overflow-auto">
+      <pre className="text-xs text-gray-600 dark:text-graphite-muted overflow-auto">
         {JSON.stringify(data, null, 2)}
       </pre>
     </div>

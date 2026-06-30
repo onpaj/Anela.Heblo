@@ -14,6 +14,7 @@ jest.mock("../../api/hooks/useExpeditionListArchive", () => ({
 
 jest.mock("../../api/hooks/useExpeditionList", () => ({
   useRunExpeditionListPrintFix: jest.fn(),
+  usePrintExpeditionOrder: jest.fn(),
 }));
 
 jest.mock("../../api/hooks/useRecurringJobs", () => ({
@@ -40,7 +41,7 @@ const {
   useReprintExpeditionList,
 } = require("../../api/hooks/useExpeditionListArchive");
 
-const { useRunExpeditionListPrintFix } = require("../../api/hooks/useExpeditionList");
+const { useRunExpeditionListPrintFix, usePrintExpeditionOrder } = require("../../api/hooks/useExpeditionList");
 
 const {
   useTriggerRecurringJobMutation,
@@ -104,6 +105,10 @@ const setCommonMocks = () => {
   });
   (useRunExpeditionListPrintFix as jest.Mock).mockReturnValue({
     mutateAsync: jest.fn().mockResolvedValue({ totalCount: 5 }),
+    isPending: false,
+  });
+  (usePrintExpeditionOrder as jest.Mock).mockReturnValue({
+    mutateAsync: jest.fn().mockResolvedValue({ success: true }),
     isPending: false,
   });
   (useTriggerRecurringJobMutation as jest.Mock).mockReturnValue({

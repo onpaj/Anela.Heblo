@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Search } from "lucide-react";
 import {
   DndContext,
@@ -11,6 +11,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import { useIsMobile } from "../../hooks/useMediaQuery";
 
 export type TransferItem = {
   id: string;
@@ -73,8 +74,8 @@ function ItemRow({
     ? { transform: CSS.Transform.toString(transform) }
     : undefined;
   const rowColors = highlighted
-    ? "border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
-    : "border-gray-200 bg-white hover:bg-gray-50";
+    ? "border-emerald-200 dark:border-emerald-400/30 bg-emerald-50 dark:bg-emerald-400/15 hover:bg-emerald-100 dark:hover:bg-emerald-400/25"
+    : "border-gray-200 dark:border-graphite-border bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5";
   return (
     <div
       ref={setNodeRef}
@@ -85,20 +86,20 @@ function ItemRow({
     >
       <div className="flex flex-col min-w-0 flex-1">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-sm text-gray-900 truncate">{item.label}</span>
+          <span className="text-sm text-gray-900 dark:text-graphite-text truncate">{item.label}</span>
           {highlighted && highlightLabel && (
-            <span className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">
+            <span className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-400/15 text-emerald-700 dark:text-emerald-400 font-medium">
               {highlightLabel}
             </span>
           )}
           {item.badge && (
-            <span className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
+            <span className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-400/15 text-amber-700 dark:text-amber-400 font-medium">
               {item.badge}
             </span>
           )}
         </div>
         {item.sublabel && (
-          <span className="text-xs text-gray-500 truncate">
+          <span className="text-xs text-gray-500 dark:text-graphite-muted truncate">
             {item.sublabel}
           </span>
         )}
@@ -116,8 +117,8 @@ function ItemRow({
         }
         className={`ml-3 flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-sm font-bold ${
           direction === "assign"
-            ? "text-indigo-600 hover:bg-indigo-100"
-            : "text-red-500 hover:bg-red-100"
+            ? "text-indigo-600 dark:text-graphite-accent hover:bg-indigo-100 dark:hover:bg-graphite-accent/20"
+            : "text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/25"
         }`}
       >
         {direction === "assign" ? "+" : "−"}
@@ -151,13 +152,13 @@ function DropZone({
       ref={setNodeRef}
       className={`border rounded-lg p-3 ${fillHeight ? "flex flex-col h-full min-h-0" : "min-h-48"} ${
         isOver
-          ? "bg-indigo-50 border-indigo-400"
+          ? "bg-indigo-50 dark:bg-graphite-accent/10 border-indigo-400"
           : variant === "left"
-            ? "border-gray-300 bg-gray-50"
-            : "border-gray-300 bg-white"
+            ? "border-gray-300 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2"
+            : "border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface"
       }`}
     >
-      <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+      <div className="text-xs font-semibold text-gray-600 dark:text-graphite-muted uppercase tracking-wider mb-2">
         {label}
       </div>
       <div
@@ -165,7 +166,7 @@ function DropZone({
       >
         {children}
         {isEmpty && (
-          <div className="text-sm text-gray-400 text-center py-6">
+          <div className="text-sm text-gray-400 dark:text-graphite-faint text-center py-6">
             {emptyMessage}
           </div>
         )}
@@ -186,6 +187,7 @@ function TransferList({
   highlightedIds,
   highlightLabel,
 }: TransferListProps) {
+  const isMobile = useIsMobile();
   const highlighted = new Set(highlightedIds);
   // A small activation distance keeps the per-row +/− button clicks from being
   // swallowed by the drag sensor — a plain click no longer starts a drag.
@@ -195,6 +197,10 @@ function TransferList({
   );
 
   const [query, setQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"available" | "assigned">(
+    "available",
+  );
+  const listRef = useRef<HTMLDivElement>(null);
   const trimmedQuery = query.trim().toLowerCase();
 
   const availableItems = available
@@ -222,24 +228,117 @@ function TransferList({
 
   const availableGroups = groupBy ? buildGroups(availableItems, groupBy) : null;
 
+  const renderRows = (
+    rowItems: TransferItem[],
+    direction: "assign" | "remove",
+    grouped: Map<string, TransferItem[]> | null,
+  ) => {
+    const row = (item: TransferItem) => (
+      <ItemRow
+        key={item.id}
+        item={item}
+        direction={direction}
+        onMove={() =>
+          direction === "assign"
+            ? handleAssign(item.id)
+            : handleRemove(item.id)
+        }
+        highlighted={highlighted.has(item.id)}
+        highlightLabel={highlightLabel}
+      />
+    );
+    if (!grouped) return rowItems.map(row);
+    return Array.from(grouped.entries()).map(([section, sectionItems]) => (
+      <div key={section}>
+        <div className="text-xs font-medium text-gray-500 dark:text-graphite-muted px-1 pt-3 pb-0.5 first:pt-0">
+          {section}
+        </div>
+        {sectionItems.map(row)}
+      </div>
+    ));
+  };
+
+  const searchBar = searchable && (
+    <div className="relative mb-3 flex-shrink-0">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
+      </div>
+      <input
+        type="text"
+        aria-label={searchPlaceholder}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={searchPlaceholder}
+        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 text-sm border border-gray-300 dark:border-graphite-border rounded-md"
+      />
+    </div>
+  );
+
+  if (isMobile) {
+    const showAvailable = activeTab === "available";
+    const paneItems = showAvailable ? availableItems : assignedItems;
+    const direction: "assign" | "remove" = showAvailable ? "assign" : "remove";
+    const grouped = showAvailable ? availableGroups : null;
+    const emptyMessage = showAvailable ? "All items assigned" : "None assigned";
+
+    const switchTab = (tab: "available" | "assigned") => {
+      setActiveTab(tab);
+      if (listRef.current) listRef.current.scrollTop = 0;
+    };
+
+    const tabClass = (active: boolean) =>
+      `flex-1 px-3 py-2 text-sm font-medium border-b-2 ${
+        active
+          ? "border-indigo-600 text-indigo-600 dark:text-graphite-accent"
+          : "border-transparent text-gray-500 dark:text-graphite-muted hover:text-gray-700"
+      }`;
+
+    return (
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div>
+          {searchBar}
+          <div className="flex flex-shrink-0 mb-2" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={showAvailable}
+              onClick={() => switchTab("available")}
+              className={tabClass(showAvailable)}
+            >
+              {labels.available ?? "Available"} ({availableItems.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!showAvailable}
+              onClick={() => switchTab("assigned")}
+              className={tabClass(!showAvailable)}
+            >
+              {labels.assigned ?? "Assigned"} ({assignedItems.length})
+            </button>
+          </div>
+          <div
+            ref={listRef}
+            className={`space-y-1 overflow-y-auto ${
+              fillHeight ? "max-h-[60vh]" : "min-h-48"
+            }`}
+          >
+            {renderRows(paneItems, direction, grouped)}
+            {paneItems.length === 0 && (
+              <div className="text-sm text-gray-400 dark:text-graphite-faint text-center py-6">
+                {emptyMessage}
+              </div>
+            )}
+          </div>
+        </div>
+      </DndContext>
+    );
+  }
+
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className={fillHeight ? "flex flex-col h-full min-h-0" : ""}>
-        {searchable && (
-          <div className="relative mb-3 flex-shrink-0">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              aria-label={searchPlaceholder}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={searchPlaceholder}
-              className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md"
-            />
-          </div>
-        )}
+        {searchBar}
         <div
           className={`grid grid-cols-2 gap-4${fillHeight ? " flex-1 min-h-0" : ""}`}
         >
@@ -251,36 +350,7 @@ function TransferList({
             variant="left"
             fillHeight={fillHeight}
           >
-            {availableGroups
-              ? Array.from(availableGroups.entries()).map(
-                  ([section, sectionItems]) => (
-                    <div key={section}>
-                      <div className="text-xs font-medium text-gray-500 px-1 pt-3 pb-0.5 first:pt-0">
-                        {section}
-                      </div>
-                      {sectionItems.map((item) => (
-                        <ItemRow
-                          key={item.id}
-                          item={item}
-                          direction="assign"
-                          onMove={() => handleAssign(item.id)}
-                          highlighted={highlighted.has(item.id)}
-                          highlightLabel={highlightLabel}
-                        />
-                      ))}
-                    </div>
-                  ),
-                )
-              : availableItems.map((item) => (
-                  <ItemRow
-                    key={item.id}
-                    item={item}
-                    direction="assign"
-                    onMove={() => handleAssign(item.id)}
-                    highlighted={highlighted.has(item.id)}
-                    highlightLabel={highlightLabel}
-                  />
-                ))}
+            {renderRows(availableItems, "assign", availableGroups)}
           </DropZone>
 
           <DropZone
@@ -291,16 +361,7 @@ function TransferList({
             variant="right"
             fillHeight={fillHeight}
           >
-            {assignedItems.map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                direction="remove"
-                onMove={() => handleRemove(item.id)}
-                highlighted={highlighted.has(item.id)}
-                highlightLabel={highlightLabel}
-              />
-            ))}
+            {renderRows(assignedItems, "remove", null)}
           </DropZone>
         </div>
       </div>

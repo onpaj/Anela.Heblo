@@ -28,11 +28,11 @@ export default function ArticlesPage() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center gap-3">
-        <FileText className="w-6 h-6 text-blue-600" />
-        <h1 className="text-2xl font-semibold text-gray-900">Generátor článků</h1>
+        <FileText className="w-6 h-6 text-blue-600 dark:text-graphite-accent" />
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-graphite-text">Generátor článků</h1>
       </div>
 
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-graphite-border">
         <nav className="flex gap-6" aria-label="Tabs">
           {tabs.map((tab) => (
             <button
@@ -40,8 +40,8 @@ export default function ArticlesPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-blue-600 text-blue-600 dark:text-graphite-accent dark:border-graphite-accent'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-graphite-muted'
               }`}
             >
               {tab.label}
@@ -59,7 +59,7 @@ export default function ArticlesPage() {
 
         {activeTab === 'list' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-gray-200 dark:border-graphite-border rounded-lg overflow-hidden">
               <ArticleList
                 items={articles}
                 isLoading={isLoading}
@@ -68,11 +68,11 @@ export default function ArticlesPage() {
               />
             </div>
 
-            <div className="border border-gray-200 rounded-lg p-4 min-h-64">
+            <div className="border border-gray-200 dark:border-graphite-border rounded-lg p-4 min-h-64">
               {selectedArticleId ? (
                 <ArticleDetail articleId={selectedArticleId} />
               ) : (
-                <p className="text-sm text-gray-400 text-center py-8">
+                <p className="text-sm text-gray-400 dark:text-graphite-faint text-center py-8">
                   Vyberte článek ze seznamu
                 </p>
               )}

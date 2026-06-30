@@ -3,7 +3,6 @@ using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Article;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Microsoft.Identity.Client;
 
 namespace Anela.Heblo.Application.Features.Article.Admin;
 
@@ -40,12 +39,12 @@ public sealed class BackfillArticleRequestedByHandler
         {
             members = await _userResolver.ResolveByGroupAsync(request.GroupId, ct);
         }
-        catch (MsalException ex)
+        catch (ArticleUserResolverAuthException ex)
         {
             _logger.LogError(ex, "Graph token acquisition failed for backfill of group {GroupId}", request.GroupId);
             return new BackfillArticleRequestedByResponse(ErrorCodes.ConfigurationError);
         }
-        catch (Microsoft.Graph.Models.ODataErrors.ODataError ex)
+        catch (ArticleUserResolverServiceException ex)
         {
             _logger.LogError(ex, "Graph OData error during backfill for group {GroupId}", request.GroupId);
             return new BackfillArticleRequestedByResponse(ErrorCodes.ExternalServiceError);

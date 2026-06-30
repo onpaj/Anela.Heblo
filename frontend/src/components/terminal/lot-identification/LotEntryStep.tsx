@@ -31,7 +31,7 @@ const LotEntryStep = ({ mode }: LotEntryStepProps) => {
 
   return (
     <div className="space-y-4 pt-2">
-      <h2 className="text-lg font-semibold text-neutral-slate">
+      <h2 className="text-lg font-semibold text-neutral-slate dark:text-graphite-text">
         Šarže pro materiál {materialCode}
       </h2>
       <ScanInput

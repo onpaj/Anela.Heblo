@@ -15,7 +15,7 @@ export default function PifDocumentsTab({ productCode }: PifDocumentsTabProps) {
 
   if (error) {
     return (
-      <div className="py-6 text-sm text-red-600">
+      <div className="py-6 text-sm text-red-600 dark:text-red-400">
         Chyba při načítání PIF dokumentů. Zkuste obnovit stránku.
       </div>
     );
@@ -26,11 +26,11 @@ export default function PifDocumentsTab({ productCode }: PifDocumentsTabProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-gray-900">PIF</h3>
+        <h3 className="text-sm font-medium text-gray-900 dark:text-graphite-text">PIF</h3>
         <div className="flex items-center gap-2">
           <button
             onClick={() => refetch()}
-            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded dark:text-graphite-muted dark:hover:text-graphite-text dark:hover:bg-white/5"
             title="Obnovit"
           >
             <RefreshCw className="h-4 w-4" />

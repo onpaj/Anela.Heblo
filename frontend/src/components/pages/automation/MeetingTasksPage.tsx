@@ -17,16 +17,16 @@ type AccessLevelBadgeProps = { accessLevel: string };
 
 function AccessLevelBadge({ accessLevel }: AccessLevelBadgeProps) {
   const colorMap: Record<string, string> = {
-    Private: "bg-gray-100 text-gray-700",
-    Public: "bg-green-100 text-green-800",
-    Restricted: "bg-orange-100 text-orange-800",
+    Private: "bg-gray-100 text-gray-700 dark:bg-graphite-surface-2 dark:text-graphite-muted",
+    Public: "bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+    Restricted: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
   };
   const labelMap: Record<string, string> = {
     Private: "Soukrome",
     Public: "Verejne",
     Restricted: "Omezene",
   };
-  const color = colorMap[accessLevel] ?? "bg-gray-100 text-gray-700";
+  const color = colorMap[accessLevel] ?? "bg-gray-100 text-gray-700 dark:bg-graphite-surface-2 dark:text-graphite-muted";
   const label = labelMap[accessLevel] ?? accessLevel;
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
@@ -37,9 +37,9 @@ function AccessLevelBadge({ accessLevel }: AccessLevelBadgeProps) {
 
 function StatusBadge({ status }: StatusBadgeProps) {
   const colorMap: Record<string, string> = {
-    PendingReview: "bg-yellow-100 text-yellow-800",
-    Approved: "bg-green-100 text-green-800",
-    PartiallyApproved: "bg-blue-100 text-blue-800",
+    PendingReview: "bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300",
+    Approved: "bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+    PartiallyApproved: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   };
   const labelMap: Record<string, string> = {
     PendingReview: "Ke kontrole",
@@ -51,7 +51,7 @@ function StatusBadge({ status }: StatusBadgeProps) {
     Approved: <CheckCircle className="w-3.5 h-3.5 mr-1" />,
     PartiallyApproved: <CheckCircle2 className="w-3.5 h-3.5 mr-1" />,
   };
-  const color = colorMap[status] ?? "bg-gray-100 text-gray-800";
+  const color = colorMap[status] ?? "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted";
   const label = labelMap[status] ?? status;
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
@@ -105,8 +105,8 @@ const MeetingTasksPage: React.FC = () => {
         onClick={() => handleFilter(value)}
         className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
           active
-            ? "bg-indigo-600 text-white border-indigo-600"
-            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+            ? "bg-indigo-600 text-white border-indigo-600 dark:bg-graphite-accent dark:border-graphite-accent"
+            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-graphite-surface dark:text-graphite-muted dark:border-graphite-border dark:hover:bg-white/5"
         }`}
       >
         {label}
@@ -118,18 +118,18 @@ const MeetingTasksPage: React.FC = () => {
     <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
       <div className="flex-shrink-0 mb-3 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">Porady</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-graphite-text">Porady</h1>
           <button
             type="button"
             title="Obnovit"
             disabled={isFetching}
             onClick={() => refetch()}
-            className="inline-flex items-center px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 dark:text-graphite-muted disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-4 h-4${isFetching ? " animate-spin" : ""}`} />
           </button>
         </div>
-        <p className="mt-2 text-gray-600">Validace AI-extrahovanych ukolu ze schuzek pred odeslanim do Microsoft TODO</p>
+        <p className="mt-2 text-gray-600 dark:text-graphite-muted">Validace AI-extrahovanych ukolu ze schuzek pred odeslanim do Microsoft TODO</p>
       </div>
 
       <div className="flex-shrink-0 mb-3 px-4 sm:px-6 lg:px-8 flex flex-wrap items-center gap-2">
@@ -142,56 +142,56 @@ const MeetingTasksPage: React.FC = () => {
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Hledat..."
           aria-label="Hledat v poradach"
-          className="px-3 py-1.5 rounded-md text-sm border border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+          className="px-3 py-1.5 rounded-md text-sm border border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
         />
-        <label className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer select-none">
+        <label className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-graphite-muted cursor-pointer select-none">
           <input
             type="checkbox"
             checked={searchInTranscript}
             onChange={(e) => setSearchInTranscript(e.target.checked)}
-            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            className="rounded border-gray-300 dark:border-graphite-border text-indigo-600 focus:ring-indigo-500"
           />
           Hledat i v prepisu
         </label>
       </div>
 
       <div className="flex-1 px-4 sm:px-6 lg:px-8 overflow-auto">
-        <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="bg-white dark:bg-graphite-surface shadow-sm dark:shadow-soft-dark rounded-lg border border-gray-200 dark:border-graphite-border overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+            <thead className="bg-gray-50 dark:bg-graphite-surface-2">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Predmet</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prijato</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ulohy</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pristup</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stav</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Predmet</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Prijato</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Ulohy</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Pristup</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Stav</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
               {isLoading && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">Nacitani...</td>
+                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500 dark:text-graphite-muted">Nacitani...</td>
                 </tr>
               )}
               {!isLoading && items.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">Zadne zaznamy</td>
+                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500 dark:text-graphite-muted">Zadne zaznamy</td>
                 </tr>
               )}
               {!isLoading && items.map((row: MeetingTranscriptDto) => (
                 <tr
                   key={row.id}
                   onClick={() => navigate(`/automation/meeting-tasks/${row.id}`)}
-                  className={`cursor-pointer hover:bg-gray-50 ${row.status === "PendingReview" ? "bg-yellow-50" : ""}`}
+                  className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 ${row.status === "PendingReview" ? "bg-yellow-50 dark:bg-amber-900/20" : ""}`}
                 >
-                  <td className="px-4 py-2 text-sm text-gray-900">{row.subject}</td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
+                  <td className="px-4 py-2 text-sm text-gray-900 dark:text-graphite-text">{row.subject}</td>
+                  <td className="px-4 py-2 text-sm text-gray-700 dark:text-graphite-muted">
                     {new Date(row.receivedAt).toLocaleDateString("cs-CZ")}
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-700">
+                  <td className="px-4 py-2 text-sm text-gray-700 dark:text-graphite-muted">
                     {row.taskCount}
                     {row.approvedTaskCount > 0 && (
-                      <span className="ml-1 text-xs text-gray-500">
+                      <span className="ml-1 text-xs text-gray-500 dark:text-graphite-muted">
                         ({row.approvedTaskCount} schvaleno)
                       </span>
                     )}
@@ -205,7 +205,7 @@ const MeetingTasksPage: React.FC = () => {
         </div>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-3 text-sm text-gray-700">
+          <div className="flex items-center justify-between mt-3 text-sm text-gray-700 dark:text-graphite-muted">
             <div>Strana {page} z {totalPages} ({totalCount} celkem)</div>
             <div className="flex gap-2">
               <button
@@ -213,7 +213,7 @@ const MeetingTasksPage: React.FC = () => {
                 title="Predchozi strana"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="inline-flex items-center px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -222,7 +222,7 @@ const MeetingTasksPage: React.FC = () => {
                 title="Dalsi strana"
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="inline-flex items-center px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

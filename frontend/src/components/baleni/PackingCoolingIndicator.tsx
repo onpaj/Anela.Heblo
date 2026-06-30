@@ -14,7 +14,7 @@ function PackingCoolingIndicator({ order }: PackingCoolingIndicatorProps) {
     return (
       <span
         data-testid="packing-cooling-indicator"
-        className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-neutral-gray"
+        className="inline-flex items-center rounded-full bg-gray-100 dark:bg-graphite-surface-2 px-3 py-1 text-sm font-semibold text-neutral-gray dark:text-graphite-muted"
       >
         Bez chlazení
       </span>
@@ -24,7 +24,7 @@ function PackingCoolingIndicator({ order }: PackingCoolingIndicatorProps) {
   return (
     <div
       data-testid="packing-cooling-indicator"
-      className="flex flex-col items-center text-primary-blue"
+      className="flex flex-col items-center text-primary-blue dark:text-graphite-accent"
     >
       <Snowflake className="h-20 w-20" strokeWidth={2.5} />
       <span className="text-2xl font-bold leading-tight">Chlazení {order.cooling}</span>

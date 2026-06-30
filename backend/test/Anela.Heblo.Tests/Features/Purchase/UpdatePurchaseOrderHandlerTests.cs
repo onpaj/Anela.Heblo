@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Purchase;
+using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 using Anela.Heblo.Domain.Features.Purchase;
@@ -64,7 +64,7 @@ public sealed class UpdatePurchaseOrderHandlerTests
             "Test notes",
             "system");
 
-        existingOrder.AddLine(ValidMaterialId, ValidMaterialName, 10, 25.50m, "Line notes");
+        existingOrder.AddLine(ValidMaterialId, ValidMaterialName, 10, 25.50m, "Line notes", "system");
         var existingLineId = existingOrder.Lines.First().Id;
 
         _repositoryMock

@@ -64,7 +64,7 @@ function CarrierCoolingRow({
 
   return (
     <div className="flex items-center px-3 py-2 gap-4">
-      <span className="w-20 text-sm text-gray-700 flex-shrink-0">
+      <span className="w-20 text-sm text-gray-700 dark:text-graphite-muted flex-shrink-0">
         {HANDLING_LABELS[row.deliveryHandling] ?? String(row.deliveryHandling)}
       </span>
       <div className="flex gap-4">
@@ -86,7 +86,7 @@ function CarrierCoolingRow({
               disabled={isSaving}
               className="h-4 w-4 text-indigo-600 cursor-pointer"
             />
-            <span className="text-sm text-gray-700">{option.label}</span>
+            <span className="text-sm text-gray-700 dark:text-graphite-muted">{option.label}</span>
           </label>
         ))}
       </div>
@@ -103,10 +103,10 @@ function CarrierCoolingRow({
           }
         }}
         disabled={isSaving}
-        className="flex-1 min-w-0 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        className="flex-1 min-w-0 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
       />
       {isThisRowSaving && (
-        <span className="text-xs text-gray-400 ml-2 animate-pulse">Ukládám…</span>
+        <span className="text-xs text-gray-400 dark:text-graphite-faint ml-2 animate-pulse">Ukládám…</span>
       )}
     </div>
   );
@@ -118,14 +118,14 @@ function CarrierCoolingMatrix({ groups, onSetCooling, isSaving, savingRow }: Car
       {groups.map((group) => (
         <div
           key={group.carrier}
-          className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
+          className="bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-lg shadow-sm dark:shadow-soft-dark overflow-hidden"
         >
-          <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
-            <h2 className="text-sm font-semibold text-gray-800">
+          <div className="px-3 py-2 border-b border-gray-100 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2">
+            <h2 className="text-sm font-semibold text-gray-800 dark:text-graphite-text">
               {CARRIER_LABELS[group.carrier] ?? `Dopravce ${group.carrier}`}
             </h2>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-gray-50 dark:divide-graphite-border">
             {group.rows.map((row) => {
               const isThisRowSaving =
                 isSaving &&

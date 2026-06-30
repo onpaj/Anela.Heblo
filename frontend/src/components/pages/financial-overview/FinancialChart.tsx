@@ -16,9 +16,9 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({ chartData, chart
   const innerMinWidth = isMobile ? monthCount * MONTH_SLOT_WIDTH : undefined
 
   return (
-    <div className="bg-white shadow rounded-lg mb-8">
+    <div className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg mb-8">
       <div className="px-4 sm:px-6 pt-6 pb-2">
-        <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text">{title}</h3>
       </div>
       <div className="relative w-full px-2 sm:px-4 lg:px-6 pb-6 overflow-x-auto">
         <div

@@ -5,7 +5,6 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
-using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 

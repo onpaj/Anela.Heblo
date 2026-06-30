@@ -1,0 +1,54 @@
+{
+  "feature_id": "feat-3219",
+  "issue_number": 3219,
+  "created_at": "2026-06-19T07:14:10.299331Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-19T07:17:24.815556Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-19T07:20:36.836626Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-19T07:20:42.606276Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-19T07:24:07.495759Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-19T07:39:28.484528Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "update-repository-interface",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-19T07:27:18.155689Z"
+    },
+    {
+      "name": "implement-persistence-duplicate-detection",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-19T07:29:14.159351Z"
+    },
+    {
+      "name": "refactor-consumption-calculation-service",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-19T07:31:22.097980Z"
+    },
+    {
+      "name": "update-mock-repository-and-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-19T07:39:28.176697Z"
+    }
+  ]
+}

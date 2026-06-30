@@ -63,15 +63,15 @@ export default function JournalEntryModal({
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-4 mx-auto p-0 border w-full max-w-4xl shadow-lg rounded-md bg-white min-h-[calc(100vh-2rem)]">
+      <div className="relative top-4 mx-auto p-0 border w-full max-w-4xl shadow-lg dark:shadow-soft-dark rounded-md bg-white dark:bg-graphite-surface min-h-[calc(100vh-2rem)]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-graphite-border">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text">
             {isEdit ? "Upravit záznam" : "Nový záznam"}
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded hover:bg-gray-100"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted transition-colors p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10"
             title="Zavřít (Esc)"
           >
             <X className="h-6 w-6" />
@@ -93,18 +93,18 @@ export default function JournalEntryModal({
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-60">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg dark:shadow-soft-dark rounded-md bg-white dark:bg-graphite-surface">
             <div className="mt-3">
               <div className="flex items-center">
                 <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
                   <AlertCircle className="h-6 w-6 text-red-600" />
                 </div>
                 <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-graphite-text">
                     Smazat záznam
                   </h3>
                   <div className="mt-2">
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-graphite-muted">
                       Opravdu chcete smazat záznam "
                       {entry?.title || "Bez názvu"}"? Tuto akci nelze vrátit
                       zpět.
@@ -123,7 +123,7 @@ export default function JournalEntryModal({
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-graphite-border shadow-sm dark:shadow-soft-dark px-4 py-2 bg-white dark:bg-graphite-surface text-base font-medium text-gray-700 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
               >
                 Zrušit
               </button>

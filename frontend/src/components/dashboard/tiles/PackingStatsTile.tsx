@@ -33,7 +33,7 @@ export const PackingStatsTile: React.FC<PackingStatsTileProps> = ({ data }) => {
   if (data.status === 'error') {
     return (
       <div className="h-full flex items-center justify-center text-center">
-        <p className="text-red-600 text-sm">{data.error || 'Chyba při načítání dat'}</p>
+        <p className="text-red-600 dark:text-red-400 text-sm">{data.error || 'Chyba při načítání dat'}</p>
       </div>
     );
   }
@@ -50,31 +50,31 @@ export const PackingStatsTile: React.FC<PackingStatsTileProps> = ({ data }) => {
       title={data.drillDown?.tooltip}
     >
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-secondary-blue-pale rounded-lg p-3 text-center">
-          <p className="text-xs text-neutral-gray mb-1">Vyřizuje se</p>
-          <p className="text-2xl font-bold text-primary-blue">
+        <div className="bg-secondary-blue-pale dark:bg-graphite-surface-2 rounded-lg p-3 text-center">
+          <p className="text-xs text-neutral-gray dark:text-graphite-muted mb-1">Vyřizuje se</p>
+          <p className="text-2xl font-bold text-primary-blue dark:text-graphite-accent">
             {stats.ordersBeingProcessedCount ?? '—'}
           </p>
           {stats.ordersBeingPackedCountLastSync && (
-            <p className="text-xs text-neutral-gray mt-1">
+            <p className="text-xs text-neutral-gray dark:text-graphite-muted mt-1">
               sync {new Date(stats.ordersBeingPackedCountLastSync).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}
             </p>
           )}
         </div>
-        <div className="bg-secondary-blue-pale rounded-lg p-3 text-center">
-          <p className="text-xs text-neutral-gray mb-1">Balí se</p>
-          <p className="text-2xl font-bold text-primary-blue">
+        <div className="bg-secondary-blue-pale dark:bg-graphite-surface-2 rounded-lg p-3 text-center">
+          <p className="text-xs text-neutral-gray dark:text-graphite-muted mb-1">Balí se</p>
+          <p className="text-2xl font-bold text-primary-blue dark:text-graphite-accent">
             {stats.ordersBeingPackedCount ?? '—'}
           </p>
           {stats.ordersBeingPackedCountLastSync && (
-            <p className="text-xs text-neutral-gray mt-1">
+            <p className="text-xs text-neutral-gray dark:text-graphite-muted mt-1">
               sync {new Date(stats.ordersBeingPackedCountLastSync).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}
             </p>
           )}
         </div>
-        <div className="bg-secondary-blue-pale rounded-lg p-3 text-center">
-          <p className="text-xs text-neutral-gray mb-1">Zabaleno dnes</p>
-          <p className="text-2xl font-bold text-primary-blue">
+        <div className="bg-secondary-blue-pale dark:bg-graphite-surface-2 rounded-lg p-3 text-center">
+          <p className="text-xs text-neutral-gray dark:text-graphite-muted mb-1">Zabaleno dnes</p>
+          <p className="text-2xl font-bold text-primary-blue dark:text-graphite-accent">
             {stats.totalOrdersPackedToday}
           </p>
         </div>
@@ -85,17 +85,17 @@ export const PackingStatsTile: React.FC<PackingStatsTileProps> = ({ data }) => {
           {stats.packedByPacker.map((p) => (
             <li
               key={p.packerId ?? p.packerName}
-              className="flex items-center justify-between py-1.5 px-2 bg-secondary-blue-pale rounded"
+              className="flex items-center justify-between py-1.5 px-2 bg-secondary-blue-pale dark:bg-graphite-surface-2 rounded"
             >
-              <span className="text-xs font-medium text-neutral-slate truncate">{p.packerName}</span>
-              <span className="text-xs font-bold text-primary-blue ml-2 flex-shrink-0">{p.orderCount}</span>
+              <span className="text-xs font-medium text-neutral-slate dark:text-graphite-text truncate">{p.packerName}</span>
+              <span className="text-xs font-bold text-primary-blue dark:text-graphite-accent ml-2 flex-shrink-0">{p.orderCount}</span>
             </li>
           ))}
         </ul>
       )}
 
       {stats.packedByPacker.length === 0 && (
-        <p className="text-xs text-neutral-gray italic">Dnes zatím nikdo nezabalil žádnou objednávku.</p>
+        <p className="text-xs text-neutral-gray dark:text-graphite-muted italic">Dnes zatím nikdo nezabalil žádnou objednávku.</p>
       )}
     </div>
   );

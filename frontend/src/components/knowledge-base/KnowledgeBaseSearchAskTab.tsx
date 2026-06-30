@@ -19,20 +19,20 @@ const SourceAccordion: React.FC<SourceAccordionProps> = ({ sources, onViewSource
   if (sources.length === 0) return null;
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
+    <div className="border border-gray-200 dark:border-graphite-border rounded-lg overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-2 bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100"
+        className="w-full flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-graphite-surface-2 text-sm font-medium text-gray-700 dark:text-graphite-muted hover:bg-gray-100 dark:hover:bg-white/5"
       >
         <span>Zdroje ({sources.length})</span>
         {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
       {open && (
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-gray-100 dark:divide-graphite-border">
           {sources.map((src) => (
             <div
               key={src.chunkId}
-              className="px-4 py-3 space-y-1 cursor-pointer hover:bg-gray-50"
+              className="px-4 py-3 space-y-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5"
               onClick={() => onViewSource(src.chunkId, src.score)}
               role="button"
               tabIndex={0}
@@ -40,12 +40,12 @@ const SourceAccordion: React.FC<SourceAccordionProps> = ({ sources, onViewSource
               aria-label={`Zobrazit zdroj ${src.filename}`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">{src.filename}</span>
-                <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-gray-100 text-gray-600">
+                <span className="text-sm font-medium text-gray-700 dark:text-graphite-muted">{src.filename}</span>
+                <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-gray-100 text-gray-600 dark:bg-graphite-surface-2 dark:text-graphite-muted">
                   {Math.round(src.score * 100)}%
                 </span>
               </div>
-              <p className="text-xs text-gray-500 italic line-clamp-3">{src.excerpt}</p>
+              <p className="text-xs text-gray-500 dark:text-graphite-muted italic line-clamp-3">{src.excerpt}</p>
             </div>
           ))}
         </div>
@@ -118,7 +118,7 @@ const KnowledgeBaseSearchAskTab: React.FC = () => {
           onKeyDown={handleKeyDown}
           placeholder="Zadejte otázku nebo hledaný výraz... (Enter pro odeslání)"
           rows={3}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
         <button
           onClick={handleSubmit}
@@ -132,19 +132,19 @@ const KnowledgeBaseSearchAskTab: React.FC = () => {
 
       {ask.isPending && (
         <div className="space-y-2 animate-pulse">
-          <div className="h-4 bg-gray-100 rounded w-3/4" />
-          <div className="h-4 bg-gray-100 rounded w-full" />
-          <div className="h-4 bg-gray-100 rounded w-2/3" />
+          <div className="h-4 bg-gray-100 dark:bg-graphite-surface-2 rounded w-3/4" />
+          <div className="h-4 bg-gray-100 dark:bg-graphite-surface-2 rounded w-full" />
+          <div className="h-4 bg-gray-100 dark:bg-graphite-surface-2 rounded w-2/3" />
         </div>
       )}
 
       {ask.isError && (
-        <div className="text-red-600 text-sm">Dotaz se nezdařil. Zkuste to znovu.</div>
+        <div className="text-red-600 dark:text-red-400 text-sm">Dotaz se nezdařil. Zkuste to znovu.</div>
       )}
 
       {ask.data && (
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 prose prose-sm prose-blue max-w-none">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-900/30 rounded-lg p-4 prose prose-sm prose-blue max-w-none">
             <ReactMarkdown>{ask.data.answer}</ReactMarkdown>
           </div>
           <SourceAccordion sources={ask.data.sources} onViewSource={handleViewSource} />

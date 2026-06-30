@@ -9,9 +9,15 @@ public class GiftWithoutVATIssuedInvoiceImportTransformation : IIssuedInvoiceImp
 
     public Task<IssuedInvoiceDetail> TransformAsync(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement gift transformation logic once domain model is properly defined
-        // This transformation should modify invoiceDetail items for gift products
-        // Setting VAT category, store, and accounting classification
+        // GOODYDO0001 is a non-stock gift product; FlexiBee rejects a warehouse (sklad)
+        // on non-stock items. Flag it so the FlexiBee mapper omits the warehouse.
+        foreach (var item in invoiceDetail.Items)
+        {
+            if (item.Code == ProductCode)
+            {
+                item.IsNonStock = true;
+            }
+        }
 
         return Task.FromResult(invoiceDetail);
     }

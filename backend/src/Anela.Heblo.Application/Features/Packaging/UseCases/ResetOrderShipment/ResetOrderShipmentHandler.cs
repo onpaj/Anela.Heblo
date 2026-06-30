@@ -61,7 +61,13 @@ public class ResetOrderShipmentHandler : IRequestHandler<ResetOrderShipmentReque
 
         var totalWeightGrams = order.Items.Sum(i => i.WeightGrams * i.Quantity);
         if (totalWeightGrams == 0)
-            return new ResetOrderShipmentResponse(ErrorCodes.ShipmentOrderWeightUnavailable);
+        {
+            // Carriers reject a 0 kg package; fall back to a default package weight.
+            _logger.LogWarning(
+                "Order {OrderCode} has no known item weights; using fallback package weight {Fallback}g",
+                request.OrderCode, _shipmentSettings.FallbackPackageWeightGrams);
+            totalWeightGrams = _shipmentSettings.FallbackPackageWeightGrams;
+        }
 
         var n = request.NumberOfPackages;
         var perPackageWeightGrams = Math.Max(totalWeightGrams / n, _shipmentSettings.MinPackageWeightGrams);

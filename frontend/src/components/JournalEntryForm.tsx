@@ -233,7 +233,7 @@ export default function JournalEntryForm({
   return (
     <div className="max-w-4xl mx-auto">
       {/* Form */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-lg">
+      <div className="bg-white dark:bg-graphite-surface shadow-sm dark:shadow-soft-dark border border-gray-200 dark:border-graphite-border rounded-lg">
         <div className="p-6 space-y-6">
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -241,23 +241,23 @@ export default function JournalEntryForm({
             <div className="md:col-span-2">
               <label
                 htmlFor="title"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1"
               >
                 Název záznamu *
               </label>
               <div className="relative">
-                <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                 <input
                   type="text"
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Zadejte název záznamu"
-                  className={`block w-full pl-10 pr-3 py-2 border ${errors.title ? "border-red-300" : "border-gray-300"} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+                  className={`block w-full pl-10 pr-3 py-2 border ${errors.title ? "border-red-300 dark:border-red-500" : "border-gray-300 dark:border-graphite-border"} dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
                 />
               </div>
               {errors.title && (
-                <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.title}</p>
               )}
             </div>
 
@@ -265,22 +265,22 @@ export default function JournalEntryForm({
             <div>
               <label
                 htmlFor="entryDate"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1"
               >
                 Datum záznamu *
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                 <input
                   type="date"
                   id="entryDate"
                   value={entryDate}
                   onChange={(e) => setEntryDate(e.target.value)}
-                  className={`block w-full pl-10 pr-3 py-2 border ${errors.entryDate ? "border-red-300" : "border-gray-300"} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+                  className={`block w-full pl-10 pr-3 py-2 border ${errors.entryDate ? "border-red-300 dark:border-red-500" : "border-gray-300 dark:border-graphite-border"} dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
                 />
               </div>
               {errors.entryDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.entryDate}</p>
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.entryDate}</p>
               )}
             </div>
           </div>
@@ -289,7 +289,7 @@ export default function JournalEntryForm({
           <div>
             <label
               htmlFor="content"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1"
             >
               Obsah záznamu *
             </label>
@@ -299,22 +299,22 @@ export default function JournalEntryForm({
               onChange={(e) => setContent(e.target.value)}
               rows={6}
               placeholder="Zadejte obsah záznamu..."
-              className={`block w-full px-3 py-2 border ${errors.content ? "border-red-300" : "border-gray-300"} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+              className={`block w-full px-3 py-2 border ${errors.content ? "border-red-300 dark:border-red-500" : "border-gray-300 dark:border-graphite-border"} dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
             />
             {errors.content && (
-              <p className="mt-1 text-sm text-red-600">{errors.content}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.content}</p>
             )}
           </div>
 
           {/* Tags */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted">
                 Štítky
               </label>
               <button
                 onClick={() => setShowNewTagInput(!showNewTagInput)}
-                className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-700"
+                className="inline-flex items-center text-sm text-indigo-600 dark:text-graphite-accent hover:text-indigo-700"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Nový štítek
@@ -328,7 +328,7 @@ export default function JournalEntryForm({
                   value={newTagName}
                   onChange={(e) => setNewTagName(e.target.value)}
                   placeholder="Název nového štítku"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 />
                 <button
                   onClick={handleCreateNewTag}
@@ -342,7 +342,7 @@ export default function JournalEntryForm({
                     setShowNewTagInput(false);
                     setNewTagName("");
                   }}
-                  className="px-3 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                  className="px-3 py-2 bg-gray-300 text-gray-700 dark:bg-graphite-surface-2 dark:text-graphite-muted rounded-md hover:bg-gray-400 dark:hover:bg-white/5"
                 >
                   Zrušit
                 </button>
@@ -356,8 +356,8 @@ export default function JournalEntryForm({
                   onClick={() => handleTagToggle(tag.id!)}
                   className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                     selectedTags.includes(tag.id!)
-                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
-                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800"
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:border-graphite-border dark:hover:bg-white/5"
                   }`}
                 >
                   <Tag className="h-3 w-3 mr-1" />
@@ -370,7 +370,7 @@ export default function JournalEntryForm({
           {/* Associated Products */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted">
                 Přiřazené produkty
               </label>
               <div className="flex items-center gap-2">
@@ -378,8 +378,8 @@ export default function JournalEntryForm({
                   onClick={() => setUseTextInput(false)}
                   className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                     !useTextInput
-                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
-                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800"
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:border-graphite-border dark:hover:bg-white/5"
                   }`}
                 >
                   <Search className="h-3 w-3 mr-1" />
@@ -389,8 +389,8 @@ export default function JournalEntryForm({
                   onClick={() => setUseTextInput(true)}
                   className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                     useTextInput
-                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
-                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800"
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:border-graphite-border dark:hover:bg-white/5"
                   }`}
                 >
                   <Type className="h-3 w-3 mr-1" />
@@ -413,7 +413,7 @@ export default function JournalEntryForm({
                   }}
                   onBlur={handleTextProductSubmit}
                   placeholder="Zadejte produktový prefix (např. COSM-001)..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                 />
               </div>
             ) : (
@@ -430,7 +430,7 @@ export default function JournalEntryForm({
 
             {/* Mode-specific help text */}
             {useTextInput && (
-              <div className="mt-1 text-xs text-gray-500">
+              <div className="mt-1 text-xs text-gray-500 dark:text-graphite-muted">
                 Tip: Zadejte produktový prefix a stiskněte Enter nebo klikněte
                 mimo pole pro přidání
               </div>
@@ -441,12 +441,12 @@ export default function JournalEntryForm({
               {associatedProducts.map((productCode) => (
                 <span
                   key={productCode}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300"
                 >
                   {productCode}
                   <button
                     onClick={() => handleRemoveProduct(productCode)}
-                    className="ml-1 text-indigo-600 hover:text-indigo-800"
+                    className="ml-1 text-indigo-600 hover:text-indigo-800 dark:text-graphite-accent dark:hover:text-indigo-300"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -457,14 +457,14 @@ export default function JournalEntryForm({
         </div>
 
         {/* Action Buttons */}
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-lg">
+        <div className="bg-gray-50 dark:bg-graphite-surface-2 px-6 py-4 border-t border-gray-200 dark:border-graphite-border rounded-b-lg">
           <div className="flex items-center justify-between">
             {/* Delete button - only show in edit mode */}
             {isEdit && onDelete ? (
               <button
                 onClick={onDelete}
                 disabled={isLoading}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400 bg-white dark:bg-graphite-surface border border-red-300 dark:border-red-800 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Smazat záznam
@@ -477,7 +477,7 @@ export default function JournalEntryForm({
               <button
                 onClick={handleCancel}
                 disabled={isLoading}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 <X className="h-4 w-4 mr-2" />
                 Zrušit

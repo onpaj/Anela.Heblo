@@ -10,7 +10,7 @@ interface ScoreRowProps {
 
 const ScoreRow: React.FC<ScoreRowProps> = ({ label, value, onChange }) => (
   <div className="space-y-1">
-    <span className="text-sm font-medium text-gray-700">{label}</span>
+    <span className="text-sm font-medium text-gray-700 dark:text-graphite-muted">{label}</span>
     <div className="flex gap-1 flex-wrap">
       {SCORES.map((s) => (
         <label key={s} className="cursor-pointer">
@@ -26,7 +26,7 @@ const ScoreRow: React.FC<ScoreRowProps> = ({ label, value, onChange }) => (
             className={`inline-flex items-center justify-center w-8 h-8 rounded text-sm font-medium border ${
               value === s
                 ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-graphite-surface-2 dark:text-graphite-muted dark:border-graphite-border dark:hover:bg-white/5'
             }`}
           >
             {s}

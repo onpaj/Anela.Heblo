@@ -173,15 +173,15 @@ const StockOperationsPage: React.FC = () => {
   const getStateColor = (state: StockUpOperationState) => {
     switch (state) {
       case StockUpOperationState.Completed:
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-emerald-400/15 dark:text-emerald-400";
       case StockUpOperationState.Failed:
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 dark:bg-red-400/15 dark:text-red-400";
       case StockUpOperationState.Pending:
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800 dark:bg-amber-400/15 dark:text-amber-400";
       case StockUpOperationState.Submitted:
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800 dark:bg-graphite-accent/10 dark:text-graphite-accent";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-graphite-muted";
     }
   };
 
@@ -376,12 +376,12 @@ const StockOperationsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+      <div className="p-6 bg-red-50 dark:bg-red-400/15 border border-red-200 rounded-lg">
         <div className="flex items-center gap-2">
-          <AlertCircle className="h-5 w-5 text-red-600" />
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
           <div>
-            <h3 className="text-red-800 font-semibold">Chyba při načítání operací</h3>
-            <p className="text-red-600 text-sm mt-1">
+            <h3 className="text-red-800 dark:text-red-400 font-semibold">Chyba při načítání operací</h3>
+            <p className="text-red-600 dark:text-red-400 text-sm mt-1">
               {error instanceof Error ? error.message : "Neznámá chyba"}
             </p>
             <button
@@ -402,16 +402,16 @@ const StockOperationsPage: React.FC = () => {
     <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
       {/* Header */}
       <div className="flex-shrink-0 mb-3">
-        <h1 className="text-lg font-semibold text-gray-900">Operace naskladnění</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Operace naskladnění</h1>
       </div>
 
       {/* Collapsible Filter Panel */}
-      <div className="flex-shrink-0 bg-white rounded-lg shadow mb-4">
-        <div className="p-3 border-b border-gray-200">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark mb-4">
+        <div className="p-3 border-b border-gray-200 dark:border-graphite-border">
           <div className="flex items-center justify-between">
             <button
               onClick={() => setIsFiltersCollapsed(!isFiltersCollapsed)}
-              className="flex items-center space-x-2 text-sm font-medium text-gray-900 hover:text-gray-700"
+              className="flex items-center space-x-2 text-sm font-medium text-gray-900 dark:text-graphite-text hover:text-gray-700"
             >
               {isFiltersCollapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -419,7 +419,7 @@ const StockOperationsPage: React.FC = () => {
                 <ChevronDown className="h-4 w-4" />
               )}
               <span>Filtry a nastavení</span>
-              <span className="text-xs text-gray-500">({totalCount} operací)</span>
+              <span className="text-xs text-gray-500 dark:text-graphite-muted">({totalCount} operací)</span>
             </button>
 
             {/* Action buttons - always visible */}
@@ -427,7 +427,7 @@ const StockOperationsPage: React.FC = () => {
               <button
                 onClick={() => refetch()}
                 disabled={isLoading}
-                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark text-xs font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
               >
                 <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? "animate-spin" : ""}`} />
                 {isFiltersCollapsed ? "" : "Obnovit"}
@@ -441,11 +441,11 @@ const StockOperationsPage: React.FC = () => {
             {/* Row 1: State dropdown + SourceType radios + Product autocomplete */}
             <div className="flex gap-3 items-end">
               <div className="w-48">
-                <label className="block text-xs font-medium text-gray-700 mb-1">Stav</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">Stav</label>
                 <select
                   value={stateInput}
                   onChange={(e) => setStateInput(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="All">Všechny</option>
                   <option value="Active">Aktivní</option>
@@ -457,7 +457,7 @@ const StockOperationsPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-gray-700">Typ zdroje:</span>
+                <span className="text-xs font-medium text-gray-700 dark:text-graphite-muted">Typ zdroje:</span>
                 <label className="flex items-center gap-1 text-xs">
                   <input
                     type="radio"
@@ -491,7 +491,7 @@ const StockOperationsPage: React.FC = () => {
               </div>
 
               <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                   Produkt
                 </label>
                 <CatalogAutocomplete<string>
@@ -510,46 +510,46 @@ const StockOperationsPage: React.FC = () => {
             {/* Row 2: Date range + Document number */}
             <div className="flex gap-3 items-end">
               <div className="w-40">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                   Vytvořeno od
                 </label>
                 <input
                   type="date"
                   value={dateFromInput}
                   onChange={(e) => setDateFromInput(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
               <div className="w-40">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                   Vytvořeno do
                 </label>
                 <input
                   type="date"
                   value={dateToInput}
                   onChange={(e) => setDateToInput(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
               <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                   Číslo dokladu
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400 dark:text-graphite-faint" />
                   <input
                     type="text"
                     value={documentNumberInput}
                     onChange={(e) => setDocumentNumberInput(e.target.value)}
                     placeholder="Hledat číslo dokladu..."
-                    className="pl-8 pr-8 w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="pl-8 pr-8 w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   {documentNumberInput && (
                     <button
                       onClick={() => setDocumentNumberInput("")}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-graphite-faint hover:text-gray-600"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -562,7 +562,7 @@ const StockOperationsPage: React.FC = () => {
             <div className="flex justify-end gap-2">
               <button
                 onClick={handleClearFilters}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors border border-gray-300"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 dark:text-graphite-muted hover:text-gray-800 hover:bg-gray-100 dark:hover:bg-white/5 rounded-md transition-colors border border-gray-300 dark:border-graphite-border"
               >
                 <X className="h-3 w-3" />
                 Vymazat filtry
@@ -579,30 +579,30 @@ const StockOperationsPage: React.FC = () => {
       </div>
 
       {/* Results Table */}
-      <div className="flex-1 bg-white rounded-lg shadow overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark overflow-hidden flex flex-col min-h-0">
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
-            <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-            <span className="ml-2 text-gray-600">Načítání dat...</span>
+            <RefreshCw className="h-8 w-8 animate-spin text-gray-400 dark:text-graphite-faint" />
+            <span className="ml-2 text-gray-600 dark:text-graphite-muted">Načítání dat...</span>
           </div>
         ) : operations.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Žádné výsledky</h3>
-              <p className="text-gray-600">
+              <AlertCircle className="h-12 w-12 text-gray-400 dark:text-graphite-faint mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-2">Žádné výsledky</h3>
+              <p className="text-gray-600 dark:text-graphite-muted">
                 Zkuste upravit filtry nebo vyhledávací kritéria.
               </p>
             </div>
           </div>
         ) : (
           <div className="flex-1 overflow-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+              <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
                 <tr>
                   <th
                     onClick={() => handleSort("id")}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
                   >
                     <div className="flex items-center">
                       ID
@@ -616,7 +616,7 @@ const StockOperationsPage: React.FC = () => {
                   </th>
                   <th
                     onClick={() => handleSort("documentNumber")}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
                   >
                     <div className="flex items-center">
                       Číslo dokladu
@@ -630,7 +630,7 @@ const StockOperationsPage: React.FC = () => {
                   </th>
                   <th
                     onClick={() => handleSort("productCode")}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
                   >
                     <div className="flex items-center">
                       Kód produktu
@@ -642,12 +642,12 @@ const StockOperationsPage: React.FC = () => {
                         ))}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Množství
                   </th>
                   <th
                     onClick={() => handleSort("state")}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
                   >
                     <div className="flex items-center">
                       Stav
@@ -661,7 +661,7 @@ const StockOperationsPage: React.FC = () => {
                   </th>
                   <th
                     onClick={() => handleSort("createdAt")}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
                   >
                     <div className="flex items-center">
                       Vytvořeno
@@ -673,27 +673,27 @@ const StockOperationsPage: React.FC = () => {
                         ))}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Chybová zpráva
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                     Akce
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                 {operations.map((operation) => (
-                  <tr key={operation.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <tr key={operation.id} className="hover:bg-gray-50 dark:hover:bg-white/5">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                       {operation.id}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
                       {operation.documentNumber}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                       {operation.productCode}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                       {operation.amount}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -711,7 +711,7 @@ const StockOperationsPage: React.FC = () => {
 
                         {isOperationStuck(operation) && (
                           <span
-                            className="inline-flex items-center text-red-600"
+                            className="inline-flex items-center text-red-600 dark:text-red-400"
                             title={getStuckMessage(operation)}
                           >
                             <AlertTriangle className="h-4 w-4 animate-pulse" />
@@ -719,13 +719,13 @@ const StockOperationsPage: React.FC = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                       <div className="flex items-center">
-                        <Calendar className="h-4 w-4 text-gray-400 mr-1" />
+                        <Calendar className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-1" />
                         {formatDate(operation.createdAt)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-red-600 max-w-xs truncate">
+                    <td className="px-6 py-4 text-sm text-red-600 dark:text-red-400 max-w-xs truncate">
                       {operation.errorMessage || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -763,38 +763,38 @@ const StockOperationsPage: React.FC = () => {
 
         {/* Pagination */}
         {totalCount > 0 && (
-          <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
+          <div className="flex-shrink-0 bg-white dark:bg-graphite-surface px-3 py-2 flex items-center justify-between border-t border-gray-200 dark:border-graphite-border text-xs">
             <div className="flex-1 flex justify-between sm:hidden">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Předchozí
               </button>
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Další
               </button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray-600 dark:text-graphite-muted">
                   {skip + 1}-{Math.min(skip + pageSize, totalCount)} z {totalCount}
                 </p>
               </div>
               <div>
                 <nav
-                  className="relative z-0 inline-flex rounded shadow-sm -space-x-px"
+                  className="relative z-0 inline-flex rounded shadow-sm dark:shadow-soft-dark -space-x-px"
                   aria-label="Pagination"
                 >
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="h-3 w-3" />
                   </button>
@@ -818,8 +818,8 @@ const StockOperationsPage: React.FC = () => {
                         onClick={() => handlePageChange(pageNum)}
                         className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                           pageNum === currentPage
-                            ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                            : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                            ? "z-10 bg-indigo-50 dark:bg-graphite-accent/10 border-indigo-500 dark:border-graphite-accent text-indigo-600 dark:text-graphite-accent"
+                            : "bg-white dark:bg-graphite-surface border-gray-300 dark:border-graphite-border text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
                         }`}
                       >
                         {pageNum}
@@ -830,7 +830,7 @@ const StockOperationsPage: React.FC = () => {
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronRight className="h-3 w-3" />
                   </button>

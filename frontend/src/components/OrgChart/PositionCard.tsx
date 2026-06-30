@@ -24,7 +24,7 @@ function PositionCard({ position, getChildren, getLevelColor }: PositionCardProp
       {/* Position card content */}
       <div
         data-position-id={position.id}
-        className={`bg-white rounded-xl shadow-lg p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 ${getLevelColor(
+        className={`bg-white dark:bg-graphite-surface rounded-xl shadow-lg dark:shadow-soft-dark p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 ${getLevelColor(
           position.level ?? 1
         )} relative mb-20`}
       >
@@ -34,7 +34,7 @@ function PositionCard({ position, getChildren, getLevelColor }: PositionCardProp
           </div>
         )}
 
-        <div className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold mb-3">
+        <div className="inline-block bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-semibold mb-3">
           {position.department}
         </div>
 
@@ -43,7 +43,7 @@ function PositionCard({ position, getChildren, getLevelColor }: PositionCardProp
             href={position.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-lg font-bold text-gray-900 mb-2 hover:text-indigo-600 transition-colors flex items-center gap-1 cursor-pointer"
+            className="text-lg font-bold text-gray-900 dark:text-graphite-text mb-2 hover:text-indigo-600 dark:hover:text-graphite-accent transition-colors flex items-center gap-1 cursor-pointer"
           >
             {position.title}
             <svg
@@ -62,13 +62,13 @@ function PositionCard({ position, getChildren, getLevelColor }: PositionCardProp
             </svg>
           </a>
         ) : (
-          <h3 className="text-lg font-bold text-gray-900 mb-2">{position.title}</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-graphite-text mb-2">{position.title}</h3>
         )}
-        <p className="text-sm text-gray-600 mb-4 leading-relaxed">{position.description}</p>
+        <p className="text-sm text-gray-600 dark:text-graphite-muted mb-4 leading-relaxed">{position.description}</p>
 
-        <div className="border-t border-gray-200 pt-4 space-y-2">
+        <div className="border-t border-gray-200 dark:border-graphite-border pt-4 space-y-2">
           {(position.employees || []).map((emp) => (
-            <div key={emp.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+            <div key={emp.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
                   emp.isPrimary
@@ -84,7 +84,7 @@ function PositionCard({ position, getChildren, getLevelColor }: PositionCardProp
                     href={emp.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm font-semibold text-gray-900 truncate hover:text-indigo-600 transition-colors flex items-center gap-1 cursor-pointer"
+                    className="text-sm font-semibold text-gray-900 dark:text-graphite-text truncate hover:text-indigo-600 dark:hover:text-graphite-accent transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     {emp.name}
                     <svg
@@ -103,9 +103,9 @@ function PositionCard({ position, getChildren, getLevelColor }: PositionCardProp
                     </svg>
                   </a>
                 ) : (
-                  <div className="text-sm font-semibold text-gray-900 truncate">{emp.name}</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-graphite-text truncate">{emp.name}</div>
                 )}
-                <div className="text-xs text-gray-500 truncate">{emp.email}</div>
+                <div className="text-xs text-gray-500 dark:text-graphite-muted truncate">{emp.email}</div>
               </div>
             </div>
           ))}

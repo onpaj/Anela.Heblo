@@ -41,7 +41,7 @@ public class GetArticleTraceHandlerTests
         // Verify at least one step's field mapping
         var firstStep = result.Steps.First();
         firstStep.StepName.Should().NotBeEmpty();
-        firstStep.Status.Should().BeOneOf("Running", "Succeeded", "Failed");
+        firstStep.Status.Should().BeOneOf(ArticleGenerationStepStatus.Running, ArticleGenerationStepStatus.Succeeded, ArticleGenerationStepStatus.Failed);
         firstStep.StartedAt.Should().NotBe(default(DateTimeOffset));
     }
 

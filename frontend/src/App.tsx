@@ -53,6 +53,7 @@ import PhotobankSettingsPage from "./components/marketing/photobank/pages/Photob
 import AuthGuard from "./components/auth/AuthGuard";
 import RequireMenuPath from "./components/auth/RequireMenuPath";
 import { StatusBar } from "./components/StatusBar";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
 import DataQualityPage from "./pages/customer/DataQualityPage";
@@ -65,6 +66,7 @@ import { recoverAuth } from "./auth/authRecovery";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { isE2ETestMode, getE2EAccessToken } from "./auth/e2eAuth";
 import { ToastProvider } from "./contexts/ToastContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { PlanningListProvider } from "./contexts/PlanningListContext";
 import { PurchasePlanningListProvider } from "./contexts/PurchasePlanningListContext";
@@ -91,7 +93,7 @@ import FinishPoStep from "./components/terminal/lot-identification/FinishPoStep"
 import FreeformMaterialStep from "./components/terminal/lot-identification/FreeformMaterialStep";
 import BaleniLayout from "./components/baleni/BaleniLayout";
 import BaleniHome from "./components/baleni/BaleniHome";
-import BaleniPlaceholder from "./components/baleni/BaleniPlaceholder";
+import BaleniStatistics from "./components/baleni/statistics/BaleniStatistics";
 import BaleniPacking from "./components/baleni/BaleniPacking";
 import { ZasilkyPage } from "./components/baleni/zasilky/ZasilkyPage";
 import "./i18n";
@@ -355,6 +357,7 @@ function App() {
   return (
     <OpenFeatureProvider>
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
       <LoadingProvider>
         <ToastProvider>
           <ChangelogProvider>
@@ -399,11 +402,11 @@ function App() {
                         <Route index element={<BaleniHome />} />
                         <Route path="baleni" element={<BaleniPacking />} />
                         <Route path="zasilky" element={<ZasilkyPage />} />
-                        <Route path="statistiky" element={<BaleniPlaceholder title="Statistiky" />} />
+                        <Route path="statistiky" element={<BaleniStatistics />} />
                       </Route>
 
                       {/* Desktop app — full Layout with sidebar (pathless layout route) */}
-                      <Route element={<Layout statusBar={<StatusBar />}><Outlet /></Layout>}>
+                      <Route element={<Layout statusBar={<StatusBar />}><ErrorBoundary><Outlet /></ErrorBoundary></Layout>}>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/finance/overview" element={guard("/finance/overview", <FinancialOverview />)} />
                         <Route path="/finance/bank-statements" element={<BankStatementImportChart />} />
@@ -508,6 +511,7 @@ function App() {
           </ChangelogProvider>
         </ToastProvider>
       </LoadingProvider>
+      </ThemeProvider>
     </QueryClientProvider>
     </OpenFeatureProvider>
   );

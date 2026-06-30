@@ -233,17 +233,17 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-graphite-surface rounded-xl shadow-2xl dark:shadow-soft-dark w-full max-w-3xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-graphite-border">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
             {isEdit ? "Upravit akci" : "Nová marketingová akce"}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
           >
-            <X className="h-5 w-5 text-gray-500" />
+            <X className="h-5 w-5 text-gray-500 dark:text-graphite-muted" />
           </button>
         </div>
 
@@ -254,34 +254,34 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
           className="flex-1 overflow-y-auto px-6 py-4 space-y-4"
         >
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-md px-3 py-2">
               {error}
             </div>
           )}
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               Název *
             </label>
             <input
               required
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           {/* ActionType + dates row */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                 Typ *
               </label>
               <select
                 value={form.actionType}
                 onChange={(e) => set("actionType", e.target.value as MarketingActionType)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 {ACTION_TYPE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -291,7 +291,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                 Od *
               </label>
               <input
@@ -299,11 +299,11 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
                 type="date"
                 value={form.dateFrom}
                 onChange={(e) => set("dateFrom", e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                 Do *
               </label>
               <input
@@ -312,28 +312,28 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
                 value={form.dateTo}
                 min={form.dateFrom}
                 onChange={(e) => set("dateTo", e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
 
           {/* Detail */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               Popis
             </label>
             <textarea
               value={form.detail}
               onChange={(e) => set("detail", e.target.value)}
               rows={7}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
           </div>
 
           {/* Products */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted">
                 Přiřazené produkty
               </label>
               <div className="flex items-center gap-2">
@@ -342,8 +342,8 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
                   onClick={() => setUseTextInput(false)}
                   className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                     !useTextInput
-                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
-                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                      ? "bg-indigo-100 dark:bg-graphite-accent/10 text-indigo-800 dark:text-graphite-accent border border-indigo-200 dark:border-graphite-accent"
+                      : "bg-gray-100 dark:bg-graphite-surface-2 text-gray-700 dark:text-graphite-muted border border-gray-200 dark:border-graphite-border hover:bg-gray-200 dark:hover:bg-white/5"
                   }`}
                 >
                   <Search className="h-3 w-3 mr-1" />
@@ -354,8 +354,8 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
                   onClick={() => setUseTextInput(true)}
                   className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                     useTextInput
-                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
-                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                      ? "bg-indigo-100 dark:bg-graphite-accent/10 text-indigo-800 dark:text-graphite-accent border border-indigo-200 dark:border-graphite-accent"
+                      : "bg-gray-100 dark:bg-graphite-surface-2 text-gray-700 dark:text-graphite-muted border border-gray-200 dark:border-graphite-border hover:bg-gray-200 dark:hover:bg-white/5"
                   }`}
                 >
                   <Type className="h-3 w-3 mr-1" />
@@ -377,7 +377,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
                 }}
                 onBlur={handleTextProductSubmit}
                 placeholder="Zadejte produktový kód nebo prefix..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md shadow-sm dark:shadow-soft-dark focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
               />
             ) : (
               <CatalogAutocomplete<string>
@@ -395,13 +395,13 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
               {form.associatedProducts.map((code) => (
                 <span
                   key={code}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-graphite-accent/10 text-indigo-800 dark:text-graphite-accent"
                 >
                   {code}
                   <button
                     type="button"
                     onClick={() => removeProduct(code)}
-                    className="ml-1 text-indigo-600 hover:text-indigo-800"
+                    className="ml-1 text-indigo-600 dark:text-graphite-accent hover:text-indigo-800"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -413,13 +413,13 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
           {/* Folder links */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted">
                 Složky
               </label>
               <button
                 type="button"
                 onClick={addFolderLink}
-                className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                className="text-xs text-indigo-600 dark:text-graphite-accent hover:text-indigo-800 flex items-center gap-1"
               >
                 <Plus className="h-3 w-3" /> Přidat složku
               </button>
@@ -431,7 +431,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
                     value={fl.path}
                     onChange={(e) => updateFolderLink(i, "path", e.target.value)}
                     placeholder="Cesta ke složce"
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                   <input
                     value={fl.label}
@@ -439,14 +439,14 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
                       updateFolderLink(i, "label", e.target.value)
                     }
                     placeholder="Popis (volitelný)"
-                    className="w-32 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-32 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                   <select
                     value={fl.folderType}
                     onChange={(e) =>
                       updateFolderLink(i, "folderType", e.target.value as MarketingFolderType)
                     }
-                    className="w-28 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-28 border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     {FOLDER_TYPE_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
@@ -457,7 +457,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
                   <button
                     type="button"
                     onClick={() => removeFolderLink(i)}
-                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                    className="p-2 text-gray-400 dark:text-graphite-faint hover:text-red-500 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -468,14 +468,14 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-graphite-border">
           <div>
             {isEdit && (
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors disabled:opacity-50"
               >
                 {isDeleting ? "Mazání..." : "Smazat"}
               </button>
@@ -485,7 +485,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted hover:bg-gray-100 dark:hover:bg-white/5 rounded-md transition-colors"
             >
               Zrušit
             </button>

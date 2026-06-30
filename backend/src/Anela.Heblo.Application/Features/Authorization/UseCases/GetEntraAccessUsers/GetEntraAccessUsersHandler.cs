@@ -1,18 +1,17 @@
-using Anela.Heblo.Application.Features.UserManagement.Services;
-using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Application.Features.Authorization.Contracts;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Authorization.UseCases.GetEntraAccessUsers;
 
 public class GetEntraAccessUsersHandler : IRequestHandler<GetEntraAccessUsersRequest, GetEntraAccessUsersResponse>
 {
-    private readonly IGraphService _graphService;
+    private readonly IEntraAccessUserSource _source;
 
-    public GetEntraAccessUsersHandler(IGraphService graphService) => _graphService = graphService;
+    public GetEntraAccessUsersHandler(IEntraAccessUserSource source) => _source = source;
 
     public async Task<GetEntraAccessUsersResponse> Handle(GetEntraAccessUsersRequest request, CancellationToken ct)
     {
-        var users = await _graphService.GetAppRoleMembersAsync(AccessRoles.Base, ct);
+        var users = await _source.GetBaseMembersAsync(ct);
         return new GetEntraAccessUsersResponse
         {
             Users = users.Select(u => new EntraUserDto

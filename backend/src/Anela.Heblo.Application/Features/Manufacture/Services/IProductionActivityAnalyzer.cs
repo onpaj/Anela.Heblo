@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
@@ -10,14 +10,14 @@ public interface IProductionActivityAnalyzer
     /// <param name="manufactureHistory">Collection of manufacture records</param>
     /// <param name="dayThreshold">Number of days to look back for active production (default: 30)</param>
     /// <returns>True if product has been manufactured within the threshold period</returns>
-    bool IsInActiveProduction(IEnumerable<ManufactureHistoryRecord> manufactureHistory, int dayThreshold = 30);
+    bool IsInActiveProduction(IEnumerable<CatalogManufactureRecord> manufactureHistory, int dayThreshold = 30);
 
     /// <summary>
     /// Gets the date of the last production run.
     /// </summary>
     /// <param name="manufactureHistory">Collection of manufacture records</param>
     /// <returns>Date of last production, or null if never manufactured</returns>
-    DateTime? GetLastProductionDate(IEnumerable<ManufactureHistoryRecord> manufactureHistory);
+    DateTime? GetLastProductionDate(IEnumerable<CatalogManufactureRecord> manufactureHistory);
 
     /// <summary>
     /// Calculates the average production frequency in days.
@@ -25,5 +25,5 @@ public interface IProductionActivityAnalyzer
     /// <param name="manufactureHistory">Collection of manufacture records</param>
     /// <param name="analysisMonths">Number of months to analyze (default: 12)</param>
     /// <returns>Average days between production runs</returns>
-    double CalculateAverageProductionFrequency(IEnumerable<ManufactureHistoryRecord> manufactureHistory, int analysisMonths = 12);
+    double CalculateAverageProductionFrequency(IEnumerable<CatalogManufactureRecord> manufactureHistory, int analysisMonths = 12);
 }

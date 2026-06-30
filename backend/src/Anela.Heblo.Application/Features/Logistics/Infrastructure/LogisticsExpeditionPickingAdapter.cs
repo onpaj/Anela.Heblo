@@ -23,8 +23,10 @@ internal sealed class LogisticsExpeditionPickingAdapter : IExpeditionPickingSour
             Carriers = request.Carriers,
             SourceStateId = request.SourceStateId,
             DesiredStateId = request.DesiredStateId,
+            NoteStateId = request.NoteStateId,
             ChangeOrderState = request.ChangeOrderState,
             SendToPrinter = request.SendToPrinter,
+            OrderCode = request.OrderCode,
         };
 
         var inner = await _inner.CreatePickingList(innerRequest, onBatchFilesReady, cancellationToken);
@@ -33,6 +35,7 @@ internal sealed class LogisticsExpeditionPickingAdapter : IExpeditionPickingSour
         {
             ExportedFiles = inner.ExportedFiles,
             TotalCount = inner.TotalCount,
+            SkippedCount = inner.SkippedCount,
         };
     }
 }

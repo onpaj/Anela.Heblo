@@ -68,7 +68,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
             var linesToRemove = existingLineIds.Except(requestLineIds).ToList();
             foreach (var lineId in linesToRemove)
             {
-                purchaseOrder.RemoveLine(lineId);
+                purchaseOrder.RemoveLine(lineId, updatedBy);
             }
 
             // Batch-fetch every material referenced by the incoming request lines.
@@ -95,7 +95,8 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
                         materialName,
                         lineRequest.Quantity,
                         lineRequest.UnitPrice,
-                        lineRequest.Notes);
+                        lineRequest.Notes,
+                        updatedBy);
                 }
                 else
                 {
@@ -104,7 +105,8 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
                         materialName,
                         lineRequest.Quantity,
                         lineRequest.UnitPrice,
-                        lineRequest.Notes);
+                        lineRequest.Notes,
+                        updatedBy);
                 }
             }
 
@@ -125,22 +127,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
 
     private static UpdatePurchaseOrderResponse MapToResponse(PurchaseOrder purchaseOrder, long supplierId)
     {
-        var lines = new List<PurchaseOrderLineDto>();
-
-        foreach (var line in purchaseOrder.Lines)
-        {
-            lines.Add(new PurchaseOrderLineDto
-            {
-                Id = line.Id,
-                MaterialId = line.MaterialId,
-                Code = line.MaterialId,
-                MaterialName = line.MaterialName,
-                Quantity = line.Quantity,
-                UnitPrice = line.UnitPrice,
-                LineTotal = line.LineTotal,
-                Notes = line.Notes
-            });
-        }
+        var lines = purchaseOrder.Lines.Select(line => PurchaseOrderLineDto.FromLine(line)).ToList();
 
         return new UpdatePurchaseOrderResponse
         {

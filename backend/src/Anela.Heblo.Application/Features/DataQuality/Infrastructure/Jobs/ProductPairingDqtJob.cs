@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.DataQuality.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.DataQuality;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.DataQuality.Infrastructure.Jobs;
@@ -33,6 +34,7 @@ public class ProductPairingDqtJob : IRecurringJob
         _logger = logger;
     }
 
+    [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
         if (!await _statusChecker.IsJobEnabledAsync(Metadata.JobName))

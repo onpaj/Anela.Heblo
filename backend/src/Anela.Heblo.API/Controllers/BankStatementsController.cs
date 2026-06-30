@@ -41,31 +41,18 @@ public class BankStatementsController : BaseApiController
     [HttpPost("import")]
     public async Task<ActionResult<BankStatementImportResultDto>> ImportStatements([FromBody] BankImportRequestDto request)
     {
-        try
-        {
-            _logger.LogInformation("Importing bank statements for account {AccountName} from {DateFrom} to {DateTo}",
-                request.AccountName, request.DateFrom, request.DateTo);
+        _logger.LogInformation("Importing bank statements for account {AccountName} from {DateFrom} to {DateTo}",
+            request.AccountName, request.DateFrom, request.DateTo);
 
-            var importRequest = new ImportBankStatementRequest(request.AccountName, request.DateFrom, request.DateTo);
-            var response = await _mediator.Send(importRequest);
+        var importRequest = new ImportBankStatementRequest(request.AccountName, request.DateFrom, request.DateTo);
+        var response = await _mediator.Send(importRequest);
 
-            var result = new BankStatementImportResultDto
-            {
-                Statements = response.Statements
-            };
+        var result = new BankStatementImportResultDto
+        {
+            Statements = response.Statements
+        };
 
-            return Ok(result);
-        }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Invalid request for bank statement import");
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred while importing bank statements");
-            return StatusCode(500, new { message = "An error occurred while importing bank statements" });
-        }
+        return Ok(result);
     }
 
     /// <summary>
@@ -99,39 +86,26 @@ public class BankStatementsController : BaseApiController
         [FromQuery] string? orderBy = "ImportDate",
         [FromQuery] bool ascending = false)
     {
-        try
-        {
-            _logger.LogInformation("Getting bank statements with Skip={Skip}, Take={Take}", skip, take);
+        _logger.LogInformation("Getting bank statements with Skip={Skip}, Take={Take}", skip, take);
 
-            var request = new GetBankStatementListRequest
-            {
-                Id = id,
-                TransferId = transferId,
-                Account = account,
-                StatementDate = statementDate,
-                ImportDate = importDate,
-                DateFrom = dateFrom,
-                DateTo = dateTo,
-                ErrorsOnly = errorsOnly,
-                Skip = skip,
-                Take = take,
-                OrderBy = orderBy,
-                Ascending = ascending
-            };
+        var request = new GetBankStatementListRequest
+        {
+            Id = id,
+            TransferId = transferId,
+            Account = account,
+            StatementDate = statementDate,
+            ImportDate = importDate,
+            DateFrom = dateFrom,
+            DateTo = dateTo,
+            ErrorsOnly = errorsOnly,
+            Skip = skip,
+            Take = take,
+            OrderBy = orderBy,
+            Ascending = ascending
+        };
 
-            var response = await _mediator.Send(request);
-            return Ok(response);
-        }
-        catch (FluentValidation.ValidationException ex)
-        {
-            _logger.LogWarning(ex, "Invalid request for bank statement list");
-            return BadRequest(new { message = "Invalid request", errors = ex.Errors.Select(e => new { e.PropertyName, e.ErrorMessage }) });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred while retrieving bank statements");
-            return StatusCode(500, new { message = "An error occurred while retrieving bank statements" });
-        }
+        var response = await _mediator.Send(request);
+        return Ok(response);
     }
 
     /// <summary>

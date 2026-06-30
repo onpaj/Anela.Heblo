@@ -134,14 +134,18 @@ public sealed class ContactSyncService : IEntitySyncService
         Error = (_, args) => args.ErrorContext.Handled = true,
     };
 
-    private static Contact Map(ContactFlexiDto dto) => new()
+    internal static Contact Map(ContactFlexiDto dto) => new()
     {
         FlexiId = dto.Id ?? throw new InvalidOperationException($"ContactFlexiDto has a null Id (Code={dto.Code})."),
         Code = dto.Code,
         Name = dto.Name,
         Cin = dto.CIN,
         Vatin = dto.VATIN,
-        LastModified = dto.LastUpdate?.ToUniversalTime(),
+        // FlexiBee SDK returns Kind=Unspecified representing Prague local time.
+        // ConvertTimeToUtc with TimeZoneInfo.Local matches UnspecifiedDateTimeConverter pattern.
+        LastModified = dto.LastUpdate.HasValue
+            ? TimeZoneInfo.ConvertTimeToUtc(dto.LastUpdate.Value.DateTime, TimeZoneInfo.Local)
+            : (DateTimeOffset?)null,
         RawPayload = JsonConvert.SerializeObject(dto, RawPayloadSettings),
         SyncedAt = DateTimeOffset.UtcNow,
     };

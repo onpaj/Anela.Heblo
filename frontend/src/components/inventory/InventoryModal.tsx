@@ -118,29 +118,29 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-        <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl">
+        <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl dark:bg-graphite-surface dark:shadow-soft-dark">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Package className="h-5 w-5 mr-2 text-indigo-600" />
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-graphite-border">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center dark:text-graphite-text">
+              <Package className="h-5 w-5 mr-2 text-indigo-600 dark:text-graphite-accent" />
               Inventarizace produktu
             </h3>
             <button
               onClick={onClose}
-              className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-graphite-faint dark:hover:text-graphite-muted"
             >
               <X className="h-6 w-6" />
             </button>
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex border-b border-gray-200">
+          <div className="flex border-b border-gray-200 dark:border-graphite-border">
             <button
               onClick={() => setActiveTab('inventory')}
               className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'inventory'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-indigo-500 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted dark:hover:text-graphite-text dark:hover:border-graphite-border'
               }`}
             >
               <Package className="h-4 w-4 inline mr-2" />
@@ -150,8 +150,8 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
               onClick={() => setActiveTab('history')}
               className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'history'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-indigo-500 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted dark:hover:text-graphite-text dark:hover:border-graphite-border'
               }`}
             >
               <History className="h-4 w-4 inline mr-2" />
@@ -160,8 +160,8 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
           </div>
 
           {/* Product Name - Full Width */}
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <h4 className="text-2xl font-bold text-gray-900 text-center">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 dark:bg-graphite-surface-2 dark:border-graphite-border">
+            <h4 className="text-2xl font-bold text-gray-900 text-center dark:text-graphite-text">
               {effectiveItem?.productName || item.productName}
             </h4>
           </div>
@@ -174,7 +174,7 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
                 <div className="w-full flex items-center justify-center">
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                    <div className="text-gray-500">Načítání detailních údajů...</div>
+                    <div className="text-gray-500 dark:text-graphite-muted">Načítání detailních údajů...</div>
                   </div>
                 </div>
               )}
@@ -182,7 +182,7 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
               {/* Error State */}
               {detailError && (
                 <div className="w-full flex items-center justify-center">
-                  <div className="text-red-600">
+                  <div className="text-red-600 dark:text-red-400">
                     Chyba při načítání detailů: {detailError.message}
                   </div>
                 </div>
@@ -192,11 +192,11 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
               {!detailLoading && !detailError && (
               <>
                 {/* Left Section - Product Image (50%) */}
-                <div className="w-full lg:w-1/2 p-6 bg-gray-50">
+                <div className="w-full lg:w-1/2 p-6 bg-gray-50 dark:bg-graphite-surface-2">
                   <div className="h-full flex items-center justify-center">
                     {/* Product Image */}
                     <div className="w-full">
-                      <div className="w-full bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center min-h-[24rem]">
+                      <div className="w-full bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center min-h-[24rem] dark:bg-graphite-hover">
                         {effectiveItem?.image ? (
                           <img 
                             src={effectiveItem.image} 
@@ -215,8 +215,8 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
                           className={`w-full h-full flex items-center justify-center ${effectiveItem?.image ? 'hidden' : 'flex'}`}
                           style={{ display: effectiveItem?.image ? 'none' : 'flex' }}
                         >
-                          <div className="text-center text-gray-500">
-                            <Package className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                          <div className="text-center text-gray-500 dark:text-graphite-muted">
+                            <Package className="h-12 w-12 mx-auto mb-2 text-gray-400 dark:text-graphite-faint" />
                             <p className="text-sm">Obrázek produktu</p>
                             <p className="text-xs">není dostupný</p>
                           </div>
@@ -227,26 +227,26 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
                 </div>
 
                 {/* Right Section - Product Info & Quantity Management (50%) */}
-                <div className="w-full lg:w-1/2 p-6 bg-white">
+                <div className="w-full lg:w-1/2 p-6 bg-white dark:bg-graphite-surface">
                   <div className="space-y-6">
                     {/* Product Info */}
-                    <div className="space-y-3 pb-4 border-b border-gray-200">
+                    <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-graphite-border">
                       {/* Product Code */}
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">
+                        <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted">
                           Produktový kód:
                         </span>
-                        <span className="text-sm text-gray-900 font-mono">
+                        <span className="text-sm text-gray-900 font-mono dark:text-graphite-text">
                           {effectiveItem?.productCode}
                         </span>
                       </div>
 
                       {/* Location */}
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">
+                        <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted">
                           Pozice:
                         </span>
-                        <span className="text-sm text-gray-900">
+                        <span className="text-sm text-gray-900 dark:text-graphite-text">
                           {effectiveItem?.location || "Není uvedeno"}
                         </span>
                       </div>
@@ -254,23 +254,23 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
 
                     {/* Current Stock Display */}
                     <div className="text-center">
-                      <div className="text-sm font-medium text-gray-600 mb-2">
+                      <div className="text-sm font-medium text-gray-600 mb-2 dark:text-graphite-muted">
                         Aktuální množství skladem
                       </div>
-                      <div className="text-6xl font-bold text-green-600 mb-4">
+                      <div className="text-6xl font-bold text-green-600 mb-4 dark:text-emerald-400">
                         {currentStock}
                       </div>
                     </div>
 
                     {/* Quantity Input */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-graphite-muted">
                         Nové množství po inventarizaci
                       </label>
                       <div className="flex items-center space-x-3 mb-4">
                         <button
                           onClick={() => setNewQuantity(Math.max(0, newQuantity - 1))}
-                          className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold"
+                          className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-white/5 dark:hover:text-graphite-text"
                           type="button"
                         >
                           <Minus className="h-5 w-5" />
@@ -284,11 +284,11 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
                             const value = parseFloat(e.target.value);
                             setNewQuantity(isNaN(value) ? 0 : Math.max(0, value));
                           }}
-                          className="flex-1 text-center border border-gray-300 rounded-lg px-4 py-3 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent touch-manipulation"
+                          className="flex-1 text-center border border-gray-300 rounded-lg px-4 py-3 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent touch-manipulation dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                         />
                         <button
                           onClick={() => setNewQuantity(newQuantity + 1)}
-                          className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold"
+                          className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-white/5 dark:hover:text-graphite-text"
                           type="button"
                         >
                           <Plus className="h-5 w-5" />
@@ -316,13 +316,13 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
 
                     {/* Error Messages */}
                     {submitStockTaking.error && (
-                      <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200 flex items-start space-x-2">
-                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                      <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200 flex items-start space-x-2 dark:bg-red-900/30 dark:border-red-900/40">
+                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0 dark:text-red-400" />
                         <div>
-                          <div className="text-sm font-medium text-red-800">
+                          <div className="text-sm font-medium text-red-800 dark:text-red-300">
                             Chyba při inventarizaci
                           </div>
-                          <div className="text-sm text-red-700 mt-1">
+                          <div className="text-sm text-red-700 mt-1 dark:text-red-400">
                             {submitStockTaking.error?.message || "Došlo k neočekávané chybě"}
                           </div>
                         </div>
@@ -331,9 +331,9 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
 
                     {/* Difference Display */}
                     {newQuantity !== currentStock && (
-                      <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200 dark:bg-amber-900/30 dark:border-amber-900/40">
                         <div className="text-center">
-                          <span className="text-sm font-medium text-yellow-800">
+                          <span className="text-sm font-medium text-yellow-800 dark:text-amber-300">
                             Rozdíl: {newQuantity > currentStock ? "+" : ""}{(newQuantity - currentStock).toFixed(2)}
                           </span>
                         </div>
@@ -352,7 +352,7 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
                 <div className="flex items-center justify-center h-64">
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                    <div className="text-gray-500">Načítání historie inventur...</div>
+                    <div className="text-gray-500 dark:text-graphite-muted">Načítání historie inventur...</div>
                   </div>
                 </div>
               )}
@@ -360,7 +360,7 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
               {/* History Error State */}
               {historyError && (
                 <div className="flex items-center justify-center h-64">
-                  <div className="text-red-600">
+                  <div className="text-red-600 dark:text-red-400">
                     Chyba při načítání historie: {historyError.message}
                   </div>
                 </div>
@@ -370,57 +370,57 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
               {!historyLoading && !historyError && historyData && (
                 <div>
                   <div className="mb-4">
-                    <h5 className="text-lg font-semibold text-gray-900">
+                    <h5 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
                       Historie inventur ({historyData.totalCount || 0})
                     </h5>
                   </div>
 
                   {historyData.items && historyData.items.length > 0 ? (
                     <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+                        <thead className="bg-gray-50 dark:bg-graphite-surface-2">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-graphite-muted">
                               Datum
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-graphite-muted">
                               Staré množství
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-graphite-muted">
                               Nové množství
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-graphite-muted">
                               Rozdíl
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-graphite-muted">
                               Uživatel
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-white divide-y divide-gray-200 dark:bg-graphite-surface dark:divide-graphite-border">
                           {historyData.items?.map((record, index) => (
-                            <tr key={record.id || index} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <tr key={record.id || index} className="hover:bg-gray-50 dark:hover:bg-white/5">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                                 {record.date ? new Date(record.date).toLocaleString('cs-CZ') : 'N/A'}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                                 {record.amountOld !== undefined ? record.amountOld.toFixed(2) : 'N/A'}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                                 {record.amountNew !== undefined ? record.amountNew.toFixed(2) : 'N/A'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">
                                 <span className={`${
-                                  (record.difference || 0) > 0 
-                                    ? 'text-green-600' 
-                                    : (record.difference || 0) < 0 
-                                    ? 'text-red-600' 
-                                    : 'text-gray-600'
+                                  (record.difference || 0) > 0
+                                    ? 'text-green-600 dark:text-emerald-400'
+                                    : (record.difference || 0) < 0
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-gray-600 dark:text-graphite-muted'
                                 }`}>
                                   {(record.difference || 0) > 0 ? '+' : ''}{record.difference !== undefined ? record.difference.toFixed(2) : '0.00'}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
                                 {record.user || 'N/A'}
                               </td>
                             </tr>
@@ -430,8 +430,8 @@ const InventoryModal: React.FC<InventoryModalProps> = ({
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <History className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                      <p className="text-gray-500">
+                      <History className="h-12 w-12 mx-auto text-gray-400 mb-4 dark:text-graphite-faint" />
+                      <p className="text-gray-500 dark:text-graphite-muted">
                         Žádné záznamy inventur pro tento produkt
                       </p>
                     </div>

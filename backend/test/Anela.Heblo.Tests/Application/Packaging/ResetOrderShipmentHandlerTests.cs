@@ -192,15 +192,18 @@ public class ResetOrderShipmentHandlerTests
             Times.Once);
     }
 
-    // Test 5: Zero item weight after cancel → ShipmentOrderWeightUnavailable
+    // Test 5: Zero item weight after cancel → carriers reject 0 kg, so fall back to default package weight
     [Fact]
-    public async Task Handle_ZeroWeightAfterCancel_ReturnsShipmentOrderWeightUnavailable()
+    public async Task Handle_ZeroWeightAfterCancel_UsesFallbackPackageWeight()
     {
         var oldGuid = Guid.NewGuid();
+        var newGuid = Guid.NewGuid();
+        CreateShipmentCommand? captured = null;
 
         _shipmentClient
-            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([MakeLabel(oldGuid)]);
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([MakeLabel(oldGuid)])
+            .ReturnsAsync([MakeLabel(newGuid, "NEW-P1")]);
 
         _shipmentClient
             .Setup(c => c.CancelShipmentAsync(oldGuid, It.IsAny<CancellationToken>()))
@@ -210,16 +213,21 @@ public class ResetOrderShipmentHandlerTests
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
             .ReturnsAsync(EligibleOrder(("P001", 2, 0), ("P002", 1, 0)));
 
+        _shipmentClient
+            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "PPL", Name = "PPL" }]);
+
+        _shipmentClient
+            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .Callback<CreateShipmentCommand, CancellationToken>((cmd, _) => captured = cmd)
+            .ReturnsAsync(new CreatedShipment { ShipmentGuid = newGuid });
+
         var response = await CreateHandler().Handle(
             new ResetOrderShipmentRequest { OrderCode = "0001234" },
             CancellationToken.None);
 
-        response.Success.Should().BeFalse();
-        response.ErrorCode.Should().Be(ErrorCodes.ShipmentOrderWeightUnavailable);
-
-        _shipmentClient.Verify(
-            c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        response.Success.Should().BeTrue();
+        captured!.Package.WeightGrams.Should().Be(1000); // FallbackPackageWeightGrams
     }
 
     // Test 7: Multiple distinct shipment GUIDs → each is cancelled before creating replacement

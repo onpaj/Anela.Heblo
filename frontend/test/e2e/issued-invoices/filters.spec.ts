@@ -60,9 +60,9 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
       await expect(emptyMessage).toBeVisible();
     } else {
       // Verify filtered results contain the search term
-      const firstRowText = await tableRows.first().textContent();
+      const firstCellText = await tableRows.first().locator("td").first().textContent();
       // eslint-disable-next-line jest/no-conditional-expect
-      expect(firstRowText).toContain("2024");
+      expect(firstCellText).toContain("2024");
     }
   });
 
@@ -78,6 +78,9 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
     // Click Filtrovat button
     await filterButton.click();
     await waitForLoadingComplete(page);
+    // IssuedInvoicesPage's loading state has no [data-loading]/spinner marker, so
+    // waitForLoadingComplete returns immediately — settle for the refetch before counting rows.
+    await page.waitForTimeout(500);
 
     // Verify filtering applied
     const filteredCount = await tableRows.count();
@@ -176,24 +179,27 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
   // Unskipped: navigation helper fixed in e2e-auth-helper.ts — re-validate on staging per e2e-test-map.md audit.
   test("8: Show Only Unsynced checkbox", async ({ page }) => {
 
-    const unsyncedCheckbox = page
-      .locator('input[type="checkbox"]')
-      .filter({ hasText: "Nesync" });
+    const unsyncedCheckbox = page.getByLabel("Nesync");
     const tableRows = page.locator("tbody tr");
 
     // Check the checkbox
     await unsyncedCheckbox.check();
     await waitForLoadingComplete(page);
+    // Loading state has no spinner marker, so settle for the refetch before counting rows.
+    await page.waitForTimeout(500);
 
     // Verify filtering applied
     const filteredCount = await tableRows.count();
 
     // eslint-disable-next-line jest/no-conditional-expect
     if (filteredCount > 0) {
-      // Verify at least one row has "Čeká" (Pending) badge
-      const pendingBadge = page.locator('span:has-text("Čeká")').first();
+      // Unsynced rows show either "Čeká" (pending) or "Chyba" (error) — never "Synced".
+      // (Staging's unsynced invoices currently all carry an error, so accept either badge.)
+      const unsyncedBadge = page
+        .locator('tbody tr span:has-text("Čeká"), tbody tr span:has-text("Chyba")')
+        .first();
       // eslint-disable-next-line jest/no-conditional-expect
-      await expect(pendingBadge).toBeVisible();
+      await expect(unsyncedBadge).toBeVisible();
     }
   });
 
@@ -201,9 +207,7 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
   // Note: if "Show Only With Errors" checkbox element is still missing from UI, re-skip and update selector or remove test.
   test("9: Show Only With Errors checkbox", async ({ page }) => {
 
-    const errorsCheckbox = page
-      .locator('input[type="checkbox"]')
-      .filter({ hasText: "Chyby" });
+    const errorsCheckbox = page.getByLabel("Chyby");
     const tableRows = page.locator("tbody tr");
 
     // Check the checkbox

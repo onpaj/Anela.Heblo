@@ -188,7 +188,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
     if (item.isCurrent) {
       return (
         <div title="Aktuálně platné">
-          <CheckCircle className="h-4 w-4 text-green-600" />
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-emerald-400" />
         </div>
       );
     }
@@ -200,7 +200,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
     if (validFrom && validFrom > now) {
       return (
         <div title="Platné v budoucnosti">
-          <Clock className="h-4 w-4 text-blue-600" />
+          <Clock className="h-4 w-4 text-blue-600 dark:text-graphite-accent" />
         </div>
       );
     }
@@ -208,7 +208,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
     if (validTo && validTo < now) {
       return (
         <div title="Již neplatné">
-          <AlertTriangle className="h-4 w-4 text-gray-400" />
+          <AlertTriangle className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
         </div>
       );
     }
@@ -238,23 +238,23 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-graphite-border">
           <div className="flex items-center space-x-3">
-            <Calendar className="h-6 w-6 text-indigo-600" />
+            <Calendar className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">
                 Náročnost výroby
               </h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-graphite-muted">
                 {productName} (Kód: {productCode})
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted transition-colors"
           >
             <X className="h-6 w-6" />
           </button>
@@ -266,14 +266,14 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
             <div className="flex items-center justify-center h-64">
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                <span className="text-gray-500">
+                <span className="text-gray-500 dark:text-graphite-muted">
                   Načítání nastavení náročnosti...
                 </span>
               </div>
             </div>
           ) : error ? (
             <div className="flex items-center justify-center h-64">
-              <div className="flex items-center space-x-2 text-red-600">
+              <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
                 <AlertCircle className="h-5 w-5" />
                 <span>Chyba při načítání: {(error as any).message}</span>
               </div>
@@ -282,21 +282,21 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
             <>
               {/* Current difficulty summary */}
               {data?.currentSetting && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <div className="bg-green-50 dark:bg-emerald-400/15 border border-green-200 dark:border-emerald-400/30 rounded-lg p-4 mb-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-medium text-green-900 mb-1">
+                      <h3 className="text-lg font-medium text-green-900 dark:text-emerald-400 mb-1">
                         Aktuální náročnost výroby
                       </h3>
-                      <p className="text-sm text-green-700">
+                      <p className="text-sm text-green-700 dark:text-emerald-400">
                         Hodnota platná k dnešnímu dni
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="text-3xl font-bold text-green-900">
+                      <div className="text-3xl font-bold text-green-900 dark:text-emerald-400">
                         {data.currentSetting.difficultyValue}
                       </div>
-                      <div className="text-sm text-green-600">
+                      <div className="text-sm text-green-600 dark:text-emerald-400">
                         {data.currentSetting.validFrom
                           ? `od ${formatDate(data.currentSetting.validFrom)}`
                           : "odjakživa"}
@@ -311,15 +311,15 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
 
               {/* Add Form */}
               {showForm && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                <div className="bg-gray-50 dark:bg-graphite-surface-2 border border-gray-200 dark:border-graphite-border rounded-lg p-6 mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-4">
                     Nové nastavení náročnosti
                   </h3>
 
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                           Hodnota náročnosti *
                         </label>
                         <input
@@ -336,19 +336,19 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                             formErrors.difficultyValue
                               ? "border-red-300"
-                              : "border-gray-300"
+                              : "border-gray-300 dark:border-graphite-border"
                           }`}
                           required
                         />
                         {formErrors.difficultyValue && (
-                          <p className="text-sm text-red-600 mt-1">
+                          <p className="text-sm text-red-600 dark:text-red-400 mt-1">
                             Hodnota musí být celé číslo větší než 0
                           </p>
                         )}
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                           Platné od
                         </label>
                         <input
@@ -363,16 +363,16 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                             formErrors.validFrom
                               ? "border-red-300"
-                              : "border-gray-300"
+                              : "border-gray-300 dark:border-graphite-border"
                           }`}
                         />
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-graphite-muted mt-1">
                           Nepovinné - nechat prázdné pro "odjakživa"
                         </p>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
                           Platné do
                         </label>
                         <input
@@ -387,18 +387,18 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                             formErrors.validTo
                               ? "border-red-300"
-                              : "border-gray-300"
+                              : "border-gray-300 dark:border-graphite-border"
                           }`}
                         />
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-graphite-muted mt-1">
                           Nepovinné - nechat prázdné pro "do odvolání"
                         </p>
                       </div>
                     </div>
 
                     {(formErrors.validFrom || formErrors.validTo) && (
-                      <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                        <p className="text-sm text-red-600">
+                      <div className="bg-red-50 dark:bg-red-400/15 border border-red-200 dark:border-red-400/30 rounded-md p-3">
+                        <p className="text-sm text-red-600 dark:text-red-400">
                           Datum "Platné od" musí být dřívější než datum "Platné
                           do"
                         </p>
@@ -409,7 +409,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setShowForm(false)}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5"
                       >
                         Zrušit
                       </button>
@@ -431,7 +431,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
               {/* Action buttons */}
               {!showForm && (
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text">
                     Historie nastavení ({sortedSettings.length})
                   </h3>
                   <button
@@ -448,14 +448,14 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
               {!showForm && (
                 <>
                   {sortedSettings.length === 0 ? (
-                    <div className="text-center py-12 bg-gray-50 rounded-lg">
-                      <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                      <p className="text-gray-500 mb-4">
+                    <div className="text-center py-12 bg-gray-50 dark:bg-graphite-surface-2 rounded-lg">
+                      <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-graphite-faint" />
+                      <p className="text-gray-500 dark:text-graphite-muted mb-4">
                         Žádná nastavení náročnosti výroby
                       </p>
                       <button
                         onClick={handleAdd}
-                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50"
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-700 bg-white dark:bg-graphite-surface border border-indigo-300 rounded-md hover:bg-indigo-50 dark:hover:bg-graphite-accent/10"
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Vytvořit první nastavení
@@ -466,22 +466,22 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                       {sortedSettings.map((setting) => (
                         <div
                           key={setting.id}
-                          className={`bg-white border rounded-lg p-4 ${
+                          className={`bg-white dark:bg-graphite-surface border rounded-lg p-4 ${
                             setting.isCurrent
-                              ? "border-green-300 bg-green-50"
-                              : "border-gray-200 hover:shadow-sm"
+                              ? "border-green-300 dark:border-emerald-400/30 bg-green-50 dark:bg-emerald-400/15"
+                              : "border-gray-200 dark:border-graphite-border hover:shadow-sm dark:hover:shadow-soft-dark"
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
                               <div className="flex items-center space-x-2">
                                 {getStatusIcon(setting)}
-                                <div className="text-2xl font-bold text-gray-900">
+                                <div className="text-2xl font-bold text-gray-900 dark:text-graphite-text">
                                   {setting.difficultyValue}
                                 </div>
                               </div>
 
-                              <div className="text-sm text-gray-600">
+                              <div className="text-sm text-gray-600 dark:text-graphite-muted">
                                 <div>
                                   <strong>Platnost:</strong>
                                   {setting.validFrom
@@ -491,7 +491,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                                     ? ` do ${formatDate(setting.validTo)}`
                                     : " do odvolání"}
                                 </div>
-                                <div className="text-xs text-gray-500 mt-1">
+                                <div className="text-xs text-gray-500 dark:text-graphite-muted mt-1">
                                   Vytvořeno: {formatDate(setting.createdAt)}
                                   {setting.createdBy &&
                                     ` (${setting.createdBy})`}
@@ -503,7 +503,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
                               <button
                                 onClick={() => handleDelete(setting)}
                                 disabled={deleteMutation.isPending}
-                                className="p-2 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50 disabled:opacity-50"
+                                className="p-2 text-gray-400 dark:text-graphite-faint hover:text-red-600 rounded-md hover:bg-red-50 disabled:opacity-50"
                                 title="Smazat"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -521,7 +521,7 @@ const ManufactureDifficultyModal: React.FC<ManufactureDifficultyModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex justify-end p-6 border-t border-gray-200 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2">
           <button
             onClick={onClose}
             className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"

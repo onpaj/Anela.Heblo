@@ -45,9 +45,9 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  Draft: "bg-gray-100 text-gray-800",
-  InTransit: "bg-blue-100 text-blue-800",
-  Completed: "bg-green-100 text-green-800",
+  Draft: "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted",
+  InTransit: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  Completed: "bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300",
 };
 
 const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
@@ -177,23 +177,23 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-graphite-border flex-shrink-0">
           <div className="flex items-center space-x-3">
-            <Package className="h-6 w-6 text-indigo-600" />
+            <Package className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">
                 {orderData
                   ? `Objednávka ${orderData.orderNumber}`
                   : "Načítání..."}
               </h2>
-              <p className="text-sm text-gray-500">ID: {orderId}</p>
+              <p className="text-sm text-gray-500 dark:text-graphite-muted">ID: {orderId}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 dark:text-graphite-faint dark:hover:text-graphite-muted transition-colors"
           >
             <X className="h-6 w-6" />
           </button>
@@ -205,14 +205,14 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
             <div className="flex items-center justify-center h-64">
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                <div className="text-gray-500">
+                <div className="text-gray-500 dark:text-graphite-muted">
                   Načítání detailů objednávky...
                 </div>
               </div>
             </div>
           ) : orderError ? (
             <div className="flex items-center justify-center h-64">
-              <div className="flex items-center space-x-2 text-red-600">
+              <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
                 <AlertCircle className="h-5 w-5" />
                 <div>Chyba při načítání detailů: {orderError.message}</div>
               </div>
@@ -220,14 +220,14 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
           ) : orderData ? (
             <>
               {/* Tabs */}
-              <div className="border-b border-gray-200 px-6 pt-6">
+              <div className="border-b border-gray-200 dark:border-graphite-border px-6 pt-6">
                 <nav className="-mb-px flex space-x-8">
                   <button
                     onClick={() => setActiveTab("info")}
                     className={`${
                       activeTab === "info"
-                        ? "border-indigo-500 text-indigo-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        ? "border-indigo-500 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted dark:hover:text-graphite-text dark:hover:border-graphite-border"
                     } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center`}
                   >
                     <Info className="h-4 w-4 mr-2" />
@@ -237,8 +237,8 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                     onClick={() => setActiveTab("log")}
                     className={`${
                       activeTab === "log"
-                        ? "border-indigo-500 text-indigo-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        ? "border-indigo-500 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-graphite-muted dark:hover:text-graphite-text dark:hover:border-graphite-border"
                     } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center`}
                   >
                     <ScrollText className="h-4 w-4 mr-2" />
@@ -258,19 +258,19 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                         <div className="space-y-6">
                           {/* Basic Information */}
                           <div className="space-y-4">
-                            <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                              <Package className="h-5 w-5 mr-2 text-gray-500" />
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text flex items-center">
+                              <Package className="h-5 w-5 mr-2 text-gray-500 dark:text-graphite-muted" />
                               Základní informace
                             </h3>
 
-                            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                            <div className="bg-gray-50 dark:bg-graphite-surface-2 rounded-lg p-4 space-y-3">
                               <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium text-gray-600">
+                                <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted">
                                   Stav:
                                 </span>
                                 <div className="flex items-center gap-2">
                                   <span
-                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(orderData.status && statusColors[orderData.status]) || "bg-gray-100 text-gray-800"}`}
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(orderData.status && statusColors[orderData.status]) || "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted"}`}
                                   >
                                     {(orderData.status &&
                                       statusLabels[orderData.status]) ||
@@ -297,21 +297,21 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                               </div>
 
                               <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium text-gray-600 flex items-center">
+                                <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted flex items-center">
                                   <Truck className="h-4 w-4 mr-1" />
                                   Dodavatel:
                                 </span>
-                                <span className="text-sm text-gray-900">
+                                <span className="text-sm text-gray-900 dark:text-graphite-text">
                                   {orderData.supplierName}
                                 </span>
                               </div>
 
                               <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium text-gray-600 flex items-center">
+                                <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted flex items-center">
                                   <Calendar className="h-4 w-4 mr-1" />
                                   Datum objednávky:
                                 </span>
-                                <span className="text-sm text-gray-900">
+                                <span className="text-sm text-gray-900 dark:text-graphite-text">
                                   {orderData.orderDate
                                     ? formatDate(orderData.orderDate)
                                     : "-"}
@@ -319,11 +319,11 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                               </div>
 
                               <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium text-gray-600 flex items-center">
+                                <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted flex items-center">
                                   <Calendar className="h-4 w-4 mr-1" />
                                   Plánované dodání:
                                 </span>
-                                <span className="text-sm text-gray-900">
+                                <span className="text-sm text-gray-900 dark:text-graphite-text">
                                   {orderData.expectedDeliveryDate
                                     ? formatDate(orderData.expectedDeliveryDate)
                                     : "Neurčeno"}
@@ -332,11 +332,11 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
 
                               {orderData.contactVia && (
                                 <div className="flex justify-between items-center">
-                                  <span className="text-sm font-medium text-gray-600 flex items-center">
+                                  <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted flex items-center">
                                     <Phone className="h-4 w-4 mr-1" />
                                     Způsob komunikace:
                                   </span>
-                                  <span className="text-sm text-gray-900">
+                                  <span className="text-sm text-gray-900 dark:text-graphite-text">
                                     {orderData.contactVia === "Phone"
                                       ? "Telefon"
                                       : orderData.contactVia === "Email"
@@ -355,13 +355,13 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                               )}
 
                               <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium text-gray-600 flex items-center">
+                                <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted flex items-center">
                                   <Receipt className="h-4 w-4 mr-1" />
                                   Mám fakturu:
                                 </span>
                                 <div className="flex items-center gap-2">
                                   <span
-                                    className={`text-sm ${orderData.invoiceAcquired ? "text-green-600 font-medium" : "text-gray-500"}`}
+                                    className={`text-sm ${orderData.invoiceAcquired ? "text-green-600 dark:text-emerald-400 font-medium" : "text-gray-500 dark:text-graphite-muted"}`}
                                   >
                                     {orderData.invoiceAcquired ? "Ano" : "Ne"}
                                   </span>
@@ -373,7 +373,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                                     className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
                                       orderData.invoiceAcquired
                                         ? "bg-green-600"
-                                        : "bg-gray-300"
+                                        : "bg-gray-300 dark:bg-graphite-hover"
                                     } ${updateInvoiceAcquiredMutation.isPending ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                                   >
                                     <span
@@ -391,11 +391,11 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                               </div>
 
                               <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium text-gray-600 flex items-center">
+                                <span className="text-sm font-medium text-gray-600 dark:text-graphite-muted flex items-center">
                                   <DollarSign className="h-4 w-4 mr-1" />
                                   Celková částka:
                                 </span>
-                                <span className="text-lg font-semibold text-gray-900">
+                                <span className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
                                   {formatCurrency(orderData.totalAmount || 0)}
                                 </span>
                               </div>
@@ -405,24 +405,24 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
 
                         {/* Right Column - Notes Section */}
                         <div className="space-y-4">
-                          <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                            <FileText className="h-5 w-5 mr-2 text-gray-500" />
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text flex items-center">
+                            <FileText className="h-5 w-5 mr-2 text-gray-500 dark:text-graphite-muted" />
                             Poznámky
                           </h3>
 
                           <div className="space-y-4">
                             <div>
-                              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                              <h4 className="text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
                                 Poznámka od dodavatele
                               </h4>
-                              <div className="bg-gray-50 rounded-lg p-4 min-h-[80px]">
+                              <div className="bg-gray-50 dark:bg-graphite-surface-2 rounded-lg p-4 min-h-[80px]">
                                 {orderData.supplierNote ? (
-                                  <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700">
+                                  <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700 dark:text-graphite-muted">
                                     {orderData.supplierNote}
                                   </pre>
                                 ) : (
                                   <div className="flex items-center justify-center py-4">
-                                    <span className="text-gray-400 italic text-sm">
+                                    <span className="text-gray-400 dark:text-graphite-faint italic text-sm">
                                       Žádná poznámka od dodavatele
                                     </span>
                                   </div>
@@ -431,17 +431,17 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                             </div>
 
                             <div>
-                              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                              <h4 className="text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
                                 Poznámky k objednávce
                               </h4>
-                              <div className="bg-gray-50 rounded-lg p-4 min-h-[80px]">
+                              <div className="bg-gray-50 dark:bg-graphite-surface-2 rounded-lg p-4 min-h-[80px]">
                                 {orderData.notes ? (
-                                  <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700">
+                                  <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700 dark:text-graphite-muted">
                                     {orderData.notes}
                                   </pre>
                                 ) : (
                                   <div className="flex items-center justify-center py-4">
-                                    <span className="text-gray-400 italic text-sm">
+                                    <span className="text-gray-400 dark:text-graphite-faint italic text-sm">
                                       Žádné poznámky k objednávce
                                     </span>
                                   </div>
@@ -454,41 +454,41 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
 
                       {/* Order Lines Section */}
                       <div className="space-y-4 flex-1 flex flex-col min-h-0">
-                        <h3 className="text-lg font-medium text-gray-900">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text">
                           Položky objednávky
                         </h3>
 
-                        <div className="bg-white rounded-lg shadow overflow-hidden flex-1 flex flex-col min-h-0 max-h-80">
+                        <div className="bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark overflow-hidden flex-1 flex flex-col min-h-0 max-h-80">
                           <div className="overflow-auto flex-1">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50 sticky top-0">
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+                              <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0">
                                 <tr>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                                     Kód
                                   </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                                     Materiál
                                   </th>
-                                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                                     Množství
                                   </th>
-                                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                                     Jedn. cena
                                   </th>
-                                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                                     Celkem
                                   </th>
                                 </tr>
                               </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
+                              <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                                 {orderData.lines?.map((line, index) => (
-                                  <tr key={index} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-white/5">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                                       <div className="font-mono text-xs">
                                         {line.code || "-"}
                                       </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                                       <div>
                                         <div className="font-medium flex items-center gap-2">
                                           {line.materialName || line.materialId}
@@ -502,19 +502,19 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                                           )}
                                         </div>
                                         {line.notes && (
-                                          <div className="text-xs text-gray-500 mt-1">
+                                          <div className="text-xs text-gray-500 dark:text-graphite-muted mt-1">
                                             {line.notes}
                                           </div>
                                         )}
                                       </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text text-right">
                                       {line.quantity}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text text-right">
                                       {formatCurrency(line.unitPrice || 0)}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text text-right">
                                       {formatCurrency(line.lineTotal || 0)}
                                     </td>
                                   </tr>
@@ -532,16 +532,16 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                     <div className="space-y-6">
                       {/* Historie změn */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                          <History className="h-5 w-5 mr-2 text-gray-500" />
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text flex items-center">
+                          <History className="h-5 w-5 mr-2 text-gray-500 dark:text-graphite-muted" />
                           Historie změn
                         </h3>
 
-                        <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="bg-gray-50 dark:bg-graphite-surface-2 rounded-lg p-4">
                           {historyLoading ? (
                             <div className="flex items-center justify-center py-8">
-                              <Loader2 className="h-4 w-4 animate-spin text-gray-500 mr-2" />
-                              <span className="text-sm text-gray-500">
+                              <Loader2 className="h-4 w-4 animate-spin text-gray-500 dark:text-graphite-muted mr-2" />
+                              <span className="text-sm text-gray-500 dark:text-graphite-muted">
                                 Načítání historie...
                               </span>
                             </div>
@@ -550,30 +550,30 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                               {historyData.map((entry, index) => (
                                 <div
                                   key={index}
-                                  className="border-l-2 border-indigo-200 pl-4 pb-4"
+                                  className="border-l-2 border-indigo-200 dark:border-graphite-accent pl-4 pb-4"
                                 >
                                   <div className="flex items-center justify-between mb-1">
-                                    <span className="text-sm font-medium text-gray-900">
+                                    <span className="text-sm font-medium text-gray-900 dark:text-graphite-text">
                                       {entry.action}
                                     </span>
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-xs text-gray-500 dark:text-graphite-muted">
                                       {entry.changedAt
                                         ? formatDateTime(entry.changedAt)
                                         : "-"}
                                     </span>
                                   </div>
                                   {entry.oldValue && entry.newValue && (
-                                    <div className="text-xs text-gray-600 mb-1">
-                                      <span className="bg-red-100 px-1 rounded">
+                                    <div className="text-xs text-gray-600 dark:text-graphite-muted mb-1">
+                                      <span className="bg-red-100 dark:bg-red-900/30 px-1 rounded">
                                         {entry.oldValue}
                                       </span>
                                       <span className="mx-1">→</span>
-                                      <span className="bg-green-100 px-1 rounded">
+                                      <span className="bg-green-100 dark:bg-emerald-900/30 px-1 rounded">
                                         {entry.newValue}
                                       </span>
                                     </div>
                                   )}
-                                  <div className="text-xs text-gray-500 flex items-center">
+                                  <div className="text-xs text-gray-500 dark:text-graphite-muted flex items-center">
                                     <Clock className="h-3 w-3 mr-1" />
                                     {entry.changedBy}
                                   </div>
@@ -581,7 +581,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                               ))}
                             </div>
                           ) : (
-                            <div className="text-center text-gray-500 py-8">
+                            <div className="text-center text-gray-500 dark:text-graphite-muted py-8">
                               <span className="text-sm">
                                 Žádná historie změn
                               </span>
@@ -592,20 +592,20 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
 
                       {/* Metadata */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                          <User className="h-5 w-5 mr-2 text-gray-500" />
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text flex items-center">
+                          <User className="h-5 w-5 mr-2 text-gray-500 dark:text-graphite-muted" />
                           Metadata
                         </h3>
 
-                        <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+                        <div className="bg-gray-50 dark:bg-graphite-surface-2 rounded-lg p-4 space-y-2 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Vytvořil:</span>
+                            <span className="text-gray-600 dark:text-graphite-muted">Vytvořil:</span>
                             <span className="font-medium">
                               {orderData.createdBy}
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">
+                            <span className="text-gray-600 dark:text-graphite-muted">
                               Datum vytvoření:
                             </span>
                             <span className="font-medium">
@@ -617,7 +617,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                           {orderData.updatedBy && (
                             <>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">
+                                <span className="text-gray-600 dark:text-graphite-muted">
                                   Naposledy upravil:
                                 </span>
                                 <span className="font-medium">
@@ -625,7 +625,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
                                 </span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">
+                                <span className="text-gray-600 dark:text-graphite-muted">
                                   Datum úpravy:
                                 </span>
                                 <span className="font-medium">
@@ -645,7 +645,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2 flex-shrink-0">
           <button
             onClick={onClose}
             className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"

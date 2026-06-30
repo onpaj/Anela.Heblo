@@ -15,7 +15,6 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Stock;
 public class ShoptetStockClient : IEshopStockClient
 {
     private readonly HttpClient _http;
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOptions<Orders.ShoptetApiSettings> _settings;
     private readonly IOptions<ShoptetStockClientOptions> _stockClientOptions;
     private readonly ILogger<ShoptetStockClient> _logger;
@@ -27,13 +26,11 @@ public class ShoptetStockClient : IEshopStockClient
 
     public ShoptetStockClient(
         HttpClient http,
-        IHttpClientFactory httpClientFactory,
         IOptions<Orders.ShoptetApiSettings> settings,
         IOptions<ShoptetStockClientOptions> stockClientOptions,
         ILogger<ShoptetStockClient> logger)
     {
         _http = http;
-        _httpClientFactory = httpClientFactory;
         _settings = settings;
         _stockClientOptions = stockClientOptions;
         _logger = logger;
@@ -45,7 +42,7 @@ public class ShoptetStockClient : IEshopStockClient
 
         var url = _stockClientOptions.Value.Url;
         var redactedUrl = RedactToken(url);
-        var client = _httpClientFactory.CreateClient("ShoptetStockCsv");
+        var client = _http;
         var stopwatch = Stopwatch.StartNew();
 
         try

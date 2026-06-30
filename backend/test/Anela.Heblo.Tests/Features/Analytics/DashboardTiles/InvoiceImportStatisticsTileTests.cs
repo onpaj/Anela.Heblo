@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Analytics.DashboardTiles;
 using Anela.Heblo.Domain.Features.Analytics;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -18,7 +19,7 @@ public class InvoiceImportStatisticsTileTests
         _analyticsRepositoryMock = new Mock<IAnalyticsRepository>();
         _timeProviderMock = new Mock<TimeProvider>();
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(_fixedDateTime);
-        _tile = new InvoiceImportStatisticsTile(_analyticsRepositoryMock.Object, _timeProviderMock.Object);
+        _tile = new InvoiceImportStatisticsTile(_analyticsRepositoryMock.Object, _timeProviderMock.Object, NullLogger<InvoiceImportStatisticsTile>.Instance);
     }
 
     [Fact]

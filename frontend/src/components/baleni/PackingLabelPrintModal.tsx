@@ -77,11 +77,11 @@ function PackingLabelPrintModal({ order, shipment, onComplete, onCancel }: Packi
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
       data-testid="packing-label-print-modal"
     >
-      <div className="flex w-full max-w-md flex-col items-center gap-6 rounded-2xl bg-white p-10 shadow-2xl">
+      <div className="flex w-full max-w-md flex-col items-center gap-6 rounded-2xl bg-white dark:bg-graphite-surface p-10 shadow-2xl">
         {phase === 'printing' && (
           <div data-testid="print-modal-printing" className="flex flex-col items-center gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary-blue" />
-            <p className="text-lg font-medium text-neutral-slate">
+            <Loader2 className="h-10 w-10 animate-spin text-primary-blue dark:text-graphite-accent" />
+            <p className="text-lg font-medium text-neutral-slate dark:text-graphite-text">
               Připravuji štítek {currentLabel}/{totalLabels}…
             </p>
           </div>
@@ -89,7 +89,7 @@ function PackingLabelPrintModal({ order, shipment, onComplete, onCancel }: Packi
 
         {phase === 'awaitingNext' && (
           <div data-testid="print-modal-awaiting-next" className="flex flex-col items-center gap-4">
-            <p data-testid="print-modal-label-count" className="text-lg font-medium text-neutral-slate">
+            <p data-testid="print-modal-label-count" className="text-lg font-medium text-neutral-slate dark:text-graphite-text">
               Štítek {currentLabel}/{totalLabels}
             </p>
             <button
@@ -105,11 +105,11 @@ function PackingLabelPrintModal({ order, shipment, onComplete, onCancel }: Packi
 
         {phase === 'completing' && (
           <div data-testid="print-modal-completing" className="flex flex-col items-center gap-4">
-            {!completionError && <Loader2 className="h-10 w-10 animate-spin text-primary-blue" />}
-            <p className="text-lg font-medium text-neutral-slate">Dokončuji objednávku…</p>
+            {!completionError && <Loader2 className="h-10 w-10 animate-spin text-primary-blue dark:text-graphite-accent" />}
+            <p className="text-lg font-medium text-neutral-slate dark:text-graphite-text">Dokončuji objednávku…</p>
             {completionError && (
               <div className="flex flex-col items-center gap-3">
-                <p className="text-center text-error-red">{completionError}</p>
+                <p className="text-center text-error-red dark:text-red-400">{completionError}</p>
                 <button
                   type="button"
                   data-testid="retry-completion-button"
@@ -125,7 +125,7 @@ function PackingLabelPrintModal({ order, shipment, onComplete, onCancel }: Packi
 
         {phase === 'timeout' && (
           <div data-testid="print-modal-timeout" className="flex flex-col items-center gap-4">
-            <p className="text-center text-lg font-medium text-neutral-slate">
+            <p className="text-center text-lg font-medium text-neutral-slate dark:text-graphite-text">
               Štítek {currentLabel} zatím není připraven u dopravce.
             </p>
             <button
@@ -141,7 +141,7 @@ function PackingLabelPrintModal({ order, shipment, onComplete, onCancel }: Packi
 
         {phase === 'error' && (
           <div data-testid="print-modal-error" className="flex flex-col items-center gap-4">
-            <p className="text-center text-lg font-medium text-neutral-slate">
+            <p className="text-center text-lg font-medium text-neutral-slate dark:text-graphite-text">
               Nepodařilo se načíst štítek {currentLabel}.
             </p>
             <button
@@ -160,7 +160,7 @@ function PackingLabelPrintModal({ order, shipment, onComplete, onCancel }: Packi
             type="button"
             data-testid="cancel-print-modal-button"
             onClick={onCancel}
-            className="mt-2 rounded-lg px-6 py-2 text-sm text-neutral-gray hover:bg-neutral-100"
+            className="mt-2 rounded-lg px-6 py-2 text-sm text-neutral-gray dark:text-graphite-muted hover:bg-neutral-100 dark:hover:bg-graphite-surface-2"
           >
             Zrušit
           </button>

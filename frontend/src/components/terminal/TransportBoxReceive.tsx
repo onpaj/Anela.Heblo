@@ -76,7 +76,7 @@ const TransportBoxReceive: React.FC = () => {
       )}
       {!canReceive && box && (
         <div data-testid="not-receivable"
-             className="bg-error-pale border border-red-200 rounded-xl p-3 text-sm text-red-700 mb-3">
+             className="bg-error-pale dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-xl p-3 text-sm text-red-700 dark:text-red-300 mb-3">
           Tento box nelze přijmout. Pro příjem musí být ve stavu V přepravě, V rezervě nebo V karanténě.
         </div>
       )}

@@ -23,7 +23,7 @@ const DataQualityPage: React.FC = () => {
     <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
       {/* Header */}
       <div className="flex-shrink-0 flex items-start justify-between mb-4">
-        <h1 className="text-lg font-semibold text-gray-900">Kvalita dat</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Kvalita dat</h1>
         <RunDqtButton />
       </div>
 
@@ -35,9 +35,9 @@ const DataQualityPage: React.FC = () => {
       {/* Main content: runs table + detail */}
       <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
         {/* Runs table */}
-        <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
-          <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200">
-            <h2 className="text-sm font-semibold text-gray-700">Historie testů</h2>
+        <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
+          <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 dark:border-graphite-border">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-graphite-muted">Historie testů</h2>
           </div>
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             <DqtRunsTable onRunSelect={handleRunSelect} selectedRunId={selectedRunId} />
@@ -46,12 +46,12 @@ const DataQualityPage: React.FC = () => {
 
         {/* Detail panel */}
         <div
-          className={`flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0 transition-all ${
+          className={`flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0 transition-all ${
             selectedRunId ? 'lg:flex' : 'hidden lg:flex'
           }`}
         >
-          <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200">
-            <h2 className="text-sm font-semibold text-gray-700">Detail výsledků</h2>
+          <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 dark:border-graphite-border">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-graphite-muted">Detail výsledků</h2>
           </div>
           <div className="flex-1 min-h-0 overflow-auto">
             <DqtRunDetail runId={selectedRunId} />

@@ -12,13 +12,14 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos;
 using Anela.Heblo.Application.Features.Photobank.UseCases.RemovePhotoTag;
+using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag;
+using Anela.Heblo.Application.Features.Photobank.UseCases.RetagPhotos;
 using Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule;
 using Anela.Heblo.Application.Features.Photobank.Validators;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.Photobank;
-using Anela.Heblo.Persistence;
+using Anela.Heblo.Persistence.Photobank;
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,16 +42,7 @@ public static class PhotobankModule
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
         var bypassJwtValidation = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, false);
 
-        if (!useMockAuth && !bypassJwtValidation)
-        {
-            services.AddHttpClient("MicrosoftGraph", _ => { })
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-            {
-                AllowAutoRedirect = true,
-            });
-            services.AddScoped<IPhotobankGraphService, PhotobankGraphService>();
-        }
-        else
+        if (useMockAuth || bypassJwtValidation)
         {
             services.AddScoped<IPhotobankGraphService, MockPhotobankGraphService>();
         }
@@ -67,6 +59,8 @@ public static class PhotobankModule
         services.AddScoped<IValidator<BulkAddPhotoTagByIdsRequest>, BulkAddPhotoTagByIdsRequestValidator>();
         services.AddScoped<IValidator<CreateTagRequest>, CreateTagRequestValidator>();
         services.AddScoped<IValidator<DeleteTagRequest>, DeleteTagRequestValidator>();
+        services.AddScoped<IValidator<BulkAddPhotoTagRequest>, BulkAddPhotoTagRequestValidator>();
+        services.AddScoped<IValidator<RetagPhotosRequest>, RetagPhotosRequestValidator>();
 
         // Register MediatR validation behavior for photobank requests
         services.AddScoped<IPipelineBehavior<AddPhotoTagRequest, AddPhotoTagResponse>, ValidationBehavior<AddPhotoTagRequest, AddPhotoTagResponse>>();
@@ -80,6 +74,8 @@ public static class PhotobankModule
         services.AddScoped<IPipelineBehavior<BulkAddPhotoTagByIdsRequest, BulkAddPhotoTagByIdsResponse>, ValidationBehavior<BulkAddPhotoTagByIdsRequest, BulkAddPhotoTagByIdsResponse>>();
         services.AddScoped<IPipelineBehavior<CreateTagRequest, CreateTagResponse>, ValidationBehavior<CreateTagRequest, CreateTagResponse>>();
         services.AddScoped<IPipelineBehavior<DeleteTagRequest, DeleteTagResponse>, ValidationBehavior<DeleteTagRequest, DeleteTagResponse>>();
+        services.AddScoped<IPipelineBehavior<BulkAddPhotoTagRequest, BulkAddPhotoTagResponse>, ValidationBehavior<BulkAddPhotoTagRequest, BulkAddPhotoTagResponse>>();
+        services.AddScoped<IPipelineBehavior<RetagPhotosRequest, RetagPhotosResponse>, ValidationBehavior<RetagPhotosRequest, RetagPhotosResponse>>();
 
         return services;
     }

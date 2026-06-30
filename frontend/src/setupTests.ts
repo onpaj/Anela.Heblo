@@ -5,6 +5,12 @@
 import "@testing-library/jest-dom";
 import React from "react";
 
+// Mock ThemeContext so components using useTheme() work without a ThemeProvider wrapper
+jest.mock("./contexts/ThemeContext", () => ({
+  useTheme: () => ({ theme: "light" as const, toggle: jest.fn() }),
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 // Mock crypto for MSAL
 Object.defineProperty(global, "crypto", {
   value: {

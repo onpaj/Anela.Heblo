@@ -1,6 +1,8 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.Bank;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Bank.Infrastructure.Jobs;
 
@@ -18,14 +20,14 @@ public sealed class ComgateEurImportJob : BankImportJobBase
     public ComgateEurImportJob(
         IMediator mediator,
         ILoggerFactory loggerFactory,
-        IRecurringJobStatusChecker statusChecker)
-        : base(mediator, loggerFactory, statusChecker)
+        IRecurringJobStatusChecker statusChecker,
+        IBankImportStateRepository stateRepository,
+        IBankStatementImportRepository statementRepository,
+        IOptions<BankImportWatermarkOptions> options)
+        : base(mediator, loggerFactory, statusChecker, stateRepository, statementRepository, options)
     {
     }
 
-    internal override BankImportJobParameters GetParameters()
-    {
-        var yesterday = DateTime.Today.AddDays(-1);
-        return new BankImportJobParameters(BankAccountNames.ComgateEur, yesterday, yesterday);
-    }
+    protected override string AccountName => BankAccountNames.ComgateEur;
+    protected override DateTime GetTargetEndDate(DateTime today) => today.AddDays(-1);
 }

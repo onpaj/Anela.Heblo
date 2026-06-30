@@ -497,16 +497,16 @@ const BatchPlanningCalculator: React.FC = () => {
   };
 
   return (
-    <div className={`flex flex-col ${PAGE_CONTAINER_HEIGHT} bg-gray-50`}>
+    <div className={`flex flex-col ${PAGE_CONTAINER_HEIGHT} bg-gray-50 dark:bg-graphite-surface-2`}>
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4 flex-shrink-0">
+      <div className="bg-white dark:bg-graphite-surface border-b dark:border-graphite-border px-6 py-4 flex-shrink-0">
         <div className="flex items-center space-x-3">
-          <Calculator className="w-6 h-6 text-indigo-600" />
-          <h1 className="text-xl font-semibold text-gray-900">
+          <Calculator className="w-6 h-6 text-indigo-600 dark:text-graphite-accent" />
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">
             Plánovač výrobních dávek
           </h1>
         </div>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm text-gray-600 dark:text-graphite-muted mt-1">
           Optimalizace distribuce polotovaru napříč různými velikostmi produktů
         </p>
       </div>
@@ -516,9 +516,9 @@ const BatchPlanningCalculator: React.FC = () => {
         <div className="p-6">
           <div className="space-y-6">
             {/* Semiproduct Selection and Batch Settings */}
-            <div className="bg-white rounded-lg shadow-sm border p-6 relative z-50">
-              <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Package className="w-5 h-5 text-gray-500 mr-2" />
+            <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-sm dark:shadow-soft-dark border dark:border-graphite-border p-6 relative z-50">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-graphite-text mb-4 flex items-center">
+                <Package className="w-5 h-5 text-gray-500 dark:text-graphite-muted mr-2" />
                 Výběr polotovaru a nastavení
               </h2>
               
@@ -527,8 +527,8 @@ const BatchPlanningCalculator: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {/* Left: Product Selection */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Polotovar / Produkt <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
+                      Polotovar / Produkt <span className="text-red-500 dark:text-red-400">*</span>
                     </label>
                     <div className="relative z-50">
                       <CatalogAutocomplete
@@ -545,15 +545,15 @@ const BatchPlanningCalculator: React.FC = () => {
 
                   {/* Right: Sales Settings */}
                   <div className="space-y-3">
-                    <h4 className="text-xs font-medium text-gray-600 flex items-center">
-                      <Settings className="w-3 h-3 text-gray-500 mr-1" />
+                    <h4 className="text-xs font-medium text-gray-600 dark:text-graphite-muted flex items-center">
+                      <Settings className="w-3 h-3 text-gray-500 dark:text-graphite-muted mr-1" />
                       Nastavení prodejů
                     </h4>
 
                     {/* Multiplier + Period in one row */}
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
-                        <label className="text-xs text-gray-600 whitespace-nowrap">Multiplikátor:</label>
+                        <label className="text-xs text-gray-600 dark:text-graphite-muted whitespace-nowrap">Multiplikátor:</label>
                         <input
                           type="number"
                           step="0.1"
@@ -564,14 +564,14 @@ const BatchPlanningCalculator: React.FC = () => {
                             setSalesMultiplier(Number(e.target.value));
                             setNeedsRecalculation(true);
                           }}
-                          className="w-20 px-2 py-1 text-sm border border-gray-300 rounded text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           title="Sales Multiplier (1.0-9.9)"
                         />
                       </div>
                       <div className="flex items-center gap-2">
                       <label
                         htmlFor="sales-period-select"
-                        className="text-xs text-gray-600 whitespace-nowrap"
+                        className="text-xs text-gray-600 dark:text-graphite-muted whitespace-nowrap"
                       >
                         Časové období:
                       </label>
@@ -579,7 +579,7 @@ const BatchPlanningCalculator: React.FC = () => {
                         id="sales-period-select"
                         value={selectedTimePeriod}
                         onChange={(e) => handleTimePeriodChange(e.target.value as TimePeriod)}
-                        className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                        className="px-2 py-1 text-sm border border-gray-300 dark:border-graphite-border rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white dark:bg-graphite-surface-2 dark:text-graphite-text"
                         title={getTimePeriodTooltip(selectedTimePeriod)}
                       >
                         {[
@@ -601,7 +601,7 @@ const BatchPlanningCalculator: React.FC = () => {
                     {/* Custom date pickers — only visible when CustomPeriod is selected */}
                     {selectedTimePeriod === TimePeriod.CustomPeriod && (
                       <div className="flex gap-3 items-center">
-                        <label htmlFor="sales-from-date" className="text-xs text-gray-600 whitespace-nowrap">Datum od:</label>
+                        <label htmlFor="sales-from-date" className="text-xs text-gray-600 dark:text-graphite-muted whitespace-nowrap">Datum od:</label>
                         <input
                           id="sales-from-date"
                           type="date"
@@ -610,9 +610,9 @@ const BatchPlanningCalculator: React.FC = () => {
                             setFromDate(new Date(e.target.value));
                             setNeedsRecalculation(true);
                           }}
-                          className="w-44 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="w-44 px-2 py-1 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         />
-                        <label htmlFor="sales-to-date" className="text-xs text-gray-600 whitespace-nowrap">do:</label>
+                        <label htmlFor="sales-to-date" className="text-xs text-gray-600 dark:text-graphite-muted whitespace-nowrap">do:</label>
                         <input
                           id="sales-to-date"
                           type="date"
@@ -621,7 +621,7 @@ const BatchPlanningCalculator: React.FC = () => {
                             setToDate(new Date(e.target.value));
                             setNeedsRecalculation(true);
                           }}
-                          className="w-44 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="w-44 px-2 py-1 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>
                     )}
@@ -633,7 +633,7 @@ const BatchPlanningCalculator: React.FC = () => {
                   <div className="space-y-3">
                     {/* Control Mode Selection */}
                     <div className="flex items-center gap-4">
-                      <label className="text-sm font-medium text-gray-700">Režim řízení:</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-graphite-muted">Režim řízení:</label>
                       <div className="flex gap-4">
                         <label className="flex items-center gap-2">
                           <input
@@ -644,9 +644,9 @@ const BatchPlanningCalculator: React.FC = () => {
                               setControlMode(BatchPlanControlMode.MmqMultiplier);
                               setNeedsRecalculation(true);
                             }}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-graphite-border"
                           />
-                          <span className="text-sm text-gray-700">MMQ Multiplikátor</span>
+                          <span className="text-sm text-gray-700 dark:text-graphite-muted">MMQ Multiplikátor</span>
                         </label>
                         <label className="flex items-center gap-2">
                           <input
@@ -657,9 +657,9 @@ const BatchPlanningCalculator: React.FC = () => {
                               setControlMode(BatchPlanControlMode.TotalWeight);
                               setNeedsRecalculation(true);
                             }}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-graphite-border"
                           />
-                          <span className="text-sm text-gray-700">Celková hmotnost</span>
+                          <span className="text-sm text-gray-700 dark:text-graphite-muted">Celková hmotnost</span>
                         </label>
                         <label className="flex items-center gap-2">
                           <input
@@ -670,9 +670,9 @@ const BatchPlanningCalculator: React.FC = () => {
                               setControlMode(BatchPlanControlMode.TargetDaysCoverage);
                               setNeedsRecalculation(true);
                             }}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-graphite-border"
                           />
-                          <span className="text-sm text-gray-700">Cílová zásoba (dny)</span>
+                          <span className="text-sm text-gray-700 dark:text-graphite-muted">Cílová zásoba (dny)</span>
                         </label>
                       </div>
                     </div>
@@ -689,13 +689,13 @@ const BatchPlanningCalculator: React.FC = () => {
                               value={productMMQ || ""}
                               readOnly
                               placeholder={batchPlanMutation.isPending ? "MMQ..." : "MMQ"}
-                              className="w-24 px-3 py-2 text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-600 text-center"
+                              className="w-24 px-3 py-2 text-sm border border-gray-300 dark:border-graphite-border rounded-md bg-gray-50 dark:bg-graphite-surface-2 text-gray-600 dark:text-graphite-muted text-center"
                             />
                           </div>
-                          
+
                           {/* Multiplier with × symbol */}
                           <div className="flex items-center gap-2 flex-none">
-                            <span className="text-gray-400 text-lg">×</span>
+                            <span className="text-gray-400 dark:text-graphite-faint text-lg">×</span>
                             <input
                               type="number"
                               step="0.5"
@@ -706,19 +706,19 @@ const BatchPlanningCalculator: React.FC = () => {
                                 setNeedsRecalculation(true);
                               }}
                               placeholder="Multiplikátor"
-                              className="w-24 px-3 py-2 text-sm border border-indigo-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                              className="w-24 px-3 py-2 text-sm border border-indigo-300 dark:border-graphite-border bg-white dark:bg-graphite-surface-2 text-gray-900 dark:text-graphite-text rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
                             />
                           </div>
                           
                           {/* Result */}
                           <div className="flex items-center gap-2 flex-none">
-                            <span className="text-gray-400 text-lg">=</span>
+                            <span className="text-gray-400 dark:text-graphite-faint text-lg">=</span>
                             <input
                               type="number"
                               value={productMMQ ? (productMMQ * mmqMultiplier).toFixed(0) : ""}
                               readOnly
                               placeholder="Výsledek"
-                              className="w-28 px-3 py-2 text-sm border border-indigo-300 bg-indigo-50 text-indigo-800 rounded-md text-center font-medium"
+                              className="w-28 px-3 py-2 text-sm border border-indigo-300 dark:border-graphite-accent/40 bg-indigo-50 dark:bg-graphite-accent/10 text-indigo-800 dark:text-graphite-accent rounded-md text-center font-medium"
                             />
                           </div>
                         </>
@@ -727,7 +727,7 @@ const BatchPlanningCalculator: React.FC = () => {
                       {/* Total Weight Mode */}
                       {controlMode === BatchPlanControlMode.TotalWeight && (
                         <div className="flex items-center gap-2">
-                          <label className="text-sm text-gray-700">Celková hmotnost:</label>
+                          <label className="text-sm text-gray-700 dark:text-graphite-muted">Celková hmotnost:</label>
                           <input
                             type="number"
                             min="0"
@@ -737,16 +737,16 @@ const BatchPlanningCalculator: React.FC = () => {
                               setNeedsRecalculation(true);
                             }}
                             placeholder="Celková hmotnost"
-                            className="w-32 px-3 py-2 text-sm border border-indigo-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                            className="w-32 px-3 py-2 text-sm border border-indigo-300 dark:border-graphite-border bg-white dark:bg-graphite-surface-2 text-gray-900 dark:text-graphite-text rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
                           />
-                          <span className="text-sm text-gray-600">ml/g</span>
+                          <span className="text-sm text-gray-600 dark:text-graphite-muted">ml/g</span>
                         </div>
                       )}
 
                       {/* Target Days Coverage Mode */}
                       {controlMode === BatchPlanControlMode.TargetDaysCoverage && (
                         <div className="flex items-center gap-2">
-                          <label className="text-sm text-gray-700">Cílová zásoba:</label>
+                          <label className="text-sm text-gray-700 dark:text-graphite-muted">Cílová zásoba:</label>
                           <input
                             type="number"
                             min="1"
@@ -756,9 +756,9 @@ const BatchPlanningCalculator: React.FC = () => {
                               setNeedsRecalculation(true);
                             }}
                             placeholder="Počet dní"
-                            className="w-20 px-3 py-2 text-sm border border-indigo-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                            className="w-20 px-3 py-2 text-sm border border-indigo-300 dark:border-graphite-border bg-white dark:bg-graphite-surface-2 text-gray-900 dark:text-graphite-text rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
                           />
-                          <span className="text-sm text-gray-600">dní</span>
+                          <span className="text-sm text-gray-600 dark:text-graphite-muted">dní</span>
                         </div>
                       )}
 
@@ -787,15 +787,15 @@ const BatchPlanningCalculator: React.FC = () => {
 
             {/* Product Grid - Only show if semiproduct is selected */}
             {selectedSemiproduct && (
-                <div className="bg-white rounded-lg shadow-sm border">
-                  <div className="px-6 py-4 border-b">
+                <div className="bg-white dark:bg-graphite-surface rounded-lg shadow-sm dark:shadow-soft-dark border dark:border-graphite-border">
+                  <div className="px-6 py-4 border-b dark:border-graphite-border">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                          <Package className="w-5 h-5 text-green-500 mr-2" />
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text flex items-center">
+                          <Package className="w-5 h-5 text-green-500 dark:text-emerald-400 mr-2" />
                           {response?.manufactureType === ManufactureType.SinglePhase ? 'Produkt' : 'Velikosti produktů'}
                         </h3>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-gray-600 dark:text-graphite-muted mt-1">
                           {response?.manufactureType === ManufactureType.SinglePhase 
                             ? `Jednofázová výroba produktu ${selectedSemiproduct.productName}`
                             : `Produkty vyráběné z polotovaru ${selectedSemiproduct.productName}`
@@ -836,23 +836,23 @@ const BatchPlanningCalculator: React.FC = () => {
                   </div>
                   
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+                      <thead className="bg-gray-50 dark:bg-graphite-surface-2">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kód produktu</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Název produktu</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hmotnost</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sklad eshop celkem</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Denní prodeje</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zásoba (dny)</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Množství / Fixed</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Budoucí zásoba (dny)</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Kód produktu</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Název produktu</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Hmotnost</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Sklad eshop celkem</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Denní prodeje</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Zásoba (dny)</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Množství / Fixed</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Budoucí zásoba (dny)</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                         {batchPlanMutation.isPending && selectedSemiproduct ? (
                           <tr>
-                            <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                            <td colSpan={9} className="px-4 py-8 text-center text-gray-500 dark:text-graphite-muted">
                               <div className="flex items-center justify-center">
                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
                                 <span className="ml-2">Načítání dat...</span>
@@ -861,37 +861,37 @@ const BatchPlanningCalculator: React.FC = () => {
                           </tr>
                         ) : displayProductSizes.length === 0 && selectedSemiproduct ? (
                           <tr>
-                            <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                            <td colSpan={9} className="px-4 py-8 text-center text-gray-500 dark:text-graphite-muted">
                               Žádné produkty nenalezeny
                             </td>
                           </tr>
                         ) : (
                           displayProductSizes.map((product) => (
-                            <tr key={product.productCode} className={`hover:bg-gray-50 ${!product.enabled ? 'bg-gray-100 text-gray-500' : ''}`}>
-                              <td className="px-4 py-3 text-sm font-mono text-gray-900">
+                            <tr key={product.productCode} className={`hover:bg-gray-50 dark:hover:bg-white/5 ${!product.enabled ? 'bg-gray-100 dark:bg-graphite-surface-2 text-gray-500 dark:text-graphite-muted' : ''}`}>
+                              <td className="px-4 py-3 text-sm font-mono text-gray-900 dark:text-graphite-text">
                                 {product.productCode}
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">
                                 {product.productName}
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">
                                 {product.netWeight.toFixed(0)} g
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">
                                 {product.stockEshopTotal.toFixed(0)} ks
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">
                                 {product.dailySales.toFixed(2)} ks
                               </td>
                               <td className="px-4 py-3">
                                 <span className={`text-sm px-2 py-1 rounded-full ${
                                   product.currentCoverage > 2000
-                                    ? 'bg-gray-100 text-gray-600'
-                                    : product.currentCoverage < 7 
-                                      ? 'bg-red-100 text-red-800' 
-                                      : product.currentCoverage < 14 
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : 'bg-green-100 text-green-800'
+                                    ? 'bg-gray-100 dark:bg-graphite-surface-2 text-gray-600 dark:text-graphite-muted'
+                                    : product.currentCoverage < 7
+                                      ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                                      : product.currentCoverage < 14
+                                        ? 'bg-yellow-100 dark:bg-amber-900/30 text-yellow-800 dark:text-amber-300'
+                                        : 'bg-green-100 dark:bg-emerald-900/30 text-green-800 dark:text-emerald-300'
                                 }`}>
                                   {product.currentCoverage > 2000 ? 'NA' : product.currentCoverage.toFixed(1)}
                                 </span>
@@ -905,19 +905,19 @@ const BatchPlanningCalculator: React.FC = () => {
                                     onChange={(e) => handleProductQuantityChange(product.productCode || '', parseInt(e.target.value) || 0)}
                                     readOnly={!(productConstraints.get(product.productCode || '')?.isFixed ?? false)}
                                     className={`w-16 px-2 py-1 text-sm border rounded focus:ring-indigo-500 focus:border-indigo-500 ${
-                                      !(productConstraints.get(product.productCode || '')?.isFixed ?? false) 
-                                        ? 'border-gray-300 bg-gray-50 text-gray-600 cursor-not-allowed' 
+                                      !(productConstraints.get(product.productCode || '')?.isFixed ?? false)
+                                        ? 'border-gray-300 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2 text-gray-600 dark:text-graphite-muted cursor-not-allowed'
                                         : response?.success === false && (productConstraints.get(product.productCode || '')?.isFixed ?? false)
-                                        ? 'border-red-300 bg-red-50 text-red-900' // Red styling for fixed products when there's an error
-                                        : 'border-gray-300 bg-white text-gray-900'
+                                        ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/30 text-red-900 dark:text-red-300' // Red styling for fixed products when there's an error
+                                        : 'border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface-2 text-gray-900 dark:text-graphite-text'
                                     }`}
                                   />
-                                  <span className="text-sm text-gray-500">ks</span>
+                                  <span className="text-sm text-gray-500 dark:text-graphite-muted">ks</span>
                                   <input
                                     type="checkbox"
                                     checked={productConstraints.get(product.productCode || '')?.isFixed ?? false}
                                     onChange={(e) => handleProductFixedChange(product.productCode || '', e.target.checked, product.recommendedQuantity ?? 0)}
-                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-graphite-border rounded"
                                     title="Fixovat množství"
                                   />
                                 </div>
@@ -925,12 +925,12 @@ const BatchPlanningCalculator: React.FC = () => {
                               <td className="px-4 py-3">
                                 <span className={`text-sm px-2 py-1 rounded-full ${
                                   product.futureCoverage > 2000
-                                    ? 'bg-gray-100 text-gray-600'
-                                    : product.futureCoverage < 7 
-                                      ? 'bg-red-100 text-red-800' 
-                                      : product.futureCoverage < 14 
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : 'bg-green-100 text-green-800'
+                                    ? 'bg-gray-100 dark:bg-graphite-surface-2 text-gray-600 dark:text-graphite-muted'
+                                    : product.futureCoverage < 7
+                                      ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                                      : product.futureCoverage < 14
+                                        ? 'bg-yellow-100 dark:bg-amber-900/30 text-yellow-800 dark:text-amber-300'
+                                        : 'bg-green-100 dark:bg-emerald-900/30 text-green-800 dark:text-emerald-300'
                                 }`}>
                                   {product.futureCoverage > 2000 ? 'NA' : product.futureCoverage.toFixed(1)}
                                 </span>
@@ -940,17 +940,17 @@ const BatchPlanningCalculator: React.FC = () => {
                         )}
                         {/* Direct Semiproduct Amount row (MultiPhase only) */}
                         {response?.manufactureType !== ManufactureType.SinglePhase && response?.manufactureType !== undefined && (
-                          <tr className="bg-amber-50 border-t-2 border-amber-200">
-                            <td className="px-4 py-3 text-sm font-mono text-amber-800">
+                          <tr className="bg-amber-50 dark:bg-amber-900/20 border-t-2 border-amber-200 dark:border-amber-700">
+                            <td className="px-4 py-3 text-sm font-mono text-amber-800 dark:text-amber-300">
                               {response.semiproduct?.productCode}
                             </td>
-                            <td className="px-4 py-3 text-sm font-medium text-amber-800">
+                            <td className="px-4 py-3 text-sm font-medium text-amber-800 dark:text-amber-300">
                               Přímý výstup
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-400">—</td>
-                            <td className="px-4 py-3 text-sm text-gray-400">—</td>
-                            <td className="px-4 py-3 text-sm text-gray-400">—</td>
-                            <td className="px-4 py-3 text-sm text-gray-400">—</td>
+                            <td className="px-4 py-3 text-sm text-gray-400 dark:text-graphite-faint">—</td>
+                            <td className="px-4 py-3 text-sm text-gray-400 dark:text-graphite-faint">—</td>
+                            <td className="px-4 py-3 text-sm text-gray-400 dark:text-graphite-faint">—</td>
+                            <td className="px-4 py-3 text-sm text-gray-400 dark:text-graphite-faint">—</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center space-x-2">
                                 <input
@@ -962,12 +962,12 @@ const BatchPlanningCalculator: React.FC = () => {
                                     setDirectSemiproductAmount(Number(e.target.value));
                                     setNeedsRecalculation(true);
                                   }}
-                                  className="w-20 px-2 py-1 text-sm border border-amber-300 bg-white text-amber-900 rounded focus:ring-amber-500 focus:border-amber-500 text-center"
+                                  className="w-20 px-2 py-1 text-sm border border-amber-300 dark:border-amber-700 bg-white dark:bg-graphite-surface-2 text-amber-900 dark:text-amber-300 rounded focus:ring-amber-500 focus:border-amber-500 text-center"
                                 />
-                                <span className="text-sm text-amber-700">g</span>
+                                <span className="text-sm text-amber-700 dark:text-amber-400">g</span>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-400">—</td>
+                            <td className="px-4 py-3 text-sm text-gray-400 dark:text-graphite-faint">—</td>
                           </tr>
                         )}
                       </tbody>

@@ -4,9 +4,9 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Services;
-using Anela.Heblo.Domain.Features.Manufacture;
 using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -171,9 +171,9 @@ public class GetCatalogDetailHandlerFullHistoryTests
             }
         };
 
-        catalogItem.ManufactureHistory = new List<ManufactureHistoryRecord>
+        catalogItem.ManufactureHistory = new List<CatalogManufactureRecord>
         {
-            new ManufactureHistoryRecord
+            new CatalogManufactureRecord
             {
                 Date = new DateTime(2019, 12, 31),
                 Amount = 5,
@@ -182,7 +182,7 @@ public class GetCatalogDetailHandlerFullHistoryTests
                 ProductCode = "TEST002",
                 DocumentNumber = "MFG-PRE-FLOOR-001"
             },
-            new ManufactureHistoryRecord
+            new CatalogManufactureRecord
             {
                 Date = new DateTime(2020, 1, 1),
                 Amount = 7,

@@ -27,7 +27,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   return (
     <div className="fixed inset-0 z-40 flex flex-col justify-end" role="dialog" aria-modal="true" aria-label={ariaLabel} data-testid={testId}>
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-white rounded-t-2xl max-w-md mx-auto w-full p-4 shadow-hover">
+      <div className="relative bg-white dark:bg-graphite-surface rounded-t-2xl max-w-md mx-auto w-full p-4 shadow-hover dark:shadow-soft-dark">
         {children}
       </div>
     </div>

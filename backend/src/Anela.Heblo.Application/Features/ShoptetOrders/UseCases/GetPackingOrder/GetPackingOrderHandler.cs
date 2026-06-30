@@ -44,8 +44,6 @@ public class GetPackingOrderHandler : IRequestHandler<GetPackingOrderRequest, Ge
                 Eligibility = new PackingEligibility
                 {
                     IsEligible = isEligible,
-                    WarningTitle = isEligible ? null : "Objednávka není ve stavu „Balí se”",
-                    WarningBody = isEligible ? null : "Tuto objednávku nezpracovávejte, dokud nebude ve správném stavu.",
                 },
                 CustomerNote = order.CustomerNote,
                 EshopNote = order.EshopNote,

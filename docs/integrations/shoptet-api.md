@@ -98,7 +98,7 @@ Statuses are store-specific (configured in Shoptet admin). Retrievable via `GET 
 
 **IMPORTANT — numeric fields must be JSON strings.** `vatRate`, `itemPriceWithVat`, and `amount` must be sent as strings (e.g. `"21"`, `"1.00"`, `"1"`), not JSON numbers. Sending them as numbers returns 422. The correct field name for quantity is `amount` (not `quantity`).
 
-**`product-set` in GET order response:** When an order contains a set product, Shoptet returns the set header as a `product-set` item in `items[]` (with its own SKU, e.g. `SA009`). The individual components are **not** in `items[]` — they are in the separate `completion[]` array as `product-set-item` entries, linked to the parent via `parentProductSetItemId` matching the parent's `itemId`. To build an expedition/picking list for sets, ignore `product-set` in `items[]` and instead expand it using the `product-set-item` entries from `completion[]`, multiplying component quantities by the set quantity.
+**`product-set` in GET order response:** When an order contains a set product, Shoptet returns the set header as a `product-set` item in `items[]` (with its own SKU, e.g. `SA009`). The individual components are **not** in `items[]` — they are in the separate `completion[]` array as `product-set-item` entries, linked to the parent via `parentProductSetItemId` matching the parent's `itemId`. To build an expedition/picking list for sets, ignore `product-set` in `items[]` and instead expand it using the `product-set-item` entries from `completion[]`. Each `product-set-item` `amount` is **already the order total** for that component (component-per-set × set count) — use it **as-is**, do **not** multiply by the set quantity. (Corrected after order `126014786` printed doubled set-component quantities: 2× set `SA010` showed 4 of each component instead of 2.)
 
 
 ### 3.4 Shipping Methods
@@ -188,6 +188,8 @@ Optional `include` sections: `notes`, `images`, `shippingDetails`, `stockLocatio
 **Fields in list response:** `code`, `guid`, `creationTime`, `changeTime`, `company`, `fullName`, `email`, `phone`, `remark`, `cashDeskOrder`, `customerGuid`, `paid`, `status`, `source`, `price`, `paymentMethod`, `shipping`, `adminUrl`, `salesChannelGuid`. **`externalCode` is NOT included.** Use `GET /api/orders/{code}` (single detail) to get `externalCode`.
 
 **`shipping` object on `GET /api/orders/{code}`** — the single-order detail base response (no `include` needed) returns a `shipping` object with the same shape as the list endpoint, exposing `shipping.guid` and `shipping.name`. The Balení packing flow (`GET /api/orders/{code}?include=stockLocation,notes`) relies on these two fields to resolve the order's shipping method and derive carrier cooling.
+
+**`status` object on `GET /api/orders/{code}`** — `status` (`{ "id": int, "name": string }`) is a **base field**, not an `include` section (there is no `status` include — see the include list above). It is present on every order response, including the `?include=stockLocation,notes` expedition/packing response. Confirmed live 2026-06-25 on order `126000040` (returned `status.id`). The Balení packing flow reads the order status from this single response — it does **not** need a second `GET /api/orders/{code}` round-trip.
 
 ### 3.6 PATCH /api/orders/{code}/notes — Update Remarks (operationId: updateRemarksForOrder)
 

@@ -61,13 +61,13 @@ const TagsTab: React.FC = () => {
   const sortedTags = [...tags].sort((a, b) => a.name.localeCompare(b.name));
 
   if (isLoading) {
-    return <div className="text-sm text-gray-500">Načítání...</div>;
+    return <div className="text-sm text-gray-500 dark:text-graphite-muted">Načítání...</div>;
   }
 
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-3">
-        <label htmlFor="tag-name" className="block text-sm font-semibold text-gray-700">
+        <label htmlFor="tag-name" className="block text-sm font-semibold text-gray-700 dark:text-graphite-muted">
           Přidat štítek
         </label>
         <div className="flex gap-3">
@@ -77,7 +77,7 @@ const TagsTab: React.FC = () => {
             value={tagName}
             onChange={(e) => setTagName(e.target.value)}
             placeholder="Název štítku"
-            className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+            className="flex-1 px-2 py-1.5 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
           />
           <button
             type="submit"
@@ -88,29 +88,29 @@ const TagsTab: React.FC = () => {
           </button>
         </div>
         {submitError && (
-          <p className="text-red-600 text-sm mt-2">{submitError}</p>
+          <p className="text-red-600 dark:text-red-400 text-sm mt-2">{submitError}</p>
         )}
         {alreadyExisted && (
-          <p className="text-sm text-gray-500 mt-2">Štítek již existuje</p>
+          <p className="text-sm text-gray-500 dark:text-graphite-muted mt-2">Štítek již existuje</p>
         )}
       </form>
 
-      <div className="border-t border-gray-200 pt-4">
+      <div className="border-t border-gray-200 dark:border-graphite-border pt-4">
         {sortedTags.length === 0 ? (
-          <p className="text-sm text-gray-500">Žádné štítky nejsou vytvořeny.</p>
+          <p className="text-sm text-gray-500 dark:text-graphite-muted">Žádné štítky nejsou vytvořeny.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-gray-100 dark:divide-graphite-border">
             {sortedTags.map((tag) => (
               <li key={tag.id} className="flex items-center justify-between py-2">
-                <span className="text-sm text-gray-800">{tag.name}</span>
+                <span className="text-sm text-gray-800 dark:text-graphite-muted">{tag.name}</span>
                 <div className="flex items-center gap-3">
-                  <span className="px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                  <span className="px-1.5 py-0.5 rounded text-xs bg-gray-100 dark:bg-graphite-surface-2 text-gray-600 dark:text-graphite-muted">
                     {tag.count} fotek
                   </span>
                   <button
                     onClick={() => handleDeleteClick(tag)}
                     disabled={deletingId === tag.id}
-                    className="p-1 text-gray-400 hover:text-red-500 rounded disabled:opacity-50"
+                    className="p-1 text-gray-400 dark:text-graphite-faint hover:text-red-500 rounded disabled:opacity-50"
                     aria-label={`Smazat štítek ${tag.name}`}
                   >
                     <Trash2 className="w-4 h-4" />

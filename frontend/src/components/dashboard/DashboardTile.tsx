@@ -56,7 +56,7 @@ const DashboardTile: React.FC<DashboardTileProps> = ({
       ref={setNodeRef}
       style={style}
       className={`
-        bg-white rounded-lg shadow-sm border border-gray-200
+        bg-white dark:bg-graphite-surface rounded-lg shadow-sm dark:shadow-soft-dark border border-gray-200 dark:border-graphite-border
         hover:shadow-md transition-shadow duration-200
         flex flex-col
         ${getSizeClasses()}

@@ -31,7 +31,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, agentNames }) =>
       <div className="flex justify-center my-2">
         <span
           data-testid="system-event"
-          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 dark:bg-graphite-surface-2 text-slate-600 dark:text-graphite-muted ring-1 ring-slate-200 dark:ring-graphite-border"
         >
           {message.content ?? ""}
         </span>
@@ -42,7 +42,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, agentNames }) =>
   if (isBot) {
     return (
       <div className="flex justify-center my-1">
-        <span className="text-xs text-gray-400 italic">{message.content ?? ""}</span>
+        <span className="text-xs text-gray-400 dark:text-graphite-faint italic">{message.content ?? ""}</span>
       </div>
     );
   }
@@ -57,18 +57,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, agentNames }) =>
       <div
         className={`max-w-[70%] rounded-2xl px-4 py-2 ${
           isVisitor
-            ? "bg-gray-100 text-gray-900 rounded-tl-sm"
-            : "bg-blue-500 text-white rounded-tr-sm"
+            ? "bg-gray-100 dark:bg-graphite-surface-2 text-gray-900 dark:text-graphite-text rounded-tl-sm"
+            : "bg-blue-500 dark:bg-blue-900/40 text-white dark:text-blue-50 rounded-tr-sm"
         }`}
       >
         <p className="text-sm whitespace-pre-wrap break-words">{message.content ?? ""}</p>
-        <div className={`flex items-center gap-1.5 text-xs mt-1 ${isVisitor ? "text-gray-400 justify-end" : "text-blue-200 justify-end"}`}>
+        <div className={`flex items-center gap-1.5 text-xs mt-1 ${isVisitor ? "text-gray-400 dark:text-graphite-faint justify-end" : "text-blue-200 justify-end"}`}>
           <span>{formatTime(message.createdAt)}</span>
           {!isVisitor && <MessageDeliveryIcon status={message.deliveryStatus} />}
         </div>
       </div>
       {!isVisitor && message.isFirstReply && typeof message.responseTime === "number" && (
-        <span className="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-emerald-50 text-emerald-700">
+        <span className="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
           {formatResponseTime(message.responseTime)}
         </span>
       )}

@@ -29,8 +29,8 @@ export function ZasilkyTable({
     sortBy === col ? (sortDescending ? " ↓" : " ↑") : "";
 
   return (
-    <table className="min-w-full text-base">
-      <thead className="bg-slate-100 sticky top-0">
+    <table className="min-w-full text-base dark:text-graphite-text">
+      <thead className="bg-slate-100 dark:bg-graphite-surface-2 sticky top-0">
         <tr>
           <th className="px-4 py-3 text-left cursor-pointer" onClick={() => onSortChange("OrderCode")}>
             Objednávka{indicator("OrderCode")}
@@ -54,7 +54,7 @@ export function ZasilkyTable({
       </thead>
       <tbody>
         {items.map((p) => (
-          <tr key={p.id} className="border-t hover:bg-slate-50">
+          <tr key={p.id} className="border-t dark:border-graphite-border hover:bg-slate-50 dark:hover:bg-white/5">
             <td className="px-4 py-3 font-mono">{p.orderCode}</td>
             <td className="px-4 py-3">{p.customerName}</td>
             <td className="px-4 py-3">{p.trackingNumber ?? p.packageNumber}</td>
@@ -84,7 +84,7 @@ export function ZasilkyTable({
         ))}
         {items.length === 0 && (
           <tr>
-            <td className="px-4 py-8 text-center text-slate-500" colSpan={8}>
+            <td className="px-4 py-8 text-center text-slate-500 dark:text-graphite-muted" colSpan={8}>
               Žádné zásilky.
             </td>
           </tr>

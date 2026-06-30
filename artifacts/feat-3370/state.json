@@ -1,0 +1,70 @@
+{
+  "feature_id": "feat-3370",
+  "issue_number": 3370,
+  "created_at": "2026-06-26T09:15:29.609167Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-26T09:17:41.966279Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-26T09:20:46.350448Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-26T09:20:58.551798Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-26T09:24:14.554826Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-26T10:05:10.673889Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-06-26T10:05:18.573902Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "create-authorization-contract",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-26T09:28:05.028559Z"
+    },
+    {
+      "name": "create-usermanagement-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-26T09:30:59.605275Z"
+    },
+    {
+      "name": "register-adapter-in-di",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-26T09:33:19.910267Z"
+    },
+    {
+      "name": "update-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-26T09:35:17.162630Z"
+    },
+    {
+      "name": "update-handler-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-26T09:47:50.196946Z"
+    },
+    {
+      "name": "verify",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-26T10:05:10.479883Z"
+    }
+  ]
+}

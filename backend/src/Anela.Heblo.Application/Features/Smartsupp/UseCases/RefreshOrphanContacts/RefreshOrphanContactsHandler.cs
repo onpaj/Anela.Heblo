@@ -70,7 +70,7 @@ public class RefreshOrphanContactsHandler
                 _logger.LogError(ex,
                     "smartsupp: orphan-contacts backfill failed for conversation {ConversationId}",
                     conversationId);
-                _repository.DiscardChanges();
+                _db.ChangeTracker.Clear();
             }
         }
 

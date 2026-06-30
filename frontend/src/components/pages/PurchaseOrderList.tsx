@@ -31,9 +31,9 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  Draft: "bg-gray-100 text-gray-800",
-  InTransit: "bg-blue-100 text-blue-800",
-  Completed: "bg-green-100 text-green-800",
+  Draft: "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-text",
+  InTransit: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  Completed: "bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300",
 };
 
 const PurchaseOrderList: React.FC = () => {
@@ -221,17 +221,17 @@ const PurchaseOrderList: React.FC = () => {
     return (
       <th
         scope="col"
-        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 select-none"
         onClick={() => handleSort(column)}
       >
         <div className="flex items-center space-x-1">
           <span>{children}</span>
           <div className="flex flex-col">
             <ChevronUp
-              className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
+              className={`h-3 w-3 ${isAscending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
             />
             <ChevronDown
-              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
+              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600 dark:text-graphite-accent" : "text-gray-300 dark:text-graphite-faint"}`}
             />
           </div>
         </div>
@@ -256,7 +256,7 @@ const PurchaseOrderList: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-          <div className="text-gray-500">Načítání objednávek...</div>
+          <div className="text-gray-500 dark:text-graphite-muted">Načítání objednávek...</div>
         </div>
       </div>
     );
@@ -265,7 +265,7 @@ const PurchaseOrderList: React.FC = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-2 text-red-600">
+        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
           <AlertCircle className="h-5 w-5" />
           <div>Chyba při načítání objednávek: {error.message}</div>
         </div>
@@ -280,7 +280,7 @@ const PurchaseOrderList: React.FC = () => {
     >
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-gray-900">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
           Nákupní objednávky
         </h1>
         <button
@@ -293,26 +293,26 @@ const PurchaseOrderList: React.FC = () => {
       </div>
 
       {/* Filters - Fixed */}
-      <div className="flex-shrink-0 bg-white shadow rounded-lg p-4 mb-4">
+      <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="flex items-center">
-              <Filter className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm font-medium text-gray-900">Filtry:</span>
+              <Filter className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+              <span className="text-sm font-medium text-gray-900 dark:text-graphite-text">Filtry:</span>
             </div>
 
             {/* Search term */}
             <div className="flex-1 max-w-xs">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                 </div>
                 <input
                   type="text"
                   value={searchTermInput}
                   onChange={(e) => setSearchTermInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
                   placeholder="Hledat objednávky..."
                 />
               </div>
@@ -323,7 +323,7 @@ const PurchaseOrderList: React.FC = () => {
               <select
                 value={statusInput}
                 onChange={(e) => setStatusInput(e.target.value)}
-                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
                 <option value="ActiveOnly">Jen aktivní</option>
                 <option value="">Všechny stavy</option>
@@ -336,23 +336,23 @@ const PurchaseOrderList: React.FC = () => {
             {/* Date range */}
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                 <input
                   type="date"
                   value={fromDateInput}
                   onChange={(e) => setFromDateInput(e.target.value)}
-                  className="pl-10 pr-3 py-2 text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  className="pl-10 pr-3 py-2 text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="Od"
                 />
               </div>
-              <span className="text-gray-500">-</span>
+              <span className="text-gray-500 dark:text-graphite-muted">-</span>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-graphite-faint" />
                 <input
                   type="date"
                   value={toDateInput}
                   onChange={(e) => setToDateInput(e.target.value)}
-                  className="pl-10 pr-3 py-2 text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  className="pl-10 pr-3 py-2 text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="Do"
                 />
               </div>
@@ -377,17 +377,17 @@ const PurchaseOrderList: React.FC = () => {
       </div>
 
       {/* Data Grid - Scrollable */}
-      <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
         <div className="flex-1 overflow-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0 z-10">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
+            <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
               <tr>
                 <SortableHeader column="OrderNumber">
                   Číslo objednávky
                 </SortableHeader>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
                 >
                   Dodavatel
                 </th>
@@ -400,7 +400,7 @@ const PurchaseOrderList: React.FC = () => {
                 <SortableHeader column="Status">Stav</SortableHeader>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
                 >
                   Faktura
                 </th>
@@ -409,58 +409,58 @@ const PurchaseOrderList: React.FC = () => {
                 </SortableHeader>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
                 >
                   Položky
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
               {orders.map((order) => (
                 <tr
                   key={order.id}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                  className="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors duration-150"
                   onClick={() => order.id && handleOrderClick(order.id)}
                   title="Klikněte pro zobrazení detailu"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
                     {order.orderNumber}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                     {order.supplierName}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
                     {formatDate(order.orderDate)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
                     {order.expectedDeliveryDate
                       ? formatDate(order.expectedDeliveryDate)
                       : "-"}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(order.status && statusColors[order.status]) || "bg-gray-100 text-gray-800"}`}
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(order.status && statusColors[order.status]) || "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-text"}`}
                     >
                       {(order.status && statusLabels[order.status]) ||
                         order.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
                     <div className="flex items-center justify-center">
                       {order.invoiceAcquired ? (
-                        <div className="flex items-center text-green-600">
+                        <div className="flex items-center text-green-600 dark:text-emerald-400">
                           <Check className="h-4 w-4 mr-1" />
                           <span className="text-xs font-medium">Ano</span>
                         </div>
                       ) : (
-                        <span className="text-xs text-gray-400">Ne</span>
+                        <span className="text-xs text-gray-400 dark:text-graphite-faint">Ne</span>
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text font-medium">
                     {formatCurrency(order.totalAmount || 0)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted text-center">
                     {order.lineCount}
                   </td>
                 </tr>
@@ -470,7 +470,7 @@ const PurchaseOrderList: React.FC = () => {
 
           {orders.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-gray-500">Žádné objednávky nebyly nalezeny.</p>
+              <p className="text-gray-500 dark:text-graphite-muted">Žádné objednávky nebyly nalezeny.</p>
             </div>
           )}
         </div>
@@ -478,43 +478,43 @@ const PurchaseOrderList: React.FC = () => {
 
       {/* Pagination - Compact */}
       {totalCount > 0 && (
-        <div className="flex-shrink-0 bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
+        <div className="flex-shrink-0 bg-white dark:bg-graphite-surface px-3 py-2 flex items-center justify-between border-t border-gray-200 dark:border-graphite-border text-xs">
           <div className="flex-1 flex justify-between sm:hidden">
             <button
               onClick={() => handlePageChange(pageNumber - 1)}
               disabled={pageNumber <= 1}
-              className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Předchozí
             </button>
             <button
               onClick={() => handlePageChange(pageNumber + 1)}
               disabled={pageNumber >= totalPages}
-              className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border text-xs font-medium rounded text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Další
             </button>
           </div>
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="flex items-center space-x-3">
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-600 dark:text-graphite-muted">
                 {Math.min((pageNumber - 1) * pageSize + 1, totalCount)}-
                 {Math.min(pageNumber * pageSize, totalCount)} z {totalCount}
                 {searchTermFilter ||
                 (statusFilter && statusFilter !== "ActiveOnly") ||
                 fromDateFilter ||
                 toDateFilter ? (
-                  <span className="text-gray-500"> (filtrováno)</span>
+                  <span className="text-gray-500 dark:text-graphite-muted"> (filtrováno)</span>
                 ) : (
                   ""
                 )}
               </p>
               <div className="flex items-center space-x-1">
-                <span className="text-xs text-gray-600">Zobrazit:</span>
+                <span className="text-xs text-gray-600 dark:text-graphite-muted">Zobrazit:</span>
                 <select
                   value={pageSize}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                  className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -525,13 +525,13 @@ const PurchaseOrderList: React.FC = () => {
             </div>
             <div>
               <nav
-                className="relative z-0 inline-flex rounded shadow-sm -space-x-px"
+                className="relative z-0 inline-flex rounded shadow-sm dark:shadow-soft-dark -space-x-px"
                 aria-label="Pagination"
               >
                 <button
                   onClick={() => handlePageChange(pageNumber - 1)}
                   disabled={pageNumber <= 1}
-                  className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-3 w-3" />
                 </button>
@@ -555,8 +555,8 @@ const PurchaseOrderList: React.FC = () => {
                       onClick={() => handlePageChange(pageNum)}
                       className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
                         pageNum === pageNumber
-                          ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                          : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                          ? "z-10 bg-indigo-50 dark:bg-graphite-accent/10 border-indigo-500 dark:border-graphite-accent text-indigo-600 dark:text-graphite-accent"
+                          : "bg-white dark:bg-graphite-surface border-gray-300 dark:border-graphite-border text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5"
                       }`}
                     >
                       {pageNum}
@@ -567,7 +567,7 @@ const PurchaseOrderList: React.FC = () => {
                 <button
                   onClick={() => handlePageChange(pageNumber + 1)}
                   disabled={pageNumber >= totalPages}
-                  className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface text-xs font-medium text-gray-500 dark:text-graphite-muted hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronRight className="h-3 w-3" />
                 </button>

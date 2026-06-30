@@ -18,7 +18,7 @@ interface Props {
 }
 
 const selectClass =
-  'border border-gray-300 rounded-md text-sm px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500';
+  'border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md text-sm px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500';
 
 const GenericFeedbackFilters: React.FC<Props> = ({
   hasFeedback,
@@ -33,7 +33,7 @@ const GenericFeedbackFilters: React.FC<Props> = ({
 }) => (
   <div className="flex flex-wrap gap-3 items-center">
     <div className="flex items-center gap-2">
-      <label htmlFor="filter-feedback" className="text-sm text-gray-600 whitespace-nowrap">
+      <label htmlFor="filter-feedback" className="text-sm text-gray-600 dark:text-graphite-muted whitespace-nowrap">
         Feedback:
       </label>
       <select
@@ -53,7 +53,7 @@ const GenericFeedbackFilters: React.FC<Props> = ({
     </div>
 
     <div className="flex items-center gap-2">
-      <label htmlFor="filter-sort" className="text-sm text-gray-600 whitespace-nowrap">
+      <label htmlFor="filter-sort" className="text-sm text-gray-600 dark:text-graphite-muted whitespace-nowrap">
         Řadit dle:
       </label>
       <select
@@ -71,7 +71,7 @@ const GenericFeedbackFilters: React.FC<Props> = ({
     </div>
 
     <div className="flex items-center gap-2">
-      <label htmlFor="filter-order" className="text-sm text-gray-600 whitespace-nowrap">
+      <label htmlFor="filter-order" className="text-sm text-gray-600 dark:text-graphite-muted whitespace-nowrap">
         Pořadí:
       </label>
       <select
@@ -86,7 +86,7 @@ const GenericFeedbackFilters: React.FC<Props> = ({
     </div>
 
     <div className="flex items-center gap-2">
-      <label htmlFor="filter-pagesize" className="text-sm text-gray-600 whitespace-nowrap">
+      <label htmlFor="filter-pagesize" className="text-sm text-gray-600 dark:text-graphite-muted whitespace-nowrap">
         Na stránce:
       </label>
       <select

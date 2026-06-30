@@ -27,7 +27,7 @@ const StockUpOperationStatusIndicator: React.FC<
 
   return (
     <div
-      className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none"
+      className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-900/40 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none"
       onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -44,8 +44,8 @@ const StockUpOperationStatusIndicator: React.FC<
         <div className="flex items-center space-x-4">
           {(summary.totalInQueue ?? 0) > 0 && (
             <div className="flex items-center space-x-2" data-testid="queue-indicator">
-              <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
-              <span className="text-sm font-medium text-blue-900">
+              <Loader2 className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-spin" />
+              <span className="text-sm font-medium text-blue-900 dark:text-blue-300">
                 {summary.totalInQueue} operací ve frontě
               </span>
             </div>
@@ -53,15 +53,15 @@ const StockUpOperationStatusIndicator: React.FC<
 
           {(summary.failedCount ?? 0) > 0 && (
             <div className="flex items-center space-x-2" data-testid="failed-indicator">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-              <span className="text-sm font-medium text-red-900">
+              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              <span className="text-sm font-medium text-red-900 dark:text-red-300">
                 {summary.failedCount} selhalo
               </span>
             </div>
           )}
         </div>
 
-        <ChevronRight className="h-5 w-5 text-gray-400" />
+        <ChevronRight className="h-5 w-5 text-gray-400 dark:text-graphite-faint" />
       </div>
     </div>
   );

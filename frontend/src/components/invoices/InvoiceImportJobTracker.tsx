@@ -38,19 +38,19 @@ const InvoiceImportJobTracker: React.FC<InvoiceImportJobTrackerProps> = ({
   }, [jobStatus, isRunning, status, hasStartedCompletionTimer, onJobCompleted, jobId]);
 
   const getStatusIcon = () => {
-    if (isLoading) return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />;
-    
+    if (isLoading) return <Loader2 className="w-4 h-4 animate-spin text-blue-500 dark:text-blue-400" />;
+
     switch (status) {
       case "Succeeded":
         return <CheckCircle className="w-4 h-4 text-green-500" />;
       case "Failed":
-        return <XCircle className="w-4 h-4 text-red-500" />;
+        return <XCircle className="w-4 h-4 text-red-500 dark:text-red-400" />;
       case "Processing":
-        return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />;
+        return <Loader2 className="w-4 h-4 animate-spin text-blue-500 dark:text-blue-400" />;
       case "Enqueued":
         return <Clock className="w-4 h-4 text-yellow-500" />;
       default:
-        return <Clock className="w-4 h-4 text-gray-500" />;
+        return <Clock className="w-4 h-4 text-gray-500 dark:text-graphite-muted" />;
     }
   };
 
@@ -72,24 +72,24 @@ const InvoiceImportJobTracker: React.FC<InvoiceImportJobTrackerProps> = ({
   const getStatusColor = () => {
     switch (status) {
       case "Succeeded":
-        return "text-green-700";
+        return "text-green-700 dark:text-emerald-300";
       case "Failed":
-        return "text-red-700";
+        return "text-red-700 dark:text-red-300";
       case "Processing":
-        return "text-blue-700";
+        return "text-blue-700 dark:text-blue-300";
       case "Enqueued":
-        return "text-yellow-700";
+        return "text-yellow-700 dark:text-amber-300";
       default:
-        return "text-gray-700";
+        return "text-gray-700 dark:text-graphite-muted";
     }
   };
 
   if (error) {
     return (
       <div className="flex items-center space-x-2 text-sm">
-        <XCircle className="w-4 h-4 text-red-500" />
-        <span className="text-red-700">Chyba načítání statusu importu</span>
-        <span className="text-gray-500 text-xs">({jobId.substring(0, Math.min(jobId.length, 8))}...)</span>
+        <XCircle className="w-4 h-4 text-red-500 dark:text-red-400" />
+        <span className="text-red-700 dark:text-red-300">Chyba načítání statusu importu</span>
+        <span className="text-gray-500 dark:text-graphite-muted text-xs">({jobId.substring(0, Math.min(jobId.length, 8))}...)</span>
       </div>
     );
   }
@@ -99,14 +99,14 @@ const InvoiceImportJobTracker: React.FC<InvoiceImportJobTrackerProps> = ({
       {getStatusIcon()}
       <span className={getStatusColor()}>{getStatusText()}</span>
       {jobStatus?.jobName ? (
-        <span className="text-gray-900 text-sm font-semibold">{jobStatus.jobName}</span>
+        <span className="text-gray-900 dark:text-graphite-text text-sm font-semibold">{jobStatus.jobName}</span>
       ) : (
-        <span className="text-gray-500 text-xs" title={jobId}>
+        <span className="text-gray-500 dark:text-graphite-muted text-xs" title={jobId}>
           Job: {jobId.substring(0, Math.min(jobId.length, 8))}...
         </span>
       )}
       {jobStatus?.startedAt && (
-        <span className="text-gray-500 text-xs">
+        <span className="text-gray-500 dark:text-graphite-muted text-xs">
           Spuštěn: {new Date(jobStatus.startedAt).toLocaleTimeString()}
         </span>
       )}

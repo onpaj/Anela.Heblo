@@ -28,7 +28,7 @@ export default function PermissionPicker({ value, onChange, fillHeight, inherite
     return { items: allItems, sectionByPermission: sectionMap };
   }, [catalogue.data]);
 
-  if (catalogue.isLoading) return <div className="text-gray-500 text-sm">Loading permissions…</div>;
+  if (catalogue.isLoading) return <div className="text-gray-500 dark:text-graphite-muted text-sm">Loading permissions…</div>;
 
   return (
     <TransferList

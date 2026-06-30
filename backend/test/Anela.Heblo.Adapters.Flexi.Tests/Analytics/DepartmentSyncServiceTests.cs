@@ -123,4 +123,28 @@ public class DepartmentSyncServiceTests
         state.LastErrorMessage.Should().Contain("Flexi unreachable");
         state.Watermark.Should().BeNull();
     }
+
+    [Fact]
+    public void Map_WhenLastUpdateIsUnspecifiedKind_ReturnsKindUtcLastModified()
+    {
+        // Regression test: SDK returns Kind=Unspecified representing Prague local time.
+        // DepartmentFlexiDto.LastUpdate is non-nullable DateTime; Map() applies
+        // DateTime.SpecifyKind(dto.LastUpdate, DateTimeKind.Unspecified) before ConvertTimeToUtc.
+        var unspecified = new DateTime(2025, 6, 19, 10, 0, 0, DateTimeKind.Unspecified);
+        var dto = new DepartmentFlexiDto
+        {
+            Id = 99,
+            Code = "TEST",
+            Name = "Test Department",
+            LastUpdate = unspecified,
+        };
+
+        var department = DepartmentSyncService.Map(dto);
+
+        Assert.NotNull(department.LastModified);
+        // LastModified is DateTimeOffset?; Offset=0 confirms UTC.
+        Assert.Equal(TimeSpan.Zero, department.LastModified!.Value.Offset);
+        var expected = TimeZoneInfo.ConvertTimeToUtc(unspecified, TimeZoneInfo.Local);
+        Assert.Equal(expected, department.LastModified.Value.UtcDateTime);
+    }
 }

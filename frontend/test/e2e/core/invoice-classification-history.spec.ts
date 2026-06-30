@@ -14,9 +14,9 @@ test.describe('Invoice Classification History', () => {
     // Wait for page header to appear
     await page.waitForSelector('h1:has-text("Klasifikace faktur")', { timeout: 15000 });
 
-    // Wait for content to load - give enough time for table to load or "no records" message to appear
-    // The page shows "Loading..." initially, then renders table or empty state
-    await page.waitForTimeout(2000);
+    // Wait for content to load: either the table or the no-records message must be visible.
+    // waitForTimeout is unreliable — replace with a deterministic selector wait.
+    await page.waitForSelector('table, :text("Nebyly nalezeny žádné záznamy")', { timeout: 15000 });
 
     console.log('✅ Invoice classification page loaded');
   });
@@ -50,8 +50,8 @@ test.describe('Invoice Classification History', () => {
       return;
     }
 
-    // Expand to 50 per page to maximise chance of multiple pages being present.
-    await pageSizeSelect.selectOption('50');
+    // Stay at 10 per page: with a small dataset, enlarging the page size would collapse the
+    // result to a single page and unmount the entire pagination nav we drive below.
     await page.waitForTimeout(1000);
 
     const nextButton = paginationNav.locator('button').last();

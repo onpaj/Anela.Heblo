@@ -77,4 +77,25 @@ describe('useResponsiblePersonsQuery', () => {
 
         expect(() => unmount()).not.toThrow();
     });
+
+    it('should not fire the query when options.enabled is false', () => {
+        const { result } = renderHook(
+            () => useResponsiblePersonsQuery('test-group-id', { enabled: false }),
+            { wrapper: createWrapper() },
+        );
+
+        expect(result.current.isLoading).toBe(false);
+        expect(result.current.fetchStatus).toBe('idle');
+        expect(mockGetGroupMembers).not.toHaveBeenCalled();
+    });
+
+    it('should fire the query when options.enabled is true', async () => {
+        const { result } = renderHook(
+            () => useResponsiblePersonsQuery('test-group-id', { enabled: true }),
+            { wrapper: createWrapper() },
+        );
+
+        expect(result.current.isLoading).toBe(true);
+        expect(result.current.fetchStatus).toBe('fetching');
+    });
 });

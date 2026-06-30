@@ -20,6 +20,8 @@ namespace Anela.Heblo.Persistence.Photobank
             builder.Property(x => x.MimeType).HasMaxLength(50);
             builder.Property(x => x.IndexedAt).IsRequired().AsUtcTimestamp();
             builder.Property(x => x.ModifiedAt).IsRequired().AsUtcTimestamp();
+            builder.Property(x => x.TakenAt).AsUtcTimestamp();
+            builder.Property(x => x.LastAutoTaggedAt).AsUtcTimestamp();
             builder.HasIndex(x => x.FolderPath).HasDatabaseName("IX_Photos_FolderPath");
             builder.HasMany(x => x.Tags)
                 .WithOne(x => x.Photo)

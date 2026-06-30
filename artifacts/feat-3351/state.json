@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-3351",
+  "issue_number": 3351,
+  "created_at": "2026-06-26T00:15:26.973944Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-26T00:19:05.285593Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-26T00:21:30.559163Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-26T00:21:30.994820Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-26T00:23:29.353003Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-26T00:29:04.581200Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-06-26T00:29:13.999998Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-dashboard-tile-timeout",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-26T00:26:06.566515Z"
+    },
+    {
+      "name": "fix-classification-combined-filters",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-26T00:27:43.169049Z"
+    },
+    {
+      "name": "fix-classification-pagination-wait",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-26T00:29:04.395030Z"
+    }
+  ]
+}

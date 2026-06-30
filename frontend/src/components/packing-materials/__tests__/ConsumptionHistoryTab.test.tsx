@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ConsumptionHistoryTab from '../ConsumptionHistoryTab';
 import * as hooks from '../../../api/hooks/usePackingMaterials';
-import { HistoryRecordType } from '../../../api/hooks/usePackingMaterials';
+import { HistoryRecordType, ConsumptionType } from '../../../api/hooks/usePackingMaterials';
 
 jest.mock('../../../api/hooks/usePackingMaterials', () => {
   const actual = jest.requireActual('../../../api/hooks/usePackingMaterials');
@@ -25,7 +25,7 @@ const sampleResponse = {
       materialName: 'Tape',
       date: new Date('2026-01-10'),
       createdAt: new Date('2026-01-10T08:00:00Z'),
-      consumptionType: 1,
+      consumptionType: ConsumptionType.PerOrder,
       consumptionTypeText: 'PerOrder',
       invoiceId: 'INV-1',
       productCode: 'P1',

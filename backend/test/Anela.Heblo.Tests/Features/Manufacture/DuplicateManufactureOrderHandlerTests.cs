@@ -45,11 +45,10 @@ public class DuplicateManufactureOrderHandlerTests
             Id = SourceOrderId,
             OrderNumber = "MO-2025-9999",
             ResponsiblePerson = ResponsiblePerson,
-            State = ManufactureOrderState.Completed,
             PlannedDate = new DateOnly(2025, 1, 1),
             CreatedByUser = "Original Author",
-            StateChangedByUser = "Original Author",
         };
+        order.InitializeState(ManufactureOrderState.Completed, default, "Original Author");
 
         if (includeSemiProduct)
         {

@@ -35,6 +35,7 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
 
         if (catalogItem == null)
         {
+            _logger.LogWarning("Catalog product not found. ProductCode: {ProductCode}", request.ProductCode);
             return new GetCatalogDetailResponse
             {
                 Success = false,

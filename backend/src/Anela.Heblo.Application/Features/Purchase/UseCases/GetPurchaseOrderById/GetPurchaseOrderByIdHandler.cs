@@ -65,18 +65,9 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
             Notes = purchaseOrder.Notes,
             TotalAmount = purchaseOrder.TotalAmount,
             IsEditable = purchaseOrder.IsEditable,
-            Lines = purchaseOrder.Lines.Select(l => new PurchaseOrderLineDto
-            {
-                Id = l.Id,
-                MaterialId = l.MaterialId,
-                Code = l.MaterialId, // Code is same as MaterialId
-                MaterialName = l.MaterialName,
-                Quantity = l.Quantity,
-                UnitPrice = l.UnitPrice,
-                LineTotal = l.LineTotal,
-                Notes = l.Notes,
-                CatalogNote = materialLookup.TryGetValue(l.MaterialId, out var material) ? material.Note : null
-            }).ToList(),
+            Lines = purchaseOrder.Lines.Select(l =>
+                PurchaseOrderLineDto.FromLine(l, materialLookup.TryGetValue(l.MaterialId, out var material) ? material.Note : null)
+            ).ToList(),
             History = purchaseOrder.History.Select(h => new PurchaseOrderHistoryDto
             {
                 Id = h.Id,

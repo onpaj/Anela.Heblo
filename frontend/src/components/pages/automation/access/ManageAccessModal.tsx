@@ -68,10 +68,10 @@ export const ManageAccessModal: React.FC<ManageAccessModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md"
+        className="bg-white dark:bg-graphite-surface rounded-xl shadow-lg dark:shadow-soft-dark p-6 w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold mb-4">Spravovat přístup ke schůzce</h2>
+        <h2 className="text-lg font-semibold mb-4 dark:text-graphite-text">Spravovat přístup ke schůzce</h2>
 
         <fieldset className="mb-4 space-y-2">
           {(['Private', 'Public', 'Restricted'] as AccessLevel[]).map((level) => (
@@ -94,7 +94,7 @@ export const ManageAccessModal: React.FC<ManageAccessModalProps> = ({
 
         {accessLevel === 'Restricted' && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
               Oprávnění uživatelé
             </label>
             <Select
@@ -111,13 +111,13 @@ export const ManageAccessModal: React.FC<ManageAccessModalProps> = ({
         )}
 
         {error && (
-          <p className="text-sm text-red-600 mb-3">Nepodařilo se uložit přístup. Zkuste to znovu.</p>
+          <p className="text-sm text-red-600 dark:text-red-400 mb-3">Nepodařilo se uložit přístup. Zkuste to znovu.</p>
         )}
 
         <div className="flex justify-end gap-2 mt-4">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+            className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5 dark:text-graphite-muted"
           >
             Zrušit
           </button>

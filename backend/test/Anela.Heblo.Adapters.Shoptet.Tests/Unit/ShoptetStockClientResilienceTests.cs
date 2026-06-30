@@ -53,7 +53,7 @@ public class ShoptetStockClientResilienceTests
             services.Configure(configureOptions);
         }
 
-        services.AddHttpClient("ShoptetStockCsv")
+        services.AddHttpClient<IEshopStockClient, ShoptetStockClient>()
             .ConfigurePrimaryHttpMessageHandler(() => new DelegatingStubHandler(handler));
 
         return services.BuildServiceProvider();

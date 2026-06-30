@@ -1,16 +1,11 @@
-using System.Net;
-using System.Text;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
-using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
-using Moq.Protected;
 using Xunit;
 
 namespace Anela.Heblo.Adapters.Shoptet.Tests.Expedition;
@@ -22,40 +17,30 @@ public class PickingListBatchProcessorTests
     private const string CooledOrderCode = "ORDER-COOL";
     private const string NormalOrderCode = "ORDER-NORMAL";
 
-    private static HttpResponseMessage OkJson(string json) =>
-        new(HttpStatusCode.OK)
-        {
-            Content = new StringContent(json, Encoding.UTF8, "application/json"),
-        };
-
-    private static Mock<HttpMessageHandler> BuildHandler(bool patchShouldThrow = false)
+    private static Mock<IShoptetExpeditionOrderSource> BuildOrderSource(bool setAdditionalFieldShouldThrow = false)
     {
-        var handler = new Mock<HttpMessageHandler>();
+        var mock = new Mock<IShoptetExpeditionOrderSource>();
 
-        if (patchShouldThrow)
+        if (setAdditionalFieldShouldThrow)
         {
-            handler.Protected()
-                .Setup<Task<HttpResponseMessage>>("SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(r => r.Method == HttpMethod.Patch),
-                    ItExpr.IsAny<CancellationToken>())
+            mock.Setup(x => x.SetAdditionalFieldAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<int>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new HttpRequestException("Simulated Shoptet PATCH failure"));
         }
         else
         {
-            handler.Protected()
-                .Setup<Task<HttpResponseMessage>>("SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(r => r.Method == HttpMethod.Patch),
-                    ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(OkJson("""{"data":null,"errors":null}"""));
+            mock.Setup(x => x.SetAdditionalFieldAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<int>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
         }
 
-        return handler;
-    }
-
-    private static ShoptetOrderClient BuildClient(Mock<HttpMessageHandler> handler)
-    {
-        var http = new HttpClient(handler.Object) { BaseAddress = new Uri("https://test.myshoptet.com") };
-        return new ShoptetOrderClient(http, Options.Create(new ShoptetOrdersSettings()));
+        return mock;
     }
 
     private static Mock<ICatalogRepository> BuildCatalog()
@@ -136,22 +121,22 @@ public class PickingListBatchProcessorTests
     };
 
     private static PickingListBatchProcessor BuildProcessor(
-        Mock<HttpMessageHandler> handler,
+        Mock<IShoptetExpeditionOrderSource> orderSource,
         Mock<ICatalogRepository> catalog,
         ILogger? logger = null,
         Func<ExpeditionProtocolData, byte[]>? generate = null) =>
         new(
             catalog.Object,
-            BuildClient(handler),
+            orderSource.Object,
             generate ?? (_ => new byte[] { 0x25, 0x50, 0x44, 0x46 }),
             logger ?? Mock.Of<ILogger<ShoptetApiExpeditionListSource>>());
 
     [Fact]
     public async Task FlushAsync_InvokesCallbackOnceWithSingleElementList()
     {
-        var handler = BuildHandler();
+        var orderSource = BuildOrderSource();
         var catalog = BuildCatalog();
-        var processor = BuildProcessor(handler, catalog);
+        var processor = BuildProcessor(orderSource, catalog);
 
         var callbackInvocations = new List<IList<string>>();
         Func<IList<string>, Task> callback = paths =>
@@ -175,9 +160,9 @@ public class PickingListBatchProcessorTests
     [Fact]
     public async Task FlushAsync_DoesNotThrow_WhenCallbackIsNull()
     {
-        var handler = BuildHandler();
+        var orderSource = BuildOrderSource();
         var catalog = BuildCatalog();
-        var processor = BuildProcessor(handler, catalog);
+        var processor = BuildProcessor(orderSource, catalog);
 
         var act = async () => await processor.FlushAsync(
             new[] { BuildNormalOrder() },
@@ -194,7 +179,7 @@ public class PickingListBatchProcessorTests
     public async Task FlushAsync_AppliesCatalogEnrichmentToBatchItems()
     {
         ExpeditionProtocolData? captured = null;
-        var handler = BuildHandler();
+        var orderSource = BuildOrderSource();
         var catalog = new Mock<ICatalogRepository>();
         catalog.Setup(x => x.GetByIdAsync(NormalProductCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new CatalogAggregate
@@ -206,7 +191,7 @@ public class PickingListBatchProcessorTests
             });
 
         var processor = BuildProcessor(
-            handler,
+            orderSource,
             catalog,
             generate: data =>
             {
@@ -251,9 +236,9 @@ public class PickingListBatchProcessorTests
     [Fact]
     public async Task FlushAsync_PatchesEachCooledOrderOnce_AndSkipsNonCooled()
     {
-        var handler = BuildHandler();
+        var orderSource = BuildOrderSource();
         var catalog = BuildCatalog();
-        var processor = BuildProcessor(handler, catalog);
+        var processor = BuildProcessor(orderSource, catalog);
 
         await processor.FlushAsync(
             new[] { BuildCooledOrder(), BuildNormalOrder() },
@@ -263,30 +248,30 @@ public class PickingListBatchProcessorTests
             onBatchFilesReady: null,
             cancellationToken: CancellationToken.None);
 
-        handler.Protected().Verify(
-            "SendAsync",
-            Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(r =>
-                r.Method == HttpMethod.Patch &&
-                r.RequestUri!.AbsolutePath == $"/api/orders/{CooledOrderCode}/notes"),
-            ItExpr.IsAny<CancellationToken>());
+        orderSource.Verify(
+            x => x.SetAdditionalFieldAsync(
+                CooledOrderCode,
+                PickingListBatchProcessor.CoolingAdditionalFieldIndex,
+                PickingListBatchProcessor.CoolingMarkerValue,
+                It.IsAny<CancellationToken>()),
+            Times.Once());
 
-        handler.Protected().Verify(
-            "SendAsync",
-            Times.Never(),
-            ItExpr.Is<HttpRequestMessage>(r =>
-                r.Method == HttpMethod.Patch &&
-                r.RequestUri!.AbsolutePath == $"/api/orders/{NormalOrderCode}/notes"),
-            ItExpr.IsAny<CancellationToken>());
+        orderSource.Verify(
+            x => x.SetAdditionalFieldAsync(
+                NormalOrderCode,
+                It.IsAny<int>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never());
     }
 
     [Fact]
     public async Task FlushAsync_PatchFailure_LogsWarning_AndCompletesNormally()
     {
         var logger = new Mock<ILogger<ShoptetApiExpeditionListSource>>();
-        var handler = BuildHandler(patchShouldThrow: true);
+        var orderSource = BuildOrderSource(setAdditionalFieldShouldThrow: true);
         var catalog = BuildCatalog();
-        var processor = BuildProcessor(handler, catalog, logger: logger.Object);
+        var processor = BuildProcessor(orderSource, catalog, logger: logger.Object);
 
         var path = await processor.FlushAsync(
             new[] { BuildCooledOrder() },

@@ -9,6 +9,7 @@ using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
+using Anela.Heblo.Application.Features.ShoptetOrders.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficultySettings;
@@ -64,6 +65,10 @@ public static class CatalogModule
         // DI registration is owned by the provider (Catalog), not the consumer (Manufacture).
         services.AddScoped<IManufactureCatalogSource, CatalogManufactureCatalogSourceAdapter>();
 
+        // Cross-module contract: Catalog implements ShoptetOrders' IPackingProductSource via adapter.
+        // DI registration is owned by the provider (Catalog), not the consumer (ShoptetOrders).
+        services.AddTransient<IPackingProductSource, CatalogPackingProductSourceAdapter>();
+
         // Register cost repositories
         services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others
         services.AddTransient<IFlatManufactureCostProvider, FlatManufactureCostProvider>(); // M1_A: Flat manufacturing cost with ManufactureDifficulty weighting
@@ -86,10 +91,6 @@ public static class CatalogModule
         services.AddTransient<IMarginCalculationService, MarginCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
         services.AddSingleton<ICatalogMergeScheduler, CatalogMergeScheduler>();
-        services.AddSingleton<CatalogCacheStore>();
-        services.AddSingleton<CatalogMergeService>();
-        services.AddTransient<CatalogDataRefreshService>();
-        services.AddHostedService<CatalogMergeCallbackWiring>();
         services.AddTransient<SafeMarginCalculator>();
         services.AddTransient<IProductWeightRecalculationService, ProductWeightRecalculationService>();
         services.AddTransient<IStockUpProcessingService, StockUpProcessingService>();
@@ -240,33 +241,6 @@ public static class CatalogModule
             (r, ct) => r.RefreshManufactureDifficultySettingsData(null, ct)
         );
 
-        // COMMENTED OUT - Old services replaced by new cost source architecture
-        // services.RegisterRefreshTask<ISalesCostCalculationService>(
-        //     nameof(ISalesCostCalculationService.Reload),
-        //     async (serviceProvider, ct) =>
-        //     {
-        //         var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
-        //         var costService = serviceProvider.GetRequiredService<ISalesCostCalculationService>();
-        //
-        //         await catalogRepository.WaitForCurrentMergeAsync(ct);
-        //         await costService.Reload();
-        //     }
-        // );
-
-        // COMMENTED OUT - Old services replaced by new cost source architecture
-        // services.RegisterRefreshTask<IManufactureCostCalculationService>(
-        //     nameof(IManufactureCostCalculationService.Reload),
-        //     async (serviceProvider, ct) =>
-        //     {
-        //         var catalogRepository = serviceProvider.GetRequiredService<ICatalogRepository>();
-        //         var manufactureCostService = serviceProvider.GetRequiredService<IManufactureCostCalculationService>();
-        //
-        //         await catalogRepository.WaitForCurrentMergeAsync(ct);
-        //         var catalogData = await catalogRepository.GetAllAsync(ct);
-        //         await manufactureCostService.Reload(catalogData.ToList());
-        //     }
-        // );
-
         // Cost source refresh tasks (Tier 2 - after catalog refresh)
         // Sources compute costs and populate cache
         services.RegisterRefreshTask<IMaterialCostProvider>(
@@ -306,10 +280,10 @@ public static class CatalogModule
 
                 await catalogRepository.WaitForCurrentMergeAsync(ct);
                 var products = await catalogRepository.GetAllAsync(ct);
-                var twoYearsAgo = DateOnly.FromDateTime(DateTime.Now.AddYears(-2));
+                var twoYearsAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-2));
                 var minDate = new DateOnly(2025, 1, 1); // No M2 margins available for older data
                 var dateFrom = twoYearsAgo > minDate ? twoYearsAgo : minDate;
-                var dateTo = DateOnly.FromDateTime(DateTime.Now).AddMonths(-1); // Current month is not accurate
+                var dateTo = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-1); // Current month is not accurate
 
                 foreach (var product in products)
                 {

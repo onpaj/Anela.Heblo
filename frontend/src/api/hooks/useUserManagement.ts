@@ -2,10 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import type { GetGroupMembersResponse } from '../generated/api-client';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
-export const useResponsiblePersonsQuery = (groupId: string) => {
+export const useResponsiblePersonsQuery = (
+  groupId: string,
+  options?: { enabled?: boolean },
+) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.userManagement, 'group-members', groupId],
-    enabled: Boolean(groupId),
+    enabled: Boolean(groupId) && (options?.enabled ?? true),
     queryFn: async (): Promise<GetGroupMembersResponse> => {
       const apiClient = getAuthenticatedApiClient();
       return apiClient.userManagement_GetGroupMembers(groupId);

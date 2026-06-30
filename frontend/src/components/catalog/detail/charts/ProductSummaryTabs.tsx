@@ -124,38 +124,38 @@ const ProductSummaryTabs: React.FC<ProductSummaryTabsProps> = ({
   const summary = calculateSummary();
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-      <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center">
-        <BarChart3 className="h-4 w-4 mr-2 text-gray-500" />
+    <div className="bg-white dark:bg-graphite-surface rounded-lg border border-gray-200 dark:border-graphite-border p-4 shadow-sm dark:shadow-soft-dark">
+      <h4 className="text-md font-medium text-gray-900 dark:text-graphite-text mb-3 flex items-center">
+        <BarChart3 className="h-4 w-4 mr-2 text-gray-500 dark:text-graphite-muted" />
         Celkové shrnutí - {summary.dataLabel}
       </h4>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="text-center p-3 bg-blue-50 rounded-lg">
-          <div className="text-sm font-medium text-gray-600 mb-1">
+        <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+          <div className="text-sm font-medium text-gray-600 dark:text-graphite-muted mb-1">
             Celkový {summary.dataLabel} za rok
           </div>
-          <div className="text-2xl font-bold text-blue-900">
+          <div className="text-2xl font-bold text-blue-900 dark:text-blue-300">
             {summary.totalForLastYear.toLocaleString("cs-CZ")}
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-gray-500 dark:text-graphite-muted mt-1">
             za posledních 12 měsíců
           </div>
         </div>
 
-        <div className="text-center p-3 bg-green-50 rounded-lg">
-          <div className="text-sm font-medium text-gray-600 mb-1">
+        <div className="text-center p-3 bg-green-50 dark:bg-emerald-900/30 rounded-lg">
+          <div className="text-sm font-medium text-gray-600 dark:text-graphite-muted mb-1">
             Průměrný {summary.dataLabel}/měsíc
           </div>
-          <div className="text-2xl font-bold text-green-900">
+          <div className="text-2xl font-bold text-green-900 dark:text-emerald-300">
             {summary.averageMonthly.toLocaleString("cs-CZ")}
           </div>
-          <div className="text-xs text-gray-500 mt-1">měsíční průměr</div>
+          <div className="text-xs text-gray-500 dark:text-graphite-muted mt-1">měsíční průměr</div>
         </div>
       </div>
 
       {summary.monthsWithData === 0 && (
-        <div className="mt-3 text-center text-sm text-gray-500">
+        <div className="mt-3 text-center text-sm text-gray-500 dark:text-graphite-muted">
           Žádná data za posledních 12 měsíců
         </div>
       )}

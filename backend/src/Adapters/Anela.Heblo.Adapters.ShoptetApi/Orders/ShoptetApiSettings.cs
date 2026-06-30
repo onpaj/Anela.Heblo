@@ -26,6 +26,8 @@ public class ShoptetApiSettings
 
     /// <summary>
     /// Fallback item weight in grams when the catalog has no GrossWeight or NetWeight for a product.
+    /// Defaults to 0: a product with no known weight contributes nothing to the shipment weight,
+    /// rather than inflating it (e.g. 50 pcs × 500 g = 25 kg on order 126014878).
     /// </summary>
-    public int DefaultItemWeightGrams { get; set; } = 500;
+    public int DefaultItemWeightGrams { get; set; } = 0;
 }

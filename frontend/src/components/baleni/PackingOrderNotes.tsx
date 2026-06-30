@@ -19,7 +19,7 @@ function NoteCard({ icon: Icon, label, text, className, iconClassName }: NoteCar
       <Icon className={`h-4 w-4 shrink-0 mt-0.5 ${iconClassName}`} />
       <div className="min-w-0">
         <p className="text-xs font-semibold uppercase tracking-wide">{label}</p>
-        <p className="text-sm text-neutral-slate whitespace-pre-line">{text}</p>
+        <p className="text-sm text-neutral-slate dark:text-graphite-text whitespace-pre-line">{text}</p>
       </div>
     </div>
   );
@@ -38,8 +38,8 @@ function PackingOrderNotes({ customerNote, eshopNote }: PackingOrderNotesProps) 
           icon={MessageSquare}
           label="Poznámka zákazníka"
           text={customerNote}
-          className="border-primary-blue bg-secondary-blue-pale text-primary-blue"
-          iconClassName="text-primary-blue"
+          className="border-primary-blue dark:border-graphite-accent bg-secondary-blue-pale dark:bg-graphite-surface-2 text-primary-blue dark:text-graphite-accent"
+          iconClassName="text-primary-blue dark:text-graphite-accent"
         />
       )}
       {eshopNote && (
@@ -47,8 +47,8 @@ function PackingOrderNotes({ customerNote, eshopNote }: PackingOrderNotesProps) 
           icon={StickyNote}
           label="Interní poznámka"
           text={eshopNote}
-          className="border-border-light bg-white text-neutral-gray"
-          iconClassName="text-neutral-gray"
+          className="border-border-light dark:border-graphite-border bg-white dark:bg-graphite-surface text-neutral-gray dark:text-graphite-muted"
+          iconClassName="text-neutral-gray dark:text-graphite-muted"
         />
       )}
     </div>
