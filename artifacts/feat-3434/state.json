@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "extract-map-to-dto",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-30T09:24:08.536672Z"
+      "updated_at": "2026-06-30T09:31:14.559866Z"
     }
   ]
 }
