@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Hosting;
 using System.Reflection;
 using Anela.Heblo.Domain.Features.Configuration;
 using MediatR;
@@ -13,13 +12,11 @@ namespace Anela.Heblo.Application.Features.Configuration;
 public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, GetConfigurationResponse>
 {
     private readonly IConfiguration _configuration;
-    private readonly IHostEnvironment _environment;
     private readonly ILogger<GetConfigurationHandler> _logger;
 
-    public GetConfigurationHandler(IConfiguration configuration, IHostEnvironment environment, ILogger<GetConfigurationHandler> logger)
+    public GetConfigurationHandler(IConfiguration configuration, ILogger<GetConfigurationHandler> logger)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-        _environment = environment ?? throw new ArgumentNullException(nameof(environment));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -59,8 +56,9 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         // 4. Fallback to default
         var version = GetVersionFromSources();
 
-        // Get environment
-        var environment = _environment.EnvironmentName;
+        // Falls back to ConfigurationConstants.DEFAULT_ENVIRONMENT ("Production") if not set
+        var environment = _configuration["ASPNETCORE_ENVIRONMENT"]
+            ?? ConfigurationConstants.DEFAULT_ENVIRONMENT;
 
         // Get mock auth setting
         var useMockAuth = _configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, false);
