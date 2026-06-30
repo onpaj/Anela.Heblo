@@ -21,16 +21,20 @@
       "updated_at": "2026-06-30T05:24:23.361091Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-06-30T05:24:37.255261Z"
+      "status": "completed",
+      "updated_at": "2026-06-30T05:32:51.879599Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-06-30T05:38:09.721119Z"
     }
   },
   "tasks": [
     {
       "name": "move-constant",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-06-30T05:24:37.474798Z"
+      "updated_at": "2026-06-30T05:32:51.678719Z"
     }
   ]
 }
