@@ -3,26 +3,26 @@ using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.FinancialOverview;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.FinancialOverview.Services;
+namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
 
 /// <summary>
-/// Real implementation that calculates stock value changes using StockToDate integration
+/// Cross-module adapter: Catalog implements FinancialOverview's IStockValueService using Catalog-owned ERP clients.
 /// </summary>
-public class StockValueService : IStockValueService
+internal sealed class FinancialOverviewStockValueAdapter : IStockValueService
 {
     private readonly IErpStockClient _stockClient;
     private readonly IProductPriceErpClient _priceClient;
-    private readonly ILogger<StockValueService> _logger;
+    private readonly ILogger<FinancialOverviewStockValueAdapter> _logger;
 
     // Warehouse IDs from FlexiStockClient
     private const int MaterialWarehouseId = 5;    // MATERIAL
-    private const int SemiProductsWarehouseId = 20; // POLOTOVARY  
+    private const int SemiProductsWarehouseId = 20; // POLOTOVARY
     private const int ProductsWarehouseId = 4;    // ZBOZI
 
-    public StockValueService(
+    public FinancialOverviewStockValueAdapter(
         IErpStockClient stockClient,
         IProductPriceErpClient priceClient,
-        ILogger<StockValueService> logger)
+        ILogger<FinancialOverviewStockValueAdapter> logger)
     {
         _stockClient = stockClient;
         _priceClient = priceClient;

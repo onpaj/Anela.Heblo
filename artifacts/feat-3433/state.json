@@ -21,16 +21,16 @@
       "updated_at": "2026-06-30T08:25:48.399804Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-06-30T08:25:58.620792Z"
     }
   },
   "tasks": [
     {
       "name": "create-adapter-and-rewire-di",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-06-30T08:25:58.872718Z"
     },
     {
       "name": "fix-tests-and-add-arch-guard",
