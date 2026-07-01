@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-3442",
+  "issue_number": 3442,
+  "created_at": "2026-07-01T07:15:56.979719Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-01T07:21:35.534340Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-01T07:23:58.058140Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-01T07:25:03.172824Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-01T07:28:53.388000Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-01T07:50:05.222976Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-01T07:54:51.077770Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "replace-raw-fetch-with-typed-client-and-mapping-functions",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-01T07:33:35.260082Z"
+    },
+    {
+      "name": "update-tests-for-typed-client-methods",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-01T07:40:03.341614Z"
+    },
+    {
+      "name": "build-and-lint-verification",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-01T07:50:00.189830Z"
+    }
+  ]
+}
