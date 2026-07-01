@@ -76,6 +76,12 @@ public partial class Program
             builder.Configuration.AddJsonFile("appsettings.Conductor.json", optional: false, reloadOnChange: true);
         }
 
+        // Stamp the resolved environment name into configuration so Application-layer code (e.g.
+        // GetConfigurationHandler) can read it via IConfiguration without depending on IHostEnvironment.
+        // builder.Environment.EnvironmentName reflects UseEnvironment() overrides (e.g. WebApplicationFactory
+        // in tests), whereas the raw ASPNETCORE_ENVIRONMENT OS env var does not.
+        builder.Configuration["ASPNETCORE_ENVIRONMENT"] = builder.Environment.EnvironmentName;
+
         // Configure application timezone based on configuration
         builder.Configuration.ConfigureApplicationTimeZone();
 

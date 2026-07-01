@@ -1,3 +1,21 @@
+### task: update-handler
+
+**Files:**
+- Modify: `backend/src/Anela.Heblo.Application/Features/Configuration/GetConfigurationHandler.cs`
+
+- [ ] Open `backend/src/Anela.Heblo.Application/Features/Configuration/GetConfigurationHandler.cs`.
+
+- [ ] Remove the `using Microsoft.Extensions.Hosting;` using directive (line 3).
+
+- [ ] Remove the `private readonly IHostEnvironment _environment;` field declaration (line 16).
+
+- [ ] Remove the `IHostEnvironment environment` constructor parameter and its null guard. The constructor signature changes from 3 parameters to 2.
+
+- [ ] In `BuildApplicationConfiguration()`, replace the comment and the `_environment.EnvironmentName` assignment with the inline-documented `IConfiguration` lookup.
+
+The complete file after changes:
+
+```csharp
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
@@ -99,3 +117,28 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         return null;
     }
 }
+```
+
+- [ ] Verify the build compiles with zero errors:
+  ```
+  dotnet build backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj
+  ```
+  Expected: `Build succeeded. 0 Error(s)`
+
+- [ ] Run dotnet format to confirm no style regressions:
+  ```
+  dotnet format backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj --verify-no-changes
+  ```
+  Expected: exit code 0 (no unformatted files)
+
+- [ ] Commit:
+  ```
+  git add backend/src/Anela.Heblo.Application/Features/Configuration/GetConfigurationHandler.cs
+  git commit -m "refactor: remove IHostEnvironment from GetConfigurationHandler
+
+  Read ASPNETCORE_ENVIRONMENT from IConfiguration instead of IHostEnvironment
+  to eliminate upward Application→Hosting architectural dependency."
+  ```
+
+---
+

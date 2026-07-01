@@ -1,3 +1,27 @@
+### task: fix-tests
+
+**Files:**
+- Modify: `backend/test/Anela.Heblo.Tests/Features/Configuration/GetConfigurationHandlerTests.cs`
+
+- [ ] Open `backend/test/Anela.Heblo.Tests/Features/Configuration/GetConfigurationHandlerTests.cs`.
+
+- [ ] Remove the `using Microsoft.Extensions.Hosting;` using directive (line 5).
+
+- [ ] In `CreateHandler`: remove the two lines that create and configure the `IHostEnvironment` substitute:
+  ```csharp
+  var environment = Substitute.For<IHostEnvironment>();
+  environment.EnvironmentName.Returns("Test");
+  ```
+
+- [ ] In `CreateHandler`: add `["ASPNETCORE_ENVIRONMENT"] = "Test"` to the `configData` dictionary before building the `IConfiguration` so all four tests receive an environment value. Merge it into the incoming dictionary rather than replacing it, so per-test keys are preserved.
+
+- [ ] Update the `GetConfigurationHandler` constructor call in `CreateHandler` to pass only 2 arguments (drop `environment`).
+
+- [ ] Check whether the `NSubstitute` using is still needed anywhere in the file. If not, remove `using NSubstitute;` as well. (It was only used for `IHostEnvironment`.)
+
+The complete file after changes:
+
+```csharp
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Domain.Features.Configuration;
 using FluentAssertions;
@@ -85,3 +109,25 @@ public class GetConfigurationHandlerTests
         response.UseMockAuth.Should().BeTrue();
     }
 }
+```
+
+- [ ] Run only the handler tests to confirm all four pass:
+  ```
+  dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GetConfigurationHandlerTests"
+  ```
+  Expected output: `Passed! - Failed: 0, Passed: 4, Skipped: 0`
+
+- [ ] Run dotnet format to confirm no style regressions:
+  ```
+  dotnet format backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --verify-no-changes
+  ```
+  Expected: exit code 0
+
+- [ ] Commit:
+  ```
+  git add backend/test/Anela.Heblo.Tests/Features/Configuration/GetConfigurationHandlerTests.cs
+  git commit -m "test: remove IHostEnvironment mock from GetConfigurationHandlerTests
+
+  Supply ASPNETCORE_ENVIRONMENT via in-memory configuration instead.
+  All four tests pass without NSubstitute."
+  ```
