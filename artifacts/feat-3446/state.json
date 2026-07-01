@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "backend-surface-import-counts",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-01T09:27:46.453596Z"
+      "updated_at": "2026-07-01T10:20:45.120717Z"
     },
     {
       "name": "frontend-surface-import-outcome",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-01T10:20:50.417328Z"
     }
   ]
 }

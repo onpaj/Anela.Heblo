@@ -156,15 +156,28 @@ const ImportTab: React.FC = () => {
     setIsImporting(true);
     try {
       // Single import request for the selected date
-      await importMutation.mutateAsync({
+      const result = await importMutation.mutateAsync({
         accountName: selectedAccount,
         dateFrom: importDate,
         dateTo: importDate,
       });
 
-      // Show success message
-      alert(`Import dokončen pro datum ${importDate}`);
-      
+      // Show outcome message reflecting the per-run counts
+      const skippedSuffix = result.skippedCount ? ` (${result.skippedCount} již dříve naimportováno)` : '';
+      if (result.totalCount === 0) {
+        alert(
+          result.skippedCount
+            ? `Import dokončen pro datum ${importDate}: žádné nové výpisy, ${result.skippedCount} již dříve naimportováno.`
+            : `Import dokončen pro datum ${importDate}: žádné výpisy k importu.`
+        );
+      } else if (result.hasErrors) {
+        alert(
+          `Import dokončen pro datum ${importDate}: ${result.successCount} úspěšně, ${result.errorCount} s chybou${skippedSuffix}. Zkontrolujte seznam výpisů.`
+        );
+      } else {
+        alert(`Import dokončen pro datum ${importDate}: ${result.successCount} výpisů úspěšně naimportováno${skippedSuffix}.`);
+      }
+
       // Refresh the bank statements list
       await refetch();
 
