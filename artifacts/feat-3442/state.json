@@ -21,8 +21,12 @@
       "updated_at": "2026-07-01T07:28:53.388000Z"
     },
     "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-01T07:50:05.222976Z"
+    },
+    "code-review": {
       "status": "in_progress",
-      "updated_at": "2026-07-01T07:29:22.264669Z"
+      "updated_at": "2026-07-01T07:50:11.042282Z"
     }
   },
   "tasks": [
@@ -40,9 +44,9 @@
     },
     {
       "name": "build-and-lint-verification",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-01T07:40:07.618528Z"
+      "updated_at": "2026-07-01T07:50:00.189830Z"
     }
   ]
 }
