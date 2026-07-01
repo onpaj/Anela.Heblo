@@ -39,7 +39,7 @@ public class GetBankStatementByIdHandlerTests
             ImportResult = "OK"
         };
         _repository
-            .Setup(r => r.GetByIdAsync(42))
+            .Setup(r => r.GetByIdAsync(42, It.IsAny<CancellationToken>()))
             .ReturnsAsync(entity);
 
         // Act
@@ -60,7 +60,7 @@ public class GetBankStatementByIdHandlerTests
     {
         // Arrange
         _repository
-            .Setup(r => r.GetByIdAsync(99999))
+            .Setup(r => r.GetByIdAsync(99999, It.IsAny<CancellationToken>()))
             .ReturnsAsync((BankStatementImport?)null);
 
         // Act
@@ -75,14 +75,14 @@ public class GetBankStatementByIdHandlerTests
     {
         // Arrange
         _repository
-            .Setup(r => r.GetByIdAsync(It.IsAny<int>()))
+            .Setup(r => r.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((BankStatementImport?)null);
 
         // Act
         await _handler.Handle(new GetBankStatementByIdRequest { Id = 123 }, CancellationToken.None);
 
         // Assert
-        _repository.Verify(r => r.GetByIdAsync(123), Times.Once);
+        _repository.Verify(r => r.GetByIdAsync(123, It.IsAny<CancellationToken>()), Times.Once);
         _repository.VerifyNoOtherCalls();
     }
 
@@ -97,7 +97,7 @@ public class GetBankStatementByIdHandlerTests
             ItemCount = 3,
             ImportResult = "PROCESSING_ERROR"
         };
-        _repository.Setup(r => r.GetByIdAsync(7)).ReturnsAsync(entity);
+        _repository.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
 
         // Act
         var fromHandler = await _handler.Handle(new GetBankStatementByIdRequest { Id = 7 }, CancellationToken.None);

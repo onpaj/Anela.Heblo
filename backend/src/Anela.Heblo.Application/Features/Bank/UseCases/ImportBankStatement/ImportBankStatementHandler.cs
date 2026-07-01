@@ -183,7 +183,7 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
         // trigger a second insert, which would poison the shared DbContext change tracker.
         var saved = isRetry
             ? await UpsertExistingAsync(statement, accountSetting, itemCount, resultStatus, cancellationToken)
-            : await InsertNewAsync(statement, accountSetting, itemCount, resultStatus);
+            : await InsertNewAsync(statement, accountSetting, itemCount, resultStatus, cancellationToken);
 
         _logger.LogInformation("Processed statement {StatementId} with result: {Result}",
             statement.StatementId, resultStatus);
@@ -194,7 +194,8 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
         BankStatementHeader statement,
         BankAccountConfiguration accountSetting,
         int itemCount,
-        string resultStatus)
+        string resultStatus,
+        CancellationToken cancellationToken)
     {
         var import = new BankStatementImport(statement.StatementId, statement.Date)
         {
@@ -203,7 +204,7 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
             ItemCount = itemCount,
             ImportResult = resultStatus,
         };
-        return await _repository.AddAsync(import);
+        return await _repository.AddAsync(import, cancellationToken);
     }
 
     private async Task<BankStatementImport> UpsertExistingAsync(
@@ -215,11 +216,11 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
     {
         var existing = await _repository.GetByTransferIdAsync(statement.StatementId, cancellationToken);
         if (existing == null)
-            return await InsertNewAsync(statement, accountSetting, itemCount, resultStatus);
+            return await InsertNewAsync(statement, accountSetting, itemCount, resultStatus, cancellationToken);
 
         existing.Account = accountSetting.Name;
         existing.Currency = accountSetting.Currency;
         existing.UpdateImportOutcome(itemCount, resultStatus);
-        return await _repository.UpdateAsync(existing);
+        return await _repository.UpdateAsync(existing, cancellationToken);
     }
 }
