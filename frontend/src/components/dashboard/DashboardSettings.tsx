@@ -57,10 +57,10 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-6 bg-gray-200 dark:bg-graphite-hover rounded w-1/3"></div>
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="h-16 bg-gray-200 dark:bg-graphite-hover rounded"></div>
             ))}
           </div>
         </div>
@@ -138,7 +138,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ onClose }) => {
                 className={`
                   p-4 rounded-lg border transition-all
                   ${isEnabled ? 'border-green-200 dark:border-emerald-400/30 bg-green-50 dark:bg-emerald-400/15' : 'border-gray-200 dark:border-graphite-border bg-white dark:bg-graphite-surface'}
-                  ${isNew ? 'ring-2 ring-blue-200' : ''}
+                  ${isNew ? 'ring-2 ring-blue-200 dark:ring-graphite-accent' : ''}
                 `}
               >
                 <div className="flex items-center justify-between">
