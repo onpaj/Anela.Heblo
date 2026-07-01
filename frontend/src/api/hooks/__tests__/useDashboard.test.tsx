@@ -13,13 +13,14 @@ import {
 // Import the mocked client module
 import * as clientModule from '../../client';
 
-// Mock the API client
-const mockFetch = jest.fn();
+// Mock the API client — mock the six typed methods the hooks call directly
 const mockApiClient = {
-  baseUrl: 'http://localhost:5001',
-  http: {
-    fetch: mockFetch
-  }
+  dashboard_GetAvailableTiles: jest.fn(),
+  dashboard_GetUserSettings: jest.fn(),
+  dashboard_GetTileData: jest.fn(),
+  dashboard_SaveUserSettings: jest.fn(),
+  dashboard_EnableTile: jest.fn(),
+  dashboard_DisableTile: jest.fn(),
 };
 
 jest.mock('../../client');
@@ -46,8 +47,7 @@ const createWrapper = () => {
 describe('useDashboard hooks', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFetch.mockClear();
-    
+
     // Set up the mock implementation
     (clientModule.getAuthenticatedApiClient as jest.Mock).mockReturnValue(mockApiClient);
   });
@@ -67,9 +67,7 @@ describe('useDashboard hooks', () => {
         }
       ];
 
-      mockFetch.mockResolvedValueOnce({
-        json: jest.fn().mockResolvedValue(mockTiles)
-      });
+      mockApiClient.dashboard_GetAvailableTiles.mockResolvedValueOnce(mockTiles);
 
       const { result } = renderHook(() => useAvailableTiles(), {
         wrapper: createWrapper()
@@ -77,14 +75,12 @@ describe('useDashboard hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:5001/api/dashboard/tiles', {
-        method: 'GET'
-      });
+      expect(mockApiClient.dashboard_GetAvailableTiles).toHaveBeenCalledWith();
       expect(result.current.data).toEqual(mockTiles);
     });
 
     it('should handle fetch error', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      mockApiClient.dashboard_GetAvailableTiles.mockRejectedValueOnce(new Error('Network error'));
 
       const { result } = renderHook(() => useAvailableTiles(), {
         wrapper: createWrapper()
@@ -101,14 +97,10 @@ describe('useDashboard hooks', () => {
         tiles: [
           { tileId: 'tile-1', isVisible: true, displayOrder: 0 }
         ],
-        lastModified: '2024-01-01T00:00:00Z'
+        lastModified: new Date('2024-01-01T00:00:00Z')
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: jest.fn().mockResolvedValue(mockSettings)
-      });
+      mockApiClient.dashboard_GetUserSettings.mockResolvedValueOnce(mockSettings);
 
       const { result } = renderHook(() => useUserDashboardSettings(), {
         wrapper: createWrapper()
@@ -116,14 +108,15 @@ describe('useDashboard hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:5001/api/dashboard/settings', {
-        method: 'GET'
+      expect(mockApiClient.dashboard_GetUserSettings).toHaveBeenCalledWith();
+      expect(result.current.data).toEqual({
+        tiles: [{ tileId: 'tile-1', isVisible: true, displayOrder: 0 }],
+        lastModified: '2024-01-01T00:00:00.000Z'
       });
-      expect(result.current.data).toEqual(mockSettings);
     });
 
     it('should handle settings fetch error', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Unauthorized'));
+      mockApiClient.dashboard_GetUserSettings.mockRejectedValueOnce(new Error('Unauthorized'));
 
       const { result } = renderHook(() => useUserDashboardSettings(), {
         wrapper: createWrapper()
@@ -131,6 +124,19 @@ describe('useDashboard hooks', () => {
 
       await waitFor(() => expect(result.current.isError).toBe(true));
       expect(result.current.error).toBeDefined();
+    });
+
+    it('should return empty fallback settings on 403 Forbidden', async () => {
+      mockApiClient.dashboard_GetUserSettings.mockRejectedValueOnce({ status: 403 });
+
+      const { result } = renderHook(() => useUserDashboardSettings(), {
+        wrapper: createWrapper()
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(result.current.data?.tiles).toEqual([]);
+      expect(typeof result.current.data?.lastModified).toBe('string');
     });
   });
 
@@ -150,11 +156,7 @@ describe('useDashboard hooks', () => {
         }
       ];
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: jest.fn().mockResolvedValue(mockTileData)
-      });
+      mockApiClient.dashboard_GetTileData.mockResolvedValueOnce(mockTileData);
 
       const { result } = renderHook(() => useTileData(), {
         wrapper: createWrapper()
@@ -162,10 +164,20 @@ describe('useDashboard hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:5001/api/dashboard/data', {
-        method: 'GET'
-      });
+      expect(mockApiClient.dashboard_GetTileData).toHaveBeenCalledWith(undefined);
       expect(result.current.data).toEqual(mockTileData);
+    });
+
+    it('should return empty array fallback on 403 Forbidden', async () => {
+      mockApiClient.dashboard_GetTileData.mockRejectedValueOnce({ status: 403 });
+
+      const { result } = renderHook(() => useTileData(), {
+        wrapper: createWrapper()
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(result.current.data).toEqual([]);
     });
 
     it('should have refetch interval set', () => {
@@ -181,7 +193,7 @@ describe('useDashboard hooks', () => {
 
   describe('useSaveDashboardSettings', () => {
     it('should save dashboard settings successfully', async () => {
-      mockFetch.mockResolvedValueOnce({ ok: true });
+      mockApiClient.dashboard_SaveUserSettings.mockResolvedValueOnce({});
 
       const { result } = renderHook(() => useSaveDashboardSettings(), {
         wrapper: createWrapper()
@@ -197,15 +209,15 @@ describe('useDashboard hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:5001/api/dashboard/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settingsToSave)
-      });
+      expect(mockApiClient.dashboard_SaveUserSettings).toHaveBeenCalledTimes(1);
+      const calledWith = mockApiClient.dashboard_SaveUserSettings.mock.calls[0][0];
+      expect(calledWith.tiles).toEqual([
+        { tileId: 'tile-1', isVisible: true, displayOrder: 0 }
+      ]);
     });
 
     it('should handle save error', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Save failed'));
+      mockApiClient.dashboard_SaveUserSettings.mockRejectedValueOnce(new Error('Save failed'));
 
       const { result } = renderHook(() => useSaveDashboardSettings(), {
         wrapper: createWrapper()
@@ -222,7 +234,7 @@ describe('useDashboard hooks', () => {
 
   describe('useEnableTile', () => {
     it('should enable tile successfully', async () => {
-      mockFetch.mockResolvedValueOnce({ ok: true });
+      mockApiClient.dashboard_EnableTile.mockResolvedValueOnce({});
 
       const { result } = renderHook(() => useEnableTile(), {
         wrapper: createWrapper()
@@ -233,13 +245,11 @@ describe('useDashboard hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith(`http://localhost:5001/api/dashboard/tiles/${tileId}/enable`, {
-        method: 'POST'
-      });
+      expect(mockApiClient.dashboard_EnableTile).toHaveBeenCalledWith(tileId);
     });
 
     it('should handle enable error', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Enable failed'));
+      mockApiClient.dashboard_EnableTile.mockRejectedValueOnce(new Error('Enable failed'));
 
       const { result } = renderHook(() => useEnableTile(), {
         wrapper: createWrapper()
@@ -252,7 +262,7 @@ describe('useDashboard hooks', () => {
     });
 
     it('should handle tile ID with special characters', async () => {
-      mockFetch.mockResolvedValueOnce({ ok: true });
+      mockApiClient.dashboard_EnableTile.mockResolvedValueOnce({});
 
       const { result } = renderHook(() => useEnableTile(), {
         wrapper: createWrapper()
@@ -263,16 +273,13 @@ describe('useDashboard hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        `http://localhost:5001/api/dashboard/tiles/${specialTileId}/enable`,
-        { method: 'POST' }
-      );
+      expect(mockApiClient.dashboard_EnableTile).toHaveBeenCalledWith(specialTileId);
     });
   });
 
   describe('useDisableTile', () => {
     it('should disable tile successfully', async () => {
-      mockFetch.mockResolvedValueOnce({ ok: true });
+      mockApiClient.dashboard_DisableTile.mockResolvedValueOnce({});
 
       const { result } = renderHook(() => useDisableTile(), {
         wrapper: createWrapper()
@@ -283,13 +290,11 @@ describe('useDashboard hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith(`http://localhost:5001/api/dashboard/tiles/${tileId}/disable`, {
-        method: 'POST'
-      });
+      expect(mockApiClient.dashboard_DisableTile).toHaveBeenCalledWith(tileId);
     });
 
     it('should handle disable error', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Disable failed'));
+      mockApiClient.dashboard_DisableTile.mockRejectedValueOnce(new Error('Disable failed'));
 
       const { result } = renderHook(() => useDisableTile(), {
         wrapper: createWrapper()
@@ -302,13 +307,12 @@ describe('useDashboard hooks', () => {
     });
   });
 
-  describe('API URL construction', () => {
-    it('should construct correct URLs with baseUrl', async () => {
-      mockFetch.mockResolvedValue({
-        json: jest.fn().mockResolvedValue([])
-      });
+  describe('typed client method calls', () => {
+    it('should call the correct typed read methods with no arguments (except useTileData)', async () => {
+      mockApiClient.dashboard_GetAvailableTiles.mockResolvedValue([]);
+      mockApiClient.dashboard_GetUserSettings.mockResolvedValue({ tiles: [], lastModified: new Date() });
+      mockApiClient.dashboard_GetTileData.mockResolvedValue([]);
 
-      // Test all hooks to verify URL construction
       const hooks = [
         () => useAvailableTiles(),
         () => useUserDashboardSettings(),
@@ -325,15 +329,15 @@ describe('useDashboard hooks', () => {
         });
       }
 
-      // Verify all URLs start with the baseUrl
-      const calls = mockFetch.mock.calls;
-      calls.forEach(call => {
-        expect(call[0]).toMatch(/^http:\/\/localhost:5001\/api\/dashboard/);
-      });
+      expect(mockApiClient.dashboard_GetAvailableTiles).toHaveBeenCalledWith();
+      expect(mockApiClient.dashboard_GetUserSettings).toHaveBeenCalledWith();
+      expect(mockApiClient.dashboard_GetTileData).toHaveBeenCalledWith(undefined);
     });
 
-    it('should handle mutations with correct URLs', async () => {
-      mockFetch.mockResolvedValue({ ok: true });
+    it('should call the correct typed mutation methods with the right arguments', async () => {
+      mockApiClient.dashboard_SaveUserSettings.mockResolvedValue({});
+      mockApiClient.dashboard_EnableTile.mockResolvedValue({});
+      mockApiClient.dashboard_DisableTile.mockResolvedValue({});
 
       const { result: saveResult } = renderHook(() => useSaveDashboardSettings(), {
         wrapper: createWrapper()
@@ -347,7 +351,6 @@ describe('useDashboard hooks', () => {
         wrapper: createWrapper()
       });
 
-      // Test mutations
       saveResult.current.mutate({ tiles: [] });
       enableResult.current.mutate('test-tile');
       disableResult.current.mutate('test-tile');
@@ -358,11 +361,9 @@ describe('useDashboard hooks', () => {
         expect(disableResult.current.isSuccess || disableResult.current.isLoading).toBe(true);
       });
 
-      // Verify mutation URLs
-      const mutationCalls = mockFetch.mock.calls.slice(-3);
-      expect(mutationCalls[0][0]).toBe('http://localhost:5001/api/dashboard/settings');
-      expect(mutationCalls[1][0]).toBe('http://localhost:5001/api/dashboard/tiles/test-tile/enable');
-      expect(mutationCalls[2][0]).toBe('http://localhost:5001/api/dashboard/tiles/test-tile/disable');
+      expect(mockApiClient.dashboard_SaveUserSettings).toHaveBeenCalledTimes(1);
+      expect(mockApiClient.dashboard_EnableTile).toHaveBeenCalledWith('test-tile');
+      expect(mockApiClient.dashboard_DisableTile).toHaveBeenCalledWith('test-tile');
     });
   });
 });
