@@ -21,16 +21,16 @@
       "updated_at": "2026-07-01T09:26:43.970351Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-01T09:27:46.249111Z"
     }
   },
   "tasks": [
     {
       "name": "backend-surface-import-counts",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-01T09:27:46.453596Z"
     },
     {
       "name": "frontend-surface-import-outcome",

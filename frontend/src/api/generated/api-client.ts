@@ -16376,6 +16376,11 @@ export interface IBankAccountDto {
 
 export class BankStatementImportResultDto implements IBankStatementImportResultDto {
     statements?: BankStatementImportDto[];
+    successCount?: number;
+    errorCount?: number;
+    skippedCount?: number;
+    totalCount?: number;
+    hasErrors?: boolean;
 
     constructor(data?: IBankStatementImportResultDto) {
         if (data) {
@@ -16393,6 +16398,11 @@ export class BankStatementImportResultDto implements IBankStatementImportResultD
                 for (let item of _data["statements"])
                     this.statements!.push(BankStatementImportDto.fromJS(item));
             }
+            this.successCount = _data["successCount"];
+            this.errorCount = _data["errorCount"];
+            this.skippedCount = _data["skippedCount"];
+            this.totalCount = _data["totalCount"];
+            this.hasErrors = _data["hasErrors"];
         }
     }
 
@@ -16410,12 +16420,22 @@ export class BankStatementImportResultDto implements IBankStatementImportResultD
             for (let item of this.statements)
                 data["statements"].push(item.toJSON());
         }
+        data["successCount"] = this.successCount;
+        data["errorCount"] = this.errorCount;
+        data["skippedCount"] = this.skippedCount;
+        data["totalCount"] = this.totalCount;
+        data["hasErrors"] = this.hasErrors;
         return data;
     }
 }
 
 export interface IBankStatementImportResultDto {
     statements?: BankStatementImportDto[];
+    successCount?: number;
+    errorCount?: number;
+    skippedCount?: number;
+    totalCount?: number;
+    hasErrors?: boolean;
 }
 
 export class BankStatementImportDto implements IBankStatementImportDto {
