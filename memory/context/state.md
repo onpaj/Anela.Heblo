@@ -27,6 +27,14 @@ _Update this file at the end of significant sessions._
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
 - Database migrations are manual (not automated in deployment)
+- `chopchop`/`oneshot` pipeline (2026-07-01): PR #3451 opened for issue #3445
+  (`feature/3445-Arch-Review-Bank-Getbyidasync-Addasync-Updateasync`, worktree at
+  `../worktrees/feature-3445-Arch-Review-Bank-Getbyidasync-Addasync-Updateasync`) —
+  add `CancellationToken` to `IBankStatementImportRepository`. Full pipeline ran
+  manually (analyst→architect→designer→planner→developer→reviewer→code-review)
+  since `gh` CLI is unauthenticated in this cloud session — see
+  `memory/gotchas/gh-cli-broken-use-github-mcp-tools.md` for the MCP-tool
+  workarounds. Awaiting human review/merge.
 
 ## Key Infrastructure Notes
 
