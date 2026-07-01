@@ -34,15 +34,15 @@
     },
     {
       "name": "update-tests-for-typed-client-methods",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-01T07:33:39.428425Z"
+      "updated_at": "2026-07-01T07:40:03.341614Z"
     },
     {
       "name": "build-and-lint-verification",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-01T07:40:07.618528Z"
     }
   ]
 }
