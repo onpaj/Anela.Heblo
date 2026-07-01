@@ -49,7 +49,10 @@ public class BankStatementsController : BaseApiController
 
         var result = new BankStatementImportResultDto
         {
-            Statements = response.Statements
+            Statements = response.Statements,
+            SuccessCount = response.SuccessCount,
+            ErrorCount = response.ErrorCount,
+            SkippedCount = response.SkippedCount,
         };
 
         return Ok(result);
