@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3410",
+  "issue_number": 3410,
+  "created_at": "2026-06-29T12:15:07.447097Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-29T12:18:57.694980Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-29T12:21:16.086966Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-29T12:21:46.546508Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-29T12:22:14.779696Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-29T12:28:14.829271Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-06-29T12:31:02.241915Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-reserve-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-29T12:28:14.619603Z"
+    }
+  ]
+}
