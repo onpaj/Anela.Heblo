@@ -121,25 +121,30 @@ jobs:
           FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
           FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
 
+      - name: 🔀 Merge coverage reports
+        run: |
+          dotnet tool update --global dotnet-reportgenerator-globaltool --version 5.4.3
+          export PATH="$HOME/.dotnet/tools:$PATH"
+          reportgenerator \
+            -reports:"coverage/**/*.cobertura.xml" \
+            -targetdir:"coverage/merged" \
+            -reporttypes:Cobertura
+
       - name: 📊 Process coverage files for CodeCov
         run: |
-          # Find all coverage.cobertura.xml files and fix paths for CodeCov
-          find ./coverage -name "coverage.cobertura.xml" -type f | while read file; do
-            sed -i 's|filename="|filename="backend/src/|g' "$file"
-          done
-
-          # Verify coverage files exist
-          COVERAGE_COUNT=$(find ./coverage -name "coverage.cobertura.xml" -type f | wc -l)
-          if [ "$COVERAGE_COUNT" -eq "0" ]; then
-            echo "❌ ERROR: No coverage files found!"
+          # Verify merged coverage file exists before processing
+          if [ ! -f coverage/merged/Cobertura.xml ]; then
+            echo "❌ ERROR: Merged coverage file not found!"
             exit 1
           fi
+
+          # Fix paths in merged file for CodeCov
+          sed -i 's|filename="|filename="backend/src/|g' coverage/merged/Cobertura.xml
 
       - name: 📊 Prepare coverage file list
         id: coverage-files
         run: |
-          COVERAGE_FILES=$(find ./coverage -name "coverage.cobertura.xml" -type f | tr '\n' ',' | sed 's/,$//')
-          echo "files=$COVERAGE_FILES" >> $GITHUB_OUTPUT
+          echo "files=coverage/merged/Cobertura.xml" >> $GITHUB_OUTPUT
 
       - name: 📊 Upload coverage reports
         uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3
@@ -156,7 +161,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-backend
-          path: coverage/**/*.cobertura.xml
+          path: |
+            coverage/**/*.cobertura.xml
+            coverage/merged/Cobertura.xml
           retention-days: 7
 
       - name: 📋 Backend Test Report

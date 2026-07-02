@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.DataQuality;
@@ -10,7 +10,7 @@ public class ProductPairingDqtComparer : IDriftDqtComparer
 {
     private readonly IEshopStockClient _eshopStockClient;
     private readonly IErpStockClient _erpStockClient;
-    private readonly ICatalogResilienceService _resilienceService;
+    private readonly IDqtResilienceService _resilienceService;
     private readonly ILogger<ProductPairingDqtComparer> _logger;
 
     public DqtTestType TestType => DqtTestType.ProductPairing;
@@ -18,7 +18,7 @@ public class ProductPairingDqtComparer : IDriftDqtComparer
     public ProductPairingDqtComparer(
         IEshopStockClient eshopStockClient,
         IErpStockClient erpStockClient,
-        ICatalogResilienceService resilienceService,
+        IDqtResilienceService resilienceService,
         ILogger<ProductPairingDqtComparer> logger)
     {
         _eshopStockClient = eshopStockClient;

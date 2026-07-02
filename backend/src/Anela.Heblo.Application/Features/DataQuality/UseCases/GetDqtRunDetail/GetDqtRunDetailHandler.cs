@@ -45,16 +45,21 @@ public class GetDqtRunDetailHandler : IRequestHandler<GetDqtRunDetailRequest, Ge
                 };
             }
 
-            var (driftItems, driftTotal) = await _repository.GetDriftResultsAsync(
-                run.Id, request.ResultPage, request.ResultPageSize, cancellationToken);
-
-            return new GetDqtRunDetailResponse
+            if (run.TestType is DqtTestType.ProductPairing or DqtTestType.StockWriteBackReconciliation)
             {
-                Success = true,
-                Run = _mapper.Map<DqtRunDto>(run),
-                DriftResults = _mapper.Map<List<DqtDriftResultDto>>(driftItems),
-                TotalDriftResults = driftTotal
-            };
+                var (driftItems, driftTotal) = await _repository.GetDriftResultsAsync(
+                    run.Id, request.ResultPage, request.ResultPageSize, cancellationToken);
+
+                return new GetDqtRunDetailResponse
+                {
+                    Success = true,
+                    Run = _mapper.Map<DqtRunDto>(run),
+                    DriftResults = _mapper.Map<List<DqtDriftResultDto>>(driftItems),
+                    TotalDriftResults = driftTotal
+                };
+            }
+
+            throw new NotSupportedException($"No result-shaping logic registered for DqtTestType {run.TestType}");
         }
         catch (Exception ex)
         {
@@ -62,7 +67,7 @@ public class GetDqtRunDetailHandler : IRequestHandler<GetDqtRunDetailRequest, Ge
             return new GetDqtRunDetailResponse
             {
                 Success = false,
-                ErrorCode = ErrorCodes.Exception
+                ErrorCode = ex is NotSupportedException ? ErrorCodes.DqtUnsupportedTestType : ErrorCodes.Exception
             };
         }
     }

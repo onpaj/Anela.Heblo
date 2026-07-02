@@ -269,6 +269,7 @@ const resources = {
         // Shoptet data drift errors
         DqtProductPairingFailed: "Chyba při párování produktů: {{details}}",
         DqtStockWriteBackFailed: "Chyba zpětného zápisu skladu: {{details}}",
+        DqtUnsupportedTestType: "Nepodporovaný typ testu kvality dat.",
 
         // Weather forecast errors
         WeatherForecastUnavailable: "Předpověď počasí je momentálně nedostupná.",
@@ -428,6 +429,7 @@ const resources = {
         DqtRunNotFound: "Data quality test run not found (ID: {{runId}})",
         DqtInvalidDateRange: "Invalid date range: DateFrom must be before or equal to DateTo",
         DqtExternalServiceError: "External service error during data quality test: {{service}}",
+        DqtUnsupportedTestType: "Unsupported data quality test type.",
 
         // Shoptet data drift errors
         DqtProductPairingFailed: "Product pairing failed: {{details}}",
