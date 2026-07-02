@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Bank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Shared;
+using Microsoft.Extensions.Logging;
 using AutoMapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -363,5 +364,138 @@ public class ImportBankStatementHandlerTests
         // The failure is still recorded on the watermark state.
         _mockStateRepository.Verify(r => r.UpsertAsync(It.IsAny<BankImportState>(), It.IsAny<CancellationToken>()), Times.Once);
         captured!.LastRunStatus.Should().Be(BankImportState.StatusError);
+    }
+
+    [Fact]
+    public async Task Handle_LogsStaleWarning_WhenWatermarkIsStale()
+    {
+        var from = new DateTime(2026, 6, 10);
+        var to = new DateTime(2026, 6, 10);
+        var request = new ImportBankStatementRequest("ComgateCZK", from, to);
+        var existingState = new BankImportState("ComgateCZK");
+        // 10 days ago; default StaleWarningDays = 3, so 10 > 3 triggers the warning.
+        existingState.RecordSuccess(DateTime.UtcNow.AddDays(-10), DateTime.UtcNow, DateTime.UtcNow);
+
+        _mockStateRepository
+            .Setup(r => r.GetByAccountAsync("ComgateCZK", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingState);
+        _mockBankClient.Setup(x => x.GetStatementsAsync("123456789", from, to))
+            .ReturnsAsync(new List<BankStatementHeader>());
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("stale")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotLogWarning_WhenWatermarkIsFresh()
+    {
+        var from = new DateTime(2026, 6, 10);
+        var to = new DateTime(2026, 6, 10);
+        var request = new ImportBankStatementRequest("ComgateCZK", from, to);
+        var existingState = new BankImportState("ComgateCZK");
+        // 1 day ago; default StaleWarningDays = 3, so 1 ≤ 3 → no warning.
+        existingState.RecordSuccess(DateTime.UtcNow.AddDays(-1), DateTime.UtcNow, DateTime.UtcNow);
+
+        _mockStateRepository
+            .Setup(r => r.GetByAccountAsync("ComgateCZK", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingState);
+        _mockBankClient.Setup(x => x.GetStatementsAsync("123456789", from, to))
+            .ReturnsAsync(new List<BankStatementHeader>());
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("stale")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_FallsBackToInsert_WhenRetryStatementNotFoundInDb()
+    {
+        var from = new DateTime(2026, 6, 10);
+        var to = new DateTime(2026, 6, 10);
+        var request = new ImportBankStatementRequest("ComgateCZK", from, to);
+
+        _mockBankClient.Setup(x => x.GetStatementsAsync("123456789", from, to))
+            .ReturnsAsync(new List<BankStatementHeader>
+            {
+                new BankStatementHeader { StatementId = "RETRY", Date = from },
+            });
+        // existingTransfers reports the statement as a prior failure → isRetry = true.
+        _mockRepository.Setup(r => r.GetExistingResultsByTransferIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["RETRY"] = $"{ImportStatus.ProcessingError}: old" });
+        _mockBankClient.Setup(x => x.GetStatementAsync("RETRY"))
+            .ReturnsAsync(new BankStatementData { Data = "abo", ItemCount = 1 });
+        _mockImportService.Setup(x => x.ImportStatementAsync(1, "abo"))
+            .ReturnsAsync(Result<bool>.Success(true));
+        // DB row is absent despite isRetry — UpsertExistingAsync falls back to InsertNewAsync.
+        _mockRepository.Setup(r => r.GetByTransferIdAsync("RETRY", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BankStatementImport?)null);
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<BankStatementImport>()))
+            .ReturnsAsync((BankStatementImport b) => b);
+        _mockMapper.Setup(m => m.Map<Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto>(
+                It.IsAny<BankStatementImport>()))
+            .Returns(new Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto
+            {
+                TransferId = "RETRY",
+                ImportResult = ImportStatus.Success,
+            });
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.SuccessCount.Should().Be(1);
+        _mockRepository.Verify(r => r.AddAsync(It.IsAny<BankStatementImport>()), Times.Once);
+        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<BankStatementImport>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_RecordsImportServiceError_WhenImportServiceReturnsFailed()
+    {
+        var from = new DateTime(2026, 6, 10);
+        var to = new DateTime(2026, 6, 10);
+        var request = new ImportBankStatementRequest("ComgateCZK", from, to);
+        BankStatementImport? captured = null;
+
+        _mockBankClient.Setup(x => x.GetStatementsAsync("123456789", from, to))
+            .ReturnsAsync(new List<BankStatementHeader>
+            {
+                new BankStatementHeader { StatementId = "ERR", Date = from },
+            });
+        _mockRepository.Setup(r => r.GetExistingResultsByTransferIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        _mockBankClient.Setup(x => x.GetStatementAsync("ERR"))
+            .ReturnsAsync(new BankStatementData { Data = "abo", ItemCount = 1 });
+        // Import service returns a business-level failure (not an exception).
+        _mockImportService.Setup(x => x.ImportStatementAsync(1, "abo"))
+            .ReturnsAsync(Result<bool>.Failure("import-error"));
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<BankStatementImport>()))
+            .Callback<BankStatementImport>(b => captured = b)
+            .ReturnsAsync((BankStatementImport b) => b);
+        _mockMapper.Setup(m => m.Map<Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto>(
+                It.IsAny<BankStatementImport>()))
+            .Returns(new Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto
+            {
+                TransferId = "ERR",
+                ImportResult = "import-error",
+            });
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.ErrorCount.Should().Be(1);
+        response.SuccessCount.Should().Be(0);
+        captured!.ImportResult.Should().Be("import-error");
     }
 }

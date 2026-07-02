@@ -148,13 +148,11 @@ public class ModuleBoundariesTests
     // adapter that surfaces eshop/erp product snapshots without leaking Catalog types.
     private static readonly HashSet<string> DataQualityCatalogAllowlist = new(StringComparer.Ordinal)
     {
-        // ProductPairingDqtComparer reads eshop/erp catalog clients to compare product pairing,
-        // wrapped in ICatalogResilienceService for transient-fault protection.
+        // ProductPairingDqtComparer reads eshop/erp catalog clients to compare product pairing.
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.IEshopStockClient",
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.IErpStockClient",
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStock",
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.ProductType",
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Application.Features.Catalog.Infrastructure.ICatalogResilienceService",
 
         // Compiler-generated async state machines and lambdas for CompareAsync capture EshopStock.
         // The declaring-type check covers nested types (<CompareAsync>d__6, <<CompareAsync>b__6_1>d)
@@ -619,6 +617,17 @@ public class ModuleBoundariesTests
             },
             Allowlist: ShoptetApiAdaptersLogisticsAllowlist,
             InspectedAssembly: "Anela.Heblo.Adapters.ShoptetApi"),
+
+        new ModuleBoundaryRule(
+            Name: "FinancialOverview -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.FinancialOverview",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
     };
 
     [Theory]

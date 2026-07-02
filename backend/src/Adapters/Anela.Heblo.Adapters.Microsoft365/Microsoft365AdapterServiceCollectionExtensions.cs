@@ -3,7 +3,7 @@ using Anela.Heblo.Adapters.Microsoft365.UserManagement;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.UserManagement.Services;
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,8 +15,8 @@ public static class Microsoft365AdapterServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var useMockAuth = configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, false);
-        var bypassJwt = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, false);
+        var useMockAuth = configuration.GetValue<bool>(InfrastructureConfigurationKeys.USE_MOCK_AUTH, false);
+        var bypassJwt = configuration.GetValue<bool>(InfrastructureConfigurationKeys.BYPASS_JWT_VALIDATION, false);
 
         if (useMockAuth || bypassJwt)
         {

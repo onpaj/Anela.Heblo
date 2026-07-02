@@ -22,6 +22,7 @@ using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.FinancialOverview;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.Services;
@@ -60,6 +61,8 @@ public static class CatalogModule
         // DataQuality owns the query contracts; Catalog (this module) provides the adapter implementations.
         services.AddScoped<IStockOperationQuery, DataQualityStockOperationQueryAdapter>();
         services.AddScoped<IStockTakingQuery, DataQualityStockTakingQueryAdapter>();
+        // DataQuality owns the resilience contract; Catalog (this module) provides the adapter implementation.
+        services.AddScoped<IDqtResilienceService, DataQualityResilienceAdapter>();
 
         // Cross-module contract: Catalog implements Manufacture's IManufactureCatalogSource via adapter.
         // DI registration is owned by the provider (Catalog), not the consumer (Manufacture).
@@ -68,6 +71,10 @@ public static class CatalogModule
         // Cross-module contract: Catalog implements ShoptetOrders' IPackingProductSource via adapter.
         // DI registration is owned by the provider (Catalog), not the consumer (ShoptetOrders).
         services.AddTransient<IPackingProductSource, CatalogPackingProductSourceAdapter>();
+
+        // Cross-module contract: Catalog implements FinancialOverview's IStockValueService via adapter.
+        // DI registration is owned by the provider (Catalog), not the consumer (FinancialOverview).
+        services.AddScoped<IStockValueService, FinancialOverviewStockValueAdapter>();
 
         // Register cost repositories
         services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.DataQuality.Services;
 
-public class DriftDqtJobRunner : IDriftDqtJobRunner
+public class DriftDqtJobRunner : IDriftDqtJobRunner, IDqtJobRunner
 {
     private readonly IDqtRunRepository _repository;
     private readonly IEnumerable<IDriftDqtComparer> _comparers;
@@ -18,6 +18,8 @@ public class DriftDqtJobRunner : IDriftDqtJobRunner
         _comparers = comparers;
         _logger = logger;
     }
+
+    public bool CanHandle(DqtTestType testType) => _comparers.Any(c => c.TestType == testType);
 
     public async Task RunAsync(Guid runId, CancellationToken ct = default)
     {

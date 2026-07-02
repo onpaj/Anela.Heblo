@@ -244,6 +244,8 @@ public enum ErrorCodes
     DqtInvalidDateRange = 2202,
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     DqtExternalServiceError = 2203,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    DqtUnsupportedTestType = 2204,
 
     // Marketing Calendar errors (23XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
