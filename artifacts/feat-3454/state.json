@@ -21,16 +21,16 @@
       "updated_at": "2026-07-02T05:26:50.323071Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-02T05:27:28.035864Z"
     }
   },
   "tasks": [
     {
       "name": "create-dqt-resilience-contract-and-adapter",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-02T05:27:28.252774Z"
     },
     {
       "name": "switch-product-pairing-comparer-to-dqt-resilience-contract",
