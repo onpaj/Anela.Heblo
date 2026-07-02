@@ -64,4 +64,25 @@ public class GetDqtRunDetailHandlerTests
         Assert.Equal(run.Id, response.Run.Id);
         Assert.Null(response.ErrorCode);
     }
+
+    [Fact]
+    public async Task Handle_UnrecognizedTestType_ReturnsUnsupportedTestTypeError()
+    {
+        // (DqtTestType)999 is an explicit out-of-range cast — no such DqtTestType value exists
+        // today. This is the standard way to test an enum-dispatch fail-fast path without
+        // modifying the DqtTestType enum itself.
+        var run = DqtRun.Start((DqtTestType)999, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual);
+
+        _repositoryMock
+            .Setup(r => r.GetWithResultsAsync(run.Id, 1, 50, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+
+        var request = new GetDqtRunDetailRequest { Id = run.Id };
+
+        var response = await _sut.Handle(request, CancellationToken.None);
+
+        Assert.False(response.Success);
+        Assert.Equal(ErrorCodes.DqtUnsupportedTestType, response.ErrorCode);
+        Assert.Null(response.Run);
+    }
 }
