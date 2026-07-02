@@ -60,6 +60,8 @@ public static class CatalogModule
         // DataQuality owns the query contracts; Catalog (this module) provides the adapter implementations.
         services.AddScoped<IStockOperationQuery, DataQualityStockOperationQueryAdapter>();
         services.AddScoped<IStockTakingQuery, DataQualityStockTakingQueryAdapter>();
+        // DataQuality owns the resilience contract; Catalog (this module) provides the adapter implementation.
+        services.AddScoped<IDqtResilienceService, DataQualityResilienceAdapter>();
 
         // Cross-module contract: Catalog implements Manufacture's IManufactureCatalogSource via adapter.
         // DI registration is owned by the provider (Catalog), not the consumer (Manufacture).
