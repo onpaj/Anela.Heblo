@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Application.Features.DataQuality.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.DataQuality;
@@ -12,7 +12,7 @@ public class ProductPairingDqtComparerTests
 {
     private readonly Mock<IEshopStockClient> _eshopMock = new();
     private readonly Mock<IErpStockClient> _erpMock = new();
-    private readonly Mock<ICatalogResilienceService> _resilienceMock = new();
+    private readonly Mock<IDqtResilienceService> _resilienceMock = new();
     private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.Today);
 
     public ProductPairingDqtComparerTests()

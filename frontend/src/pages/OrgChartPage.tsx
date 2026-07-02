@@ -10,6 +10,7 @@ import {
   Position,
   OrganizationData,
 } from './orgChartUtils';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface PositionRect {
   id: string;
@@ -21,6 +22,8 @@ interface PositionRect {
 
 const OrgChartPage: React.FC = () => {
   useScreenView('Admin', 'OrgChart');
+
+  const { theme } = useTheme();
 
   // Fetch organization data from backend
   const { data: orgChartResponse, isLoading, error: queryError } = useOrgChart();
@@ -188,7 +191,7 @@ const OrgChartPage: React.FC = () => {
     const filteredPositionIds = new Set(filteredPositions.map((p) => p.id));
 
     // Connector lines must stay visible in dark mode; the light slate stroke would vanish
-    const isDarkMode = document.documentElement.classList.contains('dark');
+    const isDarkMode = theme === 'dark';
     const connectorStroke = isDarkMode ? '#3C424B' : '#94a3b8';
 
     filteredPositions.forEach((position) => {

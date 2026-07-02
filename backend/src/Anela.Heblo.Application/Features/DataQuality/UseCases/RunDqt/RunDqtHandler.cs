@@ -46,16 +46,11 @@ public class RunDqtHandler : IRequestHandler<RunDqtRequest, RunDqtResponse>
             _ = Task.Run(async () =>
             {
                 using var scope = _scopeFactory.CreateScope();
-                if (request.TestType == DqtTestType.IssuedInvoiceComparison)
-                {
-                    var runner = scope.ServiceProvider.GetRequiredService<IInvoiceDqtJobRunner>();
-                    await runner.RunAsync(run.Id);
-                }
-                else
-                {
-                    var runner = scope.ServiceProvider.GetRequiredService<IDriftDqtJobRunner>();
-                    await runner.RunAsync(run.Id);
-                }
+                var runner = scope.ServiceProvider
+                    .GetServices<IDqtJobRunner>()
+                    .SingleOrDefault(r => r.CanHandle(request.TestType))
+                    ?? throw new InvalidOperationException($"No IDqtJobRunner registered for {request.TestType}");
+                await runner.RunAsync(run.Id);
             }, CancellationToken.None);
 
             _logger.LogInformation("DQT run {DqtRunId} started for {TestType} from {DateFrom} to {DateTo}",

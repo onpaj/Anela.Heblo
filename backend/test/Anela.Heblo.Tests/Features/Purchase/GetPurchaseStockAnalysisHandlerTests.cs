@@ -379,4 +379,99 @@ public class GetPurchaseStockAnalysisHandlerTests
 
         return items;
     }
+
+    [Fact]
+    public async Task Handle_FilterByCriticalStatus_SummaryReflectsAllItems()
+    {
+        // 2 Critical + 2 Optimal = 4 total
+        var snapshots = new List<MaterialStockSnapshot>
+        {
+            MakeSnapshot("C001", "Critical 1", MaterialProductType.Material, available: 10m),
+            MakeSnapshot("C002", "Critical 2", MaterialProductType.Material, available: 10m),
+            MakeSnapshot("O001", "Optimal 1", MaterialProductType.Material, available: 10m),
+            MakeSnapshot("O002", "Optimal 2", MaterialProductType.Material, available: 10m),
+        };
+
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
+
+        // Sequence must match snapshot declaration order — handler calls DetermineStockSeverity once per snapshot via Select
+        _stockSeverityCalculatorMock
+            .SetupSequence(x => x.DetermineStockSeverity(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .Returns(StockSeverity.Critical)
+            .Returns(StockSeverity.Critical)
+            .Returns(StockSeverity.Optimal)
+            .Returns(StockSeverity.Optimal);
+
+        var request = new GetPurchaseStockAnalysisRequest
+        {
+            StockStatus = StockStatusFilter.Critical,
+            PageNumber = 1,
+            PageSize = 10
+        };
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Items are filtered — only Critical items visible
+        response.Items.Should().HaveCount(2);
+        response.Items.Should().OnlyContain(i => i.Severity == StockSeverity.Critical);
+
+        // Summary reflects ALL 4 items (dual-bucket invariant)
+        response.Summary.TotalProducts.Should().Be(4);
+        response.Summary.OptimalCount.Should().Be(2, "non-critical items must appear in summary even when filtered from Items");
+        response.Summary.CriticalCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Handle_CalculateSummary_AllFieldsAreCorrect()
+    {
+        var fromDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var toDate = new DateTime(2025, 6, 30, 0, 0, 0, DateTimeKind.Utc);
+
+        // 5 items: one per severity. ordered=0 so EffectiveStock=available.
+        // NotConfigured item has no lastPurchase (contributes 0 to TotalInventoryValue).
+        var snapshots = new List<MaterialStockSnapshot>
+        {
+            MakeSnapshot("P001", "Critical Item",     MaterialProductType.Material, available: 10m, lastPurchase: new MaterialPurchaseSnapshot { Date = fromDate, SupplierName = "S1", Amount = 0m, UnitPrice = 5.00m, TotalPrice = 0m }),
+            MakeSnapshot("P002", "Low Item",          MaterialProductType.Material, available: 20m, lastPurchase: new MaterialPurchaseSnapshot { Date = fromDate, SupplierName = "S2", Amount = 0m, UnitPrice = 3.00m, TotalPrice = 0m }),
+            MakeSnapshot("P003", "Optimal Item",      MaterialProductType.Material, available: 30m, lastPurchase: new MaterialPurchaseSnapshot { Date = fromDate, SupplierName = "S3", Amount = 0m, UnitPrice = 2.00m, TotalPrice = 0m }),
+            MakeSnapshot("P004", "Overstocked Item",  MaterialProductType.Material, available: 15m, lastPurchase: new MaterialPurchaseSnapshot { Date = fromDate, SupplierName = "S4", Amount = 0m, UnitPrice = 4.00m, TotalPrice = 0m }),
+            MakeSnapshot("P005", "NotConfigured Item",MaterialProductType.Material, available:  0m), // no lastPurchase → 0 contribution
+        };
+
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
+
+        // Sequence matches snapshot declaration order
+        _stockSeverityCalculatorMock
+            .SetupSequence(x => x.DetermineStockSeverity(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .Returns(StockSeverity.Critical)
+            .Returns(StockSeverity.Low)
+            .Returns(StockSeverity.Optimal)
+            .Returns(StockSeverity.Overstocked)
+            .Returns(StockSeverity.NotConfigured);
+
+        var request = new GetPurchaseStockAnalysisRequest
+        {
+            FromDate = fromDate,
+            ToDate = toDate,
+            PageNumber = 1,
+            PageSize = 10
+        };
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.Summary.TotalProducts.Should().Be(5);
+        response.Summary.CriticalCount.Should().Be(1);
+        response.Summary.LowStockCount.Should().Be(1);
+        response.Summary.OptimalCount.Should().Be(1);
+        response.Summary.OverstockedCount.Should().Be(1);
+        response.Summary.NotConfiguredCount.Should().Be(1);
+        // (10 × 5.00) + (20 × 3.00) + (30 × 2.00) + (15 × 4.00) + (0 × 0) = 50 + 60 + 60 + 60 + 0 = 230.00
+        response.Summary.TotalInventoryValue.Should().Be(230.00m);
+        response.Summary.AnalysisPeriodStart.Should().Be(fromDate);
+        response.Summary.AnalysisPeriodEnd.Should().Be(toDate);
+    }
 }
