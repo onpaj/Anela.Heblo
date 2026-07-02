@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "create-dqt-resilience-contract-and-adapter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-02T05:27:28.252774Z"
+      "updated_at": "2026-07-02T06:07:03.648695Z"
     },
     {
       "name": "switch-product-pairing-comparer-to-dqt-resilience-contract",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-02T06:07:07.280513Z"
     },
     {
       "name": "update-architecture-boundary-allowlist",
