@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "dqt-job-runner-interface-and-di",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "rundqt-handler-dispatch",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "getdqtrundetail-handler-dispatch",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
