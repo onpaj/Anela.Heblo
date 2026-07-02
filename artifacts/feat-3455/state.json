@@ -34,15 +34,15 @@
     },
     {
       "name": "rundqt-handler-dispatch",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-02T06:44:42.914749Z"
+      "updated_at": "2026-07-02T06:50:55.506828Z"
     },
     {
       "name": "getdqtrundetail-handler-dispatch",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-02T06:51:00.722112Z"
     }
   ]
 }
