@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Shared;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Configuration;
@@ -61,7 +62,7 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
             ?? ConfigurationConstants.DEFAULT_ENVIRONMENT;
 
         // Get mock auth setting
-        var useMockAuth = _configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, false);
+        var useMockAuth = _configuration.GetValue<bool>(InfrastructureConfigurationKeys.USE_MOCK_AUTH, false);
 
         var config = ApplicationConfiguration.CreateWithDefaults(version, environment, useMockAuth);
 
@@ -71,7 +72,7 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
     private string? GetVersionFromSources()
     {
         // 1. Try environment variable first (CI/CD pipeline)
-        var version = _configuration[ConfigurationConstants.APP_VERSION];
+        var version = _configuration[InfrastructureConfigurationKeys.APP_VERSION];
         if (!string.IsNullOrEmpty(version))
         {
             _logger.LogDebug("Version resolved from configuration: {Version}", version);

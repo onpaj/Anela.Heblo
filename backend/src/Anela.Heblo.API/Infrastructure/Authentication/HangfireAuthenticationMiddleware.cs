@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Shared;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Extensions;
 
@@ -36,8 +36,8 @@ public class HangfireAuthenticationMiddleware
             return;
         }
 
-        var useMockAuth = _configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, defaultValue: false);
-        var bypassJwtValidation = _configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, defaultValue: false);
+        var useMockAuth = _configuration.GetValue<bool>(InfrastructureConfigurationKeys.USE_MOCK_AUTH, defaultValue: false);
+        var bypassJwtValidation = _configuration.GetValue<bool>(InfrastructureConfigurationKeys.BYPASS_JWT_VALIDATION, defaultValue: false);
 
         // Check if we should use mock authentication
         if (useMockAuth || bypassJwtValidation)

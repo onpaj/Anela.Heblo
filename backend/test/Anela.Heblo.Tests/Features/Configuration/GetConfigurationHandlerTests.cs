@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -26,7 +27,7 @@ public class GetConfigurationHandlerTests
         // Arrange
         var handler = CreateHandler(new Dictionary<string, string?>
         {
-            [ConfigurationConstants.APP_VERSION] = "2.5.1-ci.42"
+            [InfrastructureConfigurationKeys.APP_VERSION] = "2.5.1-ci.42"
         });
 
         // Act
@@ -42,7 +43,7 @@ public class GetConfigurationHandlerTests
         // Arrange
         var handler = CreateHandler(new Dictionary<string, string?>
         {
-            [ConfigurationConstants.APP_VERSION] = ""
+            [InfrastructureConfigurationKeys.APP_VERSION] = ""
         });
 
         // Act
@@ -73,8 +74,8 @@ public class GetConfigurationHandlerTests
         // Arrange — regression guard: surgical change must not break UseMockAuth wiring
         var handler = CreateHandler(new Dictionary<string, string?>
         {
-            [ConfigurationConstants.APP_VERSION] = "1.2.3",
-            [ConfigurationConstants.USE_MOCK_AUTH] = "true"
+            [InfrastructureConfigurationKeys.APP_VERSION] = "1.2.3",
+            [InfrastructureConfigurationKeys.USE_MOCK_AUTH] = "true"
         });
 
         // Act
