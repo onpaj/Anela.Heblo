@@ -2,7 +2,7 @@
 
 ## What was implemented
 
-Replaced `RunDqtHandler.Handle`'s binary `if (request.TestType == DqtTestType.IssuedInvoiceComparison) { GetRequiredService<IInvoiceDqtJobRunner>() } else { GetRequiredService<IDriftDqtJobRunner>() }` dispatch (inside the existing fire-and-forget `Task.Run`) with resolution via the new `IDqtJobRunner` abstraction:
+Replaced `RunDqtHandler.Handle`'s binary `if (request.TestType == DqtTestType.IssuedInvoiceComparison) { GetRequiredService<IInvoiceDqtJobRunner>() } else { GetRequiredService<IDriftDqtJobRunner>() }` dispatch (inside the existing fire-and-forget `Task.Run`) with resolution via the `IDqtJobRunner` abstraction:
 
 ```csharp
 var runner = scope.ServiceProvider
@@ -16,12 +16,12 @@ await runner.RunAsync(run.Id);
 
 ## Files created/modified
 
-- `backend/src/Anela.Heblo.Application/Features/DataQuality/UseCases/RunDqt/RunDqtHandler.cs` — replaced the binary dispatch with `IDqtJobRunner` resolution as shown above. No other changes.
+- `backend/src/Anela.Heblo.Application/Features/DataQuality/UseCases/RunDqt/RunDqtHandler.cs` — replaced the binary dispatch with `IDqtJobRunner` resolution as shown above. No other changes (date-range validation, run creation, response shape, outer try/catch all untouched).
 - `backend/test/Anela.Heblo.Tests/Features/DataQuality/RunDqtHandlerTests.cs` — replaced the single `IInvoiceDqtJobRunner` mock with two `IDqtJobRunner` mocks (`_invoiceJobRunnerMock`, `_driftJobRunnerMock`), rewired the `IServiceProvider` mock to resolve `IEnumerable<IDqtJobRunner>`, updated existing tests to reference `_invoiceJobRunnerMock`, and added 3 new test methods: `Handle_InvoiceTestType_InvokesMatchingRunnerOnly`, `Handle_DriftTestType_InvokesMatchingRunnerOnly`, `Handle_NoRunnerCanHandleTestType_NeitherRunnerInvoked`.
 
 ## Tests
 
-- `RunDqtHandlerTests` (10 tests total after this change) — all existing tests pass unmodified in behavior; 3 new tests added as described above.
+- `RunDqtHandlerTests` (7 tests total after this change) — all 4 pre-existing tests pass unmodified in behavior (only the mock field name changed); 3 new tests added as described above.
 - Full `Features.DataQuality` namespace test run: 70/70 passed.
 
 ## How to verify
@@ -32,11 +32,13 @@ dotnet build Anela.Heblo.sln
 cd backend/test/Anela.Heblo.Tests
 dotnet test --filter "FullyQualifiedName~Features.DataQuality" --no-build
 ```
-Expected: build succeeds (0 errors — one pre-existing unrelated `MSB3073` warning from the access-matrix generator tool, not caused by this change); test run reports `Passed! - Failed: 0, Passed: 70`.
+Expected: build succeeds (0 errors, only pre-existing warnings unrelated to this change); test run reports `Passed! - Failed: 0, Passed: 70`.
+
+`dotnet format Anela.Heblo.sln --verify-no-changes --include <touched files>` was also run and reported no formatting changes needed.
 
 ## Notes
 
-No deviations from the task spec. `using System.Linq` was already implicitly available / `SingleOrDefault`/`GetServices` resolved without needing a new `using` (project uses implicit usings). `artifacts/` changes (state.json) intentionally left out of this commit — orchestrator-managed.
+No deviations from the task spec — the actual current content of both files matched what was quoted in the task context verbatim. `GetServices<IDqtJobRunner>()` and `SingleOrDefault` resolved without needing an additional `using System.Linq;` (already covered by existing usings / implicit usings). `artifacts/feat-3455/state.json` was intentionally left out of the commit (orchestrator-managed, out of scope per task constraints).
 
 ## Status
 DONE
