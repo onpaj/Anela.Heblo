@@ -191,6 +191,7 @@ internal sealed class AutoTagLlmPayload
 internal sealed class AutoTagResult
 {
     [JsonPropertyName("id")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
     public int Id { get; set; }
 
     [JsonPropertyName("tags")]

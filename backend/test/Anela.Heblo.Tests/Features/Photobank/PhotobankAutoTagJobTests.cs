@@ -351,4 +351,52 @@ public class PhotobankAutoTagJobTests
                 It.IsAny<bool>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_LlmReturnsStringEncodedId_AppliesTagsSuccessfully()
+    {
+        // Arrange — LLM returns "id" as a quoted string ("42") instead of a bare integer (42).
+        // This is the regression from issue #3405: JsonNumberHandling.AllowReadingFromString must be
+        // set on AutoTagResult.Id so the deserialiser accepts both forms.
+        var photo = new PhotoAutoTagCandidate(Id: 42, FolderPath: "/photos", FileName: "product.jpg");
+
+        _repo
+            .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TagCount> { new(1, "kosmetika", 3) });
+
+        _repo
+            .SetupSequence(r => r.GetPhotosPendingAutoTagAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PhotoAutoTagCandidate> { photo })
+            .ReturnsAsync(new List<PhotoAutoTagCandidate>());
+
+        // id returned as a quoted string — the failing form from production telemetry
+        SetupChatResponse("""{"results":[{"id":"42","tags":["kosmetika"]}]}""");
+
+        _repo.Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _repo.Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _repo.Setup(r => r.StampAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var job = CreateJob();
+
+        // Act
+        await job.ExecuteAsync(CancellationToken.None);
+
+        // Assert — tag must have been applied even though the id came back as a string
+        _repo.Verify(
+            r => r.AddPhotoTagAsync(
+                It.Is<PhotoTag>(pt => pt.PhotoId == 42 && pt.TagId == 1 && pt.Source == PhotoTagSource.AI),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _repo.Verify(
+            r => r.StampAutoTaggedAtAsync(
+                It.Is<IReadOnlyList<int>>(ids => ids.Count == 1 && ids[0] == 42),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }
