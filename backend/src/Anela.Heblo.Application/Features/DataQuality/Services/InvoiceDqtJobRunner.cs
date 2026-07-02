@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.DataQuality.Services;
 
-public class InvoiceDqtJobRunner : IInvoiceDqtJobRunner
+public class InvoiceDqtJobRunner : IInvoiceDqtJobRunner, IDqtJobRunner
 {
     private readonly IDqtRunRepository _repository;
     private readonly IInvoiceDqtComparer _comparer;
@@ -18,6 +18,8 @@ public class InvoiceDqtJobRunner : IInvoiceDqtJobRunner
         _comparer = comparer;
         _logger = logger;
     }
+
+    public bool CanHandle(DqtTestType testType) => testType == DqtTestType.IssuedInvoiceComparison;
 
     public async Task RunAsync(Guid dqtRunId, CancellationToken cancellationToken = default)
     {
