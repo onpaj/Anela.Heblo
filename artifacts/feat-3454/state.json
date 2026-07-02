@@ -34,15 +34,15 @@
     },
     {
       "name": "switch-product-pairing-comparer-to-dqt-resilience-contract",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-02T06:07:07.280513Z"
+      "updated_at": "2026-07-02T06:12:38.000258Z"
     },
     {
       "name": "update-architecture-boundary-allowlist",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-02T06:12:42.103832Z"
     }
   ]
 }
