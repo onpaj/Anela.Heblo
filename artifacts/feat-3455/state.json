@@ -21,8 +21,8 @@
       "updated_at": "2026-07-02T06:32:23.139428Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-02T06:32:48.864744Z"
+      "status": "completed",
+      "updated_at": "2026-07-02T06:56:51.646669Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "getdqtrundetail-handler-dispatch",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-02T06:51:00.722112Z"
+      "updated_at": "2026-07-02T06:56:45.125458Z"
     }
   ]
 }
