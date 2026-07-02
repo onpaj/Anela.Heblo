@@ -21,8 +21,8 @@
       "updated_at": "2026-07-02T05:26:50.323071Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-02T05:27:28.035864Z"
+      "status": "completed",
+      "updated_at": "2026-07-02T06:26:12.992919Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "update-architecture-boundary-allowlist",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-02T06:12:42.103832Z"
+      "updated_at": "2026-07-02T06:26:12.604696Z"
     }
   ]
 }
