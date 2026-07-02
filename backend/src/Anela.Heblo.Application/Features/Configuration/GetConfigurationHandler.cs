@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Hosting;
 using System.Reflection;
 using Anela.Heblo.Domain.Features.Configuration;
+using Anela.Heblo.Domain.Shared;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Configuration;
@@ -13,13 +13,11 @@ namespace Anela.Heblo.Application.Features.Configuration;
 public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, GetConfigurationResponse>
 {
     private readonly IConfiguration _configuration;
-    private readonly IHostEnvironment _environment;
     private readonly ILogger<GetConfigurationHandler> _logger;
 
-    public GetConfigurationHandler(IConfiguration configuration, IHostEnvironment environment, ILogger<GetConfigurationHandler> logger)
+    public GetConfigurationHandler(IConfiguration configuration, ILogger<GetConfigurationHandler> logger)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-        _environment = environment ?? throw new ArgumentNullException(nameof(environment));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -36,7 +34,7 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
                 Version = appConfig.Version,
                 Environment = appConfig.Environment,
                 UseMockAuth = appConfig.UseMockAuth,
-                Timestamp = appConfig.Timestamp,
+                Timestamp = DateTime.UtcNow,
             };
 
             _logger.LogDebug("Configuration retrieved successfully: {@Config}", response);
@@ -59,11 +57,12 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         // 4. Fallback to default
         var version = GetVersionFromSources();
 
-        // Get environment
-        var environment = _environment.EnvironmentName;
+        // Falls back to ConfigurationConstants.DEFAULT_ENVIRONMENT ("Production") if not set
+        var environment = _configuration["ASPNETCORE_ENVIRONMENT"]
+            ?? ConfigurationConstants.DEFAULT_ENVIRONMENT;
 
         // Get mock auth setting
-        var useMockAuth = _configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, false);
+        var useMockAuth = _configuration.GetValue<bool>(InfrastructureConfigurationKeys.USE_MOCK_AUTH, false);
 
         var config = ApplicationConfiguration.CreateWithDefaults(version, environment, useMockAuth);
 
@@ -73,7 +72,7 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
     private string? GetVersionFromSources()
     {
         // 1. Try environment variable first (CI/CD pipeline)
-        var version = _configuration[ConfigurationConstants.APP_VERSION];
+        var version = _configuration[InfrastructureConfigurationKeys.APP_VERSION];
         if (!string.IsNullOrEmpty(version))
         {
             _logger.LogDebug("Version resolved from configuration: {Version}", version);

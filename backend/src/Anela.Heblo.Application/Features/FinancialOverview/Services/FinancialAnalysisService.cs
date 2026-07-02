@@ -297,28 +297,9 @@ public class FinancialAnalysisService : IFinancialAnalysisService
 
         // Compute income/expenses for current month
         var (income, expenses) = CalculatePeriodTotals(debitItems, creditItems);
-        var financialBalance = income - expenses;
 
         var stockChange = stockChanges.FirstOrDefault();
-        var currentMonthDto = new MonthlyFinancialDataDto
-        {
-            Year = now.Year,
-            Month = now.Month,
-            MonthYearDisplay = $"{now.Month:D2}/{now.Year}",
-            Income = income,
-            Expenses = expenses,
-            FinancialBalance = financialBalance,
-            StockChanges = includeStockData && stockChange != null ? new StockChangeDto
-            {
-                Materials = stockChange.StockChanges.Materials,
-                SemiProducts = stockChange.StockChanges.SemiProducts,
-                Products = stockChange.StockChanges.Products
-            } : null,
-            TotalStockValueChange = includeStockData ? (stockChange?.TotalStockValueChange ?? 0) : null,
-            TotalBalance = includeStockData
-                ? financialBalance + (stockChange?.TotalStockValueChange ?? 0)
-                : null
-        };
+        var currentMonthDto = MapToDto(now.Year, now.Month, income, expenses, stockChange, includeStockData);
 
         // Get cached data for completed months (months-1 most recent completed months)
         var completedData = months > 1
@@ -378,25 +359,13 @@ public class FinancialAnalysisService : IFinancialAnalysisService
                 }
             }
 
-            monthlyData.Add(new MonthlyFinancialDataDto
-            {
-                Year = cachedFinancialData.Year,
-                Month = cachedFinancialData.Month,
-                MonthYearDisplay = cachedFinancialData.MonthYearDisplay,
-                Income = cachedFinancialData.Income,
-                Expenses = cachedFinancialData.Expenses,
-                FinancialBalance = cachedFinancialData.FinancialBalance,
-                StockChanges = includeStockData && cachedStockData != null ? new StockChangeDto
-                {
-                    Materials = cachedStockData.StockChanges.Materials,
-                    SemiProducts = cachedStockData.StockChanges.SemiProducts,
-                    Products = cachedStockData.StockChanges.Products
-                } : null,
-                TotalStockValueChange = includeStockData ? (cachedStockData?.TotalStockValueChange ?? 0) : null,
-                TotalBalance = includeStockData
-                    ? cachedFinancialData.FinancialBalance + (cachedStockData?.TotalStockValueChange ?? 0)
-                    : null
-            });
+            monthlyData.Add(MapToDto(
+                cachedFinancialData.Year,
+                cachedFinancialData.Month,
+                cachedFinancialData.Income,
+                cachedFinancialData.Expenses,
+                cachedStockData,
+                includeStockData));
 
             currentDate = currentDate.AddMonths(1);
         }
@@ -513,26 +482,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
                     var stockChangeData = stockChangesLookup.TryGetValue(new { d.Year, d.Month }, out var stockChange)
                         ? stockChange
                         : null;
-
-                    return new MonthlyFinancialDataDto
-                    {
-                        Year = d.Year,
-                        Month = d.Month,
-                        MonthYearDisplay = d.MonthYearDisplay,
-                        Income = d.Income,
-                        Expenses = d.Expenses,
-                        FinancialBalance = d.FinancialBalance,
-                        StockChanges = includeStockData && stockChangeData != null ? new StockChangeDto
-                        {
-                            Materials = stockChangeData.StockChanges.Materials,
-                            SemiProducts = stockChangeData.StockChanges.SemiProducts,
-                            Products = stockChangeData.StockChanges.Products
-                        } : null,
-                        TotalStockValueChange = includeStockData ? (stockChangeData?.TotalStockValueChange ?? 0) : null,
-                        TotalBalance = includeStockData
-                            ? d.FinancialBalance + (stockChangeData?.TotalStockValueChange ?? 0)
-                            : null
-                    };
+                    return MapToDto(d.Year, d.Month, d.Income, d.Expenses, stockChangeData, includeStockData);
                 }).ToList(),
             Summary = new FinancialSummaryDto
             {
@@ -582,6 +532,40 @@ public class FinancialAnalysisService : IFinancialAnalysisService
             AverageMonthlyStockChange = averageStockChange,
             TotalBalanceWithStock = totalFinancialBalance + totalStockChange,
             AverageMonthlyTotalBalance = averageFinancialBalance + averageStockChange
+        };
+    }
+
+    private static MonthlyFinancialDataDto MapToDto(
+        int year,
+        int month,
+        decimal income,
+        decimal expenses,
+        MonthlyStockChange? stockChange,
+        bool includeStockData)
+    {
+        var financialBalance = income - expenses;
+        return new MonthlyFinancialDataDto
+        {
+            Year = year,
+            Month = month,
+            MonthYearDisplay = $"{month:D2}/{year}",
+            Income = income,
+            Expenses = expenses,
+            FinancialBalance = financialBalance,
+            StockChanges = includeStockData && stockChange != null
+                ? new StockChangeDto
+                {
+                    Materials = stockChange.StockChanges.Materials,
+                    SemiProducts = stockChange.StockChanges.SemiProducts,
+                    Products = stockChange.StockChanges.Products
+                }
+                : null,
+            TotalStockValueChange = includeStockData
+                ? (stockChange?.TotalStockValueChange ?? 0)
+                : null,
+            TotalBalance = includeStockData
+                ? financialBalance + (stockChange?.TotalStockValueChange ?? 0)
+                : null
         };
     }
 }
