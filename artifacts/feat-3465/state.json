@@ -34,15 +34,15 @@
     },
     {
       "name": "wire-group-margin-aggregator-into-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-03T10:27:49.292855Z"
+      "updated_at": "2026-07-03T10:30:44.132283Z"
     },
     {
       "name": "add-top-product-sorter",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-03T10:30:50.532332Z"
     },
     {
       "name": "wire-top-product-sorter-into-handler",
