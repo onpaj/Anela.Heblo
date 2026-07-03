@@ -21,16 +21,16 @@
       "updated_at": "2026-07-03T07:24:26.342964Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-03T07:24:43.103190Z"
     }
   },
   "tasks": [
     {
       "name": "backend-dto-extraction",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-03T07:24:43.297533Z"
     },
     {
       "name": "frontend-client-rename",
