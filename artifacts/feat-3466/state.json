@@ -21,16 +21,16 @@
       "updated_at": "2026-07-03T10:23:22.946361Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-03T10:23:43.479969Z"
     }
   },
   "tasks": [
     {
       "name": "remove-productmarginsegmentdto-aliases",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-03T12:03:14.927713Z"
     }
   ]
 }
