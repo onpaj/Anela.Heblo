@@ -37,8 +37,7 @@ public class InvoiceImportStatisticsTileTests
             new DailyInvoiceCount
             {
                 Date = targetDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-                Count = 5,
-                IsBelowThreshold = false
+                Count = 5
             }
         };
 
@@ -75,8 +74,7 @@ public class InvoiceImportStatisticsTileTests
             new DailyInvoiceCount
             {
                 Date = expectedYesterday.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-                Count = 3,
-                IsBelowThreshold = false
+                Count = 3
             }
         };
 
