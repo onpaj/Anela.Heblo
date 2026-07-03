@@ -21,16 +21,16 @@
       "updated_at": "2026-07-03T06:22:59.817612Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-03T06:23:08.923159Z"
     }
   },
   "tasks": [
     {
       "name": "split-azure-print-queue-sink-registration",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-03T06:23:09.135756Z"
     }
   ]
 }
