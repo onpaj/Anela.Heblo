@@ -23,6 +23,7 @@ public class GetProductMarginSummaryHandlerTests
     private readonly Mock<IAnalyticsRepository> _analyticsRepositoryMock;
     private readonly MarginCalculator _marginCalculator;
     private readonly MonthlyBreakdownGenerator _monthlyBreakdownGenerator;
+    private readonly TopProductSorter _topProductSorter;
     private readonly TimeWindowParser _timeWindowParser;
     private readonly GetProductMarginSummaryHandler _handler;
 
@@ -31,12 +32,14 @@ public class GetProductMarginSummaryHandlerTests
         _analyticsRepositoryMock = new Mock<IAnalyticsRepository>();
         _marginCalculator = new MarginCalculator();
         _monthlyBreakdownGenerator = new MonthlyBreakdownGenerator(_marginCalculator);
+        _topProductSorter = new TopProductSorter();
         var timeProvider = new FakeTimeProvider(FrozenNow);
         _timeWindowParser = new TimeWindowParser(timeProvider);
         _handler = new GetProductMarginSummaryHandler(
             _analyticsRepositoryMock.Object,
             _marginCalculator,
             _monthlyBreakdownGenerator,
+            _topProductSorter,
             _timeWindowParser);
     }
 
@@ -264,6 +267,7 @@ public class GetProductMarginSummaryHandlerTests
             _analyticsRepositoryMock.Object,
             marginCalculatorMock.Object,
             monthlyBreakdownGeneratorMock.Object,
+            _topProductSorter,
             _timeWindowParser);
 
         // Act
