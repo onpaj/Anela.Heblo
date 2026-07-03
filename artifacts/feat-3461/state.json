@@ -21,16 +21,16 @@
       "updated_at": "2026-07-03T05:24:35.653652Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-03T05:24:54.455463Z"
     }
   },
   "tasks": [
     {
       "name": "add-temporary-file-accessor-contract-and-adapter",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-03T05:24:54.654606Z"
     },
     {
       "name": "refactor-expeditionlistservice-to-use-temporary-file-accessor",
