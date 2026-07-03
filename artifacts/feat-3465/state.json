@@ -40,9 +40,9 @@
     },
     {
       "name": "add-top-product-sorter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-03T10:30:50.532332Z"
+      "updated_at": "2026-07-03T10:36:39.229778Z"
     },
     {
       "name": "wire-top-product-sorter-into-handler",
