@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "add-temporary-file-accessor-contract-and-adapter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-03T05:24:54.654606Z"
+      "updated_at": "2026-07-03T05:55:32.781035Z"
     },
     {
       "name": "refactor-expeditionlistservice-to-use-temporary-file-accessor",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-03T05:55:36.172325Z"
     }
   ]
 }
