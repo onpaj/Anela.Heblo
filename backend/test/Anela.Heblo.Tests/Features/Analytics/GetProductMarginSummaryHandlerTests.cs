@@ -238,6 +238,20 @@ public class GetProductMarginSummaryHandlerTests
                 It.IsAny<List<AnalyticsProduct>>()))
             .Returns<string, ProductGroupingMode, List<AnalyticsProduct>>((key, _, _) => key);
 
+        marginCalculatorMock
+            .Setup(x => x.GetGroupAggregatedMarginData(It.IsAny<List<AnalyticsProduct>>()))
+            .Returns(new GroupMarginData
+            {
+                M0Amount = 50m,
+                M1Amount = 50m,
+                M2Amount = 50m,
+                M0Percentage = 0m,
+                M1Percentage = 0m,
+                M2Percentage = 0m,
+                SellingPrice = 100m,
+                PurchasePrice = 50m
+            });
+
         monthlyBreakdownGeneratorMock
             .Setup(x => x.Generate(
                 calculationResult,
