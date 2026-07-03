@@ -21,8 +21,8 @@
       "updated_at": "2026-07-03T05:24:35.653652Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-03T05:24:54.455463Z"
+      "status": "completed",
+      "updated_at": "2026-07-03T06:24:20.103073Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "refactor-expeditionlistservice-to-use-temporary-file-accessor",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-03T05:55:36.172325Z"
+      "updated_at": "2026-07-03T06:24:14.017971Z"
     }
   ]
 }
