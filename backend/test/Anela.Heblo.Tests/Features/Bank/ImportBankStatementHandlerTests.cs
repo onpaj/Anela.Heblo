@@ -444,8 +444,8 @@ public class ImportBankStatementHandlerTests
         // DB row is absent despite isRetry — UpsertExistingAsync falls back to InsertNewAsync.
         _mockRepository.Setup(r => r.GetByTransferIdAsync("RETRY", It.IsAny<CancellationToken>()))
             .ReturnsAsync((BankStatementImport?)null);
-        _mockRepository.Setup(r => r.AddAsync(It.IsAny<BankStatementImport>()))
-            .ReturnsAsync((BankStatementImport b) => b);
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<BankStatementImport>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BankStatementImport b, CancellationToken _) => b);
         _mockMapper.Setup(m => m.Map<Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto>(
                 It.IsAny<BankStatementImport>()))
             .Returns(new Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto
@@ -457,8 +457,8 @@ public class ImportBankStatementHandlerTests
         var response = await _handler.Handle(request, CancellationToken.None);
 
         response.SuccessCount.Should().Be(1);
-        _mockRepository.Verify(r => r.AddAsync(It.IsAny<BankStatementImport>()), Times.Once);
-        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<BankStatementImport>()), Times.Never);
+        _mockRepository.Verify(r => r.AddAsync(It.IsAny<BankStatementImport>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<BankStatementImport>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -481,9 +481,9 @@ public class ImportBankStatementHandlerTests
         // Import service returns a business-level failure (not an exception).
         _mockImportService.Setup(x => x.ImportStatementAsync(1, "abo"))
             .ReturnsAsync(Result<bool>.Failure("import-error"));
-        _mockRepository.Setup(r => r.AddAsync(It.IsAny<BankStatementImport>()))
-            .Callback<BankStatementImport>(b => captured = b)
-            .ReturnsAsync((BankStatementImport b) => b);
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<BankStatementImport>(), It.IsAny<CancellationToken>()))
+            .Callback<BankStatementImport, CancellationToken>((b, _) => captured = b)
+            .ReturnsAsync((BankStatementImport b, CancellationToken _) => b);
         _mockMapper.Setup(m => m.Map<Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto>(
                 It.IsAny<BankStatementImport>()))
             .Returns(new Anela.Heblo.Application.Features.Bank.Contracts.BankStatementImportDto
