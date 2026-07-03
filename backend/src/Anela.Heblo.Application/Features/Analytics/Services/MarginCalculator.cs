@@ -29,6 +29,12 @@ public interface IMarginCalculator
     AnalysisMarginData CalculateForProduct(
         AnalyticsProduct product,
         IEnumerable<SalesDataPoint> salesInPeriod);
+
+    /// <summary>
+    /// Calculates aggregated margin data for a group of products, weighted by sales volume.
+    /// Falls back to a simple average when the group has zero total sales.
+    /// </summary>
+    GroupMarginData GetGroupAggregatedMarginData(List<AnalyticsProduct> products);
 }
 
 /// <summary>
@@ -144,6 +150,47 @@ public class MarginCalculator : IMarginCalculator
             Margin = margin,
             MarginPercentage = marginPercentage,
             UnitsSold = units,
+        };
+    }
+
+    /// <summary>
+    /// Calculates aggregated margin data for a group of products
+    /// </summary>
+    public GroupMarginData GetGroupAggregatedMarginData(List<AnalyticsProduct> products)
+    {
+        if (!products.Any())
+            return new GroupMarginData();
+
+        // For groups, we calculate weighted averages based on sales volume
+        var totalSales = products.Sum(p => p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C));
+
+        if (totalSales == 0)
+        {
+            // If no sales, use simple average
+            return new GroupMarginData
+            {
+                M0Amount = products.Average(p => p.M0Amount),
+                M1Amount = products.Average(p => p.M1Amount),
+                M2Amount = products.Average(p => p.M2Amount),
+                M0Percentage = products.Average(p => p.M0Percentage),
+                M1Percentage = products.Average(p => p.M1Percentage),
+                M2Percentage = products.Average(p => p.M2Percentage),
+                SellingPrice = products.Average(p => p.SellingPrice),
+                PurchasePrice = products.Average(p => p.PurchasePrice)
+            };
+        }
+
+        // Weighted average by sales volume
+        return new GroupMarginData
+        {
+            M0Amount = products.Sum(p => p.M0Amount * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
+            M1Amount = products.Sum(p => p.M1Amount * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
+            M2Amount = products.Sum(p => p.M2Amount * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
+            M0Percentage = products.Sum(p => p.M0Percentage * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
+            M1Percentage = products.Sum(p => p.M1Percentage * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
+            M2Percentage = products.Sum(p => p.M2Percentage * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
+            SellingPrice = products.Sum(p => p.SellingPrice * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
+            PurchasePrice = products.Sum(p => p.PurchasePrice * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales
         };
     }
 }
