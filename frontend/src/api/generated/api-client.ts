@@ -12930,12 +12930,6 @@ export class ProductMarginSegmentDto implements IProductMarginSegmentDto {
     averageMaterialCosts?: number;
     averageLaborCosts?: number;
     productCount?: number;
-    productCode?: string;
-    productName?: string;
-    marginPerPiece?: number;
-    sellingPriceWithoutVat?: number;
-    materialCosts?: number;
-    laborCosts?: number;
 
     constructor(data?: IProductMarginSegmentDto) {
         if (data) {
@@ -12960,12 +12954,6 @@ export class ProductMarginSegmentDto implements IProductMarginSegmentDto {
             this.averageMaterialCosts = _data["averageMaterialCosts"];
             this.averageLaborCosts = _data["averageLaborCosts"];
             this.productCount = _data["productCount"];
-            this.productCode = _data["productCode"];
-            this.productName = _data["productName"];
-            this.marginPerPiece = _data["marginPerPiece"];
-            this.sellingPriceWithoutVat = _data["sellingPriceWithoutVat"];
-            this.materialCosts = _data["materialCosts"];
-            this.laborCosts = _data["laborCosts"];
         }
     }
 
@@ -12990,12 +12978,6 @@ export class ProductMarginSegmentDto implements IProductMarginSegmentDto {
         data["averageMaterialCosts"] = this.averageMaterialCosts;
         data["averageLaborCosts"] = this.averageLaborCosts;
         data["productCount"] = this.productCount;
-        data["productCode"] = this.productCode;
-        data["productName"] = this.productName;
-        data["marginPerPiece"] = this.marginPerPiece;
-        data["sellingPriceWithoutVat"] = this.sellingPriceWithoutVat;
-        data["materialCosts"] = this.materialCosts;
-        data["laborCosts"] = this.laborCosts;
         return data;
     }
 }
@@ -13013,12 +12995,6 @@ export interface IProductMarginSegmentDto {
     averageMaterialCosts?: number;
     averageLaborCosts?: number;
     productCount?: number;
-    productCode?: string;
-    productName?: string;
-    marginPerPiece?: number;
-    sellingPriceWithoutVat?: number;
-    materialCosts?: number;
-    laborCosts?: number;
 }
 
 export class TopProductDto implements ITopProductDto {
