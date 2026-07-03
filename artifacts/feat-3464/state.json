@@ -17,13 +17,20 @@
       "updated_at": "2026-07-03T08:20:28.507650Z"
     },
     "planning": {
-      "status": "in_progress",
-      "updated_at": "2026-07-03T08:20:58.328914Z"
+      "status": "completed",
+      "updated_at": "2026-07-03T08:22:48.207174Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "extract-time-window-parser-interface",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
