@@ -13,6 +13,7 @@ public class ExpeditionListService : IExpeditionListService
     private readonly TimeProvider _clock;
     private readonly IOptions<PrintPickingListOptions> _options;
     private readonly IPrintQueueSink _printQueueSink;
+    private readonly ITemporaryFileAccessor _temporaryFileAccessor;
     private readonly ILogger<ExpeditionListService> _logger;
 
     public ExpeditionListService(
@@ -21,6 +22,7 @@ public class ExpeditionListService : IExpeditionListService
         TimeProvider clock,
         IOptions<PrintPickingListOptions> options,
         IPrintQueueSink printQueueSink,
+        ITemporaryFileAccessor temporaryFileAccessor,
         ILogger<ExpeditionListService> logger)
     {
         _pickingSource = pickingSource;
@@ -28,6 +30,7 @@ public class ExpeditionListService : IExpeditionListService
         _clock = clock;
         _options = options;
         _printQueueSink = printQueueSink;
+        _temporaryFileAccessor = temporaryFileAccessor;
         _logger = logger;
     }
 
@@ -52,7 +55,7 @@ public class ExpeditionListService : IExpeditionListService
 
                 if (emailList != null && emailList.Any())
                 {
-                    await SendEmailCopy(files, emailList);
+                    await SendEmailCopy(files, emailList, cancellationToken);
                     _logger.LogDebug("Batch email copy sent");
                 }
             };
@@ -71,14 +74,13 @@ public class ExpeditionListService : IExpeditionListService
     {
         foreach (var f in result.ExportedFiles)
         {
-            if (File.Exists(f))
-                File.Delete(f);
+            _temporaryFileAccessor.DeleteIfExists(f);
         }
 
         return Task.CompletedTask;
     }
 
-    private async Task SendEmailCopy(IList<string> files, IEnumerable<string> emailRecipients)
+    private async Task SendEmailCopy(IList<string> files, IEnumerable<string> emailRecipients, CancellationToken cancellationToken)
     {
         var now = _clock.GetLocalNow();
         var message = new EmailMessage
@@ -95,7 +97,7 @@ public class ExpeditionListService : IExpeditionListService
 
         foreach (var a in files)
         {
-            var bytes = await File.ReadAllBytesAsync(a);
+            var bytes = await _temporaryFileAccessor.ReadAllBytesAsync(a, cancellationToken);
             message.Attachments.Add(new EmailAttachment
             {
                 FileName = Path.GetFileName(a),
