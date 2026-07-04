@@ -5559,15 +5559,8 @@ export class ApiClient {
             return response.text().then((_responseText) => {
             let result422: any = null;
             let resultData422 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result422 = ProblemDetails.fromJS(resultData422);
+            result422 = GenerateLeafletResponse.fromJS(resultData422);
             return throwException("A server side error occurred.", status, _responseText, _headers, result422);
-            });
-        } else if (status === 502) {
-            return response.text().then((_responseText) => {
-            let result502: any = null;
-            let resultData502 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result502 = ProblemDetails.fromJS(resultData502);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result502);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -8746,6 +8739,44 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetPackingDashboardResponse>(null as any);
+    }
+
+    packaging_GetStatistics(fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetPackingStatisticsResponse> {
+        let url_ = this.baseUrl + "/api/packaging/statistics?";
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "ToDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_GetStatistics(_response);
+        });
+    }
+
+    protected processPackaging_GetStatistics(response: Response): Promise<GetPackingStatisticsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPackingStatisticsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPackingStatisticsResponse>(null as any);
     }
 
     packaging_GetPackages(orderCode: string | null | undefined, customerName: string | null | undefined, packageNumber: string | null | undefined, carrier: Carriers | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPackagesResponse> {
@@ -13220,6 +13251,7 @@ export enum ErrorCodes {
     DqtRunNotFound = "DqtRunNotFound",
     DqtInvalidDateRange = "DqtInvalidDateRange",
     DqtExternalServiceError = "DqtExternalServiceError",
+    DqtUnsupportedTestType = "DqtUnsupportedTestType",
     MarketingActionNotFound = "MarketingActionNotFound",
     UnauthorizedMarketingAccess = "UnauthorizedMarketingAccess",
     MarketingCalendarAccessDenied = "MarketingCalendarAccessDenied",
@@ -13234,6 +13266,7 @@ export enum ErrorCodes {
     LeafletChunkNotFound = "LeafletChunkNotFound",
     LeafletFeedbackNotFound = "LeafletFeedbackNotFound",
     LeafletFeedbackAlreadySubmitted = "LeafletFeedbackAlreadySubmitted",
+    LeafletEmptyRetrieval = "LeafletEmptyRetrieval",
     PhotoNotFound = "PhotoNotFound",
     PhotobankRootNotFound = "PhotobankRootNotFound",
     PhotobankRuleNotFound = "PhotobankRuleNotFound",
@@ -13962,12 +13995,6 @@ export enum ArticleStatus {
     Failed = "Failed",
 }
 
-export enum ArticleGenerationStepStatus {
-    Running = "Running",
-    Succeeded = "Succeeded",
-    Failed = "Failed",
-}
-
 export class GenerateArticleRequest implements IGenerateArticleRequest {
     topic!: string;
     scope?: string;
@@ -14328,6 +14355,12 @@ export interface IArticleGenerationStepDto {
     inputJson?: string | undefined;
     outputJson?: string | undefined;
     errorMessage?: string | undefined;
+}
+
+export enum ArticleGenerationStepStatus {
+    Running = "Running",
+    Succeeded = "Succeeded",
+    Failed = "Failed",
 }
 
 export class ListArticlesResponse extends BaseResponse implements IListArticlesResponse {
@@ -16277,7 +16310,6 @@ export interface IRefreshTaskExecutionLogDto {
 export class RefreshTaskStatusDto implements IRefreshTaskStatusDto {
     taskId?: string;
     enabled?: boolean;
-    description?: string | undefined;
     refreshInterval?: string;
     lastExecution?: RefreshTaskExecutionLogDto | undefined;
 
@@ -16294,7 +16326,6 @@ export class RefreshTaskStatusDto implements IRefreshTaskStatusDto {
         if (_data) {
             this.taskId = _data["taskId"];
             this.enabled = _data["enabled"];
-            this.description = _data["description"];
             this.refreshInterval = _data["refreshInterval"];
             this.lastExecution = _data["lastExecution"] ? RefreshTaskExecutionLogDto.fromJS(_data["lastExecution"]) : <any>undefined;
         }
@@ -16311,7 +16342,6 @@ export class RefreshTaskStatusDto implements IRefreshTaskStatusDto {
         data = typeof data === 'object' ? data : {};
         data["taskId"] = this.taskId;
         data["enabled"] = this.enabled;
-        data["description"] = this.description;
         data["refreshInterval"] = this.refreshInterval;
         data["lastExecution"] = this.lastExecution ? this.lastExecution.toJSON() : <any>undefined;
         return data;
@@ -16321,7 +16351,6 @@ export class RefreshTaskStatusDto implements IRefreshTaskStatusDto {
 export interface IRefreshTaskStatusDto {
     taskId?: string;
     enabled?: boolean;
-    description?: string | undefined;
     refreshInterval?: string;
     lastExecution?: RefreshTaskExecutionLogDto | undefined;
 }
@@ -19956,6 +19985,7 @@ export interface IReprintExpeditionListRequest {
 
 export class RunExpeditionListPrintFixResponse extends BaseResponse implements IRunExpeditionListPrintFixResponse {
     totalCount?: number;
+    skippedCount?: number;
 
     constructor(data?: IRunExpeditionListPrintFixResponse) {
         super(data);
@@ -19965,6 +19995,7 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
         super.init(_data);
         if (_data) {
             this.totalCount = _data["totalCount"];
+            this.skippedCount = _data["skippedCount"];
         }
     }
 
@@ -19978,6 +20009,7 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["totalCount"] = this.totalCount;
+        data["skippedCount"] = this.skippedCount;
         super.toJSON(data);
         return data;
     }
@@ -19985,6 +20017,7 @@ export class RunExpeditionListPrintFixResponse extends BaseResponse implements I
 
 export interface IRunExpeditionListPrintFixResponse extends IBaseResponse {
     totalCount?: number;
+    skippedCount?: number;
 }
 
 export class PrintExpeditionOrderResponse extends BaseResponse implements IPrintExpeditionOrderResponse {
@@ -32955,6 +32988,391 @@ export class PackerStatsDto implements IPackerStatsDto {
 export interface IPackerStatsDto {
     packerId?: string | undefined;
     packerName?: string;
+    orderCount?: number;
+}
+
+export class GetPackingStatisticsResponse extends BaseResponse implements IGetPackingStatisticsResponse {
+    fromDate?: Date;
+    toDate?: Date;
+    packerAttributionSince?: Date | undefined;
+    summary?: PackingStatisticsSummaryDto;
+    throughputDaily?: DailyThroughputDto[];
+    hourHeatmap?: HourBucketDto[];
+    byPacker?: PackerThroughputDto[];
+    byCarrier?: CarrierMixDto[];
+    packagesPerOrder?: PackagesPerOrderBucketDto[];
+
+    constructor(data?: IGetPackingStatisticsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.fromDate = _data["fromDate"] ? new Date(_data["fromDate"].toString()) : <any>undefined;
+            this.toDate = _data["toDate"] ? new Date(_data["toDate"].toString()) : <any>undefined;
+            this.packerAttributionSince = _data["packerAttributionSince"] ? new Date(_data["packerAttributionSince"].toString()) : <any>undefined;
+            this.summary = _data["summary"] ? PackingStatisticsSummaryDto.fromJS(_data["summary"]) : <any>undefined;
+            if (Array.isArray(_data["throughputDaily"])) {
+                this.throughputDaily = [] as any;
+                for (let item of _data["throughputDaily"])
+                    this.throughputDaily!.push(DailyThroughputDto.fromJS(item));
+            }
+            if (Array.isArray(_data["hourHeatmap"])) {
+                this.hourHeatmap = [] as any;
+                for (let item of _data["hourHeatmap"])
+                    this.hourHeatmap!.push(HourBucketDto.fromJS(item));
+            }
+            if (Array.isArray(_data["byPacker"])) {
+                this.byPacker = [] as any;
+                for (let item of _data["byPacker"])
+                    this.byPacker!.push(PackerThroughputDto.fromJS(item));
+            }
+            if (Array.isArray(_data["byCarrier"])) {
+                this.byCarrier = [] as any;
+                for (let item of _data["byCarrier"])
+                    this.byCarrier!.push(CarrierMixDto.fromJS(item));
+            }
+            if (Array.isArray(_data["packagesPerOrder"])) {
+                this.packagesPerOrder = [] as any;
+                for (let item of _data["packagesPerOrder"])
+                    this.packagesPerOrder!.push(PackagesPerOrderBucketDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetPackingStatisticsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPackingStatisticsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["fromDate"] = this.fromDate ? this.fromDate.toISOString() : <any>undefined;
+        data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
+        data["packerAttributionSince"] = this.packerAttributionSince ? this.packerAttributionSince.toISOString() : <any>undefined;
+        data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+        if (Array.isArray(this.throughputDaily)) {
+            data["throughputDaily"] = [];
+            for (let item of this.throughputDaily)
+                data["throughputDaily"].push(item.toJSON());
+        }
+        if (Array.isArray(this.hourHeatmap)) {
+            data["hourHeatmap"] = [];
+            for (let item of this.hourHeatmap)
+                data["hourHeatmap"].push(item.toJSON());
+        }
+        if (Array.isArray(this.byPacker)) {
+            data["byPacker"] = [];
+            for (let item of this.byPacker)
+                data["byPacker"].push(item.toJSON());
+        }
+        if (Array.isArray(this.byCarrier)) {
+            data["byCarrier"] = [];
+            for (let item of this.byCarrier)
+                data["byCarrier"].push(item.toJSON());
+        }
+        if (Array.isArray(this.packagesPerOrder)) {
+            data["packagesPerOrder"] = [];
+            for (let item of this.packagesPerOrder)
+                data["packagesPerOrder"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPackingStatisticsResponse extends IBaseResponse {
+    fromDate?: Date;
+    toDate?: Date;
+    packerAttributionSince?: Date | undefined;
+    summary?: PackingStatisticsSummaryDto;
+    throughputDaily?: DailyThroughputDto[];
+    hourHeatmap?: HourBucketDto[];
+    byPacker?: PackerThroughputDto[];
+    byCarrier?: CarrierMixDto[];
+    packagesPerOrder?: PackagesPerOrderBucketDto[];
+}
+
+export class PackingStatisticsSummaryDto implements IPackingStatisticsSummaryDto {
+    totalPackages?: number;
+    totalOrders?: number;
+    distinctPackers?: number;
+    averagePackagesPerOrder?: number;
+    trackingCoveragePercent?: number;
+    busiestDay?: DailyThroughputDto | undefined;
+    busiestHour?: HourBucketDto | undefined;
+
+    constructor(data?: IPackingStatisticsSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalPackages = _data["totalPackages"];
+            this.totalOrders = _data["totalOrders"];
+            this.distinctPackers = _data["distinctPackers"];
+            this.averagePackagesPerOrder = _data["averagePackagesPerOrder"];
+            this.trackingCoveragePercent = _data["trackingCoveragePercent"];
+            this.busiestDay = _data["busiestDay"] ? DailyThroughputDto.fromJS(_data["busiestDay"]) : <any>undefined;
+            this.busiestHour = _data["busiestHour"] ? HourBucketDto.fromJS(_data["busiestHour"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): PackingStatisticsSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackingStatisticsSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalPackages"] = this.totalPackages;
+        data["totalOrders"] = this.totalOrders;
+        data["distinctPackers"] = this.distinctPackers;
+        data["averagePackagesPerOrder"] = this.averagePackagesPerOrder;
+        data["trackingCoveragePercent"] = this.trackingCoveragePercent;
+        data["busiestDay"] = this.busiestDay ? this.busiestDay.toJSON() : <any>undefined;
+        data["busiestHour"] = this.busiestHour ? this.busiestHour.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IPackingStatisticsSummaryDto {
+    totalPackages?: number;
+    totalOrders?: number;
+    distinctPackers?: number;
+    averagePackagesPerOrder?: number;
+    trackingCoveragePercent?: number;
+    busiestDay?: DailyThroughputDto | undefined;
+    busiestHour?: HourBucketDto | undefined;
+}
+
+export class DailyThroughputDto implements IDailyThroughputDto {
+    date?: Date;
+    orderCount?: number;
+    packageCount?: number;
+
+    constructor(data?: IDailyThroughputDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.orderCount = _data["orderCount"];
+            this.packageCount = _data["packageCount"];
+        }
+    }
+
+    static fromJS(data: any): DailyThroughputDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new DailyThroughputDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? this.date.toISOString() : <any>undefined;
+        data["orderCount"] = this.orderCount;
+        data["packageCount"] = this.packageCount;
+        return data;
+    }
+}
+
+export interface IDailyThroughputDto {
+    date?: Date;
+    orderCount?: number;
+    packageCount?: number;
+}
+
+export class HourBucketDto implements IHourBucketDto {
+    dayOfWeek?: number;
+    hour?: number;
+    packageCount?: number;
+
+    constructor(data?: IHourBucketDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.dayOfWeek = _data["dayOfWeek"];
+            this.hour = _data["hour"];
+            this.packageCount = _data["packageCount"];
+        }
+    }
+
+    static fromJS(data: any): HourBucketDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new HourBucketDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["dayOfWeek"] = this.dayOfWeek;
+        data["hour"] = this.hour;
+        data["packageCount"] = this.packageCount;
+        return data;
+    }
+}
+
+export interface IHourBucketDto {
+    dayOfWeek?: number;
+    hour?: number;
+    packageCount?: number;
+}
+
+export class PackerThroughputDto implements IPackerThroughputDto {
+    packerId?: string | undefined;
+    packerName?: string;
+    orderCount?: number;
+    packageCount?: number;
+
+    constructor(data?: IPackerThroughputDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.packerId = _data["packerId"];
+            this.packerName = _data["packerName"];
+            this.orderCount = _data["orderCount"];
+            this.packageCount = _data["packageCount"];
+        }
+    }
+
+    static fromJS(data: any): PackerThroughputDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackerThroughputDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["packerId"] = this.packerId;
+        data["packerName"] = this.packerName;
+        data["orderCount"] = this.orderCount;
+        data["packageCount"] = this.packageCount;
+        return data;
+    }
+}
+
+export interface IPackerThroughputDto {
+    packerId?: string | undefined;
+    packerName?: string;
+    orderCount?: number;
+    packageCount?: number;
+}
+
+export class CarrierMixDto implements ICarrierMixDto {
+    code?: string;
+    name?: string;
+    packageCount?: number;
+
+    constructor(data?: ICarrierMixDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.name = _data["name"];
+            this.packageCount = _data["packageCount"];
+        }
+    }
+
+    static fromJS(data: any): CarrierMixDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CarrierMixDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["name"] = this.name;
+        data["packageCount"] = this.packageCount;
+        return data;
+    }
+}
+
+export interface ICarrierMixDto {
+    code?: string;
+    name?: string;
+    packageCount?: number;
+}
+
+export class PackagesPerOrderBucketDto implements IPackagesPerOrderBucketDto {
+    packageCount?: number;
+    orderCount?: number;
+
+    constructor(data?: IPackagesPerOrderBucketDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.packageCount = _data["packageCount"];
+            this.orderCount = _data["orderCount"];
+        }
+    }
+
+    static fromJS(data: any): PackagesPerOrderBucketDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackagesPerOrderBucketDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["packageCount"] = this.packageCount;
+        data["orderCount"] = this.orderCount;
+        return data;
+    }
+}
+
+export interface IPackagesPerOrderBucketDto {
+    packageCount?: number;
     orderCount?: number;
 }
 
