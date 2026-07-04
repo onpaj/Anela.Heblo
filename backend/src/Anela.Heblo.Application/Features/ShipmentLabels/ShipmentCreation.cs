@@ -16,9 +16,9 @@ public class CreateShipmentCommand
 
 public class ShipmentPackage
 {
-    public int WidthMm { get; set; }
-    public int HeightMm { get; set; }
-    public int DepthMm { get; set; }
+    public int WidthCm { get; set; }
+    public int HeightCm { get; set; }
+    public int DepthCm { get; set; }
     public int WeightGrams { get; set; }
 }
 
