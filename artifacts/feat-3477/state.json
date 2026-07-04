@@ -34,15 +34,15 @@
     },
     {
       "name": "relocate-onedrive-services",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-04T07:24:43.331854Z"
+      "updated_at": "2026-07-04T08:03:15.148041Z"
     },
     {
       "name": "move-di-registration-to-sharedragmodule",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-04T08:03:19.128138Z"
     },
     {
       "name": "clean-boundary-allowlist-and-verify",
