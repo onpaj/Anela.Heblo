@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Application.Features.Leaflet.Services;
 using Anela.Heblo.Domain.Features.Leaflet;
 using MediatR;

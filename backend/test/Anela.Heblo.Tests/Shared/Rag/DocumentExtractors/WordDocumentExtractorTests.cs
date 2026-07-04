@@ -1,8 +1,7 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
-using Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
+using Anela.Heblo.Application.Shared.Rag.DocumentExtractors;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Anela.Heblo.Tests.KnowledgeBase.Services;
+namespace Anela.Heblo.Tests.Shared.Rag.DocumentExtractors;
 
 public class WordDocumentExtractorTests
 {

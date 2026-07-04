@@ -21,16 +21,16 @@
       "updated_at": "2026-07-04T06:32:50.896195Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-04T06:33:36.721506Z"
     }
   },
   "tasks": [
     {
       "name": "relocate-document-extractors",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-04T06:33:36.924081Z"
     },
     {
       "name": "relocate-onedrive-services",

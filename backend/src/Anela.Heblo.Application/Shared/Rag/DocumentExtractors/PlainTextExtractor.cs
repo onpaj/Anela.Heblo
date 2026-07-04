@@ -1,7 +1,7 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
+namespace Anela.Heblo.Application.Shared.Rag.DocumentExtractors;
 
 public class PlainTextExtractor : IDocumentTextExtractor
 {

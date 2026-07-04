@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
+namespace Anela.Heblo.Application.Shared.Rag;
 
 public interface IDocumentTextExtractor
 {
