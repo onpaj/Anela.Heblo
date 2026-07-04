@@ -92,7 +92,7 @@ public class GetConfigurationHandlerTests
         // Arrange
         var handler = CreateHandler(new Dictionary<string, string?>
         {
-            [ConfigurationConstants.APP_VERSION] = "1.0.0"
+            [InfrastructureConfigurationKeys.APP_VERSION] = "1.0.0"
         });
         var before = DateTime.UtcNow;
 

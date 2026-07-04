@@ -141,7 +141,7 @@ See `docs/integrations/shoptet-api.md` §11 for shipment endpoints. Constraints:
 |---|---|---|---|
 | `ShoptetOrdersSettings:PackingStateId` | `appsettings.json` | 26 | Shoptet status ID for "Balí se" |
 | `ShipmentLabels:MinPackageWeightGrams` | `appsettings.json` | 100 | Floor for package weight sent to carrier |
-| `ShipmentLabels:DefaultPackage*Mm` | `appsettings.json` | 300×200×150 | Default package dimensions |
+| `ShipmentLabels:DefaultPackage*Cm` | `appsettings.json` | 30×20×15 | Default package dimensions (cm — Shoptet reads these as centimetres) |
 | Kiosk mode (print auto-confirm) | Browser/OS setting | — | Set at device level; not app-configurable |
 
 ## 10. Future Improvements (out of scope here)
