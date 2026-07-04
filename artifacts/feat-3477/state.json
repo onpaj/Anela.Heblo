@@ -25,5 +25,30 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "relocate-document-extractors",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "relocate-onedrive-services",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "move-di-registration-to-sharedragmodule",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "clean-boundary-allowlist-and-verify",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
