@@ -48,9 +48,9 @@ public class ScanPackingOrderHandlerPackagePersistenceTests
         var shipmentSettings = Options.Create(new ShipmentLabelsSettings
         {
             MinPackageWeightGrams = 100,
-            DefaultPackageWidthMm = 300,
-            DefaultPackageHeightMm = 200,
-            DefaultPackageDepthMm = 150,
+            DefaultPackageWidthCm = 30,
+            DefaultPackageHeightCm = 20,
+            DefaultPackageDepthCm = 15,
         });
         var authRepo = new Mock<IAuthorizationRepository>();
         return new ScanPackingOrderHandler(
