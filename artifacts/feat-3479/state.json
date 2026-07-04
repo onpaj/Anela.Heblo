@@ -34,15 +34,15 @@
     },
     {
       "name": "dark-mode-leaflet-generator-page",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-04T08:31:22.516447Z"
+      "updated_at": "2026-07-04T08:37:24.512124Z"
     },
     {
       "name": "dark-mode-leaflet-generate-tab",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-04T08:37:28.878206Z"
     }
   ]
 }
