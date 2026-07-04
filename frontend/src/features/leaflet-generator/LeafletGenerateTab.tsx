@@ -62,8 +62,8 @@ const LeafletGenerateTab: React.FC = () => {
           role="alert"
           className={`mb-4 rounded p-3 text-sm ${
             errorBanner.kind === 'insufficient'
-              ? 'bg-amber-100 text-amber-900'
-              : 'bg-red-100 text-red-900'
+              ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300'
+              : 'bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-300'
           }`}
         >
           {errorBanner.message}
@@ -85,9 +85,9 @@ const LeafletGenerateTab: React.FC = () => {
         <div>
           {isLoading ? (
             <div className="animate-pulse space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-3/4" />
-              <div className="h-4 bg-gray-200 rounded" />
-              <div className="h-4 bg-gray-200 rounded w-5/6" />
+              <div className="h-4 bg-gray-200 dark:bg-graphite-hover rounded w-3/4" />
+              <div className="h-4 bg-gray-200 dark:bg-graphite-hover rounded" />
+              <div className="h-4 bg-gray-200 dark:bg-graphite-hover rounded w-5/6" />
             </div>
           ) : (
             <LeafletResult content={result} generationId={generationId} onRegenerate={generate} />
