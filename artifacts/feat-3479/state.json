@@ -21,8 +21,8 @@
       "updated_at": "2026-07-04T08:22:30.482703Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-04T08:23:12.559127Z"
+      "status": "completed",
+      "updated_at": "2026-07-04T08:41:42.432360Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "dark-mode-leaflet-generate-tab",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-04T08:37:28.878206Z"
+      "updated_at": "2026-07-04T08:41:36.469914Z"
     }
   ]
 }
