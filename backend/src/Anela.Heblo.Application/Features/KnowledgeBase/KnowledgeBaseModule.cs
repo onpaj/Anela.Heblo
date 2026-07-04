@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
 using Microsoft.Identity.Web;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Application.Shared.Rag.DocumentExtractors;
+using Anela.Heblo.Application.Shared.Rag.OneDrive;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Domain.Features.KnowledgeBase;

@@ -4,7 +4,7 @@ using Anela.Heblo.Application.Common.Graph;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
+namespace Anela.Heblo.Application.Shared.Rag.OneDrive;
 
 internal class GraphFolderResolver
 {

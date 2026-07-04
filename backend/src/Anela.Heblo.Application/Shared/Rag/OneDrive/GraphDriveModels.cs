@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
+namespace Anela.Heblo.Application.Shared.Rag.OneDrive;
 
 internal class GraphDriveItem
 {

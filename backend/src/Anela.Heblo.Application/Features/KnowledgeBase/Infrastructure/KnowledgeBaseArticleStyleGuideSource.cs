@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.Article.Contracts;
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Shared.Rag;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
 

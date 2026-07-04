@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
+namespace Anela.Heblo.Application.Shared.Rag;
 
 public record OneDriveFile(string Id, string Name, string ContentType, string Path);
 

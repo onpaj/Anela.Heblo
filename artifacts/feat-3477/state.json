@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "relocate-document-extractors",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-04T06:33:36.924081Z"
+      "updated_at": "2026-07-04T07:24:38.500978Z"
     },
     {
       "name": "relocate-onedrive-services",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-04T07:24:43.331854Z"
     },
     {
       "name": "move-di-registration-to-sharedragmodule",
