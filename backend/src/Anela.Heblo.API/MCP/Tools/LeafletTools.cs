@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
+using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
@@ -43,15 +44,19 @@ public class LeafletTools
                 Length = lengthEnum
             }, ct);
 
+            if (!response.Success)
+            {
+                var message = response.ErrorCode == ErrorCodes.LeafletEmptyRetrieval
+                    ? "Knowledge Base does not yet cover this topic; try a broader phrasing"
+                    : "Leaflet generation failed. Please try again.";
+                throw new McpException(message);
+            }
+
             return JsonSerializer.Serialize(response);
         }
         catch (McpException)
         {
             throw;
-        }
-        catch (EmptyRetrievalException ex)
-        {
-            throw new McpException(ex.Message);
         }
         catch (Exception ex)
         {
