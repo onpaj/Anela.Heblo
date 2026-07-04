@@ -58,15 +58,15 @@
     },
     {
       "name": "remove-exception-and-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-04T08:30:40.273020Z"
+      "updated_at": "2026-07-04T08:31:45.102183Z"
     },
     {
       "name": "frontend-error-branch-fix",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-04T08:31:49.143533Z"
     }
   ]
 }
