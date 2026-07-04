@@ -144,9 +144,9 @@ public class ShoptetShipmentClient : IShipmentClient
         var packages = Enumerable.Range(0, packageCount)
             .Select(_ => new ShoptetCreatePackageDto
             {
-                Width = command.Package.WidthMm,
-                Height = command.Package.HeightMm,
-                Depth = command.Package.DepthMm,
+                Width = command.Package.WidthCm,
+                Height = command.Package.HeightCm,
+                Depth = command.Package.DepthCm,
                 Weight = weightKg,
             })
             .ToList();
