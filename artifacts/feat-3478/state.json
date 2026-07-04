@@ -17,13 +17,56 @@
       "updated_at": "2026-07-04T07:27:58.047117Z"
     },
     "planning": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-07-04T07:36:29.092486Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-error-code",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "response-error-constructor",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "handler-returns-response",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "controller-drops-trycatch",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "mcp-tool-inspects-response",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "remove-exception-and-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "frontend-error-branch-fix",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
