@@ -21,16 +21,16 @@
       "updated_at": "2026-07-04T08:22:30.482703Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-04T08:23:12.559127Z"
     }
   },
   "tasks": [
     {
       "name": "dark-mode-leaflet-documents-tab",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-04T08:23:12.818727Z"
     },
     {
       "name": "dark-mode-leaflet-generator-page",
