@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "dark-mode-leaflet-documents-tab",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-04T08:23:12.818727Z"
+      "updated_at": "2026-07-04T08:31:17.482886Z"
     },
     {
       "name": "dark-mode-leaflet-generator-page",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-04T08:31:22.516447Z"
     },
     {
       "name": "dark-mode-leaflet-generate-tab",
