@@ -40,15 +40,15 @@
     },
     {
       "name": "move-di-registration-to-sharedragmodule",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-04T08:03:19.128138Z"
+      "updated_at": "2026-07-04T09:44:38.182150Z"
     },
     {
       "name": "clean-boundary-allowlist-and-verify",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-04T09:44:43.687747Z"
     }
   ]
 }
