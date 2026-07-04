@@ -16,9 +16,9 @@ public class ResetOrderShipmentHandlerTests
 
     private static readonly ShipmentLabelsSettings DefaultLabelSettings = new()
     {
-        DefaultPackageWidthMm = 300,
-        DefaultPackageHeightMm = 200,
-        DefaultPackageDepthMm = 150,
+        DefaultPackageWidthCm = 30,
+        DefaultPackageHeightCm = 20,
+        DefaultPackageDepthCm = 15,
         MinPackageWeightGrams = 100,
     };
 
