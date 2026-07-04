@@ -542,9 +542,9 @@ public class ShoptetShipmentClientTests
             CarrierCode = "123",
             Package = new ShipmentPackage
             {
-                WidthMm = 300,
-                HeightMm = 200,
-                DepthMm = 150,
+                WidthCm = 30,
+                HeightCm = 20,
+                DepthCm = 15,
                 WeightGrams = 500,
             }
         };
@@ -563,6 +563,9 @@ public class ShoptetShipmentClientTests
         data.GetProperty("orderCode").GetString().Should().Be("0001234");
         data.GetProperty("shippingId").GetInt32().Should().Be(123);
         data.GetProperty("packages")[0].GetProperty("weight").GetString().Should().Be("0.500");
+        data.GetProperty("packages")[0].GetProperty("width").GetInt32().Should().Be(30);
+        data.GetProperty("packages")[0].GetProperty("height").GetInt32().Should().Be(20);
+        data.GetProperty("packages")[0].GetProperty("depth").GetInt32().Should().Be(15);
     }
 
     [Fact]
@@ -578,7 +581,7 @@ public class ShoptetShipmentClientTests
         {
             OrderCode = "0001234",
             CarrierCode = "123",
-            Package = new ShipmentPackage { WidthMm = 300, HeightMm = 200, DepthMm = 150, WeightGrams = 500 }
+            Package = new ShipmentPackage { WidthCm = 30, HeightCm = 20, DepthCm = 15, WeightGrams = 500 }
         };
 
         // Act
