@@ -46,15 +46,15 @@
     },
     {
       "name": "controller-drops-trycatch",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-04T08:24:23.262578Z"
+      "updated_at": "2026-07-04T08:27:55.092773Z"
     },
     {
       "name": "mcp-tool-inspects-response",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-04T08:27:59.624862Z"
     },
     {
       "name": "remove-exception-and-tests",
