@@ -21,16 +21,16 @@
       "updated_at": "2026-07-04T07:36:29.092486Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-04T07:36:57.693265Z"
     }
   },
   "tasks": [
     {
       "name": "add-error-code",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-04T07:36:57.883465Z"
     },
     {
       "name": "response-error-constructor",
