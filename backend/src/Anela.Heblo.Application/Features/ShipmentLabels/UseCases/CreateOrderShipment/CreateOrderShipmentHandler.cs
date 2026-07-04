@@ -80,9 +80,9 @@ public class CreateOrderShipmentHandler
                 CarrierCode = shippingOptions[0].CarrierCode,
                 Package = new ShipmentPackage
                 {
-                    WidthMm = _settings.DefaultPackageWidthMm,
-                    HeightMm = _settings.DefaultPackageHeightMm,
-                    DepthMm = _settings.DefaultPackageDepthMm,
+                    WidthCm = _settings.DefaultPackageWidthCm,
+                    HeightCm = _settings.DefaultPackageHeightCm,
+                    DepthCm = _settings.DefaultPackageDepthCm,
                     WeightGrams = packageWeightGrams,
                 },
             };
