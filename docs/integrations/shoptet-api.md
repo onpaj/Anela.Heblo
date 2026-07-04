@@ -1128,9 +1128,9 @@ Creates a shipment for an order. Triggers Balikobot carrier API call synchronous
     "bankAccountId": null,
     "packages": [
       {
-        "width": 300,
-        "height": 200,
-        "depth": 150,
+        "width": 30,
+        "height": 20,
+        "depth": 15,
         "weight": "0.500"
       }
     ]
@@ -1160,7 +1160,7 @@ Creates a shipment for an order. Triggers Balikobot carrier API call synchronous
 
 *Variant A: by dimensions*
 ```json
-{ "width": 300, "height": 200, "depth": 150, "weight": "0.500" }
+{ "width": 30, "height": 20, "depth": 15, "weight": "0.500" }
 ```
 
 *Variant B: by packaging type + weight*
@@ -1175,7 +1175,7 @@ Creates a shipment for an order. Triggers Balikobot carrier API call synchronous
 
 **Weight unit: kilograms (kg).** The `weight` field accepts `string | null | integer`. String format is decimal kg (e.g. `"0.500"`, `"1.00"`). The `typeWeight` schema in the OpenAPI spec confirms: *"weight in kg, unpacked. 3 decimal places."* The GET response `shipmentPackage.weight` examples show `1` (numeric, kg).
 
-**Dimensions** (`width`, `height`, `depth`) are integers in **millimetres** — the OpenAPI spec examples show `10`, `20`, `30`.
+**Dimensions** (`width`, `height`, `depth`) are integers in **centimetres**. The OpenAPI spec examples (`10`, `20`, `30`) originally led us to assume millimetres, but a live order confirmed centimetres: sending `300/200/150` made Shoptet display a `3 m × 2 m × 1.5 m` package (i.e. it read the values as cm). We now send `30/20/15` for the default `0.3 × 0.2 × 0.15 m` box. _(Finding confirmed 2026-07-03.)_
 
 #### Response shape (201 Created)
 

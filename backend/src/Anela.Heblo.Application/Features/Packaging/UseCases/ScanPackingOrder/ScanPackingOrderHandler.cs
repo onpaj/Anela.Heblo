@@ -136,9 +136,9 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             PackageCount = n,
             Package = new ShipmentPackage
             {
-                WidthMm = _shipmentSettings.DefaultPackageWidthMm,
-                HeightMm = _shipmentSettings.DefaultPackageHeightMm,
-                DepthMm = _shipmentSettings.DefaultPackageDepthMm,
+                WidthCm = _shipmentSettings.DefaultPackageWidthCm,
+                HeightCm = _shipmentSettings.DefaultPackageHeightCm,
+                DepthCm = _shipmentSettings.DefaultPackageDepthCm,
                 WeightGrams = perPackageWeightGrams,
             },
         };
