@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "dark-mode-leaflet-documents-tab",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "dark-mode-leaflet-generator-page",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "dark-mode-leaflet-generate-tab",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
