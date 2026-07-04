@@ -21,16 +21,16 @@
       "updated_at": "2026-07-04T05:19:09.985855Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-04T05:19:21.827042Z"
     }
   },
   "tasks": [
     {
       "name": "relocate-print-fix-result-type-and-type-mutation",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-04T05:19:22.066336Z"
     }
   ]
 }
