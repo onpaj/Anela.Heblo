@@ -21,16 +21,16 @@
       "updated_at": "2026-07-05T08:22:34.177092Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-05T08:23:01.837825Z"
     }
   },
   "tasks": [
     {
       "name": "remove-includedetailedbreakdown-property",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-05T08:23:02.098217Z"
     },
     {
       "name": "regenerate-openapi-clients-and-verify",
