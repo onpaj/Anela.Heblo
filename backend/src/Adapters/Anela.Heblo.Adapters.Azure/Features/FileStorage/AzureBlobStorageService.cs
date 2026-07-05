@@ -1,10 +1,11 @@
 using System.Collections.Concurrent;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.FileStorage.Services;
+namespace Anela.Heblo.Adapters.Azure.Features.FileStorage;
 
 /// <summary>
 /// Azure Blob Storage implementation of IBlobStorageService
