@@ -21,16 +21,16 @@
       "updated_at": "2026-07-05T06:27:35.789722Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-05T06:28:09.930589Z"
     }
   },
   "tasks": [
     {
       "name": "remove-dead-top-product-count-parameter",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-05T06:28:10.172043Z"
     }
   ]
 }
