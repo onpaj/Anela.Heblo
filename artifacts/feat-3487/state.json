@@ -21,8 +21,8 @@
       "updated_at": "2026-07-05T08:22:34.177092Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-05T08:23:01.837825Z"
+      "status": "completed",
+      "updated_at": "2026-07-05T09:35:10.276773Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "regenerate-openapi-clients-and-verify",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-05T09:07:45.012720Z"
+      "updated_at": "2026-07-05T09:35:03.399775Z"
     }
   ]
 }
