@@ -204,7 +204,7 @@ export class ApiClient {
         return Promise.resolve<GetProductMarginAnalysisResponse>(null as any);
     }
 
-    analytics_GetMarginReport(startDate: Date | undefined, endDate: Date | undefined, productFilter: string | null | undefined, categoryFilter: string | null | undefined, includeDetailedBreakdown: boolean | undefined, maxProducts: number | undefined): Promise<GetMarginReportResponse> {
+    analytics_GetMarginReport(startDate: Date | undefined, endDate: Date | undefined, productFilter: string | null | undefined, categoryFilter: string | null | undefined, maxProducts: number | undefined): Promise<GetMarginReportResponse> {
         let url_ = this.baseUrl + "/api/Analytics/margin-report?";
         if (startDate === null)
             throw new Error("The parameter 'startDate' cannot be null.");
@@ -218,10 +218,6 @@ export class ApiClient {
             url_ += "ProductFilter=" + encodeURIComponent("" + productFilter) + "&";
         if (categoryFilter !== undefined && categoryFilter !== null)
             url_ += "CategoryFilter=" + encodeURIComponent("" + categoryFilter) + "&";
-        if (includeDetailedBreakdown === null)
-            throw new Error("The parameter 'includeDetailedBreakdown' cannot be null.");
-        else if (includeDetailedBreakdown !== undefined)
-            url_ += "IncludeDetailedBreakdown=" + encodeURIComponent("" + includeDetailedBreakdown) + "&";
         if (maxProducts === null)
             throw new Error("The parameter 'maxProducts' cannot be null.");
         else if (maxProducts !== undefined)
