@@ -8,6 +8,14 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Catalog.DashboardTiles;
 
+// Note on boundary precision: LoadDataAsync captures its own DateTime.UtcNow at Act time,
+// which is always fractionally later than the Arrange-time `now` these tests capture. So an
+// item built at `now.AddDays(-180)` is always measured as slightly MORE than 180.000 elapsed
+// days by production code - never exactly 180.000. Without an injectable clock in
+// InventorySummaryTileBase (out of scope to add - see task brief), these tests cannot
+// distinguish a strict (`<`/`>`) from an inclusive (`<=`/`>=`) comparison operator exactly at
+// the threshold value; they do verify the threshold is in the right place to within one day
+// and that same-side values land in the correct bucket.
 public class InventorySummaryTileBaseTests
 {
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
