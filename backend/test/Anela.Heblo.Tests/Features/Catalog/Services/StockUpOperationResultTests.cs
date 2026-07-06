@@ -169,4 +169,29 @@ public class StockUpOperationResultTests
         result.Exception.Should().BeSameAs(ex);
         result.IsSuccess.Should().BeFalse();
     }
+
+    [Fact]
+    public void IsSuccess_ReturnsExpectedValue_ForEachStatus()
+    {
+        // Arrange: one factory call per StockUpResultStatus value, paired with the
+        // expected IsSuccess outcome. This is the single place that pins "the current
+        // set of success statuses" (Success, AlreadyCompleted, AlreadyInShoptet).
+        var operation = CreateOperation();
+        var cases = new (StockUpOperationResult Result, bool ExpectedIsSuccess)[]
+        {
+            (StockUpOperationResult.Success(operation), true),
+            (StockUpOperationResult.AlreadyCompleted(operation), true),
+            (StockUpOperationResult.AlreadyInShoptet(operation), true),
+            (StockUpOperationResult.InProgress(operation), false),
+            (StockUpOperationResult.PreviouslyFailed(operation), false),
+            (StockUpOperationResult.SubmitFailed(operation, new InvalidOperationException("boom")), false),
+        };
+
+        // Act & Assert
+        foreach (var (result, expectedIsSuccess) in cases)
+        {
+            result.IsSuccess.Should().Be(expectedIsSuccess,
+                $"because Status={result.Status} should yield IsSuccess={expectedIsSuccess}");
+        }
+    }
 }
