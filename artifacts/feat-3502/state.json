@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "fix-target-amount-message-and-add-validator-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-06T16:25:53.268098Z"
+      "updated_at": "2026-07-06T17:01:56.095705Z"
     }
   ]
 }
