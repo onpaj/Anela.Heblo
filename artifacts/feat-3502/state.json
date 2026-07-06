@@ -21,16 +21,16 @@
       "updated_at": "2026-07-06T16:25:20.326427Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-06T16:25:53.009805Z"
     }
   },
   "tasks": [
     {
       "name": "fix-target-amount-message-and-add-validator-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-06T16:25:53.268098Z"
     }
   ]
 }
