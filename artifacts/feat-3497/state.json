@@ -21,16 +21,16 @@
       "updated_at": "2026-07-06T11:21:22.332739Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-06T11:21:41.173932Z"
     }
   },
   "tasks": [
     {
       "name": "add-inventory-summary-tile-tests",
-      "status": "pending",
-      "revision": 1,
-      "updated_at": null
+      "status": "in_progress",
+      "revision": 2,
+      "updated_at": "2026-07-06T13:15:35.480629Z"
     }
   ]
 }
