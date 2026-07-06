@@ -31,5 +31,32 @@ describe("UserStorage", () => {
       expect(sessionStorage.getItem(USER_INFO_KEY)).toBeNull();
       expect(sessionStorage.getItem(LAST_LOGIN_KEY)).toBeNull();
     });
+
+    it("returns stored info unchanged when expiresAt is in the future", () => {
+      const stored: StoredUserInfo = {
+        ...baseUserInfo,
+        lastLogin: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      };
+      sessionStorage.setItem(USER_INFO_KEY, JSON.stringify(stored));
+
+      const result = UserStorage.getUserInfo();
+
+      expect(result).toEqual(stored);
+      expect(sessionStorage.getItem(USER_INFO_KEY)).not.toBeNull();
+    });
+
+    it("treats a missing expiresAt as never-expiring", () => {
+      const stored: StoredUserInfo = {
+        ...baseUserInfo,
+        lastLogin: new Date().toISOString(),
+      };
+      sessionStorage.setItem(USER_INFO_KEY, JSON.stringify(stored));
+
+      const result = UserStorage.getUserInfo();
+
+      expect(result).toEqual(stored);
+      expect(sessionStorage.getItem(USER_INFO_KEY)).not.toBeNull();
+    });
   });
 });
