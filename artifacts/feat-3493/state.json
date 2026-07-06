@@ -21,16 +21,16 @@
       "updated_at": "2026-07-06T07:31:12.842838Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-06T07:31:29.412162Z"
     }
   },
   "tasks": [
     {
       "name": "extract-buildsummary-helper",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-06T07:46:15.826383Z"
     }
   ]
 }
