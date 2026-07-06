@@ -94,4 +94,14 @@ describe("UserStorage", () => {
       expect(updated.expiresAt).toBe(originalExpiresAt);
     });
   });
+
+  describe("getLastLogin", () => {
+    it("returns null when LAST_LOGIN_KEY is absent", () => {
+      expect(sessionStorage.getItem(LAST_LOGIN_KEY)).toBeNull();
+
+      const result = UserStorage.getLastLogin();
+
+      expect(result).toBeNull();
+    });
+  });
 });
