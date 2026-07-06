@@ -21,16 +21,16 @@
       "updated_at": "2026-07-06T09:23:09.521533Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-06T09:23:39.532956Z"
     }
   },
   "tasks": [
     {
       "name": "inject-timeprovider-bank-statement-handler",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-06T09:23:39.735959Z"
     }
   ]
 }
