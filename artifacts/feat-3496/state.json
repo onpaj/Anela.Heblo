@@ -21,16 +21,16 @@
       "updated_at": "2026-07-06T10:20:59.019010Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-06T10:21:17.701890Z"
     }
   },
   "tasks": [
     {
       "name": "extract-has-sales-in-period-extension",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-06T10:21:17.898681Z"
     }
   ]
 }
