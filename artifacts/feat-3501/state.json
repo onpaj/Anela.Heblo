@@ -17,13 +17,32 @@
       "updated_at": "2026-07-06T15:21:41.290724Z"
     },
     "planning": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-07-06T15:29:37.504567Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "scaffold-and-date-boundary-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "lines-collection-and-wiring-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "line-item-standalone-validator-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
