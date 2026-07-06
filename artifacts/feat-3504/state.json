@@ -21,16 +21,16 @@
       "updated_at": "2026-07-06T18:20:33.033115Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-06T18:21:13.771372Z"
     }
   },
   "tasks": [
     {
       "name": "userstorage-expiry-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-06T18:21:14.106330Z"
     }
   ]
 }
