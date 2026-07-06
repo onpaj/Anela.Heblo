@@ -21,16 +21,16 @@
       "updated_at": "2026-07-06T08:23:57.771961Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-06T08:24:30.893886Z"
     }
   },
   "tasks": [
     {
       "name": "replace-http-fetch-with-generated-client-method",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-06T08:24:31.136034Z"
     }
   ]
 }
