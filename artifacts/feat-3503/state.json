@@ -21,16 +21,16 @@
       "updated_at": "2026-07-06T17:20:55.495900Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-06T17:21:38.936419Z"
+      "status": "completed",
+      "updated_at": "2026-07-06T17:27:47.914169Z"
     }
   },
   "tasks": [
     {
       "name": "urlutils-unit-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-06T17:21:39.155866Z"
+      "updated_at": "2026-07-06T17:27:41.635127Z"
     }
   ]
 }
