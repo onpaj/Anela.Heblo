@@ -1,21 +1,33 @@
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Common;
 
 public class BackgroundServicesReadyHealthCheck : IHealthCheck
 {
     private readonly IBackgroundServiceReadinessTracker _readinessTracker;
+    private readonly BackgroundServicesOptions _options;
 
-    public BackgroundServicesReadyHealthCheck(IBackgroundServiceReadinessTracker readinessTracker)
+    public BackgroundServicesReadyHealthCheck(
+        IBackgroundServiceReadinessTracker readinessTracker,
+        IOptions<BackgroundServicesOptions> options)
     {
         _readinessTracker = readinessTracker;
+        _options = options.Value;
     }
 
     public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
+        // Hydration disabled (e.g. Development/Test): nothing to wait for, so the app is ready.
+        if (!_options.EnableHydration)
+        {
+            return Task.FromResult(
+                HealthCheckResult.Healthy("Hydration disabled - no background services to wait for"));
+        }
+
         var hydrationDetails = _readinessTracker.GetHydrationDetails() ?? new Dictionary<string, object>();
         var data = new Dictionary<string, object>(hydrationDetails);
 
