@@ -24,7 +24,6 @@ export const useProductMarginSummaryQuery = (
       // Use generated API client method with proper parameters
       return apiClient.analytics_GetProductMarginSummary(
         timeWindow,
-        0, // topProductCount = 0 means no limit
         groupingMode,
         marginLevel,
         sortBy,

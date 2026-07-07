@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.IndexLeaflet;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.UploadLeaflet;
 using Anela.Heblo.Application.Shared;

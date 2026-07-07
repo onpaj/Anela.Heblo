@@ -92,7 +92,7 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
         foreach (var product in products)
         {
             // Check if product has sales data in the period
-            if (!HasSalesInPeriod(product, startDate, endDate))
+            if (!product.HasSalesInPeriod(startDate, endDate))
                 continue;
 
             var marginData = _marginCalculator.CalculateForProduct(product, product.SalesHistory);
@@ -120,11 +120,6 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
             CategorySummaries = categorySummaries,
             OverallTotals = overallTotals
         };
-    }
-
-    private static bool HasSalesInPeriod(Domain.Features.Analytics.AnalyticsProduct product, DateTime startDate, DateTime endDate)
-    {
-        return product.SalesHistory.Any(s => s.Date >= startDate && s.Date <= endDate);
     }
 
     private static void AccumulateCategoryTotals(

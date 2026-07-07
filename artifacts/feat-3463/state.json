@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3463",
+  "issue_number": 3463,
+  "created_at": "2026-07-03T07:15:32.938067Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-03T07:20:11.057599Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-03T07:22:13.859450Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-03T07:23:10.446012Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-03T07:24:26.342964Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-03T08:24:44.417654Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-03T08:27:41.947113Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "backend-dto-extraction",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-03T08:11:52.689085Z"
+    },
+    {
+      "name": "frontend-client-rename",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-03T08:24:39.255052Z"
+    }
+  ]
+}

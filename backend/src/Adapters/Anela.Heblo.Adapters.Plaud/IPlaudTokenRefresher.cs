@@ -8,4 +8,12 @@ namespace Anela.Heblo.Adapters.Plaud;
 public interface IPlaudTokenRefresher
 {
     Task RefreshAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Mirrors the current on-disk <c>~/.plaud/tokens.json</c> to Key Vault when it has changed.
+    /// The Plaud CLI rotates the refresh token on disk during normal use without going through
+    /// <see cref="RefreshAsync"/>; without this sync those rotations never reach Key Vault, so a
+    /// container restart re-seeds a stale token. Best-effort — never throws.
+    /// </summary>
+    Task SyncToKeyVaultAsync(CancellationToken ct = default);
 }

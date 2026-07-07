@@ -12,8 +12,8 @@ public interface IBankStatementImportRepository
         bool ascending = false,
         CancellationToken cancellationToken = default);
 
-    Task<BankStatementImport?> GetByIdAsync(int id);
-    Task<BankStatementImport> AddAsync(BankStatementImport bankStatement);
+    Task<BankStatementImport?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<BankStatementImport> AddAsync(BankStatementImport bankStatement, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyDictionary<string, string>> GetExistingResultsByTransferIdsAsync(
         IReadOnlyCollection<string> transferIds, CancellationToken cancellationToken = default);
@@ -22,7 +22,7 @@ public interface IBankStatementImportRepository
 
     Task<BankStatementImport?> GetByTransferIdAsync(string transferId, CancellationToken cancellationToken = default);
 
-    Task<BankStatementImport> UpdateAsync(BankStatementImport bankStatement);
+    Task<BankStatementImport> UpdateAsync(BankStatementImport bankStatement, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<DailyBankStatementStatistics>> GetDailyStatisticsAsync(
         DateTime startDate,

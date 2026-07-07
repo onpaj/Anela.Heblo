@@ -47,8 +47,7 @@ internal sealed class InvoiceImportStatisticsSourceAdapter : IInvoiceImportStati
             results = rawResults.Select(r => new DailyInvoiceCount
             {
                 Date = DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
-                Count = r.Count,
-                IsBelowThreshold = false
+                Count = r.Count
             }).ToList();
         }
         else
@@ -71,8 +70,7 @@ internal sealed class InvoiceImportStatisticsSourceAdapter : IInvoiceImportStati
             results = rawResults.Select(r => new DailyInvoiceCount
             {
                 Date = DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
-                Count = r.Count,
-                IsBelowThreshold = false
+                Count = r.Count
             }).ToList();
         }
 
@@ -92,8 +90,7 @@ internal sealed class InvoiceImportStatisticsSourceAdapter : IInvoiceImportStati
                 filledResults.Add(new DailyInvoiceCount
                 {
                     Date = currentDate,
-                    Count = 0,
-                    IsBelowThreshold = false
+                    Count = 0
                 });
             }
 

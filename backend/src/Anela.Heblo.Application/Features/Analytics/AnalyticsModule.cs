@@ -47,6 +47,7 @@ public static class AnalyticsModule
         services.AddScoped<TimeWindowParser>();
         services.AddScoped<IMarginCalculator, MarginCalculator>();
         services.AddScoped<IMonthlyBreakdownGenerator, MonthlyBreakdownGenerator>();
+        services.AddScoped<ITopProductSorter, TopProductSorter>();
 
         // Register dashboard tiles
         services.RegisterTile<InvoiceImportStatisticsTile>();
