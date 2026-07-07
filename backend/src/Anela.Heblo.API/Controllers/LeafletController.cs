@@ -32,38 +32,11 @@ public class LeafletController : BaseApiController
     [FeatureAuthorize(Feature.Marketing_Leaflet, AccessLevel.Write)]
     [ProducesResponseType(typeof(GenerateLeafletResponse), 200)]
     [ProducesResponseType(typeof(ProblemDetails), 400)]
-    [ProducesResponseType(typeof(ProblemDetails), 422)]
-    [ProducesResponseType(typeof(ProblemDetails), 502)]
-    public async Task<IActionResult> Generate([FromBody] GenerateLeafletRequest request, CancellationToken ct)
+    [ProducesResponseType(typeof(GenerateLeafletResponse), 422)]
+    public async Task<ActionResult<GenerateLeafletResponse>> Generate([FromBody] GenerateLeafletRequest request, CancellationToken ct)
     {
-        try
-        {
-            var response = await _mediator.Send(request, ct);
-            return Ok(response);
-        }
-        catch (EmptyRetrievalException ex)
-        {
-            return UnprocessableEntity(new ProblemDetails
-            {
-                Status = 422,
-                Title = "Insufficient knowledge",
-                Detail = ex.Message,
-            });
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Leaflet generation failed");
-            return StatusCode(502, new ProblemDetails
-            {
-                Status = 502,
-                Title = "Generation failed",
-                Detail = "Leaflet generation failed. Please try again.",
-            });
-        }
+        var result = await _mediator.Send(request, ct);
+        return HandleResponse(result);
     }
 
     [HttpGet("documents")]

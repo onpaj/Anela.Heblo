@@ -77,46 +77,4 @@ public class ClassificationHistoryRepository : IClassificationHistoryRepository
 
         return (items, totalCount);
     }
-
-    public async Task<ClassificationStatistics> GetStatisticsAsync(DateTime? fromDate = null, DateTime? toDate = null)
-    {
-        var query = _context.ClassificationHistory.AsQueryable();
-
-        if (fromDate.HasValue)
-            query = query.Where(h => h.Timestamp >= fromDate.Value);
-
-        if (toDate.HasValue)
-        {
-            var endOfDay = toDate.Value.Date.AddDays(1);
-            query = query.Where(h => h.Timestamp < endOfDay);
-        }
-
-        var totalProcessed = await query.CountAsync();
-        var successCount = await query.CountAsync(h => h.Result == ClassificationResult.Success);
-        var manualReviewCount = await query.CountAsync(h => h.Result == ClassificationResult.ManualReviewRequired);
-        var errorCount = await query.CountAsync(h => h.Result == ClassificationResult.Error);
-
-        var ruleUsage = await query
-            .Where(h => h.ClassificationRuleId.HasValue && h.Result == ClassificationResult.Success)
-            .Include(h => h.ClassificationRule)
-            .GroupBy(h => new { h.ClassificationRuleId, h.ClassificationRule!.Name })
-            .Select(g => new RuleUsageStatistic
-            {
-                RuleId = g.Key.ClassificationRuleId!.Value,
-                RuleName = g.Key.Name,
-                UsageCount = g.Count(),
-                UsagePercentage = totalProcessed > 0 ? (decimal)g.Count() / totalProcessed * 100 : 0
-            })
-            .OrderByDescending(r => r.UsageCount)
-            .ToListAsync();
-
-        return new ClassificationStatistics
-        {
-            TotalInvoicesProcessed = totalProcessed,
-            SuccessfulClassifications = successCount,
-            ManualReviewRequired = manualReviewCount,
-            Errors = errorCount,
-            RuleUsage = ruleUsage
-        };
-    }
 }

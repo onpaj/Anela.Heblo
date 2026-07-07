@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.Leaflet;
 using Anela.Heblo.Application.Features.Leaflet.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.IndexLeaflet;

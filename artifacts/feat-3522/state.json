@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3522",
+  "issue_number": 3522,
+  "created_at": "2026-07-07T10:14:09.144217Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-07T10:17:04.595609Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-07T10:18:43.461810Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-07T10:18:48.799742Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-07T10:20:18.252731Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-07T10:49:07.430965Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-07T10:51:18.102228Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "use-imapper-in-classification-history-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-07T10:49:06.921281Z"
+    }
+  ]
+}

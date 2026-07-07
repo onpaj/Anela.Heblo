@@ -12,7 +12,9 @@ public sealed class PlaudAuthExceptionTests
         var ex = new PlaudAuthExpiredException(stderr);
 
         ex.Message.Should().Contain(stderr);
-        ex.Message.Should().Contain("Plaud__TokensJson");
+        // Recovery must point at the Key Vault secret, not the (overridden) App Service env var.
+        ex.Message.Should().Contain("Plaud--TokensJson");
+        ex.Message.Should().Contain("plaud login");
     }
 
     [Fact]

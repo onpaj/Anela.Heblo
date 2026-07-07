@@ -2,9 +2,13 @@ import { useMutation } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
 import { BaseResponse } from "../../types/errors";
 
+export interface RunExpeditionListPrintFixResult {
+  totalCount: number;
+}
+
 export const useRunExpeditionListPrintFix = () => {
-  return useMutation({
-    mutationFn: async () => {
+  return useMutation<RunExpeditionListPrintFixResult, Error, void>({
+    mutationFn: async (): Promise<RunExpeditionListPrintFixResult> => {
       const apiClient = getAuthenticatedApiClient();
       const relativeUrl = `/api/expedition-list/run-fix`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;

@@ -12,10 +12,10 @@ import {
 } from 'recharts';
 import { format, isWeekend } from 'date-fns';
 import { cs } from 'date-fns/locale';
-import { DailyInvoiceCount } from '../../api/hooks/useInvoiceImportStatistics';
+import { DailyInvoiceCountDto } from '../../api/hooks/useInvoiceImportStatistics';
 
 interface InvoiceImportChartProps {
-  data: DailyInvoiceCount[];
+  data: DailyInvoiceCountDto[];
   minimumThreshold: number;
   dateType: 'InvoiceDate' | 'LastSyncTime';
 }

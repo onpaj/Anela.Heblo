@@ -2,20 +2,17 @@ import React, { useState } from 'react';
 import LeafletForm from './LeafletForm';
 import LeafletResult from './LeafletResult';
 import { getAuthenticatedApiClient } from '../../api/client';
-import { AudienceType, GenerateLeafletRequest, LeafletLength } from '../../api/generated/api-client';
+import {
+  AudienceType,
+  ErrorCodes,
+  GenerateLeafletRequest,
+  GenerateLeafletResponse,
+  LeafletLength,
+} from '../../api/generated/api-client';
 
 interface ErrorBanner {
   kind: 'insufficient' | 'transient';
   message: string;
-}
-
-interface ApiError {
-  status: number;
-  detail?: string;
-}
-
-function isApiError(err: unknown): err is ApiError {
-  return typeof err === 'object' && err !== null && typeof (err as Record<string, unknown>)['status'] === 'number';
 }
 
 const LeafletGenerateTab: React.FC = () => {
@@ -37,12 +34,10 @@ const LeafletGenerateTab: React.FC = () => {
       setResult(response.content ?? '');
       setGenerationId((response as any).id ?? null);
     } catch (err: unknown) {
-      if (isApiError(err) && err.status === 422) {
+      if (err instanceof GenerateLeafletResponse && err.errorCode === ErrorCodes.LeafletEmptyRetrieval) {
         setErrorBanner({
           kind: 'insufficient',
-          message:
-            err.detail ??
-            'Knowledge Base zatím toto téma nepokrývá. Zkuste obecnější formulaci.',
+          message: 'Knowledge Base zatím toto téma nepokrývá. Zkuste obecnější formulaci.',
         });
       } else {
         setErrorBanner({
@@ -62,8 +57,8 @@ const LeafletGenerateTab: React.FC = () => {
           role="alert"
           className={`mb-4 rounded p-3 text-sm ${
             errorBanner.kind === 'insufficient'
-              ? 'bg-amber-100 text-amber-900'
-              : 'bg-red-100 text-red-900'
+              ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300'
+              : 'bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-300'
           }`}
         >
           {errorBanner.message}
@@ -85,9 +80,9 @@ const LeafletGenerateTab: React.FC = () => {
         <div>
           {isLoading ? (
             <div className="animate-pulse space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-3/4" />
-              <div className="h-4 bg-gray-200 rounded" />
-              <div className="h-4 bg-gray-200 rounded w-5/6" />
+              <div className="h-4 bg-gray-200 dark:bg-graphite-hover rounded w-3/4" />
+              <div className="h-4 bg-gray-200 dark:bg-graphite-hover rounded" />
+              <div className="h-4 bg-gray-200 dark:bg-graphite-hover rounded w-5/6" />
             </div>
           ) : (
             <LeafletResult content={result} generationId={generationId} onRegenerate={generate} />

@@ -97,16 +97,133 @@ public class GetProductMarginsHandlerTests
             .Which.Should().Be(discriminatingKey);
     }
 
-    private static CatalogAggregate BuildAggregate(string productCode, IEnumerable<DateTime> monthlyKeys)
+    [Fact]
+    public async Task Handle_NullProductType_ReturnsOnlyProductAndGoods()
+    {
+        // Arrange
+        _timeProviderMock
+            .Setup(tp => tp.GetUtcNow())
+            .Returns(new DateTimeOffset(2026, 6, 29, 12, 0, 0, TimeSpan.Zero));
+
+        var catalogItems = new[]
+        {
+            BuildAggregate(productCode: "PROD001", type: ProductType.Product),
+            BuildAggregate(productCode: "GOOD001", type: ProductType.Goods),
+            BuildAggregate(productCode: "SEMI001", type: ProductType.SemiProduct),
+            BuildAggregate(productCode: "MATI001", type: ProductType.Material),
+        };
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        var request = new GetProductMarginsRequest
+        {
+            ProductType = null,
+            PageNumber = 1,
+            PageSize = 100
+        };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.TotalCount.Should().Be(2);
+        response.Items.Should().HaveCount(2);
+        response.Items.Select(i => i.ProductCode)
+            .Should().BeEquivalentTo(new[] { "PROD001", "GOOD001" });
+    }
+
+    [Fact]
+    public async Task Handle_ExplicitProductType_ReturnsOnlyMatchingType()
+    {
+        // Arrange
+        _timeProviderMock
+            .Setup(tp => tp.GetUtcNow())
+            .Returns(new DateTimeOffset(2026, 6, 29, 12, 0, 0, TimeSpan.Zero));
+
+        var catalogItems = new[]
+        {
+            BuildAggregate(productCode: "PROD001", type: ProductType.Product),
+            BuildAggregate(productCode: "SEMI001", type: ProductType.SemiProduct),
+        };
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        var request = new GetProductMarginsRequest
+        {
+            ProductType = ProductType.SemiProduct,
+            PageNumber = 1,
+            PageSize = 100
+        };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.TotalCount.Should().Be(1);
+        response.Items.Should().HaveCount(1);
+        response.Items[0].ProductCode.Should().Be("SEMI001");
+    }
+
+    [Fact]
+    public async Task Handle_UnknownSortField_FallsBackToProductCodeAscending()
+    {
+        // Arrange
+        _timeProviderMock
+            .Setup(tp => tp.GetUtcNow())
+            .Returns(new DateTimeOffset(2026, 6, 29, 12, 0, 0, TimeSpan.Zero));
+
+        var catalogItems = new[]
+        {
+            BuildAggregate(productCode: "B001"),
+            BuildAggregate(productCode: "A001"),
+            BuildAggregate(productCode: "C001"),
+        };
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        var request = new GetProductMarginsRequest
+        {
+            ProductType = ProductType.Product,   // explicit type so all three items pass the filter
+            SortBy = "nonexistent",
+            SortDescending = false,
+            PageNumber = 1,
+            PageSize = 100
+        };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.TotalCount.Should().Be(3);
+        response.Items.Select(i => i.ProductCode)
+            .Should().BeInAscendingOrder();
+        response.Items[0].ProductCode.Should().Be("A001");
+        response.Items[1].ProductCode.Should().Be("B001");
+        response.Items[2].ProductCode.Should().Be("C001");
+    }
+
+    private static CatalogAggregate BuildAggregate(
+        string productCode,
+        IEnumerable<DateTime>? monthlyKeys = null,
+        ProductType type = ProductType.Product)
     {
         var aggregate = new CatalogAggregate
         {
             Id = productCode,
             ProductName = "Test Product",
-            Type = ProductType.Product
+            Type = type
         };
 
-        foreach (var key in monthlyKeys)
+        foreach (var key in monthlyKeys ?? Enumerable.Empty<DateTime>())
         {
             aggregate.Margins.MonthlyData[key] = new MarginData();
         }

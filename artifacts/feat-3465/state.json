@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-3465",
+  "issue_number": 3465,
+  "created_at": "2026-07-03T09:15:57.573372Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-03T09:18:28.471228Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-03T09:20:35.771198Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-03T09:21:08.943566Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-03T09:27:59.685279Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-03T10:38:22.574969Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-03T10:39:59.850315Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-group-margin-aggregator",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-03T10:27:43.334344Z"
+    },
+    {
+      "name": "wire-group-margin-aggregator-into-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-03T10:30:44.132283Z"
+    },
+    {
+      "name": "add-top-product-sorter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-03T10:36:39.229778Z"
+    },
+    {
+      "name": "wire-top-product-sorter-into-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-03T10:38:16.039990Z"
+    }
+  ]
+}

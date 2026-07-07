@@ -479,7 +479,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [expandedRows, loadingSubgrids]);
 
-  const { orderedColumns, columnState, setColumnOrder, setColumnWidth, toggleColumnVisibility, resetLayout } =
+  const { orderedColumns, columnState, setColumnOrder, setColumnWidthLive, commitColumnWidth, toggleColumnVisibility, resetLayout } =
     useGridLayout('manufacturing-stock-analysis', columns);
 
   // Get row background color based on severity (like in PurchaseStockAnalysis)
@@ -1429,7 +1429,8 @@ const ManufacturingStockAnalysis: React.FC = () => {
                 sortDescending={filters.sortDescending}
                 onSort={(key) => handleSort(key as ManufacturingStockSortBy)}
                 onReorder={setColumnOrder}
-                onResizeEnd={setColumnWidth}
+                onResizeChange={setColumnWidthLive}
+                onResizeEnd={commitColumnWidth}
               />
               <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                 {tableData.map((item) => {

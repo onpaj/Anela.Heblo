@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.FileSystem.Features.ExpeditionList;
+using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 using Anela.Heblo.Application.Shared.Printing;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +15,18 @@ public static class FileSystemAdapterServiceCollectionExtensions
     public static IServiceCollection AddFileSystemPrintQueueSink(this IServiceCollection services)
     {
         services.AddScoped<IPrintQueueSink, FileSystemPrintQueueSink>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the filesystem-based <see cref="ITemporaryFileAccessor"/> implementation.
+    /// Used by ExpeditionListService to read/delete exported PDFs regardless of which
+    /// print sink (ExpeditionList:PrintSink) is configured, since exported files always
+    /// land on local disk first.
+    /// </summary>
+    public static IServiceCollection AddFileSystemTemporaryFileAccessor(this IServiceCollection services)
+    {
+        services.AddScoped<ITemporaryFileAccessor, FileSystemTemporaryFileAccessor>();
         return services;
     }
 }

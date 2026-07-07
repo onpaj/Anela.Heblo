@@ -15,6 +15,7 @@ public class ExpeditionListServicePrintSinkTests
     private readonly Mock<IExpeditionPickingSource> _pickingSource = new();
     private readonly Mock<IEmailSender> _emailSender = new();
     private readonly Mock<IPrintQueueSink> _printQueueSink = new();
+    private readonly Mock<ITemporaryFileAccessor> _temporaryFileAccessor = new();
 
     private ExpeditionListService CreateService() => new ExpeditionListService(
         _pickingSource.Object,
@@ -22,6 +23,7 @@ public class ExpeditionListServicePrintSinkTests
         TimeProvider.System,
         Options.Create(new PrintPickingListOptions { EmailSender = "test@test.com" }),
         _printQueueSink.Object,
+        _temporaryFileAccessor.Object,
         NullLogger<ExpeditionListService>.Instance);
 
     private void SetupSourceInvokingCallback(IList<string> filesToPassToCallback)

@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3461",
+  "issue_number": 3461,
+  "created_at": "2026-07-03T05:14:57.808655Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-03T05:17:20.308031Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-03T05:20:08.576756Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-03T05:21:08.512984Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-03T05:24:35.653652Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-03T06:24:20.103073Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-03T06:37:19.430329Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-temporary-file-accessor-contract-and-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-03T05:55:32.781035Z"
+    },
+    {
+      "name": "refactor-expeditionlistservice-to-use-temporary-file-accessor",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-03T06:24:14.017971Z"
+    }
+  ]
+}

@@ -83,7 +83,11 @@ public sealed class PlaudCliClient : IPlaudClient
     {
         try
         {
-            return await RunCliCoreAsync(args, ct);
+            var output = await RunCliCoreAsync(args, ct);
+            // The CLI rotates the on-disk refresh token during a normal (non-AUTH_FAILED) call.
+            // Mirror it to Key Vault so a container restart never re-seeds a stale token. Best-effort.
+            await _tokenRefresher.SyncToKeyVaultAsync(ct);
+            return output;
         }
         catch (PlaudAuthExpiredException)
         {
@@ -100,6 +104,7 @@ public sealed class PlaudCliClient : IPlaudClient
 
             _logger.LogInformation("Plaud token refreshed; retrying CLI call.");
             // A second AUTH_FAILED here means the refreshed token is still rejected — surface it.
+            // RefreshAsync already persisted the fresh token to Key Vault, so no extra sync needed.
             return await RunCliCoreAsync(args, ct);
         }
     }

@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.Article.Contracts;
 using Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Shared.Rag;
 using FluentAssertions;
 using Moq;
 using Xunit;
