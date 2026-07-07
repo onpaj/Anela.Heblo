@@ -5,6 +5,7 @@ import ScanInput from '../ScanInput';
 import { useCreateMaterialContainers } from '../../../api/hooks/useMaterialContainers';
 import { CreateMaterialContainerItem } from '../../../api/generated/api-client';
 import { ErrorCodes } from '../../../types/errors';
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 const CODE_FORMAT = /^M\d{8}$/;
 const INVALID_FORMAT_MESSAGE = 'Neplatný formát kódu (očekáváno M + 8 číslic).';
@@ -17,6 +18,7 @@ interface ContainerScanLoopProps {
 }
 
 const ContainerScanLoop = ({ mode }: ContainerScanLoopProps) => {
+  useScreenView('Terminal', 'LotIdentificationContainerScan', mode);
   const params = useParams<{ material: string; lot: string; id?: string; lineId?: string }>();
   const materialCode = params.material ?? '';
   const lotCode = params.lot ?? '';

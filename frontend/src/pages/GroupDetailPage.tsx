@@ -25,6 +25,7 @@ import {
   useUnsavedChangesDialog,
 } from "../hooks/useUnsavedChangesDialog";
 import { resolveInheritedPermissions } from "../components/access-management/groupClosure";
+import { useScreenView } from "../telemetry/useScreenView";
 
 interface GroupDraft {
   name: string;
@@ -86,6 +87,7 @@ function buildMemberMutationArgs(
 }
 
 export default function GroupDetailPage() {
+  useScreenView("Admin", "GroupDetail");
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
