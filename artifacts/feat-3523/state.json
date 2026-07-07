@@ -21,16 +21,16 @@
       "updated_at": "2026-07-07T11:21:29.791238Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-07T11:22:05.267321Z"
     }
   },
   "tasks": [
     {
       "name": "remove-dead-invoice-classification-statistics-code",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-07T11:22:05.498691Z"
     }
   ]
 }
