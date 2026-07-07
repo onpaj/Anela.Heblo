@@ -23,6 +23,12 @@
    propagates as `PlaudAuthExpiredException` and fires the Azure Monitor alert.
 4. `PlaudTokenBootstrapper` re-seeds `~/.plaud/tokens.json` from Key Vault on the next container
    restart, so the KV-persisted token survives restarts.
+5. **Disk→KV sync on every successful call.** The Plaud CLI silently rotates the on-disk refresh
+   token during a *normal* (non-`AUTH_FAILED`) call, which the reactive path never sees. After each
+   successful CLI call `PlaudCliClient` calls `IPlaudTokenRefresher.SyncToKeyVaultAsync`, which
+   mirrors `~/.plaud/tokens.json` to KV `Plaud--TokensJson` **only when it changed** (best-effort).
+   This keeps Key Vault current so a restart never re-seeds a stale token — the fix for the
+   restart-stale-token problem below.
 
 The refresh HTTP client is registered unconditionally; Key Vault persistence is wired only when
 `KeyVault:Uri` is set (production/staging). In local dev the refresher writes disk only.
@@ -42,20 +48,51 @@ az keyvault secret set --vault-name kv-heblo-prod --name Plaud--TokensJson \
 az webapp restart -g rgHeblo -n heblo
 ```
 
-## Root Cause of the Bootstrapper-Overwrite Problem
+## Root Cause of the Restart-Stale-Token Problem (fixed)
 
 `PlaudTokenBootstrapper` (`backend/src/Adapters/Anela.Heblo.Adapters.Plaud/PlaudTokenBootstrapper.cs`)
-writes `~/.plaud/tokens.json` from the App Service setting `Plaud__TokensJson` on every container start.
+writes `~/.plaud/tokens.json` from `PlaudOptions.TokensJson` on every container start.
 
-The Plaud CLI auto-refreshes its tokens on every call, so continuous 5-minute polling normally keeps the
-refresh token alive indefinitely. However, a container restart re-seeds a potentially stale token from
-the App Service setting. If the stored `refresh_token` has aged past Plaud's hard TTL, every subsequent
-CLI call fails with `[AUTH_FAILED] Token invalid or expired`.
+**Config precedence:** `Program.cs` adds environment variables first (via `CreateBuilder`), then layers
+`AddAzureKeyVault` on top (only user-secrets and command-line are re-added after KV). So the **Key Vault
+secret `Plaud--TokensJson` overrides the App Service env var `Plaud__TokensJson`** — Key Vault is the
+effective source of truth on startup. Editing the env var has no effect; it should not exist (secrets
+live in Key Vault only) and has been removed.
 
-**Short-term mitigation (implemented):** `PlaudPollingJob` now has
-`[AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Fail)]`, which prevents the
-10× retry flood and throws `PlaudAuthExpiredException` with actionable message. An Azure Monitor alert
-fires within 5 minutes of the first failure (see monitoring alert `Heblo-Plaud-AuthExpired`).
+The Plaud CLI auto-refreshes (rotates) its refresh token on disk during normal polling. Previously those
+rotations were **never mirrored to Key Vault** (only the reactive `PlaudTokenRefresher` wrote KV, and only
+on `AUTH_FAILED`), so the KV secret froze at its seeded value. A container restart then re-seeded that
+now-invalidated refresh token, and every subsequent CLI call failed `[AUTH_FAILED]` → refresh returned
+`{"detail":"REFRESH_TOKEN_INVALID"}` (HTTP 401) before it could heal KV → permanent wedge.
+
+**Fix (implemented):** `SyncToKeyVaultAsync` (step 5 in *How It Works*) mirrors the CLI's on-disk token
+rotations to KV after every successful call, so the KV secret always reflects the live token and a
+restart re-seeds a valid one. `PlaudPollingJob` keeps
+`[AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Fail)]` so a genuinely dead
+token surfaces `PlaudAuthExpiredException` immediately (no 10× retry flood) and fires the Azure Monitor
+alert `Heblo-Plaud-AuthExpired` within 5 minutes.
+
+## Recovery Runbook (refresh token dead → `REFRESH_TOKEN_INVALID`)
+
+If the stored refresh token dies (e.g. aged past Plaud's hard TTL while polling was paused), the token
+must be re-minted and written to **Key Vault** — not the App Service env var (which is overridden). For
+production (`kv-heblo-prod` / app `heblo`); use `kv-heblo-stg` / `heblo-test` for staging:
+
+```bash
+plaud login                                   # interactive — mints a fresh token pair
+cat ~/.plaud/tokens.json                       # verify access_token, refresh_token, expires_at (13-digit ms)
+
+az keyvault secret set --vault-name kv-heblo-prod --name "Plaud--TokensJson" \
+    --value "$(cat ~/.plaud/tokens.json)"      # write to the source of truth
+
+az webapp config appsettings delete -g rgHeblo -n heblo --setting-names Plaud__TokensJson  # remove stale env var (if present)
+az webapp restart -g rgHeblo -n heblo          # re-seed disk from fresh KV
+
+# Verify: no new auth failures, and KV 'updated' starts advancing as polling rotates + syncs the token
+az monitor app-insights query --app aiHeblo -g rgHeblo \
+  --analytics-query "exceptions | where type endswith 'PlaudAuthExpiredException' | where timestamp > ago(15m) | count"
+az keyvault secret show --vault-name kv-heblo-prod --name Plaud--TokensJson --query attributes.updated -o tsv
+```
 
 ## Observed Refresh Endpoint
 
@@ -90,7 +127,12 @@ re-serializes.
 > **Open question:** Confirm Plaud's refresh-token hard TTL by inspecting `expires_in` and observing
 > rotation over several days. The hard TTL appears to be ~30 days but is not officially documented.
 
-## Proposed Design
+## Proposed Design (historical — superseded by the reactive implementation above)
+
+> This section is the original design sketch. It has been **implemented differently**: refresh is
+> reactive (no standalone `plaud-token-refresh` job), KV is kept current via `SyncToKeyVaultAsync`
+> (see *How It Works* step 5), and the `Plaud__TokensJson` App Service env var has been removed —
+> Key Vault `Plaud--TokensJson` is the source of truth. Kept for context only.
 
 ### `PlaudTokenRefreshClient`
 
