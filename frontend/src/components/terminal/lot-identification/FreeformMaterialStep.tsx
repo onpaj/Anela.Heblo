@@ -1,8 +1,10 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ScanInput from '../ScanInput';
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 const FreeformMaterialStep = () => {
+  useScreenView('Terminal', 'LotIdentificationFreeformMaterial');
   const navigate = useNavigate();
 
   const handleScan = useCallback(
