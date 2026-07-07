@@ -21,16 +21,16 @@
       "updated_at": "2026-07-07T07:22:49.028976Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-07T07:23:25.368033Z"
     }
   },
   "tasks": [
     {
       "name": "split-hook-updaters",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-07T07:23:25.563416Z"
     },
     {
       "name": "split-gridheader-resize-callbacks",
