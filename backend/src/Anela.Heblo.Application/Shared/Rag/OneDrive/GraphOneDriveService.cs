@@ -5,7 +5,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 
-namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
+namespace Anela.Heblo.Application.Shared.Rag.OneDrive;
 
 /// <summary>
 /// Microsoft Graph implementation of IOneDriveService for SharePoint document libraries.

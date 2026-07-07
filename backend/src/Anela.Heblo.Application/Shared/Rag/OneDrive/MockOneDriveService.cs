@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
+namespace Anela.Heblo.Application.Shared.Rag.OneDrive;
 
 /// <summary>
 /// Mock implementation of IOneDriveService for use in mock authentication mode (local dev and testing).

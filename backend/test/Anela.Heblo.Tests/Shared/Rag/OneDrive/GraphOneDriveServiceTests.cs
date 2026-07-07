@@ -1,13 +1,13 @@
 using System.Net;
 using System.Text;
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Shared.Rag.OneDrive;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Identity.Web;
 using Moq;
 using Xunit;
 
-namespace Anela.Heblo.Tests.KnowledgeBase.Services;
+namespace Anela.Heblo.Tests.Shared.Rag.OneDrive;
 
 public class GraphOneDriveServiceTests
 {
