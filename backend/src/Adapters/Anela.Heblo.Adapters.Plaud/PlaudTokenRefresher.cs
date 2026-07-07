@@ -18,6 +18,10 @@ public sealed class PlaudTokenRefresher : IPlaudTokenRefresher
     private readonly string _tokensFilePath;
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
+    // Last token JSON successfully written to Key Vault. Lets SyncToKeyVaultAsync skip a KV write
+    // when the on-disk token is unchanged, so continuous 5-minute polling doesn't spam KV versions.
+    private string? _lastPersistedJson;
+
     public PlaudTokenRefresher(
         IPlaudTokenRefreshClient refreshClient,
         ILogger<PlaudTokenRefresher> logger,
@@ -85,6 +89,7 @@ public sealed class PlaudTokenRefresher : IPlaudTokenRefresher
                 try
                 {
                     await _secretClient.SetSecretAsync(KeyVaultSecretName, newJson, ct);
+                    _lastPersistedJson = newJson;
                 }
                 catch (Exception ex)
                 {
@@ -95,6 +100,38 @@ public sealed class PlaudTokenRefresher : IPlaudTokenRefresher
             }
 
             _logger.LogInformation("Plaud token refreshed. expires_at={ExpiresAt}", newTokens.ExpiresAt);
+        }
+        finally
+        {
+            _refreshLock.Release();
+        }
+    }
+
+    public async Task SyncToKeyVaultAsync(CancellationToken ct = default)
+    {
+        // Nothing to mirror to when KV isn't configured (local dev) or the file isn't there yet.
+        if (_secretClient is null || !File.Exists(_tokensFilePath))
+            return;
+
+        // Share the refresh lock so a sync can't race a concurrent RefreshAsync writing the file.
+        await _refreshLock.WaitAsync(ct);
+        try
+        {
+            var diskJson = await File.ReadAllTextAsync(_tokensFilePath, ct);
+
+            // Only push when the CLI actually rotated the token — avoids a KV write on every poll.
+            if (diskJson == _lastPersistedJson)
+                return;
+
+            await _secretClient.SetSecretAsync(KeyVaultSecretName, diskJson, ct);
+            _lastPersistedJson = diskJson;
+            _logger.LogInformation("Plaud on-disk token mirrored to Key Vault.");
+        }
+        catch (Exception ex)
+        {
+            // Best-effort: a failed sync only means a future restart could re-seed a slightly older
+            // token. It must never fail the CLI call that triggered the sync.
+            _logger.LogError(ex, "Failed to mirror Plaud on-disk token to Key Vault.");
         }
         finally
         {
