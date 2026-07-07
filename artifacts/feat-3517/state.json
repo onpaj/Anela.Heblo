@@ -21,16 +21,16 @@
       "updated_at": "2026-07-07T05:20:26.391843Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-07T05:20:39.654592Z"
+      "status": "completed",
+      "updated_at": "2026-07-07T05:27:37.242396Z"
     }
   },
   "tasks": [
     {
       "name": "remove-dead-grid-layout-persistence-payload",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-07T05:20:39.970061Z"
+      "updated_at": "2026-07-07T05:27:32.198436Z"
     }
   ]
 }
