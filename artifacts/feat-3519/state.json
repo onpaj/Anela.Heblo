@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "split-hook-updaters",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "split-gridheader-resize-callbacks",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "wire-consumers",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
