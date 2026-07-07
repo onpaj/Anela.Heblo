@@ -1,6 +1,11 @@
 namespace Anela.Heblo.Application.Features.Analytics.Services;
 
-public class TimeWindowParser
+public interface ITimeWindowParser
+{
+    (DateTime fromDate, DateTime toDate) ParseTimeWindow(string timeWindow);
+}
+
+public class TimeWindowParser : ITimeWindowParser
 {
     private readonly TimeProvider _timeProvider;
 

@@ -1,3 +1,4 @@
+using System.Linq;
 using Anela.Heblo.Adapters.Azure.Features.ExpeditionList;
 using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.Adapters.FileSystem.Features.ExpeditionList;
@@ -83,6 +84,23 @@ public class CombinedPrintQueueSinkRegistrationTests
 
         // Assert
         Assert.IsType<CupsPrintQueueSink>(cups);
+    }
+
+    [Fact]
+    public void Combined_NonKeyedIPrintQueueSink_HasExactlyOneRegistration_AndItIsCombined()
+    {
+        // Arrange
+        using var provider = BuildProvider("Combined");
+        using var scope = provider.CreateScope();
+
+        // Act
+        var sinks = scope.ServiceProvider.GetServices<IPrintQueueSink>().ToList();
+
+        // Assert — only the non-keyed CombinedPrintQueueSink factory should be visible here;
+        // keyed registrations ("azure", "cups") are invisible to GetServices<IPrintQueueSink>()
+        // by design and must not appear in this collection.
+        var sink = Assert.Single(sinks);
+        Assert.IsType<CombinedPrintQueueSink>(sink);
     }
 
     [Fact]

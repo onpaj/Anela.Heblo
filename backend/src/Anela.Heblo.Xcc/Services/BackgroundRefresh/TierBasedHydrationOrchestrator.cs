@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Xcc.Services.BackgroundRefresh;
 
@@ -7,32 +8,47 @@ public class TierBasedHydrationOrchestrator : BackgroundService
 {
     private readonly ILogger<TierBasedHydrationOrchestrator> _logger;
     private readonly BackgroundRefreshTaskRegistry _taskRegistry;
+    private readonly int _readinessTier;
     private readonly TaskCompletionSource _hydrationCompleted = new();
+    private readonly TaskCompletionSource _readinessReached = new();
 
     public TierBasedHydrationOrchestrator(
         ILogger<TierBasedHydrationOrchestrator> logger,
-        BackgroundRefreshTaskRegistry taskRegistry)
+        BackgroundRefreshTaskRegistry taskRegistry,
+        IOptions<BackgroundServicesOptions> options)
     {
         _logger = logger;
         _taskRegistry = taskRegistry;
+        _readinessTier = options.Value.ReadinessTier;
     }
 
+    /// <summary>
+    /// Completes when all tiers have finished hydrating (used to gate periodic scheduling).
+    /// </summary>
     public Task WaitForHydrationCompletionAsync() => _hydrationCompleted.Task;
+
+    /// <summary>
+    /// Completes once all tiers at/below <see cref="BackgroundServicesOptions.ReadinessTier"/> have
+    /// finished. Higher tiers keep hydrating in the background — used to gate /health/ready.
+    /// </summary>
+    public Task WaitForReadinessAsync() => _readinessReached.Task;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
-            _logger.LogInformation("🚀 Starting tier-based hydration process");
+            _logger.LogInformation("🚀 Starting tier-based hydration process (readiness tier {ReadinessTier})", _readinessTier);
 
             await ExecuteHydrationTiersAsync(stoppingToken);
 
             _logger.LogInformation("✅ Tier-based hydration completed successfully");
+            _readinessReached.TrySetResult();
             _hydrationCompleted.SetResult();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ Tier-based hydration failed");
+            _readinessReached.TrySetException(ex);
             _hydrationCompleted.SetException(ex);
             throw;
         }
@@ -59,12 +75,52 @@ public class TierBasedHydrationOrchestrator : BackgroundService
         _logger.LogInformation("Found {TierCount} hydration tiers with {TaskCount} total tasks",
             tasksByTier.Count, allTasks.Count);
 
+        // Highest tier that must complete before the app is considered ready. int.MinValue when no
+        // tier is required (e.g. ReadinessTier = 0) — readiness is then signaled immediately.
+        var maxRequiredTier = tasksByTier
+            .Select(group => group.Key)
+            .Where(tier => tier <= _readinessTier)
+            .DefaultIfEmpty(int.MinValue)
+            .Max();
+
+        if (maxRequiredTier == int.MinValue)
+        {
+            _logger.LogInformation("No hydration tiers at/below readiness tier {ReadinessTier} - app is ready immediately", _readinessTier);
+            _readinessReached.TrySetResult();
+        }
+
         foreach (var tierGroup in tasksByTier)
         {
             var tier = tierGroup.Key;
             var tierTasks = tierGroup.ToList();
 
+            if (tier > _readinessTier)
+            {
+                // Optional tier: keep hydrating in the background but never fail readiness or crash the host.
+                try
+                {
+                    await ExecuteTierAsync(tier, tierTasks, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "⚠️ Optional hydration tier {Tier} (> readiness tier {ReadinessTier}) failed - continuing", tier, _readinessTier);
+                }
+
+                continue;
+            }
+
+            // Required tier: failures propagate and block readiness.
             await ExecuteTierAsync(tier, tierTasks, cancellationToken);
+
+            if (tier == maxRequiredTier)
+            {
+                _logger.LogInformation("✅ Readiness reached - all tiers at/below readiness tier {ReadinessTier} completed", _readinessTier);
+                _readinessReached.TrySetResult();
+            }
         }
     }
 
