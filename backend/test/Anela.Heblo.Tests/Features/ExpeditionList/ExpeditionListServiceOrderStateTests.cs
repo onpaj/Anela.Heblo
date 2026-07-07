@@ -15,6 +15,7 @@ public class ExpeditionListServiceOrderStateTests
     private readonly Mock<IExpeditionPickingSource> _pickingSource = new();
     private readonly Mock<IEmailSender> _emailSender = new();
     private readonly Mock<IPrintQueueSink> _printQueueSink = new();
+    private readonly Mock<ITemporaryFileAccessor> _temporaryFileAccessor = new();
 
     private ExpeditionListService CreateService() => new ExpeditionListService(
         _pickingSource.Object,
@@ -22,6 +23,7 @@ public class ExpeditionListServiceOrderStateTests
         TimeProvider.System,
         Options.Create(new PrintPickingListOptions { EmailSender = "test@test.com" }),
         _printQueueSink.Object,
+        _temporaryFileAccessor.Object,
         NullLogger<ExpeditionListService>.Instance);
 
     private void SetupSourceInvokingCallback(IList<string> filesToPassToCallback)
@@ -118,7 +120,7 @@ public class ExpeditionListServiceOrderStateTests
     [Fact]
     public async Task PrintPickingListAsync_CleanupRunsAfterSuccess()
     {
-        var tmpFile = Path.GetTempFileName();
+        var exportedFile = "/tmp/expedition-export-fake.pdf";
         _pickingSource
             .Setup(x => x.CreatePickingListAsync(
                 It.IsAny<ExpeditionPickingRequest>(),
@@ -126,7 +128,7 @@ public class ExpeditionListServiceOrderStateTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ExpeditionPickingResult
             {
-                ExportedFiles = new[] { tmpFile },
+                ExportedFiles = new[] { exportedFile },
                 TotalCount = 1,
             });
 
@@ -135,6 +137,34 @@ public class ExpeditionListServiceOrderStateTests
 
         await svc.PrintPickingListAsync(request);
 
-        Assert.False(File.Exists(tmpFile));
+        _temporaryFileAccessor.Verify(x => x.DeleteIfExists(exportedFile), Times.Once);
+    }
+
+    [Fact]
+    public async Task PrintPickingListAsync_EmailAttachments_BuiltFromAccessorBytes()
+    {
+        var exportedFile = "/tmp/expedition-export-fake.pdf";
+        var expectedBytes = new byte[] { 10, 20, 30 };
+        SetupSourceInvokingCallback(new List<string> { exportedFile });
+        _temporaryFileAccessor
+            .Setup(x => x.ReadAllBytesAsync(exportedFile, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedBytes);
+
+        EmailMessage? capturedMessage = null;
+        _emailSender
+            .Setup(x => x.SendEmailAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>()))
+            .Callback<EmailMessage, CancellationToken>((msg, _) => capturedMessage = msg)
+            .Returns(Task.CompletedTask);
+
+        var request = new ExpeditionPickingRequest { SendToPrinter = false };
+        var svc = CreateService();
+
+        await svc.PrintPickingListAsync(request, emailList: new[] { "user@example.com" });
+
+        Assert.NotNull(capturedMessage);
+        var attachment = Assert.Single(capturedMessage!.Attachments);
+        Assert.Equal(Convert.ToBase64String(expectedBytes), attachment.Content);
+        Assert.Equal("expedition-export-fake.pdf", attachment.FileName);
+        Assert.Equal("application/pdf", attachment.ContentType);
     }
 }
