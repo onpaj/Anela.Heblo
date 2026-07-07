@@ -121,6 +121,7 @@ function SortableHeaderCell<TRow>({
       {column.canResize !== false && (
         <div
           className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-indigo-200"
+          data-testid={`column-resize-handle-${column.id}`}
           onMouseDown={handleMouseDownResize}
           onClick={(e) => e.stopPropagation()}
         />

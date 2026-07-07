@@ -1,4 +1,4 @@
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, screen } from '@testing-library/react';
 import { GridHeader } from '../GridHeader';
 import { GridColumn, GridColumnState } from '../types';
 
@@ -27,10 +27,9 @@ function renderHeader(
 it('fires onResizeChange per mousemove and onResizeEnd exactly once on mouseup', () => {
   const onResizeChange = jest.fn();
   const onResizeEnd = jest.fn();
-  const { container } = renderHeader(onResizeChange, onResizeEnd);
+  renderHeader(onResizeChange, onResizeEnd);
 
-  const handle = container.querySelector('.cursor-col-resize') as HTMLElement;
-  expect(handle).toBeTruthy();
+  const handle = screen.getByTestId('column-resize-handle-stock');
 
   fireEvent.mouseDown(handle, { clientX: 200 });
   fireEvent.mouseMove(window, { clientX: 210 });
@@ -51,9 +50,9 @@ it('fires onResizeChange per mousemove and onResizeEnd exactly once on mouseup',
 it('clamps the final width to minWidth when dragged below it', () => {
   const onResizeChange = jest.fn();
   const onResizeEnd = jest.fn();
-  const { container } = renderHeader(onResizeChange, onResizeEnd);
+  renderHeader(onResizeChange, onResizeEnd);
 
-  const handle = container.querySelector('.cursor-col-resize') as HTMLElement;
+  const handle = screen.getByTestId('column-resize-handle-stock');
   fireEvent.mouseDown(handle, { clientX: 200 });
   fireEvent.mouseUp(window, { clientX: 50 }); // dx = -150 → 100 - 150 = -50, clamp to 60
 
@@ -61,12 +60,12 @@ it('clamps the final width to minWidth when dragged below it', () => {
 });
 
 it('does not throw when both resize callbacks are omitted', () => {
-  const { container } = render(
+  render(
     <table>
       <GridHeader columns={columns} columnState={columnState} />
     </table>,
   );
-  const handle = container.querySelector('.cursor-col-resize') as HTMLElement;
+  const handle = screen.getByTestId('column-resize-handle-stock');
   expect(() => {
     fireEvent.mouseDown(handle, { clientX: 200 });
     fireEvent.mouseMove(window, { clientX: 230 });
