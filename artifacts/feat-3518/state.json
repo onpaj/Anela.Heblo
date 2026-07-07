@@ -5,32 +5,32 @@
   "max_revisions": 3,
   "phases": {
     "analyzing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-07-07T06:23:00.110087Z"
     },
     "architecting": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-07-07T06:23:00.628341Z"
     },
     "designing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-07-07T06:23:01.103916Z"
     },
     "planning": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-07-07T06:23:01.587244Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-07T06:22:48.494678Z"
     }
   },
   "tasks": [
     {
       "name": "dark-mode-variants-gridheader-columnchooser",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-07T06:22:48.838649Z"
     }
   ]
 }
