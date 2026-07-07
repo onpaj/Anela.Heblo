@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-3519",
+  "issue_number": 3519,
+  "created_at": "2026-07-07T07:14:22.686140Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-07T07:16:52.572806Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-07T07:18:58.334668Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-07T07:19:46.071907Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-07T07:22:49.028976Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-07T07:42:08.370335Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-07T07:44:57.358757Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "split-hook-updaters",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-07T07:30:09.599211Z"
+    },
+    {
+      "name": "split-gridheader-resize-callbacks",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-07T07:33:38.127569Z"
+    },
+    {
+      "name": "wire-consumers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-07T07:42:07.978783Z"
+    }
+  ]
+}

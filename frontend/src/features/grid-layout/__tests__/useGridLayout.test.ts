@@ -28,6 +28,7 @@ const mockColumns: GridColumn<{ id: string }>[] = [
   { id: 'name', header: 'Name', canHide: false, canReorder: false, renderCell: (r) => r.id },
   { id: 'stock', header: 'Stock', defaultWidth: 100, renderCell: (r) => r.id },
   { id: 'reserve', header: 'Reserve', defaultWidth: 80, renderCell: (r) => r.id },
+  { id: 'locked', header: 'Locked', defaultWidth: 120, canResize: false, renderCell: (r) => r.id },
 ];
 
 describe('useGridLayout — merge behavior', () => {
@@ -35,7 +36,7 @@ describe('useGridLayout — merge behavior', () => {
     const { result } = renderHook(() => useGridLayout('test-grid', mockColumns));
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
 
-    expect(result.current.orderedColumns.map((c) => c.id)).toEqual(['name', 'stock', 'reserve']);
+    expect(result.current.orderedColumns.map((c) => c.id)).toEqual(['name', 'stock', 'reserve', 'locked']);
     expect(result.current.columnState.every((c) => !c.hidden)).toBe(true);
   });
 
@@ -59,7 +60,7 @@ describe('useGridLayout — merge behavior', () => {
     const { result } = renderHook(() => useGridLayout('test-grid', mockColumns));
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
 
-    expect(result.current.orderedColumns.map((c) => c.id)).toEqual(['name', 'reserve', 'stock']);
+    expect(result.current.orderedColumns.map((c) => c.id)).toEqual(['name', 'reserve', 'stock', 'locked']);
   });
 
   it('appends new columns not in saved layout at the end', async () => {
@@ -175,7 +176,7 @@ describe('useGridLayout — DB-error preservation', () => {
     const { result } = renderHook(() => useGridLayout('test-grid', mockColumns));
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
 
-    expect(result.current.columnState.map((c) => c.id)).toEqual(['name', 'stock', 'reserve']);
+    expect(result.current.columnState.map((c) => c.id)).toEqual(['name', 'stock', 'reserve', 'locked']);
     expect(result.current.columnState.every((c) => !c.hidden)).toBe(true);
   });
 
@@ -204,7 +205,7 @@ describe('useGridLayout — DB-error preservation', () => {
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
     const stateBeforeReload = result.current.columnState;
     expect(stateBeforeReload.find((c) => c.id === 'stock')?.hidden).toBe(true);
-    expect(stateBeforeReload.map((c) => c.id)).toEqual(['name', 'reserve', 'stock']);
+    expect(stateBeforeReload.map((c) => c.id)).toEqual(['name', 'reserve', 'stock', 'locked']);
 
     // Re-load triggered by gridKey change: backend returns non-2xx.
     mockGridLayouts_Get.mockRejectedValueOnce(new Error('HTTP 500'));
@@ -227,6 +228,80 @@ describe('useGridLayout — DB-error preservation', () => {
     // columnState must be preserved — user's hidden 'stock' column must still be hidden,
     // and the user's order ['name', 'reserve', 'stock'] must remain.
     expect(result.current.columnState.find((c) => c.id === 'stock')?.hidden).toBe(true);
-    expect(result.current.columnState.map((c) => c.id)).toEqual(['name', 'reserve', 'stock']);
+    expect(result.current.columnState.map((c) => c.id)).toEqual(['name', 'reserve', 'stock', 'locked']);
+  });
+});
+
+describe('useGridLayout — width mutators', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('setColumnWidthLive updates width without scheduling a save', async () => {
+    const { result } = renderHook(() => useGridLayout('test-grid', mockColumns));
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    act(() => {
+      result.current.setColumnWidthLive('stock', 250);
+    });
+
+    expect(result.current.columnState.find((c) => c.id === 'stock')?.width).toBe(250);
+
+    act(() => {
+      jest.advanceTimersByTime(600);
+    });
+    expect(mockGridLayouts_Save).not.toHaveBeenCalled();
+  });
+
+  it('commitColumnWidth updates width and schedules exactly one debounced save', async () => {
+    const { result } = renderHook(() => useGridLayout('test-grid', mockColumns));
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    act(() => {
+      result.current.commitColumnWidth('stock', 300);
+    });
+
+    expect(result.current.columnState.find((c) => c.id === 'stock')?.width).toBe(300);
+    expect(mockGridLayouts_Save).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(600);
+    });
+
+    await waitFor(() =>
+      expect(mockGridLayouts_Save).toHaveBeenCalledWith('test-grid', expect.anything()),
+    );
+    expect(mockGridLayouts_Save).toHaveBeenCalledTimes(1);
+  });
+
+  it('setColumnWidthLive no-ops for a canResize:false column', async () => {
+    const { result } = renderHook(() => useGridLayout('test-grid', mockColumns));
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    act(() => {
+      result.current.setColumnWidthLive('locked', 999);
+    });
+
+    expect(result.current.columnState.find((c) => c.id === 'locked')?.width).toBe(120);
+  });
+
+  it('commitColumnWidth no-ops for a canResize:false column', async () => {
+    const { result } = renderHook(() => useGridLayout('test-grid', mockColumns));
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    act(() => {
+      result.current.commitColumnWidth('locked', 999);
+    });
+
+    expect(result.current.columnState.find((c) => c.id === 'locked')?.width).toBe(120);
+
+    act(() => {
+      jest.advanceTimersByTime(600);
+    });
+    expect(mockGridLayouts_Save).not.toHaveBeenCalled();
   });
 });

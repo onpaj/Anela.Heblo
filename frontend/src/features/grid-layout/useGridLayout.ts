@@ -119,7 +119,17 @@ export function useGridLayout<TRow>(gridKey: string, columns: GridColumn<TRow>[]
     [scheduleSave],
   );
 
-  const setColumnWidth = useCallback(
+  const setColumnWidthLive = useCallback(
+    (id: string, width: number) => {
+      const col = columnsRef.current.find((c) => c.id === id);
+      if (col?.canResize === false) return;
+
+      setColumnState((prev) => prev.map((s) => (s.id === id ? { ...s, width } : s)));
+    },
+    [],
+  );
+
+  const commitColumnWidth = useCallback(
     (id: string, width: number) => {
       const col = columnsRef.current.find((c) => c.id === id);
       if (col?.canResize === false) return;
@@ -169,7 +179,8 @@ export function useGridLayout<TRow>(gridKey: string, columns: GridColumn<TRow>[]
     orderedColumns,
     columnState,
     setColumnOrder,
-    setColumnWidth,
+    setColumnWidthLive,
+    commitColumnWidth,
     toggleColumnVisibility,
     resetLayout,
     isLoaded,
