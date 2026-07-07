@@ -34,15 +34,15 @@
     },
     {
       "name": "split-gridheader-resize-callbacks",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-07T07:30:13.172144Z"
+      "updated_at": "2026-07-07T07:33:38.127569Z"
     },
     {
       "name": "wire-consumers",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-07T07:33:38.545911Z"
     }
   ]
 }
