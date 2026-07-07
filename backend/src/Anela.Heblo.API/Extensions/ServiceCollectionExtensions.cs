@@ -425,10 +425,9 @@ public static class ServiceCollectionExtensions
                 services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
                 break;
             case "Combined":
-                // AddAzurePrintQueueSink registers a non-keyed IPrintQueueSink as a side effect;
-                // it is unused here — the last non-keyed registration (the factory below) wins.
-                services.AddAzurePrintQueueSink(configuration);
-                services.AddKeyedScoped<IPrintQueueSink, AzureBlobPrintQueueSink>("azure");
+                services.AddAzurePrintQueueSinkInfrastructure(configuration);
+                services.AddKeyedSingleton<IPrintQueueSink>("azure",
+                    (provider, _) => provider.GetRequiredService<AzureBlobPrintQueueSink>());
                 services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
                 services.AddScoped<IPrintQueueSink>(provider =>
                 {
