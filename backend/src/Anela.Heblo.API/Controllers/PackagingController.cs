@@ -26,6 +26,13 @@ public class ScanOrderBody
 [Route("api/packaging")]
 public class PackagingController : BaseApiController
 {
+    /// <summary>
+    /// Header sent by the frontend readiness-poll loop to mark a label PDF request as an automated
+    /// poll. Expected transient 404s carrying this header are logged at Debug instead of Warning so
+    /// the polling does not flood the logs. The final (post-timeout) confirmation request omits it.
+    /// </summary>
+    private const string LabelPollHeader = "X-Label-Poll";
+
     private readonly IMediator _mediator;
 
     public PackagingController(IMediator mediator)
@@ -83,7 +90,12 @@ public class PackagingController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(
-            new GetPackageLabelPdfRequest { OrderCode = orderCode, PackageNumber = packageNumber },
+            new GetPackageLabelPdfRequest
+            {
+                OrderCode = orderCode,
+                PackageNumber = packageNumber,
+                IsPoll = Request.Headers.ContainsKey(LabelPollHeader),
+            },
             cancellationToken);
 
         if (!response.Success || response.Content is null)
