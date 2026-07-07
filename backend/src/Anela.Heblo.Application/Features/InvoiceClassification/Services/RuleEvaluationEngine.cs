@@ -13,7 +13,7 @@ public class RuleEvaluationEngine : IRuleEvaluationEngine
 
     public ClassificationRule? FindMatchingRule(ReceivedInvoice invoice, List<ClassificationRule> rules)
     {
-        foreach (var rule in rules.Where(r => r.IsActive).OrderBy(r => r.Order))
+        foreach (var rule in rules)
         {
             if (EvaluateRule(invoice, rule))
             {
