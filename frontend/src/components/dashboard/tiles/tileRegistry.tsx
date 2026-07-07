@@ -7,6 +7,7 @@ import { ManualActionRequiredTile } from './ManualActionRequiredTile';
 import { PurchaseOrdersInTransitTile } from './PurchaseOrdersInTransitTile';
 import { CountTile } from './CountTile';
 import { InventorySummaryTile } from './InventorySummaryTile';
+import { MaterialExpirationSummaryTile } from './MaterialExpirationSummaryTile';
 import { LowStockAlertTile } from './LowStockAlertTile';
 import { DataQualityTile } from './DataQualityTile';
 import { DqtYesterdayStatusTile } from './DqtYesterdayStatusTile';
@@ -111,6 +112,9 @@ export const TILE_RENDERERS: Record<string, TileRenderer> = {
   ),
   materialwithoutexpirationinventorysummary: ({ data }) => (
     <InventorySummaryTile data={data} targetUrl="/manufacturing/inventory" />
+  ),
+  materialexpirationsummary: ({ data }) => (
+    <MaterialExpirationSummaryTile data={data} targetUrl="/manufacturing/inventory" />
   ),
   // Purchase efficiency tiles
   lowstockefficiency: ({ data, tile }) => (
