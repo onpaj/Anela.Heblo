@@ -2,12 +2,14 @@ import { useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ScanInput from '../ScanInput';
 import { useLastUsedLotForMaterial } from '../../../api/hooks/useMaterialContainers';
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 interface LotEntryStepProps {
   mode: 'freeform' | 'po';
 }
 
 const LotEntryStep = ({ mode }: LotEntryStepProps) => {
+  useScreenView('Terminal', 'LotIdentificationLotEntry', mode);
   const navigate = useNavigate();
   const params = useParams<{ material?: string; id?: string; lineId?: string }>();
   const materialCode = params.material ?? '';
