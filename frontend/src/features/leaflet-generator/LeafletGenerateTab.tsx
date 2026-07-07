@@ -2,20 +2,17 @@ import React, { useState } from 'react';
 import LeafletForm from './LeafletForm';
 import LeafletResult from './LeafletResult';
 import { getAuthenticatedApiClient } from '../../api/client';
-import { AudienceType, GenerateLeafletRequest, LeafletLength } from '../../api/generated/api-client';
+import {
+  AudienceType,
+  ErrorCodes,
+  GenerateLeafletRequest,
+  GenerateLeafletResponse,
+  LeafletLength,
+} from '../../api/generated/api-client';
 
 interface ErrorBanner {
   kind: 'insufficient' | 'transient';
   message: string;
-}
-
-interface ApiError {
-  status: number;
-  detail?: string;
-}
-
-function isApiError(err: unknown): err is ApiError {
-  return typeof err === 'object' && err !== null && typeof (err as Record<string, unknown>)['status'] === 'number';
 }
 
 const LeafletGenerateTab: React.FC = () => {
@@ -37,12 +34,10 @@ const LeafletGenerateTab: React.FC = () => {
       setResult(response.content ?? '');
       setGenerationId((response as any).id ?? null);
     } catch (err: unknown) {
-      if (isApiError(err) && err.status === 422) {
+      if (err instanceof GenerateLeafletResponse && err.errorCode === ErrorCodes.LeafletEmptyRetrieval) {
         setErrorBanner({
           kind: 'insufficient',
-          message:
-            err.detail ??
-            'Knowledge Base zatím toto téma nepokrývá. Zkuste obecnější formulaci.',
+          message: 'Knowledge Base zatím toto téma nepokrývá. Zkuste obecnější formulaci.',
         });
       } else {
         setErrorBanner({

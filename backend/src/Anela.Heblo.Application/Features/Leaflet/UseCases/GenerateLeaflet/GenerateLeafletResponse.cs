@@ -5,6 +5,11 @@ namespace Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
 
 public class GenerateLeafletResponse : BaseResponse
 {
+    public GenerateLeafletResponse() { }
+
+    public GenerateLeafletResponse(ErrorCodes errorCode, Dictionary<string, string>? details = null)
+        : base(errorCode, details) { }
+
     [JsonPropertyName("content")]
     public string Content { get; set; } = string.Empty;
 

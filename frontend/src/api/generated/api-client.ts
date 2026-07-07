@@ -5551,15 +5551,8 @@ export class ApiClient {
             return response.text().then((_responseText) => {
             let result422: any = null;
             let resultData422 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result422 = ProblemDetails.fromJS(resultData422);
+            result422 = GenerateLeafletResponse.fromJS(resultData422);
             return throwException("A server side error occurred.", status, _responseText, _headers, result422);
-            });
-        } else if (status === 502) {
-            return response.text().then((_responseText) => {
-            let result502: any = null;
-            let resultData502 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result502 = ProblemDetails.fromJS(resultData502);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result502);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -13265,6 +13258,7 @@ export enum ErrorCodes {
     LeafletChunkNotFound = "LeafletChunkNotFound",
     LeafletFeedbackNotFound = "LeafletFeedbackNotFound",
     LeafletFeedbackAlreadySubmitted = "LeafletFeedbackAlreadySubmitted",
+    LeafletEmptyRetrieval = "LeafletEmptyRetrieval",
     PhotoNotFound = "PhotoNotFound",
     PhotobankRootNotFound = "PhotobankRootNotFound",
     PhotobankRuleNotFound = "PhotobankRuleNotFound",

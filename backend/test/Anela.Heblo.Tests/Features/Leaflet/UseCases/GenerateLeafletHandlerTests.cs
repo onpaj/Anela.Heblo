@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Leaflet;
 using Anela.Heblo.Application.Features.Leaflet.Contracts;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.Leaflet;
 using FluentAssertions;
@@ -82,7 +83,7 @@ public class GenerateLeafletHandlerTests
         (MakeLeafletChunk(content), score);
 
     [Fact]
-    public async Task Handle_dual_empty_retrieval_throws_EmptyRetrievalException()
+    public async Task Handle_dual_empty_retrieval_returns_LeafletEmptyRetrieval_error()
     {
         // Arrange
         SetupEmbeddings();
@@ -96,10 +97,14 @@ public class GenerateLeafletHandlerTests
         var request = new GenerateLeafletRequest { Topic = "retinol", Audience = AudienceType.EndConsumer, Length = LeafletLength.Short };
 
         // Act
-        var act = () => handler.Handle(request, CancellationToken.None);
+        var response = await handler.Handle(request, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<EmptyRetrievalException>();
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.LeafletEmptyRetrieval);
+        response.Params.Should().NotBeNull();
+        response.Params!.Should().ContainKey("detail");
+        response.Params!["detail"].Should().Contain("Knowledge Base does not yet cover this topic");
     }
 
     [Fact]

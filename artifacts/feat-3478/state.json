@@ -1,0 +1,76 @@
+{
+  "feature_id": "feat-3478",
+  "issue_number": 3478,
+  "created_at": "2026-07-04T07:15:32.448711Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-04T07:24:37.325334Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-04T07:27:52.853112Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-04T07:27:58.047117Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-04T07:36:29.092486Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-04T08:42:24.422559Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-04T08:44:48.334722Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-error-code",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-04T07:42:59.541207Z"
+    },
+    {
+      "name": "response-error-constructor",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-04T08:21:06.272452Z"
+    },
+    {
+      "name": "handler-returns-response",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-04T08:24:18.937775Z"
+    },
+    {
+      "name": "controller-drops-trycatch",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-04T08:27:55.092773Z"
+    },
+    {
+      "name": "mcp-tool-inspects-response",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-04T08:30:36.669569Z"
+    },
+    {
+      "name": "remove-exception-and-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-04T08:31:45.102183Z"
+    },
+    {
+      "name": "frontend-error-branch-fix",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-04T08:42:17.820743Z"
+    }
+  ]
+}
