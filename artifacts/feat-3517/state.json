@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3517",
+  "issue_number": 3517,
+  "created_at": "2026-07-07T05:15:02.713473Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-07T05:17:26.167326Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-07T05:19:13.583833Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-07T05:19:44.756436Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-07T05:20:26.391843Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-07T05:27:37.242396Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-07-07T05:27:41.963459Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "remove-dead-grid-layout-persistence-payload",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-07T05:27:32.198436Z"
+    }
+  ]
+}

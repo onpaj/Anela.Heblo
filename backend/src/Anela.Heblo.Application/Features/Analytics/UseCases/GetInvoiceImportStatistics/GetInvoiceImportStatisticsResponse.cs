@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Analytics;
 
 namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
 
@@ -11,7 +11,7 @@ public class GetInvoiceImportStatisticsResponse : BaseResponse
     /// <summary>
     /// Daily invoice counts for the requested period
     /// </summary>
-    public List<DailyInvoiceCount> Data { get; set; } = new();
+    public List<DailyInvoiceCountDto> Data { get; set; } = new();
 
     /// <summary>
     /// Configured minimum threshold for marking days as problematic

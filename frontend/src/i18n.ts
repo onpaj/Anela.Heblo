@@ -208,6 +208,7 @@ const resources = {
         LeafletChunkNotFound: "Fragment letáku nebyl nalezen",
         LeafletFeedbackNotFound: "Zpětná vazba k letáku nebyla nalezena",
         LeafletFeedbackAlreadySubmitted: "Zpětná vazba k letáku již byla odeslána",
+        LeafletEmptyRetrieval: "Knowledge Base zatím toto téma nepokrývá. Zkuste obecnější formulaci.",
 
         // ShoptetOrders module errors
         ShoptetOrderInvalidSourceState: "Objednávku nelze zablokovat – není ve povoleném stavu",

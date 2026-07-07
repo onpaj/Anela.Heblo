@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.IndexDocument;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument;
 using Anela.Heblo.Application.Shared;

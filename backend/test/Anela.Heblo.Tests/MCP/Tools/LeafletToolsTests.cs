@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
+using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
@@ -60,21 +61,22 @@ public class LeafletToolsTests
     }
 
     [Fact]
-    public async Task GenerateLeaflet_wraps_EmptyRetrievalException_as_McpException()
+    public async Task GenerateLeaflet_throws_McpException_on_LeafletEmptyRetrieval_response()
     {
         // Arrange
-        const string emptyRetrievalMessage = "No relevant documents were found for the given topic.";
+        var errorResponse = new GenerateLeafletResponse(ErrorCodes.LeafletEmptyRetrieval,
+            new() { { "detail", "Knowledge Base does not yet cover this topic; try a broader phrasing" } });
 
         _mediator
             .Setup(m => m.Send(It.IsAny<GenerateLeafletRequest>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new EmptyRetrievalException(emptyRetrievalMessage));
+            .ReturnsAsync(errorResponse);
 
         // Act
         var exception = await Assert.ThrowsAsync<McpException>(() =>
             CreateTools().GenerateLeaflet("Some topic", "B2B", "Medium"));
 
         // Assert
-        Assert.Equal(emptyRetrievalMessage, exception.Message);
+        Assert.Equal("Knowledge Base does not yet cover this topic; try a broader phrasing", exception.Message);
     }
 
     [Fact]

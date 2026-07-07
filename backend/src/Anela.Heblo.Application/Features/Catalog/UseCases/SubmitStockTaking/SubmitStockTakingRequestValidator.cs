@@ -16,6 +16,6 @@ public class SubmitStockTakingRequestValidator : AbstractValidator<SubmitStockTa
             .GreaterThanOrEqualTo(0)
             .WithMessage("Target amount must be greater than or equal to 0")
             .LessThan(100000)
-            .WithMessage("Target amount must be less than 1,000");
+            .WithMessage("Target amount must be less than 100,000");
     }
 }

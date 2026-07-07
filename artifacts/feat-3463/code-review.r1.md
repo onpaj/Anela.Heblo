@@ -1,0 +1,10 @@
+# Code Review: feat-3463
+
+## Review Result: CLEAN
+
+### Blocking (correctness)
+- None
+
+### Advisory (cleanup)
+- `frontend/src/api/generated/api-client.ts` — This auto-regenerated NSwag client diff is 460+ lines, far larger than the intended `DailyInvoiceCount` → `DailyInvoiceCountDto` rename. Verified against the branch's merge-base (`2b9d8ce692ea31e2277a0751c607e7e63d97fc9d`) with `origin/main`: `packaging_GetStatistics`/`GetPackingStatisticsResponse` (`PackagingController.cs:148`), the `DqtUnsupportedTestType` error code (`ErrorCodes.cs:248`), the already-absent `Description` field on `RefreshTaskStatusDto` (`RefreshTaskStatusDto.cs`), and `RunExpeditionListPrintFixResponse.SkippedCount` (`RunExpeditionListPrintFixResponse.cs`) were all already present in backend source at the merge-base. None of this PR's actual backend diff (`DailyInvoiceCountDto.cs`, `GetInvoiceImportStatisticsHandler.cs`, etc.) touches those areas. This confirms the checked-in `api-client.ts` was already stale before this branch started, and the extra diff is a faithful regeneration of pre-existing backend drift surfaced as a side effect of running the documented codegen step — not something introduced by this PR. Worth flagging so the human reviewer isn't surprised by the diff size, but no action needed.
+- `backend/test/Anela.Heblo.Tests/Features/Configuration/GetConfigurationHandlerTests.cs:95` — Changes `ConfigurationConstants.APP_VERSION` to `InfrastructureConfigurationKeys.APP_VERSION`. This is unrelated to the `DailyInvoiceCount` rename; per the branch's own commit `d636ab8` ("fix(config): update stale ConfigurationConstants reference to InfrastructureConfigurationKeys"), it fixes a pre-existing, unrelated build break already on `main` (from #3435, which moved config keys to `Domain/Shared` but missed this one test reference), done in isolation to unblock running the test suite for this feature. Confirmed `ConfigurationConstants` no longer declares `APP_VERSION` on this branch, so the fix is necessary and correctly scoped — just noting it as an out-of-scope-but-justified inclusion for the human reviewer.

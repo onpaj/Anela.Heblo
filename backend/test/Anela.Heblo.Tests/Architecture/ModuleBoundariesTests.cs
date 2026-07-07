@@ -19,31 +19,9 @@ public class ModuleBoundariesTests
         IReadOnlySet<string> Allowlist,
         string InspectedAssembly = "Anela.Heblo.Application");
 
-    // Pre-existing allowlist for Leaflet → KnowledgeBase. Each entry needs a comment with the
-    // justification. Entries should be removed as the underlying violations are fixed.
-    //
-    // Entry format: "{ConsumerFullyQualifiedTypeName} -> {ProviderTypeFullName}"
-    //
-    // Compiler-generated types (e.g. DisplayClasses for closures, state machines for async
-    // methods) are automatically handled by matching against the declaring type's namespace
-    // prefix below.
-    private static readonly HashSet<string> LeafletAllowlist = new(StringComparer.Ordinal)
-    {
-        // Pre-existing dependency: UploadLeafletHandler and IndexLeafletHandler consume
-        // IDocumentTextExtractor, which currently lives in
-        // Anela.Heblo.Application.Features.KnowledgeBase.Services. Lifting this is out of
-        // scope for the 2026-05-15 Leaflet decoupling. Track separately and remove these
-        // entries when IDocumentTextExtractor is relocated to a shared namespace.
-        "Anela.Heblo.Application.Features.Leaflet.UseCases.UploadLeaflet.UploadLeafletHandler -> Anela.Heblo.Application.Features.KnowledgeBase.Services.IDocumentTextExtractor",
-        "Anela.Heblo.Application.Features.Leaflet.UseCases.IndexLeaflet.IndexLeafletHandler -> Anela.Heblo.Application.Features.KnowledgeBase.Services.IDocumentTextExtractor",
-
-        // Pre-existing dependency: LeafletIngestionJob consumes IOneDriveService, which
-        // currently lives in Anela.Heblo.Application.Features.KnowledgeBase.Services. Lifting
-        // this is out of scope for the 2026-05-15 Leaflet decoupling. Track separately and
-        // remove these entries when IOneDriveService is relocated to a shared namespace.
-        "Anela.Heblo.Application.Features.Leaflet.Infrastructure.Jobs.LeafletIngestionJob -> Anela.Heblo.Application.Features.KnowledgeBase.Services.IOneDriveService",
-        "Anela.Heblo.Application.Features.Leaflet.Infrastructure.Jobs.LeafletIngestionJob -> Anela.Heblo.Application.Features.KnowledgeBase.Services.OneDriveFile",
-    };
+    // Allowlist for Leaflet → KnowledgeBase. Empty — IDocumentTextExtractor and IOneDriveService
+    // were relocated to Anela.Heblo.Application.Shared.Rag, closing the compile-time dependency.
+    private static readonly HashSet<string> LeafletAllowlist = new(StringComparer.Ordinal);
 
     // Allowlist for Article → KnowledgeBase. Empty — all violations fixed.
     private static readonly HashSet<string> ArticleAllowlist = new(StringComparer.Ordinal);
