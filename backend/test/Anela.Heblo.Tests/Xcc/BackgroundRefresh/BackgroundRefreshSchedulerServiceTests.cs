@@ -45,7 +45,8 @@ public class BackgroundRefreshSchedulerServiceTests
             registryServiceProviderMock.Object,
             setupMock);
 
-        _orchestrator = new TierBasedHydrationOrchestrator(_orchestratorLoggerMock.Object, _taskRegistry);
+        var backgroundServicesOptions = Microsoft.Extensions.Options.Options.Create(new BackgroundServicesOptions());
+        _orchestrator = new TierBasedHydrationOrchestrator(_orchestratorLoggerMock.Object, _taskRegistry, backgroundServicesOptions);
 
         // Setup service provider mocks for scheduler service
         _serviceScopeMock = new Mock<IServiceScope>();
