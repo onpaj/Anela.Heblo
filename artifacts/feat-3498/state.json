@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3498",
+  "issue_number": 3498,
+  "created_at": "2026-07-06T12:14:55.226720Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-06T12:16:41.882742Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-06T12:18:29.003435Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-06T12:19:11.605344Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-06T12:21:33.905834Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-06T13:52:15.138969Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-06T13:53:14.042662Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "create-stockupoperationresult-test-file-with-factory-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-06T12:54:40.107841Z"
+    },
+    {
+      "name": "add-issuccess-predicate-theory-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-06T13:52:07.132001Z"
+    }
+  ]
+}

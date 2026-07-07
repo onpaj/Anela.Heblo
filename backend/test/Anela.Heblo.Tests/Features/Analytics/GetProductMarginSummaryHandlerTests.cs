@@ -23,6 +23,7 @@ public class GetProductMarginSummaryHandlerTests
     private readonly Mock<IAnalyticsRepository> _analyticsRepositoryMock;
     private readonly MarginCalculator _marginCalculator;
     private readonly MonthlyBreakdownGenerator _monthlyBreakdownGenerator;
+    private readonly TopProductSorter _topProductSorter;
     private readonly TimeWindowParser _timeWindowParser;
     private readonly GetProductMarginSummaryHandler _handler;
 
@@ -31,12 +32,14 @@ public class GetProductMarginSummaryHandlerTests
         _analyticsRepositoryMock = new Mock<IAnalyticsRepository>();
         _marginCalculator = new MarginCalculator();
         _monthlyBreakdownGenerator = new MonthlyBreakdownGenerator(_marginCalculator);
+        _topProductSorter = new TopProductSorter();
         var timeProvider = new FakeTimeProvider(FrozenNow);
         _timeWindowParser = new TimeWindowParser(timeProvider);
         _handler = new GetProductMarginSummaryHandler(
             _analyticsRepositoryMock.Object,
             _marginCalculator,
             _monthlyBreakdownGenerator,
+            _topProductSorter,
             _timeWindowParser);
     }
 
@@ -238,6 +241,20 @@ public class GetProductMarginSummaryHandlerTests
                 It.IsAny<List<AnalyticsProduct>>()))
             .Returns<string, ProductGroupingMode, List<AnalyticsProduct>>((key, _, _) => key);
 
+        marginCalculatorMock
+            .Setup(x => x.GetGroupAggregatedMarginData(It.IsAny<List<AnalyticsProduct>>()))
+            .Returns(new GroupMarginData
+            {
+                M0Amount = 50m,
+                M1Amount = 50m,
+                M2Amount = 50m,
+                M0Percentage = 0m,
+                M1Percentage = 0m,
+                M2Percentage = 0m,
+                SellingPrice = 100m,
+                PurchasePrice = 50m
+            });
+
         monthlyBreakdownGeneratorMock
             .Setup(x => x.Generate(
                 calculationResult,
@@ -250,6 +267,7 @@ public class GetProductMarginSummaryHandlerTests
             _analyticsRepositoryMock.Object,
             marginCalculatorMock.Object,
             monthlyBreakdownGeneratorMock.Object,
+            _topProductSorter,
             _timeWindowParser);
 
         // Act

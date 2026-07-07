@@ -280,6 +280,8 @@ public enum ErrorCodes
     LeafletFeedbackNotFound = 2502,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     LeafletFeedbackAlreadySubmitted = 2503,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    LeafletEmptyRetrieval = 2504,
 
     // Photobank errors (26XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

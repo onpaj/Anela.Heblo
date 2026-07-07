@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.InvoiceClassification.Services;
 using Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ClassifyInvoices;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -13,6 +14,7 @@ public class ClassifyInvoicesHandlerTests
     private readonly Mock<IReceivedInvoicesClient> _invoicesClientMock;
     private readonly Mock<IInvoiceClassificationService> _classificationServiceMock;
     private readonly Mock<IClassificationRuleRepository> _ruleRepositoryMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<ClassifyInvoicesHandler>> _loggerMock;
     private readonly ClassifyInvoicesHandler _handler;
 
@@ -21,12 +23,18 @@ public class ClassifyInvoicesHandlerTests
         _invoicesClientMock = new Mock<IReceivedInvoicesClient>();
         _classificationServiceMock = new Mock<IInvoiceClassificationService>();
         _ruleRepositoryMock = new Mock<IClassificationRuleRepository>();
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<ClassifyInvoicesHandler>>();
+
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser("id", "test-user", "test@test.com", true));
 
         _handler = new ClassifyInvoicesHandler(
             _invoicesClientMock.Object,
             _classificationServiceMock.Object,
             _ruleRepositoryMock.Object,
+            _currentUserServiceMock.Object,
             _loggerMock.Object);
     }
 
@@ -51,7 +59,7 @@ public class ClassifyInvoicesHandlerTests
             .ReturnsAsync(new ReceivedInvoice { InvoiceNumber = invoiceId3, Labels = Array.Empty<string>() });
 
         _classificationServiceMock
-            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>()))
+            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>(), It.IsAny<string>()))
             .ReturnsAsync(new InvoiceClassificationResult { Result = ClassificationResult.Success });
 
         var request = new ClassifyInvoicesRequest
@@ -85,7 +93,7 @@ public class ClassifyInvoicesHandlerTests
             .ReturnsAsync((ReceivedInvoice?)null);
 
         _classificationServiceMock
-            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>()))
+            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>(), It.IsAny<string>()))
             .ReturnsAsync(new InvoiceClassificationResult { Result = ClassificationResult.Success });
 
         var request = new ClassifyInvoicesRequest
@@ -114,7 +122,7 @@ public class ClassifyInvoicesHandlerTests
             .ReturnsAsync(unclassifiedInvoices);
 
         _classificationServiceMock
-            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>()))
+            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>(), It.IsAny<string>()))
             .ReturnsAsync(new InvoiceClassificationResult { Result = ClassificationResult.Success });
 
         var request = new ClassifyInvoicesRequest { InvoiceIds = null };
@@ -124,5 +132,63 @@ public class ClassifyInvoicesHandlerTests
         response.TotalInvoicesProcessed.Should().Be(1);
         response.SuccessfulClassifications.Should().Be(1);
         _invoicesClientMock.Verify(x => x.GetUnclassifiedInvoicesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenCurrentUserIsUnauthenticated_PassesSystemAsProcessedBy()
+    {
+        var unclassifiedInvoices = new List<ReceivedInvoice>
+        {
+            new() { InvoiceNumber = "UNCLASSIFIED-001", Labels = Array.Empty<string>() }
+        };
+
+        _invoicesClientMock
+            .Setup(x => x.GetUnclassifiedInvoicesAsync())
+            .ReturnsAsync(unclassifiedInvoices);
+
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(null, null, null, false));
+
+        _classificationServiceMock
+            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>(), It.IsAny<string>()))
+            .ReturnsAsync(new InvoiceClassificationResult { Result = ClassificationResult.Success });
+
+        var request = new ClassifyInvoicesRequest { InvoiceIds = null };
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        _classificationServiceMock.Verify(
+            x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>(), "system"),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenCurrentUserIsAuthenticated_PassesUserNameAsProcessedBy()
+    {
+        var unclassifiedInvoices = new List<ReceivedInvoice>
+        {
+            new() { InvoiceNumber = "UNCLASSIFIED-001", Labels = Array.Empty<string>() }
+        };
+
+        _invoicesClientMock
+            .Setup(x => x.GetUnclassifiedInvoicesAsync())
+            .ReturnsAsync(unclassifiedInvoices);
+
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser("id", "jane.doe", "jane.doe@test.com", true));
+
+        _classificationServiceMock
+            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>(), It.IsAny<string>()))
+            .ReturnsAsync(new InvoiceClassificationResult { Result = ClassificationResult.Success });
+
+        var request = new ClassifyInvoicesRequest { InvoiceIds = null };
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        _classificationServiceMock.Verify(
+            x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>(), "jane.doe"),
+            Times.Once);
     }
 }

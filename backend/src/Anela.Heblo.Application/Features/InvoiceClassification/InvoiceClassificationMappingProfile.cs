@@ -15,9 +15,6 @@ public class InvoiceClassificationMappingProfile : Profile
             .ForMember(dest => dest.InvoiceId, opt => opt.MapFrom(src => src.AbraInvoiceId))
             .ForMember(dest => dest.RuleName, opt => opt.MapFrom(src => src.ClassificationRule != null ? src.ClassificationRule.Name : null));
 
-        CreateMap<ClassificationStatistics, ClassificationStatisticsDto>();
-        CreateMap<RuleUsageStatistic, RuleUsageStatisticDto>();
-
         CreateMap<AccountingTemplate, AccountingTemplateDto>();
         CreateMap<ReceivedInvoiceItem, ReceivedInvoiceItemDto>();
         CreateMap<ReceivedInvoice, ReceivedInvoiceDto>();

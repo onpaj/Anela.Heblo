@@ -317,16 +317,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         return new GetFinancialOverviewResponse
         {
             Data = allData,
-            Summary = new FinancialSummaryDto
-            {
-                TotalIncome = allData.Sum(d => d.Income),
-                TotalExpenses = allData.Sum(d => d.Expenses),
-                TotalBalance = allData.Sum(d => d.FinancialBalance),
-                AverageMonthlyIncome = allData.Any() ? allData.Average(d => d.Income) : 0,
-                AverageMonthlyExpenses = allData.Any() ? allData.Average(d => d.Expenses) : 0,
-                AverageMonthlyBalance = allData.Any() ? allData.Average(d => d.FinancialBalance) : 0,
-                StockSummary = includeStockData ? CreateStockSummary(allData) : null
-            }
+            Summary = BuildSummary(allData, includeStockData)
         };
     }
 
@@ -375,16 +366,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         return new GetFinancialOverviewResponse
         {
             Data = orderedData,
-            Summary = new FinancialSummaryDto
-            {
-                TotalIncome = orderedData.Sum(d => d.Income),
-                TotalExpenses = orderedData.Sum(d => d.Expenses),
-                TotalBalance = orderedData.Sum(d => d.FinancialBalance),
-                AverageMonthlyIncome = orderedData.Any() ? orderedData.Average(d => d.Income) : 0,
-                AverageMonthlyExpenses = orderedData.Any() ? orderedData.Average(d => d.Expenses) : 0,
-                AverageMonthlyBalance = orderedData.Any() ? orderedData.Average(d => d.FinancialBalance) : 0,
-                StockSummary = includeStockData ? CreateStockSummary(orderedData) : null
-            }
+            Summary = BuildSummary(orderedData, includeStockData)
         };
     }
 
@@ -474,26 +456,19 @@ public class FinancialAnalysisService : IFinancialAnalysisService
             currentDate = currentDate.AddMonths(1);
         }
 
+        var orderedData = monthlyData.OrderByDescending(d => d.Year).ThenByDescending(d => d.Month)
+            .Select(d =>
+            {
+                var stockChangeData = stockChangesLookup.TryGetValue(new { d.Year, d.Month }, out var stockChange)
+                    ? stockChange
+                    : null;
+                return MapToDto(d.Year, d.Month, d.Income, d.Expenses, stockChangeData, includeStockData);
+            }).ToList();
+
         var response = new GetFinancialOverviewResponse
         {
-            Data = monthlyData.OrderByDescending(d => d.Year).ThenByDescending(d => d.Month)
-                .Select(d =>
-                {
-                    var stockChangeData = stockChangesLookup.TryGetValue(new { d.Year, d.Month }, out var stockChange)
-                        ? stockChange
-                        : null;
-                    return MapToDto(d.Year, d.Month, d.Income, d.Expenses, stockChangeData, includeStockData);
-                }).ToList(),
-            Summary = new FinancialSummaryDto
-            {
-                TotalIncome = monthlyData.Sum(d => d.Income),
-                TotalExpenses = monthlyData.Sum(d => d.Expenses),
-                TotalBalance = monthlyData.Sum(d => d.FinancialBalance),
-                AverageMonthlyIncome = monthlyData.Any() ? monthlyData.Average(d => d.Income) : 0,
-                AverageMonthlyExpenses = monthlyData.Any() ? monthlyData.Average(d => d.Expenses) : 0,
-                AverageMonthlyBalance = monthlyData.Any() ? monthlyData.Average(d => d.FinancialBalance) : 0,
-                StockSummary = includeStockData ? CreateStockSummary(monthlyData, stockChangesList) : null
-            }
+            Data = orderedData,
+            Summary = BuildSummary(orderedData, includeStockData)
         };
 
         _logger.LogInformation("Real-time financial overview generated with {Count} months of data", response.Data.Count);
@@ -501,28 +476,24 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         return response;
     }
 
+    private static FinancialSummaryDto BuildSummary(List<MonthlyFinancialDataDto> data, bool includeStockData)
+    {
+        return new FinancialSummaryDto
+        {
+            TotalIncome = data.Sum(d => d.Income),
+            TotalExpenses = data.Sum(d => d.Expenses),
+            TotalBalance = data.Sum(d => d.FinancialBalance),
+            AverageMonthlyIncome = data.Any() ? data.Average(d => d.Income) : 0,
+            AverageMonthlyExpenses = data.Any() ? data.Average(d => d.Expenses) : 0,
+            AverageMonthlyBalance = data.Any() ? data.Average(d => d.FinancialBalance) : 0,
+            StockSummary = includeStockData ? CreateStockSummary(data) : null
+        };
+    }
+
     private static StockSummaryDto CreateStockSummary(List<MonthlyFinancialDataDto> monthlyData)
     {
         var totalStockChange = monthlyData.Sum(d => d.TotalStockValueChange ?? 0);
         var averageStockChange = monthlyData.Any() ? monthlyData.Average(d => d.TotalStockValueChange ?? 0) : 0;
-        var totalFinancialBalance = monthlyData.Sum(d => d.FinancialBalance);
-        var averageFinancialBalance = monthlyData.Any() ? monthlyData.Average(d => d.FinancialBalance) : 0;
-
-        return new StockSummaryDto
-        {
-            TotalStockValueChange = totalStockChange,
-            AverageMonthlyStockChange = averageStockChange,
-            TotalBalanceWithStock = totalFinancialBalance + totalStockChange,
-            AverageMonthlyTotalBalance = averageFinancialBalance + averageStockChange
-        };
-    }
-
-    private static StockSummaryDto CreateStockSummary(
-        List<MonthlyFinancialData> monthlyData,
-        List<MonthlyStockChange> stockChanges)
-    {
-        var totalStockChange = stockChanges.Sum(sc => (decimal)sc.TotalStockValueChange);
-        var averageStockChange = stockChanges.Any() ? stockChanges.Average(sc => (decimal)sc.TotalStockValueChange) : 0;
         var totalFinancialBalance = monthlyData.Sum(d => d.FinancialBalance);
         var averageFinancialBalance = monthlyData.Any() ? monthlyData.Average(d => d.FinancialBalance) : 0;
 

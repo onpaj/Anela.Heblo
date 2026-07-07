@@ -37,8 +37,8 @@ public class GetInvoiceImportStatisticsHandlerTests
         var baseDate = DateTime.UtcNow.Date;
         var expectedData = new List<DailyInvoiceCount>
         {
-            new() { Date = DateTime.SpecifyKind(baseDate.AddDays(-1), DateTimeKind.Utc), Count = 15, IsBelowThreshold = false },
-            new() { Date = DateTime.SpecifyKind(baseDate, DateTimeKind.Utc), Count = 5, IsBelowThreshold = false } // Will be set by handler
+            new() { Date = DateTime.SpecifyKind(baseDate.AddDays(-1), DateTimeKind.Utc), Count = 15 },
+            new() { Date = DateTime.SpecifyKind(baseDate, DateTimeKind.Utc), Count = 5 } // IsBelowThreshold will be set by handler
         };
 
         _mockRepository.Setup(r => r.GetInvoiceImportStatisticsAsync(

@@ -215,6 +215,22 @@ public class FinancialAnalysisServiceTests
         }, TimeSpan.FromHours(1));
     }
 
+    private void SeedStockCacheForMonth(int year, int month, decimal materials, decimal semiProducts, decimal products)
+    {
+        var key = $"financial_stock_data_{year}_{month}";
+        _memoryCache.Set(key, new MonthlyStockChange
+        {
+            Year = year,
+            Month = month,
+            StockChanges = new StockChangeByType
+            {
+                Materials = materials,
+                SemiProducts = semiProducts,
+                Products = products
+            }
+        }, TimeSpan.FromHours(1));
+    }
+
     [Fact]
     public async Task GetFinancialOverviewAsync_RealTime_ComputesIncomeAndExpensesByAccountPrefix_PreservingAllFr4Cases()
     {
@@ -238,6 +254,177 @@ public class FinancialAnalysisServiceTests
         lastMonthData.Should().NotBeNull("the response must include the last completed month");
         lastMonthData!.Expenses.Should().Be(80m, "expenses = debit5(100) - credit5(20)");
         lastMonthData!.Income.Should().Be(150m, "income = credit6(200) - debit6(50)");
+    }
+
+    [Fact]
+    public async Task GetFinancialOverviewAsync_RealTimePath_WithMatchingStockChange_ComputesStockSummaryFromDtoValues()
+    {
+        // Arrange — empty cache routes to real-time path; months:1 + includeCurrentMonth:false
+        // means the only month in range is last month (end date = last day of previous month).
+        var now = DateTime.UtcNow;
+        var lastMonthStart = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
+
+        // Ledger mock keeps the default empty-list setup from the constructor, so
+        // Income = 0, Expenses = 0, FinancialBalance = 0 for the month.
+
+        _stockValueServiceMock
+            .Setup(x => x.GetStockValueChangesAsync(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MonthlyStockChange>
+            {
+                new MonthlyStockChange
+                {
+                    Year = lastMonthStart.Year,
+                    Month = lastMonthStart.Month,
+                    StockChanges = new StockChangeByType { Materials = 100m, SemiProducts = 50m, Products = 25m }
+                }
+            });
+
+        // Act
+        var response = await _service.GetFinancialOverviewAsync(
+            months: 1,
+            includeStockData: true,
+            excludedDepartments: null,
+            includeCurrentMonth: false);
+
+        // Assert — TotalStockValueChange = 100 + 50 + 25 = 175; FinancialBalance = 0 (empty ledger)
+        response.Summary.StockSummary.Should().NotBeNull();
+        response.Summary.StockSummary!.TotalStockValueChange.Should().Be(175m);
+        response.Summary.StockSummary!.AverageMonthlyStockChange.Should().Be(175m, "only one month is in range");
+        response.Summary.StockSummary!.TotalBalanceWithStock.Should().Be(175m, "TotalBalance(0) + TotalStockValueChange(175)");
+        response.Summary.StockSummary!.AverageMonthlyTotalBalance.Should().Be(175m, "AverageBalance(0) + AverageStockChange(175)");
+    }
+
+    [Fact]
+    public async Task GetFinancialOverviewAsync_RealTimePath_WithNoMatchingStockChange_TreatsStockValueAsZero()
+    {
+        // Arrange — stock service returns a change for a month OUTSIDE the requested range,
+        // so the per-month lookup in GetFinancialOverviewRealTimeAsync finds no match for the
+        // one month actually returned (last month), and TotalStockValueChange falls back to 0.
+        var now = DateTime.UtcNow;
+        var lastMonthStart = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
+        var unrelatedMonth = lastMonthStart.AddMonths(-5);
+
+        _stockValueServiceMock
+            .Setup(x => x.GetStockValueChangesAsync(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MonthlyStockChange>
+            {
+                new MonthlyStockChange
+                {
+                    Year = unrelatedMonth.Year,
+                    Month = unrelatedMonth.Month,
+                    StockChanges = new StockChangeByType { Materials = 999m, SemiProducts = 999m, Products = 999m }
+                }
+            });
+
+        // Act
+        var response = await _service.GetFinancialOverviewAsync(
+            months: 1,
+            includeStockData: true,
+            excludedDepartments: null,
+            includeCurrentMonth: false);
+
+        // Assert — no stock change matches the returned month, so it contributes 0
+        response.Summary.StockSummary.Should().NotBeNull();
+        response.Summary.StockSummary!.TotalStockValueChange.Should().Be(0m);
+        response.Summary.StockSummary!.AverageMonthlyStockChange.Should().Be(0m);
+        response.Summary.StockSummary!.TotalBalanceWithStock.Should().Be(0m, "TotalBalance(0) + TotalStockValueChange(0)");
+        response.Summary.StockSummary!.AverageMonthlyTotalBalance.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task GetFinancialOverviewAsync_CachedPath_WithMatchingStockChange_ComputesStockSummaryFromDtoValues()
+    {
+        // Arrange — seed both the monthly financial data and the stock data cache entries for
+        // last month, so GetFinancialOverviewAsync routes to the cached path (CachedMonthsCount > 0)
+        // and months:1 selects exactly that one cached month.
+        var now = DateTime.UtcNow;
+        var prevMonth = now.AddMonths(-1);
+        SeedCacheForMonth(prevMonth.Year, prevMonth.Month);
+        SeedStockCacheForMonth(prevMonth.Year, prevMonth.Month, materials: 100m, semiProducts: 50m, products: 25m);
+
+        // Act
+        var response = await _service.GetFinancialOverviewAsync(
+            months: 1,
+            includeStockData: true,
+            excludedDepartments: null,
+            includeCurrentMonth: false);
+
+        // Assert — FinancialBalance = Income(10000) - Expenses(8000) = 2000 (from SeedCacheForMonth);
+        // TotalStockValueChange = 100 + 50 + 25 = 175 (from SeedStockCacheForMonth).
+        response.Summary.StockSummary.Should().NotBeNull();
+        response.Summary.StockSummary!.TotalStockValueChange.Should().Be(175m);
+        response.Summary.StockSummary!.AverageMonthlyStockChange.Should().Be(175m, "only one month is in range");
+        response.Summary.StockSummary!.TotalBalanceWithStock.Should().Be(2175m, "TotalBalance(2000) + TotalStockValueChange(175)");
+        response.Summary.StockSummary!.AverageMonthlyTotalBalance.Should().Be(2175m, "AverageBalance(2000) + AverageStockChange(175)");
+    }
+
+    [Fact]
+    public async Task GetFinancialOverviewAsync_RealTimePath_IncludeStockDataFalse_StockSummaryIsNull()
+    {
+        // Arrange — empty cache routes to real-time path; stock service default (empty list) applies.
+
+        // Act
+        var response = await _service.GetFinancialOverviewAsync(
+            months: 1,
+            includeStockData: false,
+            excludedDepartments: null,
+            includeCurrentMonth: false);
+
+        // Assert
+        response.Summary.StockSummary.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetFinancialOverviewAsync_CachedPath_IncludeStockDataFalse_StockSummaryIsNull()
+    {
+        // Arrange — seed monthly cache so the cached path is used (CachedMonthsCount > 0).
+        var now = DateTime.UtcNow;
+        var prevMonth = now.AddMonths(-1);
+        SeedCacheForMonth(prevMonth.Year, prevMonth.Month);
+
+        // Act
+        var response = await _service.GetFinancialOverviewAsync(
+            months: 1,
+            includeStockData: false,
+            excludedDepartments: null,
+            includeCurrentMonth: false);
+
+        // Assert
+        response.Summary.StockSummary.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetFinancialOverviewAsync_ZeroMonthsRequested_ReturnsEmptySummaryWithZeroedAverages()
+    {
+        // Arrange — months: 0 makes the real-time path's computed startDate land after endDate
+        // (startDate = end-of-previous-month.AddMonths(1), first-of-month), so the month-by-month
+        // loop never executes and monthlyData/orderedData stay empty. Cache is empty by default,
+        // so this routes to the real-time path.
+
+        // Act
+        var response = await _service.GetFinancialOverviewAsync(
+            months: 0,
+            includeStockData: true,
+            excludedDepartments: null,
+            includeCurrentMonth: false);
+
+        // Assert — data is empty; all totals are 0; averages are 0 (not NaN/exception) because
+        // BuildSummary/CreateStockSummary guard every Average() call with data.Any().
+        response.Data.Should().BeEmpty();
+        response.Summary.TotalIncome.Should().Be(0m);
+        response.Summary.AverageMonthlyIncome.Should().Be(0m);
+        response.Summary.AverageMonthlyBalance.Should().Be(0m);
+        response.Summary.StockSummary.Should().NotBeNull("includeStockData is true, even with zero months");
+        response.Summary.StockSummary!.TotalStockValueChange.Should().Be(0m);
+        response.Summary.StockSummary!.AverageMonthlyStockChange.Should().Be(0m);
+        response.Summary.StockSummary!.TotalBalanceWithStock.Should().Be(0m);
+        response.Summary.StockSummary!.AverageMonthlyTotalBalance.Should().Be(0m);
     }
 
     private static (List<LedgerItem> debitItems, List<LedgerItem> creditItems) CreateFr4LedgerItems(DateTime midLastMonth) =>

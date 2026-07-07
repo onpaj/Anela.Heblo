@@ -13,8 +13,7 @@ public interface IInvoiceImportStatisticsSource
     /// Returns daily invoice counts in the inclusive range
     /// [<paramref name="startDate"/>, <paramref name="endDate"/>]. Missing dates
     /// are gap-filled with zero-count rows. <c>Date</c> values are tagged
-    /// <see cref="DateTimeKind.Utc"/> and <c>IsBelowThreshold</c> is always
-    /// <c>false</c> (the consumer decides thresholds).
+    /// <see cref="DateTimeKind.Utc"/>.
     /// </summary>
     Task<IReadOnlyList<DailyInvoiceCount>> GetDailyCountsAsync(
         DateTime startDate,

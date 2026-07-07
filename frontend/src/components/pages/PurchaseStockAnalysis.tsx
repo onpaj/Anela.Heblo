@@ -481,7 +481,7 @@ const PurchaseStockAnalysis: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [filters.stockStatus, purchasePlanningListItems]);
 
-  const { orderedColumns, columnState, setColumnOrder, setColumnWidth, toggleColumnVisibility, resetLayout } =
+  const { orderedColumns, columnState, setColumnOrder, setColumnWidthLive, commitColumnWidth, toggleColumnVisibility, resetLayout } =
     useGridLayout('purchase-stock-analysis', purchaseStockColumns);
 
   if (error) {
@@ -968,7 +968,8 @@ const PurchaseStockAnalysis: React.FC = () => {
                 sortDescending={filters.sortDescending}
                 onSort={(key) => handleSort(key as StockAnalysisSortBy)}
                 onReorder={setColumnOrder}
-                onResizeEnd={setColumnWidth}
+                onResizeChange={setColumnWidthLive}
+                onResizeEnd={commitColumnWidth}
               />
               <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                 {tableData.map((item) => (

@@ -1,3 +1,4 @@
+using AutoMapper;
 using MediatR;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Application.Features.InvoiceClassification.Contracts;
@@ -8,13 +9,16 @@ namespace Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetCla
 public class GetClassificationHistoryHandler : IRequestHandler<GetClassificationHistoryRequest, GetClassificationHistoryResponse>
 {
     private readonly IClassificationHistoryRepository _historyRepository;
+    private readonly IMapper _mapper;
     private readonly ILogger<GetClassificationHistoryHandler> _logger;
 
     public GetClassificationHistoryHandler(
         IClassificationHistoryRepository historyRepository,
+        IMapper mapper,
         ILogger<GetClassificationHistoryHandler> logger)
     {
         _historyRepository = historyRepository;
+        _mapper = mapper;
         _logger = logger;
     }
 
@@ -28,23 +32,7 @@ public class GetClassificationHistoryHandler : IRequestHandler<GetClassification
             request.InvoiceNumber,
             request.CompanyName);
 
-        var historyDtos = historyItems.Select(history => new ClassificationHistoryDto
-        {
-            Id = history.Id,
-            InvoiceId = history.AbraInvoiceId,
-            InvoiceNumber = history.InvoiceNumber,
-            InvoiceDate = history.InvoiceDate,
-            CompanyName = history.CompanyName,
-            Description = history.Description,
-            ClassificationRuleId = history.ClassificationRuleId,
-            RuleName = history.ClassificationRule?.Name,
-            Department = history.Department,
-            Result = history.Result,
-            AccountingTemplateCode = history.AccountingTemplateCode,
-            ErrorMessage = history.ErrorMessage,
-            Timestamp = history.Timestamp,
-            ProcessedBy = history.ProcessedBy
-        }).ToList();
+        var historyDtos = _mapper.Map<List<ClassificationHistoryDto>>(historyItems);
 
         return new GetClassificationHistoryResponse
         {

@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Leaflet.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Shared.Http;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.Leaflet;
@@ -62,8 +63,9 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
 
         if (kbHits.Count == 0 && leafletHits.Count == 0)
         {
-            throw new EmptyRetrievalException(
-                "Knowledge Base does not yet cover this topic; try a broader phrasing");
+            // Params["detail"] is for API-consumer/log diagnostics only, not for direct end-user display.
+            return new GenerateLeafletResponse(ErrorCodes.LeafletEmptyRetrieval,
+                new() { { "detail", "Knowledge Base does not yet cover this topic; try a broader phrasing" } });
         }
 
         var coldStart = leafletHits.Count == 0 ? "true" : "false";
