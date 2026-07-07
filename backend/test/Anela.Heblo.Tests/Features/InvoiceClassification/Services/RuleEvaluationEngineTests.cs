@@ -18,7 +18,7 @@ public class RuleEvaluationEngineTests
     }
 
     [Fact]
-    public void FindMatchingRule_MultipleMatchingRules_ReturnsLowestOrderMatch()
+    public void FindMatchingRule_MultipleMatchingRules_ReturnsFirstMatchInGivenOrder()
     {
         // Arrange
         var strategyA = CreateStrategyMock("RULE_A", evaluateResult: true);
@@ -30,7 +30,7 @@ public class RuleEvaluationEngineTests
         var ruleHigherOrder = InvoiceClassificationFixtures.CreateRule("RULE_B", pattern: "p", order: 2);
         var ruleLowerOrder = InvoiceClassificationFixtures.CreateRule("RULE_A", pattern: "p", order: 1);
 
-        var rules = new List<ClassificationRule> { ruleHigherOrder, ruleLowerOrder };
+        var rules = new List<ClassificationRule> { ruleLowerOrder, ruleHigherOrder };
 
         // Act
         var match = sut.FindMatchingRule(invoice, rules);
@@ -40,7 +40,7 @@ public class RuleEvaluationEngineTests
     }
 
     [Fact]
-    public void FindMatchingRule_SkipsInactiveRules()
+    public void FindMatchingRule_DoesNotFilterByIsActive_EvaluatesInGivenOrder()
     {
         // Arrange
         var strategy = CreateStrategyMock("RULE_A", evaluateResult: true);
@@ -50,13 +50,15 @@ public class RuleEvaluationEngineTests
         var inactiveRule = InvoiceClassificationFixtures.CreateRule("RULE_A", pattern: "p", order: 1, isActive: false);
         var activeRule = InvoiceClassificationFixtures.CreateRule("RULE_A", pattern: "p", order: 2, isActive: true);
 
+        // Inactive rule listed first: engine no longer filters by IsActive, so it must
+        // still be evaluated and matched — filtering is the caller's responsibility now.
         var rules = new List<ClassificationRule> { inactiveRule, activeRule };
 
         // Act
         var match = sut.FindMatchingRule(invoice, rules);
 
         // Assert
-        match.Should().BeSameAs(activeRule);
+        match.Should().BeSameAs(inactiveRule);
     }
 
     [Fact]
@@ -114,7 +116,7 @@ public class RuleEvaluationEngineTests
     }
 
     [Fact]
-    public void FindMatchingRule_SortsByOrder_NotByListInsertionOrder()
+    public void FindMatchingRule_IgnoresOrderField_IteratesInGivenListOrder()
     {
         // Arrange
         var strategy = CreateStrategyMock("RULE_A", evaluateResult: true);
@@ -124,14 +126,15 @@ public class RuleEvaluationEngineTests
         var insertedFirstHighOrder = InvoiceClassificationFixtures.CreateRule("RULE_A", pattern: "p", order: 10);
         var insertedSecondLowOrder = InvoiceClassificationFixtures.CreateRule("RULE_A", pattern: "p", order: 1);
 
-        // List insertion order intentionally reversed vs. desired evaluation order.
+        // List insertion order deliberately does NOT match Order value ascending —
+        // proves the engine no longer sorts by Order; it evaluates in given list order.
         var rules = new List<ClassificationRule> { insertedFirstHighOrder, insertedSecondLowOrder };
 
         // Act
         var match = sut.FindMatchingRule(invoice, rules);
 
         // Assert
-        match.Should().BeSameAs(insertedSecondLowOrder);
+        match.Should().BeSameAs(insertedFirstHighOrder);
     }
 
     [Fact]
