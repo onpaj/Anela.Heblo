@@ -21,16 +21,16 @@
       "updated_at": "2026-07-07T10:20:18.252731Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-07T10:20:44.914487Z"
+      "status": "completed",
+      "updated_at": "2026-07-07T10:49:07.430965Z"
     }
   },
   "tasks": [
     {
       "name": "use-imapper-in-classification-history-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-07T10:20:45.138767Z"
+      "updated_at": "2026-07-07T10:49:06.921281Z"
     }
   ]
 }
