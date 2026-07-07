@@ -409,6 +409,11 @@ public static class ServiceCollectionExtensions
         // it is used by MaterialContainer label printing regardless of the expedition print sink.
         services.AddCupsPrinting(configuration);
 
+        // Temp-file read/delete is needed regardless of which PrintSink is configured — exported
+        // PDFs always land on local disk first (see IExpeditionPickingSource.CreatePickingListAsync),
+        // so this is registered unconditionally rather than inside the switch below.
+        services.AddFileSystemTemporaryFileAccessor();
+
         var printSink = configuration["ExpeditionList:PrintSink"];
         switch (printSink)
         {
@@ -420,10 +425,9 @@ public static class ServiceCollectionExtensions
                 services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
                 break;
             case "Combined":
-                // AddAzurePrintQueueSink registers a non-keyed IPrintQueueSink as a side effect;
-                // it is unused here — the last non-keyed registration (the factory below) wins.
-                services.AddAzurePrintQueueSink(configuration);
-                services.AddKeyedScoped<IPrintQueueSink, AzureBlobPrintQueueSink>("azure");
+                services.AddAzurePrintQueueSinkInfrastructure(configuration);
+                services.AddKeyedSingleton<IPrintQueueSink>("azure",
+                    (provider, _) => provider.GetRequiredService<AzureBlobPrintQueueSink>());
                 services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
                 services.AddScoped<IPrintQueueSink>(provider =>
                 {

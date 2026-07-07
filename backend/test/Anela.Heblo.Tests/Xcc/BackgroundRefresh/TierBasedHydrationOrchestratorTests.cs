@@ -39,6 +39,26 @@ public class TierBasedHydrationOrchestratorTests
             setupMock);
     }
 
+    private TierBasedHydrationOrchestrator CreateOrchestrator(int readinessTier = 1)
+    {
+        var options = Microsoft.Extensions.Options.Options.Create(
+            new BackgroundServicesOptions { ReadinessTier = readinessTier });
+        return new TierBasedHydrationOrchestrator(_loggerMock.Object, _taskRegistry, options);
+    }
+
+    private void RegisterTask(string taskId, int tier, Func<Task> body, bool enabled = true)
+    {
+        var config = new RefreshTaskConfiguration
+        {
+            TaskId = taskId,
+            InitialDelay = TimeSpan.Zero,
+            RefreshInterval = TimeSpan.FromMinutes(1),
+            Enabled = enabled,
+            HydrationTier = tier
+        };
+        _taskRegistry.RegisterTask(taskId, (_, _) => body(), config);
+    }
+
     [Fact]
     public async Task ShouldNotExecuteDisabledTasks()
     {
@@ -76,7 +96,7 @@ public class TierBasedHydrationOrchestratorTests
             return Task.CompletedTask;
         }, disabledConfig);
 
-        var orchestrator = new TierBasedHydrationOrchestrator(_loggerMock.Object, _taskRegistry);
+        var orchestrator = CreateOrchestrator();
         var cts = new CancellationTokenSource();
 
         // Act
@@ -151,7 +171,7 @@ public class TierBasedHydrationOrchestratorTests
             return Task.CompletedTask;
         }, task3Config);
 
-        var orchestrator = new TierBasedHydrationOrchestrator(_loggerMock.Object, _taskRegistry);
+        var orchestrator = CreateOrchestrator();
         var cts = new CancellationTokenSource();
 
         // Act
@@ -203,7 +223,7 @@ public class TierBasedHydrationOrchestratorTests
             return Task.CompletedTask;
         }, disabledConfig2);
 
-        var orchestrator = new TierBasedHydrationOrchestrator(_loggerMock.Object, _taskRegistry);
+        var orchestrator = CreateOrchestrator();
         var cts = new CancellationTokenSource();
 
         // Act
@@ -295,7 +315,7 @@ public class TierBasedHydrationOrchestratorTests
             }
         }, tier3Task);
 
-        var orchestrator = new TierBasedHydrationOrchestrator(_loggerMock.Object, _taskRegistry);
+        var orchestrator = CreateOrchestrator();
         var cts = new CancellationTokenSource();
 
         // Act
@@ -315,5 +335,111 @@ public class TierBasedHydrationOrchestratorTests
 
         Assert.True(tier1Index < tier2Index, "Tier 1 should execute before Tier 2");
         Assert.True(tier2Index < tier3Index, "Tier 2 should execute before Tier 3");
+    }
+
+    [Fact]
+    public async Task ReadinessTier1_ReportsReadyAfterTier1_WhileTier2StillRunning()
+    {
+        // Arrange
+        var tier2Gate = new TaskCompletionSource();
+        RegisterTask("TestTask.Tier1", tier: 1, body: () => Task.CompletedTask);
+        RegisterTask("TestTask.Tier2", tier: 2, body: () => tier2Gate.Task);
+
+        var orchestrator = CreateOrchestrator(readinessTier: 1);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var hydrationTask = orchestrator.StartAsync(cts.Token);
+        await orchestrator.WaitForReadinessAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert - ready after Tier 1, but full hydration still waiting on the gated Tier 2
+        Assert.False(orchestrator.WaitForHydrationCompletionAsync().IsCompleted,
+            "Full hydration should not be complete while Tier 2 is still running");
+
+        // Release Tier 2 and let hydration finish
+        tier2Gate.SetResult();
+        await orchestrator.WaitForHydrationCompletionAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        cts.Cancel();
+        await hydrationTask;
+    }
+
+    [Fact]
+    public async Task ReadinessTier2_ReportsReadyOnlyAfterTiers1And2()
+    {
+        // Arrange
+        var tier2Gate = new TaskCompletionSource();
+        var tier3Gate = new TaskCompletionSource();
+        RegisterTask("TestTask.Tier1", tier: 1, body: () => Task.CompletedTask);
+        RegisterTask("TestTask.Tier2", tier: 2, body: () => tier2Gate.Task);
+        RegisterTask("TestTask.Tier3", tier: 3, body: () => tier3Gate.Task);
+
+        var orchestrator = CreateOrchestrator(readinessTier: 2);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var hydrationTask = orchestrator.StartAsync(cts.Token);
+
+        // Give Tier 1 a moment; readiness must NOT be reached while Tier 2 is gated
+        await Task.Delay(100);
+        Assert.False(orchestrator.WaitForReadinessAsync().IsCompleted,
+            "Readiness should wait for Tier 2 when ReadinessTier = 2");
+
+        // Release Tier 2 -> readiness reached, even though Tier 3 is still gated
+        tier2Gate.SetResult();
+        await orchestrator.WaitForReadinessAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.False(orchestrator.WaitForHydrationCompletionAsync().IsCompleted,
+            "Full hydration should still wait on the gated Tier 3");
+
+        // Release Tier 3 and let hydration finish
+        tier3Gate.SetResult();
+        await orchestrator.WaitForHydrationCompletionAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        cts.Cancel();
+        await hydrationTask;
+    }
+
+    [Fact]
+    public async Task ReadinessTier0_ReportsReadyImmediately_BeforeAnyTierCompletes()
+    {
+        // Arrange - Tier 1 is gated so it cannot complete during the test
+        var tier1Gate = new TaskCompletionSource();
+        RegisterTask("TestTask.Tier1", tier: 1, body: () => tier1Gate.Task);
+
+        var orchestrator = CreateOrchestrator(readinessTier: 0);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var hydrationTask = orchestrator.StartAsync(cts.Token);
+
+        // Assert - ready immediately, even though the only tier is still running
+        await orchestrator.WaitForReadinessAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.False(orchestrator.WaitForHydrationCompletionAsync().IsCompleted,
+            "Full hydration should not be complete while Tier 1 is still gated");
+
+        // Cleanup
+        tier1Gate.SetResult();
+        await orchestrator.WaitForHydrationCompletionAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        cts.Cancel();
+        await hydrationTask;
+    }
+
+    [Fact]
+    public async Task OptionalTierFailure_DoesNotFaultReadinessOrHydration()
+    {
+        // Arrange - Tier 1 succeeds (required), Tier 2 throws (optional under ReadinessTier = 1)
+        RegisterTask("TestTask.Tier1", tier: 1, body: () => Task.CompletedTask);
+        RegisterTask("TestTask.Tier2", tier: 2, body: () => throw new InvalidOperationException("boom"));
+
+        var orchestrator = CreateOrchestrator(readinessTier: 1);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var hydrationTask = orchestrator.StartAsync(cts.Token);
+
+        // Assert - readiness reached and full hydration completes without surfacing the optional failure
+        await orchestrator.WaitForReadinessAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        await orchestrator.WaitForHydrationCompletionAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+        cts.Cancel();
+        await hydrationTask; // ExecuteAsync must not have faulted
     }
 }

@@ -70,7 +70,6 @@ public sealed class InvoiceImportStatisticsSourceAdapterTests : IDisposable
         result[0].Date.Should().Be(DateTime.SpecifyKind(new DateTime(2026, 6, 1), DateTimeKind.Utc));
         result[0].Date.Kind.Should().Be(DateTimeKind.Utc);
         result[0].Count.Should().Be(2);
-        result[0].IsBelowThreshold.Should().BeFalse();
         result[1].Date.Should().Be(DateTime.SpecifyKind(new DateTime(2026, 6, 2), DateTimeKind.Utc));
         result[1].Count.Should().Be(1);
     }

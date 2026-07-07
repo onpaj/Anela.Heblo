@@ -8,28 +8,18 @@
 
 ## Notes
 
-Reviewed the full diff against merge-base `2ad2a259` on
-`backend/src/Anela.Heblo.Application/Features/FinancialOverview/Services/FinancialAnalysisService.cs`
-(the only file changed).
+Reviewed the full branch diff against `origin/main` (merge-base `2ad2a259`). Scope is exactly the two files the issue targets:
 
-- All three call sites (`GetHybridWithCurrentMonthAsync`, `GetCachedFinancialOverview`,
-  `GetFinancialOverviewRealTimeAsync`) now delegate to the new `BuildSummary(data, includeStockData)`
-  helper, whose six aggregate expressions are byte-for-byte identical to the three
-  original inline blocks (verified per FR-1).
-- `GetFinancialOverviewRealTimeAsync` now materializes `orderedData` once and reuses
-  it for both `Data` and `Summary`, matching FR-3/FR-4. `stockChangesList` remains
-  referenced (it feeds `stockChangesLookup`, still used inside the `.Select`), so no
-  dead code was introduced there.
-- The domain-object `CreateStockSummary(List<MonthlyFinancialData>, List<MonthlyStockChange>)`
-  overload is removed; exactly one `CreateStockSummary(List<MonthlyFinancialDataDto>)`
-  remains and is now shared by all three paths, per FR-2. A repo-wide grep confirms no
-  other file referenced the removed overload.
-- Exactly one `new FinancialSummaryDto { ... }` object initializer remains, inside
-  `BuildSummary`, per FR-4's acceptance criteria.
-- `dotnet build` (whole solution) — 0 warnings/errors. `dotnet format --verify-no-changes` —
-  clean. `dotnet test --filter FullyQualifiedName~FinancialOverview` — 27/27 passed, no
-  test files touched. Full-suite `dotnet test` — only pre-existing DB-backed integration
-  test failures unrelated to this file (no local database in this sandbox).
-- No public interface, DTO shape, or observable behavior change — matches FR-5/NFR-1.
+- `backend/src/Anela.Heblo.Application/Features/FinancialOverview/Services/FinancialAnalysisService.cs` (79 lines changed, net reduction)
+- `backend/test/Anela.Heblo.Tests/Application/FinancialOverview/FinancialAnalysisServiceTests.cs` (187 lines added)
 
-No blocking or advisory findings.
+Verified against `artifacts/feat-3493/spec.r1.md`:
+- All three `new FinancialSummaryDto { ... }` blocks (`GetHybridWithCurrentMonthAsync`, `GetCachedFinancialOverview`, `GetFinancialOverviewRealTimeAsync`) now call the single `BuildSummary(data, includeStockData)` helper.
+- The two `CreateStockSummary` overloads are unified into one (`List<MonthlyFinancialDataDto>`); the `(List<MonthlyFinancialData>, List<MonthlyStockChange>)` overload is removed.
+- `GetFinancialOverviewRealTimeAsync` materializes `orderedData` once and reuses it for both `Data` and `Summary`, removing the dual-source-of-truth between the DTO-based and raw-list-based stock aggregate computations.
+- No public method signatures, DTO shapes, or contracts changed.
+- `stockChangesList` remains referenced (still feeds `stockChangesLookup`), so no dead code was introduced.
+
+Confirmed via test run: 14/14 `FinancialAnalysisServiceTests` pass, 33/33 tests in the broader `FinancialOverview` suite pass, `dotnet build` succeeds with 0 errors, `dotnet format --verify-no-changes` reports no diffs. The 6 new tests were run against the pre-refactor code first (as a characterization baseline) and pass identically post-refactor, giving direct evidence — not just reasoning — that the two previously-divergent `CreateStockSummary` code paths produce numerically identical `StockSummary` values under the unified implementation.
+
+No correctness issues found. No cleanup suggestions — the diff is a tight, faithful implementation of the extraction described in the issue.

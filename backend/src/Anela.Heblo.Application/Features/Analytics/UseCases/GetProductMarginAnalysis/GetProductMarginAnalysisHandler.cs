@@ -48,7 +48,7 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
             }
 
             // Check if we have sales data for the period
-            if (!HasSalesInPeriod(productData, request.StartDate, request.EndDate))
+            if (!productData.HasSalesInPeriod(request.StartDate, request.EndDate))
             {
                 return CreateErrorResponse(ErrorCodes.AnalysisDataNotAvailable,
                     ("product", productData.ProductName),
@@ -66,11 +66,6 @@ public class GetProductMarginAnalysisHandler : IRequestHandler<GetProductMarginA
             _logger.LogError(ex, "Unhandled exception in GetProductMarginAnalysisHandler");
             return CreateErrorResponse(ErrorCodes.InternalServerError);
         }
-    }
-
-    private static bool HasSalesInPeriod(AnalyticsProduct productData, DateTime startDate, DateTime endDate)
-    {
-        return productData.SalesHistory.Any(s => s.Date >= startDate && s.Date <= endDate);
     }
 
     private GetProductMarginAnalysisResponse BuildSuccessResponse(

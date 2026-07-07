@@ -9,10 +9,12 @@ namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetBankStatementIm
 public class GetBankStatementImportStatisticsHandler : IRequestHandler<GetBankStatementImportStatisticsRequest, GetBankStatementImportStatisticsResponse>
 {
     private readonly IAnalyticsRepository _analyticsRepository;
+    private readonly TimeProvider _timeProvider;
 
-    public GetBankStatementImportStatisticsHandler(IAnalyticsRepository analyticsRepository)
+    public GetBankStatementImportStatisticsHandler(IAnalyticsRepository analyticsRepository, TimeProvider timeProvider)
     {
         _analyticsRepository = analyticsRepository;
+        _timeProvider = timeProvider;
     }
 
     public async Task<GetBankStatementImportStatisticsResponse> Handle(
@@ -20,7 +22,7 @@ public class GetBankStatementImportStatisticsHandler : IRequestHandler<GetBankSt
         CancellationToken cancellationToken)
     {
         // Set default date range if not provided (last 30 days)
-        var endDate = request.EndDate ?? DateTime.UtcNow.Date;
+        var endDate = request.EndDate ?? _timeProvider.GetUtcNow().Date;
         var startDate = request.StartDate ?? endDate.AddDays(-30);
 
         // Ensure dates are UTC for consistency

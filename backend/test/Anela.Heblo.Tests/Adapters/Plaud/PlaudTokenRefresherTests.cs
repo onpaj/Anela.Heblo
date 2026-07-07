@@ -151,4 +151,67 @@ public sealed class PlaudTokenRefresherTests : IDisposable
         var diskContent = await File.ReadAllTextAsync(_tokensPath);
         diskContent.Should().Contain("new-refresh");
     }
+
+    [Fact]
+    public async Task SyncToKeyVaultAsync_WritesDiskTokenToKeyVault()
+    {
+        await File.WriteAllTextAsync(_tokensPath, CurrentTokensJson);
+
+        await CreateRefresher().SyncToKeyVaultAsync();
+
+        _secretClient.Verify(
+            s => s.SetSecretAsync(
+                "Plaud--TokensJson",
+                It.Is<string>(v => v.Contains("old-refresh")),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncToKeyVaultAsync_SkipsWriteWhenDiskUnchanged()
+    {
+        await File.WriteAllTextAsync(_tokensPath, CurrentTokensJson);
+        var refresher = CreateRefresher();
+
+        await refresher.SyncToKeyVaultAsync();
+        await refresher.SyncToKeyVaultAsync(); // disk unchanged — must not write again
+
+        _secretClient.Verify(
+            s => s.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncToKeyVaultAsync_NoOpWhenKeyVaultNotConfigured()
+    {
+        await File.WriteAllTextAsync(_tokensPath, CurrentTokensJson);
+
+        Func<Task> act = () => CreateRefresher(withKeyVault: false).SyncToKeyVaultAsync();
+
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task SyncToKeyVaultAsync_NoOpWhenTokensFileMissing()
+    {
+        // No tokens.json written.
+        await CreateRefresher().SyncToKeyVaultAsync();
+
+        _secretClient.Verify(
+            s => s.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task SyncToKeyVaultAsync_KeyVaultFailureIsBestEffort_NoThrow()
+    {
+        await File.WriteAllTextAsync(_tokensPath, CurrentTokensJson);
+        _secretClient
+            .Setup(s => s.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new RequestFailedException("KV unavailable"));
+
+        Func<Task> act = () => CreateRefresher().SyncToKeyVaultAsync();
+
+        await act.Should().NotThrowAsync();
+    }
 }

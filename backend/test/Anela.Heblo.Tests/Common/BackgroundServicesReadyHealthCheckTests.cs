@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -14,7 +15,13 @@ public class BackgroundServicesReadyHealthCheckTests
     public BackgroundServicesReadyHealthCheckTests()
     {
         _readinessTrackerMock = new Mock<IBackgroundServiceReadinessTracker>();
-        _healthCheck = new BackgroundServicesReadyHealthCheck(_readinessTrackerMock.Object);
+        _healthCheck = CreateHealthCheck(enableHydration: true);
+    }
+
+    private BackgroundServicesReadyHealthCheck CreateHealthCheck(bool enableHydration)
+    {
+        var options = Options.Create(new BackgroundServicesOptions { EnableHydration = enableHydration });
+        return new BackgroundServicesReadyHealthCheck(_readinessTrackerMock.Object, options);
     }
 
     [Fact]
@@ -83,5 +90,21 @@ public class BackgroundServicesReadyHealthCheckTests
         Assert.Equal(HealthStatus.Healthy, result.Status);
         Assert.Equal("Tier-based hydration completed - all background refresh tasks ready", result.Description);
         Assert.Empty(result.Data); // Refresh task system doesn't track individual services
+    }
+
+    [Fact]
+    public async Task CheckHealthAsync_ShouldReturnHealthy_WhenHydrationDisabled()
+    {
+        // Arrange - hydration disabled (e.g. Development/Test): nothing flips the tracker, so ready by default
+        var healthCheck = CreateHealthCheck(enableHydration: false);
+        _readinessTrackerMock.Setup(x => x.AreAllServicesReady()).Returns(false);
+
+        // Act
+        var result = await healthCheck.CheckHealthAsync(new HealthCheckContext());
+
+        // Assert
+        Assert.Equal(HealthStatus.Healthy, result.Status);
+        Assert.Equal("Hydration disabled - no background services to wait for", result.Description);
+        _readinessTrackerMock.Verify(x => x.AreAllServicesReady(), Times.Never);
     }
 }

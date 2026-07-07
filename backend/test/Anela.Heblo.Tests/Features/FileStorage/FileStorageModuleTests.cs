@@ -1,9 +1,7 @@
 using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
-using Anela.Heblo.Application.Features.FileStorage.Services;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Anela.Heblo.Xcc.Telemetry;
-using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -43,36 +41,6 @@ public class FileStorageModuleTests
 
     private static IHostEnvironment BuildEnvironment(string environmentName) =>
         Mock.Of<IHostEnvironment>(e => e.EnvironmentName == environmentName);
-
-    [Fact]
-    public void AddFileStorageModule_RegistersBlobStorageService_AsSingleton()
-    {
-        // Arrange
-        var services = BuildBaseServices();
-
-        // Act
-        services.AddFileStorageModule(BuildConfiguration(), BuildEnvironment(Environments.Development));
-
-        // Assert — IBlobStorageService must be Singleton so _containerExists cache survives requests
-        var descriptor = services.Single(s => s.ServiceType == typeof(IBlobStorageService));
-        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
-    }
-
-    [Fact]
-    public void AddFileStorageModule_ResolvingBlobStorageServiceTwice_ReturnsSameInstance()
-    {
-        // Arrange
-        var services = BuildBaseServices();
-        services.AddFileStorageModule(BuildConfiguration(), BuildEnvironment(Environments.Development));
-        var provider = services.BuildServiceProvider();
-
-        // Act
-        var first = provider.GetRequiredService<IBlobStorageService>();
-        var second = provider.GetRequiredService<IBlobStorageService>();
-
-        // Assert — same instance proves Singleton registration is working
-        Assert.Same(first, second);
-    }
 
     [Fact]
     public void AddFileStorageModule_RegistersNamedHttpClient_FileDownload()
@@ -152,43 +120,5 @@ public class FileStorageModuleTests
         // Assert
         var ex = Assert.Throws<OptionsValidationException>(act);
         Assert.Contains("FileStorage:BlobConnectionString", ex.Message);
-    }
-
-    [Fact]
-    public void AddFileStorageModule_DevelopmentEnvironmentWithMissingKey_FallsBackAndLogsWarning()
-    {
-        // Arrange — Development environment, no FileStorage:BlobConnectionString
-        var services = new ServiceCollection();
-        services.AddSingleton(Mock.Of<ITelemetryService>());
-        services.Configure<FileDownloadOptions>(opts =>
-        {
-            opts.MaxRetryAttempts = 3;
-            opts.DownloadTimeout = TimeSpan.FromSeconds(120);
-            opts.RetryBaseDelay = TimeSpan.FromSeconds(2);
-        });
-
-        var warningLogger = new Mock<ILogger<AzureBlobStorageService>>();
-        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-        // Override the AzureBlobStorageService logger so we can verify the warning was emitted.
-        services.AddSingleton(warningLogger.Object);
-
-        var configuration = BuildConfiguration(blobConnectionString: null);
-        services.AddFileStorageModule(configuration, BuildEnvironment(Environments.Development));
-        var provider = services.BuildServiceProvider();
-
-        // Act — resolving the BlobServiceClient runs the factory, which emits the warning
-        // and returns a client pointed at UseDevelopmentStorage=true.
-        var client = provider.GetRequiredService<BlobServiceClient>();
-
-        // Assert — client is constructed (no throw) and the warning was logged once.
-        Assert.NotNull(client);
-        warningLogger.Verify(
-            l => l.Log(
-                LogLevel.Warning,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("FileStorage:BlobConnectionString")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
     }
 }

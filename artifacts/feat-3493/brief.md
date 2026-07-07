@@ -1,3 +1,5 @@
+# [arch-review] FinancialOverview: FinancialSummaryDto construction duplicated 3× in FinancialAnalysisService
+
 ## Module
 FinancialOverview
 

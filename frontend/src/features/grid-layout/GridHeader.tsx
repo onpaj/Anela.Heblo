@@ -22,6 +22,7 @@ interface SortableHeaderCellProps<TRow> {
   activeSortKey?: string;
   sortDescending?: boolean;
   onSort?: (sortKey: string) => void;
+  onResizeChange?: (id: string, newWidth: number) => void;
   onResizeEnd?: (id: string, newWidth: number) => void;
 }
 
@@ -31,6 +32,7 @@ function SortableHeaderCell<TRow>({
   activeSortKey,
   sortDescending,
   onSort,
+  onResizeChange,
   onResizeEnd,
 }: SortableHeaderCellProps<TRow>) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -72,9 +74,13 @@ function SortableHeaderCell<TRow>({
       if (resizeStartX.current === null) return;
       const dx = ev.clientX - resizeStartX.current;
       const newWidth = Math.max(minWidth, resizeStartWidth.current + dx);
-      onResizeEnd?.(column.id, newWidth);
+      onResizeChange?.(column.id, newWidth);
     };
-    const onMouseUp = () => {
+    const onMouseUp = (ev: MouseEvent) => {
+      if (resizeStartX.current === null) return;
+      const dx = ev.clientX - resizeStartX.current;
+      const finalWidth = Math.max(minWidth, resizeStartWidth.current + dx);
+      onResizeEnd?.(column.id, finalWidth);
       resizeStartX.current = null;
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
@@ -88,7 +94,7 @@ function SortableHeaderCell<TRow>({
       ref={setNodeRef}
       style={style}
       scope="col"
-      className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider select-none ${alignClass} ${column.headerClassName ?? ''}`}
+      className={`px-4 py-3 text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider select-none ${alignClass} ${column.headerClassName ?? ''}`}
       onClick={() => column.sortBy && onSort?.(column.sortBy)}
     >
       <div className={`flex items-center gap-1 ${column.align === 'right' ? 'justify-end' : ''}`}>
@@ -96,25 +102,26 @@ function SortableHeaderCell<TRow>({
           <span
             {...attributes}
             {...listeners}
-            className="text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing flex-shrink-0"
+            className="text-gray-300 hover:text-gray-500 dark:text-graphite-faint dark:hover:text-graphite-muted cursor-grab active:cursor-grabbing flex-shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             <GripVertical className="h-3 w-3" />
           </span>
         )}
-        <span className={column.sortBy ? 'cursor-pointer hover:text-gray-700' : ''}>
+        <span className={column.sortBy ? 'cursor-pointer hover:text-gray-700 dark:hover:text-graphite-muted' : ''}>
           {column.header}
         </span>
         {column.sortBy && (
           <div className="flex flex-col flex-shrink-0">
-            <ChevronUp className={`h-3 w-3 ${isAscending ? 'text-indigo-600' : 'text-gray-300'}`} />
-            <ChevronDown className={`h-3 w-3 -mt-1 ${isDescending ? 'text-indigo-600' : 'text-gray-300'}`} />
+            <ChevronUp className={`h-3 w-3 ${isAscending ? 'text-indigo-600 dark:text-graphite-accent' : 'text-gray-300 dark:text-graphite-faint'}`} />
+            <ChevronDown className={`h-3 w-3 -mt-1 ${isDescending ? 'text-indigo-600 dark:text-graphite-accent' : 'text-gray-300 dark:text-graphite-faint'}`} />
           </div>
         )}
       </div>
       {column.canResize !== false && (
         <div
-          className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-indigo-200"
+          className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-indigo-200 dark:hover:bg-graphite-accent/20"
+          data-testid={`column-resize-handle-${column.id}`}
           onMouseDown={handleMouseDownResize}
           onClick={(e) => e.stopPropagation()}
         />
@@ -130,6 +137,7 @@ interface GridHeaderProps<TRow> {
   sortDescending?: boolean;
   onSort?: (sortKey: string) => void;
   onReorder?: (newOrderIds: string[]) => void;
+  onResizeChange?: (id: string, newWidth: number) => void;
   onResizeEnd?: (id: string, newWidth: number) => void;
 }
 
@@ -140,6 +148,7 @@ export function GridHeader<TRow>({
   sortDescending,
   onSort,
   onReorder,
+  onResizeChange,
   onResizeEnd,
 }: GridHeaderProps<TRow>) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -159,7 +168,7 @@ export function GridHeader<TRow>({
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <SortableContext items={visibleIds} strategy={horizontalListSortingStrategy}>
-        <thead className="bg-gray-50 sticky top-0 z-10">
+        <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
           <tr>
             {columns.map((col) => {
               const state = columnState.find((s) => s.id === col.id) ?? {
@@ -176,6 +185,7 @@ export function GridHeader<TRow>({
                   activeSortKey={activeSortKey}
                   sortDescending={sortDescending}
                   onSort={onSort}
+                  onResizeChange={onResizeChange}
                   onResizeEnd={onResizeEnd}
                 />
               );

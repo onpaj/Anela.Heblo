@@ -2,95 +2,124 @@
 
 ## Skip Design: true
 
-This is a pure internal refactor of a single private-method-heavy backend service class. It touches no controller, no MediatR request/response contract, no DTO shape, no route, and no frontend code. Verified by inspecting the actual file: `IFinancialAnalysisService`, `GetFinancialOverviewResponse`, `FinancialSummaryDto`, `StockSummaryDto`, and `MonthlyFinancialDataDto` are all untouched — only two `private static` helpers inside `FinancialAnalysisService.cs` change. There is no UI surface to design.
-
 ## Architectural Fit Assessment
 
-The change fits cleanly within existing conventions and requires no new architectural decisions:
+This is a private-method refactor entirely internal to `FinancialAnalysisService` (`backend/src/Anela.Heblo.Application/Features/FinancialOverview/Services/FinancialAnalysisService.cs`), a single-implementation service registered behind `IFinancialAnalysisService` in `FinancialOverviewModule.cs`. It touches none of the module boundaries the project's `development_guidelines.md` cares about:
 
-- `FinancialAnalysisService` already lives at `backend/src/Anela.Heblo.Application/Features/FinancialOverview/Services/FinancialAnalysisService.cs`, matching the documented layout rule in `docs/architecture/filesystem.md` (`Features/{Feature}/Services/` = "Domain services and business logic"). No file move is needed.
-- `docs/architecture/development_guidelines.md` mandates that DTOs are classes, are owned by their module, and are never shared/global. `FinancialSummaryDto` and `StockSummaryDto` (in `Features/FinancialOverview/Model/`) are already classes and stay exactly as they are — the refactor only changes *how* an existing DTO instance is assembled, not its shape or ownership.
-- The class already contains several `private static` helpers (`CalculatePeriodTotals`, `MapToDto`, the two `CreateStockSummary` overloads). Adding one more (`BuildSummary`) next to them is consistent with the file's existing internal style — no new layer, no new abstraction, no DI registration needed.
-- I confirmed via a repo-wide grep that `CreateStockSummary(` is referenced nowhere outside `FinancialAnalysisService.cs` itself (one unrelated hit in an old planning doc under `docs/superpowers/plans/`). Removing the `(List<MonthlyFinancialData>, List<MonthlyStockChange>)` overload is safe — it has no external callers, and it is `private`, so it cannot be called from outside the class regardless.
+- No change to `contracts/`-style DTOs (`FinancialSummaryDto`, `StockSummaryDto`, `MonthlyFinancialDataDto` — all in `Model/`, all classes already, per the "DTOs are never records" rule) — shapes are untouched, only construction is consolidated.
+- No change to `IFinancialAnalysisService`, `GetFinancialOverviewRequest`/`Response`, or `GetFinancialOverviewHandler` (the MediatR entry point) — module contract surface is identical.
+- No new cross-module dependency, no persistence change, no DI change.
 
-**Behavioral-equivalence check (spec's core risk, verified against source):** I read all three call sites (lines 320–330, 378–387, 487–497) and both `CreateStockSummary` overloads (504–518, 520–536) directly.
+The finding is accurate: `GetHybridWithCurrentMonthAsync` (L317-330), `GetCachedFinancialOverview` (L375-388), and `GetFinancialOverviewRealTimeAsync` (L477-497) each inline an identical six-field `FinancialSummaryDto` block, and two `CreateStockSummary` overloads (L504-518 operating on `List<MonthlyFinancialDataDto>`, L520-536 operating on `List<MonthlyFinancialData>` + `List<MonthlyStockChange>`) compute the same `StockSummaryDto` shape from different inputs. This is textbook Extract Method / unify-overload territory — no architectural pattern needs to change, only the internal factoring of one file.
 
-- The DTO-based overload sums `d.TotalStockValueChange ?? 0` per `MonthlyFinancialDataDto`.
-- The domain-list overload (only used by `GetFinancialOverviewRealTimeAsync`) sums `sc.TotalStockValueChange` directly off the *raw* `stockChangesList` fetched for the whole range, rather than off the per-month-matched value already stored on each DTO.
-- Each DTO's `TotalStockValueChange` is set in `MapToDto` (line 563–565) from the same `stockChangesLookup` dictionary that the domain-list overload's caller builds at line 450 via `stockChangesList.ToDictionary(sc => new { sc.Year, sc.Month }, sc => sc)`. `Dictionary.ToDictionary` throws on a duplicate key, so the existing code *already* assumes at most one stock-change entry per `(Year, Month)` in the fetched range — the two summations are therefore mathematically the same sum over the same set of values, just reached via different intermediate collections (`sum over stockChanges` vs. `sum over DTOs' already-looked-up value`). The only case where they'd diverge is a stock-change entry for a year/month **outside** `[startDate, endDate]` that the lookup never attaches to any DTO — which is already an anomalous condition the current code doesn't guard against or test for. I agree with the spec's conclusion: this is a theoretical, pre-existing edge case, not a regression introduced by the refactor, and unifying on the DTO-based overload is the correct, lower-risk direction (it makes the "one entry per month, matched to its DTO" invariant the single source of truth instead of maintaining two).
-
-No objection to the spec's FR-1 through FR-5. They are implementable as written.
+This aligns with existing conventions in the file: private `static` helpers already exist for shared computation (`CalculatePeriodTotals`, `MapToDto`), so adding a third private static helper (`BuildSummary`) is consistent with, not a departure from, the file's own style.
 
 ## Proposed Architecture
 
 ### Component Overview
 
-No new components. Internal-only restructuring of one existing class:
+No component-level change. Internal call graph inside `FinancialAnalysisService` goes from:
 
 ```
-FinancialAnalysisService (unchanged public surface: IFinancialAnalysisService)
-├── GetFinancialOverviewAsync (public, unchanged — routes to 3 private paths)
-├── GetHybridWithCurrentMonthAsync (private)  ─┐
-├── GetCachedFinancialOverview (private)       ├─→ Summary = BuildSummary(data, includeStockData)  [NEW shared call]
-├── GetFinancialOverviewRealTimeAsync (private)─┘
-├── BuildSummary(List<MonthlyFinancialDataDto>, bool) [NEW private static helper]
-│     └── calls → CreateStockSummary(List<MonthlyFinancialDataDto>)  [the ONE remaining overload]
-├── CreateStockSummary(List<MonthlyFinancialDataDto>) [KEPT, unchanged body]
-├── CreateStockSummary(List<MonthlyFinancialData>, List<MonthlyStockChange>) [REMOVED]
-└── MapToDto (private, unchanged)
+GetHybridWithCurrentMonthAsync ──┐
+GetCachedFinancialOverview ──────┼──► inline `new FinancialSummaryDto { ... }` (×3, duplicated)
+GetFinancialOverviewRealTimeAsync┘         │
+                                            ├──► CreateStockSummary(List<MonthlyFinancialDataDto>)   [used by 2 of 3]
+                                            └──► CreateStockSummary(List<MonthlyFinancialData>, List<MonthlyStockChange>) [used by 1 of 3]
 ```
+
+to:
+
+```
+GetHybridWithCurrentMonthAsync ──┐
+GetCachedFinancialOverview ──────┼──► BuildSummary(List<MonthlyFinancialDataDto>, bool) ──► CreateStockSummary(List<MonthlyFinancialDataDto>)  [sole overload]
+GetFinancialOverviewRealTimeAsync┘
+```
+
+`GetFinancialOverviewRealTimeAsync` changes shape slightly: it must materialize its `Data` projection into a local `List<MonthlyFinancialDataDto>` *before* building the response, instead of building it inline inside the `Data = ...` property initializer, so the same list can be reused for both `Data` and `BuildSummary(...)`.
 
 ### Key Design Decisions
 
-#### Decision 1: Single `BuildSummary` helper operating on `List<MonthlyFinancialDataDto>`
+#### Decision 1: Where `BuildSummary` reads its stock-change source from
+
 **Options considered:**
-1. Extract `BuildSummary` taking `List<MonthlyFinancialDataDto>` (as the spec proposes), requiring `GetFinancialOverviewRealTimeAsync` to materialize its DTO list before building the summary instead of after.
-2. Extract `BuildSummary` as a generic/overloaded helper that accepts either domain or DTO lists, preserving today's two-overload split underneath.
-3. Leave the three inline blocks as-is (no-op / reject the refactor).
+1. Keep two `CreateStockSummary` overloads, add `BuildSummary` as a thin wrapper that picks the overload based on which method calls it.
+2. Collapse to a single `CreateStockSummary(List<MonthlyFinancialDataDto>)`, and make the real-time path materialize its DTO list earlier so it can feed the same overload as the other two paths.
 
-**Chosen approach:** Option 1 — matches the spec (FR-1, FR-3) exactly.
+**Chosen approach:** Option 2 — as specified in the spec's FR-2.
 
-**Rationale:** Option 2 preserves the exact duplication this task exists to remove (two summation code paths for stock data) and keeps the theoretical divergence risk alive indefinitely. Option 3 leaves three synchronized edit points for any future summary field. Option 1 is a strict simplification: `GetFinancialOverviewRealTimeAsync` already builds a DTO list for `response.Data` one statement later — hoisting that same `.Select(...).ToList()` above the `Summary` assignment and reusing the resulting local for both `Data` and `BuildSummary(...)` costs nothing extra (no additional allocation or iteration beyond what already happens) and removes the last reason for the second `CreateStockSummary` overload to exist.
+**Rationale:** Option 1 keeps duplication in spirit (two computation paths for the same output shape) even if it hides it behind one method name — it doesn't address the actual risk called out in the brief ("the two `CreateStockSummary` overloads already differ slightly"). Option 2 removes the second source of truth entirely. The spec's own analysis (see spec Background) demonstrates the two overloads are already numerically equivalent under the current 1:1 month-alignment invariant (`stockChangesLookup` construction already assumes uniqueness per `(Year, Month)`, or it would throw), so this is a safe consolidation, not a behavior change. Read the two current overloads yourself before implementing — they're at lines 504-518 (`List<MonthlyFinancialDataDto>` — keep this one) and 520-536 (`List<MonthlyFinancialData>, List<MonthlyStockChange>` — delete this one) of `FinancialAnalysisService.cs`.
 
-#### Decision 2: Delete the `(List<MonthlyFinancialData>, List<MonthlyStockChange>)` overload rather than deprecate it
-**Options considered:** Keep both overloads (mark one `[Obsolete]`) vs. delete the unused one outright.
+#### Decision 2: `BuildSummary` parameter type — concrete DTO list vs. generic
 
-**Chosen approach:** Delete outright.
+**Options considered:**
+1. `BuildSummary<T>(List<T> data, ...)` with an interface/generic constraint exposing `Income`, `Expenses`, `FinancialBalance`.
+2. `BuildSummary(List<MonthlyFinancialDataDto> data, bool includeStockData)` — concrete type.
 
-**Rationale:** Both overloads are `private` — there is no external caller and no compatibility surface to preserve (confirmed by repo-wide grep: zero references outside this file). `[Obsolete]` markers exist to protect callers you don't control; that doesn't apply to a private method in a single-developer-maintained file. Deleting is the simplest correct action and directly satisfies FR-2.
+**Chosen approach:** Option 2, per the spec.
+
+**Rationale:** All three call sites already have (or, for the real-time path, can cheaply obtain via Decision 3) a `List<MonthlyFinancialDataDto>` at the point the summary is built. A generic/interface abstraction would add a layer of indirection with zero current benefit — it's speculative generality for a case with exactly one concrete shape. This also sidesteps introducing a new interface into `Model/`, which would need its own justification under the "DTOs are never shared/global" guidance.
+
+#### Decision 3: Materializing the real-time path's DTO list
+
+**Options considered:**
+1. Leave the `.Select(...)` projection inline inside `Data = ...` and call `MapToDto` a second time (or re-derive stock totals from the raw lists) just for the summary — i.e., compute the summary from a different representation than what's returned as `Data`.
+2. Materialize the ordered `List<MonthlyFinancialDataDto>` into a local variable once, assign it to `Data`, and pass the same reference into `BuildSummary`.
+
+**Chosen approach:** Option 2, per the spec.
+
+**Rationale:** Computing `Data` and `Summary` from the same materialized list is the only way to guarantee `BuildSummary` is agnostic to which of the three call sites invoked it — it's what makes Decision 1 safe. It also removes a duplicate `MapToDto` invocation per month that today only exists because the projection was inline. This is a one-line structural change (introduce a local variable, no new loop, same O(n) cost — see spec NFR-1) with no behavior change.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
-No new files, no new directories. All changes are confined to:
+
+No new files. All changes are confined to the existing single file:
 `backend/src/Anela.Heblo.Application/Features/FinancialOverview/Services/FinancialAnalysisService.cs`
 
-Place `BuildSummary` adjacent to `CreateStockSummary`/`MapToDto` (i.e., after the three `Get*` calculation methods, alongside the other `private static` helpers), matching NFR-2's placement guidance and the file's existing ordering (public API → private orchestration methods → private static computation helpers).
+Do not create a new class/helper file for `BuildSummary` — it is a private implementation detail of `FinancialAnalysisService`, exactly like the existing `CalculatePeriodTotals` and `MapToDto` private statics in the same file. Splitting it out would be over-engineering for a single-consumer, single-file helper and would go against this file's established convention of keeping private computation helpers local.
 
 ### Interfaces and Contracts
-No public interface or contract changes. `IFinancialAnalysisService`, `GetFinancialOverviewResponse`, `FinancialSummaryDto`, `StockSummaryDto`, and `MonthlyFinancialDataDto` remain byte-for-byte unchanged. New private-only signature:
+
+No public interface changes. `IFinancialAnalysisService` (`backend/src/Anela.Heblo.Application/Features/FinancialOverview/Services/IFinancialAnalysisService.cs`) is untouched.
+
+New private surface (exactly as specified in spec FR-1/FR-2 — implement verbatim, this is not open for reinterpretation):
 
 ```csharp
 private static FinancialSummaryDto BuildSummary(List<MonthlyFinancialDataDto> data, bool includeStockData)
+{
+    return new FinancialSummaryDto
+    {
+        TotalIncome = data.Sum(d => d.Income),
+        TotalExpenses = data.Sum(d => d.Expenses),
+        TotalBalance = data.Sum(d => d.FinancialBalance),
+        AverageMonthlyIncome = data.Any() ? data.Average(d => d.Income) : 0,
+        AverageMonthlyExpenses = data.Any() ? data.Average(d => d.Expenses) : 0,
+        AverageMonthlyBalance = data.Any() ? data.Average(d => d.FinancialBalance) : 0,
+        StockSummary = includeStockData ? CreateStockSummary(data) : null
+    };
+}
 ```
 
-Retained signature (unchanged body):
-```csharp
-private static StockSummaryDto CreateStockSummary(List<MonthlyFinancialDataDto> monthlyData)
-```
+Removed: `private static StockSummaryDto CreateStockSummary(List<MonthlyFinancialData> monthlyData, List<MonthlyStockChange> stockChanges)` (lines 520-536). The remaining `CreateStockSummary(List<MonthlyFinancialDataDto>)` (lines 504-518) is unchanged in body and becomes the sole overload.
 
-Removed signature:
-```csharp
-private static StockSummaryDto CreateStockSummary(List<MonthlyFinancialData> monthlyData, List<MonthlyStockChange> stockChanges)
-```
+All three call sites (`GetHybridWithCurrentMonthAsync` L317-330, `GetCachedFinancialOverview` L375-388, `GetFinancialOverviewRealTimeAsync` L477-497) replace their inline `new FinancialSummaryDto { ... }` block with `BuildSummary(<their list>, includeStockData)`.
 
 ### Data Flow
-Unchanged at the system level — same inputs (`ILedgerService`, `IStockValueService`, `IMemoryCache` data), same outputs (`GetFinancialOverviewResponse`). The only internal flow change is in `GetFinancialOverviewRealTimeAsync`: today it computes `Data` and `Summary.StockSummary` from two different intermediate representations (post-mapped DTOs for `Data`, pre-mapped domain list + raw stock-change list for `Summary`). After the refactor, `Data` and `Summary` are both derived from the same single materialized `List<MonthlyFinancialDataDto>` local, computed once and reused — one fewer independent data path through the method, which is a net reduction in this method's complexity, not just a line-count reduction.
 
-Concretely (per spec FR-3), reorder so the DTO list exists before both usages:
+Two of the three call sites already have their `List<MonthlyFinancialDataDto>` in a local variable at the point of use (`allData` in the hybrid path, `orderedData` in the cached path) — those two just swap the inline block for `BuildSummary(allData, includeStockData)` / `BuildSummary(orderedData, includeStockData)`, no other change.
+
+The real-time path is the only one requiring restructuring:
+
 ```csharp
 var orderedData = monthlyData.OrderByDescending(d => d.Year).ThenByDescending(d => d.Month)
-    .Select(d => { ... return MapToDto(...); }).ToList();
+    .Select(d =>
+    {
+        var stockChangeData = stockChangesLookup.TryGetValue(new { d.Year, d.Month }, out var stockChange)
+            ? stockChange
+            : null;
+        return MapToDto(d.Year, d.Month, d.Income, d.Expenses, stockChangeData, includeStockData);
+    }).ToList();
 
 var response = new GetFinancialOverviewResponse
 {
@@ -98,22 +127,23 @@ var response = new GetFinancialOverviewResponse
     Summary = BuildSummary(orderedData, includeStockData)
 };
 ```
-`stockChangesList` (line 449) is still needed to build `stockChangesLookup` (line 450) for the per-month DTO mapping inside the `.Select`, so it is retained; only its direct use as a `CreateStockSummary` argument (old line 495) is removed.
+
+This removes the now-unused `stockChangesList` parameter to the old two-arg `CreateStockSummary` — `stockChangesList` and `stockChangesLookup` are still needed to build `orderedData` via `MapToDto`, so they stay; only their use as a direct input to stock-summary computation goes away.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
-|------|----------|------------|
-| Silent numeric divergence in `GetFinancialOverviewRealTimeAsync`'s `StockSummary` if a stock-change entry ever falls outside the queried date range (pre-existing theoretical edge case, not introduced by this refactor) | Low | Accept as-is per spec's Open Questions resolution — behavior converges to the DTO-based (per-month-matched) computation, which is the *more* correct one of the two, not the less correct one. No test currently exercises this edge case in either direction. |
-| Regression in any of the three calculation paths' `Summary` values | Low | `FinancialAnalysisServiceTests.cs` already exercises all three paths and must pass unchanged (FR-5). Since `BuildSummary`'s body is a verbatim copy of the three existing inline blocks (verified line-by-line against source: same LINQ expressions, same `.Any()` guards), output is provably identical for any input where the sole variable — which `CreateStockSummary` overload runs — produces the same result (see Decision/Assessment above). |
-| Reviewer/future-maintainer confusion about why the domain-typed `CreateStockSummary(List<MonthlyFinancialData>, List<MonthlyStockChange>)` overload disappeared | Low | A one-line comment is optional but not required; the removal is self-explanatory once `BuildSummary` and the single remaining `CreateStockSummary` are read together. Not worth NFR-2's "minimal comments" convention being broken for this. |
+|------|------|------|
+| Silent numeric drift in `StockSummary` for the real-time path once it's sourced from per-month DTO fields instead of the raw `stockChanges` list | Low | Spec Background already proves equivalence under the existing 1:1 month-uniqueness invariant (`stockChangesLookup` dictionary construction already assumes no duplicate `(Year, Month)`, or today's code throws). Add the FR-2 acceptance-criteria unit tests (real-time + cached path, with a seeded `MonthlyStockChange`) asserting the four `StockSummary` fields — these are new coverage, not modifications to existing tests, consistent with FR-3's "existing tests pass unmodified" constraint. |
+| Reviewer/future-maintainer assumes `BuildSummary` needs to be `internal`/testable directly | Low | It doesn't — confirmed by reading `FinancialAnalysisServiceTests.cs`: all 8 existing tests exercise only the public `GetFinancialOverviewAsync`/`RefreshFinancialDataAsync`/`GetCacheStatus` methods via mocked `ILedgerService`/`IStockValueService`, none use reflection or `InternalsVisibleTo` to reach private members. Keep `BuildSummary` and the unified `CreateStockSummary` `private static`, exactly as the spec requires. |
+| Scope creep — adding the hypothetical `ProfitMargin` field mentioned in the brief while already touching this code | Low | Explicitly out of scope per spec; do not add new `FinancialSummaryDto` fields in this change. |
 
 ## Specification Amendments
 
-None. The spec (`spec.r1.md`) is accurate against the real source file — I verified every cited line range (262–331, 333–389, 391–502, 504–518, 520–536, 538–570) and they match the actual file contents exactly, including the subtle `stockChangesLookup`/`ToDictionary` duplicate-key-throws reasoning used to justify behavioral equivalence. No corrections needed. Proceed with FR-1 through FR-5 as written.
-
-One clarifying note for the implementer (not a spec change, just emphasis): when applying FR-3, do the reordering *before* deleting the old `Summary` block in `GetFinancialOverviewRealTimeAsync`, so at every intermediate step the file compiles — this avoids a window where `response.Data`'s `.Select(...)` and the old inline `Summary`'s domain-list computation both exist and could be edited inconsistently.
+None. The spec (`artifacts/feat-3493/spec.r1.md`) is architecturally sound as written and matches what a direct read of `FinancialAnalysisService.cs` (571 lines) and `FinancialAnalysisServiceTests.cs` confirms:
+- The three duplicated blocks and two `CreateStockSummary` overloads are exactly where and what the spec says (verified at lines 317-330, 375-388, 477-497, 504-518, 520-536).
+- No existing test reaches private members or asserts on `StockSummary` fields today, so FR-3's "all existing tests pass unmodified" is achievable without any test changes, and the new tests proposed in the spec's Testing Approach are additive only.
 
 ## Prerequisites
 
-None. No migrations, no config, no infrastructure changes. This can be implemented directly against the current `main`/branch state. Standard verification applies: `dotnet build`, `dotnet format` (no diff expected on the changed file per NFR-2), and running the three test files listed in FR-5's acceptance criteria (`FinancialAnalysisServiceTests.cs`, `GetFinancialOverviewHandlerTests.cs`, `FinancialOverviewModuleTests.cs`) unchanged.
+None. No migrations, no config, no infrastructure changes — this is a same-file, same-PR refactor that can start immediately. Standard validation gate applies before completion: `dotnet build` and `dotnet format` (per repo-wide convention), plus the full existing + new `FinancialAnalysisServiceTests` suite green.

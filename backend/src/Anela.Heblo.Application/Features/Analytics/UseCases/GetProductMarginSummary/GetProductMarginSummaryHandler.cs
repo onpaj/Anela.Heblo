@@ -14,17 +14,20 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
     private readonly IAnalyticsRepository _analyticsRepository;
     private readonly IMarginCalculator _marginCalculator;
     private readonly IMonthlyBreakdownGenerator _monthlyBreakdownGenerator;
-    private readonly TimeWindowParser _timeWindowParser;
+    private readonly ITopProductSorter _topProductSorter;
+    private readonly ITimeWindowParser _timeWindowParser;
 
     public GetProductMarginSummaryHandler(
         IAnalyticsRepository analyticsRepository,
         IMarginCalculator marginCalculator,
         IMonthlyBreakdownGenerator monthlyBreakdownGenerator,
-        TimeWindowParser timeWindowParser)
+        ITopProductSorter topProductSorter,
+        ITimeWindowParser timeWindowParser)
     {
         _analyticsRepository = analyticsRepository;
         _marginCalculator = marginCalculator;
         _monthlyBreakdownGenerator = monthlyBreakdownGenerator;
+        _topProductSorter = topProductSorter;
         _timeWindowParser = timeWindowParser;
     }
 
@@ -75,7 +78,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
                 var products = calculationResult.GroupProducts[kvp.Key];
 
                 // Calculate aggregated margin data for the group
-                var groupData = CalculateGroupMarginData(products);
+                var groupData = _marginCalculator.GetGroupAggregatedMarginData(products);
 
                 // Calculate total margin based on selected margin level
                 var totalMarginForLevel = CalculateTotalMarginForLevel(products, marginLevel);
@@ -105,7 +108,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
             .ToList();
 
         // Apply sorting
-        var sortedProducts = ApplySorting(topProductsWithData, sortBy, sortDescending);
+        var sortedProducts = _topProductSorter.Sort(topProductsWithData, sortBy, sortDescending);
 
         // Add rank after sorting
         for (int i = 0; i < sortedProducts.Count; i++)
@@ -114,104 +117,6 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
         }
 
         return sortedProducts;
-    }
-
-    /// <summary>
-    /// Calculates aggregated margin data for a group of products
-    /// </summary>
-    private GroupMarginData CalculateGroupMarginData(List<AnalyticsProduct> products)
-    {
-        if (!products.Any())
-            return new GroupMarginData();
-
-        // For groups, we calculate weighted averages based on sales volume
-        var totalSales = products.Sum(p => p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C));
-
-        if (totalSales == 0)
-        {
-            // If no sales, use simple average
-            return new GroupMarginData
-            {
-                M0Amount = products.Average(p => p.M0Amount),
-                M1Amount = products.Average(p => p.M1Amount),
-                M2Amount = products.Average(p => p.M2Amount),
-                M0Percentage = products.Average(p => p.M0Percentage),
-                M1Percentage = products.Average(p => p.M1Percentage),
-                M2Percentage = products.Average(p => p.M2Percentage),
-                SellingPrice = products.Average(p => p.SellingPrice),
-                PurchasePrice = products.Average(p => p.PurchasePrice)
-            };
-        }
-
-        // Weighted average by sales volume
-        return new GroupMarginData
-        {
-            M0Amount = products.Sum(p => p.M0Amount * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
-            M1Amount = products.Sum(p => p.M1Amount * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
-            M2Amount = products.Sum(p => p.M2Amount * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
-            M0Percentage = products.Sum(p => p.M0Percentage * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
-            M1Percentage = products.Sum(p => p.M1Percentage * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
-            M2Percentage = products.Sum(p => p.M2Percentage * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
-            SellingPrice = products.Sum(p => p.SellingPrice * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales,
-            PurchasePrice = products.Sum(p => p.PurchasePrice * (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)) / (decimal)totalSales
-        };
-    }
-
-    /// <summary>
-    /// Applies sorting to the top products list
-    /// </summary>
-    private List<TopProductDto> ApplySorting(List<TopProductDto> products, string? sortBy, bool sortDescending)
-    {
-        if (string.IsNullOrWhiteSpace(sortBy))
-        {
-            // Default sorting by TotalMargin descending
-            return sortDescending
-                ? products.OrderByDescending(p => p.TotalMargin).ToList()
-                : products.OrderBy(p => p.TotalMargin).ToList();
-        }
-
-        return sortBy.ToLower() switch
-        {
-            "groupkey" or "productcode" => sortDescending
-                ? products.OrderByDescending(p => p.GroupKey).ToList()
-                : products.OrderBy(p => p.GroupKey).ToList(),
-            "displayname" or "productname" => sortDescending
-                ? products.OrderByDescending(p => p.DisplayName).ToList()
-                : products.OrderBy(p => p.DisplayName).ToList(),
-            "totalmargin" => sortDescending
-                ? products.OrderByDescending(p => p.TotalMargin).ToList()
-                : products.OrderBy(p => p.TotalMargin).ToList(),
-            // M0-M2 margin levels - amounts
-            "m0amount" => sortDescending
-                ? products.OrderByDescending(p => p.M0Amount).ToList()
-                : products.OrderBy(p => p.M0Amount).ToList(),
-            "m1amount" => sortDescending
-                ? products.OrderByDescending(p => p.M1Amount).ToList()
-                : products.OrderBy(p => p.M1Amount).ToList(),
-            "m2amount" => sortDescending
-                ? products.OrderByDescending(p => p.M2Amount).ToList()
-                : products.OrderBy(p => p.M2Amount).ToList(),
-            // M0-M2 margin levels - percentages
-            "m0percentage" => sortDescending
-                ? products.OrderByDescending(p => p.M0Percentage).ToList()
-                : products.OrderBy(p => p.M0Percentage).ToList(),
-            "m1percentage" => sortDescending
-                ? products.OrderByDescending(p => p.M1Percentage).ToList()
-                : products.OrderBy(p => p.M1Percentage).ToList(),
-            "m2percentage" => sortDescending
-                ? products.OrderByDescending(p => p.M2Percentage).ToList()
-                : products.OrderBy(p => p.M2Percentage).ToList(),
-            // Pricing
-            "sellingprice" => sortDescending
-                ? products.OrderByDescending(p => p.SellingPrice).ToList()
-                : products.OrderBy(p => p.SellingPrice).ToList(),
-            "purchaseprice" => sortDescending
-                ? products.OrderByDescending(p => p.PurchasePrice).ToList()
-                : products.OrderBy(p => p.PurchasePrice).ToList(),
-            _ => sortDescending
-                ? products.OrderByDescending(p => p.TotalMargin).ToList()
-                : products.OrderBy(p => p.TotalMargin).ToList()
-        };
     }
 
     /// <summary>
@@ -224,19 +129,4 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
             * _marginCalculator.GetMarginAmountForLevel(p, marginLevel));
     }
 
-}
-
-/// <summary>
-/// Helper class for aggregated margin data calculation
-/// </summary>
-internal class GroupMarginData
-{
-    public decimal M0Amount { get; set; }
-    public decimal M1Amount { get; set; }
-    public decimal M2Amount { get; set; }
-    public decimal M0Percentage { get; set; }
-    public decimal M1Percentage { get; set; }
-    public decimal M2Percentage { get; set; }
-    public decimal SellingPrice { get; set; }
-    public decimal PurchasePrice { get; set; }
 }

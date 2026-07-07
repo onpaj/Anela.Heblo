@@ -14,9 +14,4 @@ public class DailyInvoiceCount
     /// Number of invoices for this date
     /// </summary>
     public int Count { get; set; }
-
-    /// <summary>
-    /// Whether this day is below the minimum threshold (problematic)
-    /// </summary>
-    public bool IsBelowThreshold { get; set; }
 }

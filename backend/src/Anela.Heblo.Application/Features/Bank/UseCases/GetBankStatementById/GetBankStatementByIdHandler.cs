@@ -26,7 +26,7 @@ public class GetBankStatementByIdHandler : IRequestHandler<GetBankStatementByIdR
     {
         _logger.LogInformation("Getting bank statement with ID {Id}", request.Id);
 
-        var entity = await _repository.GetByIdAsync(request.Id);
+        var entity = await _repository.GetByIdAsync(request.Id, cancellationToken);
 
         if (entity is null)
         {

@@ -29,10 +29,6 @@ export interface ReprintExpeditionListResponse {
   params: Record<string, string> | null;
 }
 
-export interface RunExpeditionListPrintFixResult {
-  totalCount: number;
-}
-
 // --- Query Keys ---
 
 const expeditionArchiveKeys = {
