@@ -21,16 +21,16 @@
       "updated_at": "2026-07-07T12:20:02.419140Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-07T12:20:14.399317Z"
     }
   },
   "tasks": [
     {
       "name": "remove-redundant-filter-sort-from-rule-evaluation-engine",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-07T12:20:14.647575Z"
     }
   ]
 }
