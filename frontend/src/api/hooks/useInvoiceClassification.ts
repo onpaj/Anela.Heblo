@@ -29,7 +29,6 @@ const CLASSIFICATION_QUERY_KEYS = {
   ruleTypes: ['invoice-classification', 'rule-types'] as const,
   accountingTemplates: ['invoice-classification', 'accounting-templates'] as const,
   history: ['invoice-classification', 'history'] as const,
-  statistics: ['invoice-classification', 'statistics'] as const,
 } as const;
 
 export function useClassificationRules(includeInactive = false) {

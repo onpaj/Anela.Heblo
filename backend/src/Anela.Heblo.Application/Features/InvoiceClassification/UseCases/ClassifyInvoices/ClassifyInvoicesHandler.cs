@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
+using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Application.Features.InvoiceClassification.Services;
 
 namespace Anela.Heblo.Application.Features.InvoiceClassification.UseCases.ClassifyInvoices;
@@ -10,17 +11,20 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
     private readonly IReceivedInvoicesClient _invoicesClient;
     private readonly IInvoiceClassificationService _classificationService;
     private readonly IClassificationRuleRepository _ruleRepository;
+    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<ClassifyInvoicesHandler> _logger;
 
     public ClassifyInvoicesHandler(
         IReceivedInvoicesClient invoicesClient,
         IInvoiceClassificationService classificationService,
         IClassificationRuleRepository ruleRepository,
+        ICurrentUserService currentUserService,
         ILogger<ClassifyInvoicesHandler> logger)
     {
         _invoicesClient = invoicesClient;
         _classificationService = classificationService;
         _ruleRepository = ruleRepository;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -65,11 +69,16 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
 
             response.TotalInvoicesProcessed = invoicesToClassify.Count;
 
+            var currentUser = _currentUserService.GetCurrentUser();
+            var processedBy = currentUser.IsAuthenticated
+                ? (string.IsNullOrEmpty(currentUser.Name) ? "system" : currentUser.Name)
+                : "system";
+
             foreach (var invoice in invoicesToClassify)
             {
                 try
                 {
-                    var result = await _classificationService.ClassifyInvoiceAsync(invoice);
+                    var result = await _classificationService.ClassifyInvoiceAsync(invoice, processedBy);
 
                     switch (result.Result)
                     {

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
-using Anela.Heblo.Domain.Features.Users;
 
 namespace Anela.Heblo.Application.Features.InvoiceClassification.Services;
 
@@ -10,7 +9,6 @@ public class InvoiceClassificationService : IInvoiceClassificationService
     private readonly IClassificationHistoryRepository _historyRepository;
     private readonly IInvoiceClassificationsClient _classificationsClient;
     private readonly IRuleEvaluationEngine _ruleEngine;
-    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<InvoiceClassificationService> _logger;
 
     public InvoiceClassificationService(
@@ -18,21 +16,17 @@ public class InvoiceClassificationService : IInvoiceClassificationService
         IClassificationHistoryRepository historyRepository,
         IInvoiceClassificationsClient classificationsClient,
         IRuleEvaluationEngine ruleEngine,
-        ICurrentUserService currentUserService,
         ILogger<InvoiceClassificationService> logger)
     {
         _ruleRepository = ruleRepository;
         _historyRepository = historyRepository;
         _classificationsClient = classificationsClient;
         _ruleEngine = ruleEngine;
-        _currentUserService = currentUserService;
         _logger = logger;
     }
 
-    public async Task<InvoiceClassificationResult> ClassifyInvoiceAsync(ReceivedInvoice invoice)
+    public async Task<InvoiceClassificationResult> ClassifyInvoiceAsync(ReceivedInvoice invoice, string processedBy)
     {
-        var currentUser = _currentUserService.GetCurrentUser();
-
         try
         {
             var rules = await _ruleRepository.GetActiveRulesOrderedAsync();
@@ -42,7 +36,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
             if (matchedRule == null)
             {
                 await RecordClassificationHistory(invoice, null, ClassificationResult.ManualReviewRequired,
-                    null, null, "No matching rule found", currentUser.Name);
+                    null, null, "No matching rule found", processedBy);
 
                 await _classificationsClient.MarkInvoiceForManualReviewAsync(invoice.InvoiceNumber, "No matching classification rule");
 
@@ -58,7 +52,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
             if (success)
             {
                 await RecordClassificationHistory(invoice, matchedRule.Id, ClassificationResult.Success,
-                    matchedRule.AccountingTemplateCode, matchedRule.Department, null, currentUser.Name);
+                    matchedRule.AccountingTemplateCode, matchedRule.Department, null, processedBy);
 
                 return new InvoiceClassificationResult
                 {
@@ -72,7 +66,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
             {
                 var errorMessage = "Failed to update invoice classification in ABRA";
                 await RecordClassificationHistory(invoice, matchedRule.Id, ClassificationResult.Error,
-                    matchedRule.AccountingTemplateCode, matchedRule.Department, errorMessage, currentUser.Name);
+                    matchedRule.AccountingTemplateCode, matchedRule.Department, errorMessage, processedBy);
 
                 return new InvoiceClassificationResult
                 {
@@ -87,7 +81,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
         {
             var errorMessage = $"Exception during classification: {ex.Message}";
             await RecordClassificationHistory(invoice, null, ClassificationResult.Error,
-                null, null, errorMessage, currentUser.Name);
+                null, null, errorMessage, processedBy);
 
             _logger.LogError(ex, "Error classifying invoice {InvoiceId}", invoice.InvoiceNumber);
 

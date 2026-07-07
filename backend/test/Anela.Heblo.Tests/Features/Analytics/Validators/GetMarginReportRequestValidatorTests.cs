@@ -216,8 +216,7 @@ public class GetMarginReportRequestValidatorTests
             EndDate = endDate,
             MaxProducts = 50,
             ProductFilter = null,
-            CategoryFilter = null,
-            IncludeDetailedBreakdown = false
+            CategoryFilter = null
         };
 
         // Act & Assert

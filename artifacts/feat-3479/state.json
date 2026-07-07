@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-3479",
+  "issue_number": 3479,
+  "created_at": "2026-07-04T08:15:16.621942Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-04T08:18:24.759236Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-04T08:20:30.505541Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-04T08:20:40.993172Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-04T08:22:30.482703Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-04T08:41:42.432360Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-04T08:42:43.055487Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "dark-mode-leaflet-documents-tab",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-04T08:31:17.482886Z"
+    },
+    {
+      "name": "dark-mode-leaflet-generator-page",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-04T08:37:24.512124Z"
+    },
+    {
+      "name": "dark-mode-leaflet-generate-tab",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-04T08:41:36.469914Z"
+    }
+  ]
+}

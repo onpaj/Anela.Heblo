@@ -22,6 +22,7 @@ interface SortableHeaderCellProps<TRow> {
   activeSortKey?: string;
   sortDescending?: boolean;
   onSort?: (sortKey: string) => void;
+  onResizeChange?: (id: string, newWidth: number) => void;
   onResizeEnd?: (id: string, newWidth: number) => void;
 }
 
@@ -31,6 +32,7 @@ function SortableHeaderCell<TRow>({
   activeSortKey,
   sortDescending,
   onSort,
+  onResizeChange,
   onResizeEnd,
 }: SortableHeaderCellProps<TRow>) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -72,9 +74,13 @@ function SortableHeaderCell<TRow>({
       if (resizeStartX.current === null) return;
       const dx = ev.clientX - resizeStartX.current;
       const newWidth = Math.max(minWidth, resizeStartWidth.current + dx);
-      onResizeEnd?.(column.id, newWidth);
+      onResizeChange?.(column.id, newWidth);
     };
-    const onMouseUp = () => {
+    const onMouseUp = (ev: MouseEvent) => {
+      if (resizeStartX.current === null) return;
+      const dx = ev.clientX - resizeStartX.current;
+      const finalWidth = Math.max(minWidth, resizeStartWidth.current + dx);
+      onResizeEnd?.(column.id, finalWidth);
       resizeStartX.current = null;
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
@@ -115,6 +121,7 @@ function SortableHeaderCell<TRow>({
       {column.canResize !== false && (
         <div
           className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-indigo-200 dark:hover:bg-graphite-accent/20"
+          data-testid={`column-resize-handle-${column.id}`}
           onMouseDown={handleMouseDownResize}
           onClick={(e) => e.stopPropagation()}
         />
@@ -130,6 +137,7 @@ interface GridHeaderProps<TRow> {
   sortDescending?: boolean;
   onSort?: (sortKey: string) => void;
   onReorder?: (newOrderIds: string[]) => void;
+  onResizeChange?: (id: string, newWidth: number) => void;
   onResizeEnd?: (id: string, newWidth: number) => void;
 }
 
@@ -140,6 +148,7 @@ export function GridHeader<TRow>({
   sortDescending,
   onSort,
   onReorder,
+  onResizeChange,
   onResizeEnd,
 }: GridHeaderProps<TRow>) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -176,6 +185,7 @@ export function GridHeader<TRow>({
                   activeSortKey={activeSortKey}
                   sortDescending={sortDescending}
                   onSort={onSort}
+                  onResizeChange={onResizeChange}
                   onResizeEnd={onResizeEnd}
                 />
               );

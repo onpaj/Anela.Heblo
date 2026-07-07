@@ -77,17 +77,17 @@ public class BankStatementImportRepository : IBankStatementImportRepository
         return (items, totalCount);
     }
 
-    public async Task<BankStatementImport?> GetByIdAsync(int id)
+    public async Task<BankStatementImport?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await _context.BankStatements.FindAsync(id);
+        return await _context.BankStatements.FindAsync(new object[] { id }, cancellationToken);
     }
 
-    public async Task<BankStatementImport> AddAsync(BankStatementImport bankStatement)
+    public async Task<BankStatementImport> AddAsync(BankStatementImport bankStatement, CancellationToken cancellationToken = default)
     {
         var entry = _context.BankStatements.Add(bankStatement);
         try
         {
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException)
         {
@@ -125,12 +125,12 @@ public class BankStatementImportRepository : IBankStatementImportRepository
         string transferId, CancellationToken cancellationToken = default)
         => await _context.BankStatements.FirstOrDefaultAsync(bs => bs.TransferId == transferId, cancellationToken);
 
-    public async Task<BankStatementImport> UpdateAsync(BankStatementImport bankStatement)
+    public async Task<BankStatementImport> UpdateAsync(BankStatementImport bankStatement, CancellationToken cancellationToken = default)
     {
         var entry = _context.BankStatements.Update(bankStatement);
         try
         {
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException)
         {

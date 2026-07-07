@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3486",
+  "issue_number": 3486,
+  "created_at": "2026-07-05T06:17:16.903066Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-05T06:20:33.113874Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-05T06:22:28.497918Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-05T06:23:16.752066Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-05T06:27:35.789722Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-05T06:57:47.641675Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-05T06:58:36.515249Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "remove-dead-top-product-count-parameter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-05T06:57:36.140211Z"
+    }
+  ]
+}

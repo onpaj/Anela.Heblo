@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-3413",
+  "issue_number": 3413,
+  "created_at": "2026-06-29T15:17:14.855285Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-06-29T15:19:57.803482Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-06-29T15:22:48.802342Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-06-29T15:22:57.870358Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-06-29T15:25:35.417227Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-06-29T15:58:06.660794Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-06-29T15:58:21.421900Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extend-build-aggregate-helper",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-29T15:30:38.483160Z"
+    },
+    {
+      "name": "add-test-fr1-default-product-type-filter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-29T15:40:35.964100Z"
+    },
+    {
+      "name": "add-test-fr2-explicit-product-type-filter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-29T15:47:02.291058Z"
+    },
+    {
+      "name": "add-test-fr3-unknown-sort-field-fallback",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-29T15:51:30.318947Z"
+    },
+    {
+      "name": "verify-all-tests-pass",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-06-29T15:58:06.460784Z"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
+using Anela.Heblo.Adapters.Azure.Features.FileStorage;
 using Anela.Heblo.Application.Features.FileStorage;
-using Anela.Heblo.Application.Features.FileStorage.Services;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;

@@ -1,29 +1,49 @@
 # PR Context
 
-- **PR**: #3361 — #3348: fix(catalog): resolve pagination-reset inconsistency on text filter
-- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3361
-- **Branch**: `feature/3348-Fix-Catalog-Resolve-Pagination-Reset-Inconsistency` → `main`
+- **PR**: #3451 — #3445: implementation
+- **URL**: https://github.com/onpaj/Anela.Heblo/pull/3451
+- **Branch**: `feature/3445-Arch-Review-Bank-Getbyidasync-Addasync-Updateasync` → `main`
 - **State**: open
 - **Author**: onpaj
-- **Changes**: +869 / -72 across 15 files
-- **Absorbed**: already up to date with `main`, failing CI fixed, all 285 test suites passing
+- **Changes**: +1272 / -32 across 16 files (plus this absorb's 2-file test fix)
+- **Absorbed**: already up to date with `main` (no backmerge needed); fixed a build-breaking
+  test compilation failure and pushed, all tests passing (excluding pre-existing
+  Docker/Testcontainers-dependent integration tests, unavailable in this sandbox)
 
 ## Description
 
-Closes #3348
+Closes #3445
 
-Applying a text filter (name or code) on the catalog page failed to reset pagination to page 1. When a user was on page 2 and applied a filter, the URL retained `page=2` instead of dropping it, causing the API to return page 2 of the (now smaller) filtered result set — often an empty page.
+## What the issue was
+`IBankStatementImportRepository.GetByIdAsync`, `AddAsync`, and `UpdateAsync` were the only three
+methods on the interface without a `CancellationToken`, breaking consistency with the other four
+methods and preventing `ImportBankStatementHandler`/`GetBankStatementByIdHandler` from propagating
+MediatR's pipeline cancellation token into these operations.
 
-The root cause was a race condition between two concurrent state updates in `handleApplyFilters`: `setPageNumber(1)` and `setSearchParams(params)`. A redundant `useEffect` depending on `[pageNumber, searchParams, setSearchParams]` fired with stale `pageNumber=2` after `searchParams` updated first, re-writing `page=2` to the URL before `pageNumber=1` resolved.
-
-Removed the "Sync URL parameter with page number state" `useEffect` (previously lines 257–275 of `CatalogList.tsx`). This was the only effect that wrote the `page` URL parameter based on `pageNumber` state changes.
+## How it was fixed / handled
+Added `CancellationToken cancellationToken = default` to all three methods on
+`IBankStatementImportRepository` and its EF Core implementation, forwarding the token into
+`FindAsync`/`SaveChangesAsync`, and threaded it through `GetBankStatementByIdHandler` and
+`ImportBankStatementHandler` call sites.
 
 ## What pr-autoabsorb fixed
 
-`ThemeContext.test.tsx` (2 tests) was failing because `setupTests.ts` globally mocks
-`ThemeContext` for all test suites, replacing `ThemeProvider` with a passthrough and
-`useTheme()` with a static `"light"` return. ThemeContext.test.tsx needs the real
-implementation to assert storage persistence and toggle behaviour. Fixed by adding
-`jest.unmock("../ThemeContext")` at the top of that test file.
+CI was failing with a backend build/compilation error (`🎯 Backend Tests` check). Root cause:
 
-Result: 285/285 frontend test suites, 2339 tests passing.
+1. `ImportBankStatementHandlerTests.cs` — 4 Moq `.Setup`/`.Verify` calls to `AddAsync`/`UpdateAsync`
+   still used the old single-argument signature; after the interface gained a `CancellationToken`
+   parameter, the implicit default-value fill-in inside a Moq expression tree is illegal (`CS0854`).
+   Fixed by adding `It.IsAny<CancellationToken>()` explicitly, matching the pattern already used
+   elsewhere in the same file.
+2. `GetConfigurationHandlerTests.cs` — referenced `ConfigurationConstants.APP_VERSION`, which no
+   longer exists; a prior commit on `main` moved this key to `InfrastructureConfigurationKeys.APP_VERSION`
+   but one test in the same file was left on the old name. Pre-existing bug on `main` (unrelated to
+   this PR's own diff), exposed here because the branch already contains that commit. Fixed by
+   updating the reference.
+
+No backmerge was needed — the branch already contained the latest `main` (via merge commit
+`17d444c`, from the original feature pipeline). Fix commit: `a0b0f6b`.
+
+Result: 5414/5478 backend tests passing (64 pre-existing failures, all Docker/Testcontainers
+integration tests unrelated to this change and unavailable in this sandbox — matches the PR's
+own documented baseline).

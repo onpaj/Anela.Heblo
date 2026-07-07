@@ -66,13 +66,13 @@ public class LeafletControllerTests
         var result = await controller.Generate(request, CancellationToken.None);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
         var response = Assert.IsType<GenerateLeafletResponse>(okResult.Value);
         Assert.Equal(expectedResponse.Content, response.Content);
     }
 
     [Fact]
-    public async Task Generate_returns_422_on_EmptyRetrievalException()
+    public async Task Generate_returns_422_on_LeafletEmptyRetrieval_error()
     {
         // Arrange
         var request = new GenerateLeafletRequest
@@ -82,11 +82,12 @@ public class LeafletControllerTests
             Length = LeafletLength.Short,
         };
 
-        var exceptionMessage = "No relevant documents found for the given topic.";
+        var errorResponse = new GenerateLeafletResponse(ErrorCodes.LeafletEmptyRetrieval,
+            new() { { "detail", "Knowledge Base does not yet cover this topic; try a broader phrasing" } });
 
         _mediatorMock
             .Setup(m => m.Send(request, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new EmptyRetrievalException(exceptionMessage));
+            .ReturnsAsync(errorResponse);
 
         var controller = CreateController();
 
@@ -94,15 +95,16 @@ public class LeafletControllerTests
         var result = await controller.Generate(request, CancellationToken.None);
 
         // Assert
-        var unprocessableResult = Assert.IsType<UnprocessableEntityObjectResult>(result);
-        Assert.Equal(422, unprocessableResult.StatusCode);
+        var objectResult = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(422, objectResult.StatusCode);
 
-        var problemDetails = Assert.IsType<ProblemDetails>(unprocessableResult.Value);
-        Assert.Equal(exceptionMessage, problemDetails.Detail);
+        var response = Assert.IsType<GenerateLeafletResponse>(objectResult.Value);
+        Assert.False(response.Success);
+        Assert.Equal(ErrorCodes.LeafletEmptyRetrieval, response.ErrorCode);
     }
 
     [Fact]
-    public async Task Generate_returns_502_on_unexpected_exception()
+    public async Task Generate_propagates_unexpected_exception()
     {
         // Arrange
         var request = new GenerateLeafletRequest
@@ -112,24 +114,15 @@ public class LeafletControllerTests
             Length = LeafletLength.Short,
         };
 
-        var internalMessage = "Internal system failure with stack trace details";
-
         _mediatorMock
             .Setup(m => m.Send(request, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException(internalMessage));
+            .ThrowsAsync(new InvalidOperationException("Internal system failure with stack trace details"));
 
         var controller = CreateController();
 
-        // Act
-        var result = await controller.Generate(request, CancellationToken.None);
-
-        // Assert
-        var objectResult = Assert.IsType<ObjectResult>(result);
-        Assert.Equal(502, objectResult.StatusCode);
-
-        var problemDetails = Assert.IsType<ProblemDetails>(objectResult.Value);
-        Assert.NotEqual(internalMessage, problemDetails.Detail);
-        Assert.DoesNotContain(internalMessage, problemDetails.Detail ?? string.Empty);
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => controller.Generate(request, CancellationToken.None));
     }
 
     [Fact]

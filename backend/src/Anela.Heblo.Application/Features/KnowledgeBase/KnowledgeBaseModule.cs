@@ -4,9 +4,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.Leaflet.Contracts;
 using Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
 using Microsoft.Identity.Web;
-using Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
-using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Persistence.KnowledgeBase;
 using MediatR;
@@ -26,9 +24,6 @@ public static class KnowledgeBaseModule
             .ValidateOnStart();
 
         // Register application services
-        services.AddScoped<IDocumentTextExtractor, PdfTextExtractor>();
-        services.AddScoped<IDocumentTextExtractor, WordDocumentExtractor>();
-        services.AddScoped<IDocumentTextExtractor, PlainTextExtractor>();
         services.AddScoped<ChatTranscriptPreprocessor>();
         services.AddScoped<IChunkSummarizer, ChunkSummarizer>();
         services.AddScoped<IConversationTopicSummarizer, ConversationTopicSummarizer>();
@@ -51,26 +46,6 @@ public static class KnowledgeBaseModule
 
         // Repository (real EF Core implementation lives in the Persistence layer)
         services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
-
-        // OneDrive service — use real Graph service only when SharePoint drives are configured
-        // AND real authentication is active. Mock auth has no Azure AD token so Graph calls
-        // would fail; MockOneDriveService is used in those environments instead.
-        var kbOptions = new KnowledgeBaseOptions();
-        configuration.GetSection("KnowledgeBase").Bind(kbOptions);
-        var sharePointConfigured = kbOptions.OneDriveFolderMappings.Any(m => !string.IsNullOrWhiteSpace(m.DriveId));
-        var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
-        var bypassJwtValidation = configuration.GetValue<bool>(InfrastructureConfigurationKeys.BYPASS_JWT_VALIDATION, false);
-
-        if (sharePointConfigured && !useMockAuth && !bypassJwtValidation)
-        {
-            services.AddHttpClient("MicrosoftGraph");
-            services.AddMemoryCache();
-            services.AddScoped<IOneDriveService, GraphOneDriveService>();
-        }
-        else
-        {
-            services.AddScoped<IOneDriveService, MockOneDriveService>();
-        }
 
         services.AddSingleton<IProductEnrichmentCache, ProductEnrichmentCache>();
 
