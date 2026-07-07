@@ -1,8 +1,10 @@
 import { Link, useParams } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { usePurchaseOrderDetailQuery } from '../../../api/hooks/usePurchaseOrders';
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 const PoLinePickStep = () => {
+  useScreenView('Terminal', 'LotIdentificationPoLinePick');
   const { id } = useParams<{ id: string }>();
   const poId = id ? parseInt(id, 10) : 0;
   const { data, isLoading } = usePurchaseOrderDetailQuery(poId);

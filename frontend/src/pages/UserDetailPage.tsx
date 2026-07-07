@@ -16,6 +16,7 @@ import {
   useUnsavedChangesDialog,
 } from "../hooks/useUnsavedChangesDialog";
 import ErrorState from "../components/common/ErrorState";
+import { useScreenView } from "../telemetry/useScreenView";
 
 interface UserDraft {
   displayName: string;
@@ -25,6 +26,7 @@ interface UserDraft {
 }
 
 export default function UserDetailPage() {
+  useScreenView("Admin", "UserDetail");
   const { id = "" } = useParams<{ id: string }>();
   const toast = useToast();
 

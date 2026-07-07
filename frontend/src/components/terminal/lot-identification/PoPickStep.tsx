@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight, ClipboardList } from 'lucide-react';
 import { usePurchaseOrdersQuery } from '../../../api/hooks/usePurchaseOrders';
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 const PoPickStep = () => {
+  useScreenView('Terminal', 'LotIdentificationPoPick');
   const { data, isLoading } = usePurchaseOrdersQuery({ status: 'InTransit' });
 
   if (isLoading) {
