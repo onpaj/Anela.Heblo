@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3476",
+  "issue_number": 3476,
+  "created_at": "2026-07-04T05:15:18.939609Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-04T05:16:51.835376Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-04T05:18:17.242824Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-04T05:18:26.299269Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-04T05:19:09.985855Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-04T05:29:24.323896Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-04T05:31:24.594763Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "relocate-print-fix-result-type-and-type-mutation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-04T05:29:23.901664Z"
+    }
+  ]
+}
