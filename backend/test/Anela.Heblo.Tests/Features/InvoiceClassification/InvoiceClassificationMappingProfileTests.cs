@@ -99,4 +99,55 @@ public class InvoiceClassificationMappingProfileTests
         dto.Name.Should().Be("Widget");
         dto.Amount.Should().Be(42.5m);
     }
+
+    [Fact]
+    public void Map_ClassificationHistory_To_Dto_WithClassificationRule_MapsInvoiceIdAndRuleName()
+    {
+        var rule = new DomainTypes.ClassificationRule(
+            name: "Office supplies rule",
+            ruleTypeIdentifier: "CompanyName",
+            pattern: "Acme",
+            accountingTemplateCode: "ACC-001",
+            department: "OPS",
+            createdBy: "system");
+
+        var source = new DomainTypes.ClassificationHistory(
+            abraInvoiceId: "INV-123",
+            invoiceNumber: "FV-2026-001",
+            invoiceDate: new DateTime(2026, 5, 26),
+            companyName: "Acme s.r.o.",
+            description: "Materials for May",
+            result: DomainTypes.ClassificationResult.Success,
+            processedBy: "system",
+            classificationRuleId: rule.Id,
+            accountingTemplateCode: "ACC-001",
+            department: "OPS");
+
+        typeof(DomainTypes.ClassificationHistory)
+            .GetProperty(nameof(DomainTypes.ClassificationHistory.ClassificationRule))!
+            .SetValue(source, rule);
+
+        var dto = _mapper.Map<ContractTypes.ClassificationHistoryDto>(source);
+
+        dto.InvoiceId.Should().Be("INV-123");
+        dto.RuleName.Should().Be("Office supplies rule");
+    }
+
+    [Fact]
+    public void Map_ClassificationHistory_To_Dto_WithoutClassificationRule_RuleNameIsNull()
+    {
+        var source = new DomainTypes.ClassificationHistory(
+            abraInvoiceId: "INV-456",
+            invoiceNumber: "FV-2026-002",
+            invoiceDate: new DateTime(2026, 5, 27),
+            companyName: "Beta s.r.o.",
+            description: "Materials for review",
+            result: DomainTypes.ClassificationResult.ManualReviewRequired,
+            processedBy: "system");
+
+        var dto = _mapper.Map<ContractTypes.ClassificationHistoryDto>(source);
+
+        dto.InvoiceId.Should().Be("INV-456");
+        dto.RuleName.Should().BeNull();
+    }
 }
