@@ -31,7 +31,7 @@ public class PackagingController : BaseApiController
     /// poll. Expected transient 404s carrying this header are logged at Debug instead of Warning so
     /// the polling does not flood the logs. The final (post-timeout) confirmation request omits it.
     /// </summary>
-    private const string LabelPollHeader = "X-Label-Poll";
+    internal const string LabelPollHeader = "X-Label-Poll";
 
     private readonly IMediator _mediator;
 

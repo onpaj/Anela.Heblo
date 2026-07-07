@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using Anela.Heblo.API.Controllers;
 
 namespace Anela.Heblo.API.Middleware;
 
@@ -186,7 +187,7 @@ public class RequestLoggingMiddleware
             // omits the header, so its 404 still logs as a warning.
             var isExpectedLabelPoll =
                 response.StatusCode == StatusCodes.Status404NotFound &&
-                request.Headers.ContainsKey("X-Label-Poll");
+                request.Headers.ContainsKey(PackagingController.LabelPollHeader);
 
             if (response.StatusCode >= 400 && !isExpectedLabelPoll)
             {
