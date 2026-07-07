@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.InvoiceClassification.Services;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
-using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -14,7 +13,6 @@ public class InvoiceClassificationServiceTests
     private readonly Mock<IClassificationHistoryRepository> _historyRepositoryMock = new();
     private readonly Mock<IInvoiceClassificationsClient> _classificationsClientMock = new();
     private readonly Mock<IRuleEvaluationEngine> _ruleEngineMock = new();
-    private readonly Mock<ICurrentUserService> _currentUserServiceMock = new();
     private readonly Mock<ILogger<InvoiceClassificationService>> _loggerMock = new();
     private readonly InvoiceClassificationService _sut;
 
@@ -25,7 +23,6 @@ public class InvoiceClassificationServiceTests
             _historyRepositoryMock.Object,
             _classificationsClientMock.Object,
             _ruleEngineMock.Object,
-            _currentUserServiceMock.Object,
             _loggerMock.Object);
     }
 
@@ -41,12 +38,8 @@ public class InvoiceClassificationServiceTests
             Description = "Test Invoice"
         };
 
-        var currentUser = new CurrentUser("user-1", "test-user", "test@test.com", true);
+        var processedBy = "test-user";
         ClassificationHistory? capturedHistory = null;
-
-        _currentUserServiceMock
-            .Setup(x => x.GetCurrentUser())
-            .Returns(currentUser);
 
         _ruleRepositoryMock
             .Setup(x => x.GetActiveRulesOrderedAsync())
@@ -69,7 +62,7 @@ public class InvoiceClassificationServiceTests
             .ReturnsAsync((ClassificationHistory h) => h);
 
         // Act
-        var result = await _sut.ClassifyInvoiceAsync(invoice);
+        var result = await _sut.ClassifyInvoiceAsync(invoice, processedBy);
 
         // Assert
         result.Result.Should().Be(ClassificationResult.ManualReviewRequired);
@@ -85,7 +78,7 @@ public class InvoiceClassificationServiceTests
         capturedHistory.CompanyName.Should().Be(invoice.CompanyName);
         capturedHistory.Description.Should().Be(invoice.Description);
         capturedHistory.Result.Should().Be(ClassificationResult.ManualReviewRequired);
-        capturedHistory.ProcessedBy.Should().Be(currentUser.Name);
+        capturedHistory.ProcessedBy.Should().Be(processedBy);
         capturedHistory.ClassificationRuleId.Should().BeNull();
         capturedHistory.AccountingTemplateCode.Should().BeNull();
         capturedHistory.Department.Should().BeNull();
@@ -123,12 +116,8 @@ public class InvoiceClassificationServiceTests
             "Sales",
             "admin-user");
 
-        var currentUser = new CurrentUser("user-1", "test-user", "test@test.com", true);
+        var processedBy = "test-user";
         ClassificationHistory? capturedHistory = null;
-
-        _currentUserServiceMock
-            .Setup(x => x.GetCurrentUser())
-            .Returns(currentUser);
 
         _ruleRepositoryMock
             .Setup(x => x.GetActiveRulesOrderedAsync())
@@ -152,7 +141,7 @@ public class InvoiceClassificationServiceTests
             .ReturnsAsync((ClassificationHistory h) => h);
 
         // Act
-        var result = await _sut.ClassifyInvoiceAsync(invoice);
+        var result = await _sut.ClassifyInvoiceAsync(invoice, processedBy);
 
         // Assert
         result.Result.Should().Be(ClassificationResult.Success);
@@ -168,7 +157,7 @@ public class InvoiceClassificationServiceTests
         capturedHistory.CompanyName.Should().Be(invoice.CompanyName);
         capturedHistory.Description.Should().Be(invoice.Description);
         capturedHistory.Result.Should().Be(ClassificationResult.Success);
-        capturedHistory.ProcessedBy.Should().Be(currentUser.Name);
+        capturedHistory.ProcessedBy.Should().Be(processedBy);
         capturedHistory.ClassificationRuleId.Should().Be(ruleWithId.Id);
         capturedHistory.AccountingTemplateCode.Should().Be("TEMPLATE_001");
         capturedHistory.Department.Should().Be("Sales");
@@ -207,12 +196,8 @@ public class InvoiceClassificationServiceTests
             "Purchases",
             "admin-user");
 
-        var currentUser = new CurrentUser("user-2", "another-user", "another@test.com", true);
+        var processedBy = "another-user";
         ClassificationHistory? capturedHistory = null;
-
-        _currentUserServiceMock
-            .Setup(x => x.GetCurrentUser())
-            .Returns(currentUser);
 
         _ruleRepositoryMock
             .Setup(x => x.GetActiveRulesOrderedAsync())
@@ -236,7 +221,7 @@ public class InvoiceClassificationServiceTests
             .ReturnsAsync((ClassificationHistory h) => h);
 
         // Act
-        var result = await _sut.ClassifyInvoiceAsync(invoice);
+        var result = await _sut.ClassifyInvoiceAsync(invoice, processedBy);
 
         // Assert
         result.Result.Should().Be(ClassificationResult.Error);
@@ -252,7 +237,7 @@ public class InvoiceClassificationServiceTests
         capturedHistory.CompanyName.Should().Be(invoice.CompanyName);
         capturedHistory.Description.Should().Be(invoice.Description);
         capturedHistory.Result.Should().Be(ClassificationResult.Error);
-        capturedHistory.ProcessedBy.Should().Be(currentUser.Name);
+        capturedHistory.ProcessedBy.Should().Be(processedBy);
         capturedHistory.ClassificationRuleId.Should().Be(matchedRule.Id);
         capturedHistory.AccountingTemplateCode.Should().Be("TEMPLATE_002");
         capturedHistory.Department.Should().Be("Purchases");
@@ -283,12 +268,8 @@ public class InvoiceClassificationServiceTests
             Description = "Test Invoice with Exception"
         };
 
-        var currentUser = new CurrentUser("user-3", "error-user", "error@test.com", true);
+        var processedBy = "error-user";
         ClassificationHistory? capturedHistory = null;
-
-        _currentUserServiceMock
-            .Setup(x => x.GetCurrentUser())
-            .Returns(currentUser);
 
         _ruleRepositoryMock
             .Setup(x => x.GetActiveRulesOrderedAsync())
@@ -300,7 +281,7 @@ public class InvoiceClassificationServiceTests
             .ReturnsAsync((ClassificationHistory h) => h);
 
         // Act
-        var result = await _sut.ClassifyInvoiceAsync(invoice);
+        var result = await _sut.ClassifyInvoiceAsync(invoice, processedBy);
 
         // Assert
         result.Result.Should().Be(ClassificationResult.Error);
@@ -317,7 +298,7 @@ public class InvoiceClassificationServiceTests
         capturedHistory.CompanyName.Should().Be(invoice.CompanyName);
         capturedHistory.Description.Should().Be(invoice.Description);
         capturedHistory.Result.Should().Be(ClassificationResult.Error);
-        capturedHistory.ProcessedBy.Should().Be(currentUser.Name);
+        capturedHistory.ProcessedBy.Should().Be(processedBy);
         capturedHistory.ClassificationRuleId.Should().BeNull();
         capturedHistory.AccountingTemplateCode.Should().BeNull();
         capturedHistory.Department.Should().BeNull();
