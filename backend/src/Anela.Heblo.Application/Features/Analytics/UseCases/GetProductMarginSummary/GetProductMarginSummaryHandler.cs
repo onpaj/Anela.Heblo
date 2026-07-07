@@ -15,14 +15,14 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
     private readonly IMarginCalculator _marginCalculator;
     private readonly IMonthlyBreakdownGenerator _monthlyBreakdownGenerator;
     private readonly ITopProductSorter _topProductSorter;
-    private readonly TimeWindowParser _timeWindowParser;
+    private readonly ITimeWindowParser _timeWindowParser;
 
     public GetProductMarginSummaryHandler(
         IAnalyticsRepository analyticsRepository,
         IMarginCalculator marginCalculator,
         IMonthlyBreakdownGenerator monthlyBreakdownGenerator,
         ITopProductSorter topProductSorter,
-        TimeWindowParser timeWindowParser)
+        ITimeWindowParser timeWindowParser)
     {
         _analyticsRepository = analyticsRepository;
         _marginCalculator = marginCalculator;

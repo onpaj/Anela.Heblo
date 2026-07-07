@@ -28,11 +28,11 @@ public class HydrationOrchestratorWrapper : BackgroundService
             _readinessTracker.ReportHydrationStarted();
             _logger.LogDebug("HydrationOrchestratorWrapper: Hydration started");
 
-            // Wait for orchestrator to complete
-            await _orchestrator.WaitForHydrationCompletionAsync();
+            // Report ready once the readiness tier(s) complete; higher tiers keep hydrating in the background.
+            await _orchestrator.WaitForReadinessAsync();
 
             _readinessTracker.ReportHydrationCompleted();
-            _logger.LogDebug("HydrationOrchestratorWrapper: Hydration completed successfully");
+            _logger.LogDebug("HydrationOrchestratorWrapper: Readiness reached");
         }
         catch (Exception ex)
         {

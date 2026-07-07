@@ -16,7 +16,12 @@ namespace Anela.Heblo.Adapters.Azure;
 
 public static class AzureAdapterModule
 {
-    public static IServiceCollection AddAzurePrintQueueSink(
+    /// <summary>
+    /// Registers Azure Blob print-queue infrastructure (BlobContainerClient, AzureBlobPrintQueueSink
+    /// as a concrete singleton) without binding a non-keyed IPrintQueueSink. Use this when the caller
+    /// will register its own (e.g. keyed) IPrintQueueSink binding, such as the "Combined" print-sink mode.
+    /// </summary>
+    public static IServiceCollection AddAzurePrintQueueSinkInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
     {
@@ -26,7 +31,22 @@ public static class AzureAdapterModule
             return new BlobContainerClient(options.BlobConnectionString, options.BlobContainerName);
         });
 
-        services.AddSingleton<IPrintQueueSink, AzureBlobPrintQueueSink>();
+        services.AddSingleton<AzureBlobPrintQueueSink>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers Azure Blob print-queue infrastructure and binds the non-keyed IPrintQueueSink
+    /// singleton to AzureBlobPrintQueueSink. Use this for the "AzureBlob" print-sink mode, where
+    /// AzureBlobPrintQueueSink is the sole, directly-resolvable IPrintQueueSink implementation.
+    /// </summary>
+    public static IServiceCollection AddAzurePrintQueueSink(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddAzurePrintQueueSinkInfrastructure(configuration);
+        services.AddSingleton<IPrintQueueSink>(provider => provider.GetRequiredService<AzureBlobPrintQueueSink>());
 
         return services;
     }
