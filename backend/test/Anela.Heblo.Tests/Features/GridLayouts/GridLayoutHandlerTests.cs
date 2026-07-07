@@ -13,8 +13,8 @@ namespace Anela.Heblo.Tests.Features.GridLayouts;
 
 /// <summary>
 /// Tests for the slim persistence payload refactor.
-/// These tests verify that GridLayoutPersistencePayload contains only columns,
-/// and that GridLayoutDto is assembled from payload + entity.GridKey + entity.LastModified.
+/// These tests verify that the persisted JSON payload contains only columns,
+/// and that GridLayoutDto is assembled from that payload + entity.GridKey + entity.LastModified.
 /// </summary>
 public class SaveGridLayoutHandlerPayloadTests
 {
