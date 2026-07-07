@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Domain.Features.Analytics;
 using MediatR;
 using Microsoft.Extensions.Options;
@@ -46,15 +47,17 @@ public class GetInvoiceImportStatisticsHandler : IRequestHandler<GetInvoiceImpor
             request.DateType,
             cancellationToken);
 
-        // Mark days below threshold as problematic
-        foreach (var dayCount in dailyCounts)
+        // Project to DTOs, marking days below threshold as problematic
+        var data = dailyCounts.Select(c => new DailyInvoiceCountDto
         {
-            dayCount.IsBelowThreshold = dayCount.Count < minimumThreshold;
-        }
+            Date = c.Date,
+            Count = c.Count,
+            IsBelowThreshold = c.Count < minimumThreshold
+        }).ToList();
 
         return new GetInvoiceImportStatisticsResponse
         {
-            Data = dailyCounts,
+            Data = data,
             MinimumThreshold = minimumThreshold
         };
     }

@@ -13731,7 +13731,7 @@ export interface ICategoryMarginSummaryDto {
 }
 
 export class GetInvoiceImportStatisticsResponse extends BaseResponse implements IGetInvoiceImportStatisticsResponse {
-    data?: DailyInvoiceCount[];
+    data?: DailyInvoiceCountDto[];
     minimumThreshold?: number;
 
     constructor(data?: IGetInvoiceImportStatisticsResponse) {
@@ -13744,7 +13744,7 @@ export class GetInvoiceImportStatisticsResponse extends BaseResponse implements 
             if (Array.isArray(_data["data"])) {
                 this.data = [] as any;
                 for (let item of _data["data"])
-                    this.data!.push(DailyInvoiceCount.fromJS(item));
+                    this.data!.push(DailyInvoiceCountDto.fromJS(item));
             }
             this.minimumThreshold = _data["minimumThreshold"];
         }
@@ -13771,16 +13771,16 @@ export class GetInvoiceImportStatisticsResponse extends BaseResponse implements 
 }
 
 export interface IGetInvoiceImportStatisticsResponse extends IBaseResponse {
-    data?: DailyInvoiceCount[];
+    data?: DailyInvoiceCountDto[];
     minimumThreshold?: number;
 }
 
-export class DailyInvoiceCount implements IDailyInvoiceCount {
+export class DailyInvoiceCountDto implements IDailyInvoiceCountDto {
     date?: Date;
     count?: number;
     isBelowThreshold?: boolean;
 
-    constructor(data?: IDailyInvoiceCount) {
+    constructor(data?: IDailyInvoiceCountDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -13797,9 +13797,9 @@ export class DailyInvoiceCount implements IDailyInvoiceCount {
         }
     }
 
-    static fromJS(data: any): DailyInvoiceCount {
+    static fromJS(data: any): DailyInvoiceCountDto {
         data = typeof data === 'object' ? data : {};
-        let result = new DailyInvoiceCount();
+        let result = new DailyInvoiceCountDto();
         result.init(data);
         return result;
     }
@@ -13813,7 +13813,7 @@ export class DailyInvoiceCount implements IDailyInvoiceCount {
     }
 }
 
-export interface IDailyInvoiceCount {
+export interface IDailyInvoiceCountDto {
     date?: Date;
     count?: number;
     isBelowThreshold?: boolean;

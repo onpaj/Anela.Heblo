@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
-import { DailyInvoiceCount, GetInvoiceImportStatisticsResponse, ImportDateType } from '../generated/api-client';
+import { DailyInvoiceCountDto, GetInvoiceImportStatisticsResponse, ImportDateType } from '../generated/api-client';
 
-export type { DailyInvoiceCount, GetInvoiceImportStatisticsResponse, ImportDateType };
+export type { DailyInvoiceCountDto, GetInvoiceImportStatisticsResponse, ImportDateType };
 
 export interface UseInvoiceImportStatisticsParams {
   dateType?: 'InvoiceDate' | 'LastSyncTime';
