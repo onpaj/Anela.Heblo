@@ -25,7 +25,7 @@ public class UpdatePurchaseOrderRequestValidator : AbstractValidator<UpdatePurch
         RuleFor(x => x.Lines)
             .NotNull().WithMessage("Order lines are required")
             .NotEmpty().WithMessage("At least one order line is required")
-            .Must(lines => lines.Count <= 100).WithMessage("A purchase order cannot have more than 100 line items");
+            .Must(lines => lines == null || lines.Count <= 100).WithMessage("A purchase order cannot have more than 100 line items");
 
         RuleForEach(x => x.Lines)
             .SetValidator(new UpdatePurchaseOrderLineRequestValidator());
