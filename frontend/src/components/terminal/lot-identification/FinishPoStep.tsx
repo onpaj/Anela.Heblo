@@ -1,8 +1,10 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useUpdatePurchaseOrderStatusMutation } from '../../../api/hooks/usePurchaseOrders';
 import { UpdatePurchaseOrderStatusRequest } from '../../../api/generated/api-client';
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 const FinishPoStep = () => {
+  useScreenView('Terminal', 'LotIdentificationFinishPo');
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const poId = id ? parseInt(id, 10) : 0;

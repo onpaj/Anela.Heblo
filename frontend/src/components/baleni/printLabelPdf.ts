@@ -17,11 +17,24 @@ export interface PrintAttemptResult {
   status?: number;
 }
 
-const silentPrintViaBlob = async (url: string, onAfterPrint?: () => void): Promise<PrintAttemptResult> => {
+/**
+ * Header marking a label PDF request as an automated readiness poll. The backend logs the
+ * expected transient 404s from polling at Debug instead of Warning so they don't flood the logs.
+ * The final post-timeout confirmation request omits it so its 404 is logged as a real warning.
+ */
+const LABEL_POLL_HEADER = 'X-Label-Poll';
+
+const silentPrintViaBlob = async (
+  url: string,
+  onAfterPrint?: () => void,
+  isPoll = false,
+): Promise<PrintAttemptResult> => {
   const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
   let response: Response;
   try {
-    response = await apiClient.http.fetch(url);
+    response = isPoll
+      ? await apiClient.http.fetch(url, { headers: { [LABEL_POLL_HEADER]: '1' } })
+      : await apiClient.http.fetch(url);
   } catch {
     return { printed: false };
   }
@@ -72,9 +85,10 @@ export const fetchAndPrintLabel = (
   orderCode: string,
   packageNumber: number,
   onAfterPrint?: () => void,
+  isPoll = false,
 ): Promise<PrintAttemptResult> => {
   const url = buildProxyUrl(orderCode, packageNumber);
-  return silentPrintViaBlob(url, onAfterPrint);
+  return silentPrintViaBlob(url, onAfterPrint, isPoll);
 };
 
 export interface ReadinessWaitOptions {
@@ -107,7 +121,9 @@ export const printLabelWithReadiness = async (
   while (true) {
     if (signal?.aborted) return { printed: false };
 
-    const result = await fetchAndPrintLabel(orderCode, packageNumber, onAfterPrint);
+    // In-loop attempts are automated polls: mark them so the backend logs their expected 404s
+    // quietly (Debug) instead of flooding the error log.
+    const result = await fetchAndPrintLabel(orderCode, packageNumber, onAfterPrint, true);
 
     if (result.printed) return { printed: true, status: result.status };
 
@@ -122,7 +138,14 @@ export const printLabelWithReadiness = async (
     if (signal?.aborted) return { printed: false };
 
     const elapsed = Date.now() - startedAt;
-    if (elapsed >= READINESS_TIMEOUT_MS) return { printed: false, timedOut: true };
+    if (elapsed >= READINESS_TIMEOUT_MS) {
+      // Polling window exhausted. Make one final, non-poll confirmation fetch so the backend logs
+      // exactly one warning for a label that genuinely never became ready. If the label appeared
+      // right at the deadline, this final attempt prints it.
+      const finalResult = await fetchAndPrintLabel(orderCode, packageNumber, onAfterPrint, false);
+      if (finalResult.printed) return { printed: true, status: finalResult.status };
+      return { printed: false, timedOut: true };
+    }
 
     attempt++;
   }

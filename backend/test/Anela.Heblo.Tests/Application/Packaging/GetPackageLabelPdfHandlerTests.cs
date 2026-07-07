@@ -20,6 +20,7 @@ public class GetPackageLabelPdfHandlerTests
     private readonly Mock<IShipmentClient> _shipmentClient = new();
     private readonly Mock<HttpMessageHandler> _httpMessageHandler = new(MockBehavior.Strict);
     private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
+    private readonly Mock<ILogger<GetPackageLabelPdfHandler>> _logger = new();
 
     public GetPackageLabelPdfHandlerTests()
     {
@@ -29,13 +30,23 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     private GetPackageLabelPdfHandler CreateHandler() =>
-        new(_shipmentClient.Object, _httpClientFactory.Object, new Mock<ILogger<GetPackageLabelPdfHandler>>().Object);
+        new(_shipmentClient.Object, _httpClientFactory.Object, _logger.Object);
 
     private static GetPackageLabelPdfRequest Request() => new()
     {
         OrderCode = OrderCode,
         PackageNumber = PackageNumber,
     };
+
+    private void VerifyLogged(LogLevel level, Times times) =>
+        _logger.Verify(
+            l => l.Log(
+                level,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            times);
 
     private void SetupShipmentLabels(params ShipmentLabel[] labels)
     {
@@ -100,6 +111,33 @@ public class GetPackageLabelPdfHandlerTests
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
         response.ErrorCode.Should().Be(ErrorCodes.PackageLabelNotFound);
+    }
+
+    [Fact]
+    public async Task Handle_NotReady_WhenPoll_LogsAtDebugNotWarning()
+    {
+        // Automated readiness polls must not flood the logs: expected 404s log at Debug.
+        SetupShipmentLabels();
+
+        await CreateHandler().Handle(
+            new GetPackageLabelPdfRequest { OrderCode = OrderCode, PackageNumber = PackageNumber, IsPoll = true },
+            CancellationToken.None);
+
+        VerifyLogged(LogLevel.Warning, Times.Never());
+        VerifyLogged(LogLevel.Debug, Times.Once());
+    }
+
+    [Fact]
+    public async Task Handle_NotReady_WhenNotPoll_LogsAtWarning()
+    {
+        // The final (post-timeout) confirmation request is not a poll: its 404 is a real warning.
+        SetupShipmentLabels();
+
+        await CreateHandler().Handle(
+            new GetPackageLabelPdfRequest { OrderCode = OrderCode, PackageNumber = PackageNumber, IsPoll = false },
+            CancellationToken.None);
+
+        VerifyLogged(LogLevel.Warning, Times.Once());
     }
 
     [Fact]
