@@ -114,7 +114,9 @@ public sealed class PlaudTokenRefresher : IPlaudTokenRefresher
             return;
 
         // Share the refresh lock so a sync can't race a concurrent RefreshAsync writing the file.
-        await _refreshLock.WaitAsync(ct);
+        // CancellationToken.None: this is best-effort and must never throw, so we don't let the
+        // caller's ct cancel the lock wait and escape the catch block below.
+        await _refreshLock.WaitAsync(CancellationToken.None);
         try
         {
             var diskJson = await File.ReadAllTextAsync(_tokensFilePath, ct);
