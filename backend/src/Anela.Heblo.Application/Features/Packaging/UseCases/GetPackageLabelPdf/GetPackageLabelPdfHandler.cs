@@ -30,12 +30,18 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         // in the order's labels — matching the PackageNumber persisted at scan time.
         var index = request.PackageNumber - 1;
 
+        // The frontend polls this endpoint until the label is ready, so 404s are expected and
+        // frequent during that window. Poll requests are logged at Debug to avoid flooding the
+        // logs; the final (post-timeout) confirmation request is not a poll, so its 404 is logged
+        // at Warning with full diagnostics.
+        var notReadyLevel = request.IsPoll ? LogLevel.Debug : LogLevel.Warning;
+
         var labels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
         var label = labels.ElementAtOrDefault(index);
 
         if (label is null)
         {
-            _logger.LogWarning(
+            _logger.Log(notReadyLevel,
                 "Label not found for order {OrderCode} package {PackageNumber} (index {Index}): " +
                 "live shipment fetch returned {LabelCount} label(s) [{PackageNames}]",
                 request.OrderCode, request.PackageNumber, index, labels.Count,
@@ -45,7 +51,7 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
 
         if (string.IsNullOrWhiteSpace(label.LabelUrl))
         {
-            _logger.LogWarning(
+            _logger.Log(notReadyLevel,
                 "Label URL unavailable for order {OrderCode} package {PackageNumber} (single-shot check, LabelUrl empty)",
                 request.OrderCode, request.PackageNumber);
             return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelNotFound);

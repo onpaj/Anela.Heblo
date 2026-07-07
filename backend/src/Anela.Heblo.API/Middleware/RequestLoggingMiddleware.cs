@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using Anela.Heblo.API.Controllers;
 
 namespace Anela.Heblo.API.Middleware;
 
@@ -180,7 +181,15 @@ public class RequestLoggingMiddleware
                 ? responseBody.Substring(0, 1000) + "... (truncated)"
                 : responseBody;
 
-            if (response.StatusCode >= 400)
+            // The label PDF endpoint is polled until the label is ready, so 404s are expected and
+            // frequent. Poll requests carry the X-Label-Poll header — suppress the ERROR warning
+            // for those so the logs are not flooded. The final (post-timeout) confirmation request
+            // omits the header, so its 404 still logs as a warning.
+            var isExpectedLabelPoll =
+                response.StatusCode == StatusCodes.Status404NotFound &&
+                request.Headers.ContainsKey(PackagingController.LabelPollHeader);
+
+            if (response.StatusCode >= 400 && !isExpectedLabelPoll)
             {
                 _logger.LogWarning(
                     "Response ERROR - {Method} {Path} - Status: {StatusCode}, Body: {Body}",
