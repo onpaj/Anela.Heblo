@@ -24,6 +24,23 @@ cd backend
 dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~Authorization"
 ```
 
+## Commit
+
+Committed as `89048b2` on `feature/3542-E2e-Transport-Box-Pages-Fail-To-Render-Create-Rece`:
+
+```
+Grant E2E test user Warehouse_Logistics Read+Write roles
+
+The E2E synthetic user only held Base and FinanceFinancialOverviewRead,
+so every Transport Box page/API call was silently redirected (frontend
+RequireMenuPath gate) or 403'd (TransportBoxController's
+FeatureAuthorize(Warehouse_Logistics)). Both Read and Write are granted
+because box-creation.spec.ts and box-receive.spec.ts perform real write
+actions (create/open-by-code/state-change) that require the Write role.
+
+Fixes 12 of 18 nightly transport E2E failures reported in run #191.
+```
+
 ## Notes
 
 - Did not touch `access-matrix.json`, `AccessRoles.generated.cs`, `AccessMatrix.generated.cs`, or `frontend/src/auth/accessMatrix.generated.ts` — these are auto-generated and already define the `WarehouseLogisticsRead`/`Write` constants consumed here.
