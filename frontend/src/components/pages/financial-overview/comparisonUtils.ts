@@ -15,11 +15,11 @@ export const COMPARISON_METRIC_LABELS: Record<ComparisonMetric, string> = {
   totalBalance: 'Celková bilance (vč. skladu)',
 }
 
-// Distinct line colors per year slot (anchor year first). Extend if N grows beyond 3.
+// Distinct bar colors per year slot (anchor year first). Extend if N grows beyond 3.
 export const YEAR_SERIES_COLORS = [
-  'rgb(59, 130, 246)', // blue-500  - anchor year
-  'rgb(168, 85, 247)', // purple-500 - previous year
-  'rgb(245, 158, 11)', // amber-500 - two years ago
+  'rgb(239, 68, 68)', // red-500    - anchor year
+  'rgb(249, 115, 22)', // orange-500 - previous year
+  'rgb(59, 130, 246)', // blue-500   - two years ago
 ] as const
 
 export const getMetricValue = (cell: MonthlyFinancialDataDto, metric: ComparisonMetric): number => {
