@@ -26,17 +26,13 @@ export const FinancialComparisonChart: React.FC<FinancialComparisonChartProps> =
       const color = YEAR_SERIES_COLORS[index % YEAR_SERIES_COLORS.length]
       return {
         label: String(s.year),
-        type: 'line' as const,
         data: pivotSeriesToMonthly(s.months, metric),
-        borderColor: color,
         backgroundColor: color,
-        spanGaps: false,
-        tension: 0.1,
-        borderWidth: 3,
-        pointRadius: 3,
+        borderColor: color,
+        borderWidth: 1,
       }
     })
-    return { labels: [...MONTH_LABELS_SHORT], datasets } as unknown as ChartData<'bar'>
+    return { labels: [...MONTH_LABELS_SHORT], datasets } as ChartData<'bar'>
   }, [series, metric])
 
   const chartOptions = React.useMemo<ChartOptions<'bar'>>(
