@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "grant-e2e-warehouse-stockup-claims",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-08T01:40:12.952395Z"
     },
     {
       "name": "harden-stock-operations-error-state-e2e-test",
