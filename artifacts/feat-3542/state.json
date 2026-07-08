@@ -21,8 +21,8 @@
       "updated_at": "2026-07-08T03:35:25.273459Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-08T03:35:45.658349Z"
+      "status": "completed",
+      "updated_at": "2026-07-08T04:37:25.657145Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "add-strict-assertions-lenient-transport-specs",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-08T04:34:31.293673Z"
+      "updated_at": "2026-07-08T04:37:19.819996Z"
     }
   ]
 }
