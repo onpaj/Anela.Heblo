@@ -21,16 +21,16 @@
       "updated_at": "2026-07-08T04:24:55.268286Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-08T04:25:29.211272Z"
+      "status": "completed",
+      "updated_at": "2026-07-08T04:31:40.633348Z"
     }
   },
   "tasks": [
     {
       "name": "fix-batch-planning-error-handling-e2e-navigation",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-08T04:25:29.466274Z"
+      "updated_at": "2026-07-08T04:31:34.799848Z"
     }
   ]
 }
