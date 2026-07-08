@@ -34,6 +34,12 @@ const STOCK_WRITE_BACK_FLAGS: Record<number, string> = {
   4: 'Chyba inventury',
 };
 
+const LOT_STOCK_FLAGS: Record<number, string> = {
+  1: 'Nesouhlasí součet',
+  2: 'Chybí šarže',
+  4: 'Šarže bez skladu',
+};
+
 function decodeMismatchFlags(code: number, labels: Record<number, string>): string[] {
   return Object.entries(labels)
     .filter(([flag]) => (code & Number(flag)) !== 0)
@@ -149,7 +155,9 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
   const driftResults = data?.driftResults ?? [];
 
   const isDriftTestType =
-    run?.testType === 'ProductPairing' || run?.testType === 'StockWriteBackReconciliation';
+    run?.testType === 'ProductPairing' ||
+    run?.testType === 'StockWriteBackReconciliation' ||
+    run?.testType === 'LotSumVsErpStock';
 
   const hasNoResults = isDriftTestType ? driftResults.length === 0 : results.length === 0;
 
@@ -162,8 +170,16 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
   }
 
   if (isDriftTestType) {
-    const flagMap =
-      run?.testType === 'ProductPairing' ? PRODUCT_PAIRING_FLAGS : STOCK_WRITE_BACK_FLAGS;
+    let flagMap = STOCK_WRITE_BACK_FLAGS;
+    if (run?.testType === 'ProductPairing') {
+      flagMap = PRODUCT_PAIRING_FLAGS;
+    } else if (run?.testType === 'LotSumVsErpStock') {
+      flagMap = LOT_STOCK_FLAGS;
+    }
+
+    const isLotStock = run?.testType === 'LotSumVsErpStock';
+    const hebloHeader = isLotStock ? 'ERP' : 'Heblo';
+    const shoptetHeader = isLotStock ? 'Šarže' : 'Shoptet';
 
     return (
       <div className="overflow-auto">
@@ -172,8 +188,8 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
             <tr className="border-b text-left">
               <th className="py-2 pr-4 font-medium">Entita</th>
               <th className="py-2 pr-4 font-medium">Neshoda</th>
-              <th className="py-2 pr-4 font-medium">Heblo</th>
-              <th className="py-2 pr-4 font-medium">Shoptet</th>
+              <th className="py-2 pr-4 font-medium">{hebloHeader}</th>
+              <th className="py-2 pr-4 font-medium">{shoptetHeader}</th>
               <th className="py-2 font-medium">Detail</th>
             </tr>
           </thead>

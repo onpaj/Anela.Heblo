@@ -19432,6 +19432,7 @@ export enum DqtTestType {
     IssuedInvoiceComparison = "IssuedInvoiceComparison",
     ProductPairing = "ProductPairing",
     StockWriteBackReconciliation = "StockWriteBackReconciliation",
+    LotSumVsErpStock = "LotSumVsErpStock",
 }
 
 export enum DqtRunStatus {

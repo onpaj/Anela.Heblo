@@ -28,6 +28,7 @@ const TEST_TYPE_OPTIONS: TestTypeOption[] = [
   { value: 'IssuedInvoiceComparison', label: 'Porovnání faktur' },
   { value: 'ProductPairing', label: 'Párování produktů' },
   { value: 'StockWriteBackReconciliation', label: 'Zpětný zápis skladu' },
+  { value: 'LotSumVsErpStock', label: 'Šarže vs. ERP sklad' },
 ];
 
 const RunDqtButton: React.FC = () => {
