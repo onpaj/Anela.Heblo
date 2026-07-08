@@ -21,16 +21,16 @@
       "updated_at": "2026-07-08T03:35:25.273459Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-08T03:35:45.658349Z"
     }
   },
   "tasks": [
     {
       "name": "grant-e2e-warehouse-logistics-roles",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-08T03:35:45.829106Z"
     },
     {
       "name": "fix-e2e-transport-box-receive-fallback-url",
