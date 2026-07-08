@@ -21,6 +21,7 @@ const TEST_TYPE_LABELS: Record<string, string> = {
   IssuedInvoiceComparison: 'Porovnání faktur',
   ProductPairing: 'Párování produktů',
   StockWriteBackReconciliation: 'Zpětný zápis skladu',
+  LotSumVsErpStock: 'Šarže vs. ERP sklad',
 };
 
 const formatDateTime = (iso: string): string => {

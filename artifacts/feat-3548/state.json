@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3548",
+  "issue_number": 3548,
+  "created_at": "2026-07-08T09:14:37.381570Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-08T09:17:18.029749Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-08T09:18:35.084970Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-08T09:34:23.183016Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-08T09:21:54.175655Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-08T09:34:23.399966Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-08T09:35:55.501189Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-articledetail-theme-reactivity",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-08T09:34:13.168279Z"
+    }
+  ]
+}

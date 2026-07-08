@@ -47,7 +47,9 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
             };
         }
 
-        var context = string.Join("\n\n---\n\n", searchResult.Chunks.Select(c => c.Content));
+        var context = string.Join(
+            "\n\n---\n\n",
+            searchResult.Chunks.Select(c => ContextSanitizer.StripMarkdownLinks(c.Content)));
 
         var productLookup = await _enrichmentCache.GetProductLookupAsync(cancellationToken);
         var productTable = string.Join("\n", productLookup.Values.OrderBy(p => p.ProductCode).Select(p => $"{p.ProductCode} | {p.ProductName}"));

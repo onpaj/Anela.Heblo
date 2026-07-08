@@ -45,7 +45,7 @@ public class GetDqtRunDetailHandler : IRequestHandler<GetDqtRunDetailRequest, Ge
                 };
             }
 
-            if (run.TestType is DqtTestType.ProductPairing or DqtTestType.StockWriteBackReconciliation)
+            if (run.TestType is DqtTestType.ProductPairing or DqtTestType.StockWriteBackReconciliation or DqtTestType.LotSumVsErpStock)
             {
                 var (driftItems, driftTotal) = await _repository.GetDriftResultsAsync(
                     run.Id, request.ResultPage, request.ResultPageSize, cancellationToken);

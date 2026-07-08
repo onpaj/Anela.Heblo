@@ -12,7 +12,7 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
       await navigateToApp(page);
 
       // Wait for app to load
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       await page.waitForTimeout(3000); // Give extra time for React components to initialize
 
       console.log('✅ Batch planning test setup completed successfully');
@@ -34,7 +34,7 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
       await page.waitForTimeout(500); // Wait for submenu to open
 
       // Try to find navigation link
-      const batchPlanningLink = page.locator('text=/Plánovač|Kalkulačka dávek/i').first();
+      const batchPlanningLink = page.getByRole('link', { name: /plánování dávek/i });
 
       if (await batchPlanningLink.isVisible({ timeout: 5000 })) {
         await batchPlanningLink.click();
@@ -50,14 +50,14 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     }
 
     // Wait for batch planning page to load
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000); // Give time for React components to initialize
 
     // Step 2: Verify we're on the batch planning page
     console.log('🔍 Verifying batch planning page loaded...');
 
     // Look for page title or header
-    const pageTitle = page.locator('h1, h2').filter({ hasText: /Plánovač|Planning|Dávek|Kalkulačka/i });
+    const pageTitle = page.locator('h1').filter({ hasText: /plánovač výrobních dávek/i });
     await expect(pageTitle.first()).toBeVisible({ timeout: 10000 });
     console.log('✅ Batch planning page loaded successfully');
 
@@ -98,7 +98,7 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     console.log(`✅ Selected semiproduct: ${testSemiproduct.name}`);
 
     // Wait for data to load after selection
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
     // Step 4: Verify product table loaded
@@ -175,7 +175,7 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     console.log('✅ Clicked calculate button');
 
     // Wait for API call to complete
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
     // Step 7: Verify toaster notification appears
@@ -257,7 +257,7 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
       await page.getByRole('button', { name: 'Výroba' }).click();
       await page.waitForTimeout(500);
 
-      const batchPlanningLink = page.locator('text=/Plánovač|Kalkulačka dávek/i').first();
+      const batchPlanningLink = page.getByRole('link', { name: /plánování dávek/i });
 
       if (await batchPlanningLink.isVisible({ timeout: 5000 })) {
         await batchPlanningLink.click();
@@ -268,8 +268,14 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
       await page.goto('/manufacturing/batch-planning');
     }
 
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
+
+    // Verify we're on the batch planning page
+    console.log('🔍 Verifying batch planning page loaded...');
+    const pageTitle = page.locator('h1').filter({ hasText: /plánovač výrobních dávek/i });
+    await expect(pageTitle.first()).toBeVisible({ timeout: 10000 });
+    console.log('✅ Batch planning page loaded successfully');
 
     console.log(`🔍 Selecting semiproduct: ${testSemiproduct.name}`);
 
@@ -295,7 +301,7 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     await options.first().click();
     console.log(`✅ Selected semiproduct: ${testSemiproduct.name}`);
 
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     // Verify table loaded
@@ -341,7 +347,7 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     console.log('✅ Recalculated with corrected quantities');
 
     // Wait for successful response
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     // Verify no error toasters appear

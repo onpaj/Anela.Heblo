@@ -19,6 +19,7 @@ public static class DataQualityModule
         services.AddScoped<IDqtJobRunner, DriftDqtJobRunner>();
         services.AddScoped<IDriftDqtComparer, ProductPairingDqtComparer>();
         services.AddScoped<IDriftDqtComparer, StockWriteBackDqtComparer>();
+        services.AddScoped<IDriftDqtComparer, LotStockReconciliationComparer>();
 
         // Register dashboard tiles
         services.RegisterTile<DataQualityStatusTile>();

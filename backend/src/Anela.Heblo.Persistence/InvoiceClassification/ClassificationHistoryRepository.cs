@@ -19,25 +19,6 @@ public class ClassificationHistoryRepository : IClassificationHistoryRepository
         return history;
     }
 
-    public async Task<List<ClassificationHistory>> GetHistoryAsync(int skip = 0, int take = 50)
-    {
-        return await _context.ClassificationHistory
-            .Include(h => h.ClassificationRule)
-            .OrderByDescending(h => h.Timestamp)
-            .Skip(skip)
-            .Take(take)
-            .ToListAsync();
-    }
-
-    public async Task<List<ClassificationHistory>> GetHistoryByInvoiceIdAsync(string abraInvoiceId)
-    {
-        return await _context.ClassificationHistory
-            .Include(h => h.ClassificationRule)
-            .Where(h => h.AbraInvoiceId == abraInvoiceId)
-            .OrderByDescending(h => h.Timestamp)
-            .ToListAsync();
-    }
-
     public async Task<(List<ClassificationHistory> Items, int TotalCount)> GetPagedHistoryAsync(
         int page = 1,
         int pageSize = 20,
