@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.FinancialOverview.Model;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.FinancialOverview;
@@ -112,6 +113,183 @@ public class FinancialAnalysisService : IFinancialAnalysisService
             // Fallback to real-time calculation if cache fails
             return await GetFinancialOverviewRealTimeAsync(months, includeStockData, null, false, cancellationToken);
         }
+    }
+
+    public async Task<GetFinancialComparisonResponse> GetFinancialComparisonAsync(
+        int years,
+        bool includeStockData,
+        IReadOnlyList<string>? excludedDepartments,
+        bool includePartialMonth,
+        CancellationToken cancellationToken = default)
+    {
+        var n = Math.Clamp(years, 2, 3);
+        var cutoffDate = DateTime.UtcNow.Date.AddDays(-_options.PartialMonthLagDays);
+        var anchorYear = cutoffDate.Year;
+        var partialMonth = cutoffDate.Month;
+        var cutoffDay = cutoffDate.Day;
+
+        var excludedSet = excludedDepartments is { Count: > 0 }
+            ? excludedDepartments.ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : null;
+
+        _logger.LogInformation(
+            "Financial comparison: {Years} years, anchor {AnchorYear}, cutoff {Cutoff:d}, includeStock={Stock}, includePartial={Partial}, deptFilter={Filter}",
+            n, anchorYear, cutoffDate, includeStockData, includePartialMonth, excludedSet != null);
+
+        try
+        {
+            var yearsList = Enumerable.Range(0, n).Select(i => anchorYear - i).ToList();
+
+            var series = new List<YearComparisonSeriesDto>();
+            foreach (var year in yearsList)
+            {
+                var months = await BuildComparisonYearAsync(
+                    year, anchorYear, partialMonth, cutoffDay, cutoffDate,
+                    includeStockData, includePartialMonth, excludedSet, cancellationToken);
+                series.Add(BuildYearSeries(year, months, partialMonth, includeStockData));
+            }
+
+            return new GetFinancialComparisonResponse
+            {
+                Series = series,
+                Metadata = new FinancialComparisonMetadataDto
+                {
+                    CutoffDate = cutoffDate,
+                    AnchorYear = anchorYear,
+                    PartialMonth = partialMonth,
+                    PartialDayOfMonth = cutoffDay,
+                    Years = yearsList,
+                    IncludeStockData = includeStockData,
+                    PartialMonthIncluded = includePartialMonth,
+                    LagDays = _options.PartialMonthLagDays
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to build financial comparison for anchor year {AnchorYear}", anchorYear);
+            throw;
+        }
+    }
+
+    private async Task<List<MonthlyFinancialDataDto>> BuildComparisonYearAsync(
+        int year, int anchorYear, int partialMonth, int cutoffDay, DateTime cutoffDate,
+        bool includeStockData, bool includePartialMonth, HashSet<string>? excludedSet,
+        CancellationToken cancellationToken)
+    {
+        var cells = new List<MonthlyFinancialDataDto>();
+
+        for (int month = 1; month <= 12; month++)
+        {
+            // Anchor-year months after the partial month are still in the future - no data.
+            if (year == anchorYear && month > partialMonth)
+                continue;
+
+            var isPartial = month == partialMonth;
+            if (isPartial && !includePartialMonth)
+                continue;
+
+            var cell = await BuildComparisonCellAsync(
+                year, month, isPartial, cutoffDay, cutoffDate,
+                includeStockData, excludedSet, cancellationToken);
+            cells.Add(cell);
+        }
+
+        return cells; // ascending by month
+    }
+
+    private async Task<MonthlyFinancialDataDto> BuildComparisonCellAsync(
+        int year, int month, bool isPartial, int cutoffDay, DateTime cutoffDate,
+        bool includeStockData, HashSet<string>? excludedSet,
+        CancellationToken cancellationToken)
+    {
+        var monthStart = new DateTime(year, month, 1);
+        var daysInMonth = DateTime.DaysInMonth(year, month);
+        var effectiveDay = isPartial ? Math.Min(cutoffDay, daysInMonth) : daysInMonth;
+
+        // Anchor-year partial cell ends exactly on the cutoff date (matches its time component of 00:00).
+        var periodEnd = isPartial ? new DateTime(year, month, effectiveDay) : new DateTime(year, month, daysInMonth);
+
+        // Completed full months without a department filter can be served from the existing cache.
+        if (!isPartial && excludedSet == null &&
+            TryGetCachedComparisonMonth(year, month, includeStockData, out var cachedCell))
+        {
+            return cachedCell!;
+        }
+
+        // Live single-month computation (also the path for partial cells and department-filtered requests).
+        var debitTask = _ledgerService.GetLedgerItems(
+            monthStart, periodEnd, debitAccountPrefix: new[] { "5", "6" }, cancellationToken: cancellationToken);
+        var creditTask = _ledgerService.GetLedgerItems(
+            monthStart, periodEnd, creditAccountPrefix: new[] { "5", "6" }, cancellationToken: cancellationToken);
+
+        await Task.WhenAll(debitTask, creditTask);
+
+        var debitItems = FilterExcludedDepartments(await debitTask, excludedSet);
+        var creditItems = FilterExcludedDepartments(await creditTask, excludedSet);
+
+        var (income, expenses) = CalculatePeriodTotals(debitItems, creditItems);
+
+        MonthlyStockChange? stockChange = null;
+        if (includeStockData)
+        {
+            stockChange = isPartial
+                ? await _stockValueService.GetStockValueChangeForPeriodAsync(monthStart, periodEnd, cancellationToken)
+                : (await _stockValueService.GetStockValueChangesAsync(monthStart, periodEnd, cancellationToken))
+                    .FirstOrDefault();
+        }
+
+        var dto = MapToDto(year, month, income, expenses, stockChange, includeStockData);
+        if (isPartial)
+        {
+            dto.IsPartial = true;
+            dto.PartialDayOfMonth = effectiveDay;
+        }
+        return dto;
+    }
+
+    private bool TryGetCachedComparisonMonth(
+        int year, int month, bool includeStockData, out MonthlyFinancialDataDto? dto)
+    {
+        dto = null;
+
+        var monthlyKey = $"{MONTHLY_DATA_CACHE_KEY_PREFIX}{year}_{month}";
+        if (!_memoryCache.TryGetValue(monthlyKey, out var value) || value is not MonthlyFinancialData data)
+            return false;
+
+        MonthlyStockChange? stock = null;
+        if (includeStockData)
+        {
+            var stockKey = $"{STOCK_DATA_CACHE_KEY_PREFIX}{year}_{month}";
+            if (_memoryCache.TryGetValue(stockKey, out var s) && s is MonthlyStockChange sc)
+                stock = sc;
+        }
+
+        dto = MapToDto(data.Year, data.Month, data.Income, data.Expenses, stock, includeStockData);
+        return true;
+    }
+
+    private static IEnumerable<LedgerItem> FilterExcludedDepartments(
+        IList<LedgerItem> items, HashSet<string>? excludedSet)
+        => excludedSet == null
+            ? items
+            : items.Where(item => item.Department == null || !excludedSet.Contains(item.Department));
+
+    private static YearComparisonSeriesDto BuildYearSeries(
+        int year, List<MonthlyFinancialDataDto> months, int partialMonth, bool includeStockData)
+    {
+        var ytdCells = months.Where(m => m.Month <= partialMonth).ToList();
+
+        return new YearComparisonSeriesDto
+        {
+            Year = year,
+            Months = months,
+            YtdIncome = ytdCells.Sum(m => m.Income),
+            YtdExpenses = ytdCells.Sum(m => m.Expenses),
+            YtdFinancialBalance = ytdCells.Sum(m => m.FinancialBalance),
+            YtdStockValueChange = includeStockData ? ytdCells.Sum(m => m.TotalStockValueChange ?? 0) : (decimal?)null,
+            YtdTotalBalance = includeStockData ? ytdCells.Sum(m => m.TotalBalance ?? m.FinancialBalance) : (decimal?)null
+        };
     }
 
     public async Task RefreshFinancialDataAsync(

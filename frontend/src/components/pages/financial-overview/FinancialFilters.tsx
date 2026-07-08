@@ -2,15 +2,24 @@ import React, { useState } from 'react'
 import { SlidersHorizontal, ChevronDown, ChevronUp, Package, Calendar } from 'lucide-react'
 import { useIsMobile } from '../../../hooks/useMediaQuery'
 import type { Department } from '../../../api/hooks/useDepartments'
-import { getPeriodLabel, type PeriodType } from './utils'
+import { getPeriodLabel, type PeriodType, type FinancialViewMode } from './utils'
+import { COMPARISON_METRIC_LABELS, COMPARISON_METRICS, type ComparisonMetric } from './comparisonUtils'
 
 interface FinancialFiltersProps {
+  viewMode: FinancialViewMode
+  comparisonYears: number
+  comparisonMetrics: ComparisonMetric[]
+  comparisonRolling: boolean
   selectedPeriod: PeriodType
   includeStockData: boolean
   includeCurrentMonth: boolean
   excludedDepartments: string[]
   departments: Department[] | undefined
   isRefetching: boolean
+  onViewModeChange: (mode: FinancialViewMode) => void
+  onComparisonYearsChange: (years: number) => void
+  onComparisonMetricsChange: (metrics: ComparisonMetric[]) => void
+  onComparisonRollingChange: (value: boolean) => void
   onPeriodChange: (period: PeriodType) => void
   onIncludeStockDataChange: (value: boolean) => void
   onIncludeCurrentMonthChange: (value: boolean) => void
@@ -18,12 +27,20 @@ interface FinancialFiltersProps {
 }
 
 export const FinancialFilters: React.FC<FinancialFiltersProps> = ({
+  viewMode,
+  comparisonYears,
+  comparisonMetrics,
+  comparisonRolling,
   selectedPeriod,
   includeStockData,
   includeCurrentMonth,
   excludedDepartments,
   departments,
   isRefetching,
+  onViewModeChange,
+  onComparisonYearsChange,
+  onComparisonMetricsChange,
+  onComparisonRollingChange,
   onPeriodChange,
   onIncludeStockDataChange,
   onIncludeCurrentMonthChange,
@@ -40,28 +57,121 @@ export const FinancialFilters: React.FC<FinancialFiltersProps> = ({
     }
   }
 
+  const handleMetricToggle = (metric: ComparisonMetric, checked: boolean) => {
+    if (checked) {
+      onComparisonMetricsChange([...comparisonMetrics, metric])
+    } else if (comparisonMetrics.length > 1) {
+      // keep at least one metric selected
+      onComparisonMetricsChange(comparisonMetrics.filter((m) => m !== metric))
+    }
+  }
+
   const controlsBlock = (
     <div className="flex flex-col sm:flex-row gap-4">
       <div>
         <label
-          htmlFor="period-select"
+          htmlFor="view-mode-select"
           className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2"
         >
-          Časové období:
+          Zobrazení:
         </label>
         <select
-          id="period-select"
-          value={selectedPeriod}
-          onChange={(e) => onPeriodChange(e.target.value as PeriodType)}
+          id="view-mode-select"
+          value={viewMode}
+          onChange={(e) => onViewModeChange(e.target.value as FinancialViewMode)}
           className="block w-60 pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
         >
-          <option value="current-year">Aktuální rok</option>
-          <option value="current-and-previous-year">Aktuální + předchozí rok</option>
-          <option value="last-6-months">Posledních 6 měsíců</option>
-          <option value="last-13-months">Posledních 13 měsíců</option>
-          <option value="last-26-months">Posledních 26 měsíců</option>
+          <option value="timeline">Časová osa</option>
+          <option value="comparison">Meziroční srovnání</option>
         </select>
       </div>
+
+      {viewMode === 'timeline' ? (
+        <div>
+          <label
+            htmlFor="period-select"
+            className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2"
+          >
+            Časové období:
+          </label>
+          <select
+            id="period-select"
+            value={selectedPeriod}
+            onChange={(e) => onPeriodChange(e.target.value as PeriodType)}
+            className="block w-60 pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+          >
+            <option value="current-year">Aktuální rok</option>
+            <option value="current-and-previous-year">Aktuální + předchozí rok</option>
+            <option value="last-6-months">Posledních 6 měsíců</option>
+            <option value="last-13-months">Posledních 13 měsíců</option>
+            <option value="last-26-months">Posledních 26 měsíců</option>
+          </select>
+        </div>
+      ) : (
+        <>
+          <div>
+            <label
+              htmlFor="comparison-years-select"
+              className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2"
+            >
+              Počet roků:
+            </label>
+            <select
+              id="comparison-years-select"
+              value={comparisonYears}
+              onChange={(e) => onComparisonYearsChange(Number(e.target.value))}
+              className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            >
+              <option value={2}>2 roky</option>
+              <option value={3}>3 roky</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
+              Metriky:
+            </label>
+            <div className="flex flex-col gap-1">
+              {COMPARISON_METRICS.map((metric) => (
+                <div key={metric} className="flex items-center">
+                  <input
+                    id={`metric-${metric}`}
+                    type="checkbox"
+                    checked={comparisonMetrics.includes(metric)}
+                    onChange={(e) => handleMetricToggle(metric, e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-graphite-border rounded"
+                  />
+                  <label
+                    htmlFor={`metric-${metric}`}
+                    className="ml-2 block text-sm text-gray-900 dark:text-graphite-text"
+                  >
+                    {COMPARISON_METRIC_LABELS[metric]}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
+              Osa grafu:
+            </label>
+            <div className="flex items-center h-[38px]">
+              <input
+                id="comparison-rolling-toggle"
+                type="checkbox"
+                checked={comparisonRolling}
+                onChange={(e) => onComparisonRollingChange(e.target.checked)}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-graphite-border rounded"
+              />
+              <label
+                htmlFor="comparison-rolling-toggle"
+                className="ml-2 block text-sm text-gray-900 dark:text-graphite-text"
+              >
+                Posledních 12 měsíců
+              </label>
+            </div>
+          </div>
+        </>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">

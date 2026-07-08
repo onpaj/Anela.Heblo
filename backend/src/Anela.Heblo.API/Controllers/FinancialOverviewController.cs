@@ -38,4 +38,25 @@ public class FinancialOverviewController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpGet("comparison")]
+    [ProducesResponseType(typeof(GetFinancialComparisonResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetFinancialComparison(
+        [FromQuery] int years = 3,
+        [FromQuery] bool includeStockData = true,
+        [FromQuery] List<string>? excludedDepartments = null,
+        [FromQuery] bool includePartialMonth = true)
+    {
+        var request = new GetFinancialComparisonRequest
+        {
+            Years = years,
+            IncludeStockData = includeStockData,
+            ExcludedDepartments = excludedDepartments,
+            IncludePartialMonth = includePartialMonth
+        };
+        var response = await _mediator.Send(request);
+
+        return Ok(response);
+    }
 }
