@@ -38,7 +38,7 @@ public class LotStockReconciliationComparerTests
     }
 
     [Fact]
-    public async Task TestType_IsLotSumVsErpStock()
+    public void TestType_IsLotSumVsErpStock()
     {
         CreateSut().TestType.Should().Be(DqtTestType.LotSumVsErpStock);
     }
