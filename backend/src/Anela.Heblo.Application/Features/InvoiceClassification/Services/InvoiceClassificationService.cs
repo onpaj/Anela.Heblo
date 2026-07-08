@@ -58,6 +58,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
                 {
                     Result = ClassificationResult.Success,
                     RuleId = matchedRule.Id,
+                    RuleName = matchedRule.Name,
                     AccountingTemplateCode = matchedRule.AccountingTemplateCode,
                     Department = matchedRule.Department
                 };
@@ -72,6 +73,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
                 {
                     Result = ClassificationResult.Error,
                     RuleId = matchedRule.Id,
+                    RuleName = matchedRule.Name,
                     Department = matchedRule.Department,
                     ErrorMessage = errorMessage
                 };
