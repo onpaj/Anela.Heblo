@@ -10,6 +10,7 @@ import GenericFeedbackStatsBar from '../components/feedback/GenericFeedbackStats
 import GenericFeedbackFilters from '../components/feedback/GenericFeedbackFilters';
 import GenericFeedbackTable from '../components/feedback/GenericFeedbackTable';
 import GenericFeedbackDetailModal from '../components/feedback/GenericFeedbackDetailModal';
+import RagFeedbackDetailExtra from '../components/feedback/RagFeedbackDetailExtra';
 import type { FeedbackDetail } from '../components/feedback/types';
 import { SORT_COLUMNS } from '../components/feedback/types';
 import { useScreenView } from '../telemetry/useScreenView';
@@ -32,22 +33,7 @@ function mapLogToDetail(log: FeedbackLogSummary): FeedbackDetail {
     styleScore: log.styleScore,
     hasFeedback: log.hasFeedback,
     feedbackComment: log.feedbackComment,
-    extra: (
-      <div className="grid grid-cols-3 gap-4 text-sm">
-        <div>
-          <p className="text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wide mb-1">TopK</p>
-          <p className="text-gray-900 dark:text-graphite-text">{log.topK}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wide mb-1">Zdrojů</p>
-          <p className="text-gray-900 dark:text-graphite-text">{log.sourceCount}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wide mb-1">Doba odezvy</p>
-          <p className="text-gray-900 dark:text-graphite-text">{log.durationMs} ms</p>
-        </div>
-      </div>
-    ),
+    extra: <RagFeedbackDetailExtra log={log} />,
   };
 }
 

@@ -1,7 +1,9 @@
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Rag;
 using Anela.Heblo.Domain.Shared.Rag;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.KnowledgeBase;
+using Anela.Heblo.Persistence.Rag;
 using DotNet.Testcontainers.Configurations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -26,6 +28,7 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
 
     private ApplicationDbContext _context = null!;
     private KnowledgeBaseRepository _repository = null!;
+    private RagInteractionLogRepository _ragRepository = null!;
 
     public async Task InitializeAsync()
     {
@@ -43,6 +46,7 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
 
         await SetupSchemaAsync();
         _repository = new KnowledgeBaseRepository(_context);
+        _ragRepository = new RagInteractionLogRepository(_context);
     }
 
     public async Task DisposeAsync()
@@ -89,18 +93,27 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
                 USING hnsw ("Embedding" vector_cosine_ops)
                 WITH (m = 16, ef_construction = 64);
 
-            CREATE TABLE IF NOT EXISTS public."KnowledgeBaseQuestionLogs" (
-                "Id"              uuid NOT NULL PRIMARY KEY,
-                "Question"        text NOT NULL,
-                "Answer"          text NOT NULL,
-                "TopK"            integer NOT NULL,
-                "SourceCount"     integer NOT NULL,
-                "DurationMs"      bigint NOT NULL,
-                "CreatedAt"       timestamp with time zone NOT NULL,
-                "UserId"          text NULL,
-                "PrecisionScore"  integer NULL,
-                "StyleScore"      integer NULL,
-                "FeedbackComment" text NULL
+            CREATE TABLE IF NOT EXISTS public."RagInteractionLogs" (
+                "Id"                  uuid NOT NULL PRIMARY KEY,
+                "Feature"             integer NOT NULL,
+                "CreatedAt"           timestamp with time zone NOT NULL,
+                "UserId"              text NULL,
+                "Question"            text NOT NULL,
+                "ExpandedQuery"       text NULL,
+                "TopK"                integer NOT NULL,
+                "SourceCount"         integer NOT NULL,
+                "RetrievedChunksJson" jsonb NOT NULL,
+                "SystemPrompt"        text NOT NULL,
+                "Answer"              text NOT NULL,
+                "ConversationId"      text NULL,
+                "Topic"               text NULL,
+                "SentAnswer"          text NULL,
+                "WasEdited"           boolean NULL,
+                "SentAt"              timestamp with time zone NULL,
+                "PrecisionScore"      integer NULL,
+                "StyleScore"          integer NULL,
+                "FeedbackComment"     text NULL,
+                "DurationMs"          bigint NOT NULL
             );
             """;
         await cmd.ExecuteNonQueryAsync();
@@ -125,16 +138,19 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
             GraphItemId = graphItemId
         };
 
-    private static KnowledgeBaseQuestionLog MakeQuestionLog(
+    private static RagInteractionLog MakeInteractionLog(
         int? precisionScore = null,
         int? styleScore = null) =>
         new()
         {
             Id = Guid.NewGuid(),
+            Feature = RagFeature.KnowledgeBase,
             Question = "q",
             Answer = "a",
             TopK = 5,
             SourceCount = 1,
+            RetrievedChunksJson = "[]",
+            SystemPrompt = "",
             DurationMs = 100,
             CreatedAt = DateTimeOffset.UtcNow,
             UserId = null,
@@ -366,7 +382,7 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task GetFeedbackStatsAsync_EmptyTable_ReturnsZeroCountsAndNullAverages()
     {
-        var stats = await _repository.GetFeedbackStatsAsync();
+        var stats = await _ragRepository.GetFeedbackStatsAsync(RagFeature.KnowledgeBase);
 
         Assert.Equal(0, stats.TotalQuestions);
         Assert.Equal(0, stats.TotalWithFeedback);
@@ -377,13 +393,13 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task GetFeedbackStatsAsync_RowsWithoutScores_ReturnsTotalsAndNullAverages()
     {
-        _context.KnowledgeBaseQuestionLogs.AddRange(
-            MakeQuestionLog(),
-            MakeQuestionLog(),
-            MakeQuestionLog());
+        _context.RagInteractionLogs.AddRange(
+            MakeInteractionLog(),
+            MakeInteractionLog(),
+            MakeInteractionLog());
         await _context.SaveChangesAsync();
 
-        var stats = await _repository.GetFeedbackStatsAsync();
+        var stats = await _ragRepository.GetFeedbackStatsAsync(RagFeature.KnowledgeBase);
 
         Assert.Equal(3, stats.TotalQuestions);
         Assert.Equal(0, stats.TotalWithFeedback);
@@ -394,14 +410,14 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task GetFeedbackStatsAsync_MixedFeedback_ReturnsCorrectCountsAndAverages()
     {
-        _context.KnowledgeBaseQuestionLogs.AddRange(
-            MakeQuestionLog(),
-            MakeQuestionLog(precisionScore: 5),
-            MakeQuestionLog(styleScore: 3),
-            MakeQuestionLog(precisionScore: 4, styleScore: 5));
+        _context.RagInteractionLogs.AddRange(
+            MakeInteractionLog(),
+            MakeInteractionLog(precisionScore: 5),
+            MakeInteractionLog(styleScore: 3),
+            MakeInteractionLog(precisionScore: 4, styleScore: 5));
         await _context.SaveChangesAsync();
 
-        var stats = await _repository.GetFeedbackStatsAsync();
+        var stats = await _ragRepository.GetFeedbackStatsAsync(RagFeature.KnowledgeBase);
 
         Assert.Equal(4, stats.TotalQuestions);
         Assert.Equal(3, stats.TotalWithFeedback);
@@ -414,13 +430,13 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
     {
         // PrecisionScore raw average = (5 + 5 + 4) / 3 = 4.6666... -> 4.7
         // StyleScore raw average     = (1 + 2) / 2     = 1.5       -> 1.5
-        _context.KnowledgeBaseQuestionLogs.AddRange(
-            MakeQuestionLog(precisionScore: 5, styleScore: 1),
-            MakeQuestionLog(precisionScore: 5, styleScore: 2),
-            MakeQuestionLog(precisionScore: 4));
+        _context.RagInteractionLogs.AddRange(
+            MakeInteractionLog(precisionScore: 5, styleScore: 1),
+            MakeInteractionLog(precisionScore: 5, styleScore: 2),
+            MakeInteractionLog(precisionScore: 4));
         await _context.SaveChangesAsync();
 
-        var stats = await _repository.GetFeedbackStatsAsync();
+        var stats = await _ragRepository.GetFeedbackStatsAsync(RagFeature.KnowledgeBase);
 
         Assert.Equal(3, stats.TotalQuestions);
         Assert.Equal(3, stats.TotalWithFeedback);
@@ -433,9 +449,9 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task GetFeedbackStatsAsync_ExecutesAggregateSqlWithoutMaterialisingRows()
     {
-        _context.KnowledgeBaseQuestionLogs.AddRange(
-            MakeQuestionLog(precisionScore: 5, styleScore: 4),
-            MakeQuestionLog());
+        _context.RagInteractionLogs.AddRange(
+            MakeInteractionLog(precisionScore: 5, styleScore: 4),
+            MakeInteractionLog());
         await _context.SaveChangesAsync();
 
         var loggerProvider = new CapturingLoggerProvider();
@@ -456,9 +472,9 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
             .Options;
 
         await using var ctx = new ApplicationDbContext(options);
-        var repo = new KnowledgeBaseRepository(ctx);
+        var repo = new RagInteractionLogRepository(ctx);
 
-        var stats = await repo.GetFeedbackStatsAsync();
+        var stats = await repo.GetFeedbackStatsAsync(RagFeature.KnowledgeBase);
 
         Assert.Equal(2, stats.TotalQuestions);
 

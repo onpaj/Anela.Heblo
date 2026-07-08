@@ -10,6 +10,7 @@ export interface DraftReplySource {
 }
 
 export interface DraftReplyResult {
+  id: string | null;
   answer: string;
   sources: DraftReplySource[];
 }
@@ -17,6 +18,7 @@ export interface DraftReplyResult {
 interface GenerateDraftReplyApiResponse {
   success: boolean;
   errorCode?: string;
+  id?: string | null;
   answer?: string;
   sources?: DraftReplySource[];
 }
@@ -64,7 +66,7 @@ export function useGenerateDraftReply(
         throw new Error(messageForError(data?.errorCode));
       }
 
-      return { answer: data.answer ?? "", sources: data.sources ?? [] };
+      return { id: data.id ?? null, answer: data.answer ?? "", sources: data.sources ?? [] };
     },
   });
 

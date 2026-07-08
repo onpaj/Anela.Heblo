@@ -1,6 +1,6 @@
-namespace Anela.Heblo.Domain.Features.KnowledgeBase;
+namespace Anela.Heblo.Application.Shared.Rag;
 
-public class FeedbackAggregateStats
+public class RagFeedbackStatsDto
 {
     public int TotalQuestions { get; set; }
     public int TotalWithFeedback { get; set; }

@@ -47,7 +47,24 @@ describe("useSendMessage", () => {
       "http://api.test/api/smartsupp/conversations/conv1/messages",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ content: "Dobrý den!" }),
+        body: JSON.stringify({ content: "Dobrý den!", draftLogId: null }),
+      }),
+    );
+  });
+
+  it("forwards draftLogId when the message came from an AI draft", async () => {
+    setApiResponse(200, { success: true, messageId: "ms123", createdAt: "2026-05-20T10:00:00Z" });
+
+    const { result } = renderHook(() => useSendMessage("conv1"), { wrapper });
+    act(() => result.current.send("Upravený návrh", "log-abc"));
+
+    await waitFor(() => expect(result.current.justSent).toBe(true));
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://api.test/api/smartsupp/conversations/conv1/messages",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ content: "Upravený návrh", draftLogId: "log-abc" }),
       }),
     );
   });
