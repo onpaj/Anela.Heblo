@@ -27,15 +27,4 @@ public interface IKnowledgeBaseRepository
     Task UpdateDocumentSourcePathAsync(Guid documentId, string newSourcePath, CancellationToken ct = default);
     Task UpdateDocumentGraphItemIdAsync(Guid documentId, string driveId, string graphItemId, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
-    Task SaveQuestionLogAsync(KnowledgeBaseQuestionLog log, CancellationToken ct = default);
-    Task<KnowledgeBaseQuestionLog?> GetQuestionLogByIdAsync(Guid id, CancellationToken ct = default);
-    Task<(List<KnowledgeBaseQuestionLog> Logs, int TotalCount)> GetFeedbackLogsPagedAsync(
-        bool? hasFeedback,
-        string? userId,
-        string sortBy,
-        bool sortDescending,
-        int pageNumber,
-        int pageSize,
-        CancellationToken ct = default);
-    Task<FeedbackAggregateStats> GetFeedbackStatsAsync(CancellationToken ct = default);
 }

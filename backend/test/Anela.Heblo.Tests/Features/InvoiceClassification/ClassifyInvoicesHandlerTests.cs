@@ -13,7 +13,6 @@ public class ClassifyInvoicesHandlerTests
 {
     private readonly Mock<IReceivedInvoicesClient> _invoicesClientMock;
     private readonly Mock<IInvoiceClassificationService> _classificationServiceMock;
-    private readonly Mock<IClassificationRuleRepository> _ruleRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<ClassifyInvoicesHandler>> _loggerMock;
     private readonly ClassifyInvoicesHandler _handler;
@@ -22,7 +21,6 @@ public class ClassifyInvoicesHandlerTests
     {
         _invoicesClientMock = new Mock<IReceivedInvoicesClient>();
         _classificationServiceMock = new Mock<IInvoiceClassificationService>();
-        _ruleRepositoryMock = new Mock<IClassificationRuleRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<ClassifyInvoicesHandler>>();
 
@@ -33,7 +31,6 @@ public class ClassifyInvoicesHandlerTests
         _handler = new ClassifyInvoicesHandler(
             _invoicesClientMock.Object,
             _classificationServiceMock.Object,
-            _ruleRepositoryMock.Object,
             _currentUserServiceMock.Object,
             _loggerMock.Object);
     }
@@ -190,5 +187,65 @@ public class ClassifyInvoicesHandlerTests
         _classificationServiceMock.Verify(
             x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>(), "jane.doe"),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenErrorResultHasRuleName_IncludesRuleNameInErrorMessage()
+    {
+        var invoiceId = "INV-005";
+
+        _invoicesClientMock
+            .Setup(x => x.GetInvoiceByIdAsync(invoiceId))
+            .ReturnsAsync(new ReceivedInvoice { InvoiceNumber = invoiceId, Labels = Array.Empty<string>() });
+
+        _classificationServiceMock
+            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>(), It.IsAny<string>()))
+            .ReturnsAsync(new InvoiceClassificationResult
+            {
+                Result = ClassificationResult.Error,
+                RuleId = Guid.NewGuid(),
+                RuleName = "My Rule",
+                ErrorMessage = "boom"
+            });
+
+        var request = new ClassifyInvoicesRequest
+        {
+            InvoiceIds = new List<string> { invoiceId }
+        };
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.Errors.Should().Be(1);
+        response.ErrorMessages.Should().Contain($"Invoice {invoiceId} (Rule: My Rule): boom");
+    }
+
+    [Fact]
+    public async Task Handle_WhenErrorResultHasNoRuleName_OmitsRuleSegmentFromErrorMessage()
+    {
+        var invoiceId = "INV-006";
+
+        _invoicesClientMock
+            .Setup(x => x.GetInvoiceByIdAsync(invoiceId))
+            .ReturnsAsync(new ReceivedInvoice { InvoiceNumber = invoiceId, Labels = Array.Empty<string>() });
+
+        _classificationServiceMock
+            .Setup(x => x.ClassifyInvoiceAsync(It.IsAny<ReceivedInvoice>(), It.IsAny<string>()))
+            .ReturnsAsync(new InvoiceClassificationResult
+            {
+                Result = ClassificationResult.Error,
+                RuleId = null,
+                RuleName = null,
+                ErrorMessage = "boom"
+            });
+
+        var request = new ClassifyInvoicesRequest
+        {
+            InvoiceIds = new List<string> { invoiceId }
+        };
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.Errors.Should().Be(1);
+        response.ErrorMessages.Should().Contain($"Invoice {invoiceId}: boom");
     }
 }

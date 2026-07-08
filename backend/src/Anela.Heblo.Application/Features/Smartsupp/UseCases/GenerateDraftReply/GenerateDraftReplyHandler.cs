@@ -1,5 +1,7 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Application.Shared.Rag;
+using Anela.Heblo.Domain.Features.Rag;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -25,6 +27,7 @@ public class GenerateDraftReplyHandler
     private readonly IChatClient _chatClient;
     private readonly SmartsuppDraftReplyOptions _options;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IRagInteractionRecorder _recorder;
     private readonly ILogger<GenerateDraftReplyHandler> _logger;
 
     public GenerateDraftReplyHandler(
@@ -33,6 +36,7 @@ public class GenerateDraftReplyHandler
         IChatClient chatClient,
         IOptions<SmartsuppDraftReplyOptions> options,
         ICurrentUserService currentUserService,
+        IRagInteractionRecorder recorder,
         ILogger<GenerateDraftReplyHandler> logger)
     {
         _repository = repository;
@@ -40,6 +44,7 @@ public class GenerateDraftReplyHandler
         _chatClient = chatClient;
         _options = options.Value;
         _currentUserService = currentUserService;
+        _recorder = recorder;
         _logger = logger;
     }
 
@@ -97,9 +102,19 @@ public class GenerateDraftReplyHandler
             return new GenerateDraftReplyResponse(ErrorCodes.SmartsuppDraftReplyAiUnavailable);
         }
 
+        var answer = response.Text ?? string.Empty;
+
+        _recorder.RecordInteraction(
+            RagFeature.SmartsuppDraftReply,
+            retrievalQuery,
+            systemPrompt,
+            answer,
+            conversationId: request.ConversationId,
+            topic: topic);
+
         return new GenerateDraftReplyResponse
         {
-            Answer = response.Text ?? string.Empty,
+            Answer = answer,
             Sources = searchResult.Chunks.Select(c => new DraftReplySource
             {
                 ChunkId = c.ChunkId,

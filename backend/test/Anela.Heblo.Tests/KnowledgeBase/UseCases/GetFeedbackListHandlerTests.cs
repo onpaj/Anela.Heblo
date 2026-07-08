@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetFeedbackList;
 using Anela.Heblo.Application.Shared.Users;
-using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Rag;
 using Moq;
 using Xunit;
 
@@ -8,7 +8,7 @@ namespace Anela.Heblo.Tests.KnowledgeBase.UseCases;
 
 public class GetFeedbackListHandlerTests
 {
-    private readonly Mock<IKnowledgeBaseRepository> _repository = new();
+    private readonly Mock<IRagInteractionLogRepository> _repository = new();
     private readonly Mock<IUserDisplayNameResolver> _userDisplayNameResolver = new();
 
     public GetFeedbackListHandlerTests()
@@ -18,13 +18,14 @@ public class GetFeedbackListHandlerTests
             .ReturnsAsync((IReadOnlyDictionary<string, string?>)new Dictionary<string, string?>());
     }
 
-    private static KnowledgeBaseQuestionLog MakeLog(
+    private static RagInteractionLog MakeLog(
         bool hasFeedback = false,
         int? precisionScore = null,
         int? styleScore = null) =>
         new()
         {
             Id = Guid.NewGuid(),
+            Feature = RagFeature.KnowledgeBase,
             Question = "What is the return policy?",
             Answer = "You can return items within 30 days.",
             TopK = 5,
@@ -36,7 +37,7 @@ public class GetFeedbackListHandlerTests
             StyleScore = hasFeedback ? (styleScore ?? 3) : null,
         };
 
-    private static FeedbackAggregateStats DefaultStats() =>
+    private static RagFeedbackAggregateStats DefaultStats() =>
         new()
         {
             TotalQuestions = 10,
@@ -46,12 +47,13 @@ public class GetFeedbackListHandlerTests
         };
 
     private void SetupRepository(
-        List<KnowledgeBaseQuestionLog> logs,
+        List<RagInteractionLog> logs,
         int? totalCount = null,
-        FeedbackAggregateStats? stats = null)
+        RagFeedbackAggregateStats? stats = null)
     {
         _repository
             .Setup(r => r.GetFeedbackLogsPagedAsync(
+                It.IsAny<RagFeature?>(),
                 It.IsAny<bool?>(),
                 It.IsAny<string?>(),
                 It.IsAny<string>(),
@@ -62,7 +64,7 @@ public class GetFeedbackListHandlerTests
             .ReturnsAsync((logs, totalCount ?? logs.Count));
 
         _repository
-            .Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetFeedbackStatsAsync(It.IsAny<RagFeature?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(stats ?? DefaultStats());
     }
 
@@ -93,7 +95,7 @@ public class GetFeedbackListHandlerTests
     [Fact]
     public async Task Handle_ReturnsStatsFromRepository()
     {
-        var stats = new FeedbackAggregateStats
+        var stats = new RagFeedbackAggregateStats
         {
             TotalQuestions = 42,
             TotalWithFeedback = 17,
@@ -173,6 +175,7 @@ public class GetFeedbackListHandlerTests
         string? capturedSortBy = null;
         _repository
             .Setup(r => r.GetFeedbackLogsPagedAsync(
+                It.IsAny<RagFeature?>(),
                 It.IsAny<bool?>(),
                 It.IsAny<string?>(),
                 It.IsAny<string>(),
@@ -180,11 +183,11 @@ public class GetFeedbackListHandlerTests
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .Callback<bool?, string?, string, bool, int, int, CancellationToken>(
-                (_, _, sortBy, _, _, _, _) => capturedSortBy = sortBy)
-            .ReturnsAsync((new List<KnowledgeBaseQuestionLog>(), 0));
+            .Callback<RagFeature?, bool?, string?, string, bool, int, int, CancellationToken>(
+                (_, _, _, sortBy, _, _, _, _) => capturedSortBy = sortBy)
+            .ReturnsAsync((new List<RagInteractionLog>(), 0));
         _repository
-            .Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetFeedbackStatsAsync(It.IsAny<RagFeature?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(DefaultStats());
 
         var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);
@@ -205,6 +208,7 @@ public class GetFeedbackListHandlerTests
 
         _repository
             .Setup(r => r.GetFeedbackLogsPagedAsync(
+                It.IsAny<RagFeature?>(),
                 It.IsAny<bool?>(),
                 It.IsAny<string?>(),
                 It.IsAny<string>(),
@@ -212,8 +216,8 @@ public class GetFeedbackListHandlerTests
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .Callback<bool?, string?, string, bool, int, int, CancellationToken>(
-                (hf, uid, sb, sd, pn, ps, _) =>
+            .Callback<RagFeature?, bool?, string?, string, bool, int, int, CancellationToken>(
+                (_, hf, uid, sb, sd, pn, ps, _) =>
                 {
                     capturedHasFeedback = hf;
                     capturedUserId = uid;
@@ -222,9 +226,9 @@ public class GetFeedbackListHandlerTests
                     capturedPage = pn;
                     capturedPageSize = ps;
                 })
-            .ReturnsAsync((new List<KnowledgeBaseQuestionLog>(), 0));
+            .ReturnsAsync((new List<RagInteractionLog>(), 0));
         _repository
-            .Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetFeedbackStatsAsync(It.IsAny<RagFeature?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(DefaultStats());
 
         var handler = new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object);

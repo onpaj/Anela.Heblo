@@ -27,6 +27,11 @@ public class ClassificationRuleRepository : IClassificationRuleRepository
             .ToListAsync();
     }
 
+    public async Task<int> GetMaxOrderAsync()
+    {
+        return await _context.ClassificationRules.MaxAsync(r => (int?)r.Order) ?? 0;
+    }
+
     public async Task<ClassificationRule?> GetByIdAsync(Guid id)
     {
         return await _context.ClassificationRules
