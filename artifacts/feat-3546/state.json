@@ -21,16 +21,16 @@
       "updated_at": "2026-07-08T08:22:36.504136Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-08T08:23:00.690408Z"
     }
   },
   "tasks": [
     {
       "name": "move-rulename-into-classification-result",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-08T08:23:00.898647Z"
     }
   ]
 }
