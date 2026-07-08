@@ -21,16 +21,16 @@
       "updated_at": "2026-07-08T08:22:36.504136Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-08T08:23:00.690408Z"
+      "status": "completed",
+      "updated_at": "2026-07-08T08:37:09.434164Z"
     }
   },
   "tasks": [
     {
       "name": "move-rulename-into-classification-result",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-08T08:23:00.898647Z"
+      "updated_at": "2026-07-08T08:37:00.856427Z"
     }
   ]
 }
