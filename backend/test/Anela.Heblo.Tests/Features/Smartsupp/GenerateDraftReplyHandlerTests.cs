@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Application.Shared.Rag;
+using Anela.Heblo.Domain.Features.Rag;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
@@ -20,6 +22,7 @@ public class GenerateDraftReplyHandlerTests
     private readonly Mock<IChatClient> _chatClient = new();
     private readonly Mock<ILogger<GenerateDraftReplyHandler>> _logger = new();
     private readonly Mock<ICurrentUserService> _currentUserService = new();
+    private readonly RagInteractionRecorder _recorder = new();
 
     public GenerateDraftReplyHandlerTests()
     {
@@ -35,6 +38,7 @@ public class GenerateDraftReplyHandlerTests
         new(_repo.Object, _mediator.Object, _chatClient.Object,
             Options.Create(options ?? new SmartsuppDraftReplyOptions()),
             _currentUserService.Object,
+            _recorder,
             _logger.Object);
 
     private static SmartsuppMessage Msg(string id, SmartsuppMessageAuthorType type, string content, int minute) =>
@@ -298,5 +302,24 @@ public class GenerateDraftReplyHandlerTests
 
         var systemMessage = _capturedChat!.First(m => m.Role == ChatRole.System).Text!;
         systemMessage.Should().Contain("Jméno: Anela");
+    }
+
+    [Fact]
+    public async Task Handle_RecordsInteractionForEvalLog_OnSuccess()
+    {
+        SetupConversation(ConversationWith(
+            Msg("m1", SmartsuppMessageAuthorType.Visitor, "Dotaz", 1)));
+        SetupSearch(Chunk("Obsah o dopravě.", "doprava.pdf"));
+        SetupChat("Dobrý den, balíky odesíláme do 24 hodin.");
+
+        await CreateHandler().Handle(
+            new GenerateDraftReplyRequest { ConversationId = "c1", Topic = "Doprava" }, CancellationToken.None);
+
+        _recorder.HasInteraction.Should().BeTrue();
+        _recorder.Feature.Should().Be(RagFeature.SmartsuppDraftReply);
+        _recorder.Answer.Should().Be("Dobrý den, balíky odesíláme do 24 hodin.");
+        _recorder.ConversationId.Should().Be("c1");
+        _recorder.Topic.Should().Be("Doprava");
+        _recorder.SystemPrompt.Should().NotBeNullOrEmpty();
     }
 }

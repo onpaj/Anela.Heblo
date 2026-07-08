@@ -1,3 +1,5 @@
+using Anela.Heblo.Application.Features.FinancialOverview;
+
 namespace Anela.Heblo.Application.Features.FinancialOverview.Services;
 
 public interface IFinancialAnalysisService
@@ -26,4 +28,15 @@ public interface IFinancialAnalysisService
     /// Gets the cache status for monitoring
     /// </summary>
     FinancialAnalysisCacheStatus GetCacheStatus();
+
+    /// <summary>
+    /// Gets year-over-year financial comparison data, aligning each year's partial month
+    /// to the same cutoff day for a fair comparison.
+    /// </summary>
+    Task<GetFinancialComparisonResponse> GetFinancialComparisonAsync(
+        int years,
+        bool includeStockData,
+        IReadOnlyList<string>? excludedDepartments,
+        bool includePartialMonth,
+        CancellationToken cancellationToken = default);
 }

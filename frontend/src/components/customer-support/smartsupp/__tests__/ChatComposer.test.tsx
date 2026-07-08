@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ChatComposer from "../ChatComposer";
 import * as draftReplyHook from "../hooks/useGenerateDraftReply";
 import * as sendMessageHook from "../hooks/useSendMessage";
+import * as feedbackHook from "../hooks/useSubmitDraftReplyFeedback";
 
 const generate = jest.fn();
 const reset = jest.fn();
@@ -32,13 +33,26 @@ function mockSendHook(overrides: Partial<ReturnType<typeof sendMessageHook.useSe
   });
 }
 
+const submitFeedback = jest.fn();
+
+function mockFeedbackHook() {
+  jest.spyOn(feedbackHook, "useSubmitDraftReplyFeedback").mockReturnValue({
+    mutate: submitFeedback,
+    isPending: false,
+    isSuccess: false,
+    data: undefined,
+  } as unknown as ReturnType<typeof feedbackHook.useSubmitDraftReplyFeedback>);
+}
+
 beforeEach(() => {
   generate.mockReset();
   reset.mockReset();
   sendFn.mockReset();
   clearSent.mockReset();
+  submitFeedback.mockReset();
   jest.restoreAllMocks();
   mockSendHook({}); // default: idle, non-pending, no error
+  mockFeedbackHook();
 });
 
 describe("ChatComposer", () => {
@@ -68,6 +82,7 @@ describe("ChatComposer", () => {
   it("places the generated answer into the textarea and shows the AI toolbar", async () => {
     mockHook({
       result: {
+        id: null,
         answer: "Dobrý den, reklamaci vyřídíme do 14 dnů.",
         sources: [{ documentId: "d1", filename: "reklamace.pdf", excerpt: "...", score: 0.9 }],
       },
@@ -82,7 +97,7 @@ describe("ChatComposer", () => {
 
   it("clears the draft and hides the toolbar on discard", async () => {
     mockHook({
-      result: { answer: "Vygenerovaná odpověď", sources: [] },
+      result: { id: null, answer: "Vygenerovaná odpověď", sources: [] },
     });
     render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
     expect(await screen.findByText("Návrh od AI")).toBeInTheDocument();
@@ -94,7 +109,7 @@ describe("ChatComposer", () => {
 
   it("hides the AI toolbar once the agent edits the generated draft", async () => {
     mockHook({
-      result: { answer: "Vygenerovaná odpověď", sources: [] },
+      result: { id: null, answer: "Vygenerovaná odpověď", sources: [] },
     });
     render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
     expect(await screen.findByText("Návrh od AI")).toBeInTheDocument();
@@ -157,7 +172,7 @@ describe("ChatComposer", () => {
 
   it("calls onDraftChange with AI answer when draft is generated", async () => {
     const onDraftChange = jest.fn();
-    mockHook({ result: { answer: "AI odpověď", sources: [] } });
+    mockHook({ result: { id: null, answer: "AI odpověď", sources: [] } });
     render(<ChatComposer conversationId="c1" lastContactMessage="Hi" onDraftChange={onDraftChange} />);
     await waitFor(() => expect(onDraftChange).toHaveBeenCalledWith("AI odpověď"));
   });
@@ -180,7 +195,18 @@ describe("ChatComposer", () => {
       target: { value: "Odpověď zákazníkovi" },
     });
     fireEvent.click(screen.getByRole("button", { name: /odeslat/i }));
-    expect(sendFn).toHaveBeenCalledWith("Odpověď zákazníkovi");
+    expect(sendFn).toHaveBeenCalledWith("Odpověď zákazníkovi", null);
+  });
+
+  it("shows the rating form and forwards the draft log id on send for an AI draft", async () => {
+    mockHook({ result: { id: "log-42", answer: "AI návrh", sources: [] } });
+    mockSendHook({});
+    render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
+
+    expect(await screen.findByText("Ohodnoťte odpověď")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Odeslat" }));
+    expect(sendFn).toHaveBeenCalledWith("AI návrh", "log-42");
   });
 
   it("disables Send button and shows sending state while isPending", () => {

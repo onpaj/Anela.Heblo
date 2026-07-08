@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Rag;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -12,6 +13,7 @@ public class SendMessageHandler : IRequestHandler<SendMessageRequest, SendMessag
     private readonly ISmartsuppRepository _repository;
     private readonly ISmartsuppApiClient _apiClient;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IRagInteractionLogRepository _interactionLogRepository;
     private readonly IOptions<SmartsuppSendMessageOptions> _options;
     private readonly ILogger<SendMessageHandler> _logger;
 
@@ -19,12 +21,14 @@ public class SendMessageHandler : IRequestHandler<SendMessageRequest, SendMessag
         ISmartsuppRepository repository,
         ISmartsuppApiClient apiClient,
         ICurrentUserService currentUserService,
+        IRagInteractionLogRepository interactionLogRepository,
         IOptions<SmartsuppSendMessageOptions> options,
         ILogger<SendMessageHandler> logger)
     {
         _repository = repository;
         _apiClient = apiClient;
         _currentUserService = currentUserService;
+        _interactionLogRepository = interactionLogRepository;
         _options = options;
         _logger = logger;
     }
@@ -62,6 +66,23 @@ public class SendMessageHandler : IRequestHandler<SendMessageRequest, SendMessag
             _logger.LogWarning(ex, "Smartsupp API unavailable while sending message to {ConversationId}",
                 request.ConversationId);
             return new SendMessageResponse(ErrorCodes.SmartsuppSendMessageUnavailable);
+        }
+
+        // If this message came from an AI draft, record the actually-sent text (and edit signal)
+        // for the eval dataset. Best-effort — never fail the send because logging failed.
+        if (request.DraftLogId is { } draftLogId)
+        {
+            try
+            {
+                await _interactionLogRepository.UpdateSentAsync(
+                    draftLogId, request.Content, DateTimeOffset.UtcNow, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to record sent answer on RAG interaction log {DraftLogId} for conversation {ConversationId}",
+                    draftLogId, request.ConversationId);
+            }
         }
 
         return new SendMessageResponse

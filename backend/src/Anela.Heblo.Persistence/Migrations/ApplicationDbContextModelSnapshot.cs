@@ -1738,49 +1738,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("KnowledgeBaseDocuments", "public");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.KnowledgeBase.KnowledgeBaseQuestionLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Answer")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("DurationMs")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FeedbackComment")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("PrecisionScore")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Question")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("SourceCount")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("StyleScore")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TopK")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("KnowledgeBaseQuestionLogs", "public");
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Leaflet.LeafletChunk", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3582,6 +3539,84 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("PurchaseOrderId");
 
                     b.ToTable("PurchaseOrderLines", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Rag.RagInteractionLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Answer")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ConversationId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ExpandedQuery")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Feature")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FeedbackComment")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("PrecisionScore")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RetrievedChunksJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("SentAnswer")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SourceCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("StyleScore")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SystemPrompt")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TopK")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Topic")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<bool?>("WasEdited")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Feature", "CreatedAt");
+
+                    b.ToTable("RagInteractionLogs", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Smartsupp.SmartsuppContact", b =>

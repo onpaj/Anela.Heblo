@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Maximize2, Minimize2, Send } from "lucide-react";
 import DraftReplyTriggerBar from "./DraftReplyTriggerBar";
 import DraftReplyToolbar from "./DraftReplyToolbar";
+import DraftReplyFeedback from "./DraftReplyFeedback";
 import { useGenerateDraftReply, type DraftReplySource } from "./hooks/useGenerateDraftReply";
 import { useSendMessage } from "./hooks/useSendMessage";
 
@@ -17,6 +18,7 @@ const MAX_CHARS = 4000;
 function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraftChange }: ChatComposerProps) {
   const [draft, setDraft] = useState(initialDraft ?? "");
   const [isAiDraft, setIsAiDraft] = useState(false);
+  const [draftLogId, setDraftLogId] = useState<string | null>(null);
   const [sources, setSources] = useState<DraftReplySource[]>([]);
   const [lastTopic, setLastTopic] = useState<string | undefined>(undefined);
   const [pendingTopic, setPendingTopic] = useState<{ topic: string | undefined } | null>(null);
@@ -30,6 +32,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
       const answer = result.answer.slice(0, MAX_CHARS);
       setDraft(answer);
       setSources(result.sources);
+      setDraftLogId(result.id);
       setIsAiDraft(true);
       onDraftChange?.(answer);
       reset();
@@ -40,6 +43,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
     if (justSent) {
       setDraft("");
       setSources([]);
+      setDraftLogId(null);
       setIsAiDraft(false);
       setLastTopic(undefined);
       setPendingTopic(null);
@@ -81,6 +85,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
   const handleDiscard = () => {
     setDraft("");
     setSources([]);
+    setDraftLogId(null);
     setIsAiDraft(false);
     setLastTopic(undefined);
     setPendingTopic(null);
@@ -89,7 +94,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
 
   const handleSend = () => {
     if (!draft.trim() || isSending) return;
-    send(draft);
+    send(draft, draftLogId);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -185,6 +190,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
             {isSending ? "Odesílám…" : "Odeslat"}
           </button>
         </div>
+        {draftLogId && <DraftReplyFeedback key={draftLogId} logId={draftLogId} />}
       </div>
     </div>
   );

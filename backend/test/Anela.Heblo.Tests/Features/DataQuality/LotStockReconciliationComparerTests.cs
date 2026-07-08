@@ -1,7 +1,5 @@
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Application.Features.DataQuality.Services;
-using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.Lots;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.DataQuality;
 using FluentAssertions;
 using Moq;
@@ -10,32 +8,25 @@ namespace Anela.Heblo.Tests.Features.DataQuality;
 
 public class LotStockReconciliationComparerTests
 {
-    private readonly Mock<ICatalogRepository> _catalogMock = new();
+    private readonly Mock<IMaterialLotStockQuery> _materialLotStockMock = new();
     private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.Today);
 
-    private LotStockReconciliationComparer CreateSut() => new(_catalogMock.Object);
+    private LotStockReconciliationComparer CreateSut() => new(_materialLotStockMock.Object);
 
-    private void SetupCatalog(params CatalogAggregate[] items) =>
-        _catalogMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IEnumerable<CatalogAggregate>)items.ToList());
+    private void SetupMaterials(params MaterialLotStockSnapshot[] items) =>
+        _materialLotStockMock.Setup(q => q.GetMaterialsWithExpirationAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(items.ToList());
 
-    private static CatalogAggregate Material(
+    private static MaterialLotStockSnapshot Material(
         string code,
         decimal erp,
-        bool hasExpiration = true,
-        params decimal[] lotAmounts)
-    {
-        var item = new CatalogAggregate
+        params decimal[] lotAmounts) =>
+        new()
         {
             ProductCode = code,
-            Type = ProductType.Material,
-            HasExpiration = hasExpiration,
-            Stock = new StockData { Erp = erp }
+            ErpStock = erp,
+            LotAmounts = lotAmounts.ToList()
         };
-        foreach (var amount in lotAmounts)
-            item.Stock.Lots.Add(new CatalogLot { ProductCode = code, Amount = amount });
-        return item;
-    }
 
     [Fact]
     public void TestType_IsLotSumVsErpStock()
@@ -47,7 +38,7 @@ public class LotStockReconciliationComparerTests
     public async Task CompareAsync_ReturnsNoMismatch_WhenLotSumEqualsErp_AndCountsItem()
     {
         // Arrange
-        SetupCatalog(Material("MAT001", erp: 10m, lotAmounts: new[] { 4m, 6m }));
+        SetupMaterials(Material("MAT001", erp: 10m, lotAmounts: new[] { 4m, 6m }));
 
         // Act
         var result = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
@@ -61,7 +52,7 @@ public class LotStockReconciliationComparerTests
     public async Task CompareAsync_ReturnsNoMismatch_WhenDifferenceWithinTolerance()
     {
         // Arrange — |10.005 - 10| = 0.005 <= 0.01
-        SetupCatalog(Material("MAT001", erp: 10m, lotAmounts: new[] { 10.005m }));
+        SetupMaterials(Material("MAT001", erp: 10m, lotAmounts: new[] { 10.005m }));
 
         // Act
         var result = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
@@ -75,7 +66,7 @@ public class LotStockReconciliationComparerTests
     public async Task CompareAsync_ReturnsSumMismatch_WhenLotSumDiffersBeyondTolerance()
     {
         // Arrange
-        SetupCatalog(Material("MAT001", erp: 10m, lotAmounts: new[] { 5m, 3m }));
+        SetupMaterials(Material("MAT001", erp: 10m, lotAmounts: new[] { 5m, 3m }));
 
         // Act
         var result = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
@@ -97,7 +88,7 @@ public class LotStockReconciliationComparerTests
     public async Task CompareAsync_ReturnsMissingLots_WhenErpPositiveButNoLots()
     {
         // Arrange
-        SetupCatalog(Material("MAT001", erp: 10m));
+        SetupMaterials(Material("MAT001", erp: 10m));
 
         // Act
         var result = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
@@ -111,7 +102,7 @@ public class LotStockReconciliationComparerTests
     public async Task CompareAsync_ReturnsOrphanLots_WhenLotsPresentButErpZero()
     {
         // Arrange
-        SetupCatalog(Material("MAT001", erp: 0m, lotAmounts: new[] { 5m }));
+        SetupMaterials(Material("MAT001", erp: 0m, lotAmounts: new[] { 5m }));
 
         // Act
         var result = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
@@ -122,46 +113,10 @@ public class LotStockReconciliationComparerTests
     }
 
     [Fact]
-    public async Task CompareAsync_ExcludesNonMaterial_EvenWhenLotSumMismatches()
+    public async Task CompareAsync_ReturnsEmpty_WhenNoMaterialsInScope()
     {
         // Arrange
-        var goods = new CatalogAggregate
-        {
-            ProductCode = "PROD001",
-            Type = ProductType.Product,
-            HasExpiration = true,
-            Stock = new StockData { Erp = 10m }
-        };
-        goods.Stock.Lots.Add(new CatalogLot { ProductCode = "PROD001", Amount = 1m });
-        SetupCatalog(goods);
-
-        // Act
-        var result = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
-
-        // Assert
-        result.Mismatches.Should().BeEmpty();
-        result.TotalChecked.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task CompareAsync_ExcludesMaterialWithoutExpiration()
-    {
-        // Arrange
-        SetupCatalog(Material("MAT001", erp: 10m, hasExpiration: false, lotAmounts: new[] { 1m }));
-
-        // Act
-        var result = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
-
-        // Assert
-        result.Mismatches.Should().BeEmpty();
-        result.TotalChecked.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task CompareAsync_ReturnsEmpty_WhenRepositoryEmpty()
-    {
-        // Arrange
-        SetupCatalog();
+        SetupMaterials();
 
         // Act
         var result = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
@@ -175,19 +130,18 @@ public class LotStockReconciliationComparerTests
     public async Task CompareAsync_CountsAllInScopeItems_AndReportsOnlyMismatches()
     {
         // Arrange
-        SetupCatalog(
+        SetupMaterials(
             Material("OK001", erp: 10m, lotAmounts: new[] { 10m }),          // matches
             Material("BAD001", erp: 10m, lotAmounts: new[] { 3m }),          // SumMismatch
             Material("MISS001", erp: 5m),                                    // MissingLots
-            Material("ORPH001", erp: 0m, lotAmounts: new[] { 2m }),          // OrphanLots
-            Material("NOEXP001", erp: 5m, hasExpiration: false, lotAmounts: new[] { 1m }) // excluded
+            Material("ORPH001", erp: 0m, lotAmounts: new[] { 2m })           // OrphanLots
         );
 
         // Act
         var result = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
 
         // Assert
-        result.TotalChecked.Should().Be(4); // NOEXP001 excluded
+        result.TotalChecked.Should().Be(4);
         result.Mismatches.Select(m => m.EntityKey)
             .Should().BeEquivalentTo(new[] { "BAD001", "MISS001", "ORPH001" });
     }
@@ -196,7 +150,7 @@ public class LotStockReconciliationComparerTests
     public async Task CompareAsync_IgnoresDateRange()
     {
         // Arrange
-        SetupCatalog(Material("MAT001", erp: 10m, lotAmounts: new[] { 10m }));
+        SetupMaterials(Material("MAT001", erp: 10m, lotAmounts: new[] { 10m }));
 
         // Act — arbitrary range must not affect the snapshot result
         var result = await CreateSut().CompareAsync(
