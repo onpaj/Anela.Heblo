@@ -50,6 +50,15 @@ public class FinancialAnalysisServiceTests
                 It.IsAny<DateTime>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<MonthlyStockChange>());
+
+        // Default: partial stock primitive returns a zero change stamped with the period's year/month
+        _stockValueServiceMock
+            .Setup(x => x.GetStockValueChangeForPeriodAsync(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DateTime start, DateTime _, CancellationToken __) =>
+                new MonthlyStockChange { Year = start.Year, Month = start.Month });
     }
 
     [Fact]
@@ -546,5 +555,81 @@ public class FinancialAnalysisServiceTests
         cache4.TryGetValue("financial_last_refresh", out DateTime? lastRefresh).Should().BeTrue(
             "last refresh timestamp should be cached after a successful refresh");
         lastRefresh.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+    }
+
+    [Theory]
+    [InlineData(1, 2)]
+    [InlineData(2, 2)]
+    [InlineData(3, 3)]
+    [InlineData(9, 3)]
+    public async Task GetFinancialComparisonAsync_ClampsYearsToBetween2And3(int requested, int expectedYears)
+    {
+        var response = await _service.GetFinancialComparisonAsync(
+            years: requested, includeStockData: false, excludedDepartments: null, includePartialMonth: true);
+
+        response.Series.Should().HaveCount(expectedYears);
+        response.Metadata.Years.Should().HaveCount(expectedYears);
+    }
+
+    [Fact]
+    public async Task GetFinancialComparisonAsync_PartialMonth_IsCutAtSameDayForEveryYear()
+    {
+        var cutoff = DateTime.UtcNow.Date.AddDays(-5);
+        var anchorYear = cutoff.Year;
+        var partialMonth = cutoff.Month;
+        var cutoffDay = cutoff.Day;
+
+        await _service.GetFinancialComparisonAsync(
+            years: 2, includeStockData: false, excludedDepartments: null, includePartialMonth: true);
+
+        // Anchor year: partial month queried through the cutoff date itself.
+        var anchorStart = new DateTime(anchorYear, partialMonth, 1);
+        _ledgerServiceMock.Verify(x => x.GetLedgerItems(
+            anchorStart, cutoff,
+            It.IsAny<IEnumerable<string>?>(), It.IsAny<IEnumerable<string>?>(),
+            It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+
+        // Prior year: same month cut at the same day-of-month (clamped to that month's length).
+        var priorYear = anchorYear - 1;
+        var priorStart = new DateTime(priorYear, partialMonth, 1);
+        var priorEnd = new DateTime(priorYear, partialMonth,
+            Math.Min(cutoffDay, DateTime.DaysInMonth(priorYear, partialMonth)));
+        _ledgerServiceMock.Verify(x => x.GetLedgerItems(
+            priorStart, priorEnd,
+            It.IsAny<IEnumerable<string>?>(), It.IsAny<IEnumerable<string>?>(),
+            It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task GetFinancialComparisonAsync_MarksPartialCells_AndOmitsAnchorFutureMonths()
+    {
+        var cutoff = DateTime.UtcNow.Date.AddDays(-5);
+        var anchorYear = cutoff.Year;
+
+        var response = await _service.GetFinancialComparisonAsync(
+            years: 2, includeStockData: true, excludedDepartments: null, includePartialMonth: true);
+
+        var anchorSeries = response.Series.Single(s => s.Year == anchorYear);
+        anchorSeries.Months.Should().OnlyContain(m => m.Month <= cutoff.Month);
+        anchorSeries.Months.Max(m => m.Month).Should().Be(cutoff.Month);
+
+        var partialCells = response.Series.SelectMany(s => s.Months).Where(m => m.IsPartial == true).ToList();
+        partialCells.Should().NotBeEmpty();
+        partialCells.Should().OnlyContain(m => m.Month == cutoff.Month);
+        partialCells.Should().OnlyContain(m =>
+            m.PartialDayOfMonth == Math.Min(cutoff.Day, DateTime.DaysInMonth(m.Year, m.Month)));
+    }
+
+    [Fact]
+    public async Task GetFinancialComparisonAsync_WhenPartialExcluded_DropsPartialMonthFromEveryYear()
+    {
+        var cutoff = DateTime.UtcNow.Date.AddDays(-5);
+        var partialMonth = cutoff.Month;
+
+        var response = await _service.GetFinancialComparisonAsync(
+            years: 2, includeStockData: false, excludedDepartments: null, includePartialMonth: false);
+
+        response.Series.Should().HaveCount(2);
+        response.Series.SelectMany(s => s.Months).Should().NotContain(m => m.Month == partialMonth);
     }
 }
