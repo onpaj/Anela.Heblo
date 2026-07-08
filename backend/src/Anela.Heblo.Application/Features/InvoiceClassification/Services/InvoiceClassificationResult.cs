@@ -8,6 +8,8 @@ public class InvoiceClassificationResult
 
     public Guid? RuleId { get; set; }
 
+    public string? RuleName { get; set; }
+
     public string? AccountingTemplateCode { get; set; }
 
     public string? Department { get; set; }

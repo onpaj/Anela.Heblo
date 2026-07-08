@@ -10,17 +10,21 @@ namespace Anela.Heblo.Tests.Features.Analytics;
 public class GetInvoiceImportStatisticsHandlerTests
 {
     private readonly Mock<IAnalyticsRepository> _mockRepository;
+    private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly GetInvoiceImportStatisticsHandler _handler;
+    private readonly DateTime _fixedDateTime = new DateTime(2025, 10, 14, 10, 0, 0, DateTimeKind.Utc);
 
     public GetInvoiceImportStatisticsHandlerTests()
     {
         _mockRepository = new Mock<IAnalyticsRepository>();
+        _timeProviderMock = new Mock<TimeProvider>();
+        _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(_fixedDateTime);
         var options = Options.Create(new InvoiceImportOptions
         {
             MinimumDailyThreshold = 10,
             DefaultDaysBack = 14
         });
-        _handler = new GetInvoiceImportStatisticsHandler(_mockRepository.Object, options);
+        _handler = new GetInvoiceImportStatisticsHandler(_mockRepository.Object, options, _timeProviderMock.Object);
     }
 
     [Fact]
@@ -34,7 +38,7 @@ public class GetInvoiceImportStatisticsHandlerTests
         };
 
         var expectedThreshold = 10;
-        var baseDate = DateTime.UtcNow.Date;
+        var baseDate = _fixedDateTime.Date;
         var expectedData = new List<DailyInvoiceCount>
         {
             new() { Date = DateTime.SpecifyKind(baseDate.AddDays(-1), DateTimeKind.Utc), Count = 15 },
@@ -68,7 +72,8 @@ public class GetInvoiceImportStatisticsHandlerTests
         // Arrange - Create handler with empty configuration
         var handlerWithEmptyConfig = new GetInvoiceImportStatisticsHandler(
             _mockRepository.Object,
-            Options.Create(new InvoiceImportOptions()));
+            Options.Create(new InvoiceImportOptions()),
+            _timeProviderMock.Object);
 
         var request = new GetInvoiceImportStatisticsRequest();
         var expectedData = new List<DailyInvoiceCount>();
@@ -93,7 +98,8 @@ public class GetInvoiceImportStatisticsHandlerTests
         // Arrange - Create handler with custom default days back
         var handlerWithCustomConfig = new GetInvoiceImportStatisticsHandler(
             _mockRepository.Object,
-            Options.Create(new InvoiceImportOptions { DefaultDaysBack = 30 }));
+            Options.Create(new InvoiceImportOptions { DefaultDaysBack = 30 }),
+            _timeProviderMock.Object);
 
         var request = new GetInvoiceImportStatisticsRequest(); // DaysBack = null to use default
         var expectedData = new List<DailyInvoiceCount>();
@@ -109,13 +115,13 @@ public class GetInvoiceImportStatisticsHandlerTests
         var result = await handlerWithCustomConfig.Handle(request, CancellationToken.None);
 
         // Assert - Verify that 30 days range was used by checking repository call
-        // Implementation uses: startDate = endDate.AddDays(-daysBack), endDate = DateTime.UtcNow.Date
-        var expectedEndDate = DateTime.UtcNow.Date;
+        // Implementation uses: startDate = endDate.AddDays(-daysBack), endDate = _timeProvider.GetUtcNow().Date
+        var expectedEndDate = _fixedDateTime.Date;
         var expectedStartDate = expectedEndDate.AddDays(-30);
 
         _mockRepository.Verify(r => r.GetInvoiceImportStatisticsAsync(
-            It.Is<DateTime>(d => d.Date == expectedStartDate), // Should be 30 days ago
-            It.Is<DateTime>(d => d.Date == expectedEndDate), // Should be today
+            It.Is<DateTime>(d => d.Date == expectedStartDate), // Should be 30 days before the fixed date
+            It.Is<DateTime>(d => d.Date == expectedEndDate), // Should be the fixed date
             It.IsAny<ImportDateType>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -152,7 +158,8 @@ public class GetInvoiceImportStatisticsHandlerTests
         // Arrange
         var handlerWithDefaults = new GetInvoiceImportStatisticsHandler(
             _mockRepository.Object,
-            Options.Create(new InvoiceImportOptions()));
+            Options.Create(new InvoiceImportOptions()),
+            _timeProviderMock.Object);
 
         _mockRepository.Setup(r => r.GetInvoiceImportStatisticsAsync(
                 It.IsAny<DateTime>(),
@@ -169,7 +176,7 @@ public class GetInvoiceImportStatisticsHandlerTests
         // Assert - defaults are 10 and 14
         Assert.Equal(10, result.MinimumThreshold);
         _mockRepository.Verify(r => r.GetInvoiceImportStatisticsAsync(
-            It.Is<DateTime>(d => d.Date == DateTime.UtcNow.Date.AddDays(-14)),
+            It.Is<DateTime>(d => d.Date == _fixedDateTime.Date.AddDays(-14)),
             It.IsAny<DateTime>(),
             It.IsAny<ImportDateType>(),
             It.IsAny<CancellationToken>()), Times.Once);
