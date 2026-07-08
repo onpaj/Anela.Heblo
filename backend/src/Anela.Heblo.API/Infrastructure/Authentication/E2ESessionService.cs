@@ -87,7 +87,15 @@ public class E2ESessionService : IE2ESessionService
             // Grant the finance overview read role so E2E tests can reach /api/FinancialOverview.
             // FeatureAuthorize checks the role claim (permission strings were renamed away from the
             // old "FinancialOverview.View" form), so a stale "permission" claim no longer matches.
-            new Claim(ClaimTypes.Role, AccessRoles.FinanceFinancialOverviewRead)
+            new Claim(ClaimTypes.Role, AccessRoles.FinanceFinancialOverviewRead),
+            // Grant Warehouse_Logistics Read+Write so E2E tests can reach the Transport Box pages
+            // and API (TransportBoxController requires Read at the class level and Write on every
+            // create/receive/state-change action). Read alone unlocks navigation
+            // (RequireMenuPath/Sidebar gate on Feature.Warehouse_Logistics) but every write-triggering
+            // E2E interaction — box-creation.spec.ts (POST /api/transport-boxes) and
+            // box-receive.spec.ts (POST .../open-by-code, PUT .../state) — needs Write too.
+            new Claim(ClaimTypes.Role, AccessRoles.WarehouseLogisticsRead),
+            new Claim(ClaimTypes.Role, AccessRoles.WarehouseLogisticsWrite)
         };
     }
 }
