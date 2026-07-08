@@ -2,15 +2,22 @@ import React, { useState } from 'react'
 import { SlidersHorizontal, ChevronDown, ChevronUp, Package, Calendar } from 'lucide-react'
 import { useIsMobile } from '../../../hooks/useMediaQuery'
 import type { Department } from '../../../api/hooks/useDepartments'
-import { getPeriodLabel, type PeriodType } from './utils'
+import { getPeriodLabel, type PeriodType, type FinancialViewMode } from './utils'
+import { COMPARISON_METRIC_LABELS, type ComparisonMetric } from './comparisonUtils'
 
 interface FinancialFiltersProps {
+  viewMode: FinancialViewMode
+  comparisonYears: number
+  comparisonMetric: ComparisonMetric
   selectedPeriod: PeriodType
   includeStockData: boolean
   includeCurrentMonth: boolean
   excludedDepartments: string[]
   departments: Department[] | undefined
   isRefetching: boolean
+  onViewModeChange: (mode: FinancialViewMode) => void
+  onComparisonYearsChange: (years: number) => void
+  onComparisonMetricChange: (metric: ComparisonMetric) => void
   onPeriodChange: (period: PeriodType) => void
   onIncludeStockDataChange: (value: boolean) => void
   onIncludeCurrentMonthChange: (value: boolean) => void
@@ -18,12 +25,18 @@ interface FinancialFiltersProps {
 }
 
 export const FinancialFilters: React.FC<FinancialFiltersProps> = ({
+  viewMode,
+  comparisonYears,
+  comparisonMetric,
   selectedPeriod,
   includeStockData,
   includeCurrentMonth,
   excludedDepartments,
   departments,
   isRefetching,
+  onViewModeChange,
+  onComparisonYearsChange,
+  onComparisonMetricChange,
   onPeriodChange,
   onIncludeStockDataChange,
   onIncludeCurrentMonthChange,
@@ -44,24 +57,83 @@ export const FinancialFilters: React.FC<FinancialFiltersProps> = ({
     <div className="flex flex-col sm:flex-row gap-4">
       <div>
         <label
-          htmlFor="period-select"
+          htmlFor="view-mode-select"
           className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2"
         >
-          Časové období:
+          Zobrazení:
         </label>
         <select
-          id="period-select"
-          value={selectedPeriod}
-          onChange={(e) => onPeriodChange(e.target.value as PeriodType)}
+          id="view-mode-select"
+          value={viewMode}
+          onChange={(e) => onViewModeChange(e.target.value as FinancialViewMode)}
           className="block w-60 pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
         >
-          <option value="current-year">Aktuální rok</option>
-          <option value="current-and-previous-year">Aktuální + předchozí rok</option>
-          <option value="last-6-months">Posledních 6 měsíců</option>
-          <option value="last-13-months">Posledních 13 měsíců</option>
-          <option value="last-26-months">Posledních 26 měsíců</option>
+          <option value="timeline">Časová osa</option>
+          <option value="comparison">Meziroční srovnání</option>
         </select>
       </div>
+
+      {viewMode === 'timeline' ? (
+        <div>
+          <label
+            htmlFor="period-select"
+            className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2"
+          >
+            Časové období:
+          </label>
+          <select
+            id="period-select"
+            value={selectedPeriod}
+            onChange={(e) => onPeriodChange(e.target.value as PeriodType)}
+            className="block w-60 pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+          >
+            <option value="current-year">Aktuální rok</option>
+            <option value="current-and-previous-year">Aktuální + předchozí rok</option>
+            <option value="last-6-months">Posledních 6 měsíců</option>
+            <option value="last-13-months">Posledních 13 měsíců</option>
+            <option value="last-26-months">Posledních 26 měsíců</option>
+          </select>
+        </div>
+      ) : (
+        <>
+          <div>
+            <label
+              htmlFor="comparison-years-select"
+              className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2"
+            >
+              Počet roků:
+            </label>
+            <select
+              id="comparison-years-select"
+              value={comparisonYears}
+              onChange={(e) => onComparisonYearsChange(Number(e.target.value))}
+              className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            >
+              <option value={2}>2 roky</option>
+              <option value={3}>3 roky</option>
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor="comparison-metric-select"
+              className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2"
+            >
+              Metrika:
+            </label>
+            <select
+              id="comparison-metric-select"
+              value={comparisonMetric}
+              onChange={(e) => onComparisonMetricChange(e.target.value as ComparisonMetric)}
+              className="block w-60 pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            >
+              <option value="income">{COMPARISON_METRIC_LABELS.income}</option>
+              <option value="expenses">{COMPARISON_METRIC_LABELS.expenses}</option>
+              <option value="balance">{COMPARISON_METRIC_LABELS.balance}</option>
+              <option value="totalBalance">{COMPARISON_METRIC_LABELS.totalBalance}</option>
+            </select>
+          </div>
+        </>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
