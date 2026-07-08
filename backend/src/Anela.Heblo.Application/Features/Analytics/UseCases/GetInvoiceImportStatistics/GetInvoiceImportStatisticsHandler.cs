@@ -12,13 +12,16 @@ public class GetInvoiceImportStatisticsHandler : IRequestHandler<GetInvoiceImpor
 {
     private readonly IAnalyticsRepository _analyticsRepository;
     private readonly InvoiceImportOptions _options;
+    private readonly TimeProvider _timeProvider;
 
     public GetInvoiceImportStatisticsHandler(
         IAnalyticsRepository analyticsRepository,
-        IOptions<InvoiceImportOptions> invoiceImportOptions)
+        IOptions<InvoiceImportOptions> invoiceImportOptions,
+        TimeProvider timeProvider)
     {
         _analyticsRepository = analyticsRepository;
         _options = invoiceImportOptions.Value;
+        _timeProvider = timeProvider;
     }
 
     public async Task<GetInvoiceImportStatisticsResponse> Handle(
@@ -34,7 +37,7 @@ public class GetInvoiceImportStatisticsHandler : IRequestHandler<GetInvoiceImpor
 
         // Calculate date range - work with UTC dates for consistency
         // Repository will handle conversion to Unspecified for PostgreSQL timestamp without time zone
-        var endDate = DateTime.UtcNow.Date;
+        var endDate = _timeProvider.GetUtcNow().Date;
         endDate = DateTime.SpecifyKind(endDate, DateTimeKind.Utc);
 
         var startDate = endDate.AddDays(-daysBack);
