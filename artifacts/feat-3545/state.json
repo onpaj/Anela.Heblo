@@ -25,5 +25,12 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-get-max-order-repository-method",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
