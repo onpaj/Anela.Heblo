@@ -21,16 +21,16 @@
       "updated_at": "2026-07-08T09:21:54.175655Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-08T09:22:08.531519Z"
     }
   },
   "tasks": [
     {
       "name": "fix-articledetail-theme-reactivity",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-08T09:22:08.840505Z"
     }
   ]
 }
