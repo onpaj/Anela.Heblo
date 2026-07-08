@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Rag;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 
@@ -7,11 +7,11 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SubmitFeedback
 
 public class SubmitFeedbackHandler : IRequestHandler<SubmitFeedbackRequest, SubmitFeedbackResponse>
 {
-    private readonly IKnowledgeBaseRepository _repository;
+    private readonly IRagInteractionLogRepository _repository;
     private readonly ICurrentUserService _currentUserService;
 
     public SubmitFeedbackHandler(
-        IKnowledgeBaseRepository repository,
+        IRagInteractionLogRepository repository,
         ICurrentUserService currentUserService)
     {
         _repository = repository;
@@ -22,7 +22,7 @@ public class SubmitFeedbackHandler : IRequestHandler<SubmitFeedbackRequest, Subm
         SubmitFeedbackRequest request,
         CancellationToken cancellationToken)
     {
-        var log = await _repository.GetQuestionLogByIdAsync(request.LogId, cancellationToken);
+        var log = await _repository.GetByIdAsync(request.LogId, cancellationToken);
         if (log is null)
         {
             return new SubmitFeedbackResponse(ErrorCodes.KnowledgeBaseFeedbackLogNotFound, new Dictionary<string, string>

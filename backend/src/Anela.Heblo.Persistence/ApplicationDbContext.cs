@@ -10,6 +10,7 @@ using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Rag;
 using Anela.Heblo.Domain.Features.Leaflet;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
@@ -104,7 +105,9 @@ public class ApplicationDbContext : DbContext
     // Knowledge Base module
     public DbSet<KnowledgeBaseDocument> KnowledgeBaseDocuments { get; set; } = null!;
     public DbSet<KnowledgeBaseChunk> KnowledgeBaseChunks { get; set; } = null!;
-    public DbSet<KnowledgeBaseQuestionLog> KnowledgeBaseQuestionLogs { get; set; } = null!;
+
+    // RAG interaction / eval-dataset log (shared by KnowledgeBase + Smartsupp)
+    public DbSet<RagInteractionLog> RagInteractionLogs { get; set; } = null!;
 
     // Leaflet module
     public DbSet<LeafletDocument> LeafletDocuments { get; set; } = null!;

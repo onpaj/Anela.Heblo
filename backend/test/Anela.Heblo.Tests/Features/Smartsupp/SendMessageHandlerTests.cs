@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.SendMessage;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Rag;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
@@ -15,6 +16,7 @@ public class SendMessageHandlerTests
     private readonly Mock<ISmartsuppRepository> _repo = new();
     private readonly Mock<ISmartsuppApiClient> _apiClient = new();
     private readonly Mock<ICurrentUserService> _currentUserService = new();
+    private readonly Mock<IRagInteractionLogRepository> _interactionLog = new();
     private readonly Mock<ILogger<SendMessageHandler>> _logger = new();
     private readonly SmartsuppSendMessageOptions _options = new()
     {
@@ -26,7 +28,7 @@ public class SendMessageHandlerTests
 
     private SendMessageHandler CreateHandler() =>
         new(_repo.Object, _apiClient.Object, _currentUserService.Object,
-            Options.Create(_options), _logger.Object);
+            _interactionLog.Object, Options.Create(_options), _logger.Object);
 
     private void SetupConversation(bool exists = true) =>
         _repo.Setup(r => r.GetConversationAsync("conv1", It.IsAny<CancellationToken>()))
@@ -158,5 +160,37 @@ public class SendMessageHandlerTests
 
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.SmartsuppSendMessageUnavailable);
+    }
+
+    [Fact]
+    public async Task Handle_RecordsSentAnswer_WhenDraftLogIdProvided()
+    {
+        SetupConversation();
+        SetupCurrentUser();
+        SetupApiSuccess();
+        var draftLogId = Guid.NewGuid();
+
+        var result = await CreateHandler().Handle(
+            new SendMessageRequest { ConversationId = "conv1", Content = "Upravený návrh", DraftLogId = draftLogId },
+            CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        _interactionLog.Verify(r => r.UpdateSentAsync(
+            draftLogId, "Upravený návrh", It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotRecordSentAnswer_WhenNoDraftLogId()
+    {
+        SetupConversation();
+        SetupCurrentUser();
+        SetupApiSuccess();
+
+        await CreateHandler().Handle(
+            new SendMessageRequest { ConversationId = "conv1", Content = "Ručně psaná zpráva" },
+            CancellationToken.None);
+
+        _interactionLog.Verify(r => r.UpdateSentAsync(
+            It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

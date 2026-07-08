@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Application.Shared.Rag;
 using MediatR;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -17,11 +18,12 @@ public class AskQuestionHandlerTests
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IChatClient> _chatClient = new();
     private readonly Mock<IProductEnrichmentCache> _enrichmentCache = new();
+    private readonly RagInteractionRecorder _recorder = new();
     private readonly Mock<ILogger<AskQuestionHandler>> _logger = new();
 
     private AskQuestionHandler CreateHandler(KnowledgeBaseOptions? options = null) =>
         new(_mediator.Object, _chatClient.Object, Options.Create(options ?? new KnowledgeBaseOptions()),
-            _enrichmentCache.Object, _logger.Object);
+            _enrichmentCache.Object, _recorder, _logger.Object);
 
     private void SetupEmptyCache() =>
         _enrichmentCache

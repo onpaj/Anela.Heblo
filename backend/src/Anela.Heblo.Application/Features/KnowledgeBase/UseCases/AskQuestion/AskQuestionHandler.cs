@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Application.Shared.Rag;
+using Anela.Heblo.Domain.Features.Rag;
 using MediatR;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -14,6 +16,7 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
     private readonly IChatClient _chatClient;
     private readonly KnowledgeBaseOptions _options;
     private readonly IProductEnrichmentCache _enrichmentCache;
+    private readonly IRagInteractionRecorder _recorder;
     private readonly ILogger<AskQuestionHandler> _logger;
 
     public AskQuestionHandler(
@@ -21,12 +24,14 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
         IChatClient chatClient,
         IOptions<KnowledgeBaseOptions> options,
         IProductEnrichmentCache enrichmentCache,
+        IRagInteractionRecorder recorder,
         ILogger<AskQuestionHandler> logger)
     {
         _mediator = mediator;
         _chatClient = chatClient;
         _options = options.Value;
         _enrichmentCache = enrichmentCache;
+        _recorder = recorder;
         _logger = logger;
     }
 
@@ -40,9 +45,11 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
 
         if (!searchResult.Chunks.Any())
         {
+            const string noResultAnswer = "V dostupných dokumentech jsem nenašla relevantní informaci k vaší otázce.";
+            _recorder.RecordInteraction(RagFeature.KnowledgeBase, request.Question, systemPrompt: string.Empty, answer: noResultAnswer);
             return new AskQuestionResponse
             {
-                Answer = "V dostupných dokumentech jsem nenašla relevantní informaci k vaší otázce.",
+                Answer = noResultAnswer,
                 Sources = []
             };
         }
@@ -79,6 +86,8 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
         }
 
         var answer = response.Text ?? string.Empty;
+
+        _recorder.RecordInteraction(RagFeature.KnowledgeBase, request.Question, systemPrompt, answer);
 
         return new AskQuestionResponse
         {

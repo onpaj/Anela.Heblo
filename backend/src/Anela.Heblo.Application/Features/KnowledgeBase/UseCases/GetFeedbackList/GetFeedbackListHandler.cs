@@ -1,5 +1,6 @@
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Application.Shared.Users;
-using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Rag;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetFeedbackList;
@@ -9,11 +10,11 @@ public class GetFeedbackListHandler : IRequestHandler<GetFeedbackListRequest, Ge
     private static readonly int[] AllowedPageSizes = [10, 20, 50];
     private static readonly string[] AllowedSortColumns = ["CreatedAt", "PrecisionScore", "StyleScore"];
 
-    private readonly IKnowledgeBaseRepository _repository;
+    private readonly IRagInteractionLogRepository _repository;
     private readonly IUserDisplayNameResolver _userDisplayNameResolver;
 
     public GetFeedbackListHandler(
-        IKnowledgeBaseRepository repository,
+        IRagInteractionLogRepository repository,
         IUserDisplayNameResolver userDisplayNameResolver)
     {
         _repository = repository;
@@ -29,6 +30,7 @@ public class GetFeedbackListHandler : IRequestHandler<GetFeedbackListRequest, Ge
         var sortBy = AllowedSortColumns.Contains(request.SortBy) ? request.SortBy : "CreatedAt";
 
         var (logs, totalCount) = await _repository.GetFeedbackLogsPagedAsync(
+            RagFeature.KnowledgeBase,
             request.HasFeedback,
             request.UserId,
             sortBy,
@@ -37,7 +39,7 @@ public class GetFeedbackListHandler : IRequestHandler<GetFeedbackListRequest, Ge
             pageSize,
             cancellationToken);
 
-        var stats = await _repository.GetFeedbackStatsAsync(cancellationToken);
+        var stats = await _repository.GetFeedbackStatsAsync(RagFeature.KnowledgeBase, cancellationToken);
 
         var userNames = await _userDisplayNameResolver.ResolveAsync(
             logs.Select(l => l.UserId).Where(id => id is not null)!,
@@ -45,31 +47,13 @@ public class GetFeedbackListHandler : IRequestHandler<GetFeedbackListRequest, Ge
 
         return new GetFeedbackListResponse
         {
-            Logs = logs.Select(l => new FeedbackLogSummary
-            {
-                Id = l.Id,
-                Question = l.Question,
-                Answer = l.Answer,
-                TopK = l.TopK,
-                SourceCount = l.SourceCount,
-                DurationMs = l.DurationMs,
-                CreatedAt = l.CreatedAt,
-                UserId = l.UserId,
-                UserName = l.UserId is not null ? userNames.GetValueOrDefault(l.UserId) : null,
-                PrecisionScore = l.PrecisionScore,
-                StyleScore = l.StyleScore,
-                FeedbackComment = l.FeedbackComment,
-            }).ToList(),
+            Logs = logs.Select(l => RagFeedbackListMapper.ToSummary(
+                l,
+                l.UserId is not null ? userNames.GetValueOrDefault(l.UserId) : null)).ToList(),
             TotalCount = totalCount,
             PageNumber = pageNumber,
             PageSize = pageSize,
-            Stats = new FeedbackStatsDto
-            {
-                TotalQuestions = stats.TotalQuestions,
-                TotalWithFeedback = stats.TotalWithFeedback,
-                AvgPrecisionScore = stats.AvgPrecisionScore,
-                AvgStyleScore = stats.AvgStyleScore,
-            },
+            Stats = RagFeedbackListMapper.ToStats(stats),
         };
     }
 }

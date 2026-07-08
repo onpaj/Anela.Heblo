@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import type {
+  RagFeedbackLogSummary,
+  RagFeedbackStats,
+} from '../../components/feedback/ragFeedbackTypes';
 
 // ---- Types ----
 
@@ -88,28 +92,11 @@ export interface UploadDocumentResponse {
   document: DocumentSummary | null;
 }
 
-export interface FeedbackLogSummary {
-  id: string;
-  question: string;
-  answer: string;
-  topK: number;
-  sourceCount: number;
-  durationMs: number;
-  createdAt: string;
-  userId: string | null;
-  userName: string | null;
-  precisionScore: number | null;
-  styleScore: number | null;
-  feedbackComment: string | null;
-  hasFeedback: boolean;
-}
-
-export interface FeedbackStatsDto {
-  totalQuestions: number;
-  totalWithFeedback: number;
-  avgPrecisionScore: number | null;
-  avgStyleScore: number | null;
-}
+// The KB feedback list now returns the unified RAG feedback shape (question/answer/scores plus the
+// eval fields: retrieved chunks + scores, expanded query, rendered prompt, and — for Smartsupp —
+// the sent answer / edited flag). Aliased so existing imports keep working.
+export type FeedbackLogSummary = RagFeedbackLogSummary;
+export type FeedbackStatsDto = RagFeedbackStats;
 
 export interface ChunkDetail {
   chunkId: string;

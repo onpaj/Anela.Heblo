@@ -1,4 +1,6 @@
+import React from 'react';
 import { useKnowledgeBaseFeedbackListQuery } from '../../../api/hooks/useKnowledgeBase';
+import RagFeedbackDetailExtra from '../RagFeedbackDetailExtra';
 import type { FeedbackDetail, GenericFeedbackParams, GenericFeedbackStats } from '../types';
 
 export function useKbFeedbackAdapter(params: GenericFeedbackParams) {
@@ -22,6 +24,7 @@ export function useKbFeedbackAdapter(params: GenericFeedbackParams) {
     styleScore: log.styleScore,
     hasFeedback: log.hasFeedback,
     feedbackComment: log.feedbackComment,
+    extra: React.createElement(RagFeedbackDetailExtra, { log }),
   }));
 
   const stats: GenericFeedbackStats | undefined = query.data?.stats
