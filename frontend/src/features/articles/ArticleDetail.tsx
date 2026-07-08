@@ -5,13 +5,15 @@ import ArticleSourceList from './ArticleSourceList';
 import ArticleFeedbackSection from './ArticleFeedbackSection';
 import ArticleDebugPanel from './ArticleDebugPanel';
 import { ARTICLE_STATUS_LABELS, ARTICLE_STATUS_COLORS } from './articleStatusConfig';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface ArticleDetailProps {
   articleId: string;
 }
 
 function HtmlContent({ html }: { html: string }) {
-  const isDark = document.documentElement.classList.contains('dark');
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     body{font-family:system-ui,sans-serif;line-height:1.6;color:${isDark ? '#E6E8EC' : '#1f2937'};background:${isDark ? '#202327' : 'transparent'};padding:1rem;margin:0}
     h1,h2,h3{color:${isDark ? '#E6E8EC' : '#111827'}}p{margin:0 0 1em}ul,ol{padding-left:1.5em}
