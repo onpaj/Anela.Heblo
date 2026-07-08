@@ -13,24 +13,24 @@
       "updated_at": "2026-07-08T09:18:35.084970Z"
     },
     "designing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-07-08T09:34:23.183016Z"
     },
     "planning": {
       "status": "completed",
       "updated_at": "2026-07-08T09:21:54.175655Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-08T09:22:08.531519Z"
+      "status": "completed",
+      "updated_at": "2026-07-08T09:34:23.399966Z"
     }
   },
   "tasks": [
     {
       "name": "fix-articledetail-theme-reactivity",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-08T09:22:08.840505Z"
+      "updated_at": "2026-07-08T09:34:13.168279Z"
     }
   ]
 }
