@@ -12,6 +12,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useFinancialOverviewQuery } from "../../api/hooks/useFinancialOverview";
+import { useFinancialComparisonQuery } from "../../api/hooks/useFinancialComparison";
 import { useDepartments } from "../../api/hooks/useDepartments";
 import { useIsMobile } from "../../hooks/useMediaQuery";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
@@ -19,11 +20,15 @@ import {
   type PeriodType,
   formatCurrency,
   getPeriodLabel,
+  type FinancialViewMode,
 } from "./financial-overview/utils";
 import { FinancialFilters } from "./financial-overview/FinancialFilters";
 import { FinancialChart } from "./financial-overview/FinancialChart";
+import { FinancialComparisonChart } from "./financial-overview/FinancialComparisonChart";
 import { FinancialDataTable } from "./financial-overview/FinancialDataTable";
+import { FinancialComparisonTable } from "./financial-overview/FinancialComparisonTable";
 import { FinancialDataCards } from "./financial-overview/FinancialDataCards";
+import { COMPARISON_METRIC_LABELS, type ComparisonMetric } from "./financial-overview/comparisonUtils";
 import { useScreenView } from '../../telemetry/useScreenView';
 
 const FinancialOverview: React.FC = () => {
@@ -32,6 +37,9 @@ const FinancialOverview: React.FC = () => {
   const [includeStockData, setIncludeStockData] = useState<boolean>(true);
   const [includeCurrentMonth, setIncludeCurrentMonth] = useState<boolean>(false);
   const [excludedDepartments, setExcludedDepartments] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<FinancialViewMode>("timeline");
+  const [comparisonYears, setComparisonYears] = useState<number>(2);
+  const [comparisonMetric, setComparisonMetric] = useState<ComparisonMetric>("balance");
   const [isDataExpanded, setIsDataExpanded] = useState(false);
   const isMobile = useIsMobile();
   const initialDefaultsSet = React.useRef(false);
@@ -78,6 +86,17 @@ const FinancialOverview: React.FC = () => {
   const months = getMonthsFromPeriod(selectedPeriod);
   const { data, isLoading, error, isRefetching } = useFinancialOverviewQuery(
     months,
+    includeStockData,
+    excludedDepartments,
+    includeCurrentMonth,
+  );
+
+  const {
+    data: comparisonData,
+    isLoading: isComparisonLoading,
+    error: comparisonError,
+  } = useFinancialComparisonQuery(
+    comparisonYears,
     includeStockData,
     excludedDepartments,
     includeCurrentMonth,
@@ -205,7 +224,10 @@ const FinancialOverview: React.FC = () => {
     [isMobile],
   );
 
-  if (isLoading) {
+  const activeLoading = viewMode === "comparison" ? isComparisonLoading : isLoading;
+  const activeError = viewMode === "comparison" ? comparisonError : error;
+
+  if (activeLoading) {
     return (
       <div className="w-full max-w-none px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center py-12">
@@ -216,7 +238,7 @@ const FinancialOverview: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (activeError) {
     return (
       <div className="w-full max-w-none px-4 sm:px-6 lg:px-8">
         <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900/50 rounded-lg">
@@ -227,7 +249,7 @@ const FinancialOverview: React.FC = () => {
             </h3>
           </div>
           <p className="mt-1 text-red-700 dark:text-red-300 text-sm">
-            {error.message || "Neznámá chyba"}
+            {activeError.message || "Neznámá chyba"}
           </p>
         </div>
       </div>
@@ -248,20 +270,70 @@ const FinancialOverview: React.FC = () => {
 
       <div className="flex-1 overflow-auto">
         <FinancialFilters
+          viewMode={viewMode}
+          comparisonYears={comparisonYears}
+          comparisonMetric={comparisonMetric}
           selectedPeriod={selectedPeriod}
           includeStockData={includeStockData}
           includeCurrentMonth={includeCurrentMonth}
           excludedDepartments={excludedDepartments}
           departments={departments}
           isRefetching={isRefetching}
+          onViewModeChange={setViewMode}
+          onComparisonYearsChange={setComparisonYears}
+          onComparisonMetricChange={setComparisonMetric}
           onPeriodChange={setSelectedPeriod}
           onIncludeStockDataChange={setIncludeStockData}
           onIncludeCurrentMonthChange={setIncludeCurrentMonth}
           onExcludedDepartmentsChange={setExcludedDepartments}
         />
 
+        {viewMode === "comparison" && comparisonData && (
+          <>
+            {/* Per-year YTD summary cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+              {comparisonData.series.map((s) => (
+                <div
+                  key={s.year}
+                  className="bg-white dark:bg-graphite-surface overflow-hidden shadow dark:shadow-soft-dark rounded-lg"
+                >
+                  <div className="p-3">
+                    <dt className="text-xs font-medium text-gray-500 dark:text-graphite-muted truncate">
+                      {s.year} — {COMPARISON_METRIC_LABELS.balance} (YTD)
+                    </dt>
+                    <dd
+                      className={`text-sm font-medium ${
+                        s.ytdFinancialBalance >= 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {formatCurrency(s.ytdFinancialBalance)}
+                    </dd>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <FinancialComparisonChart
+              series={comparisonData.series}
+              metric={comparisonMetric}
+              title={`Meziroční srovnání — ${COMPARISON_METRIC_LABELS[comparisonMetric]}`}
+            />
+
+            <div className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark sm:rounded-md mb-8">
+              <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-graphite-border">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-graphite-text">
+                  Měsíční srovnání
+                </h3>
+              </div>
+              <FinancialComparisonTable series={comparisonData.series} metric={comparisonMetric} />
+            </div>
+          </>
+        )}
+
         {/* Summary Cards */}
-        {data?.summary && (
+        {viewMode === "timeline" && data?.summary && (
           <div
             className={`grid grid-cols-2 md:grid-cols-2 ${includeStockData ? "xl:grid-cols-6" : "lg:grid-cols-4"} gap-4 mb-6`}
           >
@@ -412,7 +484,7 @@ const FinancialOverview: React.FC = () => {
         )}
 
         {/* Chart */}
-        {chartData && (
+        {viewMode === "timeline" && chartData && (
           <FinancialChart
             chartData={chartData}
             chartOptions={chartOptions}
@@ -421,7 +493,7 @@ const FinancialOverview: React.FC = () => {
         )}
 
         {/* Monthly data */}
-        {data?.data && (
+        {viewMode === "timeline" && data?.data && (
           <>
             {isMobile ? (
               <div className="mb-8">
@@ -469,7 +541,7 @@ const FinancialOverview: React.FC = () => {
         )}
 
         {/* Empty state */}
-        {data?.data && data.data.length === 0 && (
+        {viewMode === "timeline" && data?.data && data.data.length === 0 && (
           <div className="text-center py-12">
             <DollarSign className="mx-auto h-12 w-12 text-gray-400 dark:text-graphite-faint" />
             <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-graphite-text">
