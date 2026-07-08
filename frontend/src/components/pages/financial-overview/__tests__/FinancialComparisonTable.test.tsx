@@ -55,6 +55,21 @@ describe('FinancialComparisonTable', () => {
     expect(within(rows[13]).getByText('Leden')).toBeInTheDocument()
   })
 
+  it('places the current year as the rightmost column (reversed order)', () => {
+    render(
+      <FinancialComparisonTable
+        series={[series(2026, 7, 100), series(2025, 7, 80)]}
+        metrics={['balance']}
+        axisMode="calendar"
+        currentMonth={7}
+      />,
+    )
+    // Sub-header row is the second header row; its columns run Δ, 2025, 2026 (current year last).
+    const rows = screen.getAllByRole('row')
+    const subHeaderCells = within(rows[1]).getAllByRole('columnheader')
+    expect(subHeaderCells[subHeaderCells.length - 1]).toHaveTextContent('2026')
+  })
+
   it('marks the partial month with an asterisk footnote', () => {
     render(
       <FinancialComparisonTable

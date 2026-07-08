@@ -36,8 +36,11 @@ export const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> =
 }) => {
   // Table lists months most-recent-first (top), reversed from the chart's chronological axis.
   const monthOrder = [...getMonthOrder(axisMode, currentMonth)].reverse()
-  const metricList = orderMetrics(metrics)
-  // series arrives descending by year (anchor first). Anchor = series[0], previous = series[1].
+  // Columns run right-to-left ending at the current year: metric groups and the
+  // years within them are reversed, so the current year's first metric is rightmost.
+  const displayMetrics = [...orderMetrics(metrics)].reverse()
+  const displayYears = [...series].reverse()
+  // Delta is always current vs previous year, independent of display order.
   const anchor = series[0]
   const previous = series[1]
   const hasDelta = series.length >= 2
@@ -64,10 +67,10 @@ export const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> =
             >
               Měsíc
             </th>
-            {metricList.map((metric) => (
+            {displayMetrics.map((metric) => (
               <th
                 key={metric}
-                colSpan={series.length + (hasDelta ? 1 : 0)}
+                colSpan={displayYears.length + (hasDelta ? 1 : 0)}
                 className={`px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider ${GROUP_BORDER}`}
               >
                 {COMPARISON_METRIC_LABELS[metric]}
@@ -75,23 +78,25 @@ export const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> =
             ))}
           </tr>
           <tr>
-            {metricList.map((metric) => (
+            {displayMetrics.map((metric) => (
               <React.Fragment key={metric}>
-                {series.map((s, i) => (
+                {hasDelta && (
+                  <th
+                    className={`px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider ${GROUP_BORDER}`}
+                  >
+                    Δ
+                  </th>
+                )}
+                {displayYears.map((s, i) => (
                   <th
                     key={s.year}
                     className={`px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider ${
-                      i === 0 ? GROUP_BORDER : ''
+                      !hasDelta && i === 0 ? GROUP_BORDER : ''
                     }`}
                   >
                     {s.year}
                   </th>
                 ))}
-                {hasDelta && (
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
-                    Δ
-                  </th>
-                )}
               </React.Fragment>
             ))}
           </tr>
@@ -105,35 +110,35 @@ export const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> =
                   {MONTH_NAMES_FULL[month - 1]}
                   {isPartialRow && <span className="text-amber-500"> *</span>}
                 </td>
-                {metricList.map((metric) => {
+                {displayMetrics.map((metric) => {
                   const anchorValue = valueFor(anchor, month, metric)
                   const previousValue = valueFor(previous, month, metric)
                   const delta =
                     anchorValue !== null && previousValue !== null ? anchorValue - previousValue : null
                   return (
                     <React.Fragment key={metric}>
-                      {series.map((s, i) => {
-                        const v = valueFor(s, month, metric)
-                        return (
-                          <td
-                            key={s.year}
-                            className={`px-4 py-3 whitespace-nowrap text-sm text-right font-medium ${
-                              i === 0 ? GROUP_BORDER : ''
-                            } ${v === null ? 'text-gray-400 dark:text-graphite-faint' : valueColor(v)}`}
-                          >
-                            {v === null ? '—' : formatCurrency(v)}
-                          </td>
-                        )
-                      })}
                       {hasDelta && (
                         <td
-                          className={`px-4 py-3 whitespace-nowrap text-sm text-right font-medium ${
+                          className={`px-4 py-3 whitespace-nowrap text-sm text-right font-medium ${GROUP_BORDER} ${
                             delta === null ? 'text-gray-400 dark:text-graphite-faint' : valueColor(delta)
                           }`}
                         >
                           {delta === null ? '—' : formatCurrency(delta)}
                         </td>
                       )}
+                      {displayYears.map((s, i) => {
+                        const v = valueFor(s, month, metric)
+                        return (
+                          <td
+                            key={s.year}
+                            className={`px-4 py-3 whitespace-nowrap text-sm text-right font-medium ${
+                              !hasDelta && i === 0 ? GROUP_BORDER : ''
+                            } ${v === null ? 'text-gray-400 dark:text-graphite-faint' : valueColor(v)}`}
+                          >
+                            {v === null ? '—' : formatCurrency(v)}
+                          </td>
+                        )
+                      })}
                     </React.Fragment>
                   )
                 })}
