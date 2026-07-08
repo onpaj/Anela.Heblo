@@ -34,15 +34,15 @@
     },
     {
       "name": "harden-stock-operations-error-state-e2e-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-08T02:27:03.328970Z"
+      "updated_at": "2026-07-08T02:29:02.619367Z"
     },
     {
       "name": "add-manual-followup-note-for-db-permission-grant",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-08T02:29:08.992892Z"
     }
   ]
 }
