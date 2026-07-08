@@ -36,7 +36,7 @@ export const FinancialComparisonChart: React.FC<FinancialComparisonChartProps> =
         pointRadius: 3,
       }
     })
-    return { labels: [...MONTH_LABELS_SHORT], datasets } as ChartData<'bar'>
+    return { labels: [...MONTH_LABELS_SHORT], datasets } as unknown as ChartData<'bar'>
   }, [series, metric])
 
   const chartOptions = React.useMemo<ChartOptions<'bar'>>(
