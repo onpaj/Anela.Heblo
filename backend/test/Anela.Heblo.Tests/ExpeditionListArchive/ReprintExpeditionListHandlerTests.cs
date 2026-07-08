@@ -1,6 +1,4 @@
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
+using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
 using Anela.Heblo.Application.Shared;
@@ -16,6 +14,7 @@ public class ReprintExpeditionListHandlerTests
 {
     private readonly Mock<IBlobStorageService> _blobStorageServiceMock;
     private readonly Mock<IPrintQueueSink> _cupsSinkMock;
+    private readonly Mock<ITemporaryFileAccessor> _temporaryFileAccessorMock;
     private readonly ReprintExpeditionListHandler _handler;
     private const string ContainerName = "expedition-lists";
 
@@ -23,7 +22,12 @@ public class ReprintExpeditionListHandlerTests
     {
         _blobStorageServiceMock = new Mock<IBlobStorageService>();
         _cupsSinkMock = new Mock<IPrintQueueSink>();
-        _handler = new ReprintExpeditionListHandler(_blobStorageServiceMock.Object, _cupsSinkMock.Object, Options.Create(new ExpeditionListArchiveOptions()));
+        _temporaryFileAccessorMock = new Mock<ITemporaryFileAccessor>();
+        _handler = new ReprintExpeditionListHandler(
+            _blobStorageServiceMock.Object,
+            _cupsSinkMock.Object,
+            _temporaryFileAccessorMock.Object,
+            Options.Create(new ExpeditionListArchiveOptions()));
     }
 
     [Fact]
@@ -33,10 +37,15 @@ public class ReprintExpeditionListHandlerTests
         var blobPath = "2026-03-25/picking-list-001.pdf";
         var pdfContent = new byte[] { 0x25, 0x50, 0x44, 0x46 }; // PDF magic bytes
         var blobStream = new MemoryStream(pdfContent);
+        const string tempPath = "/tmp/generated-guid-001.pdf";
 
         _blobStorageServiceMock
             .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
             .ReturnsAsync(blobStream);
+
+        _temporaryFileAccessorMock
+            .Setup(a => a.CreateFromStreamAsync(blobStream, ".pdf", default))
+            .ReturnsAsync(tempPath);
 
         _cupsSinkMock
             .Setup(s => s.SendAsync(It.IsAny<IEnumerable<string>>(), default))
@@ -50,9 +59,91 @@ public class ReprintExpeditionListHandlerTests
         // Assert
         Assert.True(result.Success);
         _blobStorageServiceMock.Verify(s => s.DownloadAsync(ContainerName, blobPath, default), Times.Once);
+        _temporaryFileAccessorMock.Verify(a => a.CreateFromStreamAsync(blobStream, ".pdf", default), Times.Once);
         _cupsSinkMock.Verify(
-            s => s.SendAsync(It.Is<IEnumerable<string>>(paths => paths.Any()), default),
+            s => s.SendAsync(It.Is<IEnumerable<string>>(paths => paths.Single() == tempPath), default),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_SuccessfulSend_DeletesTempFile()
+    {
+        // Arrange
+        var blobPath = "2026-03-25/picking-list-002.pdf";
+        var pdfContent = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+        var blobStream = new MemoryStream(pdfContent);
+        const string tempPath = "/tmp/generated-guid-002.pdf";
+
+        _blobStorageServiceMock
+            .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
+            .ReturnsAsync(blobStream);
+        _temporaryFileAccessorMock
+            .Setup(a => a.CreateFromStreamAsync(blobStream, ".pdf", default))
+            .ReturnsAsync(tempPath);
+        _cupsSinkMock
+            .Setup(s => s.SendAsync(It.IsAny<IEnumerable<string>>(), default))
+            .Returns(Task.CompletedTask);
+
+        var request = new ReprintExpeditionListRequest { BlobPath = blobPath };
+
+        // Act
+        var result = await _handler.Handle(request, default);
+
+        // Assert
+        Assert.True(result.Success);
+        _temporaryFileAccessorMock.Verify(a => a.DeleteIfExists(tempPath), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_SendAsyncThrows_StillDeletesTempFileAndPropagates()
+    {
+        // Arrange
+        var blobPath = "2026-03-25/picking-list-003.pdf";
+        var blobStream = new MemoryStream(new byte[] { 0x25, 0x50, 0x44, 0x46 });
+        const string tempPath = "/tmp/generated-guid-003.pdf";
+
+        _blobStorageServiceMock
+            .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
+            .ReturnsAsync(blobStream);
+        _temporaryFileAccessorMock
+            .Setup(a => a.CreateFromStreamAsync(blobStream, ".pdf", default))
+            .ReturnsAsync(tempPath);
+        _cupsSinkMock
+            .Setup(s => s.SendAsync(It.IsAny<IEnumerable<string>>(), default))
+            .ThrowsAsync(new IOException("cups unavailable"));
+
+        var request = new ReprintExpeditionListRequest { BlobPath = blobPath };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<IOException>(() => _handler.Handle(request, default));
+
+        _temporaryFileAccessorMock.Verify(a => a.DeleteIfExists(tempPath), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_BlobDownloadFails_CreatesNothing()
+    {
+        // Arrange
+        var blobPath = "2026-03-25/picking-list-004.pdf";
+
+        _blobStorageServiceMock
+            .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
+            .ThrowsAsync(new IOException("blob unavailable"));
+
+        var request = new ReprintExpeditionListRequest { BlobPath = blobPath };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<IOException>(() => _handler.Handle(request, default));
+
+        _temporaryFileAccessorMock.Verify(
+            a => a.CreateFromStreamAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _temporaryFileAccessorMock.Verify(
+            a => a.DeleteIfExists(It.IsAny<string>()),
+            Times.Never);
+        _cupsSinkMock.Verify(
+            s => s.SendAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -73,98 +164,11 @@ public class ReprintExpeditionListHandlerTests
         _cupsSinkMock.Verify(
             s => s.SendAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
             Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_SuccessfulReprint_LeavesNoTempFileBehind()
-    {
-        // Arrange
-        var blobPath = "2026-03-25/picking-list-002.pdf";
-        var pdfContent = new byte[] { 0x25, 0x50, 0x44, 0x46 }; // PDF magic bytes
-        var blobStream = new MemoryStream(pdfContent);
-
-        _blobStorageServiceMock
-            .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
-            .ReturnsAsync(blobStream);
-
-        string? capturedPath = null;
-        bool capturedPathExistedDuringSinkCall = false;
-        bool capturedPathEndsWithPdf = false;
-        bool capturedPathRootedInTempDir = false;
-
-        _cupsSinkMock
-            .Setup(s => s.SendAsync(It.IsAny<IEnumerable<string>>(), default))
-            .Callback<IEnumerable<string>, CancellationToken>((paths, _) =>
-            {
-                capturedPath = paths.Single();
-                capturedPathExistedDuringSinkCall = File.Exists(capturedPath);
-                capturedPathEndsWithPdf = capturedPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
-                capturedPathRootedInTempDir = capturedPath.StartsWith(Path.GetTempPath(), StringComparison.Ordinal);
-            })
-            .Returns(Task.CompletedTask);
-
-        var tempDir = Path.GetTempPath();
-        var preCallFiles = new HashSet<string>(Directory.EnumerateFiles(tempDir));
-
-        var request = new ReprintExpeditionListRequest { BlobPath = blobPath };
-
-        // Act
-        var result = await _handler.Handle(request, default);
-
-        // Assert
-        Assert.True(result.Success);
-        Assert.NotNull(capturedPath);
-        Assert.True(capturedPathEndsWithPdf, "Path passed to sink must end in .pdf");
-        Assert.True(capturedPathRootedInTempDir, "Path passed to sink must be rooted under Path.GetTempPath()");
-        Assert.True(capturedPathExistedDuringSinkCall, "PDF file must exist on disk when sink is invoked");
-        Assert.False(File.Exists(capturedPath), "Temp file must be deleted after handler returns");
-
-        // Detect leaks: any *new* file in the temp dir whose name matches the
-        // shapes the handler could plausibly produce (current buggy or fixed).
-        var postCallFiles = Directory.EnumerateFiles(tempDir).ToList();
-        var handlerArtifactPattern = new Regex(@"^(tmp[^/\\]*\.tmp(\.pdf)?|[0-9a-fA-F]{32}\.pdf)$");
-        var leakedFiles = postCallFiles
-            .Where(p => !preCallFiles.Contains(p))
-            .Where(p => handlerArtifactPattern.IsMatch(Path.GetFileName(p)))
-            .ToList();
-
-        Assert.True(
-            leakedFiles.Count == 0,
-            $"Handler must not leave temp files behind. Found: {string.Join(", ", leakedFiles)}");
-    }
-
-    [Fact]
-    public async Task Handle_BlobDownloadFails_LeavesNoTempFileBehind()
-    {
-        // Arrange
-        var blobPath = "2026-03-25/picking-list-003.pdf";
-
-        _blobStorageServiceMock
-            .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
-            .ThrowsAsync(new IOException("blob unavailable"));
-
-        var tempDir = Path.GetTempPath();
-        var preCallFiles = new HashSet<string>(Directory.EnumerateFiles(tempDir));
-
-        var request = new ReprintExpeditionListRequest { BlobPath = blobPath };
-
-        // Act
-        await Assert.ThrowsAsync<IOException>(() => _handler.Handle(request, default));
-
-        // Assert: same leak detection as the success-path test.
-        var postCallFiles = Directory.EnumerateFiles(tempDir).ToList();
-        var handlerArtifactPattern = new Regex(@"^(tmp[^/\\]*\.tmp(\.pdf)?|[0-9a-fA-F]{32}\.pdf)$");
-        var leakedFiles = postCallFiles
-            .Where(p => !preCallFiles.Contains(p))
-            .Where(p => handlerArtifactPattern.IsMatch(Path.GetFileName(p)))
-            .ToList();
-
-        Assert.True(
-            leakedFiles.Count == 0,
-            $"Handler must not leave temp files behind on failure. Found: {string.Join(", ", leakedFiles)}");
-
-        _cupsSinkMock.Verify(
-            s => s.SendAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
+        _temporaryFileAccessorMock.Verify(
+            a => a.CreateFromStreamAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _temporaryFileAccessorMock.Verify(
+            a => a.DeleteIfExists(It.IsAny<string>()),
             Times.Never);
     }
 }

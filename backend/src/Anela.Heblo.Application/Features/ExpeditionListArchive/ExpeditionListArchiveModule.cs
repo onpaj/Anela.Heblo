@@ -24,11 +24,9 @@ public static class ExpeditionListArchiveModule
             var blobStorage = provider.GetRequiredService<IBlobStorageService>();
             var cupsSink = provider.GetKeyedService<IPrintQueueSink>("cups")
                 ?? provider.GetRequiredService<IPrintQueueSink>();
-            // Resolved here so it is available once ReprintExpeditionListHandler's constructor
-            // is updated to accept it (see task: refactor-reprint-handler-and-tests).
             var temporaryFileAccessor = provider.GetRequiredService<ITemporaryFileAccessor>();
             var options = provider.GetRequiredService<IOptions<ExpeditionListArchiveOptions>>();
-            return new ReprintExpeditionListHandler(blobStorage, cupsSink, options);
+            return new ReprintExpeditionListHandler(blobStorage, cupsSink, temporaryFileAccessor, options);
         });
 
         return services;
