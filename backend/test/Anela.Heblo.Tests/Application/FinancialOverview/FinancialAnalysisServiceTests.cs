@@ -632,4 +632,64 @@ public class FinancialAnalysisServiceTests
         response.Series.Should().HaveCount(2);
         response.Series.SelectMany(s => s.Months).Should().NotContain(m => m.Month == partialMonth);
     }
+
+    [Fact]
+    public async Task GetFinancialComparisonAsync_ServesCompletedMonthFromCache_WhenNoDepartmentFilter()
+    {
+        // Arrange — pick a completed (non-partial) month in the prior year and seed its cache entry.
+        // Every month of a fully-past prior year is completed, so we only need to dodge the current
+        // cutoff's partial month (which only matters for the anchor year, but picking a different
+        // month keeps the test robust regardless of anchor/prior alignment).
+        var cutoff = DateTime.UtcNow.Date.AddDays(-5);
+        var priorYear = cutoff.Year - 1;
+        var month = cutoff.Month == 1 ? 2 : 1;
+        SeedCacheForMonth(priorYear, month);
+
+        // Act
+        var response = await _service.GetFinancialComparisonAsync(
+            years: 2, includeStockData: false, excludedDepartments: null, includePartialMonth: false);
+
+        // Assert — the cached month's start date must never reach the ledger.
+        var monthStart = new DateTime(priorYear, month, 1);
+        _ledgerServiceMock.Verify(x => x.GetLedgerItems(
+            monthStart, It.IsAny<DateTime>(),
+            It.IsAny<IEnumerable<string>?>(), It.IsAny<IEnumerable<string>?>(),
+            It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "a completed month with no department filter must be served from cache, not the ledger");
+
+        // Assert — the returned cell reflects the seeded cache values (proves it came from cache).
+        var priorSeries = response.Series.Single(s => s.Year == priorYear);
+        var cachedCell = priorSeries.Months.Single(m => m.Month == month);
+        cachedCell.Income.Should().Be(10000m, "the cell must be populated from the seeded cache entry");
+        cachedCell.Expenses.Should().Be(8000m, "the cell must be populated from the seeded cache entry");
+    }
+
+    [Fact]
+    public async Task GetFinancialComparisonAsync_BypassesCache_WhenDepartmentFilterPresent()
+    {
+        // Arrange — seed the same completed prior-year month, but request with an active department
+        // filter. BuildComparisonCellAsync's cache short-circuit requires excludedSet == null, so a
+        // filter must force a live ledger computation even though the month is fully cached.
+        var cutoff = DateTime.UtcNow.Date.AddDays(-5);
+        var priorYear = cutoff.Year - 1;
+        var month = cutoff.Month == 1 ? 2 : 1;
+        SeedCacheForMonth(priorYear, month);
+
+        // Act
+        await _service.GetFinancialComparisonAsync(
+            years: 2,
+            includeStockData: false,
+            excludedDepartments: new List<string> { "SomeDept" },
+            includePartialMonth: false);
+
+        // Assert — the department filter must bypass the cache and query the ledger for that month.
+        var monthStart = new DateTime(priorYear, month, 1);
+        _ledgerServiceMock.Verify(x => x.GetLedgerItems(
+            monthStart, It.IsAny<DateTime>(),
+            It.IsAny<IEnumerable<string>?>(), It.IsAny<IEnumerable<string>?>(),
+            It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.AtLeastOnce,
+            "a department filter must bypass the cache and compute the month live");
+    }
 }
