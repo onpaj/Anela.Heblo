@@ -47,14 +47,67 @@ public class PostAnswerEnrichmentMiddlewareTests
     }
 
     [Fact]
-    public async Task GetResponseAsync_CodeWithoutUrl_ReplacesWithPlainText()
+    public async Task GetResponseAsync_BareCodeWithoutUrl_ReplacesWithPlainNameAndDropsCode()
     {
         SetupInner("Použijte (KRM002) ráno i večer.");
         SetupCache(("KRM002", "Hydratační krém", null));
 
         var result = await Create().GetResponseAsync([], null, default);
 
-        Assert.Equal("Použijte Hydratační krém (KRM002) ráno i večer.", result.Text);
+        // The raw code is never shown to the customer, even without a URL.
+        Assert.Equal("Použijte Hydratační krém ráno i večer.", result.Text);
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_LinkedFormatWithUrl_KeepsModelNameAndAddsUrl()
+    {
+        // Model wrote the name inflected into the sentence + the code as the link target.
+        SetupInner("Doporučuji vám [Klidné nožky](MAS009) na večer.");
+        SetupCache(("MAS009", "Klidné nožky balzám", "https://anela.cz/klidne-nozky"));
+
+        var result = await Create().GetResponseAsync([], null, default);
+
+        // The model's inflected display text is preserved; only the target becomes the URL.
+        Assert.Equal(
+            "Doporučuji vám [Klidné nožky](https://anela.cz/klidne-nozky) na večer.",
+            result.Text);
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_LinkedFormatWithoutUrl_KeepsModelNameAsPlainText()
+    {
+        SetupInner("Zkuste [Umyju něžně](OCH008030) každý den.");
+        SetupCache(("OCH008030", "Umyju něžně 30ml", null));
+
+        var result = await Create().GetResponseAsync([], null, default);
+
+        // No URL: fall back to the model's inflected name, never the raw code.
+        Assert.Equal("Zkuste Umyju něžně každý den.", result.Text);
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_LinkedFormatUnknownCode_KeepsNameDropsCode()
+    {
+        SetupInner("Zkuste [nějaký produkt](FAKE001) na pleť.");
+        SetupCache(("MAS009", "Klidné nožky", "https://anela.cz/klidne-nozky"));
+
+        var result = await Create().GetResponseAsync([], null, default);
+
+        // Hallucinated code: keep the readable name, drop the code.
+        Assert.Equal("Zkuste nějaký produkt na pleť.", result.Text);
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_RealMarkdownLink_LeftUnchanged()
+    {
+        // A genuine URL target must not be mistaken for a product code.
+        const string text = "Více na [našem webu](https://anela.cz/blog).";
+        SetupInner(text);
+        SetupCache(("MAS009", "Klidné nožky", "https://anela.cz/klidne-nozky"));
+
+        var result = await Create().GetResponseAsync([], null, default);
+
+        Assert.Equal(text, result.Text);
     }
 
     [Fact]
