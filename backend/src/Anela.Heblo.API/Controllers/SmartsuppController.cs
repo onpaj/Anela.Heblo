@@ -3,6 +3,8 @@ using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetInfo;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.RefreshOrphanContacts;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.SendMessage;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.SubmitDraftReplyFeedback;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetDraftReplyFeedbackList;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetVisitorInfo;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
@@ -107,7 +109,50 @@ public class SmartsuppController : BaseApiController
         [FromBody] SendMessageBody body,
         CancellationToken cancellationToken = default)
     {
-        var request = new SendMessageRequest { ConversationId = conversationId, Content = body.Content };
+        var request = new SendMessageRequest
+        {
+            ConversationId = conversationId,
+            Content = body.Content,
+            DraftLogId = body.DraftLogId,
+        };
+        var result = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("draft-reply/feedback")]
+    [ProducesResponseType(typeof(SubmitDraftReplyFeedbackResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    // Intentional: smartsupp feature has only read level; read-role holders can also rate AI drafts.
+    public async Task<ActionResult<SubmitDraftReplyFeedbackResponse>> SubmitDraftReplyFeedback(
+        [FromBody] SubmitDraftReplyFeedbackRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("draft-reply/feedback/list")]
+    [ProducesResponseType(typeof(GetDraftReplyFeedbackListResponse), StatusCodes.Status200OK)]
+    // Intentional: smartsupp feature has only read level; read-role holders can browse draft-reply feedback.
+    public async Task<ActionResult<GetDraftReplyFeedbackListResponse>> GetDraftReplyFeedbackList(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string sortBy = "CreatedAt",
+        [FromQuery] bool sortDescending = true,
+        [FromQuery] bool? hasFeedback = null,
+        [FromQuery] string? userId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new GetDraftReplyFeedbackListRequest
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SortBy = sortBy,
+            SortDescending = sortDescending,
+            HasFeedback = hasFeedback,
+            UserId = userId,
+        };
         var result = await _mediator.Send(request, cancellationToken);
         return HandleResponse(result);
     }
@@ -147,4 +192,7 @@ public sealed class GenerateDraftReplyBody
 public sealed class SendMessageBody
 {
     public string Content { get; set; } = string.Empty;
+
+    /// <summary>Optional id of the AI draft (RAG interaction log) this message was composed from.</summary>
+    public Guid? DraftLogId { get; set; }
 }

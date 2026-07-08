@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Rag;
 using MediatR;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
     private readonly IKnowledgeBaseRepository _repository;
     private readonly KnowledgeBaseOptions _options;
     private readonly IRagQueryExpander _expander;
+    private readonly IRagInteractionRecorder _recorder;
     private readonly ILogger<SearchDocumentsHandler> _logger;
 
     public SearchDocumentsHandler(
@@ -20,12 +22,14 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
         IKnowledgeBaseRepository repository,
         IOptions<KnowledgeBaseOptions> options,
         IRagQueryExpander expander,
+        IRagInteractionRecorder recorder,
         ILogger<SearchDocumentsHandler> logger)
     {
         _embeddingGenerator = embeddingGenerator;
         _repository = repository;
         _options = options.Value;
         _expander = expander;
+        _recorder = recorder;
         _logger = logger;
     }
 
@@ -70,6 +74,21 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
 
         var above = results.Where(r => r.Score >= _options.MinSimilarityScore).ToList();
         var belowCount = results.Count - above.Count;
+
+        // Capture the retrieval artifacts for the eval-dataset log. The recorder is scoped, so a feature
+        // handler (Ask / Draft Reply) that invoked this search via the same MediatR scope can read them.
+        _recorder.RecordRetrieval(
+            queryToEmbed,
+            request.TopK,
+            above.Select(r => new RagRetrievedChunk
+            {
+                ChunkId = r.Chunk.Id,
+                DocumentId = r.Chunk.DocumentId,
+                Filename = r.Chunk.Document.Filename,
+                SourcePath = r.Chunk.Document.SourcePath,
+                Content = r.Chunk.Content,
+                Score = r.Score,
+            }).ToList());
 
         return new SearchDocumentsResponse
         {

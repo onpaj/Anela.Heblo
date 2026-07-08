@@ -4,6 +4,8 @@ namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply
 
 public class GenerateDraftReplyResponse : BaseResponse
 {
+    /// <summary>Id of the persisted RAG interaction log row, used to link the sent message and feedback.</summary>
+    public Guid? Id { get; set; }
     public string Answer { get; set; } = string.Empty;
     public List<DraftReplySource> Sources { get; set; } = new();
 

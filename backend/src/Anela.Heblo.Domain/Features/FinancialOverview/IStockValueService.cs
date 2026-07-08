@@ -16,4 +16,13 @@ public interface IStockValueService
         DateTime startDate,
         DateTime endDate,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the stock value change for an arbitrary period: value(periodEndInclusive) - value(periodStart).
+    /// Year/Month on the result are taken from periodStart. Used for partial-month (fair-cut) comparison.
+    /// </summary>
+    Task<MonthlyStockChange> GetStockValueChangeForPeriodAsync(
+        DateTime periodStart,
+        DateTime periodEndInclusive,
+        CancellationToken cancellationToken);
 }

@@ -9,4 +9,10 @@ public class SendMessageRequest : IRequest<SendMessageResponse>
 
     /// <summary>Text content to send as an agent message.</summary>
     public string Content { get; set; } = null!;
+
+    /// <summary>
+    /// When the message originated from an AI draft, the id of that draft's RAG interaction log row.
+    /// Lets the backend record the actually-sent text and whether it was edited before sending.
+    /// </summary>
+    public Guid? DraftLogId { get; set; }
 }

@@ -1,7 +1,9 @@
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Shared.Rag.DocumentExtractors;
 using Anela.Heblo.Application.Shared.Rag.OneDrive;
+using Anela.Heblo.Domain.Features.Rag;
 using Anela.Heblo.Domain.Shared;
+using Anela.Heblo.Persistence.Rag;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,6 +17,10 @@ public static class SharedRagModule
     {
         services.AddScoped<IWordWindowChunker, WordWindowChunker>();
         services.AddScoped<IRagQueryExpander, RagQueryExpander>();
+
+        // Unified RAG interaction / eval-dataset logging, shared by KnowledgeBase + Smartsupp.
+        services.AddScoped<IRagInteractionRecorder, RagInteractionRecorder>();
+        services.AddScoped<IRagInteractionLogRepository, RagInteractionLogRepository>();
 
         services.AddScoped<IDocumentTextExtractor, PdfTextExtractor>();
         services.AddScoped<IDocumentTextExtractor, WordDocumentExtractor>();

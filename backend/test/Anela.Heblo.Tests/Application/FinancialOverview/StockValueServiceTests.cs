@@ -131,6 +131,38 @@ public class StockValueServiceTests
         january.TotalStockValueChange.Should().Be(0m);
     }
 
+    [Fact]
+    public async Task GetStockValueChangeForPeriodAsync_UsesPeriodEndDate_ForEndSnapshot()
+    {
+        // Arrange
+        var periodStart = new DateTime(2025, 7, 1);
+        var periodEnd = new DateTime(2025, 7, 10); // partial month cut at day 10
+
+        _priceClientMock.Setup(x => x.GetAllAsync(false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProductPriceErp>
+            {
+                new() { ProductCode = "MAT001", PurchasePrice = 100m }
+            });
+
+        // Every warehouse/date returns empty by default...
+        _stockClientMock.Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ErpStock>());
+        // ...except Materials (ID 5) at the two period boundaries.
+        _stockClientMock.Setup(x => x.StockToDateAsync(periodStart, 5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ErpStock> { new() { ProductCode = "MAT001", Stock = 10m } });
+        _stockClientMock.Setup(x => x.StockToDateAsync(periodEnd, 5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ErpStock> { new() { ProductCode = "MAT001", Stock = 13m } });
+
+        // Act
+        var result = await _service.GetStockValueChangeForPeriodAsync(periodStart, periodEnd, CancellationToken.None);
+
+        // Assert
+        result.Year.Should().Be(2025);
+        result.Month.Should().Be(7);
+        result.StockChanges.Materials.Should().Be(300m); // (13 - 10) * 100
+        result.TotalStockValueChange.Should().Be(300m);
+    }
+
     private void SetupStockDataForJanuary()
     {
         var januaryStart = new DateTime(2024, 1, 1);

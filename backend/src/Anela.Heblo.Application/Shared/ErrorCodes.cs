@@ -328,6 +328,10 @@ public enum ErrorCodes
     SmartsuppAgentMappingNotFound = 2707,
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     SmartsuppCloseConversationUnavailable = 2708,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    SmartsuppDraftReplyFeedbackLogNotFound = 2709,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    SmartsuppDraftReplyFeedbackAlreadySubmitted = 2710,
 
     // Inventory module errors (28XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
