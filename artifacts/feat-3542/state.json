@@ -34,15 +34,15 @@
     },
     {
       "name": "fix-e2e-transport-box-receive-fallback-url",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-08T04:23:52.602905Z"
+      "updated_at": "2026-07-08T04:25:52.589587Z"
     },
     {
       "name": "harden-transport-box-list-error-state",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-08T04:25:56.892325Z"
     },
     {
       "name": "add-strict-assertions-lenient-transport-specs",
