@@ -55,7 +55,11 @@ describe('printLabelPdf', () => {
     printLabelPdf('250001', labelWithPackage);
     await flushAsync();
 
-    expect(fetchMock).toHaveBeenCalledWith(expectedProxyUrl);
+    // The readiness loop marks its polling attempts with the X-Label-Poll header so the backend
+    // logs the expected transient 404s quietly instead of flooding the error log.
+    expect(fetchMock).toHaveBeenCalledWith(expectedProxyUrl, {
+      headers: { 'X-Label-Poll': '1' },
+    });
     expect(window.open).not.toHaveBeenCalled();
 
     jest.restoreAllMocks();
@@ -410,6 +414,27 @@ describe('fetchAndPrintLabel', () => {
 
     jest.restoreAllMocks();
   });
+
+  it('sends the X-Label-Poll header when isPoll is true', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404 });
+
+    await fetchAndPrintLabel('250001', 1, undefined, true);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://api.test/api/packaging/orders/250001/packages/1/label.pdf',
+      { headers: { 'X-Label-Poll': '1' } },
+    );
+  });
+
+  it('omits the X-Label-Poll header (single-arg fetch) when isPoll is false', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404 });
+
+    await fetchAndPrintLabel('250001', 1, undefined, false);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://api.test/api/packaging/orders/250001/packages/1/label.pdf',
+    );
+  });
 });
 
 describe('printLabelWithReadiness', () => {
@@ -541,6 +566,55 @@ describe('printLabelWithReadiness', () => {
     const result = await promise;
 
     expect(result).toEqual({ printed: false, timedOut: true });
+  });
+
+  it('makes one final non-poll confirmation fetch (without the header) after the polling window', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404 });
+
+    const promise = printLabelWithReadiness('250001', 1);
+
+    for (let i = 0; i < 10; i++) {
+      await pumpStep(READINESS_BACKOFF_MS[Math.min(i, READINESS_BACKOFF_MS.length - 1)] + 1);
+    }
+    await promise;
+
+    // Every in-loop poll carries the header; the last call is the confirmation fetch without it,
+    // so the backend logs exactly one warning for a label that never became ready.
+    const calls = fetchMock.mock.calls;
+    const lastCall = calls[calls.length - 1];
+    expect(lastCall).toEqual([
+      'http://api.test/api/packaging/orders/250001/packages/1/label.pdf',
+    ]);
+    expect(lastCall).toHaveLength(1);
+    // All the earlier attempts were polls.
+    calls.slice(0, -1).forEach((call) => {
+      expect(call[1]).toEqual({ headers: { 'X-Label-Poll': '1' } });
+    });
+  });
+
+  it('returns printed: true when the label appears on the final confirmation fetch', async () => {
+    // Polls (header present) always 404; only the final non-poll confirmation fetch succeeds.
+    // Keying on the header keeps this independent of exactly which backoff step hits the timeout.
+    fetchMock.mockImplementation((_url: string, init?: RequestInit) =>
+      init
+        ? Promise.resolve({ ok: false, status: 404 })
+        : Promise.resolve({
+            ok: true,
+            status: 200,
+            blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+          }),
+    );
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+
+    const promise = printLabelWithReadiness('250001', 1);
+
+    for (let i = 0; i < 10; i++) {
+      await pumpStep(READINESS_BACKOFF_MS[Math.min(i, READINESS_BACKOFF_MS.length - 1)] + 1);
+    }
+
+    const result = await promise;
+
+    expect(result).toEqual({ printed: true, status: 200 });
   });
 
   it('returns printed: false (no timedOut) when aborted via AbortSignal before first attempt', async () => {

@@ -20,10 +20,22 @@ const UI_LABELS = {
  * matching layout/filter tables that may be present before the data table loads.
  */
 export async function waitForTableUpdate(page: Page): Promise<void> {
-  // Wait for either at least one data row or the empty-state message to appear
-  await expect(
-    page.locator('tbody tr').first().or(page.locator('h3').filter({ hasText: 'Žádné výsledky' }))
-  ).toBeVisible({ timeout: 15000 });
+  // Wait for a data row, the empty-state message, or the error card to appear. Failing fast
+  // on the error card (instead of only on the generic 15s timeout) gives a clear diagnostic
+  // — "Chyba při načítání operací" almost always means the E2E principal lacks a required
+  // permission (see feat-3540) rather than a genuine UI bug.
+  const success = page.locator('tbody tr').first().or(page.locator('h3').filter({ hasText: 'Žádné výsledky' }));
+  const errorHeading = page.locator('h3').filter({ hasText: 'Chyba při načítání operací' });
+  const result = success.or(errorHeading);
+  await expect(result).toBeVisible({ timeout: 15000 });
+
+  if (await errorHeading.isVisible().catch(() => false)) {
+    throw new Error(
+      'Stock Operations page rendered the error card ("Chyba při načítání operací") instead ' +
+      'of data rows or the empty state. This usually means the caller lacks a required ' +
+      'permission (e.g. warehouse.stock_up.read) rather than a genuine data/UI bug.'
+    );
+  }
 }
 
 /**

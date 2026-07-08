@@ -86,30 +86,28 @@ test.describe('Stock Operations - Navigation & Initial Load', () => {
     // Set up auth first
     await navigateToApp(page);
 
-    // Intercept API calls and force failure
-    await page.route('**/api/stock-up-operations**', route => {
+    // Intercept API calls and force failure.
+    // The generated client builds this.baseUrl + "/api/StockUpOperations?" (PascalCase, no
+    // dashes — see frontend/src/api/generated/api-client.ts:12051), so the glob must match
+    // that literal casing or the route never intercepts and the real request goes through.
+    await page.route('**/api/StockUpOperations**', route => {
       route.abort('failed');
     });
 
     // Navigate to stock operations page (will trigger failed API call)
     const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
     await page.goto(`${baseUrl}/stock-up-operations`);
-    await page.waitForTimeout(3000);
 
-    // Check for error message
+    // Check for error message — hard assertion, so the test fails (not silently passes)
+    // if the intercepted/aborted request doesn't produce the error UI.
     const errorMessage = page.locator('text="Chyba při načítání operací"');
-    const isErrorVisible = await errorMessage.isVisible();
+    await expect(errorMessage).toBeVisible({ timeout: 15000 });
+    console.log('   ✅ Error state displayed');
 
-    if (isErrorVisible) {
-      console.log('   ✅ Error state displayed');
-
-      // Verify retry button exists
-      const retryButton = page.getByRole('button', { name: /Zkusit znovu/i });
-      await expect(retryButton).toBeVisible();
-      console.log('   ✅ Retry button present');
-    } else {
-      console.log('   ℹ️ Error state not triggered (possible caching)');
-    }
+    // Verify retry button exists
+    const retryButton = page.getByRole('button', { name: /Zkusit znovu/i });
+    await expect(retryButton).toBeVisible();
+    console.log('   ✅ Retry button present');
 
     console.log('✅ Error state test completed');
   });
