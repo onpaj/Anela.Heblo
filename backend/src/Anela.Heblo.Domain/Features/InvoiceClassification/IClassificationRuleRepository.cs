@@ -6,6 +6,8 @@ public interface IClassificationRuleRepository
 
     Task<List<ClassificationRule>> GetActiveRulesOrderedAsync();
 
+    Task<int> GetMaxOrderAsync();
+
     Task<ClassificationRule?> GetByIdAsync(Guid id);
 
     Task<ClassificationRule> AddAsync(ClassificationRule rule);
