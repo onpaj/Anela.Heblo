@@ -21,8 +21,12 @@
       "updated_at": "2026-07-08T15:26:45.171924Z"
     },
     "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-08T16:19:13.011116Z"
+    },
+    "code-review": {
       "status": "in_progress",
-      "updated_at": "2026-07-08T15:27:09.755862Z"
+      "updated_at": "2026-07-08T16:19:17.798813Z"
     }
   },
   "tasks": [
@@ -34,9 +38,9 @@
     },
     {
       "name": "refactor-reprint-handler-and-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-08T16:02:54.781490Z"
+      "updated_at": "2026-07-08T16:19:12.532036Z"
     }
   ]
 }
