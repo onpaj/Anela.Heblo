@@ -1,5 +1,7 @@
 import {
-  pivotSeriesToMonthly,
+  getMonthOrder,
+  getMonthLabels,
+  projectSeriesOntoOrder,
   getMetricValue,
   getYtdForMetric,
   MONTH_LABELS_SHORT,
@@ -39,14 +41,49 @@ describe('comparisonUtils', () => {
     expect(getMetricValue(c, 'totalBalance')).toBe(60)
   })
 
-  it('pivots months onto a fixed 12-slot array with null gaps', () => {
+  it('calendar month order is January..December', () => {
+    expect(getMonthOrder('calendar', 5)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+  })
+
+  it('rolling month order is the 12 months ending at the current month', () => {
+    // current month = May (5) => Jun..Dec, Jan..May, with May on the right
+    expect(getMonthOrder('rolling', 5)).toEqual([6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5])
+  })
+
+  it('labels follow the given month order', () => {
+    const labels = getMonthLabels(getMonthOrder('rolling', 5))
+    expect(labels).toHaveLength(12)
+    expect(labels[0]).toBe('Čvn') // June, 12 months back
+    expect(labels[11]).toBe('Kvě') // May, current month on the right
+  })
+
+  it('projects months onto a calendar order with null gaps', () => {
     const metric: ComparisonMetric = 'balance'
-    const values = pivotSeriesToMonthly([cell(1, { financialBalance: 10 }), cell(3, { financialBalance: 30 })], metric)
+    const order = getMonthOrder('calendar', 1)
+    const values = projectSeriesOntoOrder(
+      [cell(1, { financialBalance: 10 }), cell(3, { financialBalance: 30 })],
+      metric,
+      order,
+    )
     expect(values).toHaveLength(12)
     expect(values[0]).toBe(10)
     expect(values[1]).toBeNull()
     expect(values[2]).toBe(30)
     expect(values[11]).toBeNull()
+  })
+
+  it('projects months onto a rolling order (current month rightmost)', () => {
+    const metric: ComparisonMetric = 'balance'
+    const order = getMonthOrder('rolling', 5)
+    const values = projectSeriesOntoOrder(
+      [cell(5, { financialBalance: 50 }), cell(6, { financialBalance: 60 })],
+      metric,
+      order,
+    )
+    // order = [6,7,8,9,10,11,12,1,2,3,4,5]
+    expect(values[0]).toBe(60) // June is first slot
+    expect(values[11]).toBe(50) // May (current month) is last slot
+    expect(values[1]).toBeNull() // July has no data
   })
 
   describe('getYtdForMetric', () => {

@@ -39,6 +39,8 @@ describe('FinancialComparisonChart', () => {
         series={[series(2026, [1, 2], 50), series(2025, [1, 2, 3], 30)]}
         metric="balance"
         title="test"
+        axisMode="calendar"
+        currentMonth={1}
       />,
     )
 

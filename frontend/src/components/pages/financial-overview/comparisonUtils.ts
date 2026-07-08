@@ -59,19 +59,43 @@ export const getYtdForMetric = (
   }
 }
 
+export type ComparisonAxisMode = 'calendar' | 'rolling'
+
 /**
- * Projects a year's month cells onto a fixed 12-element array (index 0 = January).
- * Missing months become null so a chart line stops rather than dropping to zero.
+ * The ordered calendar month numbers (1..12) that make up the x-axis.
+ * - 'calendar': [1..12] — fixed January→December.
+ * - 'rolling':  the 12 months ending at `currentMonth` inclusive, current month last
+ *               (e.g. currentMonth = 5 → [6,7,8,9,10,11,12,1,2,3,4,5], so May is on the right).
+ * Year series stay aligned by calendar month regardless of order.
  */
-export const pivotSeriesToMonthly = (
+export const getMonthOrder = (
+  mode: ComparisonAxisMode,
+  currentMonth: number,
+): number[] => {
+  if (mode === 'calendar') {
+    return Array.from({ length: 12 }, (_, i) => i + 1)
+  }
+  return Array.from({ length: 12 }, (_, i) => ((currentMonth + i) % 12) + 1)
+}
+
+/** Short Czech labels for a given month order. */
+export const getMonthLabels = (order: number[]): string[] =>
+  order.map((month) => MONTH_LABELS_SHORT[month - 1])
+
+/**
+ * Projects a year's month cells onto the given month order.
+ * Missing months become null so a bar is absent (rather than drawn as zero).
+ */
+export const projectSeriesOntoOrder = (
   months: MonthlyFinancialDataDto[],
   metric: ComparisonMetric,
+  order: number[],
 ): (number | null)[] => {
-  const values: (number | null)[] = Array(12).fill(null)
+  const valueByMonth = new Map<number, number>()
   for (const cell of months) {
     if (cell.month >= 1 && cell.month <= 12) {
-      values[cell.month - 1] = getMetricValue(cell, metric)
+      valueByMonth.set(cell.month, getMetricValue(cell, metric))
     }
   }
-  return values
+  return order.map((month) => valueByMonth.get(month) ?? null)
 }

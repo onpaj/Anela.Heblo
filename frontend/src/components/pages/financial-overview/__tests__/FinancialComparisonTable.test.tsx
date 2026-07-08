@@ -29,6 +29,8 @@ describe('FinancialComparisonTable', () => {
       <FinancialComparisonTable
         series={[series(2026, 7, 100), series(2025, 7, 80)]}
         metric="balance"
+        axisMode="calendar"
+        currentMonth={7}
       />,
     )
     expect(screen.getByText('2026')).toBeInTheDocument()
@@ -42,6 +44,8 @@ describe('FinancialComparisonTable', () => {
       <FinancialComparisonTable
         series={[series(2026, 7, 100, true), series(2025, 7, 80)]}
         metric="balance"
+        axisMode="calendar"
+        currentMonth={7}
       />,
     )
     expect(screen.getByText(/částečný měsíc/i)).toBeInTheDocument()

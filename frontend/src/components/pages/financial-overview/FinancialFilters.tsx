@@ -9,6 +9,7 @@ interface FinancialFiltersProps {
   viewMode: FinancialViewMode
   comparisonYears: number
   comparisonMetric: ComparisonMetric
+  comparisonRolling: boolean
   selectedPeriod: PeriodType
   includeStockData: boolean
   includeCurrentMonth: boolean
@@ -18,6 +19,7 @@ interface FinancialFiltersProps {
   onViewModeChange: (mode: FinancialViewMode) => void
   onComparisonYearsChange: (years: number) => void
   onComparisonMetricChange: (metric: ComparisonMetric) => void
+  onComparisonRollingChange: (value: boolean) => void
   onPeriodChange: (period: PeriodType) => void
   onIncludeStockDataChange: (value: boolean) => void
   onIncludeCurrentMonthChange: (value: boolean) => void
@@ -28,6 +30,7 @@ export const FinancialFilters: React.FC<FinancialFiltersProps> = ({
   viewMode,
   comparisonYears,
   comparisonMetric,
+  comparisonRolling,
   selectedPeriod,
   includeStockData,
   includeCurrentMonth,
@@ -37,6 +40,7 @@ export const FinancialFilters: React.FC<FinancialFiltersProps> = ({
   onViewModeChange,
   onComparisonYearsChange,
   onComparisonMetricChange,
+  onComparisonRollingChange,
   onPeriodChange,
   onIncludeStockDataChange,
   onIncludeCurrentMonthChange,
@@ -131,6 +135,26 @@ export const FinancialFilters: React.FC<FinancialFiltersProps> = ({
               <option value="balance">{COMPARISON_METRIC_LABELS.balance}</option>
               <option value="totalBalance">{COMPARISON_METRIC_LABELS.totalBalance}</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
+              Osa grafu:
+            </label>
+            <div className="flex items-center h-[38px]">
+              <input
+                id="comparison-rolling-toggle"
+                type="checkbox"
+                checked={comparisonRolling}
+                onChange={(e) => onComparisonRollingChange(e.target.checked)}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-graphite-border rounded"
+              />
+              <label
+                htmlFor="comparison-rolling-toggle"
+                className="ml-2 block text-sm text-gray-900 dark:text-graphite-text"
+              >
+                Posledních 12 měsíců
+              </label>
+            </div>
           </div>
         </>
       )}

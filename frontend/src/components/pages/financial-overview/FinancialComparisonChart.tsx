@@ -4,9 +4,11 @@ import { FinancialChart } from './FinancialChart'
 import { formatCurrency } from './utils'
 import type { YearComparisonSeriesDto } from '../../../api/hooks/useFinancialComparison'
 import {
-  MONTH_LABELS_SHORT,
   YEAR_SERIES_COLORS,
-  pivotSeriesToMonthly,
+  getMonthOrder,
+  getMonthLabels,
+  projectSeriesOntoOrder,
+  type ComparisonAxisMode,
   type ComparisonMetric,
 } from './comparisonUtils'
 
@@ -14,26 +16,32 @@ interface FinancialComparisonChartProps {
   series: YearComparisonSeriesDto[]
   metric: ComparisonMetric
   title: string
+  axisMode: ComparisonAxisMode
+  /** Current (partial) month 1..12 — anchors the rolling window's right edge. */
+  currentMonth: number
 }
 
 export const FinancialComparisonChart: React.FC<FinancialComparisonChartProps> = ({
   series,
   metric,
   title,
+  axisMode,
+  currentMonth,
 }) => {
   const chartData = React.useMemo<ChartData<'bar'>>(() => {
+    const order = getMonthOrder(axisMode, currentMonth)
     const datasets = series.map((s, index) => {
       const color = YEAR_SERIES_COLORS[index % YEAR_SERIES_COLORS.length]
       return {
         label: String(s.year),
-        data: pivotSeriesToMonthly(s.months, metric),
+        data: projectSeriesOntoOrder(s.months, metric, order),
         backgroundColor: color,
         borderColor: color,
         borderWidth: 1,
       }
     })
-    return { labels: [...MONTH_LABELS_SHORT], datasets } as ChartData<'bar'>
-  }, [series, metric])
+    return { labels: getMonthLabels(order), datasets } as ChartData<'bar'>
+  }, [series, metric, axisMode, currentMonth])
 
   const chartOptions = React.useMemo<ChartOptions<'bar'>>(
     () => ({

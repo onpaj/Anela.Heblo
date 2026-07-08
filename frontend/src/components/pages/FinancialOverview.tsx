@@ -40,6 +40,7 @@ const FinancialOverview: React.FC = () => {
   const [viewMode, setViewMode] = useState<FinancialViewMode>("timeline");
   const [comparisonYears, setComparisonYears] = useState<number>(2);
   const [comparisonMetric, setComparisonMetric] = useState<ComparisonMetric>("balance");
+  const [comparisonRolling, setComparisonRolling] = useState<boolean>(true);
   const [isDataExpanded, setIsDataExpanded] = useState(false);
   const isMobile = useIsMobile();
   const initialDefaultsSet = React.useRef(false);
@@ -274,6 +275,7 @@ const FinancialOverview: React.FC = () => {
           viewMode={viewMode}
           comparisonYears={comparisonYears}
           comparisonMetric={comparisonMetric}
+          comparisonRolling={comparisonRolling}
           selectedPeriod={selectedPeriod}
           includeStockData={includeStockData}
           includeCurrentMonth={includeCurrentMonth}
@@ -283,6 +285,7 @@ const FinancialOverview: React.FC = () => {
           onViewModeChange={setViewMode}
           onComparisonYearsChange={setComparisonYears}
           onComparisonMetricChange={setComparisonMetric}
+          onComparisonRollingChange={setComparisonRolling}
           onPeriodChange={setSelectedPeriod}
           onIncludeStockDataChange={setIncludeStockData}
           onIncludeCurrentMonthChange={setIncludeCurrentMonth}
@@ -323,6 +326,8 @@ const FinancialOverview: React.FC = () => {
               series={comparisonData.series}
               metric={comparisonMetric}
               title={`Meziroční srovnání — ${COMPARISON_METRIC_LABELS[comparisonMetric]}`}
+              axisMode={comparisonRolling ? "rolling" : "calendar"}
+              currentMonth={comparisonData.metadata.partialMonth}
             />
 
             <div className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark sm:rounded-md mb-8">
@@ -331,7 +336,12 @@ const FinancialOverview: React.FC = () => {
                   Měsíční srovnání
                 </h3>
               </div>
-              <FinancialComparisonTable series={comparisonData.series} metric={comparisonMetric} />
+              <FinancialComparisonTable
+                series={comparisonData.series}
+                metric={comparisonMetric}
+                axisMode={comparisonRolling ? "rolling" : "calendar"}
+                currentMonth={comparisonData.metadata.partialMonth}
+              />
             </div>
           </>
         )}

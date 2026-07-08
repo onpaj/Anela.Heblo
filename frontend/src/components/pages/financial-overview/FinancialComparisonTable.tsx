@@ -1,11 +1,19 @@
 import React from 'react'
 import type { YearComparisonSeriesDto } from '../../../api/hooks/useFinancialComparison'
 import { formatCurrency } from './utils'
-import { getMetricValue, type ComparisonMetric } from './comparisonUtils'
+import {
+  getMetricValue,
+  getMonthOrder,
+  type ComparisonAxisMode,
+  type ComparisonMetric,
+} from './comparisonUtils'
 
 interface FinancialComparisonTableProps {
   series: YearComparisonSeriesDto[]
   metric: ComparisonMetric
+  axisMode: ComparisonAxisMode
+  /** Current (partial) month 1..12 — anchors the rolling window's right edge. */
+  currentMonth: number
 }
 
 const MONTH_NAMES_FULL = [
@@ -16,7 +24,13 @@ const MONTH_NAMES_FULL = [
 const valueColor = (value: number): string =>
   value >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
 
-export const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({ series, metric }) => {
+export const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
+  series,
+  metric,
+  axisMode,
+  currentMonth,
+}) => {
+  const monthOrder = getMonthOrder(axisMode, currentMonth)
   // series arrives descending by year (anchor first). Anchor = series[0], previous = series[1].
   const anchor = series[0]
   const previous = series[1]
@@ -49,7 +63,7 @@ export const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> =
           </tr>
         </thead>
         <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
-          {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
+          {monthOrder.map((month) => {
             const anchorCell = cellFor(anchor, month)
             const previousCell = cellFor(previous, month)
             const anchorValue = anchorCell ? getMetricValue(anchorCell, metric) : null
