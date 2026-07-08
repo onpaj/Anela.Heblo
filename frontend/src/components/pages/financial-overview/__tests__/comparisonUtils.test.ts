@@ -1,10 +1,12 @@
 import {
   pivotSeriesToMonthly,
   getMetricValue,
+  getYtdForMetric,
   MONTH_LABELS_SHORT,
   type ComparisonMetric,
 } from '../comparisonUtils'
 import type { MonthlyFinancialDataDto } from '../../../../api/hooks/useFinancialOverview'
+import type { YearComparisonSeriesDto } from '../../../../api/hooks/useFinancialComparison'
 
 const cell = (month: number, over: Partial<MonthlyFinancialDataDto> = {}): MonthlyFinancialDataDto =>
   ({
@@ -45,5 +47,40 @@ describe('comparisonUtils', () => {
     expect(values[1]).toBeNull()
     expect(values[2]).toBe(30)
     expect(values[11]).toBeNull()
+  })
+
+  describe('getYtdForMetric', () => {
+    const series = {
+      year: 2026,
+      months: [],
+      ytdIncome: 1000,
+      ytdExpenses: 400,
+      ytdFinancialBalance: 600,
+      ytdTotalBalance: 750,
+    } as YearComparisonSeriesDto
+
+    it('reads ytdIncome for income metric', () => {
+      expect(getYtdForMetric(series, 'income')).toBe(1000)
+    })
+
+    it('reads ytdExpenses for expenses metric', () => {
+      expect(getYtdForMetric(series, 'expenses')).toBe(400)
+    })
+
+    it('reads ytdFinancialBalance for balance metric', () => {
+      expect(getYtdForMetric(series, 'balance')).toBe(600)
+    })
+
+    it('reads ytdTotalBalance for totalBalance metric', () => {
+      expect(getYtdForMetric(series, 'totalBalance')).toBe(750)
+    })
+
+    it('falls back to ytdFinancialBalance when ytdTotalBalance is undefined', () => {
+      const seriesWithoutTotal = {
+        ...series,
+        ytdTotalBalance: undefined,
+      } as YearComparisonSeriesDto
+      expect(getYtdForMetric(seriesWithoutTotal, 'totalBalance')).toBe(600)
+    })
   })
 })

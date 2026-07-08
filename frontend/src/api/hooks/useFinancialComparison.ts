@@ -18,6 +18,7 @@ export const useFinancialComparisonQuery = (
   includeStockData: boolean = true,
   excludedDepartments: string[] = [],
   includePartialMonth: boolean = true,
+  enabled: boolean = true,
 ) => {
   return useQuery<GetFinancialComparisonResponse, Error>({
     queryKey: [
@@ -36,6 +37,7 @@ export const useFinancialComparisonQuery = (
         includePartialMonth,
       );
     },
+    enabled,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });

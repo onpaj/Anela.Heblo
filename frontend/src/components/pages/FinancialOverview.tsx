@@ -28,7 +28,7 @@ import { FinancialComparisonChart } from "./financial-overview/FinancialComparis
 import { FinancialDataTable } from "./financial-overview/FinancialDataTable";
 import { FinancialComparisonTable } from "./financial-overview/FinancialComparisonTable";
 import { FinancialDataCards } from "./financial-overview/FinancialDataCards";
-import { COMPARISON_METRIC_LABELS, type ComparisonMetric } from "./financial-overview/comparisonUtils";
+import { COMPARISON_METRIC_LABELS, getYtdForMetric, type ComparisonMetric } from "./financial-overview/comparisonUtils";
 import { useScreenView } from '../../telemetry/useScreenView';
 
 const FinancialOverview: React.FC = () => {
@@ -100,6 +100,7 @@ const FinancialOverview: React.FC = () => {
     includeStockData,
     excludedDepartments,
     includeCurrentMonth,
+    viewMode === "comparison",
   );
 
   const chartData = React.useMemo(() => {
@@ -292,27 +293,30 @@ const FinancialOverview: React.FC = () => {
           <>
             {/* Per-year YTD summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-              {comparisonData.series.map((s) => (
-                <div
-                  key={s.year}
-                  className="bg-white dark:bg-graphite-surface overflow-hidden shadow dark:shadow-soft-dark rounded-lg"
-                >
-                  <div className="p-3">
-                    <dt className="text-xs font-medium text-gray-500 dark:text-graphite-muted truncate">
-                      {s.year} — {COMPARISON_METRIC_LABELS.balance} (YTD)
-                    </dt>
-                    <dd
-                      className={`text-sm font-medium ${
-                        s.ytdFinancialBalance >= 0
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-red-600 dark:text-red-400"
-                      }`}
-                    >
-                      {formatCurrency(s.ytdFinancialBalance)}
-                    </dd>
+              {comparisonData.series.map((s) => {
+                const ytdValue = getYtdForMetric(s, comparisonMetric);
+                return (
+                  <div
+                    key={s.year}
+                    className="bg-white dark:bg-graphite-surface overflow-hidden shadow dark:shadow-soft-dark rounded-lg"
+                  >
+                    <div className="p-3">
+                      <dt className="text-xs font-medium text-gray-500 dark:text-graphite-muted truncate">
+                        {s.year} — {COMPARISON_METRIC_LABELS[comparisonMetric]} (YTD)
+                      </dt>
+                      <dd
+                        className={`text-sm font-medium ${
+                          ytdValue >= 0
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        {formatCurrency(ytdValue)}
+                      </dd>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <FinancialComparisonChart

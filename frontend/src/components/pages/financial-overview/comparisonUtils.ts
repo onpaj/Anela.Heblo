@@ -1,4 +1,5 @@
 import type { MonthlyFinancialDataDto } from '../../../api/hooks/useFinancialOverview'
+import type { YearComparisonSeriesDto } from '../../../api/hooks/useFinancialComparison'
 
 export type ComparisonMetric = 'income' | 'expenses' | 'balance' | 'totalBalance'
 
@@ -31,6 +32,26 @@ export const getMetricValue = (cell: MonthlyFinancialDataDto, metric: Comparison
       return cell.financialBalance
     case 'totalBalance':
       return cell.totalBalance ?? cell.financialBalance
+    default: {
+      const _exhaustive: never = metric
+      throw new Error(`Unhandled metric: ${_exhaustive}`)
+    }
+  }
+}
+
+export const getYtdForMetric = (
+  series: YearComparisonSeriesDto,
+  metric: ComparisonMetric,
+): number => {
+  switch (metric) {
+    case 'income':
+      return series.ytdIncome
+    case 'expenses':
+      return series.ytdExpenses
+    case 'balance':
+      return series.ytdFinancialBalance
+    case 'totalBalance':
+      return series.ytdTotalBalance ?? series.ytdFinancialBalance
     default: {
       const _exhaustive: never = metric
       throw new Error(`Unhandled metric: ${_exhaustive}`)

@@ -100,8 +100,6 @@ internal sealed class FinancialOverviewStockValueAdapter : IStockValueService
             GetWarehouseStockValueAsync(ProductsWarehouseId, periodEndInclusive, priceDict, cancellationToken)
         };
 
-        await Task.WhenAll(startTasks.Concat(endTasks));
-
         var startValues = await Task.WhenAll(startTasks);
         var endValues = await Task.WhenAll(endTasks);
 
