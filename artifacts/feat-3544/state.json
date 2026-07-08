@@ -21,16 +21,16 @@
       "updated_at": "2026-07-08T06:21:15.756546Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-08T06:21:43.102477Z"
     }
   },
   "tasks": [
     {
       "name": "remove-unused-classification-history-methods",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-08T06:21:43.313464Z"
     }
   ]
 }
