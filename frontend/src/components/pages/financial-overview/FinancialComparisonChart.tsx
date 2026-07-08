@@ -33,18 +33,21 @@ export const FinancialComparisonChart: React.FC<FinancialComparisonChartProps> =
   const chartData = React.useMemo<ChartData<'bar'>>(() => {
     const order = getMonthOrder(axisMode, currentMonth)
     // One dataset per metric × year: color encodes the metric, opacity the year.
-    const datasets = orderMetrics(metrics).flatMap((metric) =>
-      series.map((s, yearIndex) => {
-        const color = getSeriesColor(metric, yearIndex)
-        return {
-          label: `${COMPARISON_METRIC_LABELS[metric]} ${s.year}`,
-          data: projectSeriesOntoOrder(s.months, metric, order),
-          backgroundColor: color,
-          borderColor: color,
-          borderWidth: 1,
-        }
-      }),
-    )
+    // Reversed so bars read right-to-left within each month (current-year first metric on the right).
+    const datasets = orderMetrics(metrics)
+      .flatMap((metric) =>
+        series.map((s, yearIndex) => {
+          const color = getSeriesColor(metric, yearIndex)
+          return {
+            label: `${COMPARISON_METRIC_LABELS[metric]} ${s.year}`,
+            data: projectSeriesOntoOrder(s.months, metric, order),
+            backgroundColor: color,
+            borderColor: color,
+            borderWidth: 1,
+          }
+        }),
+      )
+      .reverse()
     return { labels: getMonthLabels(order), datasets } as ChartData<'bar'>
   }, [series, metrics, axisMode, currentMonth])
 
