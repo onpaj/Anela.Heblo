@@ -30,7 +30,8 @@ export const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> =
   axisMode,
   currentMonth,
 }) => {
-  const monthOrder = getMonthOrder(axisMode, currentMonth)
+  // Table lists months most-recent-first (top), reversed from the chart's chronological axis.
+  const monthOrder = [...getMonthOrder(axisMode, currentMonth)].reverse()
   // series arrives descending by year (anchor first). Anchor = series[0], previous = series[1].
   const anchor = series[0]
   const previous = series[1]
