@@ -40,15 +40,15 @@
     },
     {
       "name": "harden-transport-box-list-error-state",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-08T04:25:56.892325Z"
+      "updated_at": "2026-07-08T04:34:25.982131Z"
     },
     {
       "name": "add-strict-assertions-lenient-transport-specs",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-08T04:34:31.293673Z"
     }
   ]
 }
