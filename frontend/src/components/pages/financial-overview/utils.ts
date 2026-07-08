@@ -33,3 +33,5 @@ export const getPeriodLabel = (period: PeriodType): string => {
     }
   }
 }
+
+export type FinancialViewMode = 'timeline' | 'comparison'
