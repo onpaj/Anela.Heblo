@@ -26,8 +26,7 @@ public class CreateClassificationRuleHandler : IRequestHandler<CreateClassificat
         var currentUser = _currentUserService.GetCurrentUser();
         var now = DateTime.UtcNow;
 
-        var allRules = await _ruleRepository.GetAllAsync();
-        var maxOrder = allRules.Count > 0 ? allRules.Max(r => r.Order) : 0;
+        var maxOrder = await _ruleRepository.GetMaxOrderAsync();
 
         var rule = new ClassificationRule(
             request.Name,

@@ -10,20 +10,17 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
 {
     private readonly IReceivedInvoicesClient _invoicesClient;
     private readonly IInvoiceClassificationService _classificationService;
-    private readonly IClassificationRuleRepository _ruleRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<ClassifyInvoicesHandler> _logger;
 
     public ClassifyInvoicesHandler(
         IReceivedInvoicesClient invoicesClient,
         IInvoiceClassificationService classificationService,
-        IClassificationRuleRepository ruleRepository,
         ICurrentUserService currentUserService,
         ILogger<ClassifyInvoicesHandler> logger)
     {
         _invoicesClient = invoicesClient;
         _classificationService = classificationService;
-        _ruleRepository = ruleRepository;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -93,15 +90,9 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
                             if (!string.IsNullOrEmpty(result.ErrorMessage))
                             {
                                 // Add rule name to error message if available
-                                var errorMessage = $"Invoice {invoice.InvoiceNumber}: {result.ErrorMessage}";
-                                if (result.RuleId.HasValue)
-                                {
-                                    var rule = await _ruleRepository.GetByIdAsync(result.RuleId.Value);
-                                    if (rule != null)
-                                    {
-                                        errorMessage = $"Invoice {invoice.InvoiceNumber} (Rule: {rule.Name}): {result.ErrorMessage}";
-                                    }
-                                }
+                                var errorMessage = !string.IsNullOrEmpty(result.RuleName)
+                                    ? $"Invoice {invoice.InvoiceNumber} (Rule: {result.RuleName}): {result.ErrorMessage}"
+                                    : $"Invoice {invoice.InvoiceNumber}: {result.ErrorMessage}";
                                 errorMessages.Add(errorMessage);
                             }
                             break;

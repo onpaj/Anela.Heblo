@@ -87,7 +87,12 @@ public class E2ESessionService : IE2ESessionService
             // Grant the finance overview read role so E2E tests can reach /api/FinancialOverview.
             // FeatureAuthorize checks the role claim (permission strings were renamed away from the
             // old "FinancialOverview.View" form), so a stale "permission" claim no longer matches.
-            new Claim(ClaimTypes.Role, AccessRoles.FinanceFinancialOverviewRead)
+            new Claim(ClaimTypes.Role, AccessRoles.FinanceFinancialOverviewRead),
+            // Grant the Warehouse_StockUp read/write roles so E2E tests can reach
+            // /api/StockUpOperations* (list, retry, accept). Without these, FeatureAuthorize
+            // rejects every request with 403 before the controller action runs (feat-3540).
+            new Claim(ClaimTypes.Role, AccessRoles.WarehouseStockUpRead),
+            new Claim(ClaimTypes.Role, AccessRoles.WarehouseStockUpWrite)
         };
     }
 }
