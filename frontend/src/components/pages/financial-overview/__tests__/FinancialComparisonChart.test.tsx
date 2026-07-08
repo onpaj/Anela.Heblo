@@ -37,7 +37,7 @@ describe('FinancialComparisonChart', () => {
     render(
       <FinancialComparisonChart
         series={[series(2026, [1, 2], 50), series(2025, [1, 2, 3], 30)]}
-        metric="balance"
+        metrics={['balance']}
         title="test"
         axisMode="calendar"
         currentMonth={1}
@@ -46,11 +46,35 @@ describe('FinancialComparisonChart', () => {
 
     expect(captured).not.toBeNull()
     expect(captured!.labels).toHaveLength(12)
+    // one metric × two years => two datasets
     expect(captured!.datasets).toHaveLength(2)
 
     const anchor = captured!.datasets[0]
-    expect(anchor.label).toBe('2026')
+    expect(anchor.label).toContain('2026')
     expect(anchor.data[0]).toBe(50)
     expect(anchor.data[2]).toBeNull() // month 3 missing for 2026
+  })
+
+  it('renders one dataset per metric × year', () => {
+    render(
+      <FinancialComparisonChart
+        series={[series(2026, [1], 50), series(2025, [1], 30)]}
+        metrics={['income', 'expenses']}
+        title="test"
+        axisMode="calendar"
+        currentMonth={1}
+      />,
+    )
+
+    expect(captured).not.toBeNull()
+    // two metrics × two years => four datasets
+    expect(captured!.datasets).toHaveLength(4)
+    const labels = captured!.datasets.map((d) => d.label)
+    expect(labels).toEqual([
+      'Příjmy 2026',
+      'Příjmy 2025',
+      'Náklady 2026',
+      'Náklady 2025',
+    ])
   })
 })

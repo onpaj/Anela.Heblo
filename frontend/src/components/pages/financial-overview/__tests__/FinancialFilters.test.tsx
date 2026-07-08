@@ -19,7 +19,7 @@ const mockDepartments: Department[] = [
 const defaultProps = {
   viewMode: 'timeline' as const,
   comparisonYears: 2,
-  comparisonMetric: 'balance' as const,
+  comparisonMetrics: ['income', 'expenses'],
   comparisonRolling: true,
   selectedPeriod: 'last-6-months' as const,
   includeStockData: true,
@@ -29,7 +29,7 @@ const defaultProps = {
   isRefetching: false,
   onViewModeChange: jest.fn(),
   onComparisonYearsChange: jest.fn(),
-  onComparisonMetricChange: jest.fn(),
+  onComparisonMetricsChange: jest.fn(),
   onComparisonRollingChange: jest.fn(),
   onPeriodChange: jest.fn(),
   onIncludeStockDataChange: jest.fn(),

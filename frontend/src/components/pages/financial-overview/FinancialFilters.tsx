@@ -3,12 +3,12 @@ import { SlidersHorizontal, ChevronDown, ChevronUp, Package, Calendar } from 'lu
 import { useIsMobile } from '../../../hooks/useMediaQuery'
 import type { Department } from '../../../api/hooks/useDepartments'
 import { getPeriodLabel, type PeriodType, type FinancialViewMode } from './utils'
-import { COMPARISON_METRIC_LABELS, type ComparisonMetric } from './comparisonUtils'
+import { COMPARISON_METRIC_LABELS, COMPARISON_METRICS, type ComparisonMetric } from './comparisonUtils'
 
 interface FinancialFiltersProps {
   viewMode: FinancialViewMode
   comparisonYears: number
-  comparisonMetric: ComparisonMetric
+  comparisonMetrics: ComparisonMetric[]
   comparisonRolling: boolean
   selectedPeriod: PeriodType
   includeStockData: boolean
@@ -18,7 +18,7 @@ interface FinancialFiltersProps {
   isRefetching: boolean
   onViewModeChange: (mode: FinancialViewMode) => void
   onComparisonYearsChange: (years: number) => void
-  onComparisonMetricChange: (metric: ComparisonMetric) => void
+  onComparisonMetricsChange: (metrics: ComparisonMetric[]) => void
   onComparisonRollingChange: (value: boolean) => void
   onPeriodChange: (period: PeriodType) => void
   onIncludeStockDataChange: (value: boolean) => void
@@ -29,7 +29,7 @@ interface FinancialFiltersProps {
 export const FinancialFilters: React.FC<FinancialFiltersProps> = ({
   viewMode,
   comparisonYears,
-  comparisonMetric,
+  comparisonMetrics,
   comparisonRolling,
   selectedPeriod,
   includeStockData,
@@ -39,7 +39,7 @@ export const FinancialFilters: React.FC<FinancialFiltersProps> = ({
   isRefetching,
   onViewModeChange,
   onComparisonYearsChange,
-  onComparisonMetricChange,
+  onComparisonMetricsChange,
   onComparisonRollingChange,
   onPeriodChange,
   onIncludeStockDataChange,
@@ -54,6 +54,15 @@ export const FinancialFilters: React.FC<FinancialFiltersProps> = ({
       onExcludedDepartmentsChange(excludedDepartments.filter((d) => d !== id))
     } else {
       onExcludedDepartmentsChange([...excludedDepartments, id])
+    }
+  }
+
+  const handleMetricToggle = (metric: ComparisonMetric, checked: boolean) => {
+    if (checked) {
+      onComparisonMetricsChange([...comparisonMetrics, metric])
+    } else if (comparisonMetrics.length > 1) {
+      // keep at least one metric selected
+      onComparisonMetricsChange(comparisonMetrics.filter((m) => m !== metric))
     }
   }
 
@@ -118,23 +127,28 @@ export const FinancialFilters: React.FC<FinancialFiltersProps> = ({
             </select>
           </div>
           <div>
-            <label
-              htmlFor="comparison-metric-select"
-              className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2"
-            >
-              Metrika:
+            <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">
+              Metriky:
             </label>
-            <select
-              id="comparison-metric-select"
-              value={comparisonMetric}
-              onChange={(e) => onComparisonMetricChange(e.target.value as ComparisonMetric)}
-              className="block w-60 pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-            >
-              <option value="income">{COMPARISON_METRIC_LABELS.income}</option>
-              <option value="expenses">{COMPARISON_METRIC_LABELS.expenses}</option>
-              <option value="balance">{COMPARISON_METRIC_LABELS.balance}</option>
-              <option value="totalBalance">{COMPARISON_METRIC_LABELS.totalBalance}</option>
-            </select>
+            <div className="flex flex-col gap-1">
+              {COMPARISON_METRICS.map((metric) => (
+                <div key={metric} className="flex items-center">
+                  <input
+                    id={`metric-${metric}`}
+                    type="checkbox"
+                    checked={comparisonMetrics.includes(metric)}
+                    onChange={(e) => handleMetricToggle(metric, e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-graphite-border rounded"
+                  />
+                  <label
+                    htmlFor={`metric-${metric}`}
+                    className="ml-2 block text-sm text-gray-900 dark:text-graphite-text"
+                  >
+                    {COMPARISON_METRIC_LABELS[metric]}
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-2">

@@ -4,6 +4,8 @@ import {
   projectSeriesOntoOrder,
   getMetricValue,
   getYtdForMetric,
+  getSeriesColor,
+  orderMetrics,
   MONTH_LABELS_SHORT,
   type ComparisonMetric,
 } from '../comparisonUtils'
@@ -84,6 +86,24 @@ describe('comparisonUtils', () => {
     expect(values[0]).toBe(60) // June is first slot
     expect(values[11]).toBe(50) // May (current month) is last slot
     expect(values[1]).toBeNull() // July has no data
+  })
+
+  it('colors by metric with the anchor year solid and older years lighter', () => {
+    // same metric → same hue, decreasing opacity by year slot
+    expect(getSeriesColor('income', 0)).toBe('rgba(34, 197, 94, 1)')
+    expect(getSeriesColor('income', 1)).toBe('rgba(34, 197, 94, 0.55)')
+    expect(getSeriesColor('income', 2)).toBe('rgba(34, 197, 94, 0.3)')
+    // different metric → different hue
+    expect(getSeriesColor('expenses', 0)).toBe('rgba(239, 68, 68, 1)')
+  })
+
+  it('orders selected metrics canonically regardless of input order', () => {
+    expect(orderMetrics(['balance', 'income'])).toEqual(['income', 'balance'])
+    expect(orderMetrics(['totalBalance', 'expenses', 'income'])).toEqual([
+      'income',
+      'expenses',
+      'totalBalance',
+    ])
   })
 
   describe('getYtdForMetric', () => {

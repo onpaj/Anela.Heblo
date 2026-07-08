@@ -28,7 +28,7 @@ import { FinancialComparisonChart } from "./financial-overview/FinancialComparis
 import { FinancialDataTable } from "./financial-overview/FinancialDataTable";
 import { FinancialComparisonTable } from "./financial-overview/FinancialComparisonTable";
 import { FinancialDataCards } from "./financial-overview/FinancialDataCards";
-import { COMPARISON_METRIC_LABELS, getYtdForMetric, type ComparisonMetric } from "./financial-overview/comparisonUtils";
+import { COMPARISON_METRIC_LABELS, getYtdForMetric, orderMetrics, type ComparisonMetric } from "./financial-overview/comparisonUtils";
 import { useScreenView } from '../../telemetry/useScreenView';
 
 const FinancialOverview: React.FC = () => {
@@ -39,7 +39,7 @@ const FinancialOverview: React.FC = () => {
   const [excludedDepartments, setExcludedDepartments] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<FinancialViewMode>("timeline");
   const [comparisonYears, setComparisonYears] = useState<number>(2);
-  const [comparisonMetric, setComparisonMetric] = useState<ComparisonMetric>("balance");
+  const [comparisonMetrics, setComparisonMetrics] = useState<ComparisonMetric[]>(["income", "expenses"]);
   const [comparisonRolling, setComparisonRolling] = useState<boolean>(true);
   const [isDataExpanded, setIsDataExpanded] = useState(false);
   const isMobile = useIsMobile();
@@ -274,7 +274,7 @@ const FinancialOverview: React.FC = () => {
         <FinancialFilters
           viewMode={viewMode}
           comparisonYears={comparisonYears}
-          comparisonMetric={comparisonMetric}
+          comparisonMetrics={comparisonMetrics}
           comparisonRolling={comparisonRolling}
           selectedPeriod={selectedPeriod}
           includeStockData={includeStockData}
@@ -284,7 +284,7 @@ const FinancialOverview: React.FC = () => {
           isRefetching={isRefetching}
           onViewModeChange={setViewMode}
           onComparisonYearsChange={setComparisonYears}
-          onComparisonMetricChange={setComparisonMetric}
+          onComparisonMetricsChange={setComparisonMetrics}
           onComparisonRollingChange={setComparisonRolling}
           onPeriodChange={setSelectedPeriod}
           onIncludeStockDataChange={setIncludeStockData}
@@ -296,36 +296,45 @@ const FinancialOverview: React.FC = () => {
           <>
             {/* Per-year YTD summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-              {comparisonData.series.map((s) => {
-                const ytdValue = getYtdForMetric(s, comparisonMetric);
-                return (
-                  <div
-                    key={s.year}
-                    className="bg-white dark:bg-graphite-surface overflow-hidden shadow dark:shadow-soft-dark rounded-lg"
-                  >
-                    <div className="p-3">
-                      <dt className="text-xs font-medium text-gray-500 dark:text-graphite-muted truncate">
-                        {s.year} — {COMPARISON_METRIC_LABELS[comparisonMetric]} (YTD)
-                      </dt>
-                      <dd
-                        className={`text-sm font-medium ${
-                          ytdValue >= 0
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-red-600 dark:text-red-400"
-                        }`}
-                      >
-                        {formatCurrency(ytdValue)}
-                      </dd>
+              {comparisonData.series.map((s) => (
+                <div
+                  key={s.year}
+                  className="bg-white dark:bg-graphite-surface overflow-hidden shadow dark:shadow-soft-dark rounded-lg"
+                >
+                  <div className="p-3">
+                    <div className="text-xs font-semibold text-gray-700 dark:text-graphite-text mb-1">
+                      {s.year} (YTD)
                     </div>
+                    <dl className="space-y-0.5">
+                      {orderMetrics(comparisonMetrics).map((metric) => {
+                        const ytdValue = getYtdForMetric(s, metric);
+                        return (
+                          <div key={metric} className="flex justify-between gap-2">
+                            <dt className="text-xs text-gray-500 dark:text-graphite-muted truncate">
+                              {COMPARISON_METRIC_LABELS[metric]}
+                            </dt>
+                            <dd
+                              className={`text-xs font-medium whitespace-nowrap ${
+                                ytdValue >= 0
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              {formatCurrency(ytdValue)}
+                            </dd>
+                          </div>
+                        );
+                      })}
+                    </dl>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
 
             <FinancialComparisonChart
               series={comparisonData.series}
-              metric={comparisonMetric}
-              title={`Meziroční srovnání — ${COMPARISON_METRIC_LABELS[comparisonMetric]}`}
+              metrics={comparisonMetrics}
+              title="Meziroční srovnání"
               axisMode={comparisonRolling ? "rolling" : "calendar"}
               currentMonth={comparisonData.metadata.partialMonth}
             />
@@ -338,7 +347,7 @@ const FinancialOverview: React.FC = () => {
               </div>
               <FinancialComparisonTable
                 series={comparisonData.series}
-                metric={comparisonMetric}
+                metrics={comparisonMetrics}
                 axisMode={comparisonRolling ? "rolling" : "calendar"}
                 currentMonth={comparisonData.metadata.partialMonth}
               />

@@ -4,9 +4,11 @@ import { FinancialChart } from './FinancialChart'
 import { formatCurrency } from './utils'
 import type { YearComparisonSeriesDto } from '../../../api/hooks/useFinancialComparison'
 import {
-  YEAR_SERIES_COLORS,
+  COMPARISON_METRIC_LABELS,
   getMonthOrder,
   getMonthLabels,
+  getSeriesColor,
+  orderMetrics,
   projectSeriesOntoOrder,
   type ComparisonAxisMode,
   type ComparisonMetric,
@@ -14,7 +16,7 @@ import {
 
 interface FinancialComparisonChartProps {
   series: YearComparisonSeriesDto[]
-  metric: ComparisonMetric
+  metrics: ComparisonMetric[]
   title: string
   axisMode: ComparisonAxisMode
   /** Current (partial) month 1..12 — anchors the rolling window's right edge. */
@@ -23,25 +25,28 @@ interface FinancialComparisonChartProps {
 
 export const FinancialComparisonChart: React.FC<FinancialComparisonChartProps> = ({
   series,
-  metric,
+  metrics,
   title,
   axisMode,
   currentMonth,
 }) => {
   const chartData = React.useMemo<ChartData<'bar'>>(() => {
     const order = getMonthOrder(axisMode, currentMonth)
-    const datasets = series.map((s, index) => {
-      const color = YEAR_SERIES_COLORS[index % YEAR_SERIES_COLORS.length]
-      return {
-        label: String(s.year),
-        data: projectSeriesOntoOrder(s.months, metric, order),
-        backgroundColor: color,
-        borderColor: color,
-        borderWidth: 1,
-      }
-    })
+    // One dataset per metric × year: color encodes the metric, opacity the year.
+    const datasets = orderMetrics(metrics).flatMap((metric) =>
+      series.map((s, yearIndex) => {
+        const color = getSeriesColor(metric, yearIndex)
+        return {
+          label: `${COMPARISON_METRIC_LABELS[metric]} ${s.year}`,
+          data: projectSeriesOntoOrder(s.months, metric, order),
+          backgroundColor: color,
+          borderColor: color,
+          borderWidth: 1,
+        }
+      }),
+    )
     return { labels: getMonthLabels(order), datasets } as ChartData<'bar'>
-  }, [series, metric, axisMode, currentMonth])
+  }, [series, metrics, axisMode, currentMonth])
 
   const chartOptions = React.useMemo<ChartOptions<'bar'>>(
     () => ({

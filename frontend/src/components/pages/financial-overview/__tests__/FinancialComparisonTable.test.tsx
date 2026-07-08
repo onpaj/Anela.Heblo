@@ -28,7 +28,7 @@ describe('FinancialComparisonTable', () => {
     render(
       <FinancialComparisonTable
         series={[series(2026, 7, 100), series(2025, 7, 80)]}
-        metric="balance"
+        metrics={['balance']}
         axisMode="calendar"
         currentMonth={7}
       />,
@@ -43,22 +43,23 @@ describe('FinancialComparisonTable', () => {
     render(
       <FinancialComparisonTable
         series={[series(2026, 12, 100), series(2025, 12, 80)]}
-        metric="balance"
+        metrics={['balance']}
         axisMode="calendar"
         currentMonth={12}
       />,
     )
     const rows = screen.getAllByRole('row')
-    // rows[0] is the header; first data row is the most recent month (December)
-    expect(within(rows[1]).getByText('Prosinec')).toBeInTheDocument()
-    expect(within(rows[12]).getByText('Leden')).toBeInTheDocument()
+    // rows[0] and rows[1] are the two header rows; data rows start at rows[2].
+    // First data row is the most recent month (December), last is January.
+    expect(within(rows[2]).getByText('Prosinec')).toBeInTheDocument()
+    expect(within(rows[13]).getByText('Leden')).toBeInTheDocument()
   })
 
   it('marks the partial month with an asterisk footnote', () => {
     render(
       <FinancialComparisonTable
         series={[series(2026, 7, 100, true), series(2025, 7, 80)]}
-        metric="balance"
+        metrics={['balance']}
         axisMode="calendar"
         currentMonth={7}
       />,

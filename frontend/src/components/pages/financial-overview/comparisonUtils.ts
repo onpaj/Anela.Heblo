@@ -15,12 +15,36 @@ export const COMPARISON_METRIC_LABELS: Record<ComparisonMetric, string> = {
   totalBalance: 'Celková bilance (vč. skladu)',
 }
 
-// Distinct bar colors per year slot (anchor year first). Extend if N grows beyond 3.
-export const YEAR_SERIES_COLORS = [
-  'rgb(239, 68, 68)', // red-500    - anchor year
-  'rgb(249, 115, 22)', // orange-500 - previous year
-  'rgb(59, 130, 246)', // blue-500   - two years ago
-] as const
+// Canonical metric order — keeps chart datasets and table columns stable
+// regardless of the order in which the user checks the boxes.
+export const COMPARISON_METRICS: ComparisonMetric[] = [
+  'income',
+  'expenses',
+  'balance',
+  'totalBalance',
+]
+
+// Base color per metric (years are distinguished by opacity, not hue).
+export const METRIC_COLORS: Record<ComparisonMetric, [number, number, number]> = {
+  income: [34, 197, 94], // green-500
+  expenses: [239, 68, 68], // red-500
+  balance: [59, 130, 246], // blue-500
+  totalBalance: [249, 115, 22], // orange-500
+}
+
+// Opacity per year slot (anchor/current year first): current year solid, older years lighter.
+export const YEAR_ALPHAS = [1, 0.55, 0.3] as const
+
+/** Bar color for a metric at a given year slot (0 = anchor/current year). */
+export const getSeriesColor = (metric: ComparisonMetric, yearIndex: number): string => {
+  const [r, g, b] = METRIC_COLORS[metric]
+  const alpha = YEAR_ALPHAS[Math.min(yearIndex, YEAR_ALPHAS.length - 1)]
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+/** Selected metrics in canonical order (stable columns/series). */
+export const orderMetrics = (metrics: ComparisonMetric[]): ComparisonMetric[] =>
+  COMPARISON_METRICS.filter((m) => metrics.includes(m))
 
 export const getMetricValue = (cell: MonthlyFinancialDataDto, metric: ComparisonMetric): number => {
   switch (metric) {
