@@ -75,6 +75,49 @@ internal sealed class FinancialOverviewStockValueAdapter : IStockValueService
         }
     }
 
+    public async Task<MonthlyStockChange> GetStockValueChangeForPeriodAsync(
+        DateTime periodStart,
+        DateTime periodEndInclusive,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Calculating partial stock value change for period {Start:d}..{End:d}",
+            periodStart, periodEndInclusive);
+
+        var prices = await _priceClient.GetAllAsync(forceReload: false, cancellationToken);
+        var priceDict = prices.ToDictionary(p => p.ProductCode, p => p.PurchasePrice);
+
+        var startTasks = new[]
+        {
+            GetWarehouseStockValueAsync(MaterialWarehouseId, periodStart, priceDict, cancellationToken),
+            GetWarehouseStockValueAsync(SemiProductsWarehouseId, periodStart, priceDict, cancellationToken),
+            GetWarehouseStockValueAsync(ProductsWarehouseId, periodStart, priceDict, cancellationToken)
+        };
+
+        var endTasks = new[]
+        {
+            GetWarehouseStockValueAsync(MaterialWarehouseId, periodEndInclusive, priceDict, cancellationToken),
+            GetWarehouseStockValueAsync(SemiProductsWarehouseId, periodEndInclusive, priceDict, cancellationToken),
+            GetWarehouseStockValueAsync(ProductsWarehouseId, periodEndInclusive, priceDict, cancellationToken)
+        };
+
+        await Task.WhenAll(startTasks.Concat(endTasks));
+
+        var startValues = await Task.WhenAll(startTasks);
+        var endValues = await Task.WhenAll(endTasks);
+
+        return new MonthlyStockChange
+        {
+            Year = periodStart.Year,
+            Month = periodStart.Month,
+            StockChanges = new StockChangeByType
+            {
+                Materials = endValues[0] - startValues[0],
+                SemiProducts = endValues[1] - startValues[1],
+                Products = endValues[2] - startValues[2]
+            }
+        };
+    }
+
     private async Task<MonthlyStockChange> CalculateMonthlyStockChangeAsync(
         DateTime monthStart,
         Dictionary<string, decimal> priceDict,
