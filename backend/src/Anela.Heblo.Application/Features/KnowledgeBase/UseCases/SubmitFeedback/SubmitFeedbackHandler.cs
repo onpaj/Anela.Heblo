@@ -23,7 +23,7 @@ public class SubmitFeedbackHandler : IRequestHandler<SubmitFeedbackRequest, Subm
         CancellationToken cancellationToken)
     {
         var log = await _repository.GetByIdAsync(request.LogId, cancellationToken);
-        if (log is null)
+        if (log is null || log.Feature != RagFeature.KnowledgeBase)
         {
             return new SubmitFeedbackResponse(ErrorCodes.KnowledgeBaseFeedbackLogNotFound, new Dictionary<string, string>
             {
