@@ -3851,6 +3851,61 @@ export class ApiClient {
         return Promise.resolve<GetFinancialOverviewResponse>(null as any);
     }
 
+    financialOverview_GetFinancialComparison(years: number | undefined, includeStockData: boolean | undefined, excludedDepartments: string[] | null | undefined, includePartialMonth: boolean | undefined): Promise<GetFinancialComparisonResponse> {
+        let url_ = this.baseUrl + "/api/FinancialOverview/comparison?";
+        if (years === null)
+            throw new Error("The parameter 'years' cannot be null.");
+        else if (years !== undefined)
+            url_ += "years=" + encodeURIComponent("" + years) + "&";
+        if (includeStockData === null)
+            throw new Error("The parameter 'includeStockData' cannot be null.");
+        else if (includeStockData !== undefined)
+            url_ += "includeStockData=" + encodeURIComponent("" + includeStockData) + "&";
+        if (excludedDepartments !== undefined && excludedDepartments !== null)
+            excludedDepartments && excludedDepartments.forEach(item => { url_ += "excludedDepartments=" + encodeURIComponent("" + item) + "&"; });
+        if (includePartialMonth === null)
+            throw new Error("The parameter 'includePartialMonth' cannot be null.");
+        else if (includePartialMonth !== undefined)
+            url_ += "includePartialMonth=" + encodeURIComponent("" + includePartialMonth) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processFinancialOverview_GetFinancialComparison(_response);
+        });
+    }
+
+    protected processFinancialOverview_GetFinancialComparison(response: Response): Promise<GetFinancialComparisonResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetFinancialComparisonResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetFinancialComparisonResponse>(null as any);
+    }
+
     giftSettings_GetGiftSetting(): Promise<FileResponse> {
         let url_ = this.baseUrl + "/api/gift-settings";
         url_ = url_.replace(/[?&]$/, "");
@@ -20436,6 +20491,8 @@ export class MonthlyFinancialDataDto implements IMonthlyFinancialDataDto {
     stockChanges?: StockChangeDto | undefined;
     totalStockValueChange?: number | undefined;
     totalBalance?: number | undefined;
+    isPartial?: boolean | undefined;
+    partialDayOfMonth?: number | undefined;
 
     constructor(data?: IMonthlyFinancialDataDto) {
         if (data) {
@@ -20457,6 +20514,8 @@ export class MonthlyFinancialDataDto implements IMonthlyFinancialDataDto {
             this.stockChanges = _data["stockChanges"] ? StockChangeDto.fromJS(_data["stockChanges"]) : <any>undefined;
             this.totalStockValueChange = _data["totalStockValueChange"];
             this.totalBalance = _data["totalBalance"];
+            this.isPartial = _data["isPartial"];
+            this.partialDayOfMonth = _data["partialDayOfMonth"];
         }
     }
 
@@ -20478,6 +20537,8 @@ export class MonthlyFinancialDataDto implements IMonthlyFinancialDataDto {
         data["stockChanges"] = this.stockChanges ? this.stockChanges.toJSON() : <any>undefined;
         data["totalStockValueChange"] = this.totalStockValueChange;
         data["totalBalance"] = this.totalBalance;
+        data["isPartial"] = this.isPartial;
+        data["partialDayOfMonth"] = this.partialDayOfMonth;
         return data;
     }
 }
@@ -20492,6 +20553,8 @@ export interface IMonthlyFinancialDataDto {
     stockChanges?: StockChangeDto | undefined;
     totalStockValueChange?: number | undefined;
     totalBalance?: number | undefined;
+    isPartial?: boolean | undefined;
+    partialDayOfMonth?: number | undefined;
 }
 
 export class StockChangeDto implements IStockChangeDto {
@@ -20644,6 +20707,201 @@ export interface IStockSummaryDto {
     averageMonthlyStockChange?: number;
     totalBalanceWithStock?: number;
     averageMonthlyTotalBalance?: number;
+}
+
+export class GetFinancialComparisonResponse extends BaseResponse implements IGetFinancialComparisonResponse {
+    series!: YearComparisonSeriesDto[];
+    metadata!: FinancialComparisonMetadataDto;
+
+    constructor(data?: IGetFinancialComparisonResponse) {
+        super(data);
+        if (!data) {
+            this.series = [];
+            this.metadata = new FinancialComparisonMetadataDto();
+        }
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["series"])) {
+                this.series = [] as any;
+                for (let item of _data["series"])
+                    this.series!.push(YearComparisonSeriesDto.fromJS(item));
+            }
+            this.metadata = _data["metadata"] ? FinancialComparisonMetadataDto.fromJS(_data["metadata"]) : new FinancialComparisonMetadataDto();
+        }
+    }
+
+    static override fromJS(data: any): GetFinancialComparisonResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetFinancialComparisonResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.series)) {
+            data["series"] = [];
+            for (let item of this.series)
+                data["series"].push(item.toJSON());
+        }
+        data["metadata"] = this.metadata ? this.metadata.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetFinancialComparisonResponse extends IBaseResponse {
+    series: YearComparisonSeriesDto[];
+    metadata: FinancialComparisonMetadataDto;
+}
+
+export class YearComparisonSeriesDto implements IYearComparisonSeriesDto {
+    year!: number;
+    months!: MonthlyFinancialDataDto[];
+    ytdIncome!: number;
+    ytdExpenses!: number;
+    ytdFinancialBalance!: number;
+    ytdStockValueChange?: number | undefined;
+    ytdTotalBalance?: number | undefined;
+
+    constructor(data?: IYearComparisonSeriesDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+        if (!data) {
+            this.months = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.year = _data["year"];
+            if (Array.isArray(_data["months"])) {
+                this.months = [] as any;
+                for (let item of _data["months"])
+                    this.months!.push(MonthlyFinancialDataDto.fromJS(item));
+            }
+            this.ytdIncome = _data["ytdIncome"];
+            this.ytdExpenses = _data["ytdExpenses"];
+            this.ytdFinancialBalance = _data["ytdFinancialBalance"];
+            this.ytdStockValueChange = _data["ytdStockValueChange"];
+            this.ytdTotalBalance = _data["ytdTotalBalance"];
+        }
+    }
+
+    static fromJS(data: any): YearComparisonSeriesDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new YearComparisonSeriesDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["year"] = this.year;
+        if (Array.isArray(this.months)) {
+            data["months"] = [];
+            for (let item of this.months)
+                data["months"].push(item.toJSON());
+        }
+        data["ytdIncome"] = this.ytdIncome;
+        data["ytdExpenses"] = this.ytdExpenses;
+        data["ytdFinancialBalance"] = this.ytdFinancialBalance;
+        data["ytdStockValueChange"] = this.ytdStockValueChange;
+        data["ytdTotalBalance"] = this.ytdTotalBalance;
+        return data;
+    }
+}
+
+export interface IYearComparisonSeriesDto {
+    year: number;
+    months: MonthlyFinancialDataDto[];
+    ytdIncome: number;
+    ytdExpenses: number;
+    ytdFinancialBalance: number;
+    ytdStockValueChange?: number | undefined;
+    ytdTotalBalance?: number | undefined;
+}
+
+export class FinancialComparisonMetadataDto implements IFinancialComparisonMetadataDto {
+    cutoffDate!: Date;
+    anchorYear!: number;
+    partialMonth!: number;
+    partialDayOfMonth!: number;
+    years!: number[];
+    includeStockData!: boolean;
+    partialMonthIncluded!: boolean;
+    lagDays!: number;
+
+    constructor(data?: IFinancialComparisonMetadataDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+        if (!data) {
+            this.years = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.cutoffDate = _data["cutoffDate"] ? new Date(_data["cutoffDate"].toString()) : <any>undefined;
+            this.anchorYear = _data["anchorYear"];
+            this.partialMonth = _data["partialMonth"];
+            this.partialDayOfMonth = _data["partialDayOfMonth"];
+            if (Array.isArray(_data["years"])) {
+                this.years = [] as any;
+                for (let item of _data["years"])
+                    this.years!.push(item);
+            }
+            this.includeStockData = _data["includeStockData"];
+            this.partialMonthIncluded = _data["partialMonthIncluded"];
+            this.lagDays = _data["lagDays"];
+        }
+    }
+
+    static fromJS(data: any): FinancialComparisonMetadataDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new FinancialComparisonMetadataDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["cutoffDate"] = this.cutoffDate ? this.cutoffDate.toISOString() : <any>undefined;
+        data["anchorYear"] = this.anchorYear;
+        data["partialMonth"] = this.partialMonth;
+        data["partialDayOfMonth"] = this.partialDayOfMonth;
+        if (Array.isArray(this.years)) {
+            data["years"] = [];
+            for (let item of this.years)
+                data["years"].push(item);
+        }
+        data["includeStockData"] = this.includeStockData;
+        data["partialMonthIncluded"] = this.partialMonthIncluded;
+        data["lagDays"] = this.lagDays;
+        return data;
+    }
+}
+
+export interface IFinancialComparisonMetadataDto {
+    cutoffDate: Date;
+    anchorYear: number;
+    partialMonth: number;
+    partialDayOfMonth: number;
+    years: number[];
+    includeStockData: boolean;
+    partialMonthIncluded: boolean;
+    lagDays: number;
 }
 
 export class SetGiftSettingCommand implements ISetGiftSettingCommand {

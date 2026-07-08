@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Smartsupp.Pipeline;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations.Validators;
@@ -35,6 +36,10 @@ public static class SmartsuppModule
         services.AddScoped<IValidator<SendMessageRequest>, SendMessageValidator>();
         services.AddScoped<IPipelineBehavior<SendMessageRequest, SendMessageResponse>,
             ValidationBehavior<SendMessageRequest, SendMessageResponse>>();
+
+        // Persist each draft-reply generation as a RAG interaction / eval-dataset row.
+        services.AddScoped<IPipelineBehavior<GenerateDraftReplyRequest, GenerateDraftReplyResponse>,
+            DraftReplyLoggingBehavior>();
 
         // Conversation reactions
         services.AddScoped<ISmartsuppWebhookReaction, ConversationOpenedReaction>();

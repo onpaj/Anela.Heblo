@@ -23,8 +23,14 @@ function messageForSendError(code?: string): string {
   return "Nepodařilo se odeslat zprávu.";
 }
 
+interface SendMessageVariables {
+  content: string;
+  /** Set when the message was composed from an AI draft, to link the sent text to that draft's log. */
+  draftLogId?: string | null;
+}
+
 interface UseSendMessageResult {
-  send: (content: string) => void;
+  send: (content: string, draftLogId?: string | null) => void;
   isPending: boolean;
   error: string | null;
   justSent: boolean;
@@ -36,8 +42,8 @@ type SendMessageContext = { previous?: GetConversationResponse; optimisticId?: s
 export function useSendMessage(conversationId: string | null): UseSendMessageResult {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation<SendMessageApiResponse, Error, string, SendMessageContext>({
-    mutationFn: async (content) => {
+  const mutation = useMutation<SendMessageApiResponse, Error, SendMessageVariables, SendMessageContext>({
+    mutationFn: async ({ content, draftLogId }) => {
       if (!conversationId) {
         throw new Error("Není vybrána konverzace.");
       }
@@ -46,7 +52,7 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
       const response = await apiPost(
         apiClient,
         `${baseUrl}/api/smartsupp/conversations/${conversationId}/messages`,
-        { content },
+        { content, draftLogId: draftLogId ?? null },
       );
 
       if (!response.ok) {
@@ -61,7 +67,7 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
 
       return data;
     },
-    onMutate: async (content) => {
+    onMutate: async ({ content }) => {
       if (!conversationId) return {};
       await queryClient.cancelQueries({
         queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
@@ -124,7 +130,8 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
   });
 
   return {
-    send: (content: string) => mutation.mutate(content),
+    send: (content: string, draftLogId?: string | null) =>
+      mutation.mutate({ content, draftLogId }),
     isPending: mutation.isPending,
     error: mutation.error ? mutation.error.message : null,
     justSent: mutation.isSuccess,

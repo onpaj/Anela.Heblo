@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SubmitFeedback;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Rag;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Moq;
@@ -10,7 +10,7 @@ namespace Anela.Heblo.Tests.Features.KnowledgeBase;
 
 public class SubmitFeedbackHandlerTests
 {
-    private readonly Mock<IKnowledgeBaseRepository> _repositoryMock;
+    private readonly Mock<IRagInteractionLogRepository> _repositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly SubmitFeedbackHandler _handler;
 
@@ -18,7 +18,7 @@ public class SubmitFeedbackHandlerTests
 
     public SubmitFeedbackHandlerTests()
     {
-        _repositoryMock = new Mock<IKnowledgeBaseRepository>();
+        _repositoryMock = new Mock<IRagInteractionLogRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _handler = new SubmitFeedbackHandler(
             _repositoryMock.Object,
@@ -34,8 +34,8 @@ public class SubmitFeedbackHandlerTests
     {
         var logId = Guid.NewGuid();
         _repositoryMock
-            .Setup(x => x.GetQuestionLogByIdAsync(logId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((KnowledgeBaseQuestionLog?)null);
+            .Setup(x => x.GetByIdAsync(logId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RagInteractionLog?)null);
 
         var request = new SubmitFeedbackRequest { LogId = logId, PrecisionScore = 8, StyleScore = 7 };
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -49,16 +49,17 @@ public class SubmitFeedbackHandlerTests
     public async Task Handle_WhenUserDoesNotOwnLog_ShouldReturnForbiddenError()
     {
         var logId = Guid.NewGuid();
-        var log = new KnowledgeBaseQuestionLog
+        var log = new RagInteractionLog
         {
             Id = logId,
+            Feature = RagFeature.KnowledgeBase,
             Question = "test",
             Answer = "answer",
             UserId = "other-user"
         };
 
         _repositoryMock
-            .Setup(x => x.GetQuestionLogByIdAsync(logId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByIdAsync(logId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(log);
 
         var request = new SubmitFeedbackRequest { LogId = logId, PrecisionScore = 8, StyleScore = 7 };
@@ -73,9 +74,10 @@ public class SubmitFeedbackHandlerTests
     public async Task Handle_WhenFeedbackAlreadySubmitted_ShouldReturnConflictError()
     {
         var logId = Guid.NewGuid();
-        var log = new KnowledgeBaseQuestionLog
+        var log = new RagInteractionLog
         {
             Id = logId,
+            Feature = RagFeature.KnowledgeBase,
             Question = "test",
             Answer = "answer",
             UserId = UserId,
@@ -83,7 +85,7 @@ public class SubmitFeedbackHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.GetQuestionLogByIdAsync(logId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByIdAsync(logId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(log);
 
         var request = new SubmitFeedbackRequest { LogId = logId, PrecisionScore = 8, StyleScore = 7 };
@@ -98,9 +100,10 @@ public class SubmitFeedbackHandlerTests
     public async Task Handle_WhenStyleScoreAlreadySet_ShouldReturnConflictError()
     {
         var logId = Guid.NewGuid();
-        var log = new KnowledgeBaseQuestionLog
+        var log = new RagInteractionLog
         {
             Id = logId,
+            Feature = RagFeature.KnowledgeBase,
             Question = "test",
             Answer = "answer",
             UserId = UserId,
@@ -108,7 +111,7 @@ public class SubmitFeedbackHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.GetQuestionLogByIdAsync(logId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByIdAsync(logId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(log);
 
         var request = new SubmitFeedbackRequest { LogId = logId, PrecisionScore = 8, StyleScore = 7 };
@@ -122,16 +125,17 @@ public class SubmitFeedbackHandlerTests
     public async Task Handle_WhenValidRequest_ShouldSaveFeedbackAndReturnSuccess()
     {
         var logId = Guid.NewGuid();
-        var log = new KnowledgeBaseQuestionLog
+        var log = new RagInteractionLog
         {
             Id = logId,
+            Feature = RagFeature.KnowledgeBase,
             Question = "test",
             Answer = "answer",
             UserId = UserId
         };
 
         _repositoryMock
-            .Setup(x => x.GetQuestionLogByIdAsync(logId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByIdAsync(logId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(log);
 
         _repositoryMock
@@ -160,16 +164,17 @@ public class SubmitFeedbackHandlerTests
     public async Task Handle_WhenValidRequestWithNoComment_ShouldSaveFeedbackWithNullComment()
     {
         var logId = Guid.NewGuid();
-        var log = new KnowledgeBaseQuestionLog
+        var log = new RagInteractionLog
         {
             Id = logId,
+            Feature = RagFeature.KnowledgeBase,
             Question = "test",
             Answer = "answer",
             UserId = UserId
         };
 
         _repositoryMock
-            .Setup(x => x.GetQuestionLogByIdAsync(logId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByIdAsync(logId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(log);
 
         _repositoryMock

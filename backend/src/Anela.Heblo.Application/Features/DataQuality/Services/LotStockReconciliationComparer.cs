@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Domain.Features.DataQuality;
 
 namespace Anela.Heblo.Application.Features.DataQuality.Services;
@@ -12,30 +12,26 @@ public class LotStockReconciliationComparer : IDriftDqtComparer
 {
     private const decimal Tolerance = 0.01m;
 
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IMaterialLotStockQuery _materialLotStock;
 
     public DqtTestType TestType => DqtTestType.LotSumVsErpStock;
 
-    public LotStockReconciliationComparer(ICatalogRepository catalogRepository)
+    public LotStockReconciliationComparer(IMaterialLotStockQuery materialLotStock)
     {
-        _catalogRepository = catalogRepository;
+        _materialLotStock = materialLotStock;
     }
 
     public async Task<DriftComparisonResult> CompareAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
     {
         // Date range is intentionally unused — this is a current-state snapshot reconciliation.
-        var items = await _catalogRepository.GetAllAsync(ct);
-
-        var checkedItems = items
-            .Where(item => item.Type == ProductType.Material && item.HasExpiration)
-            .ToList();
+        var items = await _materialLotStock.GetMaterialsWithExpirationAsync(ct);
 
         var mismatches = new List<DriftMismatch>();
 
-        foreach (var item in checkedItems)
+        foreach (var item in items)
         {
-            var erp = item.Stock.Erp;
-            var lotSum = item.Stock.Lots.Sum(l => l.Amount);
+            var erp = item.ErpStock;
+            var lotSum = item.LotAmounts.Sum();
 
             if (Math.Abs(lotSum - erp) <= Tolerance)
                 continue;
@@ -55,7 +51,7 @@ public class LotStockReconciliationComparer : IDriftDqtComparer
         return new DriftComparisonResult
         {
             Mismatches = mismatches,
-            TotalChecked = checkedItems.Count
+            TotalChecked = items.Count
         };
     }
 

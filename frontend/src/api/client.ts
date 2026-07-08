@@ -478,6 +478,7 @@ export const QUERY_KEYS = {
   productMargins: ["productMargins"] as const,
   productMarginSummary: ["productMarginSummary"] as const,
   financialOverview: ["financialOverview"] as const,
+  financialComparison: ["financialComparison"] as const,
   journal: ["journal"] as const,
   marketingCalendar: ["marketing-calendar"] as const,
   photobank: ["photobank"] as const,

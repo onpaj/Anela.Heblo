@@ -36,4 +36,16 @@ public class MonthlyFinancialDataDto
     /// Total balance including stock value changes (FinancialBalance + TotalStockValueChange)
     /// </summary>
     public decimal? TotalBalance { get; set; }
+
+    /// <summary>
+    /// True when this cell covers a partial month (cut at PartialDayOfMonth).
+    /// Null/unset for the standard full-month overview endpoint.
+    /// </summary>
+    public bool? IsPartial { get; set; }
+
+    /// <summary>
+    /// The inclusive day-of-month the partial cell was cut at (e.g. 3 => 1st–3rd).
+    /// Null unless IsPartial is true.
+    /// </summary>
+    public int? PartialDayOfMonth { get; set; }
 }

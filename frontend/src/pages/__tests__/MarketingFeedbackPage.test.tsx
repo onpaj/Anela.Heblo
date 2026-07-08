@@ -4,6 +4,7 @@ import MarketingFeedbackPage from '../MarketingFeedbackPage';
 import * as kbAdapter from '../../components/feedback/adapters/useKbFeedbackAdapter';
 import * as leafletAdapter from '../../components/feedback/adapters/useLeafletFeedbackAdapter';
 import * as articleAdapter from '../../components/feedback/adapters/useArticleFeedbackAdapter';
+import * as smartsuppAdapter from '../../components/feedback/adapters/useSmartsuppFeedbackAdapter';
 import type { FeedbackDetail, GenericFeedbackStats } from '../../components/feedback/types';
 
 let mockHasPermission: (perm: string) => boolean = () => false;
@@ -19,6 +20,7 @@ jest.mock('../../auth/PermissionsContext', () => ({
 jest.mock('../../components/feedback/adapters/useKbFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useLeafletFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useArticleFeedbackAdapter');
+jest.mock('../../components/feedback/adapters/useSmartsuppFeedbackAdapter');
 
 const emptyAdapterResult = {
   rows: [] as FeedbackDetail[],
@@ -44,15 +46,24 @@ const leafletRow: FeedbackDetail = {
   hasFeedback: false,
 };
 
+const smartsuppRow: FeedbackDetail = {
+  id: 'ss-1',
+  primaryText: 'Smartsupp téma',
+  createdAt: '2026-01-01T00:00:00Z',
+  hasFeedback: false,
+};
+
 function setupMocks({
   hasKb = true,
   hasGenAi = false,
   hasLeaflet = false,
-}: { hasKb?: boolean; hasGenAi?: boolean; hasLeaflet?: boolean } = {}) {
+  hasSmartsupp = false,
+}: { hasKb?: boolean; hasGenAi?: boolean; hasLeaflet?: boolean; hasSmartsupp?: boolean } = {}) {
   mockHasPermission = (p) =>
     (hasKb && p === 'customer.knowledge_base.write') ||
     (hasGenAi && p === 'marketing.article.write') ||
-    (hasLeaflet && p === 'marketing.leaflet.write');
+    (hasLeaflet && p === 'marketing.leaflet.write') ||
+    (hasSmartsupp && p === 'customer.smartsupp.read');
 
   jest.spyOn(kbAdapter, 'useKbFeedbackAdapter').mockReturnValue({
     ...emptyAdapterResult,
@@ -63,6 +74,10 @@ function setupMocks({
     rows: [leafletRow],
   });
   jest.spyOn(articleAdapter, 'useArticleFeedbackAdapter').mockReturnValue(emptyAdapterResult);
+  jest.spyOn(smartsuppAdapter, 'useSmartsuppFeedbackAdapter').mockReturnValue({
+    ...emptyAdapterResult,
+    rows: [smartsuppRow],
+  });
 }
 
 beforeEach(() => {
@@ -82,6 +97,21 @@ test('shows KB rows by default on first tab', () => {
   setupMocks();
   render(<MarketingFeedbackPage />);
   expect(screen.getByText('KB otázka')).toBeInTheDocument();
+});
+
+test('hides the Smartsupp tab without the smartsupp permission', () => {
+  setupMocks();
+  render(<MarketingFeedbackPage />);
+  expect(screen.queryByRole('button', { name: /smartsupp/i })).not.toBeInTheDocument();
+});
+
+test('shows the Smartsupp tab and its rows when permitted', () => {
+  setupMocks({ hasSmartsupp: true });
+  render(<MarketingFeedbackPage />);
+  const tab = screen.getByRole('button', { name: /smartsupp/i });
+  expect(tab).toBeInTheDocument();
+  fireEvent.click(tab);
+  expect(screen.getByText('Smartsupp téma')).toBeInTheDocument();
 });
 
 test('switching to Letáky tab shows leaflet rows', () => {

@@ -15,6 +15,7 @@ public class SearchDocumentsHandlerTests
     private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddingGenerator = new();
     private readonly Mock<IKnowledgeBaseRepository> _repository = new();
     private readonly Mock<IRagQueryExpander> _expander = new();
+    private readonly RagInteractionRecorder _recorder = new();
     private readonly Mock<ILogger<SearchDocumentsHandler>> _logger = new();
 
     private SearchDocumentsHandler CreateHandler(double minScore = 0.60)
@@ -24,7 +25,7 @@ public class SearchDocumentsHandlerTests
             MinSimilarityScore = minScore,
             QueryExpansionPrompt = "Expand:"
         });
-        return new SearchDocumentsHandler(_embeddingGenerator.Object, _repository.Object, options, _expander.Object, _logger.Object);
+        return new SearchDocumentsHandler(_embeddingGenerator.Object, _repository.Object, options, _expander.Object, _recorder, _logger.Object);
     }
 
     private void SetupEmbeddingGenerator()

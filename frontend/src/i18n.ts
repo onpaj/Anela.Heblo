@@ -246,6 +246,8 @@ const resources = {
         SmartsuppSendMessageUnavailable: "Odeslání zprávy selhalo. Zkuste to prosím znovu.",
         SmartsuppAgentMappingNotFound: "Váš uživatelský účet nemá přiřazený Smartsupp agent. Doplňte mapování v Smartsupp:AgentMap.",
         SmartsuppCloseConversationUnavailable: "Uzavření konverzace selhalo — služba je nedostupná. Zkuste to prosím znovu.",
+        SmartsuppDraftReplyFeedbackLogNotFound: "Záznam zpětné vazby nenalezen",
+        SmartsuppDraftReplyFeedbackAlreadySubmitted: "Zpětná vazba již byla odeslána",
 
         // Inventory module errors
         LotNotFound: "Šarže nebyla nalezena.",
