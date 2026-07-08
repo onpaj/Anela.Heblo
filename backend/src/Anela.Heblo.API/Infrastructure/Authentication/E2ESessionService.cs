@@ -95,7 +95,12 @@ public class E2ESessionService : IE2ESessionService
             // E2E interaction — box-creation.spec.ts (POST /api/transport-boxes) and
             // box-receive.spec.ts (POST .../open-by-code, PUT .../state) — needs Write too.
             new Claim(ClaimTypes.Role, AccessRoles.WarehouseLogisticsRead),
-            new Claim(ClaimTypes.Role, AccessRoles.WarehouseLogisticsWrite)
+            new Claim(ClaimTypes.Role, AccessRoles.WarehouseLogisticsWrite),
+            // Grant the Warehouse_StockUp read/write roles so E2E tests can reach
+            // /api/StockUpOperations* (list, retry, accept). Without these, FeatureAuthorize
+            // rejects every request with 403 before the controller action runs (feat-3540).
+            new Claim(ClaimTypes.Role, AccessRoles.WarehouseStockUpRead),
+            new Claim(ClaimTypes.Role, AccessRoles.WarehouseStockUpWrite)
         };
     }
 }

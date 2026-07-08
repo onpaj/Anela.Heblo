@@ -238,25 +238,55 @@ export async function navigateToCatalog(page: any): Promise<void> {
   // First, try to find and click on "Produkty" section
   const produktySelector = page.locator('text="Produkty"').first();
   try {
-    if (await produktySelector.isVisible({ timeout: 2000 })) {
+    console.log('🧭 Attempting UI navigation to catalog via Produkty...');
+    if (await produktySelector.isVisible({ timeout: 5000 })) {
+      console.log('✅ Found Produkty menu item, clicking...');
       await produktySelector.click();
       await waitForLoadingComplete(page);
 
       // Then click on "Katalog" sub-item
       const katalog = page.locator('text="Katalog"').first();
-      if (await katalog.isVisible({ timeout: 2000 })) {
+      if (await katalog.isVisible({ timeout: 5000 })) {
+        console.log('✅ Found Katalog submenu, clicking...');
         await katalog.click();
         await page.waitForLoadState('domcontentloaded');
         await waitForLoadingComplete(page);
+
+        // Verify we actually landed on the catalog page (a RequireMenuPath
+        // redirect-to-"/" on insufficient permission would still resolve the
+        // click without an exception, so a URL check is required here).
+        if (page.url().includes('/catalog')) {
+          console.log('✅ UI navigation successful');
+          return;
+        }
+        console.log('❌ Katalog click did not land on /catalog, current URL:', page.url());
+      } else {
+        console.log('❌ Katalog submenu not found under Produkty');
       }
+    } else {
+      console.log('❌ Produkty menu item not found');
     }
   } catch (e) {
-    // If UI navigation fails, go directly to the path
-    const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
-    await page.goto(`${baseUrl}/catalog`);
-    await page.waitForLoadState('domcontentloaded');
-    await waitForLoadingComplete(page);
+    console.log('❌ UI navigation failed:', e.message);
   }
+
+  // Unconditional fallback — reached on an isVisible timeout-miss, a UI click
+  // that didn't land on /catalog, and a thrown exception alike.
+  console.log('🔄 Trying direct navigation to catalog...');
+  const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+  await page.goto(`${baseUrl}/catalog`);
+  await page.waitForLoadState('domcontentloaded');
+  await waitForLoadingComplete(page);
+
+  // Self-verification: turn a silent no-op into a fast, diagnosable failure
+  // instead of leaving the caller on a non-/catalog URL.
+  if (!page.url().includes('/catalog')) {
+    throw new Error(
+      `navigateToCatalog: failed to reach /catalog via UI navigation (Produkty > Katalog) or direct goto fallback (${baseUrl}/catalog); final URL was ${page.url()}`
+    );
+  }
+
+  console.log('✅ Direct navigation to catalog completed');
 }
 
 export async function navigateToStockOperations(page: any): Promise<void> {

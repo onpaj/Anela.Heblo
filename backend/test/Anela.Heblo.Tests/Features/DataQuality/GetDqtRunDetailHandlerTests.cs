@@ -65,6 +65,44 @@ public class GetDqtRunDetailHandlerTests
         Assert.Null(response.ErrorCode);
     }
 
+    [Theory]
+    [InlineData(DqtTestType.ProductPairing)]
+    [InlineData(DqtTestType.StockWriteBackReconciliation)]
+    [InlineData(DqtTestType.LotSumVsErpStock)]
+    public async Task Handle_DriftTestType_ReturnsMappedDriftResults(DqtTestType testType)
+    {
+        var run = DqtRun.Start(testType, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual);
+        var dto = new DqtRunDto { Id = run.Id };
+        var driftItems = new List<DqtDriftResult>();
+        var driftDtos = new List<DqtDriftResultDto>();
+
+        _repositoryMock
+            .Setup(r => r.GetWithResultsAsync(run.Id, 1, 50, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+
+        _repositoryMock
+            .Setup(r => r.GetDriftResultsAsync(run.Id, 1, 50, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((driftItems, 7));
+
+        _mapperMock
+            .Setup(m => m.Map<DqtRunDto>(run))
+            .Returns(dto);
+
+        _mapperMock
+            .Setup(m => m.Map<List<DqtDriftResultDto>>(driftItems))
+            .Returns(driftDtos);
+
+        var request = new GetDqtRunDetailRequest { Id = run.Id };
+
+        var response = await _sut.Handle(request, CancellationToken.None);
+
+        Assert.True(response.Success);
+        Assert.NotNull(response.Run);
+        Assert.Same(driftDtos, response.DriftResults);
+        Assert.Equal(7, response.TotalDriftResults);
+        Assert.Null(response.ErrorCode);
+    }
+
     [Fact]
     public async Task Handle_UnrecognizedTestType_ReturnsUnsupportedTestTypeError()
     {

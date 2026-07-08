@@ -67,6 +67,7 @@ public class InvoiceClassificationServiceTests
         // Assert
         result.Result.Should().Be(ClassificationResult.ManualReviewRequired);
         result.RuleId.Should().BeNull();
+        result.RuleName.Should().BeNull();
         result.AccountingTemplateCode.Should().BeNull();
         result.Department.Should().BeNull();
         result.ErrorMessage.Should().BeNull();
@@ -146,6 +147,7 @@ public class InvoiceClassificationServiceTests
         // Assert
         result.Result.Should().Be(ClassificationResult.Success);
         result.RuleId.Should().Be(ruleWithId.Id);
+        result.RuleName.Should().Be(ruleWithId.Name);
         result.AccountingTemplateCode.Should().Be("TEMPLATE_001");
         result.Department.Should().Be("Sales");
         result.ErrorMessage.Should().BeNull();
@@ -226,6 +228,7 @@ public class InvoiceClassificationServiceTests
         // Assert
         result.Result.Should().Be(ClassificationResult.Error);
         result.RuleId.Should().Be(matchedRule.Id);
+        result.RuleName.Should().Be(matchedRule.Name);
         result.Department.Should().Be("Purchases");
         result.AccountingTemplateCode.Should().BeNull();
         result.ErrorMessage.Should().Be("Failed to update invoice classification in ABRA");
@@ -286,6 +289,7 @@ public class InvoiceClassificationServiceTests
         // Assert
         result.Result.Should().Be(ClassificationResult.Error);
         result.RuleId.Should().BeNull();
+        result.RuleName.Should().BeNull();
         result.AccountingTemplateCode.Should().BeNull();
         result.Department.Should().BeNull();
         result.ErrorMessage.Should().Contain("Exception during classification")

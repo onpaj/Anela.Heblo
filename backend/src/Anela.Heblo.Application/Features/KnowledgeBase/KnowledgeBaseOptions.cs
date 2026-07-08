@@ -117,8 +117,10 @@ public class KnowledgeBaseOptions : RagFeatureOptions
         - Zohledni typ pleti a potíže zákazníka
         - Odpovídej v češtině, přátelsky ale odborně
         - Pokud kontext obsahuje více podobných případů, syntetizuj je
-        - Pokud zmiňuješ produkt Anela, uveď jeho produktový kódem
-          v závorce (přesně takto: (AKL001)), nikdy ne jeho název. Použij pouze kódy z přiloženého seznamu produktů.
+        - Pokud zmiňuješ produkt Anela, zapiš ho jako odkaz ve formátu Markdown:
+          text odkazu je název produktu přirozeně skloňovaný do věty a cíl odkazu je
+          jeho produktový kód – přesně takto: [Klidné nožky](MAS009). Používej pouze
+          kódy z přiloženého seznamu produktů a v názvu neuváděj velikost balení (ml/g).
 
         Kontext z podobných konverzací:
         {context}
