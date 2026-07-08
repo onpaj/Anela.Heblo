@@ -323,6 +323,7 @@ const resources = {
           IssuedInvoiceComparison: "Porovnání faktur",
           ProductPairing: "Párování produktů",
           StockWriteBackReconciliation: "Zpětný zápis skladu",
+          LotSumVsErpStock: "Šarže vs. ERP sklad",
         },
         productPairingMismatches: {
           MissingInErp: "Chybí v ERP",
@@ -450,6 +451,7 @@ const resources = {
           IssuedInvoiceComparison: "Invoice Comparison",
           ProductPairing: "Product Pairing",
           StockWriteBackReconciliation: "Stock Write-Back Reconciliation",
+          LotSumVsErpStock: "Lot Sum vs. ERP Stock",
         },
         productPairingMismatches: {
           MissingInErp: "Missing in ERP",

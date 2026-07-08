@@ -4,5 +4,6 @@ public enum DqtTestType
 {
     IssuedInvoiceComparison = 1,
     ProductPairing = 2,
-    StockWriteBackReconciliation = 3
+    StockWriteBackReconciliation = 3,
+    LotSumVsErpStock = 4
 }
