@@ -1,142 +1,134 @@
-# Specification: Fix Issued Invoices page shell blocked by grid-data loading (Seznam tab never appears in E2E)
+# Specification: Fix Issued Invoices page shell blocked by grid-data loading (Seznam tab never appears)
 
 ## Summary
 
-The nightly E2E regression run (#191, `main@738a99c`) failed 29 tests in the `issued-invoices` module because `button:has-text("Seznam")`, `h1:has-text("Vydané faktury")`, and `button:has-text("Statistiky")` all time out after 30s. Code inspection of `IssuedInvoicesPage.tsx` found the root architectural defect: the entire page shell (heading + tab bar) is gated behind the **grid tab's** data fetch (`useIssuedInvoicesList`), even though the page defaults to the **Statistics** tab and the fetch is unconditional. Combined with the frontend having no client-side request timeout on API calls, any slowness in the `GET /api/invoices` response — however caused — makes the whole page appear frozen on a spinner with no heading or tabs, which is exactly the failure signature reported.
+29 nightly E2E tests in the `issued-invoices` module fail on staging because the "Seznam" (Grid) tab button, the "Vydané faktury" heading, and even the "Statistiky" tab never render within the 30s Playwright timeout. Root cause: `IssuedInvoicesPage.tsx` gates rendering of the **entire page shell** (heading + tab navigation) behind the loading state of the grid/list data query (`useIssuedInvoicesList`), even though the default active tab is "Statistiky" and does not need that data at all. Any slowness, hang, or delay in the `/api/invoices` call — the exact cause of which still needs to be confirmed on staging — leaves the user (and the E2E tests) staring at a bare "Načítání faktur..." spinner indefinitely, with no tab bar to interact with.
 
 ## Background
 
-`frontend/src/pages/customer/IssuedInvoicesPage.tsx` renders the "Vydané faktury" page with two tabs: "Statistiky" (default) and "Seznam" (grid). The component eagerly calls two independent data hooks on mount regardless of which tab is active:
+`IssuedInvoicesPage` (`frontend/src/pages/customer/IssuedInvoicesPage.tsx`) was added whole in commit `bd2efd3` (2026-07-07) together with its E2E coverage in `frontend/test/e2e/issued-invoices/*.spec.ts`. The component fetches two independent datasets on mount, unconditionally, regardless of which tab is active:
 
-- `useIssuedInvoicesList(...)` (grid data) — `IssuedInvoicesPage.tsx:68-84`
-- `useIssuedInvoiceSyncStats(...)` (statistics data) — `IssuedInvoicesPage.tsx:87-95`
+- `useIssuedInvoicesList(...)` (`frontend/src/api/hooks/useIssuedInvoices.ts`) — powers the **Grid** ("Seznam") tab. Calls `GET /api/invoices`.
+- `useIssuedInvoiceSyncStats(...)` (`frontend/src/api/hooks/useIssuedInvoiceSyncStats.ts`) — powers the **Statistics** ("Statistiky") tab, which is the default (`activeTab` initial state is `'statistics'`).
 
-The component has a **page-level** early return keyed off the grid query's `loading`/`error` state, placed *before* the JSX that renders the `<h1>` heading and the tab `<nav>`:
+The component's render logic has this shape (lines 314–334 and 405+):
 
 ```tsx
-// IssuedInvoicesPage.tsx:314-334
-if (loading) {
-  return (
-    <div className="flex items-center justify-center h-64">
-      ...
-      <div className="text-gray-500 ...">Načítání faktur...</div>
-    </div>
-  );
+if (loading) {               // loading === useIssuedInvoicesList().isLoading
+  return <...spinner only, no header, no tabs...>;
 }
-
 if (error) {
-  return (
-    <div className="flex items-center justify-center h-64">
-      ...
-      <div>Chyba při načítání faktur: {error.message}</div>
-    </div>
-  );
+  return <...error only, no header, no tabs...>;
 }
+return (
+  <div>
+    {/* h1 "Vydané faktury" + tab nav (Statistiky / Seznam) rendered here */}
+    ...
+  </div>
+);
 ```
 
-The heading and tab bar only appear in the JSX returned starting at `IssuedInvoicesPage.tsx:405` (`return (<div className="flex flex-col w-full" ...>`), which contains:
-- `<h1>Vydané faktury</h1>` — line 431
-- "Statistiky" tab button — lines 437-447
-- "Seznam" tab button — lines 448-458
+Because `loading` reflects the **list** query and is checked before the tab bar is returned at all, the page header and tab navigation cannot appear until `/api/invoices` resolves — even for a user who only wants Statistics, and even though `useIssuedInvoiceSyncStats` has its own independent loading/error handling scoped inside `StatisticsTab`. There is no `enabled` flag on `useIssuedInvoicesList`, so it always fires on mount regardless of `activeTab`.
 
-Because the early returns at lines 314-334 happen first, **the heading and both tab buttons are unreachable for as long as the grid list query is loading or errored** — regardless of which tab the user is on. `activeTab` defaults to `'statistics'` (line 31), so on first page load the grid data isn't even needed yet, but its fetch still blocks the entire shell.
+The nightly run (`#191`, commit `738a99c`, target `https://heblo.stg.anela.cz`) shows all `issued-invoices` specs timing out waiting for `button:has-text("Seznam")` (and, in a subset of cases, `h1:has-text("Vydané faktury")` / `button:has-text("Statistiky")`), which is consistent with this blocking-render architecture combined with the list request taking longer than 30s (or failing to resolve) on staging.
 
-This exactly explains all three timeout signatures in the bug report:
-1. `button:has-text("Seznam")` never appears (brief's primary signature, `filters.spec.ts:34`).
-2. `h1:has-text("Vydané faktury")` never appears (page never reaches its main return).
-3. `button:has-text("Statistiky")` never appears (same reason — collateral damage from a tab-bar-wide gate keyed to one tab's data).
+A secondary contributing factor confirmed in code: `waitForLoadingComplete()` (`frontend/test/e2e/helpers/wait-helpers.ts`) looks for `[data-loading="true"], .loading, .spinner, [aria-busy="true"]`, none of which `IssuedInvoicesPage` renders (its loading UI is a plain `<div>` with a `Loader2` icon and Czech text). This helper is already known to return immediately without actually waiting (see the inline comment in `wait-helpers.ts` documenting the same issue for `CatalogList`, and the workaround comment on `filters.spec.ts` test 4). It masks — rather than causes — the present failure, but the `beforeEach` block in `filters.spec.ts` (lines 6–36) does NOT rely on `waitForLoadingComplete` for the initial page-shell wait; it uses an explicit `Promise.race` between the loading-text disappearing and the Grid tab becoming visible, with a clear error path. That defensive coding proves the test authors already anticipated this exact failure mode — the assertion is correct; the application under test is the one that's broken.
 
-A secondary, compounding factor: neither the `useIssuedInvoicesList` fetch (`frontend/src/api/hooks/useIssuedInvoices.ts:69`) nor the shared authenticated fetch wrapper (`frontend/src/api/client.ts:283-292`, used by `getAuthenticatedApiClient()`) attaches an `AbortSignal`/timeout to the `fetch()` call. `getApiConfig()` (`client.ts:465-471`) defines a `timeout: 30000` value, but nothing consumes it to actually abort a hung request. So if the `GET /api/invoices` request is slow or hangs on staging, there is no client-side ceiling — the spinner (and therefore the whole page, per the bug above) can hang indefinitely, until Playwright's own 30s action-wait gives up.
-
-The backend endpoint the grid query calls (`GET /api/invoices` → `InvoicesController.GetInvoicesList` → `GetIssuedInvoicesListHandler` → `IssuedInvoiceRepository.GetPaginatedAsync`) was inspected and found to be a plain EF Core/PostgreSQL query set (count + skip/take) with supporting indexes on `InvoiceDate`, `LastSyncTime`, `IsSynced`, `ErrorType`, and `CustomerName` (`IssuedInvoiceConfiguration.cs:128-142`). It makes **no external Shoptet/ABRA calls** in the read path — those only happen in the invoice *import* flow (`EnqueueImportInvoicesRequest`, the daily Hangfire jobs). No feature flag gates this page or its API calls (verified via grep across the page, hooks, and controller). So the *why is it slow on staging* question could not be conclusively answered by static code review; see Open Questions.
-
-One candidate external cause was investigated and largely ruled out: `DailyInvoiceImportCzkJob`/`DailyInvoiceImportEurJob` (`backend/src/.../Infrastructure/Jobs/DailyInvoiceImport{Czk,Eur}Job.cs`) write to the same `IssuedInvoices` table and do call Shoptet, running at cron `15 4 * * *` / `0 4 * * *`. However, the nightly workflow (`.github/workflows/e2e-nightly-regression.yml`) starts at `0 1 * * *` (1:00 AM UTC), and Playwright's `globalTimeout` is 60 minutes (`frontend/playwright.config.ts:83`), so the full "all modules, 1 worker" run must finish by roughly 2:10 AM UTC — well before the 4:00-4:15 AM UTC import jobs. `issued-invoices` is also the 2nd of 9 projects Playwright discovers (`playwright.config.ts:86-131`), so it runs early in that window. A lock/contention overlap with the import jobs is therefore unlikely to be the trigger, though it cannot be fully excluded without the actual run's timestamps (GitHub Actions access was unavailable in this investigation — see Open Questions).
+This is a bug-fix task: correct the coupling between page-shell rendering and per-tab data loading, and confirm/address why `/api/invoices` is slow or hanging on staging. It is not a new feature.
 
 ## Functional Requirements
 
-### FR-1: Root cause diagnosis (this investigation)
+### FR-1: Decouple page shell (heading + tab navigation) from grid-data loading state
 
-Document the confirmed defect and rank hypotheses for why the underlying request is slow enough to exceed the 30s E2E wait.
-
-**Findings:**
-- **Confirmed code defect:** `IssuedInvoicesPage.tsx:314-334` — page-level `loading`/`error` early return, keyed to the grid-tab-only `useIssuedInvoicesList` query, sits above the JSX (line 405 onward) that renders the `<h1>` and tab `<nav>` (lines 429-461). This blocks the whole page shell on one tab's data, regardless of `activeTab`.
-- **Confirmed contributing factor:** no client-side fetch timeout/`AbortSignal` anywhere in the request path (`useIssuedInvoices.ts:69`, `client.ts:283-292`), so a slow/hung backend response has no client-enforced ceiling.
-- **Backend read path is external-call-free:** `GetIssuedInvoicesListHandler.cs`, `IssuedInvoiceRepository.GetPaginatedAsync` (`IssuedInvoiceRepository.cs:76-145`) are DB-only, with indexes present. Not proven to be the source of the actual multi-second-plus delay from static review alone.
-- **Daily Shoptet import jobs are an unlikely but not fully excluded contributor** — see Background for the timing analysis.
-- **No feature flag involvement** confirmed via search.
+The `h1` "Vydané faktury" heading and the tab navigation bar (both "Statistiky" and "Seznam" buttons) must render as soon as the component mounts, independent of `useIssuedInvoicesList`'s `isLoading`/`error` state. The top-level `if (loading) return ...` / `if (error) return ...` guards currently at lines 314–334 of `IssuedInvoicesPage.tsx` must be removed or narrowed so they no longer short-circuit before the shared header/tab JSX.
 
 **Acceptance criteria:**
-- The investigation notes above are available to the architect/dev phase without re-discovery (file/line citations included).
-- Any follow-up diagnostic needed to pin the exact backend latency cause (e.g., App Insights query, staging DB row count) is called out explicitly rather than guessed at (see Open Questions).
+- On initial page load (default tab = Statistics), the `h1:has-text("Vydané faktury")` and both tab buttons (`button:has-text("Statistiky")`, `button:has-text("Seznam")`) are visible within a small, bounded time (see NFR-1) even if `/api/invoices` has not yet returned.
+- This holds regardless of whether the list request is slow, fails, or is still pending.
 
-### FR-2: Page shell must render independently of tab-specific data loading
+### FR-2: Only fetch grid list data when the Grid tab is active (or has been activated)
 
-The `<h1>Vydané faktury</h1>` heading and the "Statistiky"/"Seznam" tab buttons must render as soon as the page mounts, without waiting for any per-tab data fetch to resolve. Loading and error states must be scoped to the content area of the active tab only, matching the pattern already used correctly inside `StatisticsTab` (`IssuedInvoicesPage.tsx:337-358`, whose `syncStatsLoading`/`syncStatsError` handling is self-contained) and the grid tab's own inline loading/error block (`IssuedInvoicesPage.tsx:591-604`, which is currently dead code for this purpose since the outer early return at lines 314-334 pre-empts it).
-
-Concretely: remove (or relocate) the page-level `if (loading) return ...` / `if (error) return ...` block at `IssuedInvoicesPage.tsx:314-334` so it no longer gates the return at line 405. The grid tab already has its own scoped loading/error rendering at lines 591-604 that can take over this responsibility for the grid tab only.
+`useIssuedInvoicesList` must not fire an eager network request while the user is on the Statistics tab and has never opened the Grid tab. Gate the query with an `enabled` option tied to `activeTab === 'grid'` (React Query supports lazy/conditional fetching this way), consistent with how `refetchRunningJobs` is already only triggered when `activeTab === 'grid'` (existing `useEffect` at lines 191–195).
 
 **Acceptance criteria:**
-- On page load, with the grid-list API call artificially delayed or failing, the `<h1>Vydané faktury</h1>` and both tab buttons ("Statistiky", "Seznam") are visible and clickable immediately (no dependency on the grid query's resolution).
-- Switching to the "Seznam" tab while the grid query is still loading shows a loading indicator scoped to the grid panel only (consistent with current lines 591-604 behavior), not a full-page blank/spinner state.
-- The existing "Statistiky" tab loading/error behavior (`StatisticsTab`, lines 337-358) is unaffected.
-- All 29 previously-failing `issued-invoices` E2E specs (`filters.spec.ts`, `pagination.spec.ts`, `sorting.spec.ts`, `status-badges.spec.ts`, `navigation.spec.ts`) pass against staging.
+- With the network panel open, loading the page with the default Statistics tab active issues no request to `/api/invoices`.
+- Switching to the Seznam tab for the first time triggers exactly one `/api/invoices` request (existing filter/sort/pagination-triggered refetches are unaffected).
+- Switching back to Statistics and then back to Grid does not re-fetch if data is still within `staleTime` (existing React Query caching behavior preserved).
 
-### FR-3: Bound API requests with a client-side timeout
+### FR-3: Scope the list-loading and list-error UI to the Grid tab content area only
 
-Add an explicit timeout/`AbortSignal` to the fetch calls used by `useIssuedInvoicesList` (`useIssuedInvoices.ts:69`) and, ideally, to the shared `authenticatedHttp.fetch` wrapper in `getAuthenticatedApiClient()` (`client.ts:283-292`), using the existing `getApiConfig().timeout` value (`client.ts:469`) that is currently defined but unused. This is a defense-in-depth fix, independent of FR-2: even with FR-2 in place, a genuinely hung backend request should surface as a bounded, user-visible error rather than an indefinite spinner in the grid panel.
+The "Načítání faktur..." spinner and the "Chyba při načítání faktur" error message must only replace the **Grid tab's content region** (inside the `activeTab === 'grid'` branch, where equivalent loading/error UI already exists at lines 591–604), not the whole page. Remove the now-redundant top-level loading/error blocks entirely once FR-1 is implemented, since the in-tab-content copies already exist and are functionally equivalent.
 
 **Acceptance criteria:**
-- A backend response that never resolves causes the affected query to fail with a client-observable error within the configured timeout window (not indefinitely).
-- Existing successful requests (well under the timeout) are unaffected.
-- Scope check: confirm whether other hooks sharing `getAuthenticatedApiClient()`/`authenticatedHttp.fetch` should also get this timeout, or whether it should be opt-in per hook — see Open Questions.
+- While `/api/invoices` is pending, the Grid tab (once selected) shows the existing scoped spinner inside the data-grid container; the header and tab bar remain interactive and clickable throughout.
+- The Statistics tab is fully usable (cards, chart) while the Grid tab's data is loading or has errored, and vice versa.
+
+### FR-4: Add/confirm a machine-readable loading marker for E2E stability
+
+Add a `data-loading="true"` attribute (or equivalent, e.g. `aria-busy="true"`) to the Grid tab's loading container so `waitForLoadingComplete()` (`frontend/test/e2e/helpers/wait-helpers.ts`) works as intended instead of silently no-op'ing. This does not fix the root cause by itself but prevents the same class of "test looks like it waited but didn't" failure recurring here, consistent with the precedent already documented in `wait-helpers.ts` for the Catalog module.
+
+**Acceptance criteria:**
+- `waitForLoadingComplete(page)` called while the Grid tab is fetching actually blocks until the spinner is gone (verified by a short artificial delay in a local/dev run, or by code inspection confirming the selector now matches).
+- No existing `waitForTimeout` workarounds in `filters.spec.ts` are required to be removed as part of this fix (they may remain until a separate test-cleanup pass), but no NEW arbitrary timeouts should be introduced to compensate for this bug.
+
+### FR-5: Diagnose and address the underlying `/api/invoices` slowness/hang on staging
+
+Independent of the frontend architecture fix (FR-1–FR-3), determine why `GET /api/invoices` took long enough (or failed to resolve) to blow a 30s Playwright timeout on staging during run #191. `GetIssuedInvoicesListHandler` (`backend/src/Anela.Heblo.Application/Features/Invoices/UseCases/GetIssuedInvoicesList/GetIssuedInvoicesListHandler.cs`) delegates directly to `IIssuedInvoiceRepository.GetPaginatedAsync` — a straightforward paginated DB query with no obvious N+1 or synchronous external (Shoptet) call in the request path — so the delay is not self-evident from the handler alone and needs to be confirmed with staging logs/APM (see Open Questions).
+
+Additionally, note that `GetIssuedInvoicesListHandler`'s `catch` block returns `Success = false` with an `ErrorCode`, but `InvoicesController.GetInvoicesList` always returns `Ok(result)` (HTTP 200) regardless of `Success`. The frontend hook (`useIssuedInvoices.ts`) only treats non-2xx responses as errors (`if (!response.ok) throw ...`); it never inspects `data.success`/`data.errorCode`. A backend business-logic failure is therefore currently swallowed as an empty list rather than surfaced as an error — this does not explain the 30s timeout (loading would resolve, just with empty data) but is a related correctness gap worth fixing in the same change since it affects the same code path and the same error-handling story tested by `filters.spec.ts`'s `beforeEach`.
+
+**Acceptance criteria:**
+- A concrete cause for the staging timeout is identified and documented (e.g., slow query due to missing index, connection pool exhaustion, cold start, auth/token acquisition stall in `getAuthenticatedApiClient()`, or transient staging incident) — see Open Questions for how this investigation should be scoped.
+- `useIssuedInvoicesList`'s fetch wrapper (or the handler/controller) is updated so a `Success: false` response is surfaced as an error state in the UI (`error` from `useIssuedInvoicesList`) rather than silently rendering as zero rows.
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
 
-- The Issued Invoices page shell (heading + tabs) must be interactive within the existing app shell's normal load budget, independent of grid/statistics data latency.
-- `GET /api/invoices` (default, unfiltered, first page) should be confirmed to respond within a low-single-digit-second budget on staging under normal conditions; if it does not, that is a separate backend performance issue to investigate (see Open Questions) — FR-2/FR-3 make the UI resilient to it either way but do not by themselves fix a genuinely slow backend.
+- Page shell (heading + tab bar) must be interactive within the app's existing FCP/render budget for other pages in this module (no explicit SLA previously existed for this page; use "same order of magnitude as other Customer-module pages," i.e., well under 2s under normal staging conditions), independent of any single tab's data-fetch latency.
+- `GET /api/invoices` at default page size (20) should complete in line with other paginated list endpoints in the app (existing precedent, e.g., `/api/catalog`); no new explicit SLA is introduced by this fix, but the investigation in FR-5 should record the observed p50/p95 latency on staging for future regression comparison.
 
 ### NFR-2: Security
 
-- No change in authentication/authorization surface. `GetInvoicesList` continues to require the same auth as today; no new endpoints introduced.
+No change to authentication/authorization. The page continues to rely on the existing MSAL-based `getAuthenticatedApiClient()` flow; no new endpoints or data exposure are introduced. If FR-5's investigation finds the hang is caused by token acquisition stalling, that must be fixed within the existing auth flow, not worked around by weakening auth.
 
 ## Data Model
 
-No data model changes. Relevant existing entities:
-- `IssuedInvoice` (`backend/src/Anela.Heblo.Domain/Features/Invoices/`), mapped via `IssuedInvoiceConfiguration.cs` to `public.IssuedInvoices`, with indexes on `InvoiceDate`, `LastSyncTime`, `IsSynced`, `ErrorType`, `CustomerName`.
-- `IssuedInvoiceSyncStats` — aggregate computed on demand by `GetSyncStatsAsync` (`IssuedInvoiceRepository.cs:35-58`), not persisted.
+No data model changes. Existing entities involved:
+- `IssuedInvoiceDto` / `GetIssuedInvoicesListResponse` (paginated list, `Items`, `TotalCount`, `PageNumber`, `PageSize`, `Success`, `ErrorCode`, `Params`).
+- `GetIssuedInvoiceSyncStatsResponse` (aggregate counts used by the Statistics tab, unaffected by this fix).
 
 ## API / Interface Design
 
-No API contract changes required for FR-2 (frontend-only fix). Data flow as traced:
+No API contract changes required for FR-1–FR-4 (purely frontend rendering/query-gating changes). FR-5 may result in:
+- A backend fix (query optimization, index, or removal of an accidental synchronous blocking call) with no change to the `GET /api/invoices` request/response shape.
+- Optionally, the controller/handler being adjusted so failure responses are distinguishable by HTTP status or the frontend hook is adjusted to check `data.success` before treating a 200 response as a success — this is a contract-compatible change (`GetIssuedInvoicesListResponse` already carries `Success`/`ErrorCode`; only the frontend's handling of it changes, unless the team prefers to also change the controller to return a non-2xx status on `Success: false`, which would be a breaking-ish change to confirm with the team — see Open Questions).
 
-1. `IssuedInvoicesPage` mounts → unconditionally calls `useIssuedInvoicesList(...)` (`useIssuedInvoices.ts:23-88`) and `useIssuedInvoiceSyncStats(...)`.
-2. `useIssuedInvoicesList` builds `GET /api/invoices?pageNumber=...&pageSize=...&sortBy=...` and fetches via `getAuthenticatedApiClient().http.fetch` (bypassing the generated client's typed method, calling `.fetch` directly — `useIssuedInvoices.ts:66-74`).
-3. `InvoicesController.GetInvoicesList` (`InvoicesController.cs:25-32`) → MediatR → `GetIssuedInvoicesListHandler.Handle` (`GetIssuedInvoicesListHandler.cs:29-80`) → `IssuedInvoiceRepository.GetPaginatedAsync` (`IssuedInvoiceRepository.cs:76-145`) → PostgreSQL via EF Core.
-4. Response resolves `loading=false` in the `useQuery` result; only then does `IssuedInvoicesPage` fall through past the line 314-334 early return to render the shell.
-
-If FR-3 is implemented, the fetch call at step 2 gains a bounded `AbortSignal`/timeout so step 4 always resolves (success or bounded failure) within a fixed window.
+UI flow (post-fix):
+1. User navigates to `/customer/issued-invoices`.
+2. Header ("Vydané faktury") and tab bar (Statistiky / Seznam) render immediately.
+3. Statistics tab (default) loads its own data independently; Grid tab's query is not fired yet.
+4. User clicks "Seznam" → Grid tab's query fires (first time only) → scoped spinner shows inside the grid container → data renders or a scoped error message renders, without ever hiding the header/tab bar.
 
 ## Dependencies
 
-- **PostgreSQL** (via EF Core) — sole backing store for `GET /api/invoices` and `GET /api/invoices/stats`; no external system in this read path.
-- **Azure Entra ID / MSAL** — auth token acquisition for `getAuthenticatedApiClient()`; not implicated by this investigation (other modules' E2E tests were not reported failing in the same run, per the brief, which is inconsistent with a global auth issue).
-- **Shoptet / ABRA Flexi** — used only by the invoice *import* path (`EnqueueImportInvoicesRequest`, `DailyInvoiceImportCzkJob`/`DailyInvoiceImportEurJob`), not by the list/stats read path this bug affects. Investigated as a possible indirect cause (DB contention during import) and found unlikely to overlap with when `issued-invoices` E2E tests run, per the nightly workflow's timing (see Background).
-- **GitHub Actions nightly workflow** (`.github/workflows/e2e-nightly-regression.yml`) — deploys `main` to staging (`heblo-test` Web App, restarted) immediately before the E2E run, then polls `/health/ready`. A cold-start effect immediately after this restart is plausible but not confirmed (see Open Questions).
+- `@tanstack/react-query` `enabled` option (already used elsewhere in the codebase; no new dependency).
+- Existing E2E infrastructure: `frontend/test/e2e/helpers/e2e-auth-helper.ts` (`navigateToIssuedInvoices`), `frontend/test/e2e/helpers/wait-helpers.ts` (`waitForLoadingComplete`), staging environment `https://heblo.stg.anela.cz`.
+- Staging observability (App Insights / logs / whatever APM the project uses) to complete FR-5's diagnosis — not confirmed which tool is available; see Open Questions.
 
 ## Out of Scope
 
-- Any change to the actual backend query performance (e.g., adding a covering index, query rewrite) — not warranted by evidence gathered here; revisit only if staging diagnostics (Open Questions) show the DB query itself is slow.
-- Changing the daily invoice import job schedule or the nightly E2E workflow's cron/timing.
-- Broader adoption of client-side fetch timeouts across all API hooks beyond `useIssuedInvoicesList` (FR-3 scope should be decided during implementation planning).
-- Retrying/backoff strategy changes for React Query beyond what's already configured globally (`retry: 1` in `frontend/src/App.tsx:104-112`).
+- Rewriting `filters.spec.ts` / `pagination.spec.ts` / `sorting.spec.ts` / `status-badges.spec.ts` / `navigation.spec.ts` beyond what's needed to keep them passing against the fixed component (e.g., no requirement to remove the existing `waitForTimeout(500)` stabilization waits called out in the tests, or to redesign the `Promise.race` pattern in `filters.spec.ts`'s `beforeEach` — it already correctly detects the failure mode and should keep working once the app is fixed).
+- General cleanup of `waitForLoadingComplete`'s known unreliability across the whole E2E suite (only the Issued Invoices page's markers are addressed here, per FR-4).
+- Broader refactor of `IssuedInvoicesPage.tsx` (e.g., splitting into subcomponents, moving state to a reducer) beyond what FR-1–FR-3 require.
+- Changing the `IssuedInvoicesFilters`/pagination/sorting behavior itself — those are assumed to work correctly once the page actually renders (that's what the 29 failing tests are trying to verify, but the failures are 100% attributable to the tab bar never appearing, not to filter/sort/pagination logic itself).
+- Any changes to the Shoptet invoice sync/import pipeline (`ShoptetInvoiceClient`, `ShoptetApiInvoiceSource`) unless FR-5's investigation specifically implicates them.
 
 ## Open Questions
 
-1. **What is the actual staging latency of `GET /api/invoices` at the time of the failing run?** This investigation could not access GitHub Actions run #191 (`gh run view` returned "GitHub access is not enabled for this session") or staging Application Insights, so the *magnitude and cause* of the underlying delay (cold start after the pre-test deploy/restart, DB connection pool warm-up, genuinely slow query, or something else) remains unconfirmed. Recommend pulling App Insights request duration for `GET /api/invoices` on staging around the run-#191 timeframe, and/or staging Postgres slow-query log, before finalizing FR-2/FR-3 as a complete fix versus a resiliency improvement that masks a real backend regression.
-2. **Should FR-3's client-side timeout apply to all `getAuthenticatedApiClient()`-backed requests, or only to `useIssuedInvoicesList`?** Applying it broadly is more consistent but is a larger blast-radius change; scoping it narrowly is safer but leaves the same "unbounded spinner" risk in other pages. Assumption for this spec: start narrow (this hook only) unless the architect phase decides otherwise.
-3. **Is the nightly workflow's pre-test `az webapp restart` (`e2e-nightly-regression.yml:94-97`) followed by a long enough warm-up before tests begin?** The workflow does poll `/health/ready` (up to 20×15s) before starting tests, which should cover basic warm-up, but does not specifically warm the `IssuedInvoices` table's first query. Worth confirming whether `/health/ready` exercises a DB round-trip equivalent to the invoices query.
-4. Git history in this worktree is squashed per-feature by the AgentHarness pipeline (verified: the entire `IssuedInvoicesPage.tsx`, `useIssuedInvoices.ts`, and `IssuedInvoiceRepository.cs` appear as full-file additions in a single unrelated commit, `bd2efd3`, "#3519: Split GridLayouts..."), so no meaningful "recent regression commit" could be identified via `git log`/`git blame` in this environment. If the real repository (outside this worktree) has non-squashed history, re-running blame there against `IssuedInvoicesPage.tsx:314-334` may pinpoint when the page-level gating was introduced.
+1. **FR-5 root cause confirmation**: What staging observability is available to confirm the actual `/api/invoices` response time during run #191 (App Insights request duration, container logs, DB slow-query log)? Assumption made for this spec: the investigating engineer will check staging logs/APM around the run's timestamp; if no APM exists, add temporary timing logs around `GetPaginatedAsync` as a stopgap and re-run the nightly suite to capture fresh data.
+2. **Failure-response contract change**: Should `InvoicesController.GetInvoicesList` start returning a non-2xx status when `Success: false` (breaking-ish, but simpler for all consumers), or should `useIssuedInvoicesList` be changed to check `data.success` on an otherwise-200 response (backward compatible, more code paths to update)? Assumption made for this spec: prefer the frontend-side fix (check `data.success`) to avoid changing an existing contract other consumers might depend on — flag for confirmation with the developer before implementation.
+3. Is there a known reason `/api/invoices` specifically (vs. `/api/invoices/stats`) would be slower on staging right now (e.g., recent data volume growth from a bulk import, a missing index after a recent migration)? Nothing in the repo history reviewed here points to a specific culprit; this needs a live staging check, not just static code review.
+4. Should FR-2's tab-gated fetching also apply retroactively to `useIssuedInvoiceSyncStats` (i.e., should Statistics tab data similarly wait for `activeTab === 'statistics'`)? Out of scope as stated above since Statistics is the default tab and its query firing eagerly on mount is intentional/harmless to this bug, but worth flagging in case the team wants full tab-lazy-loading symmetry.
 
 ## Status: HAS_QUESTIONS
