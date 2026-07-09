@@ -21,16 +21,16 @@
       "updated_at": "2026-07-09T05:25:43.916748Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-09T05:26:01.913244Z"
     }
   },
   "tasks": [
     {
       "name": "collapse-sync-stats-query",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-09T05:26:02.092684Z"
     },
     {
       "name": "add-sync-stats-sql-shape-test",
