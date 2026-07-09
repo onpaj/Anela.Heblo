@@ -37,7 +37,7 @@ export const useEnqueueInvoiceImport = () => {
     },
     onSuccess: () => {
       // Invalidate running jobs queries to show the new job
-      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.invoices, "jobs"] });
+      queryClient.invalidateQueries({ queryKey: invoiceImportQueryKeys.jobs() });
     },
   });
 };
