@@ -40,7 +40,7 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
         var syncedInvoices = await query.CountAsync(x => x.IsSynced, cancellationToken);
         var unsyncedInvoices = totalInvoices - syncedInvoices;
         var invoicesWithErrors = await query.CountAsync(x => x.ErrorType.HasValue, cancellationToken);
-        var criticalErrors = await query.CountAsync(x => x.ErrorType.HasValue && x.ErrorType != IssuedInvoiceErrorType.InvoicePaired, cancellationToken);
+        var criticalErrors = await query.CountAsync(IssuedInvoice.IsCriticalErrorPredicate, cancellationToken);
 
         var lastSyncTime = await query
             .Where(x => x.LastSyncTime.HasValue)
