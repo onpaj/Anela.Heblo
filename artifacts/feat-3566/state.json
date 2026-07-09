@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "fix-invoice-import-double-save",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-09T08:30:04.029030Z"
+      "updated_at": "2026-07-09T09:16:45.298910Z"
     },
     {
       "name": "add-invoice-import-state-tracking-regression-test",
