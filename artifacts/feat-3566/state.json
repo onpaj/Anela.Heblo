@@ -21,8 +21,8 @@
       "updated_at": "2026-07-09T08:29:38.755076Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-09T08:30:03.845795Z"
+      "status": "completed",
+      "updated_at": "2026-07-09T10:36:45.179146Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "add-invoice-import-state-tracking-regression-test",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-09T10:36:38.351127Z"
     }
   ]
 }
