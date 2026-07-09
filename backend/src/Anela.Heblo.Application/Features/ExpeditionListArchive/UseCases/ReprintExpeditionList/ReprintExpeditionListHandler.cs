@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
@@ -9,12 +10,18 @@ public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionLis
 {
     private readonly IBlobStorageService _blobStorageService;
     private readonly IPrintQueueSink _cupsSink;
+    private readonly ITemporaryFileAccessor _temporaryFileAccessor;
     private readonly string _containerName;
 
-    public ReprintExpeditionListHandler(IBlobStorageService blobStorageService, IPrintQueueSink cupsSink, IOptions<ExpeditionListArchiveOptions> options)
+    public ReprintExpeditionListHandler(
+        IBlobStorageService blobStorageService,
+        IPrintQueueSink cupsSink,
+        ITemporaryFileAccessor temporaryFileAccessor,
+        IOptions<ExpeditionListArchiveOptions> options)
     {
         _blobStorageService = blobStorageService;
         _cupsSink = cupsSink;
+        _temporaryFileAccessor = temporaryFileAccessor;
         _containerName = options.Value.BlobContainerName;
     }
 
@@ -25,32 +32,21 @@ public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionLis
             return ReprintExpeditionListResponse.Fail();
         }
 
-        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.pdf");
+        string? tempFile = null;
         try
         {
             await using var blobStream = await _blobStorageService.DownloadAsync(_containerName, request.BlobPath, cancellationToken);
-            await using var fileStream = File.OpenWrite(tempFile);
-            await blobStream.CopyToAsync(fileStream, cancellationToken);
-        }
-        catch
-        {
-            DeleteTempFile(tempFile);
-            throw;
-        }
+            tempFile = await _temporaryFileAccessor.CreateFromStreamAsync(blobStream, ".pdf", cancellationToken);
 
-        try
-        {
             await _cupsSink.SendAsync(new[] { tempFile }, cancellationToken);
             return new ReprintExpeditionListResponse { Success = true };
         }
         finally
         {
-            DeleteTempFile(tempFile);
+            if (tempFile != null)
+            {
+                _temporaryFileAccessor.DeleteIfExists(tempFile);
+            }
         }
-    }
-
-    private static void DeleteTempFile(string path)
-    {
-        try { File.Delete(path); } catch { /* best effort */ }
     }
 }
