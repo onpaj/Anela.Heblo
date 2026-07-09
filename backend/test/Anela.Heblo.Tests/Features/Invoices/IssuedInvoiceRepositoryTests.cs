@@ -154,6 +154,59 @@ public class IssuedInvoiceRepositoryTests : IDisposable
         Assert.Equal(3, stats.UnsyncedInvoices); // Unsynced, error, paired
         Assert.Equal(2, stats.InvoicesWithErrors); // Error and paired
         Assert.Equal(1, stats.CriticalErrors); // Only error invoice (paired is not critical)
+        Assert.Equal(
+            new[] { syncedInvoice.LastSyncTime, errorInvoice.LastSyncTime, pairedInvoice.LastSyncTime }.Max(),
+            stats.LastSyncTime); // Max LastSyncTime among in-range invoices that have one; unsyncedInvoice/oldInvoice have none
+    }
+
+    [Fact]
+    public async Task GetSyncStatsAsync_WithMixedSyncTimes_ReturnsMaxLastSyncTime()
+    {
+        // Arrange
+        var dateFrom = DateTime.Today.AddDays(-7);
+        var dateTo = DateTime.Today;
+
+        var earlySynced = new IssuedInvoice { Id = "INV-EARLY", InvoiceDate = DateTime.Today.AddDays(-3), DueDate = DateTime.Today.AddDays(27), TaxDate = DateTime.Today.AddDays(-3) };
+        earlySynced.SyncSucceeded(CreateTestSyncData());
+
+        var neverSynced = new IssuedInvoice { Id = "INV-NEVERSYNCED", InvoiceDate = DateTime.Today.AddDays(-2), DueDate = DateTime.Today.AddDays(28), TaxDate = DateTime.Today.AddDays(-2) };
+
+        var lateSynced = new IssuedInvoice { Id = "INV-LATE", InvoiceDate = DateTime.Today.AddDays(-1), DueDate = DateTime.Today.AddDays(29), TaxDate = DateTime.Today.AddDays(-1) };
+        lateSynced.SyncSucceeded(CreateTestSyncData());
+
+        await _repository.AddAsync(earlySynced);
+        await _repository.AddAsync(neverSynced);
+        await _repository.AddAsync(lateSynced);
+        await _repository.SaveChangesAsync();
+
+        // Act
+        var stats = await _repository.GetSyncStatsAsync(dateFrom, dateTo);
+
+        // Assert
+        Assert.Equal(new[] { earlySynced.LastSyncTime, lateSynced.LastSyncTime }.Max(), stats.LastSyncTime);
+    }
+
+    [Fact]
+    public async Task GetSyncStatsAsync_WithNoInvoiceHavingLastSyncTime_ReturnsNullLastSyncTime()
+    {
+        // Arrange
+        var dateFrom = DateTime.Today.AddDays(-7);
+        var dateTo = DateTime.Today;
+
+        var unsyncedOne = new IssuedInvoice { Id = "INV-NOSYNC1", InvoiceDate = DateTime.Today.AddDays(-2), DueDate = DateTime.Today.AddDays(28), TaxDate = DateTime.Today.AddDays(-2) };
+        var unsyncedTwo = new IssuedInvoice { Id = "INV-NOSYNC2", InvoiceDate = DateTime.Today.AddDays(-1), DueDate = DateTime.Today.AddDays(29), TaxDate = DateTime.Today.AddDays(-1) };
+
+        await _repository.AddAsync(unsyncedOne);
+        await _repository.AddAsync(unsyncedTwo);
+        await _repository.SaveChangesAsync();
+
+        // Act
+        var stats = await _repository.GetSyncStatsAsync(dateFrom, dateTo);
+
+        // Assert
+        Assert.Equal(2, stats.TotalInvoices);
+        Assert.Equal(0, stats.SyncedInvoices);
+        Assert.Null(stats.LastSyncTime);
     }
 
     [Fact]
