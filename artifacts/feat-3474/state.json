@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3474",
+  "issue_number": 3474,
+  "created_at": "2026-07-08T15:14:47.604553Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-08T15:22:12.296749Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-08T15:24:19.613661Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-08T15:24:25.482002Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-08T15:26:45.171924Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-08T16:19:13.011116Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-08T16:22:53.018365Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extend-temporary-file-accessor",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-08T16:02:51.786704Z"
+    },
+    {
+      "name": "refactor-reprint-handler-and-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-08T16:19:12.532036Z"
+    }
+  ]
+}
