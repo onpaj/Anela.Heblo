@@ -1,8 +1,9 @@
 using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
+using ExpeditionListArchiveContracts = Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 
 namespace Anela.Heblo.Adapters.FileSystem.Features.ExpeditionList;
 
-public class FileSystemTemporaryFileAccessor : ITemporaryFileAccessor
+public class FileSystemTemporaryFileAccessor : ITemporaryFileAccessor, ExpeditionListArchiveContracts.ITemporaryFileAccessor
 {
     public Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken = default)
         => File.ReadAllBytesAsync(path, cancellationToken);
