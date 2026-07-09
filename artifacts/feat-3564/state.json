@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "collapse-sync-stats-query",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-sync-stats-sql-shape-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
