@@ -6,6 +6,12 @@ test.describe('Transport EAN Integration E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to transport boxes with full authentication
     await navigateToTransportBoxes(page);
+
+    // Strict assertion (feature-3542 FR-4): the rest of this file's assertions are
+    // all guarded by `if (await x.count() > 0)`, so a broken navigation/permission
+    // gap would previously make every test in this file "pass" without exercising
+    // anything. Fail loudly here if the Transport Box list never rendered.
+    await expect(page.locator('h1')).toContainText('Transportní boxy');
   });
 
   test('should test EAN code scanning and validation', async ({ page }) => {

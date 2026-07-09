@@ -268,6 +268,23 @@ describe("TransportBoxList", () => {
 
       expect(mockRefetch).toHaveBeenCalledTimes(1);
     });
+
+    it("should still render the page header and primary action button when the query errors", () => {
+      mockUseTransportBoxesQuery.mockReturnValue({
+        data: null,
+        isLoading: false,
+        error: new Error("Network error"),
+        refetch: mockRefetch,
+      });
+
+      render(<TransportBoxList />, { wrapper: createWrapper });
+
+      expect(
+        screen.getByRole("heading", { level: 1, name: "Transportní boxy" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Otevřít nový box")).toBeInTheDocument();
+      expect(screen.getByText("Zkusit znovu")).toBeInTheDocument();
+    });
   });
 
   describe("Filtering functionality", () => {
