@@ -21,16 +21,16 @@
       "updated_at": "2026-07-09T08:29:38.755076Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-09T08:30:03.845795Z"
     }
   },
   "tasks": [
     {
       "name": "fix-invoice-import-double-save",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-09T08:30:04.029030Z"
     },
     {
       "name": "add-invoice-import-state-tracking-regression-test",
