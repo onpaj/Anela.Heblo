@@ -81,7 +81,7 @@ const IssuedInvoicesPage: React.FC = () => {
     invoiceDateTo: invoiceDateTo ? new Date(invoiceDateTo).toISOString() : undefined,
     showOnlyUnsynced,
     showOnlyWithErrors,
-  });
+  }, { enabled: activeTab === 'grid' });
 
   // Use sync stats API for statistics tab
   const {
@@ -310,28 +310,6 @@ const IssuedInvoicesPage: React.FC = () => {
       </span>
     );
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-2">
-          <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-          <div className="text-gray-500 dark:text-graphite-muted">Načítání faktur...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
-          <AlertCircle className="h-5 w-5" />
-          <div>Chyba při načítání faktur: {error.message}</div>
-        </div>
-      </div>
-    );
-  }
 
   // Statistics tab component
   const StatisticsTab: React.FC = () => {
@@ -589,7 +567,7 @@ const IssuedInvoicesPage: React.FC = () => {
           {/* Data Grid - Scrollable */}
           <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0 relative">
             {loading ? (
-              <div className="flex items-center justify-center h-64">
+              <div data-loading="true" className="flex items-center justify-center h-64">
                 <div className="flex items-center space-x-2">
                   <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
                   <div className="text-gray-500 dark:text-graphite-muted">Načítání faktur...</div>

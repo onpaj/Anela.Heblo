@@ -19,8 +19,15 @@ export interface IssuedInvoicesFilters {
   showOnlyWithErrors?: boolean;
 }
 
+export interface UseIssuedInvoicesListOptions {
+  enabled?: boolean;
+}
+
 // Hook for fetching paginated list of issued invoices
-export const useIssuedInvoicesList = (filters: IssuedInvoicesFilters) => {
+export const useIssuedInvoicesList = (
+  filters: IssuedInvoicesFilters,
+  options?: UseIssuedInvoicesListOptions,
+) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.issuedInvoices, filters],
     queryFn: async (): Promise<IGetIssuedInvoicesListResponse> => {
@@ -82,6 +89,7 @@ export const useIssuedInvoicesList = (filters: IssuedInvoicesFilters) => {
       // `new Date(...)` if needed.
       return response.json();
     },
+    enabled: options?.enabled ?? true,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
