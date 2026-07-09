@@ -341,7 +341,7 @@ export async function navigateToTransportBoxReceive(page: any): Promise<void> {
   // If UI navigation fails, go directly to the path
   console.log('🔄 Trying direct navigation to transport box receive...');
   const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
-  await page.goto(`${baseUrl}/warehouse/transport-box-receive`);
+  await page.goto(`${baseUrl}/logistics/receive-boxes`);
   await page.waitForLoadState('domcontentloaded');
   await waitForPageLoad(page);
 

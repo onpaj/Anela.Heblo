@@ -70,6 +70,7 @@ public static class ApplicationInsightsExtensions
         services.AddApplicationInsightsTelemetryProcessor<HomeAssistantDependencyTelemetryFilter>();
         services.AddApplicationInsightsTelemetryProcessor<AzureBlobConflictTelemetryFilter>();
         services.AddApplicationInsightsTelemetryProcessor<McpProductNotFoundTelemetryFilter>();
+        services.AddApplicationInsightsTelemetryProcessor<LabelPollNotFoundTelemetryFilter>();
 
         // Configure sampling (more aggressive for cost savings)
         services.Configure<TelemetryConfiguration>((config) =>

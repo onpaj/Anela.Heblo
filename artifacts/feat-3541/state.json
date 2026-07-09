@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3541",
+  "issue_number": 3541,
+  "created_at": "2026-07-09T00:15:14.879086Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-09T00:22:07.462605Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-09T00:27:15.084973Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-09T00:28:15.194975Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-09T00:29:59.897025Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-09T00:39:11.174117Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-07-09T00:39:11.482886Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "decouple-issued-invoices-shell-from-grid-loading",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-09T00:39:05.707692Z"
+    }
+  ]
+}

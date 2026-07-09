@@ -36,24 +36,39 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
     {
         var query = DbSet.Where(x => x.InvoiceDate >= fromDate.Date && x.InvoiceDate <= toDate.Date);
 
-        var totalInvoices = await query.CountAsync(cancellationToken);
-        var syncedInvoices = await query.CountAsync(x => x.IsSynced, cancellationToken);
-        var unsyncedInvoices = totalInvoices - syncedInvoices;
-        var invoicesWithErrors = await query.CountAsync(x => x.ErrorType.HasValue, cancellationToken);
-        var criticalErrors = await query.CountAsync(x => x.ErrorType.HasValue && x.ErrorType != IssuedInvoiceErrorType.InvoicePaired, cancellationToken);
+        var stats = await query
+            .GroupBy(x => 1)
+            .Select(g => new
+            {
+                Total = g.Count(),
+                Synced = g.Count(x => x.IsSynced),
+                WithErrors = g.Count(x => x.ErrorType.HasValue),
+                Critical = g.Count(x => x.ErrorType.HasValue && x.ErrorType != IssuedInvoiceErrorType.InvoicePaired),
+                LastSyncTime = g.Max(x => (DateTime?)x.LastSyncTime)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        var lastSyncTime = await query
-            .Where(x => x.LastSyncTime.HasValue)
-            .MaxAsync(x => (DateTime?)x.LastSyncTime, cancellationToken);
+        if (stats == null)
+        {
+            return new IssuedInvoiceSyncStats
+            {
+                TotalInvoices = 0,
+                SyncedInvoices = 0,
+                UnsyncedInvoices = 0,
+                InvoicesWithErrors = 0,
+                CriticalErrors = 0,
+                LastSyncTime = null
+            };
+        }
 
         return new IssuedInvoiceSyncStats
         {
-            TotalInvoices = totalInvoices,
-            SyncedInvoices = syncedInvoices,
-            UnsyncedInvoices = unsyncedInvoices,
-            InvoicesWithErrors = invoicesWithErrors,
-            CriticalErrors = criticalErrors,
-            LastSyncTime = lastSyncTime
+            TotalInvoices = stats.Total,
+            SyncedInvoices = stats.Synced,
+            UnsyncedInvoices = stats.Total - stats.Synced,
+            InvoicesWithErrors = stats.WithErrors,
+            CriticalErrors = stats.Critical,
+            LastSyncTime = stats.LastSyncTime
         };
     }
 
