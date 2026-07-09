@@ -84,7 +84,7 @@ public class InvoiceImportService : IInvoiceImportService
         {
             _logger.LogInformation("Importing invoice: {InvoiceNumber}", invoiceDetail.Code);
 
-            var invoice = await GetOrCreateAsync(invoiceDetail.Code, () => _mapper.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail), cancellationToken);
+            var (invoice, isNew) = await GetOrCreateAsync(invoiceDetail.Code, () => _mapper.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail), cancellationToken);
 
             // Always refresh core data fields from source (handles re-imports where data may have changed or was missing)
             _mapper.Map(invoiceDetail, invoice);
@@ -112,7 +112,13 @@ public class InvoiceImportService : IInvoiceImportService
                 invoice.SyncFailed(transformedInvoice, ex.Message, adapterResponse);
             }
 
-            await _repository.UpdateAsync(invoice, cancellationToken);
+            // New invoices are already tracked via AddAsync inside GetOrCreateAsync — calling
+            // UpdateAsync on them would mark an unsaved entity as Modified instead of Added.
+            if (!isNew)
+            {
+                await _repository.UpdateAsync(invoice, cancellationToken);
+            }
+
             await _repository.SaveChangesAsync(cancellationToken);
 
             return invoice;
@@ -124,16 +130,16 @@ public class InvoiceImportService : IInvoiceImportService
         }
     }
 
-    private async Task<IssuedInvoice> GetOrCreateAsync(string key, Func<IssuedInvoice> factory, CancellationToken cancellationToken = default)
+    private async Task<(IssuedInvoice Invoice, bool IsNew)> GetOrCreateAsync(string key, Func<IssuedInvoice> factory, CancellationToken cancellationToken = default)
     {
         var found = await _repository.GetByIdAsync(key, cancellationToken);
         if (found == null)
         {
             found = factory();
             await _repository.AddAsync(found, cancellationToken);
-            await _repository.SaveChangesAsync(cancellationToken);
+            return (found, true);
         }
 
-        return found;
+        return (found, false);
     }
 }
