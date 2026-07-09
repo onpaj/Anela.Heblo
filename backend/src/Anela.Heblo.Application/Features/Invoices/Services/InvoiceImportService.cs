@@ -80,11 +80,13 @@ public class InvoiceImportService : IInvoiceImportService
 
     private async Task<IssuedInvoice> ExecuteImportInvoice(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default)
     {
+        IssuedInvoice? invoice = null;
+        bool isNew = false;
         try
         {
             _logger.LogInformation("Importing invoice: {InvoiceNumber}", invoiceDetail.Code);
 
-            var (invoice, isNew) = await GetOrCreateAsync(invoiceDetail.Code, () => _mapper.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail), cancellationToken);
+            (invoice, isNew) = await GetOrCreateAsync(invoiceDetail.Code, () => _mapper.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail), cancellationToken);
 
             // Always refresh core data fields from source (handles re-imports where data may have changed or was missing)
             _mapper.Map(invoiceDetail, invoice);
@@ -125,6 +127,15 @@ public class InvoiceImportService : IInvoiceImportService
         }
         catch (Exception ex)
         {
+            // If a new invoice was tracked via AddAsync but this import failed before its own
+            // SaveChangesAsync ran, remove it from the change tracker now. Otherwise it stays
+            // tracked as Added on the shared per-batch repository/DbContext instance and would
+            // be silently flushed by whichever later invoice's SaveChangesAsync call runs next.
+            if (isNew && invoice != null)
+            {
+                await _repository.DeleteAsync(invoice, cancellationToken);
+            }
+
             _logger.LogError(ex, "Error occurred while importing invoice: {InvoiceNumber}", invoiceDetail.Code);
             throw;
         }

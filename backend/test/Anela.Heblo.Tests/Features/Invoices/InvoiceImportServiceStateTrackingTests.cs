@@ -112,6 +112,81 @@ public class InvoiceImportServiceStateTrackingTests : IDisposable
         Assert.Null(saved.LastModificationTime);
     }
 
+    [Fact]
+    public async Task ImportInvoicesAsync_WithFailureBeforeSaveThenSuccess_DoesNotPersistFailedInvoice()
+    {
+        // Arrange — invoice A fails during the post-AddAsync refresh-map step (before its own
+        // SaveChangesAsync ever runs), invoice B succeeds normally right after it in the same
+        // batch. Regression coverage for: InvoiceImportService/IssuedInvoiceRepository are
+        // AddScoped, so both invoices share the same DbContext/change tracker across the loop.
+        // If invoice A's Added-but-unsaved entity were left tracked after it fails, invoice B's
+        // SaveChangesAsync would flush the entire tracked graph and silently persist invoice A's
+        // incomplete row too.
+        var query = new IssuedInvoiceSourceQuery { RequestId = "state-tracking-fail-then-success" };
+        var failingDetail = new IssuedInvoiceDetail
+        {
+            Code = "INV-STATE-FAIL",
+            Price = new InvoicePrice { WithVat = 500, CurrencyCode = "CZK" }
+        };
+        var succeedingDetail = new IssuedInvoiceDetail
+        {
+            Code = "INV-STATE-OK",
+            Price = new InvoicePrice { WithVat = 1000, CurrencyCode = "CZK" }
+        };
+        var batch = new IssuedInvoiceDetailBatch
+        {
+            BatchId = "batch-fail-then-success",
+            Invoices = new List<IssuedInvoiceDetail> { failingDetail, succeedingDetail }
+        };
+
+        var failingInvoice = new IssuedInvoice
+        {
+            Id = "INV-STATE-FAIL",
+            InvoiceDate = DateTime.Today,
+            DueDate = DateTime.Today.AddDays(30),
+            TaxDate = DateTime.Today,
+            Price = 500,
+            Currency = "CZK",
+            ExtraProperties = "{}"
+        };
+        var succeedingInvoice = new IssuedInvoice
+        {
+            Id = "INV-STATE-OK",
+            InvoiceDate = DateTime.Today,
+            DueDate = DateTime.Today.AddDays(30),
+            TaxDate = DateTime.Today,
+            Price = 1000,
+            Currency = "CZK",
+            ExtraProperties = "{}"
+        };
+
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
+
+        _mockMapper.Setup(x => x.Map<IssuedInvoiceDetail, IssuedInvoice>(failingDetail))
+            .Returns(failingInvoice);
+        _mockMapper.Setup(x => x.Map<IssuedInvoiceDetail, IssuedInvoice>(failingDetail, It.IsAny<IssuedInvoice>()))
+            .Throws(new InvalidOperationException("Simulated mapping failure for INV-STATE-FAIL"));
+
+        _mockMapper.Setup(x => x.Map<IssuedInvoiceDetail, IssuedInvoice>(succeedingDetail))
+            .Returns(succeedingInvoice);
+        _mockInvoiceClient.Setup(x => x.SaveAsync(succeedingDetail, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("raw-adapter-response");
+
+        // Act
+        var result = await _service.ImportInvoicesAsync("test-description", query);
+
+        // Assert
+        Assert.Contains("INV-STATE-FAIL", result.Failed);
+        Assert.Contains("INV-STATE-OK", result.Succeeded);
+
+        var failedRowExists = await _context.IssuedInvoices.AsNoTracking().AnyAsync(x => x.Id == "INV-STATE-FAIL");
+        Assert.False(failedRowExists, "The failed invoice must not have been persisted by a later invoice's SaveChangesAsync call.");
+
+        var succeededRowExists = await _context.IssuedInvoices.AsNoTracking().AnyAsync(x => x.Id == "INV-STATE-OK");
+        Assert.True(succeededRowExists);
+    }
+
     public void Dispose()
     {
         _context.Dispose();
