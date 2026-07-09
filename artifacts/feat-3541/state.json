@@ -21,16 +21,16 @@
       "updated_at": "2026-07-09T00:29:59.897025Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-09T00:30:15.250418Z"
+      "status": "completed",
+      "updated_at": "2026-07-09T00:39:11.174117Z"
     }
   },
   "tasks": [
     {
       "name": "decouple-issued-invoices-shell-from-grid-loading",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-09T00:30:15.476315Z"
+      "updated_at": "2026-07-09T00:39:05.707692Z"
     }
   ]
 }
