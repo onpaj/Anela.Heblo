@@ -21,8 +21,8 @@
       "updated_at": "2026-07-09T05:25:43.916748Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-09T05:26:01.913244Z"
+      "status": "completed",
+      "updated_at": "2026-07-09T07:06:40.178940Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "add-sync-stats-sql-shape-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-09T06:11:22.583724Z"
+      "updated_at": "2026-07-09T07:06:35.352562Z"
     }
   ]
 }
