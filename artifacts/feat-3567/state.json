@@ -21,16 +21,16 @@
       "updated_at": "2026-07-09T09:21:50.624418Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-09T09:22:08.425492Z"
+      "status": "completed",
+      "updated_at": "2026-07-09T09:34:02.578291Z"
     }
   },
   "tasks": [
     {
       "name": "fix-invalidation-key-and-add-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-09T09:22:08.617753Z"
+      "updated_at": "2026-07-09T09:33:56.419026Z"
     }
   ]
 }
