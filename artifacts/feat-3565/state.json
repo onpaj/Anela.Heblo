@@ -25,5 +25,12 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "dedupe-invoice-critical-error-predicate",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
