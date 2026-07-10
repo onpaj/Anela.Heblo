@@ -21,16 +21,16 @@
       "updated_at": "2026-07-10T06:25:26.758817Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-10T06:26:01.050667Z"
+      "status": "completed",
+      "updated_at": "2026-07-10T07:26:24.921041Z"
     }
   },
   "tasks": [
     {
       "name": "remove-dead-journal-indicators-code",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-10T06:26:01.227125Z"
+      "updated_at": "2026-07-10T07:26:19.181461Z"
     }
   ]
 }
