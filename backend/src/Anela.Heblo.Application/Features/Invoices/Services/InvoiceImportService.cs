@@ -80,11 +80,14 @@ public class InvoiceImportService : IInvoiceImportService
 
     private async Task<IssuedInvoice> ExecuteImportInvoice(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default)
     {
+        IssuedInvoice? invoice = null;
+        var isNew = false;
+
         try
         {
             _logger.LogInformation("Importing invoice: {InvoiceNumber}", invoiceDetail.Code);
 
-            var invoice = await GetOrCreateAsync(invoiceDetail.Code, () => _mapper.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail), cancellationToken);
+            (invoice, isNew) = await GetOrCreateAsync(invoiceDetail.Code, () => _mapper.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail), cancellationToken);
 
             // Always refresh core data fields from source (handles re-imports where data may have changed or was missing)
             _mapper.Map(invoiceDetail, invoice);
@@ -119,12 +122,17 @@ public class InvoiceImportService : IInvoiceImportService
         }
         catch (Exception ex)
         {
+            if (!isNew && invoice != null)
+            {
+                await _repository.RevertTrackedChangesAsync(invoice, cancellationToken);
+            }
+
             _logger.LogError(ex, "Error occurred while importing invoice: {InvoiceNumber}", invoiceDetail.Code);
             throw;
         }
     }
 
-    private async Task<IssuedInvoice> GetOrCreateAsync(string key, Func<IssuedInvoice> factory, CancellationToken cancellationToken = default)
+    private async Task<(IssuedInvoice invoice, bool isNew)> GetOrCreateAsync(string key, Func<IssuedInvoice> factory, CancellationToken cancellationToken = default)
     {
         var found = await _repository.GetByIdAsync(key, cancellationToken);
         if (found == null)
@@ -132,8 +140,9 @@ public class InvoiceImportService : IInvoiceImportService
             found = factory();
             await _repository.AddAsync(found, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
+            return (found, true);
         }
 
-        return found;
+        return (found, false);
     }
 }
