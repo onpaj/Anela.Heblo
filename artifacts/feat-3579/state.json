@@ -21,16 +21,16 @@
       "updated_at": "2026-07-10T08:23:45.662134Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-10T08:23:59.502983Z"
     }
   },
   "tasks": [
     {
       "name": "relocate-stock-analysis-enums-to-contracts",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-10T08:23:59.700965Z"
     }
   ]
 }
