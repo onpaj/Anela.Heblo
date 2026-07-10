@@ -21,16 +21,16 @@
       "updated_at": "2026-07-10T05:28:30.649970Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-10T05:29:51.757116Z"
     }
   },
   "tasks": [
     {
       "name": "revert-tracked-mutation-on-existing-invoice-import-failure",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-10T05:29:51.982000Z"
     },
     {
       "name": "add-regression-test-for-tracked-mutation-revert",
