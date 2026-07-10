@@ -36,7 +36,7 @@ public class LowStockEfficiencyTile : ITile
             var request = new GetPurchaseStockAnalysisRequest
             {
                 StockStatus = StockStatusFilter.All,
-                PageSize = int.MaxValue
+                IsExport = true
             };
 
             var response = await _mediator.Send(request, cancellationToken);
