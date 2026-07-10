@@ -21,16 +21,16 @@
       "updated_at": "2026-07-10T09:20:04.478529Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-10T09:20:20.434160Z"
     }
   },
   "tasks": [
     {
       "name": "dedup-history-dto-mapping",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-10T09:20:20.609410Z"
     }
   ]
 }
