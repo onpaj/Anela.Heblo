@@ -21,16 +21,16 @@
       "updated_at": "2026-07-10T11:20:32.272963Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-10T11:20:56.300484Z"
+      "status": "completed",
+      "updated_at": "2026-07-10T11:27:39.532027Z"
     }
   },
   "tasks": [
     {
       "name": "remove-dead-severity-exports",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-10T11:20:56.489546Z"
+      "updated_at": "2026-07-10T11:27:35.231498Z"
     }
   ]
 }
