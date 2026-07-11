@@ -21,8 +21,8 @@
       "updated_at": "2026-07-11T08:23:42.318549Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-11T08:24:09.124553Z"
+      "status": "completed",
+      "updated_at": "2026-07-11T09:22:48.911257Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "rework-generatearticlejobtests-to-mock-interfaces",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-11T08:31:50.324473Z"
+      "updated_at": "2026-07-11T09:22:43.970206Z"
     }
   ]
 }
