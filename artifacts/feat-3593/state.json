@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-pipeline-step-interfaces-and-wire-di",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "rework-generatearticlejobtests-to-mock-interfaces",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
