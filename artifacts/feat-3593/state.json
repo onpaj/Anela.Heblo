@@ -21,16 +21,16 @@
       "updated_at": "2026-07-11T08:23:42.318549Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-11T08:24:09.124553Z"
     }
   },
   "tasks": [
     {
       "name": "add-pipeline-step-interfaces-and-wire-di",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-11T08:24:09.306955Z"
     },
     {
       "name": "rework-generatearticlejobtests-to-mock-interfaces",
