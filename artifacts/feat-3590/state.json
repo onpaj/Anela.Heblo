@@ -21,16 +21,16 @@
       "updated_at": "2026-07-11T05:27:26.851979Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-11T05:27:48.469391Z"
     }
   },
   "tasks": [
     {
       "name": "batch-knowledgebase-doc-embedding-calls",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-11T05:27:48.846529Z"
     }
   ]
 }

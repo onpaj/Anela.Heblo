@@ -261,9 +261,9 @@ Replace with:
                 It.IsAny<IEnumerable<string>>(),
                 It.IsAny<EmbeddingGenerationOptions?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IEnumerable<string> texts, EmbeddingGenerationOptions? options, CancellationToken ct) =>
+            .ReturnsAsync((IEnumerable<string> texts, EmbeddingGenerationOptions? _, CancellationToken _) =>
                 new GeneratedEmbeddings<Embedding<float>>(
-                    texts.Select(t => new Embedding<float>(new ReadOnlyMemory<float>(floats))).ToList()));
+                    texts.Select(_ => new Embedding<float>(new ReadOnlyMemory<float>(floats))).ToList()));
 
         var strategy = new KnowledgeBaseDocIndexingStrategy(
             chunker,
@@ -298,6 +298,11 @@ Notes on this change:
   in this same file, and by the multi-topic tests in the sibling
   `backend/test/Anela.Heblo.Tests/KnowledgeBase/Services/ConversationIndexingStrategyTests.cs`
   (e.g. `CreateChunksAsync_NTopicSummaries_ProducesNChunks`).
+- The lambda's `EmbeddingGenerationOptions?` and `CancellationToken` parameters are named `_` (discards) rather
+  than reusing the method's own `options` local — C# permits a lambda parameter to shadow an outer local, but
+  naming it `options` here would read as if it were the same `KnowledgeBaseOptions` variable declared two lines
+  above, which it is not. Using `_` avoids that confusion; this is the same discard convention already used by
+  `CreateChunksAsync_EmbeddingIsGeneratedFromSummary`'s `Callback<...>((texts, _, _) => ...)` earlier in this file.
 - The trailing `_embeddingGenerator.Verify(..., Times.Exactly(1))` is the primary regression guard for the N→1
   round-trip requirement: this test is the only one in the file guaranteed to produce more than one chunk
   (`Assert.True(chunks.Count > 1)`), so it is the correct place to assert the batched call happens exactly once
@@ -347,12 +352,11 @@ Expected: `Build succeeded.` with 0 errors.
 dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~KnowledgeBaseDocIndexingStrategyTests"
 ```
 
-Expected: all 8 tests pass (the 6 pre-existing tests — `Supports_KnowledgeBase_ReturnsTrue`,
-`Supports_Conversation_ReturnsFalse`, `CreateChunksAsync_ProducesChunksWithEmbeddings`,
-`CreateChunksAsync_EmbeddingIsGeneratedFromSummary`, `CreateChunksAsync_ChunkContentIsChunkText_NotSummary`,
-`CreateChunksAsync_ChunkIndexIsSequential` — plus the new `CreateChunksAsync_NoChunksProduced_ReturnsEmptyListAndDoesNotCallEmbeddingGenerator`,
-for 7 total... verify the actual count in the console output matches the number of `[Fact]` methods in the
-file after Step 2), 0 failed.
+Expected: `Passed! - Failed: 0, Passed: 7, Skipped: 0, Total: 7` — the 6 pre-existing tests
+(`Supports_KnowledgeBase_ReturnsTrue`, `Supports_Conversation_ReturnsFalse`,
+`CreateChunksAsync_ProducesChunksWithEmbeddings`, `CreateChunksAsync_EmbeddingIsGeneratedFromSummary`,
+`CreateChunksAsync_ChunkContentIsChunkText_NotSummary`, `CreateChunksAsync_ChunkIndexIsSequential`) plus the new
+`CreateChunksAsync_NoChunksProduced_ReturnsEmptyListAndDoesNotCallEmbeddingGenerator`, 7 total, 0 failed.
 
 Also run the sibling reference-pattern tests to confirm no unintended impact (this task must not modify
 `ConversationIndexingStrategy.cs` or its tests, but running them confirms isolation):
