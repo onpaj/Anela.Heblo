@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "add-pipeline-step-interfaces-and-wire-di",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-11T08:24:09.306955Z"
+      "updated_at": "2026-07-11T08:31:46.931571Z"
     },
     {
       "name": "rework-generatearticlejobtests-to-mock-interfaces",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-11T08:31:50.324473Z"
     }
   ]
 }
