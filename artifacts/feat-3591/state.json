@@ -17,13 +17,20 @@
       "updated_at": "2026-07-11T06:19:08.794764Z"
     },
     "planning": {
-      "status": "in_progress",
-      "updated_at": "2026-07-11T06:19:08.986427Z"
+      "status": "completed",
+      "updated_at": "2026-07-11T06:19:52.663948Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "remove-filesizebytes-dead-property",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
