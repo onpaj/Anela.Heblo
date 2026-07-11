@@ -169,6 +169,42 @@ public class GatherContextStepTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_DuplicateWebUrls_TraceOutputMatchesDeduplicatedSnippets()
+    {
+        var repo = new Mock<IArticleRepository>();
+        repo.Setup(r => r.AddStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        ArticleGenerationStep? recordedStep = null;
+        repo.Setup(r => r.UpdateStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>()))
+            .Callback<ArticleGenerationStep, CancellationToken>((step, _) => recordedStep = step)
+            .Returns(Task.CompletedTask);
+
+        var step = new GatherContextStep(
+            _knowledgeSource.Object, _webSearch.Object, _styleGuideSource.Object,
+            Options.Create(_options), NullLogger<GatherContextStep>.Instance, new PipelineStepRecorder(repo.Object));
+
+        _webSearch
+            .Setup(w => w.SearchAsync(It.IsAny<string>(), It.IsAny<WebSearchOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new WebSearchResult
+            {
+                Hits = new List<WebSearchHit>
+                {
+                    new() { Title = "First", Url = "https://example.com/page", Snippet = "first" },
+                    new() { Title = "Duplicate", Url = "https://example.com/page", Snippet = "second" }
+                }
+            });
+
+        var context = CreateContext(useKb: false, useWeb: true, "query");
+
+        await step.ExecuteAsync(context, default);
+
+        recordedStep.Should().NotBeNull();
+        recordedStep!.OutputJson.Should().NotBeNull();
+        using var doc = System.Text.Json.JsonDocument.Parse(recordedStep.OutputJson!);
+        doc.RootElement.GetProperty("snippets").GetArrayLength().Should().Be(1);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_StyleGuideConfigured_LoadsTextViaContract()
     {
         const string driveId = "drive-1";
