@@ -72,7 +72,7 @@ public class KnowledgeBaseDocIndexingStrategyTests
                 It.IsAny<IEnumerable<string>>(),
                 It.IsAny<EmbeddingGenerationOptions?>(),
                 It.IsAny<CancellationToken>()),
-            Times.AtLeastOnce);
+            Times.Exactly(1));
         Assert.All(chunks, chunk =>
         {
             Assert.Equal(documentId, chunk.DocumentId);
@@ -131,6 +131,17 @@ public class KnowledgeBaseDocIndexingStrategyTests
     {
         var options = Options.Create(new KnowledgeBaseOptions { ChunkSize = 5, ChunkOverlap = 1 });
         var chunker = new WordWindowChunker();
+
+        var floats = new float[] { 0.1f, 0.2f, 0.3f };
+        _embeddingGenerator
+            .Setup(e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<string> texts, EmbeddingGenerationOptions? options, CancellationToken ct) =>
+                new GeneratedEmbeddings<Embedding<float>>(
+                    texts.Select(t => new Embedding<float>(new ReadOnlyMemory<float>(floats))).ToList()));
+
         var strategy = new KnowledgeBaseDocIndexingStrategy(
             chunker,
             _summarizer.Object,
@@ -145,5 +156,28 @@ public class KnowledgeBaseDocIndexingStrategyTests
         {
             Assert.Equal(i, chunks[i].ChunkIndex);
         }
+
+        _embeddingGenerator.Verify(
+            e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(1));
+    }
+
+    [Fact]
+    public async Task CreateChunksAsync_NoChunksProduced_ReturnsEmptyListAndDoesNotCallEmbeddingGenerator()
+    {
+        var documentId = Guid.NewGuid();
+
+        var chunks = await _strategy.CreateChunksAsync(string.Empty, documentId, CancellationToken.None);
+
+        Assert.Empty(chunks);
+        _embeddingGenerator.Verify(
+            e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
