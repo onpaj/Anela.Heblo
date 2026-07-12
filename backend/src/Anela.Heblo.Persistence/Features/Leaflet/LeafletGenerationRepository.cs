@@ -54,16 +54,21 @@ public class LeafletGenerationRepository : ILeafletGenerationRepository
 
     public async Task<LeafletFeedbackStats> GetGenerationStatsAsync(CancellationToken cancellationToken)
     {
-        var total = await _context.LeafletGenerations.CountAsync(cancellationToken);
-        var withFeedback = await _context.LeafletGenerations
-            .CountAsync(g => g.PrecisionScore != null || g.StyleScore != null, cancellationToken);
-        var avgPrecision = await _context.LeafletGenerations
-            .Where(g => g.PrecisionScore != null)
-            .AverageAsync(g => (double?)g.PrecisionScore, cancellationToken);
-        var avgStyle = await _context.LeafletGenerations
-            .Where(g => g.StyleScore != null)
-            .AverageAsync(g => (double?)g.StyleScore, cancellationToken);
-        return new LeafletFeedbackStats(total, withFeedback, avgPrecision, avgStyle);
+        var stats = await _context.LeafletGenerations
+            .GroupBy(g => 1)
+            .Select(g => new
+            {
+                Total = g.Count(),
+                WithFeedback = g.Count(x => x.PrecisionScore != null || x.StyleScore != null),
+                AvgPrecision = g.Average(x => (double?)x.PrecisionScore),
+                AvgStyle = g.Average(x => (double?)x.StyleScore),
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (stats is null)
+            return new LeafletFeedbackStats(0, 0, null, null);
+
+        return new LeafletFeedbackStats(stats.Total, stats.WithFeedback, stats.AvgPrecision, stats.AvgStyle);
     }
 
     public async Task<UpdateFeedbackResult> UpdateFeedbackAsync(
