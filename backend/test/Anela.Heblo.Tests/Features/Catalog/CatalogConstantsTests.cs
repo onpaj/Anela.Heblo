@@ -112,7 +112,8 @@ public class CatalogConstantsTests
         fields.Select(f => f.Name).Should().BeEquivalentTo(new[]
         {
             nameof(CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD),
-            nameof(CatalogConstants.HISTORY_FLOOR_DATE)
+            nameof(CatalogConstants.HISTORY_FLOOR_DATE),
+            nameof(CatalogConstants.MARGIN_HISTORY_FLOOR_DATE)
         });
         properties.Should().BeEmpty("Constants class should not have properties");
         methods.Should().BeEmpty("Constants class should not have methods");
@@ -158,5 +159,29 @@ public class CatalogConstantsTests
         field!.IsStatic.Should().BeTrue();
         field.IsInitOnly.Should().BeTrue("HISTORY_FLOOR_DATE is static readonly, not a literal");
         field.FieldType.Should().Be<DateTime>();
+    }
+
+    [Fact]
+    public void MARGIN_HISTORY_FLOOR_DATE_HasExpectedValue()
+    {
+        // Arrange & Act
+        var floor = CatalogConstants.MARGIN_HISTORY_FLOOR_DATE;
+
+        // Assert
+        floor.Should().Be(new DateOnly(2025, 1, 1));
+    }
+
+    [Fact]
+    public void MARGIN_HISTORY_FLOOR_DATE_IsStaticReadonlyDateOnly()
+    {
+        // Arrange & Act
+        var type = typeof(CatalogConstants);
+        var field = type.GetField(nameof(CatalogConstants.MARGIN_HISTORY_FLOOR_DATE));
+
+        // Assert
+        field.Should().NotBeNull();
+        field!.IsStatic.Should().BeTrue();
+        field.IsInitOnly.Should().BeTrue("MARGIN_HISTORY_FLOOR_DATE is static readonly, not a literal");
+        field.FieldType.Should().Be<DateOnly>();
     }
 }

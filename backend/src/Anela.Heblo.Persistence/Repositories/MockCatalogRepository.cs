@@ -428,6 +428,7 @@ public class MockCatalogRepository : ICatalogRepository
     public Task RefreshErpPricesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshEshopUrlData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct) => Task.CompletedTask;
+    public Task RefreshMarginData(CancellationToken ct) => Task.CompletedTask;
 
     public Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(DateTime fromDate, DateTime toDate, ProductType[] productTypes,
         CancellationToken cancellationToken = default)

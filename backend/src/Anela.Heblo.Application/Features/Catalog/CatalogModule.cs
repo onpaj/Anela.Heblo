@@ -279,25 +279,9 @@ public static class CatalogModule
         );
 
         // Margin calculation task
-        services.RegisterRefreshTask(
-            nameof(ICatalogRepository),
-            "RefreshMarginData",
-            async (sp, ct) =>
-            {
-                var catalogRepository = sp.GetRequiredService<ICatalogRepository>();
-                var marginService = sp.GetRequiredService<IMarginCalculationService>();
-
-                await catalogRepository.WaitForCurrentMergeAsync(ct);
-                var products = await catalogRepository.GetAllAsync(ct);
-                var twoYearsAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-2));
-                var minDate = new DateOnly(2025, 1, 1); // No M2 margins available for older data
-                var dateFrom = twoYearsAgo > minDate ? twoYearsAgo : minDate;
-                var dateTo = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-1); // Current month is not accurate
-
-                foreach (var product in products)
-                {
-                    product.Margins = await marginService.GetMarginAsync(product, dateFrom, dateTo, ct);
-                }
-            });
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshMarginData),
+            (r, ct) => r.RefreshMarginData(ct)
+        );
     }
 }

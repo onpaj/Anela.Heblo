@@ -13,4 +13,9 @@ public static class CatalogConstants
     /// Paired with ALL_HISTORY_MONTHS_THRESHOLD to define what "all history" means in one place.
     /// </summary>
     public static readonly DateTime HISTORY_FLOOR_DATE = new(2020, 1, 1);
+
+    /// <summary>
+    /// Earliest date for which M2 margin data is available; margin refresh never requests data before this.
+    /// </summary>
+    public static readonly DateOnly MARGIN_HISTORY_FLOOR_DATE = new(2025, 1, 1);
 }
