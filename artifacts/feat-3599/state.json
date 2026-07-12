@@ -21,16 +21,16 @@
       "updated_at": "2026-07-12T05:23:00.206937Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-12T05:23:18.240491Z"
     }
   },
   "tasks": [
     {
       "name": "consolidate-generation-stats-query",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-12T05:23:18.415341Z"
     }
   ]
 }
