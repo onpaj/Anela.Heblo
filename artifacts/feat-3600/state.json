@@ -25,5 +25,12 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "batch-leaflet-addchunks-insert",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
