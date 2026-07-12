@@ -1,0 +1,29 @@
+{
+  "feature_id": "feat-3599",
+  "issue_number": 3599,
+  "created_at": "2026-07-12T05:15:34.512807Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-12T05:17:46.947913Z"
+    },
+    "architecting": {
+      "status": "in_progress",
+      "updated_at": "2026-07-12T05:17:47.149829Z"
+    },
+    "designing": {
+      "status": "pending",
+      "updated_at": null
+    },
+    "planning": {
+      "status": "pending",
+      "updated_at": null
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": []
+}
