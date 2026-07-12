@@ -21,16 +21,16 @@
       "updated_at": "2026-07-12T07:23:25.494229Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-12T07:23:36.672408Z"
+      "status": "completed",
+      "updated_at": "2026-07-12T07:38:30.313199Z"
     }
   },
   "tasks": [
     {
       "name": "batch-leaflet-addchunks-insert",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-12T07:23:36.844002Z"
+      "updated_at": "2026-07-12T07:38:25.352531Z"
     }
   ]
 }
