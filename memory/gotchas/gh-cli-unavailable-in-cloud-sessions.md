@@ -25,3 +25,20 @@ happens, skip creating a new worktree/branch and commit directly to the
 designated branch instead — the skills' branch naming is a default, not a
 hard requirement, and the environment's explicit branch pin takes
 precedence.
+
+When the designated-branch override applies, also skip the full
+AgentHarness multi-agent `orchestrator`/`agentharness checkpoint` pipeline
+(analyst → architect → designer → planner → developer → reviewer with a
+committed `artifacts/feat-{id}/` tree) — it assumes its own worktree and
+branch. Two more reasons it doesn't fit this repo as-is: `artifacts/` is
+gitignored at the repo root (`.gitignore:42`, added for .NET build output,
+collides with the harness's artifact-folder name), so committing that tree
+requires `git add -f`; and `agentharness checkpoint`/orchestrator steps call
+`gh issue view`/`gh pr create` internally, which fail the same way plain
+`gh` does. For a small, well-scoped fix (e.g. a duplication/coverage-gap
+arch-review finding), it's simpler to just read the issue body from the
+`list_issues` MCP result, implement directly on the designated branch, run
+the project's real build/tests, and open the PR with
+`mcp__github__create_pull_request` + `issue_write` for the label — same
+outcome (labeled PR, `Closes #N`, `#N: <summary>` title) without the
+pipeline machinery.
