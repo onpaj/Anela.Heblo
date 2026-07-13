@@ -21,16 +21,16 @@
       "updated_at": "2026-07-13T06:18:58.072858Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-13T06:19:11.098226Z"
     }
   },
   "tasks": [
     {
       "name": "rename-add-transport-module-to-add-logistics-module",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-13T06:19:11.385313Z"
     }
   ]
 }
