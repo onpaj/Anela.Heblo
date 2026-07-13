@@ -21,16 +21,16 @@
       "updated_at": "2026-07-13T05:35:08.793230Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-13T05:35:28.040894Z"
     }
   },
   "tasks": [
     {
       "name": "relocate-giftsettings-application-files",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-13T05:35:28.228437Z"
     },
     {
       "name": "update-call-sites-and-namespaces",
