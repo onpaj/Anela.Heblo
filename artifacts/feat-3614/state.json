@@ -21,16 +21,16 @@
       "updated_at": "2026-07-13T11:23:32.877535Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-13T11:23:52.643016Z"
     }
   },
   "tasks": [
     {
       "name": "add-transport-boxes-handler-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-13T11:23:52.834104Z"
     }
   ]
 }
