@@ -7,7 +7,12 @@ using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
-public class GatherContextStep
+public interface IGatherContextStep
+{
+    Task ExecuteAsync(ArticlePipelineContext context, CancellationToken ct);
+}
+
+public class GatherContextStep : IGatherContextStep
 {
     private readonly IArticleKnowledgeSource _knowledgeSource;
     private readonly IWebSearchClient _webSearch;

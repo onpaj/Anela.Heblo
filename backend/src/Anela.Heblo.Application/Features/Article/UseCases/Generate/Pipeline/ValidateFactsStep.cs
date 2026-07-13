@@ -8,7 +8,12 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
-public class ValidateFactsStep
+public interface IValidateFactsStep
+{
+    Task ExecuteAsync(ArticlePipelineContext context, CancellationToken ct);
+}
+
+public class ValidateFactsStep : IValidateFactsStep
 {
     private readonly IChatClient _chat;
     private readonly ArticleOptions _options;
