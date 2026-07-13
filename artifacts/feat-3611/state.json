@@ -17,13 +17,20 @@
       "updated_at": "2026-07-13T08:20:27.572122Z"
     },
     "planning": {
-      "status": "in_progress",
-      "updated_at": "2026-07-13T08:20:32.718422Z"
+      "status": "completed",
+      "updated_at": "2026-07-13T08:22:19.904267Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "fix-running-invoice-import-jobs-filter",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
