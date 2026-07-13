@@ -266,51 +266,70 @@ const TransportBoxList: React.FC = () => {
     });
   };
 
-  if (error) {
-    return (
-      <div className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-lg">
-        <div className="flex items-center gap-2">
-          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-          <div>
-            <h3 className="text-red-800 dark:text-red-300 font-semibold">
-              Chyba při načítání transportních boxů
-            </h3>
-            <p className="text-red-600 dark:text-red-400 text-sm mt-1">
-              {error instanceof Error ? error.message : "Neznámá chyba"}
-            </p>
-            <button
-              onClick={() => refetch()}
-              className="mt-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm"
-            >
-              Zkusit znovu
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       className="flex flex-col w-full"
       style={{ height: PAGE_CONTAINER_HEIGHT }}
     >
-      {/* Header - Fixed */}
-      <div className="flex-shrink-0 mb-3">
+      {/* Header - Fixed. The h1 and primary action buttons must render
+          regardless of isLoading/error/success so the page chrome survives
+          API failures (feature-3542 FR-3). */}
+      <div className="flex-shrink-0 mb-3 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
           Transportní boxy
         </h1>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleOpenNewBox}
+            className="flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Otevřít nový box
+          </button>
+          <button
+            onClick={() => refetch()}
+            disabled={isLoading}
+            className="flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark text-xs font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`h-3 w-3 mr-1 ${isLoading ? "animate-spin" : ""}`}
+            />
+            Obnovit
+          </button>
+        </div>
       </div>
 
-      {/* StockUp Status Indicator */}
-      {showIndicator && (
-        <StockUpOperationStatusIndicator
-          summary={stockUpSummary}
-          sourceType={StockUpSourceType.TransportBox}
-        />
-      )}
+      {error ? (
+        <div className="flex-1 p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-lg">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <div>
+              <h3 className="text-red-800 dark:text-red-300 font-semibold">
+                Chyba při načítání transportních boxů
+              </h3>
+              <p className="text-red-600 dark:text-red-400 text-sm mt-1">
+                {error instanceof Error ? error.message : "Neznámá chyba"}
+              </p>
+              <button
+                onClick={() => refetch()}
+                className="mt-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm"
+              >
+                Zkusit znovu
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* StockUp Status Indicator */}
+          {showIndicator && (
+            <StockUpOperationStatusIndicator
+              summary={stockUpSummary}
+              sourceType={StockUpSourceType.TransportBox}
+            />
+          )}
 
-      {showTouchPanel ? (
+          {showTouchPanel ? (
         <TransportBoxTouchPanel
           onOpenBox={handleRowClick}
           onShowAll={() => setShowAllOnTouch(true)}
@@ -476,25 +495,6 @@ const TransportBoxList: React.FC = () => {
                   </div>
                 </>
               )}
-
-              {/* Action buttons - always visible */}
-              <button
-                onClick={handleOpenNewBox}
-                className="flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                {isControlsCollapsed ? "" : "Otevřít nový box"}
-              </button>
-              <button
-                onClick={() => refetch()}
-                disabled={isLoading}
-                className="flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark text-xs font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
-              >
-                <RefreshCw
-                  className={`h-3 w-3 mr-1 ${isLoading ? "animate-spin" : ""}`}
-                />
-                {isControlsCollapsed ? "" : "Obnovit"}
-              </button>
             </div>
           </div>
         </div>
@@ -901,6 +901,8 @@ const TransportBoxList: React.FC = () => {
           </div>
         )}
       </div>
+        </>
+      )}
         </>
       )}
 
