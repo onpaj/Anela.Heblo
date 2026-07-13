@@ -30,6 +30,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Anela.Heblo.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="Mapping\BankStatementsDbMapper.cs" />
     <Compile Remove="Mapping\IssuedInvoiceDbMapper.cs" />
     <Compile Remove="Mapping\RecurringJobsDbMapper.cs" />
