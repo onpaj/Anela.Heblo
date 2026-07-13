@@ -81,8 +81,7 @@ public class InvoiceImportService : IInvoiceImportService
     private async Task<IssuedInvoice> ExecuteImportInvoice(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default)
     {
         IssuedInvoice? invoice = null;
-        var isNew = false;
-
+        bool isNew = false;
         try
         {
             _logger.LogInformation("Importing invoice: {InvoiceNumber}", invoiceDetail.Code);
@@ -115,16 +114,35 @@ public class InvoiceImportService : IInvoiceImportService
                 invoice.SyncFailed(transformedInvoice, ex.Message, adapterResponse);
             }
 
-            await _repository.UpdateAsync(invoice, cancellationToken);
+            // New invoices are already tracked via AddAsync inside GetOrCreateAsync — calling
+            // UpdateAsync on them would mark an unsaved entity as Modified instead of Added.
+            if (!isNew)
+            {
+                await _repository.UpdateAsync(invoice, cancellationToken);
+            }
+
             await _repository.SaveChangesAsync(cancellationToken);
 
             return invoice;
         }
         catch (Exception ex)
         {
-            if (!isNew && invoice != null)
+            if (invoice != null)
             {
-                await _repository.RevertTrackedChangesAsync(invoice, cancellationToken);
+                if (isNew)
+                {
+                    // A new invoice was tracked via AddAsync but this import failed before its own
+                    // SaveChangesAsync ran. Remove it from the change tracker now; otherwise it stays
+                    // tracked as Added on the shared per-batch repository/DbContext instance and would
+                    // be silently flushed by whichever later invoice's SaveChangesAsync call runs next.
+                    await _repository.DeleteAsync(invoice, cancellationToken);
+                }
+                else
+                {
+                    // An existing invoice was mutated in-place before the failure. Revert its tracked
+                    // changes so a later SaveChangesAsync on the shared DbContext can't persist them.
+                    await _repository.RevertTrackedChangesAsync(invoice, cancellationToken);
+                }
             }
 
             _logger.LogError(ex, "Error occurred while importing invoice: {InvoiceNumber}", invoiceDetail.Code);
@@ -132,14 +150,13 @@ public class InvoiceImportService : IInvoiceImportService
         }
     }
 
-    private async Task<(IssuedInvoice invoice, bool isNew)> GetOrCreateAsync(string key, Func<IssuedInvoice> factory, CancellationToken cancellationToken = default)
+    private async Task<(IssuedInvoice Invoice, bool IsNew)> GetOrCreateAsync(string key, Func<IssuedInvoice> factory, CancellationToken cancellationToken = default)
     {
         var found = await _repository.GetByIdAsync(key, cancellationToken);
         if (found == null)
         {
             found = factory();
             await _repository.AddAsync(found, cancellationToken);
-            await _repository.SaveChangesAsync(cancellationToken);
             return (found, true);
         }
 
