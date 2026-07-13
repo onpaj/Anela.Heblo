@@ -84,6 +84,11 @@ public class InvoiceImportServiceTests
         Assert.Empty(result.Failed);
         _mockInvoiceSource.Verify(x => x.CommitAsync(batch, It.IsAny<string>()), Times.Once);
         _mockInvoiceSource.Verify(x => x.FailAsync(batch, It.IsAny<string>()), Times.Never);
+
+        // FR-2: new invoice -> AddAsync once, UpdateAsync never, SaveChangesAsync exactly once
+        _mockRepository.Verify(x => x.AddAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockRepository.Verify(x => x.UpdateAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -158,10 +163,11 @@ public class InvoiceImportServiceTests
         Assert.Contains("INV-003", result.Succeeded);
         Assert.Empty(result.Failed);
 
-        // Verify invoice sync status was updated with failure
-        _mockRepository.Verify(x => x.UpdateAsync(It.Is<IssuedInvoice>(i =>
-            i.Id == "INV-003" && i.ErrorMessage!.Contains("ABRA Flexi API unavailable")),
-            It.IsAny<CancellationToken>()), Times.Once);
+        // Invoice is new: sync failure state is set directly on the tracked entity,
+        // UpdateAsync must NOT be called (it is already tracked via AddAsync).
+        Assert.Contains("ABRA Flexi API unavailable", invoice.ErrorMessage);
+        _mockRepository.Verify(x => x.UpdateAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _mockInvoiceSource.Verify(x => x.CommitAsync(batch, It.IsAny<string>()), Times.Once); // Batch still commits
     }
 
@@ -286,6 +292,7 @@ public class InvoiceImportServiceTests
         // Assert
         _mockRepository.Verify(x => x.AddAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()), Times.Never);
         _mockRepository.Verify(x => x.UpdateAsync(existingInvoice, It.IsAny<CancellationToken>()), Times.Once);
+        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         Assert.Single(result.Succeeded);
         Assert.Contains("INV-005", result.Succeeded);
     }
