@@ -140,13 +140,14 @@ git push -u origin "$BRANCH"
    feature PR without it.
 
    Open the PR (base = the repository default branch, head = `$BRANCH`). Capture
-   the PR URL, then run `.claude/skills/oneshot/ensure_pr_linked.sh "$PR_URL" "{issue_id}"`
+   the PR URL, then run `.claude/skills/oneshot/ensure_pr_linked.sh "$PR_URL" "$ISSUE_ID"`
    — this script ships beside this skill, so it is always present wherever the skill
-   is installed. It is the guarantee for **both** requirements above. Do not rely on `--label` or the
-   `Closes` template line on `gh pr create` alone; the LLM-filled body and the
-   `--label` flag are both sometimes dropped. The script adds the `agent` label,
-   injects `Closes #{issue_id}` if missing, then hard-fails if it cannot confirm
-   either.
+   is installed. It is the guarantee for **all three** requirements above (label,
+   closing link, and title format). Do not rely on `--label`, the `Closes` template
+   line, or the `--title` on `gh pr create` alone; the LLM-filled body, the `--label`
+   flag, and the title are all sometimes dropped or mangled. The script adds the
+   `agent` label, injects `Closes #{issue_id}` if missing, and normalizes the title
+   to `#{issue_id}: <summary>`, then hard-fails if it cannot confirm all three.
 
    First capture the pipeline's final code review so it can be surfaced on the PR.
    The `## Code review` section carries the whole-branch review run inside the
@@ -163,9 +164,9 @@ PR_URL=$(gh pr create \
   --base master \
   --head "$BRANCH" \
   --label agent \
-  --title "#{issue_id}: implementation" \
+  --title "#${ISSUE_ID}: implementation" \
   --body "$(cat <<EOF
-Closes #{issue_id}
+Closes #${ISSUE_ID}
 
 ## What the issue was
 <description of the feature/problem from the brief>
@@ -179,12 +180,16 @@ ${REVIEW_SECTION}
 EOF
 )")
 
-# MANDATORY: guarantee the `agent` label AND the `Closes #{issue_id}` link.
-# Auto-repairs both if the agent dropped them, then hard-fails if it cannot.
-.claude/skills/oneshot/ensure_pr_linked.sh "$PR_URL" "{issue_id}"
+# MANDATORY: guarantee the `agent` label, the `Closes #<n>` link, AND the
+# `#<n>: <summary>` title format. Auto-repairs all three if the agent dropped
+# or mangled them, then hard-fails if it cannot.
+.claude/skills/oneshot/ensure_pr_linked.sh "$PR_URL" "$ISSUE_ID"
 ```
-   Substitute the real GitHub issue number for `{issue_id}` in both the title
-   and the `Closes #{issue_id}` line (same number used for `ISSUE_ID` above).
+   The title and the `Closes` line use the `${ISSUE_ID}` shell variable set in
+   the **Naming convention** block, so they expand automatically — do not
+   hand-edit them. Substitute the real feature id for the remaining
+   `{issue_id}` artifact-path placeholders (the `artifacts/feat-{issue_id}/…`
+   lines) only.
 
 5. **Mark the issue completed.** Using the `gh` CLI, remove the `agent-wip`
    label and add the `agent-completed` label to the feature's issue:
