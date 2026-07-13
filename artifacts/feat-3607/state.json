@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "relocate-giftsettings-application-files",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-13T05:35:28.228437Z"
+      "updated_at": "2026-07-13T05:39:05.973756Z"
     },
     {
       "name": "update-call-sites-and-namespaces",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-13T05:39:09.679264Z"
     },
     {
       "name": "verify-architecture-boundary-tests",
