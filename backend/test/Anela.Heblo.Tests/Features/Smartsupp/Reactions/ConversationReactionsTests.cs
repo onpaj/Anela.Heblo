@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Anela.Heblo.Application.Features.Smartsupp;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions;
 using Anela.Heblo.Domain.Features.Smartsupp;
@@ -171,25 +172,84 @@ public class ConversationReactionsTests
     }
 
     [Fact]
-    public async Task ConversationAgentJoinedReaction_DoesNotCallRepository()
+    public async Task ConversationAgentJoinedReaction_UpsertsSmartsuppPresence_WithResolvedName()
     {
-        var reaction = new ConversationAgentJoinedReaction();
-        var ctx = MakeCtx("conversation.agent_joined", $@"{{""conversation"":{ConvJson()},""agent_id"":""123""}}");
+        var presenceRepo = new Mock<ISmartsuppPresenceRepository>();
+        var agentCache = new Mock<ISmartsuppAgentCache>();
+        agentCache.Setup(c => c.GetAgentNamesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string> { ["123"] = "Alice" });
+        var reaction = new ConversationAgentJoinedReaction(presenceRepo.Object, agentCache.Object);
+        var ctx = MakeCtx("conversation.agent_joined", @"{""conversation_id"":""c1"",""agent_id"":""123""}");
 
         await reaction.HandleAsync(ctx, CancellationToken.None);
 
-        _repo.VerifyNoOtherCalls();
+        presenceRepo.Verify(r => r.UpsertAsync(
+            It.Is<SmartsuppConversationPresence>(p =>
+                p.ConversationId == "c1" &&
+                p.AgentId == "123" &&
+                p.DisplayName == "Alice" &&
+                p.Source == SmartsuppPresenceSource.Smartsupp),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task ConversationAgentLeftReaction_DoesNotCallRepository()
+    public async Task ConversationAgentJoinedReaction_FallsBackToAgentId_WhenNameUnknown()
     {
-        var reaction = new ConversationAgentLeftReaction();
-        var ctx = MakeCtx("conversation.agent_left", $@"{{""conversation"":{ConvJson()},""agent_id"":""123""}}");
+        var presenceRepo = new Mock<ISmartsuppPresenceRepository>();
+        var agentCache = new Mock<ISmartsuppAgentCache>();
+        agentCache.Setup(c => c.GetAgentNamesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        var reaction = new ConversationAgentJoinedReaction(presenceRepo.Object, agentCache.Object);
+        var ctx = MakeCtx("conversation.agent_joined", @"{""conversation_id"":""c1"",""agent_id"":""123""}");
 
         await reaction.HandleAsync(ctx, CancellationToken.None);
 
-        _repo.VerifyNoOtherCalls();
+        presenceRepo.Verify(r => r.UpsertAsync(
+            It.Is<SmartsuppConversationPresence>(p => p.DisplayName == "123"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ConversationAgentJoinedReaction_Ignores_WhenAgentIdMissing()
+    {
+        var presenceRepo = new Mock<ISmartsuppPresenceRepository>();
+        var agentCache = new Mock<ISmartsuppAgentCache>();
+        agentCache.Setup(c => c.GetAgentNamesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        var reaction = new ConversationAgentJoinedReaction(presenceRepo.Object, agentCache.Object);
+        var ctx = MakeCtx("conversation.agent_joined", @"{""conversation_id"":""c1""}");
+
+        await reaction.HandleAsync(ctx, CancellationToken.None);
+
+        presenceRepo.Verify(r => r.UpsertAsync(
+            It.IsAny<SmartsuppConversationPresence>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ConversationAgentLeftReaction_RemovesSmartsuppPresence()
+    {
+        var presenceRepo = new Mock<ISmartsuppPresenceRepository>();
+        var reaction = new ConversationAgentLeftReaction(presenceRepo.Object);
+        var ctx = MakeCtx("conversation.agent_left", @"{""conversation_id"":""c1"",""agent_id"":""123""}");
+
+        await reaction.HandleAsync(ctx, CancellationToken.None);
+
+        presenceRepo.Verify(r => r.RemoveAsync(
+            "c1", "123", SmartsuppPresenceSource.Smartsupp, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ConversationAgentLeftReaction_Ignores_WhenAgentIdMissing()
+    {
+        var presenceRepo = new Mock<ISmartsuppPresenceRepository>();
+        var reaction = new ConversationAgentLeftReaction(presenceRepo.Object);
+        var ctx = MakeCtx("conversation.agent_left", @"{""conversation_id"":""c1""}");
+
+        await reaction.HandleAsync(ctx, CancellationToken.None);
+
+        presenceRepo.Verify(r => r.RemoveAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<SmartsuppPresenceSource>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

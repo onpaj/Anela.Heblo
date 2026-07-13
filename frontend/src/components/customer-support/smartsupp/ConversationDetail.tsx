@@ -1,10 +1,18 @@
 import React, { useEffect, useRef } from "react";
-import { ArrowLeft, Info, Loader2 } from "lucide-react";
-import { ConversationDto, MessageDto, useSmartsuppConversation, useCloseConversation } from "../../../api/hooks/useSmartsupp";
+import { ArrowLeft, Info, Loader2, Users } from "lucide-react";
+import {
+  ConversationDto,
+  MessageDto,
+  useSmartsuppConversation,
+  useCloseConversation,
+  usePresenceHeartbeat,
+  otherActiveViewers,
+} from "../../../api/hooks/useSmartsupp";
 import { toast } from "react-hot-toast";
 import MessageBubble from "./MessageBubble";
 import StatusPill from "./StatusPill";
 import AgentBadge from "./AgentBadge";
+import PresenceBadge from "./PresenceBadge";
 import DaySeparator from "./DaySeparator";
 import ChatComposer from "./ChatComposer";
 
@@ -61,6 +69,10 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
   const { mutate: closeConversation, isPending: isClosing } = useCloseConversation();
   const liveStatus = data?.conversation?.status ?? conversation.status;
 
+  // Announce that this operator is viewing the conversation so colleagues see a presence badge.
+  usePresenceHeartbeat(conversationId);
+  const otherViewers = otherActiveViewers(data?.conversation ?? conversation);
+
   const handleClose = () => {
     closeConversation(conversationId, {
       onSuccess: () => toast.success("Konverzace byla uzavřena"),
@@ -103,6 +115,9 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
           )}
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {otherViewers.map((viewer) => (
+            <PresenceBadge key={`presence-${viewer.agentId}`} viewer={viewer} />
+          ))}
           {conversation.assignedAgentIds.map((id) => (
             <AgentBadge key={id} agentId={id} name={agentNames[id] ?? id} />
           ))}
@@ -132,6 +147,22 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
           )}
         </div>
       </div>
+
+      {otherViewers.length > 0 && (
+        <div
+          data-testid="presence-warning-banner"
+          role="status"
+          className="flex items-center gap-2 px-4 py-2 text-sm bg-amber-50 text-amber-800 border-b border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30"
+        >
+          <Users className="w-4 h-4 flex-shrink-0" />
+          <span>
+            Na této konverzaci právě pracuje:{" "}
+            <span className="font-semibold">
+              {otherViewers.map((v) => v.displayName).join(", ")}
+            </span>
+          </span>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
         {isLoading && (

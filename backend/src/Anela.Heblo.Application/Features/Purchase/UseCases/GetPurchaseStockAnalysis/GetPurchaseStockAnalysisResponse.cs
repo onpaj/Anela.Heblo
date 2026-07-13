@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Shared;
 
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
@@ -91,13 +92,4 @@ public class StockAnalysisSummaryDto
     public DateTime AnalysisPeriodStart { get; set; }
 
     public DateTime AnalysisPeriodEnd { get; set; }
-}
-
-public enum StockSeverity
-{
-    Critical,
-    Low,
-    Optimal,
-    Overstocked,
-    NotConfigured
 }

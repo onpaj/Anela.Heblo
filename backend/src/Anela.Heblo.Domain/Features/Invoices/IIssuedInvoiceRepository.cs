@@ -11,4 +11,6 @@ public interface IIssuedInvoiceRepository : IRepository<IssuedInvoice, string>
     Task<PaginatedResult<IssuedInvoice>> GetPaginatedAsync(IssuedInvoiceFilters filters, CancellationToken cancellationToken = default);
 
     Task<IEnumerable<IssuedInvoice>> GetHeadersByDateAsync(DateOnly date, CancellationToken cancellationToken = default);
+
+    Task RevertTrackedChangesAsync(IssuedInvoice entity, CancellationToken cancellationToken = default);
 }

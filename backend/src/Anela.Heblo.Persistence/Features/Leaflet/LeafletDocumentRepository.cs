@@ -1,3 +1,4 @@
+using System.Text;
 using Anela.Heblo.Domain.Features.Leaflet;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -8,6 +9,9 @@ namespace Anela.Heblo.Persistence.Features.Leaflet;
 public class LeafletDocumentRepository : ILeafletDocumentRepository
 {
     private readonly ApplicationDbContext _context;
+
+    // 7 params/row × 1000 rows = 7,000 params — comfortably under Npgsql's 65,535 ceiling.
+    private const int MaxRowsPerBatch = 1000;
 
     public LeafletDocumentRepository(ApplicationDbContext context)
     {
@@ -23,30 +27,41 @@ public class LeafletDocumentRepository : ILeafletDocumentRepository
     public async Task AddChunksAsync(IEnumerable<LeafletChunk> chunks, CancellationToken ct = default)
     {
         var chunkList = chunks.ToList();
+        if (chunkList.Count == 0)
+            return;
 
         var connection = (NpgsqlConnection)_context.Database.GetDbConnection();
         if (connection.State != System.Data.ConnectionState.Open)
             await connection.OpenAsync(ct);
 
-        foreach (var chunk in chunkList)
+        for (var offset = 0; offset < chunkList.Count; offset += MaxRowsPerBatch)
         {
-            var embedding = new Vector(chunk.Embedding);
-            // Column list MUST mirror LeafletChunkConfiguration. See memory/gotchas/raw-sql-insert-must-match-ef-mapping.md
-            await using var cmd = new NpgsqlCommand(
-                """
-                INSERT INTO "LeafletChunks" ("Id", "DocumentId", "ChunkIndex", "Content", "Summary", "WordCount", "Embedding")
-                VALUES (@id, @documentId, @chunkIndex, @content, @summary, @wordCount, @embedding)
-                ON CONFLICT ("Id") DO NOTHING
-                """,
-                connection);
+            var batch = chunkList.Skip(offset).Take(MaxRowsPerBatch).ToList();
 
-            cmd.Parameters.AddWithValue("id", chunk.Id);
-            cmd.Parameters.AddWithValue("documentId", chunk.DocumentId);
-            cmd.Parameters.AddWithValue("chunkIndex", chunk.ChunkIndex);
-            cmd.Parameters.AddWithValue("content", chunk.Content);
-            cmd.Parameters.AddWithValue("summary", chunk.Summary);
-            cmd.Parameters.AddWithValue("wordCount", chunk.WordCount);
-            cmd.Parameters.AddWithValue("embedding", embedding);
+            // Column list MUST mirror LeafletChunkConfiguration. See memory/gotchas/raw-sql-insert-must-match-ef-mapping.md
+            var sql = new StringBuilder(
+                "INSERT INTO \"LeafletChunks\" (\"Id\", \"DocumentId\", \"ChunkIndex\", \"Content\", \"Summary\", \"WordCount\", \"Embedding\") VALUES ");
+
+            await using var cmd = new NpgsqlCommand { Connection = connection };
+
+            for (var i = 0; i < batch.Count; i++)
+            {
+                var chunk = batch[i];
+                if (i > 0)
+                    sql.Append(", ");
+                sql.Append($"(@id{i}, @documentId{i}, @chunkIndex{i}, @content{i}, @summary{i}, @wordCount{i}, @embedding{i})");
+
+                cmd.Parameters.AddWithValue($"id{i}", chunk.Id);
+                cmd.Parameters.AddWithValue($"documentId{i}", chunk.DocumentId);
+                cmd.Parameters.AddWithValue($"chunkIndex{i}", chunk.ChunkIndex);
+                cmd.Parameters.AddWithValue($"content{i}", chunk.Content);
+                cmd.Parameters.AddWithValue($"summary{i}", chunk.Summary);
+                cmd.Parameters.AddWithValue($"wordCount{i}", chunk.WordCount);
+                cmd.Parameters.AddWithValue($"embedding{i}", new Vector(chunk.Embedding));
+            }
+
+            sql.Append(" ON CONFLICT (\"Id\") DO NOTHING");
+            cmd.CommandText = sql.ToString();
 
             await cmd.ExecuteNonQueryAsync(ct);
         }

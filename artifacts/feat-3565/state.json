@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3565",
+  "issue_number": 3565,
+  "created_at": "2026-07-09T07:15:34.326391Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-09T07:17:28.535268Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-09T07:19:19.746220Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-09T07:19:35.104195Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-09T07:20:56.430215Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-09T08:00:04.609256Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-09T08:01:25.670884Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "dedupe-invoice-critical-error-predicate",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-09T07:59:59.575438Z"
+    }
+  ]
+}

@@ -3628,6 +3628,50 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("SmartsuppConversations", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Smartsupp.SmartsuppConversationPresence", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ConversationId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("EnteredAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastSeenAt");
+
+                    b.HasIndex("ConversationId", "AgentId", "Source")
+                        .IsUnique();
+
+                    b.ToTable("SmartsuppConversationPresences", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Smartsupp.SmartsuppMessage", b =>
                 {
                     b.Property<string>("Id")

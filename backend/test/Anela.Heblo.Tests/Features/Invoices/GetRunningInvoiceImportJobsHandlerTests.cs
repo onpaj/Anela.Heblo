@@ -41,13 +41,14 @@ public class GetRunningInvoiceImportJobsHandlerTests
         var worker = new Mock<IBackgroundWorker>();
         worker.Setup(w => w.GetRunningJobs()).Returns(new List<BackgroundJobInfo>
         {
-            Job("InvoiceImportJob.Run", id: "r1"),
-            Job("SomeOtherJob.Run", id: "r2"),
+            Job("Import faktur: faktura 12345", id: "r1"),
+            Job("Daily Invoice DQT Check", id: "r2"),
         });
         worker.Setup(w => w.GetPendingJobs()).Returns(new List<BackgroundJobInfo>
         {
-            Job("InvoiceImportJob.Run", state: "Enqueued", id: "p1"),
-            Job("UnrelatedJob.Run", state: "Enqueued", id: "p2"),
+            Job("Import faktur: denní import CZK za 12.07.2026", state: "Enqueued", id: "p1"),
+            Job("MetaAds Invoice Import", state: "Enqueued", id: "p2"),
+            Job("InvoiceImportJob.Run", state: "Enqueued", id: "p3"),
         });
 
         var handler = CreateHandler(worker.Object, NewCache());
@@ -67,7 +68,7 @@ public class GetRunningInvoiceImportJobsHandlerTests
         var worker = new Mock<IBackgroundWorker>();
         worker.Setup(w => w.GetRunningJobs()).Returns(new List<BackgroundJobInfo>
         {
-            Job("InvoiceImportJob.Run", id: "r1"),
+            Job("Import faktur: faktura 12345", id: "r1"),
         });
         worker.Setup(w => w.GetPendingJobs()).Returns(new List<BackgroundJobInfo>());
 
@@ -92,7 +93,7 @@ public class GetRunningInvoiceImportJobsHandlerTests
         var worker = new Mock<IBackgroundWorker>();
         worker.Setup(w => w.GetRunningJobs()).Returns(new List<BackgroundJobInfo>
         {
-            Job("InvoiceImportJob.Run", id: "r1"),
+            Job("Import faktur: faktura 12345", id: "r1"),
         });
         worker.Setup(w => w.GetPendingJobs()).Returns(new List<BackgroundJobInfo>());
 
@@ -115,7 +116,7 @@ public class GetRunningInvoiceImportJobsHandlerTests
         var worker = new Mock<IBackgroundWorker>();
         worker.Setup(w => w.GetRunningJobs()).Returns(new List<BackgroundJobInfo>
         {
-            Job("InvoiceImportJob.Run", id: "r1"),
+            Job("Import faktur: faktura 12345", id: "r1"),
         });
         worker.Setup(w => w.GetPendingJobs()).Returns(new List<BackgroundJobInfo>());
 

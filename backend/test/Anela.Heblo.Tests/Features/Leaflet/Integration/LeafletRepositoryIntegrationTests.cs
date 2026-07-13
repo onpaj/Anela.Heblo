@@ -172,6 +172,66 @@ public class LeafletRepositoryIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AddChunksAsync_PersistsAllRows_WhenMultipleChunks()
+    {
+        // Arrange
+        var doc = MakeDocument("multi-chunk-test.pdf", "leaflet-hash-010");
+        await _repository.AddDocumentAsync(doc);
+
+        var chunks = Enumerable.Range(0, 5)
+            .Select(i => new LeafletChunk
+            {
+                Id = Guid.NewGuid(),
+                DocumentId = doc.Id,
+                ChunkIndex = i,
+                Content = $"Content {i}",
+                Summary = $"Summary {i}",
+                WordCount = i + 1,
+                Embedding = [0.1f * i, 0.2f * i, 0.3f * i]
+            })
+            .ToList();
+
+        // Act: single call inserts all five rows in one multi-row INSERT
+        await _repository.AddChunksAsync(chunks);
+
+        // Assert: every row persisted with its own distinct values
+        var stored = await _context.LeafletChunks
+            .AsNoTracking()
+            .Where(c => c.DocumentId == doc.Id)
+            .OrderBy(c => c.ChunkIndex)
+            .ToListAsync();
+
+        Assert.Equal(5, stored.Count);
+        for (var i = 0; i < 5; i++)
+        {
+            Assert.Equal(chunks[i].Id, stored[i].Id);
+            Assert.Equal(i, stored[i].ChunkIndex);
+            Assert.Equal($"Content {i}", stored[i].Content);
+            Assert.Equal($"Summary {i}", stored[i].Summary);
+            Assert.Equal(i + 1, stored[i].WordCount);
+        }
+    }
+
+    [Fact]
+    public async Task AddChunksAsync_IsNoOp_WhenInputEmpty()
+    {
+        // Arrange
+        var doc = MakeDocument("empty-input-test.pdf", "leaflet-hash-011");
+        await _repository.AddDocumentAsync(doc);
+
+        // Act: empty enumerable must not throw and must issue no INSERT
+        var exception = await Record.ExceptionAsync(
+            () => _repository.AddChunksAsync(Array.Empty<LeafletChunk>()));
+
+        // Assert
+        Assert.Null(exception);
+        var rows = await _context.LeafletChunks
+            .Where(c => c.DocumentId == doc.Id)
+            .ToListAsync();
+        Assert.Empty(rows);
+    }
+
+    [Fact]
     public async Task AddDocumentAndChunks_CanBeRetrievedByHash()
     {
         // Arrange

@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3591",
+  "issue_number": 3591,
+  "created_at": "2026-07-11T06:15:29.562967Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-11T06:17:05.932318Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-11T06:18:23.157793Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-11T06:19:08.794764Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-11T06:19:52.663948Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-11T06:56:42.116838Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-11T06:57:32.634206Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "remove-filesizebytes-dead-property",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-11T06:56:36.559139Z"
+    }
+  ]
+}

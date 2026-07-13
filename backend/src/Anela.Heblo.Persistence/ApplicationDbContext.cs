@@ -152,6 +152,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<SmartsuppMessage> SmartsuppMessages { get; set; } = null!;
     public DbSet<SmartsuppContact> SmartsuppContacts { get; set; } = null!;
     public DbSet<SmartsuppWebhookAuditEntry> SmartsuppWebhookAuditEntries { get; set; } = null!;
+    public DbSet<SmartsuppConversationPresence> SmartsuppConversationPresences { get; set; } = null!;
 
     // Inventory module
     public DbSet<Lot> Lots { get; set; } = null!;
