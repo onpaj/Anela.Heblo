@@ -67,7 +67,7 @@ public class GatherContextStep
                 context.ContextSnippets = [.. kbSnippets, .. deduplicatedWeb];
                 context.StyleGuideText = styleGuideText;
 
-                var allSnippets = kbSnippets.Concat(webSnippets).ToList();
+                var allSnippets = kbSnippets.Concat(deduplicatedWeb).ToList();
                 return (true, (object?)new { snippets = allSnippets, styleGuideLength = styleGuideText?.Length });
             },
             ct);
