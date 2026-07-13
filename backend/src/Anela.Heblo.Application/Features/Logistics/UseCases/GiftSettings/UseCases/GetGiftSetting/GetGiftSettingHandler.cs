@@ -1,8 +1,8 @@
-using Anela.Heblo.Application.Features.GiftSettings.Dto;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GiftSettings.Dto;
 using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using MediatR;
 
-namespace Anela.Heblo.Application.Features.GiftSettings.UseCases.GetGiftSetting;
+namespace Anela.Heblo.Application.Features.Logistics.UseCases.GiftSettings.UseCases.GetGiftSetting;
 
 public sealed class GetGiftSettingHandler : IRequestHandler<GetGiftSettingQuery, GiftSettingDto>
 {
