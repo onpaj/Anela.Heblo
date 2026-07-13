@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.Article.Contracts;
+using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.Services;
-using Microsoft.Identity.Client;
 
 namespace Anela.Heblo.Application.Features.UserManagement.Infrastructure;
 
@@ -24,12 +24,12 @@ internal sealed class GraphArticleUserResolver : IArticleUserResolver
                 .Select(m => new ArticleUserMatch(m.Id, m.DisplayName))
                 .ToList();
         }
-        catch (MsalException ex)
+        catch (GraphServiceAuthException ex)
         {
             throw new ArticleUserResolverAuthException(
                 $"Token acquisition failed for group {groupId}.", ex);
         }
-        catch (Microsoft.Graph.Models.ODataErrors.ODataError ex)
+        catch (GraphServiceException ex)
         {
             throw new ArticleUserResolverServiceException(
                 $"Graph OData error for group {groupId}.", ex);
