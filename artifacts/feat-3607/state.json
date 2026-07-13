@@ -34,15 +34,15 @@
     },
     {
       "name": "update-call-sites-and-namespaces",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-13T05:39:09.679264Z"
+      "updated_at": "2026-07-13T06:10:50.145417Z"
     },
     {
       "name": "verify-architecture-boundary-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-13T06:10:53.877835Z"
     }
   ]
 }
