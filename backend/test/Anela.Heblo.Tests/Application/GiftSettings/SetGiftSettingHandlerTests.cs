@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.GiftSettings.UseCases.SetGiftSetting;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GiftSettings.UseCases.SetGiftSetting;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using Anela.Heblo.Domain.Features.Users;
