@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Smartsupp.Contracts;
+using Anela.Heblo.Application.Features.Smartsupp.Presence;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using MediatR;
@@ -8,10 +9,12 @@ namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
 public class ListConversationsHandler : IRequestHandler<ListConversationsRequest, ListConversationsResponse>
 {
     private readonly ISmartsuppRepository _repository;
+    private readonly ISmartsuppPresenceService _presenceService;
 
-    public ListConversationsHandler(ISmartsuppRepository repository)
+    public ListConversationsHandler(ISmartsuppRepository repository, ISmartsuppPresenceService presenceService)
     {
         _repository = repository;
+        _presenceService = presenceService;
     }
 
     public async Task<ListConversationsResponse> Handle(ListConversationsRequest request, CancellationToken cancellationToken)
@@ -22,9 +25,19 @@ public class ListConversationsHandler : IRequestHandler<ListConversationsRequest
 
         var (items, total) = await _repository.ListConversationsAsync(status, request.Page, request.PageSize, cancellationToken);
 
+        var dtos = items.Select(MapDto).ToList();
+
+        var viewers = await _presenceService.GetActiveViewersAsync(
+            dtos.Select(d => d.Id).ToList(), cancellationToken);
+        foreach (var dto in dtos)
+        {
+            if (viewers.TryGetValue(dto.Id, out var activeViewers))
+                dto.ActiveViewers = activeViewers;
+        }
+
         return new ListConversationsResponse
         {
-            Items = items.Select(MapDto).ToList(),
+            Items = dtos,
             Total = total,
             Page = request.Page,
             PageSize = request.PageSize,

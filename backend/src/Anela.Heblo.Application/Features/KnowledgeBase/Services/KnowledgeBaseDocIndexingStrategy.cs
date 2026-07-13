@@ -32,21 +32,29 @@ public class KnowledgeBaseDocIndexingStrategy : IIndexingStrategy
         string cleanText, Guid documentId, CancellationToken ct)
     {
         var chunkTexts = _chunker.Chunk(cleanText, _options.ChunkSize, _options.ChunkOverlap);
-        var chunks = new List<KnowledgeBaseChunk>();
+        if (chunkTexts.Count == 0)
+            return [];
+
+        var summaries = new List<string>(chunkTexts.Count);
+        for (var i = 0; i < chunkTexts.Count; i++)
+        {
+            summaries.Add(await _summarizer.SummarizeAsync(chunkTexts[i], ct));
+        }
+
+        var embeddings = await _embeddingGenerator.GenerateAsync(summaries, cancellationToken: ct);
+        var chunks = new List<KnowledgeBaseChunk>(chunkTexts.Count);
 
         for (var i = 0; i < chunkTexts.Count; i++)
         {
-            var summary = await _summarizer.SummarizeAsync(chunkTexts[i], ct);
-            var embeddings = await _embeddingGenerator.GenerateAsync([summary], cancellationToken: ct);
             chunks.Add(new KnowledgeBaseChunk
             {
                 Id = Guid.NewGuid(),
                 DocumentId = documentId,
                 ChunkIndex = i,
                 Content = chunkTexts[i],
-                Summary = summary,
+                Summary = summaries[i],
                 DocumentType = DocumentType.KnowledgeBase,
-                Embedding = embeddings[0].Vector.ToArray(),
+                Embedding = embeddings[i].Vector.ToArray(),
             });
         }
 

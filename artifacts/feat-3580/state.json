@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3580",
+  "issue_number": 3580,
+  "created_at": "2026-07-10T09:15:01.515487Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-10T09:16:44.754154Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-10T09:18:23.591812Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-10T09:18:33.719755Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-10T09:20:04.478529Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-10T10:21:42.903353Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-10T10:23:34.624704Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "dedup-history-dto-mapping",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-10T10:21:34.862877Z"
+    }
+  ]
+}

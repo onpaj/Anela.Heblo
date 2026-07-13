@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
@@ -25,24 +26,4 @@ public class GetPurchaseStockAnalysisRequest : IRequest<GetPurchaseStockAnalysis
     public bool SortDescending { get; set; } = false;
 
     public bool IsExport { get; set; } = false;
-}
-
-public enum StockStatusFilter
-{
-    All,
-    Critical,
-    Low,
-    Optimal,
-    Overstocked,
-    NotConfigured
-}
-
-public enum StockAnalysisSortBy
-{
-    ProductCode,
-    ProductName,
-    AvailableStock,
-    Consumption,
-    StockEfficiency,
-    LastPurchaseDate
 }

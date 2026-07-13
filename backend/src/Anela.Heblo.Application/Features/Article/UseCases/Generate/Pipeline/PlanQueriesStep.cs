@@ -7,7 +7,12 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
-public class PlanQueriesStep
+public interface IPlanQueriesStep
+{
+    Task ExecuteAsync(ArticlePipelineContext context, CancellationToken ct);
+}
+
+public class PlanQueriesStep : IPlanQueriesStep
 {
     private const int MaxQueries = 8;
 

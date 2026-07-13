@@ -9,7 +9,6 @@ namespace Anela.Heblo.Persistence.Journal
     public class JournalRepository : BaseRepository<JournalEntry, int>, IJournalRepository
     {
         private readonly ILogger<JournalRepository> _logger;
-        private const int RecentEntriesDays = 30;
 
         public JournalRepository(ApplicationDbContext context, ILogger<JournalRepository> logger)
             : base(context)
@@ -149,56 +148,6 @@ namespace Anela.Heblo.Persistence.Journal
                 .OrderByDescending(x => x.EntryDate)
                 .ThenByDescending(x => x.CreatedAt)
                 .ToListAsync(cancellationToken);
-        }
-
-        public async Task<Dictionary<string, JournalIndicatorSnapshot>> GetJournalIndicatorsAsync(
-            IEnumerable<string> productCodes,
-            CancellationToken cancellationToken = default)
-        {
-            ArgumentNullException.ThrowIfNull(productCodes);
-            var productCodeList = productCodes.ToList();
-
-            // Aggregate direct associations into a per-product accumulator.
-            var directAssociations = await Context.Set<JournalEntryProduct>()
-                .Where(jep => productCodeList.Contains(jep.ProductCodePrefix))
-                .Join(Context.Set<JournalEntry>(),
-                    jep => jep.JournalEntryId,
-                    je => je.Id,
-                    (jep, je) => new { ProductCode = jep.ProductCodePrefix, je.EntryDate, je.CreatedAt })
-                .GroupBy(x => x.ProductCode)
-                .Select(g => new
-                {
-                    ProductCode = g.Key,
-                    Count = g.Count(),
-                    LastEntryDate = g.Max(x => x.EntryDate)
-                })
-                .ToListAsync(cancellationToken);
-
-            var aggregatesByProduct = directAssociations.ToDictionary(x => x.ProductCode);
-
-            var thirtyDaysAgo = DateTime.Today.AddDays(-RecentEntriesDays);
-            var result = new Dictionary<string, JournalIndicatorSnapshot>(productCodeList.Count);
-
-            foreach (var productCode in productCodeList)
-            {
-                if (aggregatesByProduct.TryGetValue(productCode, out var aggregate))
-                {
-                    var hasRecentEntries = aggregate.LastEntryDate >= thirtyDaysAgo;
-                    result[productCode] = new JournalIndicatorSnapshot(
-                        DirectEntries: aggregate.Count,
-                        LastEntryDate: aggregate.LastEntryDate,
-                        HasRecentEntries: hasRecentEntries);
-                }
-                else
-                {
-                    result[productCode] = new JournalIndicatorSnapshot(
-                        DirectEntries: 0,
-                        LastEntryDate: null,
-                        HasRecentEntries: false);
-                }
-            }
-
-            return result;
         }
 
         private static IQueryable<JournalEntry> ApplySort(

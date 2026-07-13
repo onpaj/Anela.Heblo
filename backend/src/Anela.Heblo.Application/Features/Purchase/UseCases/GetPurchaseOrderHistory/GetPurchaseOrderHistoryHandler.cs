@@ -35,15 +35,7 @@ public class GetPurchaseOrderHistoryHandler : IRequestHandler<GetPurchaseOrderHi
         var history = await _repository.GetHistoryAsync(request.Id, cancellationToken);
 
         var items = history
-            .Select(h => new PurchaseOrderHistoryDto
-            {
-                Id = h.Id,
-                Action = h.Action,
-                OldValue = h.OldValue,
-                NewValue = h.NewValue,
-                ChangedAt = h.ChangedAt,
-                ChangedBy = h.ChangedBy,
-            })
+            .Select(PurchaseOrderHistoryDto.FromDomain)
             .ToList();
 
         _logger.LogInformation("Returning {Count} history entries for purchase order {Id}", items.Count, request.Id);

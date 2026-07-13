@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3593",
+  "issue_number": 3593,
+  "created_at": "2026-07-11T08:15:01.790548Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-11T08:17:54.222030Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-11T08:19:48.939741Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-11T08:20:41.592496Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-11T08:23:42.318549Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-11T09:22:48.911257Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-11T09:28:38.448575Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-pipeline-step-interfaces-and-wire-di",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-11T08:31:46.931571Z"
+    },
+    {
+      "name": "rework-generatearticlejobtests-to-mock-interfaces",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-11T09:22:43.970206Z"
+    }
+  ]
+}

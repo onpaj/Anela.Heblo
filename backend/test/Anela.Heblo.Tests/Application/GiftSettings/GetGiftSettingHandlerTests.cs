@@ -1,5 +1,5 @@
-using Anela.Heblo.Application.Features.GiftSettings.Dto;
-using Anela.Heblo.Application.Features.GiftSettings.UseCases.GetGiftSetting;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GiftSettings.Dto;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GiftSettings.UseCases.GetGiftSetting;
 using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using FluentAssertions;
 using Moq;

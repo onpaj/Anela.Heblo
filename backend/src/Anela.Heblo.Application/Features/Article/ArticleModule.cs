@@ -23,11 +23,11 @@ public static class ArticleModule
         services.AddScoped<IArticleAdminRepository, ArticleAdminRepository>();
 
         services.AddScoped<PipelineStepRecorder>();
-        services.AddScoped<PlanQueriesStep>();
-        services.AddScoped<GatherContextStep>();
-        services.AddScoped<AggregateFactsStep>();
-        services.AddScoped<ValidateFactsStep>();
-        services.AddScoped<WriteArticleStep>();
+        services.AddScoped<IPlanQueriesStep, PlanQueriesStep>();
+        services.AddScoped<IGatherContextStep, GatherContextStep>();
+        services.AddScoped<IAggregateFactsStep, AggregateFactsStep>();
+        services.AddScoped<IValidateFactsStep, ValidateFactsStep>();
+        services.AddScoped<IWriteArticleStep, WriteArticleStep>();
         services.AddScoped<GenerateArticleJob>();
 
         return services;
