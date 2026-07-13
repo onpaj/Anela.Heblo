@@ -51,24 +51,8 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
 
         foreach (var product in setProducts)
         {
-            // Calculate daily sales from sales history using the actual date range
-            var totalSalesInPeriod = (decimal)product.TotalSoldInPeriod * salesCoefficient;
-            var dailySales = totalSalesInPeriod / daysDiff;
-
-            // Calculate suggested quantity: DailySales * OverstockOptimal
-            var suggestedQuantity = (int)Math.Max(0, dailySales * product.OptimalStockDaysSetup);
-
-            // Calculate severity based on new rules
-            var severity = CalculateSeverity(
-                (int)product.AvailableStock,
-                suggestedQuantity,
-                product.StockMinSetup);
-
-            // Calculate stock coverage percentage: (AvailableStock / (DailySales * OverstockOptimal)) * 100
-            var stockCoveragePercent = CalculateStockCoveragePercent(
-                (int)product.AvailableStock,
-                dailySales,
-                product.OptimalStockDaysSetup);
+            var (dailySales, suggestedQuantity, severity, stockCoveragePercent) =
+                ComputePackageMetrics(product, salesCoefficient, daysDiff);
 
             var giftPackage = new GiftPackageDto
             {
@@ -102,24 +86,8 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             throw new ArgumentException($"Gift package '{giftPackageCode}' not found or is not a set product");
         }
 
-        // Calculate daily sales from sales history using the actual date range
-        var totalSalesInPeriod = (decimal)product.TotalSoldInPeriod * salesCoefficient;
-        var dailySales = totalSalesInPeriod / daysDiff;
-
-        // Calculate suggested quantity: DailySales * OverstockOptimal
-        var suggestedQuantity = (int)Math.Max(0, dailySales * product.OptimalStockDaysSetup);
-
-        // Calculate severity based on new rules
-        var severity = CalculateSeverity(
-            (int)product.AvailableStock,
-            suggestedQuantity,
-            product.StockMinSetup);
-
-        // Calculate stock coverage percentage: (AvailableStock / (DailySales * OverstockOptimal)) * 100
-        var stockCoveragePercent = CalculateStockCoveragePercent(
-            (int)product.AvailableStock,
-            dailySales,
-            product.OptimalStockDaysSetup);
+        var (dailySales, suggestedQuantity, severity, stockCoveragePercent) =
+            ComputePackageMetrics(product, salesCoefficient, daysDiff);
 
         // Create the detailed gift package with ingredients
         var giftPackage = new GiftPackageDto
@@ -336,6 +304,20 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         var to = toDate ?? _timeProvider.GetUtcNow().DateTime;
         var from = fromDate ?? to.AddYears(-1);
         return (from, to, Math.Max((to - from).Days, 1));
+    }
+
+    private static (decimal dailySales, int suggestedQuantity, GiftPackageSeverity severity, decimal stockCoveragePercent)
+        ComputePackageMetrics(LogisticsGiftPackageItem product, decimal salesCoefficient, int daysDiff)
+    {
+        var totalSalesInPeriod = (decimal)product.TotalSoldInPeriod * salesCoefficient;
+        var dailySales = totalSalesInPeriod / daysDiff;
+        var suggestedQuantity = (int)Math.Max(0, dailySales * product.OptimalStockDaysSetup);
+        return (
+            dailySales,
+            suggestedQuantity,
+            CalculateSeverity((int)product.AvailableStock, suggestedQuantity, product.StockMinSetup),
+            CalculateStockCoveragePercent((int)product.AvailableStock, dailySales, product.OptimalStockDaysSetup)
+        );
     }
 
     private static GiftPackageSeverity CalculateSeverity(int availableStock, int suggestedQuantity, int overstockMinimal)

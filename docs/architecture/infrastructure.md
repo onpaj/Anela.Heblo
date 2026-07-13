@@ -140,7 +140,7 @@ services
     .AddInvoicesModule()
     .AddManufactureModule()
     .AddPurchaseModule()
-    .AddTransportModule()
+    .AddLogisticsModule()
     .AddApplicationServices() // All feature modules
     .AddPersistence(Configuration.GetConnectionString("DefaultConnection")); // Database
 

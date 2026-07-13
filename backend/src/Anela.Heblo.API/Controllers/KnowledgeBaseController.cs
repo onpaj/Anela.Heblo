@@ -141,7 +141,6 @@ public class KnowledgeBaseController : BaseApiController
             FileStream = stream,
             Filename = file.FileName,
             ContentType = file.ContentType,
-            FileSizeBytes = file.Length,
             DocumentType = parsedDocumentType,
         };
         var result = await _mediator.Send(request, ct);

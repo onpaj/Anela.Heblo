@@ -4,6 +4,7 @@ using Anela.Heblo.Persistence;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Smartsupp.WebhookAudit;
@@ -13,6 +14,15 @@ public class SmartsuppWebhookAuditCleanupJobTests
     private static ApplicationDbContext CreateContext() =>
         new(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase($"audit_{Guid.NewGuid()}").Options);
+
+    private static ISmartsuppPresenceRepository CreatePresenceRepo()
+    {
+        var mock = new Mock<ISmartsuppPresenceRepository>();
+        mock.Setup(r => r.PurgeExpiredAsync(
+                It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+        return mock.Object;
+    }
 
     private static SmartsuppWebhookAuditEntry MakeEntry(DateTime receivedAt) => new()
     {
@@ -34,7 +44,8 @@ public class SmartsuppWebhookAuditCleanupJobTests
             MakeEntry(now.AddDays(-8)));
         await ctx.SaveChangesAsync();
 
-        var job = new SmartsuppWebhookAuditCleanupJob(ctx, NullLogger<SmartsuppWebhookAuditCleanupJob>.Instance);
+        var job = new SmartsuppWebhookAuditCleanupJob(
+            ctx, CreatePresenceRepo(), NullLogger<SmartsuppWebhookAuditCleanupJob>.Instance);
         await job.ExecuteAsync(default);
 
         var ages = await ctx.SmartsuppWebhookAuditEntries
@@ -48,7 +59,8 @@ public class SmartsuppWebhookAuditCleanupJobTests
     public void Metadata_HasExpectedJobNameAndCron()
     {
         using var ctx = CreateContext();
-        var job = new SmartsuppWebhookAuditCleanupJob(ctx, NullLogger<SmartsuppWebhookAuditCleanupJob>.Instance);
+        var job = new SmartsuppWebhookAuditCleanupJob(
+            ctx, CreatePresenceRepo(), NullLogger<SmartsuppWebhookAuditCleanupJob>.Instance);
 
         job.Metadata.JobName.Should().Be("smartsupp-webhook-audit-cleanup");
         job.Metadata.CronExpression.Should().NotBeNullOrWhiteSpace();

@@ -10,20 +10,20 @@ namespace Anela.Heblo.Application.Features.Article.UseCases.Generate;
 public sealed class GenerateArticleJob
 {
     private readonly IArticleRepository _repository;
-    private readonly PlanQueriesStep _planQueries;
-    private readonly GatherContextStep _gatherContext;
-    private readonly AggregateFactsStep _aggregateFacts;
-    private readonly ValidateFactsStep _validateFacts;
-    private readonly WriteArticleStep _writeArticle;
+    private readonly IPlanQueriesStep _planQueries;
+    private readonly IGatherContextStep _gatherContext;
+    private readonly IAggregateFactsStep _aggregateFacts;
+    private readonly IValidateFactsStep _validateFacts;
+    private readonly IWriteArticleStep _writeArticle;
     private readonly ILogger<GenerateArticleJob> _logger;
 
     public GenerateArticleJob(
         IArticleRepository repository,
-        PlanQueriesStep planQueries,
-        GatherContextStep gatherContext,
-        AggregateFactsStep aggregateFacts,
-        ValidateFactsStep validateFacts,
-        WriteArticleStep writeArticle,
+        IPlanQueriesStep planQueries,
+        IGatherContextStep gatherContext,
+        IAggregateFactsStep aggregateFacts,
+        IValidateFactsStep validateFacts,
+        IWriteArticleStep writeArticle,
         ILogger<GenerateArticleJob> logger)
     {
         _repository = repository;

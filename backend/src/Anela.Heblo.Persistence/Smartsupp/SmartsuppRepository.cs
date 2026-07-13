@@ -327,7 +327,13 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         return contact;
     }
 
-    private static SmartsuppContact MapContactDataToEntity(SmartsuppContactData data, DateTime syncedAt) =>
+    // Timestamps MUST be DateTimeKind.Utc: UpsertContactAsync writes them via
+    // ExecuteSqlInterpolated, which types a bare DateTime as `timestamp with time zone`
+    // and rejects Kind=Unspecified at the Npgsql layer. The webhook contact path
+    // (SmartsuppPayloadMapper.MapContact) already produces Utc; this REST-staged path
+    // must match, otherwise the enclosing conversation upsert throws and the conversation
+    // is dropped (observed for Facebook Messenger contacts fetched on demand).
+    internal static SmartsuppContact MapContactDataToEntity(SmartsuppContactData data, DateTime syncedAt) =>
         new()
         {
             Id = data.Id,
@@ -335,14 +341,14 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
             Name = data.Name,
             Phone = data.Phone,
             Note = data.Note,
-            BannedAt = data.BannedAt,
+            BannedAt = data.BannedAt is { } bannedAt ? DateTime.SpecifyKind(bannedAt, DateTimeKind.Utc) : null,
             BannedBy = data.BannedBy,
             GdprApproved = data.GdprApproved,
             TagsJson = data.TagsJson,
             PropertiesJson = data.PropertiesJson,
-            CreatedAt = DateTime.SpecifyKind(data.CreatedAt, DateTimeKind.Unspecified),
-            UpdatedAt = DateTime.SpecifyKind(data.UpdatedAt, DateTimeKind.Unspecified),
-            SyncedAt = DateTime.SpecifyKind(syncedAt, DateTimeKind.Unspecified),
+            CreatedAt = DateTime.SpecifyKind(data.CreatedAt, DateTimeKind.Utc),
+            UpdatedAt = DateTime.SpecifyKind(data.UpdatedAt, DateTimeKind.Utc),
+            SyncedAt = DateTime.SpecifyKind(syncedAt, DateTimeKind.Utc),
         };
 
     public async Task UpdateVisitorCacheAsync(

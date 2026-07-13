@@ -100,7 +100,6 @@ public class LeafletController : BaseApiController
             FileStream = stream,
             Filename = file.FileName,
             ContentType = file.ContentType,
-            FileSizeBytes = file.Length,
         }, ct);
         return HandleResponse(result);
     }

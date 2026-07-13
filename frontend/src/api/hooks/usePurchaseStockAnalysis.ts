@@ -68,46 +68,6 @@ export const usePurchaseStockAnalysisQuery = (
   });
 };
 
-// Helper function to get severity color class
-export const getSeverityColorClass = (
-  severity: StockSeverity | undefined,
-): string => {
-  switch (severity) {
-    case StockSeverity.Critical:
-      return "text-red-600 bg-red-50";
-    case StockSeverity.Low:
-      return "text-orange-600 bg-orange-50";
-    case StockSeverity.Optimal:
-      return "text-green-600 bg-green-50";
-    case StockSeverity.Overstocked:
-      return "text-blue-600 bg-blue-50";
-    case StockSeverity.NotConfigured:
-      return "text-gray-600 bg-gray-50";
-    default:
-      return "text-gray-600 bg-gray-50";
-  }
-};
-
-// Helper function to get severity display text
-export const getSeverityDisplayText = (
-  severity: StockSeverity | undefined,
-): string => {
-  switch (severity) {
-    case StockSeverity.Critical:
-      return "Kritický";
-    case StockSeverity.Low:
-      return "Nízký";
-    case StockSeverity.Optimal:
-      return "Optimální";
-    case StockSeverity.Overstocked:
-      return "Přeskladněno";
-    case StockSeverity.NotConfigured:
-      return "Nezkonfigurováno";
-    default:
-      return "Neznámý";
-  }
-};
-
 // Helper function to format Czech number
 export const formatNumber = (
   value: number | undefined,

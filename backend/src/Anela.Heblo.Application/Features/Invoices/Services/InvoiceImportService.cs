@@ -127,13 +127,22 @@ public class InvoiceImportService : IInvoiceImportService
         }
         catch (Exception ex)
         {
-            // If a new invoice was tracked via AddAsync but this import failed before its own
-            // SaveChangesAsync ran, remove it from the change tracker now. Otherwise it stays
-            // tracked as Added on the shared per-batch repository/DbContext instance and would
-            // be silently flushed by whichever later invoice's SaveChangesAsync call runs next.
-            if (isNew && invoice != null)
+            if (invoice != null)
             {
-                await _repository.DeleteAsync(invoice, cancellationToken);
+                if (isNew)
+                {
+                    // A new invoice was tracked via AddAsync but this import failed before its own
+                    // SaveChangesAsync ran. Remove it from the change tracker now; otherwise it stays
+                    // tracked as Added on the shared per-batch repository/DbContext instance and would
+                    // be silently flushed by whichever later invoice's SaveChangesAsync call runs next.
+                    await _repository.DeleteAsync(invoice, cancellationToken);
+                }
+                else
+                {
+                    // An existing invoice was mutated in-place before the failure. Revert its tracked
+                    // changes so a later SaveChangesAsync on the shared DbContext can't persist them.
+                    await _repository.RevertTrackedChangesAsync(invoice, cancellationToken);
+                }
             }
 
             _logger.LogError(ex, "Error occurred while importing invoice: {InvoiceNumber}", invoiceDetail.Code);

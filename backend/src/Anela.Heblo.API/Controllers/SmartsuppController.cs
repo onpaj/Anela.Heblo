@@ -1,7 +1,9 @@
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.CloseConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetInfo;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.RecordPresence;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.RefreshOrphanContacts;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.RemovePresence;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.SendMessage;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.SubmitDraftReplyFeedback;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetDraftReplyFeedbackList;
@@ -168,6 +170,33 @@ public class SmartsuppController : BaseApiController
     {
         var result = await _mediator.Send(
             new CloseConversationRequest { ConversationId = id },
+            cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("conversations/{id}/presence")]
+    [ProducesResponseType(typeof(RecordPresenceResponse), StatusCodes.Status200OK)]
+    // Intentional: smartsupp feature has only read level; read-role holders can also work chats,
+    // so their presence must be recorded like any other operator's.
+    public async Task<ActionResult<RecordPresenceResponse>> RecordPresence(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new RecordPresenceRequest { ConversationId = id },
+            cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpDelete("conversations/{id}/presence")]
+    [ProducesResponseType(typeof(RemovePresenceResponse), StatusCodes.Status200OK)]
+    // Intentional: smartsupp feature has only read level; read-role holders can also work chats.
+    public async Task<ActionResult<RemovePresenceResponse>> RemovePresence(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new RemovePresenceRequest { ConversationId = id },
             cancellationToken);
         return HandleResponse(result);
     }

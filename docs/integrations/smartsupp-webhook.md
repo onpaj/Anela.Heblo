@@ -414,7 +414,13 @@ Adds `assigned` (agent ID string) at the top level of `data`.
 
 #### `conversation.agent_joined` / `conversation.agent_left`
 
-Received but trigger no action (no-op). Any minimal body is accepted:
+Drive **operator presence** (collision detection). `agent_joined` records the native Smartsupp
+operator as active in the conversation (`SmartsuppConversationPresences`, `Source = Smartsupp`);
+`agent_left` clears that row. The presence surfaces in the Heblo chat UI (list dot, "viewing now"
+badge, and a warning banner) alongside Heblo operators, who are tracked via a heartbeat
+(`POST/DELETE /api/smartsupp/conversations/{id}/presence`). Presence cannot be pushed **to**
+Smartsupp — its REST API has no such endpoint — so Heblo-recorded presence is Heblo-internal only.
+Body carries only `conversation_id` and `agent_id`:
 
 ```json
 {
@@ -428,6 +434,9 @@ Received but trigger no action (no-op). Any minimal body is accepted:
   }
 }
 ```
+
+A `Source = Smartsupp` presence row has a long safety-net TTL (~30 min) in case the matching
+`agent_left` is never delivered; a `Source = Heblo` heartbeat row has a short TTL (~90 s).
 
 ---
 

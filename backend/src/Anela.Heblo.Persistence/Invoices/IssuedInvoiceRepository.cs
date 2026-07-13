@@ -168,6 +168,19 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
             .ToListAsync(cancellationToken);
     }
 
+    public Task RevertTrackedChangesAsync(IssuedInvoice entity, CancellationToken cancellationToken = default)
+    {
+        // Discards the in-memory mutation applied by _mapper.Map(...) in ExecuteImportInvoice before
+        // this invoice's own SaveChangesAsync ran, so it cannot be flushed by a later invoice's
+        // SaveChangesAsync within the same batch/DbContext scope.
+        // NOTE: this makes Original == Current (accepts current values as the new baseline) — it does
+        // NOT roll the CLR object's property values back to what was loaded from the DB. Nothing in this
+        // batch re-reads a failed invoice's in-memory object afterward today, so that's safe, but don't
+        // rely on the in-memory `entity` reflecting original DB values after this call.
+        Context.Entry(entity).State = EntityState.Unchanged;
+        return Task.CompletedTask;
+    }
+
     private static IQueryable<IssuedInvoice> ApplySorting(IQueryable<IssuedInvoice> query, string? sortBy, bool sortDescending)
     {
         if (string.IsNullOrEmpty(sortBy))

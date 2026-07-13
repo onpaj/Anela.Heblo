@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using MediatR;
@@ -36,7 +37,7 @@ public class LowStockEfficiencyTile : ITile
             var request = new GetPurchaseStockAnalysisRequest
             {
                 StockStatus = StockStatusFilter.All,
-                PageSize = int.MaxValue
+                IsExport = true
             };
 
             var response = await _mediator.Send(request, cancellationToken);

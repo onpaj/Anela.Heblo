@@ -27,9 +27,5 @@ namespace Anela.Heblo.Domain.Features.Journal
         Task<List<JournalEntry>> GetEntriesByProductAsync(
             string productCode,
             CancellationToken cancellationToken = default);
-
-        Task<Dictionary<string, JournalIndicatorSnapshot>> GetJournalIndicatorsAsync(
-            IEnumerable<string> productCodes,
-            CancellationToken cancellationToken = default);
     }
 }
