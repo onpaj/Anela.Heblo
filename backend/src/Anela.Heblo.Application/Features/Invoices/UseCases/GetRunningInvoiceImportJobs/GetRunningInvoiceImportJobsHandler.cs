@@ -47,11 +47,12 @@ public class GetRunningInvoiceImportJobsHandler
             var runningJobs = _backgroundWorker.GetRunningJobs();
             var pendingJobs = _backgroundWorker.GetPendingJobs();
 
-            // Filter for invoice import jobs based on job name containing "InvoiceImport"
+            // Filter for invoice import jobs based on the Hangfire display name produced by
+            // InvoiceImportService.ImportInvoicesAsync's [DisplayName("Import faktur: {0}")] attribute
             var invoiceImportJobs = runningJobs
                 .Concat(pendingJobs)
                 .Where(job => job.JobName != null &&
-                              job.JobName.Contains("InvoiceImport", StringComparison.OrdinalIgnoreCase))
+                              job.JobName.StartsWith("Import faktur:", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             _logger.LogDebug("Found {Count} running/pending invoice import jobs", invoiceImportJobs.Count);
