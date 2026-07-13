@@ -21,16 +21,16 @@
       "updated_at": "2026-07-13T08:22:19.904267Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-13T08:22:32.046700Z"
+      "status": "completed",
+      "updated_at": "2026-07-13T09:03:28.416067Z"
     }
   },
   "tasks": [
     {
       "name": "fix-running-invoice-import-jobs-filter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-13T08:22:32.223177Z"
+      "updated_at": "2026-07-13T09:03:23.945907Z"
     }
   ]
 }
