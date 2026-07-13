@@ -155,7 +155,7 @@ services
     .AddOrdersModule()
     .AddInvoicesModule()
     .AddManufactureModule()
-    .AddTransportModule()
+    .AddLogisticsModule()
     .AddPurchaseModule()
     .AddXccInfrastructure();
 ```
