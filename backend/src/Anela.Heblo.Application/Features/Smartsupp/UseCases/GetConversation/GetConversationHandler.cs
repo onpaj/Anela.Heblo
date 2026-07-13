@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Smartsupp.Contracts;
+using Anela.Heblo.Application.Features.Smartsupp.Presence;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using MediatR;
@@ -9,11 +10,16 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
 {
     private readonly ISmartsuppRepository _repository;
     private readonly ISmartsuppAgentCache _agentCache;
+    private readonly ISmartsuppPresenceService _presenceService;
 
-    public GetConversationHandler(ISmartsuppRepository repository, ISmartsuppAgentCache agentCache)
+    public GetConversationHandler(
+        ISmartsuppRepository repository,
+        ISmartsuppAgentCache agentCache,
+        ISmartsuppPresenceService presenceService)
     {
         _repository = repository;
         _agentCache = agentCache;
+        _presenceService = presenceService;
     }
 
     public async Task<GetConversationResponse> Handle(GetConversationRequest request, CancellationToken cancellationToken)
@@ -29,9 +35,14 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
 
         var agentNames = await _agentCache.GetAgentNamesAsync(cancellationToken);
 
+        var dto = MapConversationDto(conversation, otherConversations);
+        var viewers = await _presenceService.GetActiveViewersAsync(new[] { conversation.Id }, cancellationToken);
+        if (viewers.TryGetValue(conversation.Id, out var activeViewers))
+            dto.ActiveViewers = activeViewers;
+
         return new GetConversationResponse
         {
-            Conversation = MapConversationDto(conversation, otherConversations),
+            Conversation = dto,
             Messages = conversation.Messages.Select(MapMessageDto).ToList(),
             AgentNames = new Dictionary<string, string>(agentNames),
         };

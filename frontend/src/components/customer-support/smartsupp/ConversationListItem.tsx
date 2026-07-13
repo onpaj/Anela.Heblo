@@ -1,5 +1,5 @@
 import React from "react";
-import { ConversationDto } from "../../../api/hooks/useSmartsupp";
+import { ConversationDto, otherActiveViewers } from "../../../api/hooks/useSmartsupp";
 import StatusPill from "./StatusPill";
 
 interface ConversationListItemProps {
@@ -36,6 +36,11 @@ const ConversationListItem: React.FC<ConversationListItemProps> = ({
   const initials = getInitials(displayName);
   const relativeTime = formatRelativeTime(conversation.lastMessageAt ?? conversation.updatedAt);
   const isUnread = conversation.isUnread;
+  const otherViewers = otherActiveViewers(conversation);
+  const presenceLabel =
+    otherViewers.length > 0
+      ? `Pracuje: ${otherViewers.map((v) => v.displayName).join(", ")}`
+      : undefined;
 
   const containerClasses = [
     "w-full text-left px-4 py-3 flex items-start gap-3 border-b border-gray-100 dark:border-graphite-border transition-colors",
@@ -61,7 +66,20 @@ const ConversationListItem: React.FC<ConversationListItemProps> = ({
           <span className={`text-sm text-gray-900 dark:text-graphite-text truncate ${isUnread ? "font-semibold" : "font-medium"}`}>
             {displayName ?? "Neznámý"}
           </span>
-          <span className="text-xs text-gray-400 dark:text-graphite-faint flex-shrink-0">{relativeTime}</span>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {presenceLabel && (
+              <span
+                data-testid="presence-dot"
+                title={presenceLabel}
+                aria-label={presenceLabel}
+                className="relative flex h-2 w-2"
+              >
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+              </span>
+            )}
+            <span className="text-xs text-gray-400 dark:text-graphite-faint">{relativeTime}</span>
+          </div>
         </div>
         <div className="flex items-center gap-2 mt-1">
           <StatusPill status={conversation.status} />

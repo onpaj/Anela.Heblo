@@ -9,6 +9,10 @@ public class SmartsuppWebhookAuditCleanupJob : IRecurringJob
 {
     private const int RetentionDays = 7;
 
+    // Presence rows expire on read within minutes (heartbeat/webhook TTLs). Anything older than a
+    // day is certainly dead — purge it so the table never accumulates abandoned rows.
+    private const int PresenceRetentionDays = 1;
+
     private readonly ApplicationDbContext _context;
     private readonly ILogger<SmartsuppWebhookAuditCleanupJob> _logger;
 
@@ -31,6 +35,18 @@ public class SmartsuppWebhookAuditCleanupJob : IRecurringJob
 
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
+        var presenceCutoff = DateTime.SpecifyKind(
+            DateTime.UtcNow.AddDays(-PresenceRetentionDays), DateTimeKind.Unspecified);
+        var stalePresence = await _context.SmartsuppConversationPresences
+            .Where(p => p.LastSeenAt < presenceCutoff)
+            .ToListAsync(cancellationToken);
+        if (stalePresence.Count > 0)
+        {
+            _context.SmartsuppConversationPresences.RemoveRange(stalePresence);
+            await _context.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("smartsupp presence cleanup: deleted {Count} stale rows", stalePresence.Count);
+        }
+
         var cutoff = DateTime.UtcNow.AddDays(-RetentionDays);
 
         var stale = await _context.SmartsuppWebhookAuditEntries
