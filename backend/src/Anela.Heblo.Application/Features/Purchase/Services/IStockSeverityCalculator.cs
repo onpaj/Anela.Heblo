@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 
 namespace Anela.Heblo.Application.Features.Purchase.Services;
 

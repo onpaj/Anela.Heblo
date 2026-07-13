@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using MediatR;
