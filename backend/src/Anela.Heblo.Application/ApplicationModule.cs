@@ -89,7 +89,7 @@ public static class ApplicationModule
         services.AddJournalModule();
         services.AddMarketingModule(configuration);
         services.AddManufactureModule(configuration);
-        services.AddTransportModule();
+        services.AddLogisticsModule();
         services.AddGiftPackageManufactureModule();
         services.AddUserManagement(configuration);
         services.AddOrgChartServices(configuration);
