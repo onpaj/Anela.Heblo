@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Smartsupp.Pipeline;
+using Anela.Heblo.Application.Features.Smartsupp.Presence;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations.Validators;
@@ -20,6 +21,8 @@ public static class SmartsuppModule
     public static IServiceCollection AddSmartsuppModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ISmartsuppRepository, SmartsuppRepository>();
+        services.AddScoped<ISmartsuppPresenceRepository, SmartsuppPresenceRepository>();
+        services.AddScoped<ISmartsuppPresenceService, SmartsuppPresenceService>();
         services.AddScoped<ISmartsuppWebhookAuditWriter, SmartsuppWebhookAuditWriter>();
         services.AddSingleton<ISmartsuppAgentCache, SmartsuppAgentCache>();
 
@@ -28,6 +31,9 @@ public static class SmartsuppModule
 
         services.AddOptions<SmartsuppSendMessageOptions>()
             .Bind(configuration.GetSection(SmartsuppSendMessageOptions.SectionName));
+
+        services.AddOptions<SmartsuppPresenceOptions>()
+            .Bind(configuration.GetSection(SmartsuppPresenceOptions.SectionName));
 
         services.AddScoped<IValidator<ListConversationsRequest>, ListConversationsValidator>();
         services.AddScoped<IPipelineBehavior<ListConversationsRequest, ListConversationsResponse>,

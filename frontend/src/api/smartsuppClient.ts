@@ -38,3 +38,15 @@ export async function apiPost(
     body: JSON.stringify(body),
   });
 }
+
+export async function apiDelete(
+  apiClient: ReturnType<typeof getAuthenticatedApiClient>,
+  url: string,
+  // keepalive lets the request survive a page/tab unload (best-effort "leave" signals).
+  options?: { keepalive?: boolean },
+): Promise<Response> {
+  return asInternal(apiClient).http.fetch(url, {
+    method: "DELETE",
+    keepalive: options?.keepalive,
+  });
+}

@@ -40,4 +40,10 @@ public class ConversationDto
     public string? LocationIp { get; set; }
     public Dictionary<string, string> Variables { get; set; } = new();
     public List<ConversationSummaryDto> OtherConversations { get; set; } = new();
+
+    /// <summary>
+    /// Operators currently active in this conversation (native Smartsupp + Heblo), so operators can
+    /// tell whether a colleague is already working on it. Excludes stale/expired presence.
+    /// </summary>
+    public List<ConversationPresenceDto> ActiveViewers { get; set; } = new();
 }
