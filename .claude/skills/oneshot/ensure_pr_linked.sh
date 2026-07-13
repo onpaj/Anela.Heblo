@@ -2,12 +2,13 @@
 # Ensure a harness-opened PR is tied to its tracking issue.
 #
 # Guarantees, idempotently, that the pull request:
-#   1. carries the `agent` label, and
+#   1. carries the `agent` label,
 #   2. links the issue with a closing keyword (`Closes #<n>`) so merging the PR
-#      auto-closes the issue.
+#      auto-closes the issue, and
+#   3. has a title in the defined format `#<issue>: <summary>`.
 #
-# Auto-repairs first (adds the label / injects a `Closes #<n>` line), then
-# verifies. Exits non-zero if it still cannot guarantee both.
+# Auto-repairs first (adds the label / injects a `Closes #<n>` line / normalizes
+# the title), then verifies. Exits non-zero if it still cannot guarantee all three.
 #
 # Usage: ensure_pr_linked.sh <pr-url-or-number> <issue-number>
 set -euo pipefail
@@ -48,4 +49,21 @@ if ! grep -qiE "$CLOSE_LINK" <<<"$body"; then
   fi
 fi
 
-echo "PR $PR linked to issue #$ISSUE with agent label."
+# 3. Guarantee the title follows the defined format: "#<issue>: <summary>".
+TITLE_RE="^#${ISSUE}: .+"
+title=$(gh pr view "$PR" --json title --jq '.title')
+if [[ ! "$title" =~ $TITLE_RE ]]; then
+  # Strip any leading "#<anything>:" prefix (real number or un-substituted
+  # placeholder like "#{issue_id}:"), trim, and keep the remainder as summary.
+  summary=$(sed -E 's/^#[^:]*:[[:space:]]*//' <<<"$title")
+  summary=$(sed -E 's/^[[:space:]]+|[[:space:]]+$//g' <<<"$summary")
+  [[ -z "$summary" ]] && summary="implementation"
+  gh pr edit "$PR" --title "#${ISSUE}: ${summary}"
+  title=$(gh pr view "$PR" --json title --jq '.title')
+  if [[ ! "$title" =~ $TITLE_RE ]]; then
+    echo "ERROR: failed to set title format on $PR" >&2
+    exit 1
+  fi
+fi
+
+echo "PR $PR linked to issue #$ISSUE with agent label and title \"$title\"."

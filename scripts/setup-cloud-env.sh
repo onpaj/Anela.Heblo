@@ -153,31 +153,31 @@ restore_frontend() {
 # 6. AgentHarness (skill-based single-agent harness)
 # ---------------------------------------------------------------------------
 # Two steps: the pip install is repo-independent (runs after install_gh), while
-# linking needs the checked-out repo (runs after require_repo).
+# init needs the checked-out repo (runs after require_repo).
 install_agentharness() {
   log "Installing AgentHarness from GitHub (main branch)..."
   command -v pip >/dev/null 2>&1 || $SUDO apt-get install -y python3-pip || true
   # Ubuntu Noble's system Python is externally managed (PEP 668), so
   # --break-system-packages is required for a system-wide pip install.
-  # --upgrade so each cloud session picks up the latest master (which also
-  # refreshes the symlinked agents/skills linked by init_agentharness below).
+  # --upgrade so each cloud session picks up the latest master; init_agentharness
+  # below then re-copies the shipped agents/skills so the repo tracks that build.
   pip install --break-system-packages --upgrade \
     "git+https://github.com/onpaj/harness.git@master" || true
   ok "AgentHarness installed ($(agentharness --version 2>/dev/null || echo present))"
 }
 
 init_agentharness() {
-  log "Linking AgentHarness agents/skills into the repo (symlink mode)..."
-  # --symlink links each shipped item from the installed package and records the
-  # paths in a managed .gitignore block, so `pip install --upgrade` above keeps
-  # the repo current with nothing to re-commit. --force converts any leftover
-  # committed copies in place (git rm --cached + relink). The init also writes
-  # .env: GITHUB_TOKEN/OWNER/RUNS_REPO are auto-detected from gh auth + the git
-  # remote, so feed blank lines so an un-detected prompt can't stall under
-  # `set -e`. Tolerant (|| true): a missing --symlink option or symlink refusal
-  # must not abort the whole provisioning run.
-  printf '\n\n\n' | agentharness init --symlink --force --dir "${REPO_ROOT}" || true
-  ok "AgentHarness agents/skills linked"
+  log "Copying AgentHarness agents/skills into the repo..."
+  # `init` copies the shipped agent definitions, skills, and pipeline config into
+  # the repo's standard locations (.agents/, .claude/, .pipeline/) — these are
+  # meant to be committed to source control, so a harness upgrade surfaces as a
+  # normal diff to review and commit. --force overwrites the previously committed
+  # copies in place. The init also writes .env: GITHUB_TOKEN/OWNER/RUNS_REPO are
+  # auto-detected from gh auth + the git remote (.env is gitignored), so feed
+  # blank lines so an un-detected prompt can't stall under `set -e`. Tolerant
+  # (|| true): an init hiccup must not abort the whole provisioning run.
+  printf '\n\n\n' | agentharness init --force --dir "${REPO_ROOT}" || true
+  ok "AgentHarness agents/skills copied"
 }
 
 install_playwright() {
