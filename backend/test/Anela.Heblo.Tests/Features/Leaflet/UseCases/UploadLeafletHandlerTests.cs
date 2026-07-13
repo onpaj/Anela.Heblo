@@ -60,7 +60,6 @@ public class UploadLeafletHandlerTests
             FileStream = CreatePdfStream(new byte[] { 1, 2, 3 }),
             Filename = "test.pdf",
             ContentType = "application/pdf",
-            FileSizeBytes = 3,
         };
 
         // Act
@@ -82,7 +81,6 @@ public class UploadLeafletHandlerTests
             FileStream = CreatePdfStream(new byte[] { 1, 2, 3 }),
             Filename = "archive.zip",
             ContentType = "application/zip",
-            FileSizeBytes = 3,
         };
 
         // Act
@@ -125,7 +123,6 @@ public class UploadLeafletHandlerTests
             FileStream = CreatePdfStream(new byte[] { 1, 2, 3 }),
             Filename = "file.pdf",
             ContentType = "application/octet-stream",
-            FileSizeBytes = 3,
         };
 
         // Act
@@ -150,7 +147,6 @@ public class UploadLeafletHandlerTests
             FileStream = CreatePdfStream(new byte[] { 1, 2, 3 }),
             Filename = "test.pdf",
             ContentType = "application/pdf",
-            FileSizeBytes = 3,
         };
 
         // Act & Assert
@@ -185,7 +181,6 @@ public class UploadLeafletHandlerTests
             FileStream = CreatePdfStream(new byte[] { 10, 20, 30 }),
             Filename = "report.pdf",
             ContentType = "application/pdf",
-            FileSizeBytes = 3,
         };
 
         // Act
