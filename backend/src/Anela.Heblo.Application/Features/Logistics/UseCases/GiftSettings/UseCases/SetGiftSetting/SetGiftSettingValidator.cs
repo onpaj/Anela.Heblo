@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Anela.Heblo.Application.Features.GiftSettings.UseCases.SetGiftSetting;
+namespace Anela.Heblo.Application.Features.Logistics.UseCases.GiftSettings.UseCases.SetGiftSetting;
 
 public sealed class SetGiftSettingValidator : AbstractValidator<SetGiftSettingCommand>
 {

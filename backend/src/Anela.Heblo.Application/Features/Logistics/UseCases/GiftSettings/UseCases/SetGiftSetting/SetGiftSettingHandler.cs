@@ -3,7 +3,7 @@ using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 
-namespace Anela.Heblo.Application.Features.GiftSettings.UseCases.SetGiftSetting;
+namespace Anela.Heblo.Application.Features.Logistics.UseCases.GiftSettings.UseCases.SetGiftSetting;
 
 public sealed class SetGiftSettingHandler : IRequestHandler<SetGiftSettingCommand, SetGiftSettingResponse>
 {

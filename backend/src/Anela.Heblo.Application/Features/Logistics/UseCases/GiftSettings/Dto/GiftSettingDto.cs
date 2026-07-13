@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Features.GiftSettings.Dto;
+namespace Anela.Heblo.Application.Features.Logistics.UseCases.GiftSettings.Dto;
 
 public sealed class GiftSettingDto
 {
