@@ -59,4 +59,36 @@ describe("ConversationListItem", () => {
     );
     expect(screen.getByText("Jana Nováková").className).toMatch(/font-semibold/);
   });
+
+  it("renders a presence dot when another operator is active", () => {
+    render(
+      <ConversationListItem
+        conversation={{
+          ...baseConv,
+          activeViewers: [
+            { agentId: "999", displayName: "Petr", source: "Heblo", isCurrentUser: false, enteredAt: new Date().toISOString() },
+          ],
+        }}
+        isSelected={false}
+        onClick={() => {}}
+      />
+    );
+    expect(screen.getByTestId("presence-dot")).toHaveAttribute("title", "Pracuje: Petr");
+  });
+
+  it("does NOT render a presence dot when only the current user is active", () => {
+    render(
+      <ConversationListItem
+        conversation={{
+          ...baseConv,
+          activeViewers: [
+            { agentId: "me", displayName: "Já", source: "Heblo", isCurrentUser: true, enteredAt: new Date().toISOString() },
+          ],
+        }}
+        isSelected={false}
+        onClick={() => {}}
+      />
+    );
+    expect(screen.queryByTestId("presence-dot")).not.toBeInTheDocument();
+  });
 });

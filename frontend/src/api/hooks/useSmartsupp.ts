@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getClientAndBaseUrl, apiGet, apiPost } from "../smartsuppClient";
+import { useEffect } from "react";
+import { getClientAndBaseUrl, apiGet, apiPost, apiDelete } from "../smartsuppClient";
 import { QUERY_KEYS } from "../client";
 
 export interface ConversationSummaryDto {
@@ -8,6 +9,14 @@ export interface ConversationSummaryDto {
   lastMessageAt?: string | null;
   lastMessagePreview?: string | null;
   isUnread: boolean;
+}
+
+export interface ConversationPresenceDto {
+  agentId: string;
+  displayName: string;
+  source: string; // "Smartsupp" | "Heblo"
+  isCurrentUser: boolean;
+  enteredAt: string;
 }
 
 export interface ConversationDto {
@@ -44,6 +53,7 @@ export interface ConversationDto {
   locationIp?: string | null;
   variables: Record<string, string>;
   otherConversations: ConversationSummaryDto[];
+  activeViewers?: ConversationPresenceDto[];
 }
 
 export interface MessageDto {
@@ -252,4 +262,47 @@ export function useCloseConversation() {
       });
     },
   });
+}
+
+const PRESENCE_HEARTBEAT_INTERVAL_MS = 20_000;
+
+/**
+ * While a conversation detail is open, periodically tell the backend the current operator is
+ * viewing it, so other operators see a presence badge. Sends a best-effort "leave" on unmount;
+ * the backend TTL cleans up if that never arrives.
+ */
+export function usePresenceHeartbeat(conversationId: string | null): void {
+  useEffect(() => {
+    if (!conversationId) return;
+
+    let cancelled = false;
+    const { apiClient, baseUrl } = getClientAndBaseUrl();
+    const url = `${baseUrl}/api/smartsupp/conversations/${conversationId}/presence`;
+
+    const beat = () => {
+      apiPost(apiClient, url, {}).catch(() => {
+        /* presence is best-effort; ignore transient failures */
+      });
+    };
+
+    beat();
+    const timer = window.setInterval(() => {
+      if (!cancelled) beat();
+    }, PRESENCE_HEARTBEAT_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      apiDelete(apiClient, url, { keepalive: true }).catch(() => {
+        /* best-effort leave; TTL cleans up otherwise */
+      });
+    };
+  }, [conversationId]);
+}
+
+/** Active viewers of a conversation other than the current operator. */
+export function otherActiveViewers(
+  conversation: Pick<ConversationDto, "activeViewers">,
+): ConversationPresenceDto[] {
+  return (conversation.activeViewers ?? []).filter((v) => !v.isCurrentUser);
 }
