@@ -828,12 +828,6 @@ public class ModuleBoundariesTests
     // violation is fixed.
     private static readonly HashSet<string> SdkExceptionAllowlist = new(StringComparer.Ordinal)
     {
-        // GraphArticleUserResolver is the wrapping boundary for SDK auth/service exceptions.
-        // It converts MsalException → ArticleUserResolverAuthException and
-        // ODataError → ArticleUserResolverServiceException so callers stay decoupled.
-        // Remove once refactored to delegate through IGraphService.
-        "Anela.Heblo.Application.Features.UserManagement.Infrastructure.GraphArticleUserResolver",
-
         // GraphPlannerService.AcquireDelegatedTokenAsync catches MsalUiRequiredException
         // directly as a pre-existing pattern out of scope for feat-3369.
         // Compiler-generated async state machine (<AcquireDelegatedTokenAsync>d__N) is

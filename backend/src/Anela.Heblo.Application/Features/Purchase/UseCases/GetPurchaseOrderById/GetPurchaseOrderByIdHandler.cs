@@ -68,15 +68,7 @@ public class GetPurchaseOrderByIdHandler : IRequestHandler<GetPurchaseOrderByIdR
             Lines = purchaseOrder.Lines.Select(l =>
                 PurchaseOrderLineDto.FromLine(l, materialLookup.TryGetValue(l.MaterialId, out var material) ? material.Note : null)
             ).ToList(),
-            History = purchaseOrder.History.Select(h => new PurchaseOrderHistoryDto
-            {
-                Id = h.Id,
-                Action = h.Action,
-                OldValue = h.OldValue,
-                NewValue = h.NewValue,
-                ChangedAt = h.ChangedAt,
-                ChangedBy = h.ChangedBy
-            }).OrderByDescending(h => h.ChangedAt).ToList(),
+            History = purchaseOrder.History.Select(PurchaseOrderHistoryDto.FromDomain).OrderByDescending(h => h.ChangedAt).ToList(),
             CreatedAt = purchaseOrder.CreatedAt,
             CreatedBy = purchaseOrder.CreatedBy,
             UpdatedAt = purchaseOrder.UpdatedAt,

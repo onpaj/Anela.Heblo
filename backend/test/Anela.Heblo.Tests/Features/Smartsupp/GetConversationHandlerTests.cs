@@ -1,4 +1,6 @@
 using Anela.Heblo.Application.Features.Smartsupp;
+using Anela.Heblo.Application.Features.Smartsupp.Contracts;
+using Anela.Heblo.Application.Features.Smartsupp.Presence;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
@@ -12,12 +14,16 @@ public class GetConversationHandlerTests
 {
     private readonly Mock<ISmartsuppRepository> _repo = new();
     private readonly Mock<ISmartsuppAgentCache> _agentCache = new();
+    private readonly Mock<ISmartsuppPresenceService> _presence = new();
 
     public GetConversationHandlerTests()
     {
         _agentCache
             .Setup(c => c.GetAgentNamesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, string>());
+        _presence
+            .Setup(p => p.GetActiveViewersAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, List<ConversationPresenceDto>>());
     }
 
     [Fact]
@@ -36,7 +42,7 @@ public class GetConversationHandlerTests
         };
         _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
 
-        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object);
         var request = new GetConversationRequest { Id = "c1" };
 
         // Act
@@ -55,7 +61,7 @@ public class GetConversationHandlerTests
     {
         // Arrange
         _repo.Setup(r => r.GetConversationAsync("missing", default)).ReturnsAsync((SmartsuppConversation?)null);
-        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "missing" }, CancellationToken.None);
@@ -92,7 +98,7 @@ public class GetConversationHandlerTests
         _repo.Setup(r => r.ListConversationsForContactAsync("contact-1", "c1", default))
              .ReturnsAsync(new List<SmartsuppConversation>());
 
-        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
@@ -137,7 +143,7 @@ public class GetConversationHandlerTests
         _repo.Setup(r => r.ListConversationsForContactAsync("contact-1", "c1", default))
              .ReturnsAsync(new List<SmartsuppConversation> { sibling });
 
-        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
@@ -165,7 +171,7 @@ public class GetConversationHandlerTests
             Messages = new List<SmartsuppMessage>(),
         };
         _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
-        var handler = new GetConversationHandler(_repo.Object, cache.Object);
+        var handler = new GetConversationHandler(_repo.Object, cache.Object, _presence.Object);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
@@ -187,7 +193,7 @@ public class GetConversationHandlerTests
             Messages = new List<SmartsuppMessage>(),
         };
         _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
-        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);

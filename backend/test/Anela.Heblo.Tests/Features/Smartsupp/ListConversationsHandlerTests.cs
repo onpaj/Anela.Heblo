@@ -1,3 +1,5 @@
+using Anela.Heblo.Application.Features.Smartsupp.Contracts;
+using Anela.Heblo.Application.Features.Smartsupp.Presence;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using FluentAssertions;
@@ -9,6 +11,14 @@ namespace Anela.Heblo.Tests.Features.Smartsupp;
 public class ListConversationsHandlerTests
 {
     private readonly Mock<ISmartsuppRepository> _repo = new();
+    private readonly Mock<ISmartsuppPresenceService> _presence = new();
+
+    public ListConversationsHandlerTests()
+    {
+        _presence
+            .Setup(p => p.GetActiveViewersAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, List<ConversationPresenceDto>>());
+    }
 
     [Fact]
     public async Task Handle_ReturnsPagedConversations_ForOpenStatus()
@@ -21,7 +31,7 @@ public class ListConversationsHandlerTests
         _repo.Setup(r => r.ListConversationsAsync(SmartsuppConversationStatus.Open, 1, 50, default))
              .ReturnsAsync((conversations, 1));
 
-        var handler = new ListConversationsHandler(_repo.Object);
+        var handler = new ListConversationsHandler(_repo.Object, _presence.Object);
         var request = new ListConversationsRequest { Status = "Open", Page = 1, PageSize = 50 };
 
         // Act
@@ -41,7 +51,7 @@ public class ListConversationsHandlerTests
         _repo.Setup(r => r.ListConversationsAsync(SmartsuppConversationStatus.Open, 1, 50, default))
              .ReturnsAsync((new List<SmartsuppConversation>(), 0));
 
-        var handler = new ListConversationsHandler(_repo.Object);
+        var handler = new ListConversationsHandler(_repo.Object, _presence.Object);
         var request = new ListConversationsRequest();
 
         // Act
@@ -59,7 +69,7 @@ public class ListConversationsHandlerTests
         _repo.Setup(r => r.ListConversationsAsync(SmartsuppConversationStatus.Open, 1, 50, default))
              .ReturnsAsync((new List<SmartsuppConversation>(), 0));
 
-        var handler = new ListConversationsHandler(_repo.Object);
+        var handler = new ListConversationsHandler(_repo.Object, _presence.Object);
         var request = new ListConversationsRequest { Status = "garbage", Page = 1, PageSize = 50 };
 
         // Act

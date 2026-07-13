@@ -111,15 +111,7 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
     {
         var lines = purchaseOrder.Lines.Select(line => PurchaseOrderLineDto.FromLine(line)).ToList();
 
-        var history = purchaseOrder.History.Select(h => new PurchaseOrderHistoryDto
-        {
-            Id = h.Id,
-            Action = h.Action,
-            OldValue = h.OldValue,
-            NewValue = h.NewValue,
-            ChangedAt = h.ChangedAt,
-            ChangedBy = h.ChangedBy
-        }).ToList();
+        var history = purchaseOrder.History.Select(PurchaseOrderHistoryDto.FromDomain).ToList();
 
         return new CreatePurchaseOrderResponse
         {

@@ -244,4 +244,52 @@ public class DeleteJournalEntryHandlerTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_WhenCurrentUserNameIsNull_FallsBackToUnknownUser()
+    {
+        // Arrange
+        var entryId = 1;
+        var userId = "user123";
+        var request = new DeleteJournalEntryRequest { Id = entryId };
+
+        var currentUser = new CurrentUser(
+            Id: userId,
+            Name: null,
+            Email: null,
+            IsAuthenticated: true
+        );
+
+        var existingEntry = new JournalEntry
+        {
+            Id = entryId,
+            Title = "Test Entry",
+            Content = "Test content",
+            CreatedByUserId = userId
+        };
+
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(currentUser);
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(entryId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingEntry);
+
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<JournalEntry>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        existingEntry.DeletedByUsername.Should().Be("Unknown User");
+        existingEntry.ModifiedByUsername.Should().Be("Unknown User");
+    }
 }

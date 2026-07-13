@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Text.Json;
 using Anela.Heblo.Xcc.Domain;
 
@@ -50,7 +51,10 @@ public class IssuedInvoice : IEntity<string>
     public IList<IssuedInvoiceSyncData> SyncHistory { get; set; } = new List<IssuedInvoiceSyncData>();
     public int SyncHistoryCount { get; set; } = 0;
 
-    public bool IsCriticalError => ErrorType != null && ErrorType != IssuedInvoiceErrorType.InvoicePaired;
+    public static Expression<Func<IssuedInvoice, bool>> IsCriticalErrorPredicate =
+        x => x.ErrorType != null && x.ErrorType != IssuedInvoiceErrorType.InvoicePaired;
+    public static Func<IssuedInvoice, bool> IsCriticalErrorFunc = IsCriticalErrorPredicate.Compile();
+    public bool IsCriticalError => IsCriticalErrorFunc(this);
 
     public void SyncSucceeded(object syncedInvoice, string? adapterResponse = null)
     {

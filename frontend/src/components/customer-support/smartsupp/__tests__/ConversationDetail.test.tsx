@@ -21,6 +21,7 @@ jest.mock("../../../../api/hooks/useSmartsupp", () => {
     ...actual,
     useSmartsuppConversation: jest.fn(),
     useCloseConversation: jest.fn(),
+    usePresenceHeartbeat: jest.fn(),
   };
 });
 
@@ -215,5 +216,45 @@ describe("ConversationDetail", () => {
     } as ReturnType<typeof useSmartsuppConversation>);
     render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
     expect(screen.getByTestId("status-pill")).not.toHaveTextContent("Aktivní");
+  });
+
+  it("shows a presence badge and warning banner when another operator is active", () => {
+    jest.mocked(useSmartsuppConversation).mockReturnValue({
+      data: {
+        success: true,
+        conversation: {
+          ...conv,
+          activeViewers: [
+            { agentId: "999", displayName: "Petr", source: "Heblo", isCurrentUser: false, enteredAt: new Date().toISOString() },
+          ],
+        },
+        messages: defaultMessages,
+        agentNames: {},
+      },
+      isLoading: false,
+    } as ReturnType<typeof useSmartsuppConversation>);
+    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
+    expect(screen.getByTestId("presence-badge")).toHaveTextContent("Petr");
+    expect(screen.getByTestId("presence-warning-banner")).toHaveTextContent("Petr");
+  });
+
+  it("does not show presence UI for the current user's own presence", () => {
+    jest.mocked(useSmartsuppConversation).mockReturnValue({
+      data: {
+        success: true,
+        conversation: {
+          ...conv,
+          activeViewers: [
+            { agentId: "me", displayName: "Já", source: "Heblo", isCurrentUser: true, enteredAt: new Date().toISOString() },
+          ],
+        },
+        messages: defaultMessages,
+        agentNames: {},
+      },
+      isLoading: false,
+    } as ReturnType<typeof useSmartsuppConversation>);
+    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
+    expect(screen.queryByTestId("presence-badge")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("presence-warning-banner")).not.toBeInTheDocument();
   });
 });

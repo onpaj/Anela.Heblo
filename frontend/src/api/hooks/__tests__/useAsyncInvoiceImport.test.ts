@@ -2,9 +2,10 @@ import { renderHook, waitFor } from '@testing-library/react';
 import {
     useInvoiceImportJobStatus,
     useRunningInvoiceImportJobs,
+    useEnqueueInvoiceImport,
+    invoiceImportQueryKeys,
 } from '../useAsyncInvoiceImport';
 import type { IBackgroundJobInfo } from '../../generated/api-client';
-import { getAuthenticatedApiClient } from '../../client';
 import { createMockApiClient, mockAuthenticatedApiClient, createQueryClientWrapper, setupFakeTimers } from '../../testUtils';
 
 // Mock the API client
@@ -246,5 +247,73 @@ describe('useAsyncInvoiceImport - Job Polling Logic', () => {
             expect(JOB_STATUS_INTERVAL).toBe(2000);
             expect(RUNNING_JOBS_INTERVAL).toBe(5000);
         });
+    });
+});
+
+describe('useEnqueueInvoiceImport onSuccess invalidation', () => {
+    let mockFetch: jest.Mock;
+    let mockClient: any;
+
+    beforeEach(() => {
+        const mock = createMockApiClient();
+        mockClient = mock.mockClient;
+        mockFetch = mock.mockFetch;
+        mockAuthenticatedApiClient(mockClient);
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('should invalidate queries with invoiceImportQueryKeys.jobs() on success', async () => {
+        // Arrange
+        const mockResponse: any = {
+            jobId: 'job-123',
+            success: true
+        };
+
+        mockFetch.mockResolvedValue({
+            ok: true,
+            json: async () => mockResponse
+        });
+
+        const { wrapper, queryClient } = createQueryClientWrapper();
+        const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+
+        // Act
+        const { result } = renderHook(
+            () => useEnqueueInvoiceImport(),
+            { wrapper }
+        );
+
+        result.current.mutate({} as any);
+
+        await waitFor(() => {
+            expect(result.current.isSuccess).toBe(true);
+        });
+
+        // Assert
+        expect(invalidateSpy).toHaveBeenCalled();
+
+        // Verify that the correct key was used (invoiceImportQueryKeys.jobs())
+        const expectedKey = invoiceImportQueryKeys.jobs();
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: expectedKey });
+
+        // Assert the wrong key was NOT used
+        const wrongKey = ['invoices', 'jobs'];
+        const wasWrongKeyUsed = invalidateSpy.mock.calls.some(call => {
+            const callKey = call[0]?.queryKey;
+            return Array.isArray(callKey) &&
+                   JSON.stringify(callKey) === JSON.stringify(wrongKey);
+        });
+        expect(wasWrongKeyUsed).toBe(false);
+
+        // Verify that runningJobs key is a prefix-extension of jobs key
+        const jobsKey = invoiceImportQueryKeys.jobs();
+        const runningJobsKey = invoiceImportQueryKeys.runningJobs();
+        const runningJobsPrefix = runningJobsKey.slice(0, jobsKey.length);
+        expect(runningJobsPrefix).toEqual(jobsKey);
+
+        invalidateSpy.mockRestore();
     });
 });

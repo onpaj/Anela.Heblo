@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3575",
+  "issue_number": 3575,
+  "created_at": "2026-07-10T05:15:53.509811Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-10T05:22:48.265080Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-10T05:25:54.158058Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-10T05:26:17.697552Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-10T05:28:30.649970Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-10T06:31:44.773880Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-10T06:50:19.275437Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "revert-tracked-mutation-on-existing-invoice-import-failure",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-10T05:50:44.154736Z"
+    },
+    {
+      "name": "add-regression-test-for-tracked-mutation-revert",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-10T06:31:44.546805Z"
+    }
+  ]
+}

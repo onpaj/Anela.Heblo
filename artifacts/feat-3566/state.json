@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3566",
+  "issue_number": 3566,
+  "created_at": "2026-07-09T08:15:18.081776Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-09T08:20:23.311535Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-09T08:22:55.952176Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-09T08:23:51.151399Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-09T08:29:38.755076Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-09T10:36:45.179146Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-09T11:57:39.924140Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-invoice-import-double-save",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-09T09:16:45.298910Z"
+    },
+    {
+      "name": "add-invoice-import-state-tracking-regression-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-09T10:36:38.351127Z"
+    }
+  ]
+}

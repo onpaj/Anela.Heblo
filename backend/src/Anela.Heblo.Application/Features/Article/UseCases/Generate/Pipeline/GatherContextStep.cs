@@ -7,7 +7,12 @@ using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
-public class GatherContextStep
+public interface IGatherContextStep
+{
+    Task ExecuteAsync(ArticlePipelineContext context, CancellationToken ct);
+}
+
+public class GatherContextStep : IGatherContextStep
 {
     private readonly IArticleKnowledgeSource _knowledgeSource;
     private readonly IWebSearchClient _webSearch;
@@ -67,7 +72,7 @@ public class GatherContextStep
                 context.ContextSnippets = [.. kbSnippets, .. deduplicatedWeb];
                 context.StyleGuideText = styleGuideText;
 
-                var allSnippets = kbSnippets.Concat(webSnippets).ToList();
+                var allSnippets = kbSnippets.Concat(deduplicatedWeb).ToList();
                 return (true, (object?)new { snippets = allSnippets, styleGuideLength = styleGuideText?.Length });
             },
             ct);

@@ -14,7 +14,7 @@ namespace Anela.Heblo.Application.Features.Logistics;
 
 public static class LogisticsModule
 {
-    public static IServiceCollection AddTransportModule(this IServiceCollection services)
+    public static IServiceCollection AddLogisticsModule(this IServiceCollection services)
     {
         // Register repositories using factory pattern to avoid ServiceProvider antipattern
         services.AddScoped<ITransportBoxRepository>(provider =>
