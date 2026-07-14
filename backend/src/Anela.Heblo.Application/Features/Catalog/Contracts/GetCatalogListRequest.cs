@@ -17,4 +17,15 @@ public class GetCatalogListRequest : IRequest<GetCatalogListResponse>
     /// Search term for autocomplete - searches in both ProductName and ProductCode with OR logic
     /// </summary>
     public string? SearchTerm { get; set; }
+
+    /// <summary>
+    /// Inclusive lower bound (ISO "yyyy-MM-dd") for a material's nearest lot expiration.
+    /// When either expiration bound is set, only items that have an expiration are returned.
+    /// </summary>
+    public string? ExpirationFrom { get; set; }
+
+    /// <summary>
+    /// Inclusive upper bound (ISO "yyyy-MM-dd") for a material's nearest lot expiration.
+    /// </summary>
+    public string? ExpirationTo { get; set; }
 }

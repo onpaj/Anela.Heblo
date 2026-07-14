@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogList;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using AutoMapper;
 using Moq;
@@ -320,6 +321,91 @@ public class GetCatalogListHandlerSortingTests
         Assert.Equal("ITEM-A", result.Items[0].ProductCode);
         Assert.Equal("ITEM-B", result.Items[1].ProductCode);
         Assert.Equal("ITEM-C", result.Items[2].ProductCode);
+    }
+
+    [Fact]
+    public async Task Handle_ExpirationAscending_SortsByEarliestAvailableLot_NullsLast()
+    {
+        // Arrange - min expiration is the earliest expiration across available (Amount > 0) lots.
+        // Items with no expiring available lot should sort last, preserving original order.
+        var items = new List<CatalogAggregate>
+        {
+            CreateCatalogItemWithLots("ITEM1", (5m, new DateOnly(2026, 3, 1)), (2m, new DateOnly(2026, 1, 15))), // min = 2026-01-15
+            CreateCatalogItemWithLots("ITEM2"),                                                                  // no lots -> null
+            CreateCatalogItemWithLots("ITEM3", (3m, new DateOnly(2026, 2, 10))),                                 // min = 2026-02-10
+            CreateCatalogItemWithLots("ITEM4", (0m, new DateOnly(2025, 1, 1)))                                   // only zero-amount lot -> null
+        };
+
+        var request = new GetCatalogListRequest
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            SortBy = "expiration",
+            SortDescending = false
+        };
+
+        _catalogRepositoryMock.Setup(r => r.FindAsync(It.IsAny<Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(items);
+
+        // Project by input so the handler's ordering is genuinely asserted
+        _mapperMock.Setup(m => m.Map<List<CatalogItemDto>>(It.IsAny<List<CatalogAggregate>>()))
+            .Returns((List<CatalogAggregate> src) => src.Select(x => new CatalogItemDto { ProductCode = x.ProductCode }).ToList());
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert - earliest expiration first, null-expiration items last (stable original order)
+        Assert.True(result.Success);
+        Assert.Equal(new[] { "ITEM1", "ITEM3", "ITEM2", "ITEM4" }, result.Items.Select(i => i.ProductCode).ToArray());
+    }
+
+    [Fact]
+    public async Task Handle_ExpirationDescending_SortsByLatestAvailableLot_NullsLast()
+    {
+        // Arrange
+        var items = new List<CatalogAggregate>
+        {
+            CreateCatalogItemWithLots("ITEM1", (2m, new DateOnly(2026, 1, 15))), // min = 2026-01-15
+            CreateCatalogItemWithLots("ITEM2"),                                  // null
+            CreateCatalogItemWithLots("ITEM3", (3m, new DateOnly(2026, 2, 10)))  // min = 2026-02-10
+        };
+
+        var request = new GetCatalogListRequest
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            SortBy = "expiration",
+            SortDescending = true
+        };
+
+        _catalogRepositoryMock.Setup(r => r.FindAsync(It.IsAny<Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(items);
+
+        _mapperMock.Setup(m => m.Map<List<CatalogItemDto>>(It.IsAny<List<CatalogAggregate>>()))
+            .Returns((List<CatalogAggregate> src) => src.Select(x => new CatalogItemDto { ProductCode = x.ProductCode }).ToList());
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert - latest expiration first, null-expiration items last
+        Assert.True(result.Success);
+        Assert.Equal(new[] { "ITEM3", "ITEM1", "ITEM2" }, result.Items.Select(i => i.ProductCode).ToArray());
+    }
+
+    private static CatalogAggregate CreateCatalogItemWithLots(string productCode, params (decimal Amount, DateOnly? Expiration)[] lots)
+    {
+        var item = new CatalogAggregate
+        {
+            Id = productCode,
+            ProductName = productCode,
+            Type = ProductType.Material
+        };
+
+        item.Stock.Lots = lots
+            .Select(l => new CatalogLot { ProductCode = productCode, Amount = l.Amount, Expiration = l.Expiration })
+            .ToList();
+
+        return item;
     }
 
     private static CatalogAggregate CreateCatalogItem(string productCode, string productName, string location, DateTime? lastStockTaking)

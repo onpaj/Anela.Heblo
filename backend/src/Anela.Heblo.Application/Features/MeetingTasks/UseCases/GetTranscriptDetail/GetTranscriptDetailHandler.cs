@@ -68,6 +68,7 @@ public class GetTranscriptDetailHandler : IRequestHandler<GetTranscriptDetailReq
                 ExternalTaskId = t.ExternalTaskId,
                 IsManuallyAdded = t.IsManuallyAdded
             }).ToList(),
+            Participants = transcript.Participants,
             AccessLevel = transcript.AccessLevel.ToString(),
             AccessGrants = transcript.AccessGrants.Select(g => new MeetingAccessGrantDto
             {
