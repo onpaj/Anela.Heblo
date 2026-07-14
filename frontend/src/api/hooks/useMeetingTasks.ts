@@ -40,6 +40,7 @@ export interface MeetingTranscriptDto {
   approvedTaskCount: number;
   rejectedTaskCount: number;
   tasks: ProposedTaskDto[];
+  participants: string[];
   accessLevel: 'Private' | 'Public' | 'Restricted';
   accessGrants: MeetingAccessGrantDto[];
 }
@@ -226,6 +227,30 @@ export function useUpdateProposedTaskStatus() {
     mutationFn: async (input: UpdateProposedTaskStatusInput) =>
       fetchJson<{ success: boolean }>(
         `/api/meeting-tasks/${encodeURIComponent(input.transcriptId)}/tasks/${encodeURIComponent(input.taskId)}/status`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ status: input.status }),
+        },
+      ),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: MEETING_TASKS_KEYS.detail(vars.transcriptId) });
+      qc.invalidateQueries({ queryKey: MEETING_TASKS_KEYS.list });
+    },
+  });
+}
+
+export interface UpdateTranscriptStatusInput {
+  transcriptId: string;
+  status: TranscriptStatus;
+}
+
+export function useUpdateTranscriptStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: UpdateTranscriptStatusInput) =>
+      fetchJson<{ success: boolean }>(
+        `/api/meeting-tasks/${encodeURIComponent(input.transcriptId)}/status`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json", Accept: "application/json" },

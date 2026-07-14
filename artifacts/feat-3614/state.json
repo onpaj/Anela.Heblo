@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3614",
+  "issue_number": 3614,
+  "created_at": "2026-07-13T11:15:32.592465Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-13T11:18:11.923843Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-13T11:19:56.981999Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-13T11:20:12.426358Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-13T11:23:32.877535Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-13T12:36:14.638849Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-13T12:58:02.470272Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-transport-boxes-handler-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-13T12:36:08.552884Z"
+    }
+  ]
+}
