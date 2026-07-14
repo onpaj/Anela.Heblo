@@ -8,13 +8,12 @@ import { RefreshTaskDto } from "../api/generated/api-client";
 import {
   RefreshCw,
   Clock,
-  CheckCircle,
-  XCircle,
   AlertTriangle,
   PlayCircle,
   ChevronRight,
 } from "lucide-react";
 import TaskHistoryModal from "./TaskHistoryModal";
+import { formatDuration, getTimeUntilNextRun, getStatusBadge } from "./backgroundTasksHelpers";
 
 const BackgroundTasksCard: React.FC = () => {
   const { data: tasks, isLoading, error } = useBackgroundTasks();
@@ -98,22 +97,6 @@ const BackgroundTasksCard: React.FC = () => {
     }
   };
 
-  const formatDuration = (timeSpan: string): string => {
-    // TimeSpan format: "hh:mm:ss" or "dd.hh:mm:ss"
-    const parts = timeSpan.split(":");
-    const hours = parseInt(parts[0]);
-    const minutes = parseInt(parts[1]);
-
-    if (hours >= 24) {
-      const days = Math.floor(hours / 24);
-      return `${days}d ${hours % 24}h`;
-    } else if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
-    }
-  };
-
   const formatDateTime = (date: Date | string | undefined | null): string => {
     if (!date) return "Nikdy";
     const dateObj = typeof date === 'string' ? new Date(date) : date;
@@ -124,88 +107,6 @@ const BackgroundTasksCard: React.FC = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
-
-  const getTimeUntilNextRun = (nextScheduledRun: Date | string | undefined | null): string => {
-    if (!nextScheduledRun) return "N/A";
-
-    const now = new Date();
-    const nextRun = typeof nextScheduledRun === 'string' ? new Date(nextScheduledRun) : nextScheduledRun;
-    const diffMs = nextRun.getTime() - now.getTime();
-
-    if (diffMs < 0) {
-      return "Spouští se...";
-    }
-
-    const diffMinutes = Math.floor(diffMs / 60000);
-    if (diffMinutes < 60) {
-      return `za ${diffMinutes} min`;
-    }
-
-    const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) {
-      return `za ${diffHours}h ${diffMinutes % 60}m`;
-    }
-
-    const diffDays = Math.floor(diffHours / 24);
-    return `za ${diffDays}d ${diffHours % 24}h`;
-  };
-
-  const getStatusBadge = (task: RefreshTaskDto) => {
-    if (!task.enabled) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-graphite-surface-2 text-gray-800 dark:text-graphite-muted">
-          Vypnuto
-        </span>
-      );
-    }
-
-    if (!task.lastExecution) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-          Čeká
-        </span>
-      );
-    }
-
-    const status = task.lastExecution.status;
-
-    if (status === "Running") {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-amber-900/30 text-yellow-800 dark:text-amber-300">
-          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-          Běží
-        </span>
-      );
-    }
-
-    if (status === "Completed") {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Úspěch
-        </span>
-      );
-    }
-
-    if (status === "Failed") {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
-          <XCircle className="w-3 h-3 mr-1" />
-          Chyba
-        </span>
-      );
-    }
-
-    if (status === "Cancelled") {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-graphite-surface-2 text-gray-800 dark:text-graphite-muted">
-          Zrušeno
-        </span>
-      );
-    }
-
-    return null;
   };
 
   if (isLoading) {

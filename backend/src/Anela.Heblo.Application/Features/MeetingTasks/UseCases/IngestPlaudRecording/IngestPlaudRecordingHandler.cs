@@ -51,8 +51,8 @@ public sealed class IngestPlaudRecordingHandler : IRequestHandler<IngestPlaudRec
         var transcript = await _plaudClient.GetTranscriptAsync(request.PlaudRecordingId, cancellationToken);
         var summaryResult = await _plaudClient.GetSummaryAsync(request.PlaudRecordingId, cancellationToken);
 
-        // Extract tasks using the meeting task extractor
-        var extractedTasks = await _extractor.ExtractAsync(summaryResult.MarkdownContent, transcript, cancellationToken);
+        // Extract tasks and participants using the meeting task extractor
+        var extraction = await _extractor.ExtractAsync(summaryResult.MarkdownContent, transcript, cancellationToken);
 
         // Prefer the human-set recording name; fall back to the summary headline
         var subject = !string.IsNullOrWhiteSpace(request.Name)
@@ -71,7 +71,8 @@ public sealed class IngestPlaudRecordingHandler : IRequestHandler<IngestPlaudRec
             RawTranscript = transcript,
             Status = MeetingTranscriptStatus.PendingReview,
             ReceivedAt = DateTime.UtcNow,
-            Tasks = extractedTasks
+            Participants = extraction.Participants,
+            Tasks = extraction.Tasks
                 .Select(t => new ProposedTask
                 {
                     Id = Guid.NewGuid(),

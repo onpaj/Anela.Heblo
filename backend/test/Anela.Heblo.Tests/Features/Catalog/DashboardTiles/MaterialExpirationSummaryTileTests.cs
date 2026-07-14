@@ -235,6 +235,23 @@ public class MaterialExpirationSummaryTileTests
         doc.RootElement.GetProperty("error").GetString().Should().Be("boom");
     }
 
+    [Fact]
+    public async Task LoadDataAsync_DrillDown_TargetsMaterialsSortedByEarliestExpiration()
+    {
+        // Arrange
+        SetupCatalog();
+
+        // Act
+        var result = await _tile.LoadDataAsync();
+
+        // Assert - clicking the tile should land on the material inventory sorted by soonest expiration
+        var doc = Serialize(result);
+        var filters = doc.RootElement.GetProperty("drillDown").GetProperty("filters");
+        filters.GetProperty("type").GetString().Should().Be("Material");
+        filters.GetProperty("sortBy").GetString().Should().Be("expiration");
+        filters.GetProperty("sortDescending").GetBoolean().Should().BeFalse();
+    }
+
     private async Task<JsonElement> LoadDataSection()
     {
         var result = await _tile.LoadDataAsync();
