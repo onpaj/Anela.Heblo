@@ -34,15 +34,15 @@
     },
     {
       "name": "wire-recurring-job-seeder-into-di-and-startup",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-14T10:35:04.686954Z"
+      "updated_at": "2026-07-14T11:00:31.318716Z"
     },
     {
       "name": "remove-legacy-seed-method-and-clean-test-doubles",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-14T11:00:38.332266Z"
     }
   ]
 }
