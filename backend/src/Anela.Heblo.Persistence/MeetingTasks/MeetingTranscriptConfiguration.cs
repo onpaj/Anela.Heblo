@@ -1,12 +1,19 @@
+using System.Text.Json;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Persistence.Extensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Anela.Heblo.Persistence.MeetingTasks;
 
 public class MeetingTranscriptConfiguration : IEntityTypeConfiguration<MeetingTranscript>
 {
+    private static readonly ValueComparer<List<string>> ParticipantsComparer = new(
+        (a, b) => (a ?? new List<string>()).SequenceEqual(b ?? new List<string>()),
+        v => v == null ? 0 : v.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
+        v => v == null ? new List<string>() : v.ToList());
+
     public void Configure(EntityTypeBuilder<MeetingTranscript> builder)
     {
         builder.ToTable("MeetingTranscripts", "public");
@@ -52,6 +59,13 @@ public class MeetingTranscriptConfiguration : IEntityTypeConfiguration<MeetingTr
             .WithOne(x => x.MeetingTranscript)
             .HasForeignKey(x => x.MeetingTranscriptId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(x => x.Participants)
+            .HasColumnType("jsonb")
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>())
+            .Metadata.SetValueComparer(ParticipantsComparer);
 
         builder.Property(x => x.AccessLevel)
             .IsRequired()

@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3613",
+  "issue_number": 3613,
+  "created_at": "2026-07-13T10:14:38.671259Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-13T10:17:03.229112Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-13T10:19:36.307165Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-13T10:20:27.800335Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-13T10:21:55.778328Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-13T10:40:26.623925Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-13T10:49:04.988559Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-run-hydration-tier-handler-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-13T10:40:20.765618Z"
+    }
+  ]
+}
