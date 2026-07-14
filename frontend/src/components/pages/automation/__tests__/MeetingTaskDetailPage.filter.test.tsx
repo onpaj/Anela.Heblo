@@ -7,6 +7,7 @@ import {
   useMeetingTaskDetail,
   useUpdateProposedTask,
   useUpdateProposedTaskStatus,
+  useUpdateTranscriptStatus,
   useAddProposedTask,
   useSubmitToTodo,
   useMeetingUsers,
@@ -99,6 +100,7 @@ function setupHooks(transcriptOverrides: Record<string, unknown> = {}) {
   (useMeetingTaskDetail as jest.Mock).mockReturnValue({ isLoading: false, data: { transcript: buildTranscript(transcriptOverrides) } });
   (useUpdateProposedTask as jest.Mock).mockReturnValue(noopMutation);
   (useUpdateProposedTaskStatus as jest.Mock).mockReturnValue(noopMutation);
+  (useUpdateTranscriptStatus as jest.Mock).mockReturnValue(noopMutation);
   (useAddProposedTask as jest.Mock).mockReturnValue(noopMutation);
   (useSubmitToTodo as jest.Mock).mockReturnValue(noopMutation);
   (useMeetingUsers as jest.Mock).mockReturnValue({ data: [] });
