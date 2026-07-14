@@ -167,8 +167,5 @@ public class HangfireRecurringJobSchedulerTests : IDisposable
 
         public Task UpdateAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
-
-        public Task SeedDefaultConfigurationsAsync(IEnumerable<IRecurringJob> jobs, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
     }
 }
