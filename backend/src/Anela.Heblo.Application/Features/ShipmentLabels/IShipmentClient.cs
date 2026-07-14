@@ -12,6 +12,13 @@ public interface IShipmentClient
     /// </summary>
     Task<string?> GetLatestActiveTrackingNumberAsync(string orderCode, CancellationToken ct = default);
 
+    /// <summary>
+    /// Returns true if the order has at least one shipment whose status is "delivered".
+    /// Uses GET /api/shipments?orderCode={code}; status values follow the Shoptet lifecycle
+    /// documented in docs/integrations/shoptet-api.md.
+    /// </summary>
+    Task<bool> HasDeliveredShipmentAsync(string orderCode, CancellationToken ct = default);
+
     Task<IReadOnlyList<ShippingOption>> GetShippingOptionsAsync(string orderCode, CancellationToken ct = default);
 
     Task<CreatedShipment> CreateShipmentAsync(CreateShipmentCommand command, CancellationToken ct = default);

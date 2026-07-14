@@ -18,24 +18,26 @@ describe('MaterialExpirationSummaryTile', () => {
     mockNavigate.mockClear();
   });
 
-  it('renders the three bucket labels', () => {
-    const data = { status: 'success', data: { expired: 0, within30: 0, within90: 0 } };
+  it('renders the four bucket labels', () => {
+    const data = { status: 'success', data: { expired: 0, within30: 0, within90: 0, ok: 0 } };
 
     renderWithRouter(<MaterialExpirationSummaryTile data={data} />);
 
     expect(screen.getByText('Po expiraci')).toBeInTheDocument();
     expect(screen.getByText('≤ 30 dní')).toBeInTheDocument();
     expect(screen.getByText('31–90 dní')).toBeInTheDocument();
+    expect(screen.getByText('V pořádku')).toBeInTheDocument();
   });
 
   it('renders the counts for each bucket', () => {
-    const data = { status: 'success', data: { expired: 4, within30: 2, within90: 7 } };
+    const data = { status: 'success', data: { expired: 4, within30: 2, within90: 7, ok: 9 } };
 
     renderWithRouter(<MaterialExpirationSummaryTile data={data} />);
 
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText('7')).toBeInTheDocument();
+    expect(screen.getByText('9')).toBeInTheDocument();
   });
 
   it('defaults missing bucket values to zero', () => {
@@ -43,7 +45,7 @@ describe('MaterialExpirationSummaryTile', () => {
 
     renderWithRouter(<MaterialExpirationSummaryTile data={data} />);
 
-    expect(screen.getAllByText('0')).toHaveLength(3);
+    expect(screen.getAllByText('0')).toHaveLength(4);
   });
 
   it('renders error state when status is error', () => {
