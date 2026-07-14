@@ -590,4 +590,45 @@ public class ShoptetShipmentClientTests
         // Assert
         await act.Should().ThrowAsync<HttpRequestException>().WithMessage("*422*");
     }
+
+    [Fact]
+    public async Task HasDeliveredShipmentAsync_ReturnsTrue_WhenAnyShipmentDelivered()
+    {
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                items = new[]
+                {
+                    new { guid = Guid.NewGuid(), orderCode = "0001234", status = "in_transit", packages = Array.Empty<object>() },
+                    new { guid = Guid.NewGuid(), orderCode = "0001234", status = "delivered", packages = Array.Empty<object>() },
+                },
+            },
+            errors = Array.Empty<object>(),
+        }));
+
+        var result = await client.HasDeliveredShipmentAsync("0001234");
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HasDeliveredShipmentAsync_ReturnsFalse_WhenNoShipmentDelivered()
+    {
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                items = new[]
+                {
+                    new { guid = Guid.NewGuid(), orderCode = "0001234", status = "in_transit", packages = Array.Empty<object>() },
+                },
+            },
+            errors = Array.Empty<object>(),
+        }));
+
+        var result = await client.HasDeliveredShipmentAsync("0001234");
+
+        result.Should().BeFalse();
+    }
 }

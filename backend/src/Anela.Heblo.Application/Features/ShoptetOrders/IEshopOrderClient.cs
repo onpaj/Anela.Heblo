@@ -21,6 +21,14 @@ public interface IEshopOrderClient
 
     Task DeleteOrderAsync(string orderCode, CancellationToken ct = default);
     Task<List<EshopOrderSummary>> GetRecentOrdersAsync(int count = 20, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns every order currently in the given Shoptet status, across all pages
+    /// (GET /api/orders?statusId={id}, itemsPerPage=50). Maps to the Application-layer
+    /// <see cref="EshopOrderSummary"/> (code, externalCode, email, statusId).
+    /// </summary>
+    Task<List<EshopOrderSummary>> ListOrdersByStatusAsync(int statusId, CancellationToken ct = default);
+
     Task<List<EshopOrderSummary>> ListByExternalCodePrefixAsync(string prefix, string? emailFilter = null, CancellationToken ct = default);
 
     /// <summary>

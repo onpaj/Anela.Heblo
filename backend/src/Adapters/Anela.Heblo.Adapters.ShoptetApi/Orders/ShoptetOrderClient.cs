@@ -197,6 +197,32 @@ public class ShoptetOrderClient : IEshopOrderClient, IShoptetExpeditionOrderSour
         return data ?? new OrderListResponse();
     }
 
+    public async Task<List<EshopOrderSummary>> ListOrdersByStatusAsync(int statusId, CancellationToken ct = default)
+    {
+        var result = new List<EshopOrderSummary>();
+        var page = 1;
+
+        while (true)
+        {
+            var data = await GetOrdersByStatusAsync(statusId, page, ct);
+
+            result.AddRange(data.Data.Orders.Select(o => new EshopOrderSummary
+            {
+                Code = o.Code,
+                ExternalCode = o.ExternalCode,
+                Email = o.Email,
+                StatusId = o.Status.Id,
+            }));
+
+            if (page >= data.Data.Paginator.PageCount)
+                break;
+
+            page++;
+        }
+
+        return result;
+    }
+
     public async Task<ExpeditionOrderDetail> GetExpeditionOrderDetailAsync(string code, CancellationToken ct = default)
     {
         var response = await _http.GetAsync($"/api/orders/{code}?include=stockLocation,notes", ct);
