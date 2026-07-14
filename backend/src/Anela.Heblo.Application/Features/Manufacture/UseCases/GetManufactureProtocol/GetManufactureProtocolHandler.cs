@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
 
@@ -23,13 +24,19 @@ public class GetManufactureProtocolHandler : IRequestHandler<GetManufactureProto
         GetManufactureProtocolRequest request,
         CancellationToken cancellationToken)
     {
-        var order = await _repository.GetOrderByIdAsync(request.Id, cancellationToken)
-                    ?? throw new InvalidOperationException($"Manufacture order {request.Id} not found.");
+        var order = await _repository.GetOrderByIdAsync(request.Id, cancellationToken);
+        if (order == null)
+        {
+            return new GetManufactureProtocolResponse(
+                ErrorCodes.OrderNotFound,
+                new Dictionary<string, string> { { "orderId", request.Id.ToString() } });
+        }
 
         if (order.State != ManufactureOrderState.Completed)
         {
-            throw new InvalidOperationException(
-                $"Manufacture order {order.OrderNumber} is not completed; cannot generate protocol.");
+            return new GetManufactureProtocolResponse(
+                ErrorCodes.ManufactureOrderNotCompleted,
+                new Dictionary<string, string> { { "orderId", order.OrderNumber }, { "state", order.State.ToString() } });
         }
 
         var erpDocuments = await BuildErpDocumentsAsync(order, cancellationToken);
