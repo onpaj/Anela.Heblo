@@ -143,7 +143,7 @@ public class HangfireBackgroundWorker : IBackgroundWorker
                 JobName = GetJobDisplayName(connection, jobId, jobDetails.Job),
                 State = state,
                 CreatedAt = jobDetails.CreatedAt,
-                StartedAt = GetJobStartedAt(jobId),
+                StartedAt = GetJobStartedAt(connection, jobId),
                 Queue = jobDetails.Job.Queue ?? "default"
             };
         }
@@ -159,18 +159,17 @@ public class HangfireBackgroundWorker : IBackgroundWorker
         return stateData?.Name ?? "Unknown";
     }
 
-    private DateTime? GetJobStartedAt(string jobId)
+    private static DateTime? GetJobStartedAt(IStorageConnection connection, string jobId)
     {
         try
         {
-            var monitoring = _jobStorage.GetMonitoringApi();
-            var processingJobs = monitoring.ProcessingJobs(0, int.MaxValue);
+            var stateData = connection.GetStateData(jobId);
+            if (stateData?.Name != ProcessingState.StateName)
+                return null;
 
-            var processingJob = processingJobs.FirstOrDefault(j => j.Key == jobId);
-            if (processingJob.Value != null)
-                return processingJob.Value.StartedAt;
-
-            return null;
+            return stateData.Data.TryGetValue("StartedAt", out var startedAt)
+                ? JobHelper.DeserializeNullableDateTime(startedAt)
+                : null;
         }
         catch
         {

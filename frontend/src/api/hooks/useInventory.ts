@@ -48,9 +48,11 @@ const fetchInventoryList = async (
         params.sortDescending,
         params.productName || undefined,
         params.productCode || undefined,
-        undefined // searchTerm
+        undefined, // searchTerm
+        undefined, // expirationFrom
+        undefined // expirationTo
       );
-      
+
       if (result.items) {
         allResults.push(...result.items);
       }
@@ -132,7 +134,9 @@ const fetchInventoryList = async (
       params.sortDescending,
       params.productName || undefined,
       params.productCode || undefined,
-      undefined // searchTerm
+      undefined, // searchTerm
+      undefined, // expirationFrom
+      undefined // expirationTo
     );
 
     return {
