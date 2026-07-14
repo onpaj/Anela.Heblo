@@ -21,16 +21,16 @@
       "updated_at": "2026-07-14T11:30:52.508784Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-14T11:31:23.486633Z"
     }
   },
   "tasks": [
     {
       "name": "fix-hangfire-getjobstartedat-full-scan",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-14T11:31:23.693718Z"
     }
   ]
 }
