@@ -21,16 +21,16 @@
       "updated_at": "2026-07-14T09:28:03.756830Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-14T09:28:45.278036Z"
     }
   },
   "tasks": [
     {
       "name": "add-repository-add-async-and-recurring-job-seeder",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-14T09:28:45.459622Z"
     },
     {
       "name": "wire-recurring-job-seeder-into-di-and-startup",
