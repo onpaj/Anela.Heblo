@@ -95,7 +95,7 @@ public class MaterialExpirationSummaryTileTests
     }
 
     [Fact]
-    public async Task LoadDataAsync_LotBeyondHorizon_IsExcluded()
+    public async Task LoadDataAsync_LotBeyondHorizon_CountsAsOk()
     {
         // Arrange
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -104,7 +104,8 @@ public class MaterialExpirationSummaryTileTests
         // Act
         var data = await LoadDataSection();
 
-        // Assert
+        // Assert - healthy material: excluded from the "needs attention" total, counted as ok
+        data.GetProperty("ok").GetInt32().Should().Be(1);
         data.GetProperty("total").GetInt32().Should().Be(0);
     }
 
@@ -118,8 +119,9 @@ public class MaterialExpirationSummaryTileTests
         // Act
         var data = await LoadDataSection();
 
-        // Assert
+        // Assert - no in-stock lot: excluded from every bucket, including ok
         data.GetProperty("total").GetInt32().Should().Be(0);
+        data.GetProperty("ok").GetInt32().Should().Be(0);
     }
 
     [Fact]
@@ -131,8 +133,9 @@ public class MaterialExpirationSummaryTileTests
         // Act
         var data = await LoadDataSection();
 
-        // Assert
+        // Assert - no expiration date: excluded from every bucket, including ok
         data.GetProperty("total").GetInt32().Should().Be(0);
+        data.GetProperty("ok").GetInt32().Should().Be(0);
     }
 
     [Fact]
@@ -168,12 +171,12 @@ public class MaterialExpirationSummaryTileTests
     }
 
     [Fact]
-    public async Task LoadDataAsync_MaterialWithLotsSpanningBuckets_CountsEachLotInItsBucket()
+    public async Task LoadDataAsync_MaterialWithLotsSpanningBuckets_CountsMaterialOnceByEarliestExpiration()
     {
         // Arrange
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         SetupCatalog(CreateMaterial("MAT001",
-            CreateLot(today.AddDays(-5), amount: 5),   // expired
+            CreateLot(today.AddDays(-5), amount: 5),   // expired (earliest)
             CreateLot(today.AddDays(10), amount: 5),   // within30
             CreateLot(today.AddDays(60), amount: 5),   // within90
             CreateLot(today.AddDays(200), amount: 5))); // beyond horizon
@@ -181,11 +184,29 @@ public class MaterialExpirationSummaryTileTests
         // Act
         var data = await LoadDataSection();
 
-        // Assert
+        // Assert - one material counted once, in its most-urgent bucket (earliest expiration)
         data.GetProperty("expired").GetInt32().Should().Be(1);
-        data.GetProperty("within30").GetInt32().Should().Be(1);
-        data.GetProperty("within90").GetInt32().Should().Be(1);
-        data.GetProperty("total").GetInt32().Should().Be(3);
+        data.GetProperty("within30").GetInt32().Should().Be(0);
+        data.GetProperty("within90").GetInt32().Should().Be(0);
+        data.GetProperty("ok").GetInt32().Should().Be(0);
+        data.GetProperty("total").GetInt32().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task LoadDataAsync_MaterialWithAllLotsBeyondHorizon_CountsAsOk()
+    {
+        // Arrange
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        SetupCatalog(CreateMaterial("MAT001",
+            CreateLot(today.AddDays(120), amount: 5),
+            CreateLot(today.AddDays(200), amount: 5)));
+
+        // Act
+        var data = await LoadDataSection();
+
+        // Assert - earliest lot is beyond the horizon, so the material is healthy
+        data.GetProperty("ok").GetInt32().Should().Be(1);
+        data.GetProperty("total").GetInt32().Should().Be(0);
     }
 
     [Fact]
@@ -201,6 +222,7 @@ public class MaterialExpirationSummaryTileTests
         data.GetProperty("expired").GetInt32().Should().Be(0);
         data.GetProperty("within30").GetInt32().Should().Be(0);
         data.GetProperty("within90").GetInt32().Should().Be(0);
+        data.GetProperty("ok").GetInt32().Should().Be(0);
         data.GetProperty("total").GetInt32().Should().Be(0);
     }
 

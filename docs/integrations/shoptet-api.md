@@ -1235,7 +1235,7 @@ After a successful `201` response, the shipment is in `requested` status. The la
 | `closed` | Closed |
 | `deleted` | Deleted |
 
-**Anela consumption:** `CompleteDeliveredOrdersJob` polls orders in states 70/82 hourly and, when any of their shipments reports `delivered`, moves the order to `-3` ("vyřízena").
+**Anela consumption:** `CompleteDeliveredOrdersJob` polls orders in states 70/82 hourly and, when any of their shipments reports `delivered`, moves the order to `-3` ("vyřízena"). With the `is-delivered-order-completion-test-source-enabled` feature flag on, it polls test state 73 ("Oprava-robot") instead — a controlled pool for end-to-end testing.
 
 **Webhook alternative:** `shipment:create` webhook fires when carrier confirms the shipment (tracking number assigned, label ready). Register via Shoptet webhooks if polling is undesirable.
 

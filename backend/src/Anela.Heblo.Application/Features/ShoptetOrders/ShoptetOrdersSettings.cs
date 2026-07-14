@@ -46,6 +46,14 @@ public class ShoptetOrdersSettings
     public int[] DeliveredCompletionSourceStateIds { get; set; } = [70, 82];
 
     /// <summary>
+    /// Shoptet order status IDs polled by the auto-completion job when the
+    /// "is-delivered-order-completion-test-source-enabled" feature flag is on —
+    /// replaces <see cref="DeliveredCompletionSourceStateIds"/> entirely so the pipeline
+    /// can be exercised on a controlled set of orders. Defaults to 73 ("Oprava-robot").
+    /// </summary>
+    public int[] DeliveredCompletionTestSourceStateIds { get; set; } = [73];
+
+    /// <summary>
     /// Shoptet order status ID assigned when a delivered order is auto-completed.
     /// Defaults to -3 ("Vyřízena").
     /// </summary>
