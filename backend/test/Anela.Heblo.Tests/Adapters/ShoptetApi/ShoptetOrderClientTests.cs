@@ -98,4 +98,48 @@ public class ShoptetOrderClientTests
         // Assert
         result.Data.Paginator.PageCount.Should().Be(3);
     }
+
+    [Fact]
+    public async Task ListOrdersByStatusAsync_PaginatesAndMapsAllOrders()
+    {
+        var client = BuildClient(request =>
+        {
+            var page = request.RequestUri!.Query.Contains("page=2") ? "2" : "1";
+            if (page == "1")
+            {
+                return Json(new
+                {
+                    data = new
+                    {
+                        orders = new[]
+                        {
+                            new { code = "ORD-1", externalCode = "EXT-1", email = "a@example.com", status = new { id = 70 } },
+                        },
+                        paginator = new { pageCount = 2, page = 1, totalCount = 2 },
+                    },
+                });
+            }
+
+            return Json(new
+            {
+                data = new
+                {
+                    orders = new[]
+                    {
+                        new { code = "ORD-2", externalCode = (string?)null, email = "b@example.com", status = new { id = 70 } },
+                    },
+                    paginator = new { pageCount = 2, page = 2, totalCount = 2 },
+                },
+            });
+        });
+
+        var result = await client.ListOrdersByStatusAsync(70);
+
+        result.Should().HaveCount(2);
+        result[0].Code.Should().Be("ORD-1");
+        result[0].ExternalCode.Should().Be("EXT-1");
+        result[0].Email.Should().Be("a@example.com");
+        result[0].StatusId.Should().Be(70);
+        result[1].Code.Should().Be("ORD-2");
+    }
 }
