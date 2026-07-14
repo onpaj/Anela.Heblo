@@ -21,16 +21,16 @@
       "updated_at": "2026-07-14T08:23:03.193649Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-14T08:23:30.477524Z"
+      "status": "completed",
+      "updated_at": "2026-07-14T08:50:02.108647Z"
     }
   },
   "tasks": [
     {
       "name": "fix-recurring-job-seeding-n-plus-one",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-14T08:23:30.654353Z"
+      "updated_at": "2026-07-14T08:50:01.925007Z"
     }
   ]
 }
