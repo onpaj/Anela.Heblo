@@ -36,4 +36,18 @@ public class ShoptetOrdersSettings
     /// Defaults to -2 ("Vyřizuje se"), a global Shoptet system state.
     /// </summary>
     public int ProcessingStateId { get; set; } = -2;
+
+    /// <summary>
+    /// Shoptet order status IDs whose orders are polled by the auto-completion job.
+    /// These are the "handed to carrier" states (70 "Předáno přepravci",
+    /// 82 "SMS chlazené-Předáno dopravci"). An order in one of these states is moved to
+    /// <see cref="CompletedStatusId"/> once any of its shipments reports "delivered".
+    /// </summary>
+    public int[] DeliveredCompletionSourceStateIds { get; set; } = [70, 82];
+
+    /// <summary>
+    /// Shoptet order status ID assigned when a delivered order is auto-completed.
+    /// Defaults to -3 ("Vyřízena").
+    /// </summary>
+    public int CompletedStatusId { get; set; } = -3;
 }

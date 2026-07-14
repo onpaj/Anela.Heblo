@@ -7,4 +7,9 @@ namespace Anela.Heblo.Application.Features.FeatureFlags;
 /// </summary>
 public static class FeatureFlagKeys
 {
+    /// <summary>
+    /// When on, the delivered-orders job applies changes (order state → "vyřízena" and the
+    /// remark). When off, the job runs in dry-run mode and only logs what it would do.
+    /// </summary>
+    public const string DeliveredOrderCompletion = "is-delivered-order-completion-enabled";
 }
