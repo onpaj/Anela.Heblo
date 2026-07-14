@@ -156,6 +156,22 @@ public class CatalogAggregate : Entity<string>
     public bool IsMinStockConfigured => Properties.StockMinSetup > 0;
     public bool IsOptimalStockConfigured => Properties.OptimalStockDaysSetup > 0;
     public DateTime? LastStockTaking => StockTakingHistory.OrderByDescending(o => o.Date).FirstOrDefault()?.Date;
+
+    // Earliest expiration across available lots (in-stock lots with an expiration date).
+    // Null when the product has no expiring available lot.
+    public DateOnly? MinimalExpiration
+    {
+        get
+        {
+            var availableExpirations = Stock.Lots
+                .Where(l => l.Amount > 0 && l.Expiration.HasValue)
+                .Select(l => l.Expiration!.Value)
+                .ToList();
+
+            return availableExpirations.Count > 0 ? availableExpirations.Min() : null;
+        }
+    }
+
     public bool HasExpiration { get; set; }
     public bool HasLots { get; set; }
     public double Volume { get; set; }
