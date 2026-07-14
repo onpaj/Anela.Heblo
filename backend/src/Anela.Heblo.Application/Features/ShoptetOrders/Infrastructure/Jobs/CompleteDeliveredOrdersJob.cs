@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ public sealed class CompleteDeliveredOrdersJob : IRecurringJob
     private readonly IShipmentClient _shipmentClient;
     private readonly ShoptetOrdersSettings _settings;
     private readonly IRecurringJobStatusChecker _statusChecker;
+    private readonly IFeatureFlagChecker _featureFlags;
     private readonly ILogger<CompleteDeliveredOrdersJob> _logger;
 
     public RecurringJobMetadata Metadata { get; } = new()
@@ -29,12 +31,14 @@ public sealed class CompleteDeliveredOrdersJob : IRecurringJob
         IShipmentClient shipmentClient,
         IOptions<ShoptetOrdersSettings> settings,
         IRecurringJobStatusChecker statusChecker,
+        IFeatureFlagChecker featureFlags,
         ILogger<CompleteDeliveredOrdersJob> logger)
     {
         _orderClient = orderClient;
         _shipmentClient = shipmentClient;
         _settings = settings.Value;
         _statusChecker = statusChecker;
+        _featureFlags = featureFlags;
         _logger = logger;
     }
 
@@ -46,8 +50,18 @@ public sealed class CompleteDeliveredOrdersJob : IRecurringJob
             return;
         }
 
+        var applyChanges = await _featureFlags.IsEnabledAsync(
+            FeatureFlagKeys.DeliveredOrderCompletion, cancellationToken);
+        if (!applyChanges)
+        {
+            _logger.LogInformation(
+                "CompleteDeliveredOrders: running in DRY RUN mode (feature flag '{Flag}' disabled) — delivered orders will be logged but not changed.",
+                FeatureFlagKeys.DeliveredOrderCompletion);
+        }
+
         var targetState = _settings.CompletedStatusId;
         var scanned = 0;
+        var delivered = 0;
         var completed = 0;
 
         foreach (var stateId in _settings.DeliveredCompletionSourceStateIds)
@@ -73,6 +87,16 @@ public sealed class CompleteDeliveredOrdersJob : IRecurringJob
                     if (!await _shipmentClient.HasDeliveredShipmentAsync(order.Code, cancellationToken))
                         continue;
 
+                    delivered++;
+
+                    if (!applyChanges)
+                    {
+                        _logger.LogInformation(
+                            "CompleteDeliveredOrders [DRY RUN]: order {OrderCode} in state {StateId} is delivered — would move to {TargetState} and add remark. No changes made.",
+                            order.Code, stateId, targetState);
+                        continue;
+                    }
+
                     await _orderClient.UpdateStatusAsync(order.Code, targetState, cancellationToken);
                     await AppendCompletionNoteAsync(order.Code, cancellationToken);
                     completed++;
@@ -91,8 +115,8 @@ public sealed class CompleteDeliveredOrdersJob : IRecurringJob
         }
 
         _logger.LogInformation(
-            "CompleteDeliveredOrders: scanned {Scanned} order(s), completed {Completed}.",
-            scanned, completed);
+            "CompleteDeliveredOrders: scanned {Scanned} order(s), {Delivered} delivered, {Completed} completed{Mode}.",
+            scanned, delivered, completed, applyChanges ? string.Empty : " [DRY RUN — no changes applied]");
     }
 
     private async Task AppendCompletionNoteAsync(string orderCode, CancellationToken cancellationToken)

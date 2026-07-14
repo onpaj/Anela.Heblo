@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure.Jobs;
@@ -16,7 +17,7 @@ public class CompleteDeliveredOrdersJobTests
         Mock<IEshopOrderClient> Orders,
         Mock<IShipmentClient> Shipments,
         Mock<IRecurringJobStatusChecker> StatusChecker)
-        MakeSut(bool jobEnabled = true)
+        MakeSut(bool jobEnabled = true, bool applyChanges = true)
     {
         var orders = new Mock<IEshopOrderClient>();
         var shipments = new Mock<IShipmentClient>();
@@ -24,6 +25,11 @@ public class CompleteDeliveredOrdersJobTests
         statusChecker
             .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(jobEnabled);
+
+        var featureFlags = new Mock<IFeatureFlagChecker>();
+        featureFlags
+            .Setup(f => f.IsEnabledAsync(FeatureFlagKeys.DeliveredOrderCompletion, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(applyChanges);
 
         var settings = Options.Create(new ShoptetOrdersSettings
         {
@@ -33,7 +39,7 @@ public class CompleteDeliveredOrdersJobTests
 
         var sut = new CompleteDeliveredOrdersJob(
             orders.Object, shipments.Object, settings,
-            statusChecker.Object, NullLogger<CompleteDeliveredOrdersJob>.Instance);
+            statusChecker.Object, featureFlags.Object, NullLogger<CompleteDeliveredOrdersJob>.Instance);
         return (sut, orders, shipments, statusChecker);
     }
 
@@ -123,6 +129,26 @@ public class CompleteDeliveredOrdersJobTests
 
         orders.Verify(o => o.UpdateStatusAsync("ORD-70", -3, It.IsAny<CancellationToken>()), Times.Once);
         orders.Verify(o => o.UpdateStatusAsync("ORD-82", -3, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_DryRun_DetectsButDoesNotMutate_WhenFeatureFlagDisabled()
+    {
+        var (sut, orders, shipments, _) = MakeSut(applyChanges: false);
+        orders.Setup(o => o.ListOrdersByStatusAsync(70, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Order("ORD-1", 70)]);
+        orders.Setup(o => o.ListOrdersByStatusAsync(82, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        shipments.Setup(s => s.HasDeliveredShipmentAsync("ORD-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        await sut.ExecuteAsync();
+
+        // Delivered orders are still detected (so the dry-run log reflects reality)...
+        shipments.Verify(s => s.HasDeliveredShipmentAsync("ORD-1", It.IsAny<CancellationToken>()), Times.Once);
+        // ...but no state change or remark is written while the flag is off.
+        orders.Verify(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        orders.Verify(o => o.UpdateEshopRemarkAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
