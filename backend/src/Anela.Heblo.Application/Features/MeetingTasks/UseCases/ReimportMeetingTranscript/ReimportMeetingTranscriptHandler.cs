@@ -88,8 +88,9 @@ public sealed class ReimportMeetingTranscriptHandler
             transcript.Subject = summaryResult.Headline;
         // else: leave transcript.Subject unchanged
 
-        var extractedTasks = await _extractor.ExtractAsync(summaryResult.MarkdownContent, rawTranscript, cancellationToken);
-        var newTasks = extractedTasks
+        var extraction = await _extractor.ExtractAsync(summaryResult.MarkdownContent, rawTranscript, cancellationToken);
+        transcript.Participants = extraction.Participants;
+        var newTasks = extraction.Tasks
             .Select(t => new ProposedTask
             {
                 Id = Guid.NewGuid(),

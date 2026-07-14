@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.MeetingTasks.UseCases.SubmitToTodo;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateMeetingAccess;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTask;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTaskStatus;
+using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateTranscriptStatus;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -75,6 +76,18 @@ public sealed class MeetingTasksController : BaseApiController
     {
         request.TranscriptId = transcriptId;
         request.TaskId = taskId;
+        var result = await _mediator.Send(request, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpPut("{transcriptId:guid}/status")]
+    [FeatureAuthorize(Feature.Anela_Meetings, AccessLevel.Write)]
+    public async Task<ActionResult<UpdateTranscriptStatusResponse>> UpdateStatus(
+        Guid transcriptId,
+        [FromBody] UpdateTranscriptStatusRequest request,
+        CancellationToken ct = default)
+    {
+        request.TranscriptId = transcriptId;
         var result = await _mediator.Send(request, ct);
         return HandleResponse(result);
     }
