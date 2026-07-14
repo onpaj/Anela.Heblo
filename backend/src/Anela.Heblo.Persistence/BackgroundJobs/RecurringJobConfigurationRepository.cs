@@ -49,13 +49,16 @@ public class RecurringJobConfigurationRepository : IRecurringJobConfigurationRep
             "System"
         )).ToArray();
 
-        foreach (var config in defaultConfigurations)
+        // Load all existing job names in a single query (EF Core 8.0.8 has no ToHashSetAsync)
+        var existingNames = new HashSet<string>(
+            await _context.RecurringJobConfigurations
+                .Select(c => c.JobName)
+                .ToListAsync(cancellationToken));
+
+        foreach (var config in defaultConfigurations.Where(c => !existingNames.Contains(c.JobName)))
         {
-            var existing = await GetByJobNameAsync(config.JobName, cancellationToken);
-            if (existing == null)
-            {
-                await _context.RecurringJobConfigurations.AddAsync(config, cancellationToken);
-            }
+            await _context.RecurringJobConfigurations.AddAsync(config, cancellationToken);
+            existingNames.Add(config.JobName); // guard against duplicate JobNames within the same batch
         }
 
         await _context.SaveChangesAsync(cancellationToken);

@@ -37,33 +37,55 @@ public sealed class ClaudeMeetingTaskExtractorTests
             .ReturnsAsync(chatResponse);
     }
 
+    private static string EmptyPayload => """{"participants":[],"tasks":[]}""";
+
     [Fact]
     public async Task ExtractAsync_WithValidJsonResponse_ReturnsParsedTasks()
     {
-        SetupResponse("""[{"title":"Meeting Action","description":"Follow up","assignee":"John","assigneeEmail":null,"dueDate":"2026-06-01"}]""");
+        SetupResponse("""{"participants":["John","Jane"],"tasks":[{"title":"Meeting Action","description":"Follow up","assignee":"John","assigneeEmail":null,"dueDate":"2026-06-01"}]}""");
 
         var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
 
-        result.Should().HaveCount(1);
-        result[0].Title.Should().Be("Meeting Action");
-        result[0].Assignee.Should().Be("John");
-        result[0].AssigneeEmail.Should().BeNull();
+        result.Tasks.Should().HaveCount(1);
+        result.Tasks[0].Title.Should().Be("Meeting Action");
+        result.Tasks[0].Assignee.Should().Be("John");
+        result.Tasks[0].AssigneeEmail.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ExtractAsync_ParsesParticipants()
+    {
+        SetupResponse("""{"participants":["John","Jane"],"tasks":[]}""");
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Participants.Should().Equal("John", "Jane");
+    }
+
+    [Fact]
+    public async Task ExtractAsync_NormalizesParticipants_TrimsBlanksAndDeduplicates()
+    {
+        SetupResponse("""{"participants":["John"," John ","","Jane"],"tasks":[]}""");
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Participants.Should().Equal("John", "Jane");
     }
 
     [Fact]
     public async Task ExtractAsync_ParsesAssigneeEmailWhenLlmMatchesUser()
     {
-        SetupResponse("""[{"title":"T","description":"D","assignee":"Andrea Nováková","assigneeEmail":"andrea@anela.cz","dueDate":null}]""");
+        SetupResponse("""{"participants":["Andrea Nováková"],"tasks":[{"title":"T","description":"D","assignee":"Andrea Nováková","assigneeEmail":"andrea@anela.cz","dueDate":null}]}""");
 
         var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
 
-        result[0].AssigneeEmail.Should().Be("andrea@anela.cz");
+        result.Tasks[0].AssigneeEmail.Should().Be("andrea@anela.cz");
     }
 
     [Fact]
     public async Task ExtractAsync_IncludesDirectoryUsersInPrompt()
     {
-        SetupResponse("[]");
+        SetupResponse(EmptyPayload);
 
         await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
 
@@ -75,7 +97,7 @@ public sealed class ClaudeMeetingTaskExtractorTests
     }
 
     [Fact]
-    public async Task ExtractAsync_WhenChatClientThrows_ReturnsEmptyList()
+    public async Task ExtractAsync_WhenChatClientThrows_ReturnsEmptyResult()
     {
         _mockChatClient
             .Setup(x => x.GetResponseAsync(
@@ -86,18 +108,20 @@ public sealed class ClaudeMeetingTaskExtractorTests
 
         var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
 
-        result.Should().BeEmpty();
+        result.Tasks.Should().BeEmpty();
+        result.Participants.Should().BeEmpty();
     }
 
     [Fact]
     public async Task ExtractAsync_WithMarkdownWrappedJson_StripsFenceAndParses()
     {
-        SetupResponse("```json\n[{\"title\":\"Action\",\"description\":\"Do it\",\"assignee\":\"Bob\",\"assigneeEmail\":null,\"dueDate\":null}]\n```");
+        SetupResponse("```json\n{\"participants\":[\"Bob\"],\"tasks\":[{\"title\":\"Action\",\"description\":\"Do it\",\"assignee\":\"Bob\",\"assigneeEmail\":null,\"dueDate\":null}]}\n```");
 
         var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
 
-        result.Should().HaveCount(1);
-        result[0].Title.Should().Be("Action");
+        result.Tasks.Should().HaveCount(1);
+        result.Tasks[0].Title.Should().Be("Action");
+        result.Participants.Should().Equal("Bob");
     }
 
     [Fact]
@@ -110,7 +134,7 @@ public sealed class ClaudeMeetingTaskExtractorTests
                 It.IsAny<ChatOptions?>(),
                 It.IsAny<CancellationToken>()))
             .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((_, opts, _) => capturedOptions = opts)
-            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "[]")]));
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, EmptyPayload)]));
 
         await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
 
@@ -130,7 +154,8 @@ public sealed class ClaudeMeetingTaskExtractorTests
 
         var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
 
-        result.Should().BeEmpty();
+        result.Tasks.Should().BeEmpty();
+        result.Participants.Should().BeEmpty();
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Error,
@@ -142,13 +167,13 @@ public sealed class ClaudeMeetingTaskExtractorTests
     }
 
     [Fact]
-    public async Task ExtractAsync_WhenResponseIsEmptyArray_LogsWarningAndReturnsEmpty()
+    public async Task ExtractAsync_WhenResponseHasNoTasks_LogsWarningAndReturnsEmptyTasks()
     {
-        SetupResponse("[]");
+        SetupResponse(EmptyPayload);
 
         var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
 
-        result.Should().BeEmpty();
+        result.Tasks.Should().BeEmpty();
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,
@@ -171,7 +196,7 @@ public sealed class ClaudeMeetingTaskExtractorTests
 
         var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
 
-        result.Should().BeEmpty();
+        result.Tasks.Should().BeEmpty();
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Error,

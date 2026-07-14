@@ -161,14 +161,13 @@ public class HangfireBackgroundWorker : IBackgroundWorker
     {
         try
         {
-            var monitoring = JobStorage.Current.GetMonitoringApi();
-            var processingJobs = monitoring.ProcessingJobs(0, int.MaxValue);
+            var stateData = connection.GetStateData(jobId);
+            if (stateData?.Name != ProcessingState.StateName)
+                return null;
 
-            var processingJob = processingJobs.FirstOrDefault(j => j.Key == jobId);
-            if (processingJob.Value != null)
-                return processingJob.Value.StartedAt;
-
-            return null;
+            return stateData.Data.TryGetValue("StartedAt", out var startedAt)
+                ? JobHelper.DeserializeNullableDateTime(startedAt)
+                : null;
         }
         catch
         {

@@ -2640,6 +2640,10 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasDefaultValue("Private");
 
+                    b.Property<string>("Participants")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTime>("PlaudCreatedAt")
                         .HasColumnType("timestamp");
 

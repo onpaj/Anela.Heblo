@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
+using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
@@ -426,5 +427,66 @@ public class CatalogAggregateTests
         aggregate.CurrentPurchasePrice.Should().BeNull();
         aggregate.SellingPriceWithVat.Should().BeNull();
         aggregate.PurchasePriceWithVat.Should().BeNull();
+    }
+
+    [Fact]
+    public void MinimalExpiration_ReturnsEarliestExpiration_AcrossAvailableLots()
+    {
+        // Arrange
+        var aggregate = new CatalogAggregate();
+        aggregate.Stock.Lots = new List<CatalogLot>
+        {
+            new() { ProductCode = "M1", Amount = 5, Expiration = new DateOnly(2026, 5, 1) },
+            new() { ProductCode = "M1", Amount = 3, Expiration = new DateOnly(2026, 2, 15) },
+            new() { ProductCode = "M1", Amount = 1, Expiration = new DateOnly(2026, 8, 20) }
+        };
+
+        // Assert
+        aggregate.MinimalExpiration.Should().Be(new DateOnly(2026, 2, 15));
+    }
+
+    [Fact]
+    public void MinimalExpiration_IgnoresLotsWithoutAvailableAmount()
+    {
+        // Arrange
+        var aggregate = new CatalogAggregate();
+        aggregate.Stock.Lots = new List<CatalogLot>
+        {
+            new() { ProductCode = "M1", Amount = 0, Expiration = new DateOnly(2025, 1, 1) }, // earliest but not available
+            new() { ProductCode = "M1", Amount = 4, Expiration = new DateOnly(2026, 3, 10) }
+        };
+
+        // Assert
+        aggregate.MinimalExpiration.Should().Be(new DateOnly(2026, 3, 10));
+    }
+
+    [Fact]
+    public void MinimalExpiration_IgnoresLotsWithoutExpiration()
+    {
+        // Arrange
+        var aggregate = new CatalogAggregate();
+        aggregate.Stock.Lots = new List<CatalogLot>
+        {
+            new() { ProductCode = "M1", Amount = 4, Expiration = null },
+            new() { ProductCode = "M1", Amount = 2, Expiration = new DateOnly(2026, 6, 1) }
+        };
+
+        // Assert
+        aggregate.MinimalExpiration.Should().Be(new DateOnly(2026, 6, 1));
+    }
+
+    [Fact]
+    public void MinimalExpiration_ReturnsNull_WhenNoAvailableExpiringLots()
+    {
+        // Arrange
+        var aggregate = new CatalogAggregate();
+        aggregate.Stock.Lots = new List<CatalogLot>
+        {
+            new() { ProductCode = "M1", Amount = 0, Expiration = new DateOnly(2025, 1, 1) },
+            new() { ProductCode = "M1", Amount = 5, Expiration = null }
+        };
+
+        // Assert
+        aggregate.MinimalExpiration.Should().BeNull();
     }
 }
