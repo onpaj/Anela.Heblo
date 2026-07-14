@@ -59,12 +59,24 @@ public sealed class CompleteDeliveredOrdersJob : IRecurringJob
                 FeatureFlagKeys.DeliveredOrderCompletion);
         }
 
+        var useTestSource = await _featureFlags.IsEnabledAsync(
+            FeatureFlagKeys.DeliveredOrderCompletionTestSource, cancellationToken);
+        var sourceStateIds = useTestSource
+            ? _settings.DeliveredCompletionTestSourceStateIds
+            : _settings.DeliveredCompletionSourceStateIds;
+        if (useTestSource)
+        {
+            _logger.LogInformation(
+                "CompleteDeliveredOrders: using TEST source states [{TestStates}] (feature flag '{Flag}' enabled) instead of the production states.",
+                string.Join(", ", sourceStateIds), FeatureFlagKeys.DeliveredOrderCompletionTestSource);
+        }
+
         var targetState = _settings.CompletedStatusId;
         var scanned = 0;
         var delivered = 0;
         var completed = 0;
 
-        foreach (var stateId in _settings.DeliveredCompletionSourceStateIds)
+        foreach (var stateId in sourceStateIds)
         {
             List<EshopOrderSummary> orders;
             try
