@@ -21,16 +21,16 @@
       "updated_at": "2026-07-14T05:25:40.002918Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-14T05:26:00.340367Z"
     }
   },
   "tasks": [
     {
       "name": "structured-error-responses-for-protocol-generation",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-14T05:26:00.570776Z"
     }
   ]
 }
