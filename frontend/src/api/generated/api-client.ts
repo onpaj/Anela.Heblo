@@ -1797,7 +1797,7 @@ export class ApiClient {
         return Promise.resolve<SetCarrierCoolingResponse>(null as any);
     }
 
-    catalog_GetCatalogList(productTypes: ProductType[] | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined): Promise<GetCatalogListResponse> {
+    catalog_GetCatalogList(productTypes: ProductType[] | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined, expirationFrom: string | null | undefined, expirationTo: string | null | undefined): Promise<GetCatalogListResponse> {
         let url_ = this.baseUrl + "/api/Catalog?";
         if (productTypes !== undefined && productTypes !== null)
             productTypes && productTypes.forEach(item => { url_ += "ProductTypes=" + encodeURIComponent("" + item) + "&"; });
@@ -1821,6 +1821,10 @@ export class ApiClient {
             url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
         if (searchTerm !== undefined && searchTerm !== null)
             url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+        if (expirationFrom !== undefined && expirationFrom !== null)
+            url_ += "ExpirationFrom=" + encodeURIComponent("" + expirationFrom) + "&";
+        if (expirationTo !== undefined && expirationTo !== null)
+            url_ += "ExpirationTo=" + encodeURIComponent("" + expirationTo) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -11752,6 +11756,112 @@ export class ApiClient {
         return Promise.resolve<SendMessageResponse>(null as any);
     }
 
+    smartsupp_SubmitDraftReplyFeedback(request: SubmitDraftReplyFeedbackRequest): Promise<SubmitDraftReplyFeedbackResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/draft-reply/feedback";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_SubmitDraftReplyFeedback(_response);
+        });
+    }
+
+    protected processSmartsupp_SubmitDraftReplyFeedback(response: Response): Promise<SubmitDraftReplyFeedbackResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SubmitDraftReplyFeedbackResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SubmitDraftReplyFeedbackResponse>(null as any);
+    }
+
+    smartsupp_GetDraftReplyFeedbackList(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, hasFeedback: boolean | null | undefined, userId: string | null | undefined): Promise<GetDraftReplyFeedbackListResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/draft-reply/feedback/list?";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy === null)
+            throw new Error("The parameter 'sortBy' cannot be null.");
+        else if (sortBy !== undefined)
+            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (hasFeedback !== undefined && hasFeedback !== null)
+            url_ += "hasFeedback=" + encodeURIComponent("" + hasFeedback) + "&";
+        if (userId !== undefined && userId !== null)
+            url_ += "userId=" + encodeURIComponent("" + userId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_GetDraftReplyFeedbackList(_response);
+        });
+    }
+
+    protected processSmartsupp_GetDraftReplyFeedbackList(response: Response): Promise<GetDraftReplyFeedbackListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetDraftReplyFeedbackListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetDraftReplyFeedbackListResponse>(null as any);
+    }
+
     smartsupp_CloseConversation(id: string): Promise<CloseConversationResponse> {
         let url_ = this.baseUrl + "/api/smartsupp/conversations/{id}/close";
         if (id === undefined || id === null)
@@ -11798,6 +11908,80 @@ export class ApiClient {
             });
         }
         return Promise.resolve<CloseConversationResponse>(null as any);
+    }
+
+    smartsupp_RecordPresence(id: string): Promise<RecordPresenceResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{id}/presence";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_RecordPresence(_response);
+        });
+    }
+
+    protected processSmartsupp_RecordPresence(response: Response): Promise<RecordPresenceResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RecordPresenceResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RecordPresenceResponse>(null as any);
+    }
+
+    smartsupp_RemovePresence(id: string): Promise<RemovePresenceResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{id}/presence";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_RemovePresence(_response);
+        });
+    }
+
+    protected processSmartsupp_RemovePresence(response: Response): Promise<RemovePresenceResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RemovePresenceResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RemovePresenceResponse>(null as any);
     }
 
     smartsupp_RefreshOrphanContacts(): Promise<RefreshOrphanContactsResponse> {
@@ -13311,6 +13495,8 @@ export enum ErrorCodes {
     SmartsuppSendMessageUnavailable = "SmartsuppSendMessageUnavailable",
     SmartsuppAgentMappingNotFound = "SmartsuppAgentMappingNotFound",
     SmartsuppCloseConversationUnavailable = "SmartsuppCloseConversationUnavailable",
+    SmartsuppDraftReplyFeedbackLogNotFound = "SmartsuppDraftReplyFeedbackLogNotFound",
+    SmartsuppDraftReplyFeedbackAlreadySubmitted = "SmartsuppDraftReplyFeedbackAlreadySubmitted",
     LotNotFound = "LotNotFound",
     MaterialContainerNotFound = "MaterialContainerNotFound",
     LotAlreadyExists = "LotAlreadyExists",
@@ -16947,6 +17133,7 @@ export class CatalogItemDto implements ICatalogItemDto {
     note?: string | undefined;
     image?: string | undefined;
     lastStockTaking?: Date | undefined;
+    minimalExpiration?: Date | undefined;
     hasLots?: boolean;
     lots?: LotDto[];
 
@@ -16977,6 +17164,7 @@ export class CatalogItemDto implements ICatalogItemDto {
             this.note = _data["note"];
             this.image = _data["image"];
             this.lastStockTaking = _data["lastStockTaking"] ? new Date(_data["lastStockTaking"].toString()) : <any>undefined;
+            this.minimalExpiration = _data["minimalExpiration"] ? new Date(_data["minimalExpiration"].toString()) : <any>undefined;
             this.hasLots = _data["hasLots"];
             if (Array.isArray(_data["lots"])) {
                 this.lots = [] as any;
@@ -17011,6 +17199,7 @@ export class CatalogItemDto implements ICatalogItemDto {
         data["note"] = this.note;
         data["image"] = this.image;
         data["lastStockTaking"] = this.lastStockTaking ? this.lastStockTaking.toISOString() : <any>undefined;
+        data["minimalExpiration"] = this.minimalExpiration ? formatDate(this.minimalExpiration) : <any>undefined;
         data["hasLots"] = this.hasLots;
         if (Array.isArray(this.lots)) {
             data["lots"] = [];
@@ -17038,6 +17227,7 @@ export interface ICatalogItemDto {
     note?: string | undefined;
     image?: string | undefined;
     lastStockTaking?: Date | undefined;
+    minimalExpiration?: Date | undefined;
     hasLots?: boolean;
     lots?: LotDto[];
 }
@@ -24007,12 +24197,12 @@ export interface IDeleteDocumentResponse extends IBaseResponse {
 }
 
 export class GetFeedbackListResponse extends BaseResponse implements IGetFeedbackListResponse {
-    logs?: FeedbackLogSummary[];
+    logs?: RagFeedbackLogSummary[];
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
     totalPages?: number;
-    stats?: FeedbackStatsDto;
+    stats?: RagFeedbackStatsDto;
 
     constructor(data?: IGetFeedbackListResponse) {
         super(data);
@@ -24024,13 +24214,13 @@ export class GetFeedbackListResponse extends BaseResponse implements IGetFeedbac
             if (Array.isArray(_data["logs"])) {
                 this.logs = [] as any;
                 for (let item of _data["logs"])
-                    this.logs!.push(FeedbackLogSummary.fromJS(item));
+                    this.logs!.push(RagFeedbackLogSummary.fromJS(item));
             }
             this.totalCount = _data["totalCount"];
             this.pageNumber = _data["pageNumber"];
             this.pageSize = _data["pageSize"];
             this.totalPages = _data["totalPages"];
-            this.stats = _data["stats"] ? FeedbackStatsDto.fromJS(_data["stats"]) : <any>undefined;
+            this.stats = _data["stats"] ? RagFeedbackStatsDto.fromJS(_data["stats"]) : <any>undefined;
         }
     }
 
@@ -24059,30 +24249,39 @@ export class GetFeedbackListResponse extends BaseResponse implements IGetFeedbac
 }
 
 export interface IGetFeedbackListResponse extends IBaseResponse {
-    logs?: FeedbackLogSummary[];
+    logs?: RagFeedbackLogSummary[];
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
     totalPages?: number;
-    stats?: FeedbackStatsDto;
+    stats?: RagFeedbackStatsDto;
 }
 
-export class FeedbackLogSummary implements IFeedbackLogSummary {
+export class RagFeedbackLogSummary implements IRagFeedbackLogSummary {
     id?: string;
+    feature?: RagFeature;
     question?: string;
     answer?: string;
+    expandedQuery?: string | undefined;
+    systemPrompt?: string;
+    retrievedChunks?: RagFeedbackChunkDto[];
     topK?: number;
     sourceCount?: number;
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
     userName?: string | undefined;
+    conversationId?: string | undefined;
+    topic?: string | undefined;
+    sentAnswer?: string | undefined;
+    wasEdited?: boolean | undefined;
+    sentAt?: Date | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
     hasFeedback?: boolean;
 
-    constructor(data?: IFeedbackLogSummary) {
+    constructor(data?: IRagFeedbackLogSummary) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -24094,14 +24293,27 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
     init(_data?: any) {
         if (_data) {
             this.id = _data["id"];
+            this.feature = _data["feature"];
             this.question = _data["question"];
             this.answer = _data["answer"];
+            this.expandedQuery = _data["expandedQuery"];
+            this.systemPrompt = _data["systemPrompt"];
+            if (Array.isArray(_data["retrievedChunks"])) {
+                this.retrievedChunks = [] as any;
+                for (let item of _data["retrievedChunks"])
+                    this.retrievedChunks!.push(RagFeedbackChunkDto.fromJS(item));
+            }
             this.topK = _data["topK"];
             this.sourceCount = _data["sourceCount"];
             this.durationMs = _data["durationMs"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.userId = _data["userId"];
             this.userName = _data["userName"];
+            this.conversationId = _data["conversationId"];
+            this.topic = _data["topic"];
+            this.sentAnswer = _data["sentAnswer"];
+            this.wasEdited = _data["wasEdited"];
+            this.sentAt = _data["sentAt"] ? new Date(_data["sentAt"].toString()) : <any>undefined;
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
             this.feedbackComment = _data["feedbackComment"];
@@ -24109,9 +24321,9 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
         }
     }
 
-    static fromJS(data: any): FeedbackLogSummary {
+    static fromJS(data: any): RagFeedbackLogSummary {
         data = typeof data === 'object' ? data : {};
-        let result = new FeedbackLogSummary();
+        let result = new RagFeedbackLogSummary();
         result.init(data);
         return result;
     }
@@ -24119,14 +24331,27 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
+        data["feature"] = this.feature;
         data["question"] = this.question;
         data["answer"] = this.answer;
+        data["expandedQuery"] = this.expandedQuery;
+        data["systemPrompt"] = this.systemPrompt;
+        if (Array.isArray(this.retrievedChunks)) {
+            data["retrievedChunks"] = [];
+            for (let item of this.retrievedChunks)
+                data["retrievedChunks"].push(item.toJSON());
+        }
         data["topK"] = this.topK;
         data["sourceCount"] = this.sourceCount;
         data["durationMs"] = this.durationMs;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["userId"] = this.userId;
         data["userName"] = this.userName;
+        data["conversationId"] = this.conversationId;
+        data["topic"] = this.topic;
+        data["sentAnswer"] = this.sentAnswer;
+        data["wasEdited"] = this.wasEdited;
+        data["sentAt"] = this.sentAt ? this.sentAt.toISOString() : <any>undefined;
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
         data["feedbackComment"] = this.feedbackComment;
@@ -24135,29 +24360,95 @@ export class FeedbackLogSummary implements IFeedbackLogSummary {
     }
 }
 
-export interface IFeedbackLogSummary {
+export interface IRagFeedbackLogSummary {
     id?: string;
+    feature?: RagFeature;
     question?: string;
     answer?: string;
+    expandedQuery?: string | undefined;
+    systemPrompt?: string;
+    retrievedChunks?: RagFeedbackChunkDto[];
     topK?: number;
     sourceCount?: number;
     durationMs?: number;
     createdAt?: Date;
     userId?: string | undefined;
     userName?: string | undefined;
+    conversationId?: string | undefined;
+    topic?: string | undefined;
+    sentAnswer?: string | undefined;
+    wasEdited?: boolean | undefined;
+    sentAt?: Date | undefined;
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
     hasFeedback?: boolean;
 }
 
-export class FeedbackStatsDto implements IFeedbackStatsDto {
+export enum RagFeature {
+    KnowledgeBase = "KnowledgeBase",
+    SmartsuppDraftReply = "SmartsuppDraftReply",
+}
+
+export class RagFeedbackChunkDto implements IRagFeedbackChunkDto {
+    chunkId?: string;
+    documentId?: string;
+    filename?: string;
+    score?: number;
+    content?: string;
+
+    constructor(data?: IRagFeedbackChunkDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.chunkId = _data["chunkId"];
+            this.documentId = _data["documentId"];
+            this.filename = _data["filename"];
+            this.score = _data["score"];
+            this.content = _data["content"];
+        }
+    }
+
+    static fromJS(data: any): RagFeedbackChunkDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new RagFeedbackChunkDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["chunkId"] = this.chunkId;
+        data["documentId"] = this.documentId;
+        data["filename"] = this.filename;
+        data["score"] = this.score;
+        data["content"] = this.content;
+        return data;
+    }
+}
+
+export interface IRagFeedbackChunkDto {
+    chunkId?: string;
+    documentId?: string;
+    filename?: string;
+    score?: number;
+    content?: string;
+}
+
+export class RagFeedbackStatsDto implements IRagFeedbackStatsDto {
     totalQuestions?: number;
     totalWithFeedback?: number;
     avgPrecisionScore?: number | undefined;
     avgStyleScore?: number | undefined;
 
-    constructor(data?: IFeedbackStatsDto) {
+    constructor(data?: IRagFeedbackStatsDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -24175,9 +24466,9 @@ export class FeedbackStatsDto implements IFeedbackStatsDto {
         }
     }
 
-    static fromJS(data: any): FeedbackStatsDto {
+    static fromJS(data: any): RagFeedbackStatsDto {
         data = typeof data === 'object' ? data : {};
-        let result = new FeedbackStatsDto();
+        let result = new RagFeedbackStatsDto();
         result.init(data);
         return result;
     }
@@ -24192,7 +24483,7 @@ export class FeedbackStatsDto implements IFeedbackStatsDto {
     }
 }
 
-export interface IFeedbackStatsDto {
+export interface IRagFeedbackStatsDto {
     totalQuestions?: number;
     totalWithFeedback?: number;
     avgPrecisionScore?: number | undefined;
@@ -38842,6 +39133,7 @@ export class ConversationDto implements IConversationDto {
     locationIp?: string | undefined;
     variables?: { [key: string]: string; };
     otherConversations?: ConversationSummaryDto[];
+    activeViewers?: ConversationPresenceDto[];
 
     constructor(data?: IConversationDto) {
         if (data) {
@@ -38913,6 +39205,11 @@ export class ConversationDto implements IConversationDto {
                 this.otherConversations = [] as any;
                 for (let item of _data["otherConversations"])
                     this.otherConversations!.push(ConversationSummaryDto.fromJS(item));
+            }
+            if (Array.isArray(_data["activeViewers"])) {
+                this.activeViewers = [] as any;
+                for (let item of _data["activeViewers"])
+                    this.activeViewers!.push(ConversationPresenceDto.fromJS(item));
             }
         }
     }
@@ -38986,6 +39283,11 @@ export class ConversationDto implements IConversationDto {
             for (let item of this.otherConversations)
                 data["otherConversations"].push(item.toJSON());
         }
+        if (Array.isArray(this.activeViewers)) {
+            data["activeViewers"] = [];
+            for (let item of this.activeViewers)
+                data["activeViewers"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -39023,6 +39325,7 @@ export interface IConversationDto {
     locationIp?: string | undefined;
     variables?: { [key: string]: string; };
     otherConversations?: ConversationSummaryDto[];
+    activeViewers?: ConversationPresenceDto[];
 }
 
 export class ConversationSummaryDto implements IConversationSummaryDto {
@@ -39075,6 +39378,58 @@ export interface IConversationSummaryDto {
     lastMessageAt?: Date | undefined;
     lastMessagePreview?: string | undefined;
     isUnread?: boolean;
+}
+
+export class ConversationPresenceDto implements IConversationPresenceDto {
+    agentId?: string;
+    displayName?: string;
+    source?: string;
+    isCurrentUser?: boolean;
+    enteredAt?: Date;
+
+    constructor(data?: IConversationPresenceDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.agentId = _data["agentId"];
+            this.displayName = _data["displayName"];
+            this.source = _data["source"];
+            this.isCurrentUser = _data["isCurrentUser"];
+            this.enteredAt = _data["enteredAt"] ? new Date(_data["enteredAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): ConversationPresenceDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConversationPresenceDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["agentId"] = this.agentId;
+        data["displayName"] = this.displayName;
+        data["source"] = this.source;
+        data["isCurrentUser"] = this.isCurrentUser;
+        data["enteredAt"] = this.enteredAt ? this.enteredAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IConversationPresenceDto {
+    agentId?: string;
+    displayName?: string;
+    source?: string;
+    isCurrentUser?: boolean;
+    enteredAt?: Date;
 }
 
 export class GetConversationResponse extends BaseResponse implements IGetConversationResponse {
@@ -39219,6 +39574,7 @@ export interface IMessageDto {
 }
 
 export class GenerateDraftReplyResponse extends BaseResponse implements IGenerateDraftReplyResponse {
+    id?: string | undefined;
     answer?: string;
     sources?: DraftReplySource[];
 
@@ -39229,6 +39585,7 @@ export class GenerateDraftReplyResponse extends BaseResponse implements IGenerat
     override init(_data?: any) {
         super.init(_data);
         if (_data) {
+            this.id = _data["id"];
             this.answer = _data["answer"];
             if (Array.isArray(_data["sources"])) {
                 this.sources = [] as any;
@@ -39247,6 +39604,7 @@ export class GenerateDraftReplyResponse extends BaseResponse implements IGenerat
 
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
         data["answer"] = this.answer;
         if (Array.isArray(this.sources)) {
             data["sources"] = [];
@@ -39259,6 +39617,7 @@ export class GenerateDraftReplyResponse extends BaseResponse implements IGenerat
 }
 
 export interface IGenerateDraftReplyResponse extends IBaseResponse {
+    id?: string | undefined;
     answer?: string;
     sources?: DraftReplySource[];
 }
@@ -39720,6 +40079,7 @@ export interface ISendMessageResponse extends IBaseResponse {
 
 export class SendMessageBody implements ISendMessageBody {
     content?: string;
+    draftLogId?: string | undefined;
 
     constructor(data?: ISendMessageBody) {
         if (data) {
@@ -39733,6 +40093,7 @@ export class SendMessageBody implements ISendMessageBody {
     init(_data?: any) {
         if (_data) {
             this.content = _data["content"];
+            this.draftLogId = _data["draftLogId"];
         }
     }
 
@@ -39746,12 +40107,150 @@ export class SendMessageBody implements ISendMessageBody {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["content"] = this.content;
+        data["draftLogId"] = this.draftLogId;
         return data;
     }
 }
 
 export interface ISendMessageBody {
     content?: string;
+    draftLogId?: string | undefined;
+}
+
+export class SubmitDraftReplyFeedbackResponse extends BaseResponse implements ISubmitDraftReplyFeedbackResponse {
+
+    constructor(data?: ISubmitDraftReplyFeedbackResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): SubmitDraftReplyFeedbackResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitDraftReplyFeedbackResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISubmitDraftReplyFeedbackResponse extends IBaseResponse {
+}
+
+export class SubmitDraftReplyFeedbackRequest implements ISubmitDraftReplyFeedbackRequest {
+    logId?: string;
+    precisionScore?: number;
+    styleScore?: number;
+    comment?: string | undefined;
+
+    constructor(data?: ISubmitDraftReplyFeedbackRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.logId = _data["logId"];
+            this.precisionScore = _data["precisionScore"];
+            this.styleScore = _data["styleScore"];
+            this.comment = _data["comment"];
+        }
+    }
+
+    static fromJS(data: any): SubmitDraftReplyFeedbackRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitDraftReplyFeedbackRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["logId"] = this.logId;
+        data["precisionScore"] = this.precisionScore;
+        data["styleScore"] = this.styleScore;
+        data["comment"] = this.comment;
+        return data;
+    }
+}
+
+export interface ISubmitDraftReplyFeedbackRequest {
+    logId?: string;
+    precisionScore?: number;
+    styleScore?: number;
+    comment?: string | undefined;
+}
+
+export class GetDraftReplyFeedbackListResponse extends BaseResponse implements IGetDraftReplyFeedbackListResponse {
+    logs?: RagFeedbackLogSummary[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+    stats?: RagFeedbackStatsDto;
+
+    constructor(data?: IGetDraftReplyFeedbackListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["logs"])) {
+                this.logs = [] as any;
+                for (let item of _data["logs"])
+                    this.logs!.push(RagFeedbackLogSummary.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+            this.stats = _data["stats"] ? RagFeedbackStatsDto.fromJS(_data["stats"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetDraftReplyFeedbackListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetDraftReplyFeedbackListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.logs)) {
+            data["logs"] = [];
+            for (let item of this.logs)
+                data["logs"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        data["stats"] = this.stats ? this.stats.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetDraftReplyFeedbackListResponse extends IBaseResponse {
+    logs?: RagFeedbackLogSummary[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+    stats?: RagFeedbackStatsDto;
 }
 
 export class CloseConversationResponse extends BaseResponse implements ICloseConversationResponse {
@@ -39779,6 +40278,60 @@ export class CloseConversationResponse extends BaseResponse implements ICloseCon
 }
 
 export interface ICloseConversationResponse extends IBaseResponse {
+}
+
+export class RecordPresenceResponse extends BaseResponse implements IRecordPresenceResponse {
+
+    constructor(data?: IRecordPresenceResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): RecordPresenceResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecordPresenceResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRecordPresenceResponse extends IBaseResponse {
+}
+
+export class RemovePresenceResponse extends BaseResponse implements IRemovePresenceResponse {
+
+    constructor(data?: IRemovePresenceResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): RemovePresenceResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RemovePresenceResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRemovePresenceResponse extends IBaseResponse {
 }
 
 export class RefreshOrphanContactsResponse extends BaseResponse implements IRefreshOrphanContactsResponse {
