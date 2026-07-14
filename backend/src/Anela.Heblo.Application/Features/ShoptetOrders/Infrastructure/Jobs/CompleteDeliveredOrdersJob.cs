@@ -81,7 +81,7 @@ public sealed class CompleteDeliveredOrdersJob : IRecurringJob
                         "CompleteDeliveredOrders: order {OrderCode} moved from state {StateId} to {TargetState} (delivered).",
                         order.Code, stateId, targetState);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogWarning(ex,
                         "CompleteDeliveredOrders: failed to complete order {OrderCode}. Will retry next run.",
