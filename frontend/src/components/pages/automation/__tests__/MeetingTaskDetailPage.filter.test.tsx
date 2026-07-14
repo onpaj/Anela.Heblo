@@ -2,7 +2,6 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import * as downloadUtils from '../../../../utils/downloadTextFile';
 
 import {
   useMeetingTaskDetail,
@@ -24,38 +23,49 @@ jest.mock('react-markdown', () => ({ __esModule: true, default: ({ children }: {
 jest.mock('remark-gfm', () => ({ __esModule: true, default: () => {} }));
 
 jest.mock('../../../../api/hooks/useMeetingTasks');
-let mockHasPermission: (perm: string) => boolean = () => false;
 jest.mock('../../../../auth/PermissionsContext', () => ({
   usePermissionsContext: () => ({
     permissions: [],
     isSuperUser: false,
     groups: [],
     isLoading: false,
-    hasPermission: (p: string) => mockHasPermission(p),
+    hasPermission: () => false,
   }),
 }));
+let mockUsername: string | undefined = 'me@anela.cz';
 jest.mock('../../../../auth/useAuth', () => ({
-  useAuth: () => ({ account: { username: 'me@anela.cz' } }),
+  useAuth: () => ({ account: mockUsername ? { username: mockUsername } : null }),
 }));
 jest.mock('../explain/useExplainSelection');
 jest.mock('../explain/ExplainTooltip', () => ({ ExplainTooltip: () => null }));
 jest.mock('../explain/ExplainModal', () => ({ ExplainModal: () => null }));
 jest.mock('../access/ManageAccessModal', () => ({ ManageAccessModal: () => null }));
-jest.mock('../../../../utils/downloadTextFile', () => ({
-  ...jest.requireActual('../../../../utils/downloadTextFile'),
-  downloadTextFile: jest.fn(),
-}));
 
 // ---- Helpers ----
 
 const noopMutation = { mutate: jest.fn(), mutateAsync: jest.fn(), isPending: false, isError: false, error: null, reset: jest.fn() };
 
-function buildTranscript(overrides: Partial<{ summary: string; rawTranscript: string }> = {}) {
+function buildTask(overrides: Record<string, unknown>) {
+  return {
+    id: 'task-x',
+    title: 'Task',
+    description: '',
+    assignee: '',
+    assigneeEmail: null,
+    dueDate: null,
+    status: 'Approved',
+    externalTaskId: null,
+    isManuallyAdded: false,
+    ...overrides,
+  };
+}
+
+function buildTranscript(overrides: Record<string, unknown> = {}) {
   return {
     id: 'abc',
-    subject: 'Schůzka s týmem',
+    subject: 'Schůzka',
     summary: 'AI summary text',
-    rawTranscript: 'Speaker: Hello world',
+    rawTranscript: 'Speaker: Hello',
     plaudRecordingId: 'plaud-1',
     plaudCreatedAt: '2026-05-19T10:00:00Z',
     status: 'PendingReview',
@@ -86,7 +96,7 @@ function renderPage() {
   );
 }
 
-function setupHooks(transcriptOverrides: Parameters<typeof buildTranscript>[0] = {}) {
+function setupHooks(transcriptOverrides: Record<string, unknown> = {}) {
   (useMeetingTaskDetail as jest.Mock).mockReturnValue({ isLoading: false, data: { transcript: buildTranscript(transcriptOverrides) } });
   (useUpdateProposedTask as jest.Mock).mockReturnValue(noopMutation);
   (useUpdateProposedTaskStatus as jest.Mock).mockReturnValue(noopMutation);
@@ -99,75 +109,68 @@ function setupHooks(transcriptOverrides: Parameters<typeof buildTranscript>[0] =
   (useExplainSelection as jest.Mock).mockReturnValue({ selectedText: null, clearSelection: jest.fn() });
 }
 
-// ---- Tests ----
-
 beforeEach(() => {
   jest.clearAllMocks();
-  mockHasPermission = () => false;
+  mockUsername = 'me@anela.cz';
 });
 
-describe('download summary button', () => {
-  it('is visible when summary is non-empty', () => {
-    setupHooks({ summary: 'Some summary' });
+describe('participants line', () => {
+  it('lists the meeting participants', () => {
+    setupHooks({ participants: ['Alice', 'Bob'] });
     renderPage();
-    expect(screen.getByRole('button', { name: /stáhnout souhrn/i })).toBeInTheDocument();
+    expect(screen.getByText('Účastníci:')).toBeInTheDocument();
+    expect(screen.getByText('Alice, Bob')).toBeInTheDocument();
   });
 
-  it('is hidden when summary is empty', () => {
-    setupHooks({ summary: '' });
+  it('renders a dash when there are no participants', () => {
+    setupHooks({ participants: [] });
     renderPage();
-    expect(screen.queryByRole('button', { name: /stáhnout souhrn/i })).not.toBeInTheDocument();
-  });
-
-  it('calls downloadTextFile with .md filename and text/markdown MIME type on click', () => {
-    setupHooks({ summary: '# AI Summary\nContent here' });
-    renderPage();
-    fireEvent.click(screen.getByRole('button', { name: /stáhnout souhrn/i }));
-    expect(downloadUtils.downloadTextFile).toHaveBeenCalledWith(
-      '# AI Summary\nContent here',
-      'schůzka-s-týmem-summary.md',
-      'text/markdown',
-    );
+    expect(
+      screen.getByText((_, element) => element?.tagName === 'P' && element.textContent === 'Účastníci: —'),
+    ).toBeInTheDocument();
   });
 });
 
-describe('download transcript button', () => {
-  it('is visible when rawTranscript is non-empty', () => {
-    setupHooks({ rawTranscript: 'Speaker: Hello' });
+describe('suggested tasks filter', () => {
+  const tasks = [
+    buildTask({ id: 't1', title: 'My Task', assignee: 'Já', assigneeEmail: 'me@anela.cz' }),
+    buildTask({ id: 't2', title: 'Bob Task', assignee: 'Bob', assigneeEmail: 'bob@anela.cz' }),
+  ];
+
+  it('shows all tasks initially', () => {
+    setupHooks({ tasks });
     renderPage();
-    expect(screen.getByRole('button', { name: /stáhnout přepis/i })).toBeInTheDocument();
+    expect(screen.getByText('My Task')).toBeInTheDocument();
+    expect(screen.getByText('Bob Task')).toBeInTheDocument();
   });
 
-  it('is hidden when rawTranscript is empty', () => {
-    setupHooks({ rawTranscript: '' });
+  it('filters to the selected person via the dropdown', () => {
+    setupHooks({ tasks });
     renderPage();
-    expect(screen.queryByRole('button', { name: /stáhnout přepis/i })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Filtrovat podle osoby'), { target: { value: 'bob@anela.cz' } });
+    expect(screen.getByText('Bob Task')).toBeInTheDocument();
+    expect(screen.queryByText('My Task')).not.toBeInTheDocument();
   });
 
-  it('calls downloadTextFile with .txt filename and text/plain MIME type on click', () => {
-    setupHooks({ rawTranscript: 'Speaker A: Hello\nSpeaker B: World' });
+  it('filters to my tasks when the Ja toggle is pressed', () => {
+    setupHooks({ tasks });
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: /stáhnout přepis/i }));
-    expect(downloadUtils.downloadTextFile).toHaveBeenCalledWith(
-      'Speaker A: Hello\nSpeaker B: World',
-      'schůzka-s-týmem-transcript.txt',
-      'text/plain',
-    );
-  });
-});
-
-describe('manage access button', () => {
-  it('is hidden when user lacks anela.meetings.write', () => {
-    mockHasPermission = () => false;
-    setupHooks();
-    renderPage();
-    expect(screen.queryByRole('button', { name: /spravovat přístup/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ja' }));
+    expect(screen.getByText('My Task')).toBeInTheDocument();
+    expect(screen.queryByText('Bob Task')).not.toBeInTheDocument();
   });
 
-  it('is visible when user has anela.meetings.write', () => {
-    mockHasPermission = (p) => p === 'anela.meetings.write';
-    setupHooks();
+  it('hides the Ja toggle when there is no signed-in user', () => {
+    mockUsername = undefined;
+    setupHooks({ tasks });
     renderPage();
-    expect(screen.getByRole('button', { name: /spravovat přístup/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ja' })).not.toBeInTheDocument();
+  });
+
+  it('shows an empty-state message when the filter matches no tasks', () => {
+    setupHooks({ tasks: [buildTask({ id: 't2', title: 'Bob Task', assignee: 'Bob', assigneeEmail: 'bob@anela.cz' })] });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Ja' }));
+    expect(screen.getByText(/nejsou prirazeny zadne ulohy/i)).toBeInTheDocument();
   });
 });

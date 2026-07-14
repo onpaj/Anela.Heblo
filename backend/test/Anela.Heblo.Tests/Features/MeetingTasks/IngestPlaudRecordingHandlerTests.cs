@@ -74,7 +74,7 @@ public sealed class IngestPlaudRecordingHandlerTests
 
         _mockExtractor
             .Setup(e => e.ExtractAsync(summary, transcript, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(extractedTasks);
+            .ReturnsAsync(new MeetingExtractionResult(extractedTasks, new List<string> { "Alice", "Bob" }));
 
         _mockRepository
             .Setup(r => r.AddAsync(It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
@@ -98,6 +98,7 @@ public sealed class IngestPlaudRecordingHandlerTests
                     t.PlaudRecordingId == recordingId &&
                     t.Status == MeetingTranscriptStatus.PendingReview &&
                     t.Tasks.Count == 2 &&
+                    t.Participants.SequenceEqual(new[] { "Alice", "Bob" }) &&
                     t.Tasks.All(task => task.MeetingTranscriptId == t.Id && task.Status == ProposedTaskStatus.Pending && !task.IsManuallyAdded)),
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -178,7 +179,7 @@ public sealed class IngestPlaudRecordingHandlerTests
 
         _mockExtractor
             .Setup(e => e.ExtractAsync(summary, transcript, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>());
+            .ReturnsAsync(new MeetingExtractionResult(new List<ExtractedTask>(), new List<string>()));
 
         _mockRepository
             .Setup(r => r.AddAsync(It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
@@ -226,10 +227,12 @@ public sealed class IngestPlaudRecordingHandlerTests
             .ReturnsAsync(new PlaudSummaryResult("Headline", "summary"));
         _mockExtractor
             .Setup(e => e.ExtractAsync("summary", "transcript", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>
-            {
-                new("Task", "Desc", "Andy", null, AssigneeEmail: null)
-            });
+            .ReturnsAsync(new MeetingExtractionResult(
+                new List<ExtractedTask>
+                {
+                    new("Task", "Desc", "Andy", null, AssigneeEmail: null)
+                },
+                new List<string>()));
         _mockDirectory
             .Setup(d => d.Resolve("Andy"))
             .Returns(new MeetingUser("andrea@anela.cz", "Andrea Nováková", new[] { "Andy" }));
@@ -309,7 +312,7 @@ public sealed class IngestPlaudRecordingHandlerTests
             .ReturnsAsync(new PlaudSummaryResult("2026-05-18 10:25:12", "summary"));
         _mockExtractor
             .Setup(e => e.ExtractAsync("summary", "transcript", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>());
+            .ReturnsAsync(new MeetingExtractionResult(new List<ExtractedTask>(), new List<string>()));
 
         MeetingTranscript? saved = null;
         _mockRepository
@@ -353,7 +356,7 @@ public sealed class IngestPlaudRecordingHandlerTests
             .ReturnsAsync(new PlaudSummaryResult("Generated Meeting Title", "summary"));
         _mockExtractor
             .Setup(e => e.ExtractAsync("summary", "transcript", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>());
+            .ReturnsAsync(new MeetingExtractionResult(new List<ExtractedTask>(), new List<string>()));
 
         MeetingTranscript? saved = null;
         _mockRepository
@@ -397,7 +400,7 @@ public sealed class IngestPlaudRecordingHandlerTests
             .ReturnsAsync(new PlaudSummaryResult("Generated Meeting Title", "summary"));
         _mockExtractor
             .Setup(e => e.ExtractAsync("summary", "transcript", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>());
+            .ReturnsAsync(new MeetingExtractionResult(new List<ExtractedTask>(), new List<string>()));
 
         MeetingTranscript? saved = null;
         _mockRepository

@@ -16,6 +16,7 @@ public class MeetingTranscriptDto
     public int ApprovedTaskCount { get; set; }
     public int RejectedTaskCount { get; set; }
     public List<ProposedTaskDto> Tasks { get; set; } = new();
+    public List<string> Participants { get; set; } = new();
     public string AccessLevel { get; set; } = "Private";
     public List<MeetingAccessGrantDto> AccessGrants { get; set; } = new();
 }

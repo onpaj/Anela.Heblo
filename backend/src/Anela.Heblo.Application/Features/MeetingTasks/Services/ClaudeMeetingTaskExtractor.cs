@@ -8,16 +8,18 @@ namespace Anela.Heblo.Application.Features.MeetingTasks.Services;
 public sealed class ClaudeMeetingTaskExtractor : IMeetingTaskExtractor
 {
     private const string BasePrompt = """
-        Jsi asistent, který z transkriptu schůzky extrahuje akční položky.
-        Z dodaného souhrnu a transkriptu schůzky extrahuj všechny akční položky.
-        Vrať POUZE JSON pole (bez dalšího textu) obsahující objekty s těmito poli:
-        - title: stručný název úkolu
-        - description: podrobný popis úkolu
-        - assignee: jméno osoby odpovědné za splnění (nebo prázdný řetězec)
-        - assigneeEmail: e-mail osoby ze seznamu známých uživatelů níže, pokud
-          jméno nebo přezdívku v transkriptu dokážeš spolehlivě přiřadit ke
-          konkrétnímu uživateli; jinak null
-        - dueDate: datum splnění ve formátu ISO 8601 (nebo null)
+        Jsi asistent, který z transkriptu schůzky extrahuje účastníky a akční položky.
+        Vrať POUZE JSON objekt (bez dalšího textu) s těmito poli:
+        - participants: pole jmen všech osob, které se schůzky zúčastnily (odvoď z
+          transkriptu; každé jméno uveď jen jednou, bez duplicit)
+        - tasks: pole akčních položek, kde každá položka má tato pole:
+          - title: stručný název úkolu
+          - description: podrobný popis úkolu
+          - assignee: jméno osoby odpovědné za splnění (nebo prázdný řetězec)
+          - assigneeEmail: e-mail osoby ze seznamu známých uživatelů níže, pokud
+            jméno nebo přezdívku v transkriptu dokážeš spolehlivě přiřadit ke
+            konkrétnímu uživateli; jinak null
+          - dueDate: datum splnění ve formátu ISO 8601 (nebo null)
         """;
 
     private const string NoUsersNote =
@@ -40,7 +42,7 @@ public sealed class ClaudeMeetingTaskExtractor : IMeetingTaskExtractor
         _logger = logger;
     }
 
-    public async Task<List<ExtractedTask>> ExtractAsync(
+    public async Task<MeetingExtractionResult> ExtractAsync(
         string summary,
         string transcript,
         CancellationToken ct = default)
@@ -60,27 +62,44 @@ public sealed class ClaudeMeetingTaskExtractor : IMeetingTaskExtractor
 
             try
             {
-                var result = JsonSerializer.Deserialize<List<ExtractedTask>>(text, JsonOptions) ?? [];
+                var payload = JsonSerializer.Deserialize<ExtractionPayload>(text, JsonOptions);
+                var tasks = payload?.Tasks ?? [];
+                var participants = NormalizeParticipants(payload?.Participants);
 
-                if (result.Count == 0)
+                if (tasks.Count == 0)
                 {
                     _logger.LogWarning("Meeting task extraction completed with no tasks — Claude returned an empty array");
                 }
 
-                return result;
+                return new MeetingExtractionResult(tasks, participants);
             }
             catch (JsonException ex)
             {
                 _logger.LogError(ex, "Meeting task extraction returned malformed JSON — transcript will be imported without tasks");
-                return [];
+                return new MeetingExtractionResult([], []);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Meeting task extraction failed — transcript will be imported without tasks");
-            return [];
+            return new MeetingExtractionResult([], []);
         }
     }
+
+    private static List<string> NormalizeParticipants(List<string>? participants)
+    {
+        if (participants is null || participants.Count == 0)
+            return [];
+
+        return participants
+            .Select(p => p?.Trim())
+            .Where(p => !string.IsNullOrEmpty(p))
+            .Select(p => p!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private sealed record ExtractionPayload(List<string>? Participants, List<ExtractedTask>? Tasks);
 
     private string BuildSystemPrompt()
     {

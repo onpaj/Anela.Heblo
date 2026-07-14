@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   ArrowLeft, Check, X, Plus, Send, CheckCheck, Clock, CheckCircle, CheckCircle2,
-  ChevronDown, ChevronRight, AlertTriangle, RefreshCw, Download,
+  ChevronDown, ChevronRight, AlertTriangle, RefreshCw, Download, Undo2,
 } from "lucide-react";
 import {
   MeetingUserDto,
@@ -20,8 +20,12 @@ import {
   useSubmitToTodo,
   useUpdateProposedTask,
   useUpdateProposedTaskStatus,
+  useUpdateTranscriptStatus,
 } from "../../../api/hooks/useMeetingTasks";
+import { useUnsavedChangesDialog } from "../../../hooks/useUnsavedChangesDialog";
+import MeetingReviewLeaveDialog from "./MeetingReviewLeaveDialog";
 import { usePermissionsContext } from '../../../auth/PermissionsContext';
+import { useAuth } from '../../../auth/useAuth';
 import { useExplainSelection } from './explain/useExplainSelection';
 import { ExplainTooltip } from './explain/ExplainTooltip';
 import { ExplainModal } from './explain/ExplainModal';
@@ -90,8 +94,22 @@ const MeetingTaskDetailPage: React.FC = () => {
   const detail = useMeetingTaskDetail(id);
   const updateTask = useUpdateProposedTask();
   const updateStatus = useUpdateProposedTaskStatus();
+  const updateTranscriptStatus = useUpdateTranscriptStatus();
   const addTask = useAddProposedTask();
   const submitToTodo = useSubmitToTodo();
+
+  // Review-state leave guard: while a meeting is still "Ke kontrole" (PendingReview),
+  // leaving the detail prompts the user to mark it reviewed, leave it as-is, or stay.
+  const isPendingReview = detail.data?.transcript?.status === "PendingReview";
+  const markReviewed = async (): Promise<boolean> => {
+    try {
+      await updateTranscriptStatus.mutateAsync({ transcriptId: id, status: "Approved" });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const { dialogProps, requestNavigation } = useUnsavedChangesDialog(!!isPendingReview, markReviewed);
 
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<TaskFormData>(EMPTY_FORM);
@@ -106,6 +124,9 @@ const MeetingTaskDetailPage: React.FC = () => {
   const [reimportError, setReimportError] = useState<string | null>(null);
   const { hasPermission } = usePermissionsContext();
   const isMeetingManager = hasPermission('anela.meetings.write');
+  const { account } = useAuth();
+  const currentUserEmail = (account?.username ?? "").toLowerCase();
+  const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
 
   const explainSelection = useExplainSelection();
   const explainMutation = useExplainMeetingSummary();
@@ -145,6 +166,22 @@ const MeetingTaskDetailPage: React.FC = () => {
   const tasks: ProposedTaskDto[] = transcript.tasks;
   const pendingTasks = tasks.filter((t) => t.status === "Pending");
   const approvedCount = tasks.filter((t) => t.status === "Approved").length;
+
+  // Distinct assignees present on the tasks, used to populate the person filter.
+  const assigneeFilterKey = (t: ProposedTaskDto) => (t.assigneeEmail ?? t.assignee ?? "").trim();
+  const assigneeOptions = Array.from(
+    tasks.reduce((map, t) => {
+      const key = assigneeFilterKey(t);
+      if (key && !map.has(key)) map.set(key, t.assignee || key);
+      return map;
+    }, new Map<string, string>()),
+    ([value, label]) => ({ value, label }),
+  );
+  const isMineActive =
+    currentUserEmail !== "" && assigneeFilter?.toLowerCase() === currentUserEmail;
+  const visibleTasks = assigneeFilter
+    ? tasks.filter((t) => assigneeFilterKey(t).toLowerCase() === assigneeFilter.toLowerCase())
+    : tasks;
 
   const beginEdit = (t: ProposedTaskDto) => {
     setEditingTaskId(t.id);
@@ -215,9 +252,13 @@ const MeetingTaskDetailPage: React.FC = () => {
   return (
     <div className="flex flex-col w-full overflow-auto" style={{ height: PAGE_CONTAINER_HEIGHT }}>
       <div className="px-4 sm:px-6 lg:px-8 py-3">
-        <Link to="/automation/meeting-tasks" className="inline-flex items-center text-sm text-indigo-700 dark:text-graphite-accent hover:underline">
+        <button
+          type="button"
+          onClick={() => requestNavigation("/automation/meeting-tasks")}
+          className="inline-flex items-center text-sm text-indigo-700 dark:text-graphite-accent hover:underline"
+        >
           <ArrowLeft className="w-4 h-4 mr-1" /> Zpet na seznam
-        </Link>
+        </button>
       </div>
 
       <div className="px-4 sm:px-6 lg:px-8 flex items-start justify-between gap-4">
@@ -226,9 +267,35 @@ const MeetingTaskDetailPage: React.FC = () => {
           <p className="mt-1 text-sm text-gray-600 dark:text-graphite-muted">
             {new Date(transcript.plaudCreatedAt).toLocaleString("cs-CZ")} · {transcript.plaudRecordingId}
           </p>
+          <p className="mt-1 text-sm text-gray-600 dark:text-graphite-muted">
+            <span className="font-medium">Účastníci:</span>{" "}
+            {transcript.participants.length > 0 ? transcript.participants.join(", ") : "—"}
+          </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <TranscriptStatusBadge status={transcript.status} />
+          {isMeetingManager && transcript.status === "PendingReview" && (
+            <button
+              type="button"
+              onClick={() => updateTranscriptStatus.mutate({ transcriptId: id, status: "Approved" })}
+              disabled={updateTranscriptStatus.isPending}
+              className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5 dark:text-graphite-muted disabled:opacity-50"
+            >
+              <Check className="w-4 h-4 mr-1" aria-hidden="true" />
+              Označit jako schváleno
+            </button>
+          )}
+          {isMeetingManager && transcript.status === "Approved" && (
+            <button
+              type="button"
+              onClick={() => updateTranscriptStatus.mutate({ transcriptId: id, status: "PendingReview" })}
+              disabled={updateTranscriptStatus.isPending}
+              className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5 dark:text-graphite-muted disabled:opacity-50"
+            >
+              <Undo2 className="w-4 h-4 mr-1" aria-hidden="true" />
+              Vrátit ke kontrole
+            </button>
+          )}
           {transcript.accessLevel && (
             <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
               transcript.accessLevel === 'Public'
@@ -332,9 +399,36 @@ const MeetingTaskDetailPage: React.FC = () => {
 
       <div className="px-4 sm:px-6 lg:px-8 mt-6 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">
-          Navrhovane ulohy ({tasks.length})
+          Navrhovane ulohy ({assigneeFilter ? `${visibleTasks.length}/${tasks.length}` : tasks.length})
         </h2>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <select
+            aria-label="Filtrovat podle osoby"
+            value={assigneeFilter ?? ""}
+            onChange={(e) => setAssigneeFilter(e.target.value || null)}
+            className="border border-gray-300 rounded-md px-2 py-1.5 text-sm dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text"
+          >
+            <option value="">Vsichni resitele</option>
+            {assigneeOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          {currentUserEmail !== "" && (
+            <button
+              type="button"
+              aria-pressed={isMineActive}
+              onClick={() => setAssigneeFilter(isMineActive ? null : currentUserEmail)}
+              className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium border ${
+                isMineActive
+                  ? "bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700"
+                  : "bg-white dark:bg-graphite-surface text-gray-700 dark:text-graphite-muted border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5"
+              }`}
+            >
+              Ja
+            </button>
+          )}
           {pendingTasks.length > 0 && (
             <button
               type="button"
@@ -413,7 +507,12 @@ const MeetingTaskDetailPage: React.FC = () => {
       )}
 
       <div data-explainable="true" className="px-4 sm:px-6 lg:px-8 mt-3 space-y-2">
-        {tasks.map((t) => {
+        {assigneeFilter && visibleTasks.length === 0 && (
+          <p className="text-sm text-gray-500 dark:text-graphite-muted">
+            Zadnemu z vybranych resitelu nejsou prirazeny zadne ulohy.
+          </p>
+        )}
+        {visibleTasks.map((t) => {
           const isEditing = editingTaskId === t.id;
           const cardClass = t.status === "Approved"
             ? "bg-green-50 border-green-200 dark:bg-emerald-900/20 dark:border-emerald-900/40"
@@ -616,6 +715,8 @@ const MeetingTaskDetailPage: React.FC = () => {
           users={users.data ?? []}
         />
       )}
+
+      <MeetingReviewLeaveDialog {...dialogProps} />
     </div>
   );
 };
