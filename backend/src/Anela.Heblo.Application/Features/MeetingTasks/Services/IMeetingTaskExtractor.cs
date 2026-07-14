@@ -7,7 +7,9 @@ public record ExtractedTask(
     DateTime? DueDate,
     string? AssigneeEmail = null);
 
+public record MeetingExtractionResult(List<ExtractedTask> Tasks, List<string> Participants);
+
 public interface IMeetingTaskExtractor
 {
-    Task<List<ExtractedTask>> ExtractAsync(string summary, string transcript, CancellationToken ct = default);
+    Task<MeetingExtractionResult> ExtractAsync(string summary, string transcript, CancellationToken ct = default);
 }

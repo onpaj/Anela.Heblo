@@ -70,7 +70,7 @@ public class MaterialExpirationSummaryTile : ITile
                 },
                 drillDown = new
                 {
-                    filters = new { type = "Material" },
+                    filters = new { type = "Material", sortBy = "expiration", sortDescending = false },
                     enabled = true,
                     tooltip = "Zobrazit suroviny"
                 }

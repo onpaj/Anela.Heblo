@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq.Expressions;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -52,6 +53,18 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
             filter = filter.And(x => x.ProductCode.ToLowerInvariant().Contains(productCode.ToLowerInvariant()));
         }
 
+        // Filter by nearest lot expiration range. When set, only items that actually have
+        // an expiration (available lots with an expiration date) are returned.
+        if (TryParseExpirationBound(request.ExpirationFrom, out var expirationFrom))
+        {
+            filter = filter.And(x => x.MinimalExpiration.HasValue && x.MinimalExpiration.Value >= expirationFrom);
+        }
+
+        if (TryParseExpirationBound(request.ExpirationTo, out var expirationTo))
+        {
+            filter = filter.And(x => x.MinimalExpiration.HasValue && x.MinimalExpiration.Value <= expirationTo);
+        }
+
         // Get all filtered items (repository doesn't support paging directly)
         var allItems = await _catalogRepository.FindAsync(filter, cancellationToken);
 
@@ -69,6 +82,9 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
             "erp" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Erp) : query.OrderBy(x => x.Stock.Erp),
             "eshop" => request.SortDescending ? query.OrderByDescending(x => x.Stock.Eshop) : query.OrderBy(x => x.Stock.Eshop),
             "lastinventorydays" => ApplyLastInventoryDaysSorting(query, request.SortDescending),
+            "expiration" => request.SortDescending
+                ? query.OrderBy(x => !x.MinimalExpiration.HasValue).ThenByDescending(x => x.MinimalExpiration)
+                : query.OrderBy(x => !x.MinimalExpiration.HasValue).ThenBy(x => x.MinimalExpiration),
             _ => query.OrderBy(x => x.ProductCode) // Default sort by ProductCode
         };
 
@@ -92,6 +108,9 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
             PageSize = request.PageSize
         };
     }
+
+    private static bool TryParseExpirationBound(string? value, out DateOnly date)
+        => DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
 
     private static IQueryable<CatalogAggregate> ApplyLastInventoryDaysSorting(IQueryable<CatalogAggregate> query, bool sortDescending)
     {

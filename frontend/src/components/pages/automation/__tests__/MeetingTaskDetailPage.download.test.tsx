@@ -8,6 +8,7 @@ import {
   useMeetingTaskDetail,
   useUpdateProposedTask,
   useUpdateProposedTaskStatus,
+  useUpdateTranscriptStatus,
   useAddProposedTask,
   useSubmitToTodo,
   useMeetingUsers,
@@ -32,6 +33,9 @@ jest.mock('../../../../auth/PermissionsContext', () => ({
     isLoading: false,
     hasPermission: (p: string) => mockHasPermission(p),
   }),
+}));
+jest.mock('../../../../auth/useAuth', () => ({
+  useAuth: () => ({ account: { username: 'me@anela.cz' } }),
 }));
 jest.mock('../explain/useExplainSelection');
 jest.mock('../explain/ExplainTooltip', () => ({ ExplainTooltip: () => null }));
@@ -62,6 +66,7 @@ function buildTranscript(overrides: Partial<{ summary: string; rawTranscript: st
     approvedTaskCount: 0,
     rejectedTaskCount: 0,
     tasks: [],
+    participants: [],
     accessLevel: 'Private' as const,
     accessGrants: [],
     ...overrides,
@@ -85,6 +90,7 @@ function setupHooks(transcriptOverrides: Parameters<typeof buildTranscript>[0] =
   (useMeetingTaskDetail as jest.Mock).mockReturnValue({ isLoading: false, data: { transcript: buildTranscript(transcriptOverrides) } });
   (useUpdateProposedTask as jest.Mock).mockReturnValue(noopMutation);
   (useUpdateProposedTaskStatus as jest.Mock).mockReturnValue(noopMutation);
+  (useUpdateTranscriptStatus as jest.Mock).mockReturnValue(noopMutation);
   (useAddProposedTask as jest.Mock).mockReturnValue(noopMutation);
   (useSubmitToTodo as jest.Mock).mockReturnValue(noopMutation);
   (useMeetingUsers as jest.Mock).mockReturnValue({ data: [] });
