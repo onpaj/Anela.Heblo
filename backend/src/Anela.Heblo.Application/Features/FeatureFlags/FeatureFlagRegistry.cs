@@ -13,6 +13,9 @@ public static class FeatureFlagRegistry
         new(FeatureFlagKeys.DeliveredOrderCompletion,
             Description: "When on, the delivered-orders job changes order state to 'vyřízena' and writes the remark; when off it only logs what it would do (dry run).",
             DefaultValue: false),
+        new(FeatureFlagKeys.DeliveredOrderCompletionTestSource,
+            Description: "When on, the delivered-orders job polls test state 73 (Oprava-robot) instead of the production 'handed to carrier' states 70/82.",
+            DefaultValue: false),
     ];
 
     public static readonly IReadOnlyDictionary<string, FeatureFlagDefinition> ByKey =
