@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -34,6 +35,28 @@ const productTypeLabels: Record<ProductType, string> = {
   [ProductType.UNDEFINED]: "Nedefinováno",
 };
 
+// Expiration bucket boundaries - keep in sync with the "Expirace surovin" dashboard tile
+// (MaterialExpirationSummaryTile: SoonDays = 30, HorizonDays = 90).
+const EXPIRATION_SOON_DAYS = 30;
+const EXPIRATION_HORIZON_DAYS = 90;
+
+const startOfToday = (): Date => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+
+const addDays = (date: Date, days: number): Date => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+// Format a Date to a local "yyyy-MM-dd" string (matches <input type="date"> values)
+const toIsoDate = (date: Date): string => {
+  const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
 const ManufactureInventoryList: React.FC = () => {
   useScreenView('Manufacturing', 'ManufactureInventory');
 
@@ -47,6 +70,12 @@ const ManufactureInventoryList: React.FC = () => {
     ProductType.Material,
   );
 
+  // Expiration range filter - ISO "yyyy-MM-dd" strings (as produced by <input type="date">)
+  const [expirationFromInput, setExpirationFromInput] = useState("");
+  const [expirationToInput, setExpirationToInput] = useState("");
+  const [expirationFromFilter, setExpirationFromFilter] = useState("");
+  const [expirationToFilter, setExpirationToFilter] = useState("");
+
   // Pagination states
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -54,6 +83,9 @@ const ManufactureInventoryList: React.FC = () => {
   // Sorting states - default sort by lastInventoryDays descending
   const [sortBy, setSortBy] = useState<string>("lastInventoryDays");
   const [sortDescending, setSortDescending] = useState(true);
+
+  // Read initial sort from URL (e.g. when navigating from the material expiration dashboard tile)
+  const [searchParams] = useSearchParams();
 
   // Modal states
   const [selectedItem, setSelectedItem] = useState<CatalogItemDto | null>(null);
@@ -75,6 +107,8 @@ const ManufactureInventoryList: React.FC = () => {
     pageSize,
     sortBy,
     sortDescending,
+    expirationFromFilter,
+    expirationToFilter,
   );
 
   // Items are already filtered by the manufacture inventory hook
@@ -87,6 +121,8 @@ const ManufactureInventoryList: React.FC = () => {
   const handleApplyFilters = async () => {
     setProductNameFilter(productNameInput);
     setProductCodeFilter(productCodeInput);
+    setExpirationFromFilter(expirationFromInput);
+    setExpirationToFilter(expirationToInput);
     setPageNumber(1);
 
     await refetch();
@@ -106,9 +142,41 @@ const ManufactureInventoryList: React.FC = () => {
     setProductNameFilter("");
     setProductCodeFilter("");
     setProductTypeFilter(ProductType.Material);
+    setExpirationFromInput("");
+    setExpirationToInput("");
+    setExpirationFromFilter("");
+    setExpirationToFilter("");
     setPageNumber(1);
 
     await refetch();
+  };
+
+  // Prefill and apply an expiration range preset (dates as ISO "yyyy-MM-dd")
+  const applyExpirationPreset = (from: string, to: string) => {
+    setExpirationFromInput(from);
+    setExpirationToInput(to);
+    setExpirationFromFilter(from);
+    setExpirationToFilter(to);
+    setPageNumber(1);
+  };
+
+  // Expiration bucket presets - mirror the "Expirace surovin" dashboard tile boundaries
+  const handleExpiredPreset = () => {
+    // Everything up to and including yesterday = expired (expiration < today)
+    applyExpirationPreset("", toIsoDate(addDays(startOfToday(), -1)));
+  };
+
+  const handleWithin30Preset = () => {
+    const today = startOfToday();
+    applyExpirationPreset(toIsoDate(today), toIsoDate(addDays(today, EXPIRATION_SOON_DAYS)));
+  };
+
+  const handleWithin90Preset = () => {
+    const today = startOfToday();
+    applyExpirationPreset(
+      toIsoDate(addDays(today, EXPIRATION_SOON_DAYS + 1)),
+      toIsoDate(addDays(today, EXPIRATION_HORIZON_DAYS)),
+    );
   };
 
   // Sorting handler
@@ -137,6 +205,18 @@ const ManufactureInventoryList: React.FC = () => {
   React.useEffect(() => {
     setPageNumber(1);
   }, [productTypeFilter]);
+
+  // Seed sort state from URL query params (e.g. from the expiration dashboard tile)
+  React.useEffect(() => {
+    const sortByParam = searchParams.get("sortBy");
+    const sortDescParam = searchParams.get("sortDescending");
+    if (sortByParam) {
+      setSortBy(sortByParam);
+    }
+    if (sortDescParam !== null) {
+      setSortDescending(sortDescParam === "true");
+    }
+  }, [searchParams]);
 
   // Modal handlers
   const handleItemClick = (event: React.MouseEvent, item: CatalogItemDto) => {
@@ -312,6 +392,60 @@ const ManufactureInventoryList: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Expiration range filter */}
+        <div className="flex items-center flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-graphite-border">
+          <span className="text-sm font-medium text-gray-900 dark:text-graphite-text">Expirace:</span>
+
+          <div className="flex items-center gap-2">
+            <label htmlFor="expirationFrom" className="text-sm text-gray-600 dark:text-graphite-muted whitespace-nowrap">
+              Od
+            </label>
+            <input
+              type="date"
+              id="expirationFrom"
+              value={expirationFromInput}
+              onChange={(e) => setExpirationFromInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="py-2 px-3 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label htmlFor="expirationTo" className="text-sm text-gray-600 dark:text-graphite-muted whitespace-nowrap">
+              Do
+            </label>
+            <input
+              type="date"
+              id="expirationTo"
+              value={expirationToInput}
+              onChange={(e) => setExpirationToInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="py-2 px-3 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExpiredPreset}
+              className="px-3 py-2 text-sm font-medium rounded-md border border-red-300 text-red-700 hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10 transition-colors"
+            >
+              Po expiraci
+            </button>
+            <button
+              onClick={handleWithin30Preset}
+              className="px-3 py-2 text-sm font-medium rounded-md border border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-500/40 dark:text-orange-300 dark:hover:bg-orange-500/10 transition-colors"
+            >
+              ≤ 30 dní
+            </button>
+            <button
+              onClick={handleWithin90Preset}
+              className="px-3 py-2 text-sm font-medium rounded-md border border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-500/40 dark:text-amber-300 dark:hover:bg-amber-500/10 transition-colors"
+            >
+              31–90 dní
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Data Grid - Scrollable */}
@@ -327,6 +461,7 @@ const ManufactureInventoryList: React.FC = () => {
                   Název materiálu
                 </SortableHeader>
                 <SortableHeader column="lastInventoryDays" align="center">Posl. Inventura</SortableHeader>
+                <SortableHeader column="expiration" align="center">Expirace</SortableHeader>
                 <SortableHeader column="available" align="center">Skladem</SortableHeader>
 
               </tr>
@@ -372,8 +507,21 @@ const ManufactureInventoryList: React.FC = () => {
                         <span className="text-gray-400 dark:text-graphite-faint text-sm">-</span>
                       )}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      {item.minimalExpiration ? (
+                        <span className="text-sm text-gray-700 dark:text-graphite-muted">
+                          {new Date(item.minimalExpiration).toLocaleDateString('cs-CZ', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 dark:text-graphite-faint text-sm">-</span>
+                      )}
+                    </td>
                     <td className="px-6 py-5 whitespace-nowrap text-center">
-                      <span 
+                      <span
                         className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-green-100 dark:bg-emerald-900/30 text-green-800 dark:text-emerald-300 justify-center inventory-badge hover:bg-green-200 dark:hover:bg-emerald-900/50 hover:text-green-900 dark:hover:text-emerald-200 cursor-pointer"
                       >
                         {available}

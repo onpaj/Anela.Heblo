@@ -136,7 +136,7 @@ public sealed class ReimportMeetingTranscriptHandlerTests
 
         _mockExtractor
             .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>());
+            .ReturnsAsync(new MeetingExtractionResult(new List<ExtractedTask>(), new List<string>()));
 
         _mockRepository
             .Setup(r => r.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
@@ -192,7 +192,7 @@ public sealed class ReimportMeetingTranscriptHandlerTests
 
         _mockExtractor
             .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>());
+            .ReturnsAsync(new MeetingExtractionResult(new List<ExtractedTask>(), new List<string>()));
 
         _mockRepository
             .Setup(r => r.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
@@ -277,10 +277,12 @@ public sealed class ReimportMeetingTranscriptHandlerTests
 
         _mockExtractor
             .Setup(e => e.ExtractAsync("New summary", "New transcript", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>
-            {
-                new("New Task 1", "Description 1", "Ondra", null, "ondra@anela.cz")
-            });
+            .ReturnsAsync(new MeetingExtractionResult(
+                new List<ExtractedTask>
+                {
+                    new("New Task 1", "Description 1", "Ondra", null, "ondra@anela.cz")
+                },
+                new List<string> { "Ondra", "Petra" }));
 
         IReadOnlyList<ProposedTask>? capturedNewTasks = null;
         _mockRepository
@@ -302,6 +304,7 @@ public sealed class ReimportMeetingTranscriptHandlerTests
         capturedNewTasks.Single().Status.Should().Be(ProposedTaskStatus.Pending);
         capturedNewTasks.Single().IsManuallyAdded.Should().BeFalse();
         capturedNewTasks.Should().NotContain(t => t.Id == approvedTask.Id);
+        entity.Participants.Should().Equal("Ondra", "Petra");
     }
 
     [Fact]
@@ -333,7 +336,7 @@ public sealed class ReimportMeetingTranscriptHandlerTests
             .ReturnsAsync(new PlaudSummaryResult("Headline", "Summary"));
         _mockExtractor
             .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>());
+            .ReturnsAsync(new MeetingExtractionResult(new List<ExtractedTask>(), new List<string>()));
 
         IReadOnlyList<ProposedTask>? capturedNewTasks = null;
         _mockRepository
@@ -381,10 +384,12 @@ public sealed class ReimportMeetingTranscriptHandlerTests
             .ReturnsAsync(new PlaudSummaryResult("Headline", "Summary"));
         _mockExtractor
             .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>
-            {
-                new("Task", "Desc", "Andy", null, AssigneeEmail: null)
-            });
+            .ReturnsAsync(new MeetingExtractionResult(
+                new List<ExtractedTask>
+                {
+                    new("Task", "Desc", "Andy", null, AssigneeEmail: null)
+                },
+                new List<string>()));
         _mockDirectory
             .Setup(d => d.Resolve("Andy"))
             .Returns(new MeetingUser("andrea@anela.cz", "Andrea Pajgrt Bartošová", new[] { "Andy" }));
@@ -441,7 +446,7 @@ public sealed class ReimportMeetingTranscriptHandlerTests
             });
         _mockExtractor
             .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>());
+            .ReturnsAsync(new MeetingExtractionResult(new List<ExtractedTask>(), new List<string>()));
         _mockRepository
             .Setup(r => r.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -494,7 +499,7 @@ public sealed class ReimportMeetingTranscriptHandlerTests
             });
         _mockExtractor
             .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>());
+            .ReturnsAsync(new MeetingExtractionResult(new List<ExtractedTask>(), new List<string>()));
         _mockRepository
             .Setup(r => r.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -543,7 +548,7 @@ public sealed class ReimportMeetingTranscriptHandlerTests
             .ThrowsAsync(new HttpRequestException("Plaud API unavailable"));
         _mockExtractor
             .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ExtractedTask>());
+            .ReturnsAsync(new MeetingExtractionResult(new List<ExtractedTask>(), new List<string>()));
         _mockRepository
             .Setup(r => r.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);

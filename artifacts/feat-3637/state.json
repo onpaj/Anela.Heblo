@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3637",
+  "issue_number": 3637,
+  "created_at": "2026-07-14T11:15:11.635542Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-14T11:17:14.307460Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-14T11:19:33.130320Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-14T11:20:34.149150Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-14T11:30:52.508784Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-14T12:05:56.513963Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-07-14T12:05:56.911009Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-hangfire-getjobstartedat-full-scan",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-14T12:05:50.543848Z"
+    }
+  ]
+}

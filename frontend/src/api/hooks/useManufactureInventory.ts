@@ -15,6 +15,8 @@ export interface GetManufactureInventoryListRequest {
   sortDescending?: boolean;
   productName?: string;
   productCode?: string;
+  expirationFrom?: string;
+  expirationTo?: string;
 }
 
 export interface GetManufactureInventoryListResponse {
@@ -56,6 +58,8 @@ const fetchManufactureInventoryList = async (
     params.productName || undefined,
     params.productCode || undefined,
     undefined, // searchTerm
+    params.expirationFrom || undefined,
+    params.expirationTo || undefined,
   );
 
   return {
@@ -76,6 +80,8 @@ export const useManufactureInventoryQuery = (
   pageSize: number = 20,
   sortBy?: string,
   sortDescending: boolean = false,
+  expirationFromFilter?: string,
+  expirationToFilter?: string,
 ) => {
   const params: GetManufactureInventoryListRequest = {
     pageNumber,
@@ -85,6 +91,8 @@ export const useManufactureInventoryQuery = (
     sortDescending,
     productName: productNameFilter || undefined,
     productCode: productCodeFilter || undefined,
+    expirationFrom: expirationFromFilter || undefined,
+    expirationTo: expirationToFilter || undefined,
   };
 
   return useQuery({
@@ -99,6 +107,8 @@ export const useManufactureInventoryQuery = (
         pageSize,
         sortBy,
         sortDescending,
+        expirationFromFilter,
+        expirationToFilter,
       },
     ],
     queryFn: () => fetchManufactureInventoryList(params),
