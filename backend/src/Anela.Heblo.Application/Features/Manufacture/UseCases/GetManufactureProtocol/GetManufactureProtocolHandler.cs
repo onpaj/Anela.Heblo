@@ -8,15 +8,18 @@ public class GetManufactureProtocolHandler : IRequestHandler<GetManufactureProto
     private readonly IManufactureOrderRepository _repository;
     private readonly IManufactureClient _manufactureClient;
     private readonly IManufactureProtocolRenderer _renderer;
+    private readonly TimeProvider _timeProvider;
 
     public GetManufactureProtocolHandler(
         IManufactureOrderRepository repository,
         IManufactureClient manufactureClient,
-        IManufactureProtocolRenderer renderer)
+        IManufactureProtocolRenderer renderer,
+        TimeProvider timeProvider)
     {
         _repository = repository;
         _manufactureClient = manufactureClient;
         _renderer = renderer;
+        _timeProvider = timeProvider;
     }
 
     public async Task<GetManufactureProtocolResponse> Handle(
@@ -82,7 +85,7 @@ public class GetManufactureProtocolHandler : IRequestHandler<GetManufactureProto
                     Source = r.Source,
                 })
                 .ToList(),
-            GeneratedAt = DateTime.UtcNow,
+            GeneratedAt = _timeProvider.GetUtcNow().DateTime,
         };
 
         var pdfBytes = _renderer.Render(data);
