@@ -12,4 +12,11 @@ public static class FeatureFlagKeys
     /// remark). When off, the job runs in dry-run mode and only logs what it would do.
     /// </summary>
     public const string DeliveredOrderCompletion = "is-delivered-order-completion-enabled";
+
+    /// <summary>
+    /// When on, the delivered-orders job polls the test source states (73 "Oprava-robot")
+    /// instead of the production "handed to carrier" states — lets the whole pipeline be
+    /// exercised on a controlled set of orders. When off, the production states are used.
+    /// </summary>
+    public const string DeliveredOrderCompletionTestSource = "is-delivered-order-completion-test-source-enabled";
 }

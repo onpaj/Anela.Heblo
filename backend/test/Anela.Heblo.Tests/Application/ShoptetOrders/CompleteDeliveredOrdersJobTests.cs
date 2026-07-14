@@ -17,7 +17,7 @@ public class CompleteDeliveredOrdersJobTests
         Mock<IEshopOrderClient> Orders,
         Mock<IShipmentClient> Shipments,
         Mock<IRecurringJobStatusChecker> StatusChecker)
-        MakeSut(bool jobEnabled = true, bool applyChanges = true)
+        MakeSut(bool jobEnabled = true, bool applyChanges = true, bool useTestSource = false)
     {
         var orders = new Mock<IEshopOrderClient>();
         var shipments = new Mock<IShipmentClient>();
@@ -30,10 +30,14 @@ public class CompleteDeliveredOrdersJobTests
         featureFlags
             .Setup(f => f.IsEnabledAsync(FeatureFlagKeys.DeliveredOrderCompletion, It.IsAny<CancellationToken>()))
             .ReturnsAsync(applyChanges);
+        featureFlags
+            .Setup(f => f.IsEnabledAsync(FeatureFlagKeys.DeliveredOrderCompletionTestSource, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(useTestSource);
 
         var settings = Options.Create(new ShoptetOrdersSettings
         {
             DeliveredCompletionSourceStateIds = [70, 82],
+            DeliveredCompletionTestSourceStateIds = [73],
             CompletedStatusId = -3,
         });
 
@@ -147,6 +151,42 @@ public class CompleteDeliveredOrdersJobTests
         // Delivered orders are still detected (so the dry-run log reflects reality)...
         shipments.Verify(s => s.HasDeliveredShipmentAsync("ORD-1", It.IsAny<CancellationToken>()), Times.Once);
         // ...but no state change or remark is written while the flag is off.
+        orders.Verify(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        orders.Verify(o => o.UpdateEshopRemarkAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_UsesTestSourceState_WhenTestSourceFlagEnabled()
+    {
+        var (sut, orders, shipments, _) = MakeSut(useTestSource: true);
+        orders.Setup(o => o.ListOrdersByStatusAsync(73, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Order("ORD-TEST", 73)]);
+        shipments.Setup(s => s.HasDeliveredShipmentAsync("ORD-TEST", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        orders.Setup(o => o.GetEshopRemarkAsync("ORD-TEST", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(string.Empty);
+
+        await sut.ExecuteAsync();
+
+        // Test state 73 replaces the production source states entirely.
+        orders.Verify(o => o.ListOrdersByStatusAsync(73, It.IsAny<CancellationToken>()), Times.Once);
+        orders.Verify(o => o.ListOrdersByStatusAsync(70, It.IsAny<CancellationToken>()), Times.Never);
+        orders.Verify(o => o.ListOrdersByStatusAsync(82, It.IsAny<CancellationToken>()), Times.Never);
+        orders.Verify(o => o.UpdateStatusAsync("ORD-TEST", -3, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_TestSourceRespectsDryRun_WhenCompletionFlagDisabled()
+    {
+        var (sut, orders, shipments, _) = MakeSut(applyChanges: false, useTestSource: true);
+        orders.Setup(o => o.ListOrdersByStatusAsync(73, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Order("ORD-TEST", 73)]);
+        shipments.Setup(s => s.HasDeliveredShipmentAsync("ORD-TEST", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        await sut.ExecuteAsync();
+
+        orders.Verify(o => o.ListOrdersByStatusAsync(73, It.IsAny<CancellationToken>()), Times.Once);
         orders.Verify(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         orders.Verify(o => o.UpdateEshopRemarkAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
