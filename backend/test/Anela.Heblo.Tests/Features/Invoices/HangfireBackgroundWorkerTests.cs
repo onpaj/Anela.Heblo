@@ -2,13 +2,17 @@ using System.Reflection;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using FluentAssertions;
+using Hangfire;
 using Microsoft.Extensions.Options;
+using Moq;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Invoices;
 
 public class HangfireBackgroundWorkerTests
 {
+    private readonly Mock<JobStorage> _jobStorageMock = new();
+
     [Fact]
     public void Constructor_StoresHangfireOptions()
     {
@@ -16,7 +20,7 @@ public class HangfireBackgroundWorkerTests
         var options = Options.Create(new HangfireOptions { MaxPendingJobsPageSize = 200 });
 
         // Act
-        var worker = new HangfireBackgroundWorker(options);
+        var worker = new HangfireBackgroundWorker(options, _jobStorageMock.Object);
 
         // Assert — the worker must hold the options so its monitoring calls use the cap.
         var stored = typeof(HangfireBackgroundWorker)
@@ -34,7 +38,7 @@ public class HangfireBackgroundWorkerTests
         var options = Options.Create(new HangfireOptions { MaxPendingJobsPageSize = 50 });
 
         // Act
-        var worker = new HangfireBackgroundWorker(options);
+        var worker = new HangfireBackgroundWorker(options, _jobStorageMock.Object);
 
         // Assert
         var stored = typeof(HangfireBackgroundWorker)
@@ -42,5 +46,15 @@ public class HangfireBackgroundWorkerTests
             .GetValue(worker) as HangfireOptions;
 
         stored!.MaxPendingJobsPageSize.Should().Be(50);
+    }
+
+    [Fact]
+    public void Constructor_WithNullJobStorage_ThrowsArgumentNullException()
+    {
+        var options = Options.Create(new HangfireOptions { MaxPendingJobsPageSize = 50 });
+
+        Action act = () => _ = new HangfireBackgroundWorker(options, null!);
+
+        act.Should().Throw<ArgumentNullException>().WithParameterName("jobStorage");
     }
 }
