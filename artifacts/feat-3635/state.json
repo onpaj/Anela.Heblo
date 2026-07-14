@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-repository-add-async-and-recurring-job-seeder",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "wire-recurring-job-seeder-into-di-and-startup",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "remove-legacy-seed-method-and-clean-test-doubles",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
