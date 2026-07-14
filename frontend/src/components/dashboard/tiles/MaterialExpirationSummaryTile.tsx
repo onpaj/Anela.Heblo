@@ -14,6 +14,7 @@ interface MaterialExpirationSummaryTileProps {
       expired?: number;    // already past expiration
       within30?: number;   // expiring within 30 days
       within90?: number;   // expiring within 31-90 days
+      ok?: number;         // healthy: expiring beyond the 90-day horizon
       total?: number;
       date?: string;
     };
@@ -51,14 +52,17 @@ export const MaterialExpirationSummaryTile: React.FC<MaterialExpirationSummaryTi
   const expired = data.data?.expired ?? 0;
   const within30 = data.data?.within30 ?? 0;
   const within90 = data.data?.within90 ?? 0;
+  const ok = data.data?.ok ?? 0;
 
-  const total = expired + within30 + within90;
+  // Include healthy materials so the pie shows a real proportion, not just problem buckets
+  const total = expired + within30 + within90 + ok;
 
   // Calculate percentages for pie chart
   const getPercentage = (value: number) => total > 0 ? (value / total) * 100 : 0;
   const expiredPercent = getPercentage(expired);
   const within30Percent = getPercentage(within30);
   const within90Percent = getPercentage(within90);
+  const okPercent = getPercentage(ok);
 
   // Create pie chart segments
   const createPieSegment = (startPercent: number, endPercent: number) => {
@@ -87,6 +91,10 @@ export const MaterialExpirationSummaryTile: React.FC<MaterialExpirationSummaryTi
   }
   if (within90Percent > 0) {
     segments.push({ path: createPieSegment(currentPercent, currentPercent + within90Percent), color: '#f59e0b' });
+    currentPercent += within90Percent;
+  }
+  if (okPercent > 0) {
+    segments.push({ path: createPieSegment(currentPercent, currentPercent + okPercent), color: '#22c55e' });
   }
 
   return (
@@ -139,6 +147,15 @@ export const MaterialExpirationSummaryTile: React.FC<MaterialExpirationSummaryTi
             <span className="text-base md:text-sm text-gray-700 dark:text-graphite-muted">31–90 dní</span>
           </div>
           <span className="text-2xl md:text-xl font-bold text-gray-900 dark:text-graphite-text">{within90}</span>
+        </div>
+
+        {/* Green: healthy (more than 90 days) */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 rounded-sm bg-green-500"></div>
+            <span className="text-base md:text-sm text-gray-700 dark:text-graphite-muted">V pořádku</span>
+          </div>
+          <span className="text-2xl md:text-xl font-bold text-gray-900 dark:text-graphite-text">{ok}</span>
         </div>
       </div>
     </div>

@@ -14,6 +14,8 @@ public class ShoptetShipmentClient : IShipmentClient
         PropertyNameCaseInsensitive = true,
     };
 
+    private const string DeliveredStatus = "delivered";
+
     private static readonly HashSet<string> DeadStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
         "canceled",
@@ -64,6 +66,12 @@ public class ShoptetShipmentClient : IShipmentClient
         return latestActive?.Packages?
             .Select(pkg => pkg.TrackingNumber)
             .FirstOrDefault(trackingNumber => !string.IsNullOrEmpty(trackingNumber));
+    }
+
+    public async Task<bool> HasDeliveredShipmentAsync(string orderCode, CancellationToken ct = default)
+    {
+        var items = await FetchShipmentsAsync(orderCode, ct);
+        return items.Any(s => string.Equals(s.Status, DeliveredStatus, StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task<List<ShoptetShipmentDto>> FetchShipmentsAsync(string orderCode, CancellationToken ct)
