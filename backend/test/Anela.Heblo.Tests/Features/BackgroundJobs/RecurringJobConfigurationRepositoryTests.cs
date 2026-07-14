@@ -179,6 +179,30 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task AddAsync_WithNewConfiguration_PersistsAndIsRetrievable()
+    {
+        // Arrange
+        var config = new RecurringJobConfiguration(
+            "NewJob",
+            "New Job",
+            "Description for new job",
+            "0 5 * * *",
+            true,
+            "System");
+
+        // Act
+        await _repository.AddAsync(config);
+
+        // Assert
+        var result = await _repository.GetByJobNameAsync("NewJob");
+        Assert.NotNull(result);
+        Assert.Equal("New Job", result.DisplayName);
+        Assert.Equal("Description for new job", result.Description);
+        Assert.Equal("0 5 * * *", result.CronExpression);
+        Assert.True(result.IsEnabled);
+    }
+
+    [Fact]
     public async Task SeedDefaultConfigurationsAsync_WhenEmpty_CreatesAllDefaultConfigurations()
     {
         // Arrange - Create mock jobs

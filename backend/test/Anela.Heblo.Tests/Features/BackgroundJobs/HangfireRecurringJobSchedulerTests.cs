@@ -162,6 +162,9 @@ public class HangfireRecurringJobSchedulerTests : IDisposable
         public Task<RecurringJobConfiguration?> GetByJobNameAsync(string jobName, CancellationToken cancellationToken = default)
             => Task.FromResult<RecurringJobConfiguration?>(null);
 
+        public Task AddAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
         public Task UpdateAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 

@@ -25,6 +25,12 @@ public class RecurringJobConfigurationRepository : IRecurringJobConfigurationRep
             .FirstOrDefaultAsync(c => c.JobName == jobName, cancellationToken);
     }
 
+    public async Task AddAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
+    {
+        await _context.RecurringJobConfigurations.AddAsync(configuration, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task UpdateAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
     {
         _context.RecurringJobConfigurations.Update(configuration);
