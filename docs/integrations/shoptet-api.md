@@ -1235,6 +1235,8 @@ After a successful `201` response, the shipment is in `requested` status. The la
 | `closed` | Closed |
 | `deleted` | Deleted |
 
+**Anela consumption:** `CompleteDeliveredOrdersJob` polls orders in states 70/82 hourly and, when any of their shipments reports `delivered`, moves the order to `-3` ("vyřízena"). With the `is-delivered-order-completion-test-source-enabled` feature flag on, it polls test state 73 ("Oprava-robot") instead — a controlled pool for end-to-end testing.
+
 **Webhook alternative:** `shipment:create` webhook fires when carrier confirms the shipment (tracking number assigned, label ready). Register via Shoptet webhooks if polling is undesirable.
 
 **Observed latency:** The test store has no Balikobot configured so label-ready latency was not directly measured. For the PPL carrier via Balikobot the expected flow is synchronous within the carrier call — label should be available within a few seconds of the `POST` completing. The `checkUrls` field (when non-null) provides a polling URL for async carriers.
