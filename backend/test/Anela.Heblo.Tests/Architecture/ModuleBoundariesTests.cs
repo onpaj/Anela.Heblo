@@ -487,6 +487,18 @@ public class ModuleBoundariesTests
             InspectedAssembly: "Anela.Heblo.Domain"),
 
         new ModuleBoundaryRule(
+            Name: "Bank (Domain) -> Analytics",
+            InspectedNamespacePrefix: "Anela.Heblo.Domain.Features.Bank",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Analytics",
+                "Anela.Heblo.Application.Features.Analytics",
+                "Anela.Heblo.Persistence.Analytics",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal),
+            InspectedAssembly: "Anela.Heblo.Domain"),
+
+        new ModuleBoundaryRule(
             Name: "Catalog -> Logistics",
             InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Catalog",
             ForbiddenNamespacePrefixes: new[]
