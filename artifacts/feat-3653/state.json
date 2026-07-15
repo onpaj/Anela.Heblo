@@ -46,15 +46,15 @@
     },
     {
       "name": "update-backend-unit-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-15T07:37:58.177423Z"
+      "updated_at": "2026-07-15T09:25:34.100170Z"
     },
     {
       "name": "regenerate-client-and-update-frontend-hook",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-15T09:25:41.857069Z"
     }
   ]
 }
