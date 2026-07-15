@@ -8,7 +8,8 @@ public class PrintLotLabelsRequestValidator : AbstractValidator<PrintLotLabelsRe
     {
         RuleFor(x => x.LotNumber)
             .NotEmpty().WithMessage("Lot number is required.")
-            .MaximumLength(8).WithMessage("Lot number must be at most 8 characters.");
+            .MaximumLength(8).WithMessage("Lot number must be at most 8 characters.")
+            .Matches(@"^[A-Za-z0-9\-]+$").WithMessage("Lot number may only contain letters, digits, and hyphens.");
 
         RuleFor(x => x.Expiration)
             .NotEmpty().WithMessage("Expiration is required.")
