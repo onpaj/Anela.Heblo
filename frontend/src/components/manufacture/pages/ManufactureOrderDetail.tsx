@@ -44,6 +44,7 @@ import NotesTabContent from "../detail/NotesTabContent";
 import DetailActionButtons from "../detail/DetailActionButtons";
 import ConfirmationDialogs from "../detail/ConfirmationDialogs";
 import ConditionsReadingsSection from "../detail/ConditionsReadingsSection";
+import LotLabelPrintModal from "../../pages/LotLabelPrintModal";
 import { useTelemetry } from '../../../telemetry/useTelemetry';
 import { useScreenView } from '../../../telemetry/useScreenView';
 
@@ -105,6 +106,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const [showProductCompletionModal, setShowProductCompletionModal] = useState(false);
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [showExpandedNote, setShowExpandedNote] = useState(false);
+  const [showLotLabelModal, setShowLotLabelModal] = useState(false);
   const [expandedNoteContent, setExpandedNoteContent] = useState("");
   const [distributionPreview, setDistributionPreview] = useState<ResidueDistributionDto | undefined>(undefined);
   const [pendingCompletionRequest, setPendingCompletionRequest] = useState<ConfirmProductCompletionRequest | undefined>(undefined);
@@ -332,11 +334,10 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       if (hasUserChangedDate) {
         const semiProductDate = new Date(editablePlannedDate);
 
-        // Auto-calculate lot number
-        const year = semiProductDate.getFullYear();
-        const month = String(semiProductDate.getMonth() + 1).padStart(2, '0');
+        // Auto-calculate lot number in wwyy format (ISO week + 2-digit year)
+        const year = String(semiProductDate.getFullYear() % 100).padStart(2, '0');
         const week = String(getWeekNumber(semiProductDate)).padStart(2, '0');
-        const newLotNumber = `${week}${year}${month}`;
+        const newLotNumber = `${week}${year}`;
         setEditableLotNumber(newLotNumber);
 
         // Auto-calculate expiration date
@@ -542,6 +543,15 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const canEditFields = order?.state === ManufactureOrderState.Draft || order?.state === ManufactureOrderState.Planned;
   const currentStateTransitions = order?.state !== undefined ? getStateTransitions(order.state) : { next: null, previous: null };
 
+  // Predefined label count for lot label printing: the total number of manufactured
+  // product items (sum of product quantities), excluding the semi-product.
+  const totalManufacturedItems = Math.round(
+    Object.values(editableProductQuantities).reduce(
+      (sum, quantity) => sum + (parseFloat(quantity) || 0),
+      0,
+    ),
+  );
+
   const content = (
     <div className={`bg-white dark:bg-graphite-surface ${isModalMode ? 'rounded-lg shadow-xl dark:shadow-soft-dark' : ''} ${isModalMode ? 'max-w-7xl w-full max-h-[720px]' : 'h-full max-w-7xl'} overflow-hidden flex flex-col relative`}>
       {/* Header */}
@@ -716,9 +726,20 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         onSave={handleSave}
         onBatchCalculator={handleGoToBatchCalculator}
         onPrintProtocol={() => openProtocol(orderId)}
+        onPrintLotLabels={() => setShowLotLabelModal(true)}
         isUpdateLoading={updateOrderMutation.isPending}
         isDuplicateLoading={duplicateOrderMutation.isPending}
         isPrintingProtocol={isProtocolLoading}
+      />
+
+      <LotLabelPrintModal
+        isOpen={showLotLabelModal}
+        onClose={() => setShowLotLabelModal(false)}
+        initialLotNumber={editableLotNumber}
+        initialExpirationMonth={
+          editableExpirationDate ? editableExpirationDate.slice(0, 7) : ""
+        }
+        initialCount={totalManufacturedItems}
       />
 
       <ConfirmationDialogs
