@@ -21,16 +21,16 @@
       "updated_at": "2026-07-15T07:27:49.465361Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-15T07:30:10.298196Z"
     }
   },
   "tasks": [
     {
       "name": "retype-request-and-controller-date-fields",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-15T07:30:10.485841Z"
     },
     {
       "name": "remove-handler-date-parsing",
