@@ -367,6 +367,23 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         // Assert — ASP.NET Core model binding rejects this before MediatR.Send runs.
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetBankStatements_WithUtcDesignatorDateQueryParam_BindsSuccessfully()
+    {
+        // This is the exact format the frontend sends for a date-only filter
+        // (new Date('2026-01-01').toISOString() === "2026-01-01T00:00:00.000Z").
+        // Regression coverage for the UtcDateTimeModelBinder timezone fix: the
+        // default DateTime binder would reinterpret this as server-local time,
+        // but this must bind successfully (200, not 400) regardless of the
+        // server's local timezone offset.
+
+        // Act
+        var response = await _client.GetAsync("/api/bank-statements?dateFrom=2026-01-01T00:00:00.000Z&dateTo=2026-01-01T00:00:00.000Z");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
 }
 
 /// <summary>
