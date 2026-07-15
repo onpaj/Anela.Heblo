@@ -34,15 +34,15 @@
     },
     {
       "name": "update-bankstatementimportrepository-ef-implementation",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-15T06:32:19.948118Z"
+      "updated_at": "2026-07-15T06:35:25.663239Z"
     },
     {
       "name": "update-adapter-projection-and-boundary-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-15T06:35:29.212354Z"
     }
   ]
 }
