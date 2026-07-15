@@ -14,7 +14,7 @@ public class CupsLabelPrintingServiceTests
     {
         var cups = new Mock<ICupsPrintingService>();
         string? capturedPath = null;
-        cups.Setup(c => c.PrintAsync(It.IsAny<string>(), "Zebra-Raw", "application/octet-stream", It.IsAny<CancellationToken>()))
+        cups.Setup(c => c.PrintAsync(It.IsAny<string>(), "Zebra-Raw", "application/vnd.cups-raw", It.IsAny<CancellationToken>()))
             .Callback<string, string?, string, CancellationToken>((p, _, _, _) =>
             {
                 capturedPath = p;
@@ -36,7 +36,7 @@ public class CupsLabelPrintingServiceTests
     {
         var cups = new Mock<ICupsPrintingService>();
         string? capturedPath = null;
-        cups.Setup(c => c.PrintAsync(It.IsAny<string>(), "Zebra-Raw", "application/octet-stream", It.IsAny<CancellationToken>()))
+        cups.Setup(c => c.PrintAsync(It.IsAny<string>(), "Zebra-Raw", "application/vnd.cups-raw", It.IsAny<CancellationToken>()))
             .Callback<string, string?, string, CancellationToken>((p, _, _, _) =>
             {
                 capturedPath = p;

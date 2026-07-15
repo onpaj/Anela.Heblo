@@ -28,7 +28,12 @@ public class CupsLabelPrintingService : ILabelPrintingService
         try
         {
             await File.WriteAllTextAsync(tempPath, zpl, cancellationToken);
-            await _cups.PrintAsync(tempPath, printer, "application/octet-stream", cancellationToken);
+            // Send as raw so CUPS passes the ZPL straight to the printer without invoking a
+            // driver/filter chain. With "application/octet-stream" CUPS auto-types the ASCII
+            // ZPL as text and a driver-based queue rasterizes the source as printed text
+            // instead of interpreting it. "application/vnd.cups-raw" forces passthrough and
+            // works with both raw and driver-based queues.
+            await _cups.PrintAsync(tempPath, printer, "application/vnd.cups-raw", cancellationToken);
             _logger.LogInformation("Sent ZPL label batch to printer {Printer}", printer);
         }
         finally
