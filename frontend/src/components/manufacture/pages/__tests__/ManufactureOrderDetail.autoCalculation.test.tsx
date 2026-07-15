@@ -152,7 +152,7 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
       });
 
       // Check that lot number and expiration remain unchanged from DB
-      const lotNumberInput = screen.getByPlaceholderText("38202412") as HTMLInputElement;
+      const lotNumberInput = screen.getByPlaceholderText("2926") as HTMLInputElement;
       const expirationInput = screen.getByDisplayValue("2025-02") as HTMLInputElement;
 
       expect(lotNumberInput.value).toBe("03202401"); // Original from DB
@@ -193,7 +193,7 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
         expect(screen.getByText(/Výrobní zakázka VZ-2024-001/i)).toBeInTheDocument();
       });
 
-      const lotNumberInput = screen.getByPlaceholderText("38202412") as HTMLInputElement;
+      const lotNumberInput = screen.getByPlaceholderText("2926") as HTMLInputElement;
       const expirationInput = screen.getByDisplayValue("2025-02") as HTMLInputElement;
 
       expect(lotNumberInput.value).toBe("03202401");
@@ -241,18 +241,18 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
       fireEvent.change(dateInput, { target: { value: "2024-09-16" } });
 
       await waitFor(() => {
-        const lotNumberInput = screen.getByPlaceholderText("38202412") as HTMLInputElement;
+        const lotNumberInput = screen.getByPlaceholderText("2926") as HTMLInputElement;
         const expirationInput = screen.getByDisplayValue(/2025-10/) as HTMLInputElement;
 
-        // Expected lot number: Week 38, 2024, September (09)
-        expect(lotNumberInput.value).toBe("38202409");
+        // Expected lot number: Week 38, 2024 (24) = 3824
+        expect(lotNumberInput.value).toBe("3824");
 
         // Expected expiration: 2024-09-16 + 12 months + 1 = 2025-10-31 (last day of October)
         expect(expirationInput.value).toBe("2025-10");
       });
     });
 
-    it("should calculate correct lot number format: {week}{year}{month}", async () => {
+    it("should calculate correct lot number format: {week}{year}", async () => {
       const mockOrder = {
         id: 1,
         orderNumber: "VZ-2024-001",
@@ -291,9 +291,9 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
       fireEvent.change(dateInput, { target: { value: "2024-03-05" } });
 
       await waitFor(() => {
-        const lotNumberInput = screen.getByPlaceholderText("38202412") as HTMLInputElement;
-        // Expected: Week 10, 2024, March (03) = 10202403
-        expect(lotNumberInput.value).toBe("10202403");
+        const lotNumberInput = screen.getByPlaceholderText("2926") as HTMLInputElement;
+        // Expected: Week 10, 2024 (24) = 1024
+        expect(lotNumberInput.value).toBe("1024");
       });
     });
 
@@ -435,7 +435,7 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
 
       // Lot number and expiration should NOT change
       await waitFor(() => {
-        const lotNumberInput = screen.getByPlaceholderText("38202412") as HTMLInputElement;
+        const lotNumberInput = screen.getByPlaceholderText("2926") as HTMLInputElement;
         const expirationInput = screen.getByDisplayValue("2025-02") as HTMLInputElement;
 
         expect(lotNumberInput.value).toBe("03202401"); // Still original
@@ -478,7 +478,7 @@ describe("ManufactureOrderDetail - Auto-calculation Logic", () => {
       });
 
       // Manually edit lot number
-      const lotNumberInput = screen.getByPlaceholderText("38202412") as HTMLInputElement;
+      const lotNumberInput = screen.getByPlaceholderText("2926") as HTMLInputElement;
       fireEvent.change(lotNumberInput, { target: { value: "99999999" } });
 
       expect(lotNumberInput.value).toBe("99999999");
