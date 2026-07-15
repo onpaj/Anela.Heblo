@@ -13,6 +13,10 @@ public static class LotLabelZplBuilder
 
     private const int CrossLineThicknessDots = 3;  // calibration crosshair line thickness
 
+    // Even at the calibrated pitch the media drifts slightly across a run, so one extra dot
+    // is fed every Nth label to spread ~1 dot of correction over that many labels.
+    private const int DriftCorrectionEveryNLabels = 3;
+
     // Vertical pitch (^LL) the printer advances per label in continuous mode. Round die-cut
     // labels are unreliable for the gap sensor, so the media is driven continuous (^MNN) and
     // fed exactly this many dots; it must match the physical pitch or the print drifts. The
@@ -31,10 +35,13 @@ public static class LotLabelZplBuilder
         var sb = new StringBuilder();
         for (var i = 0; i < count; i++)
         {
+            // Add 1 dot on every Nth label to compensate residual drift over the run.
+            var labelPitch = pitchDots + ((i + 1) % DriftCorrectionEveryNLabels == 0 ? 1 : 0);
+
             sb.Append("^XA");
             sb.Append("^MNN");  // continuous media: do not sense gaps/marks, feed by ^LL
             sb.Append($"^PW{LabelWidthDots}");
-            sb.Append($"^LL{pitchDots}");
+            sb.Append($"^LL{labelPitch}");
             // Text-only round label. ^FB centers each line horizontally across the full
             // label width; there is no barcode because a linear/2D symbology will not fit
             // a 10 mm round face.

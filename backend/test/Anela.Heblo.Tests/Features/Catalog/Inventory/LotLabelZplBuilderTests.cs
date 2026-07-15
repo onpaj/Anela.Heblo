@@ -34,6 +34,16 @@ public class LotLabelZplBuilderTests
         act.Should().Throw<System.ArgumentException>();
     }
 
+    [Fact]
+    public void Build_AddsOneDotEveryThirdLabel_ToCompensateDrift()
+    {
+        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 6, 148);
+
+        // Labels 1,2,4,5 feed the calibrated pitch; every 3rd label (3 and 6) feeds +1 dot.
+        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL148(?![0-9])").Should().HaveCount(4);
+        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL149(?![0-9])").Should().HaveCount(2);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
