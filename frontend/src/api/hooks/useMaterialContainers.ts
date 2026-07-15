@@ -9,6 +9,15 @@ import {
   ListMaterialContainersResponse,
   PrintMaterialContainerLabelsRequest,
   PrintMaterialContainerLabelsResponse,
+  PrintLotLabelsRequest,
+  PrintLotLabelsResponse,
+  PrintLotCalibrationLabelRequest,
+  PrintLotCalibrationLabelResponse,
+  FeedLotMediaRequest,
+  FeedLotMediaResponse,
+  GetLotLabelCalibrationResponse,
+  SetLotLabelCalibrationRequest,
+  SetLotLabelCalibrationResponse,
 } from '../generated/api-client';
 
 export const useCreateMaterialContainers = () => {
@@ -28,14 +37,87 @@ export const useCreateMaterialContainers = () => {
 export const usePrintMaterialContainerLabels = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { count: number }): Promise<PrintMaterialContainerLabelsResponse> => {
+    mutationFn: (input: { count: number; mediaChangeConfirmed?: boolean }): Promise<PrintMaterialContainerLabelsResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const request = new PrintMaterialContainerLabelsRequest({ count: input.count });
+      const request = new PrintMaterialContainerLabelsRequest({
+        count: input.count,
+        mediaChangeConfirmed: input.mediaChangeConfirmed ?? false,
+      });
       return apiClient.materialContainers_PrintLabels(request);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialContainers });
     },
+  });
+};
+
+export const usePrintLotLabels = () =>
+  useMutation({
+    mutationFn: (input: {
+      lotNumber: string;
+      expiration: string;
+      count: number;
+      mediaChangeConfirmed?: boolean;
+    }): Promise<PrintLotLabelsResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const request = new PrintLotLabelsRequest({
+        lotNumber: input.lotNumber,
+        expiration: input.expiration,
+        count: input.count,
+        mediaChangeConfirmed: input.mediaChangeConfirmed ?? false,
+      });
+      return apiClient.lots_PrintLabels(request);
+    },
+  });
+
+export const usePrintLotCalibrationLabel = () =>
+  useMutation({
+    mutationFn: (input?: { mediaChangeConfirmed?: boolean }): Promise<PrintLotCalibrationLabelResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const request = new PrintLotCalibrationLabelRequest({
+        mediaChangeConfirmed: input?.mediaChangeConfirmed ?? false,
+      });
+      return apiClient.lots_PrintCalibrationLabel(request);
+    },
+  });
+
+export const useFeedLotMedia = () =>
+  useMutation({
+    mutationFn: (input: { dots: number; mediaChangeConfirmed?: boolean }): Promise<FeedLotMediaResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const request = new FeedLotMediaRequest({
+        dots: input.dots,
+        mediaChangeConfirmed: input.mediaChangeConfirmed ?? false,
+      });
+      return apiClient.lots_FeedMedia(request);
+    },
+  });
+
+export const useLotLabelCalibration = (enabled: boolean) =>
+  useQuery({
+    enabled,
+    queryKey: [...QUERY_KEYS.materialContainers, 'lot-label-calibration'],
+    queryFn: (): Promise<GetLotLabelCalibrationResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      return apiClient.lots_GetLabelCalibration();
+    },
+  });
+
+export const useSetLotLabelCalibration = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      pitchDots: number;
+      driftDotsPer100Labels: number;
+    }): Promise<SetLotLabelCalibrationResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const request = new SetLotLabelCalibrationRequest(input);
+      return apiClient.lots_SetLabelCalibration(request);
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.materialContainers, 'lot-label-calibration'],
+      }),
   });
 };
 
@@ -89,4 +171,5 @@ export type {
   GetLastUsedLotForMaterialResponse,
   ListMaterialContainersResponse,
   PrintMaterialContainerLabelsResponse,
+  PrintLotLabelsResponse,
 } from '../generated/api-client';

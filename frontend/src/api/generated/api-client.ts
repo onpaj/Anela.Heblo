@@ -6407,6 +6407,192 @@ export class ApiClient {
         return Promise.resolve<DeleteLotResponse>(null as any);
     }
 
+    lots_PrintLabels(request: PrintLotLabelsRequest): Promise<PrintLotLabelsResponse> {
+        let url_ = this.baseUrl + "/api/lots/print-labels";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLots_PrintLabels(_response);
+        });
+    }
+
+    protected processLots_PrintLabels(response: Response): Promise<PrintLotLabelsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PrintLotLabelsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PrintLotLabelsResponse>(null as any);
+    }
+
+    lots_PrintCalibrationLabel(request: PrintLotCalibrationLabelRequest): Promise<PrintLotCalibrationLabelResponse> {
+        let url_ = this.baseUrl + "/api/lots/print-calibration-label";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLots_PrintCalibrationLabel(_response);
+        });
+    }
+
+    protected processLots_PrintCalibrationLabel(response: Response): Promise<PrintLotCalibrationLabelResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PrintLotCalibrationLabelResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PrintLotCalibrationLabelResponse>(null as any);
+    }
+
+    lots_FeedMedia(request: FeedLotMediaRequest): Promise<FeedLotMediaResponse> {
+        let url_ = this.baseUrl + "/api/lots/feed-media";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLots_FeedMedia(_response);
+        });
+    }
+
+    protected processLots_FeedMedia(response: Response): Promise<FeedLotMediaResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = FeedLotMediaResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FeedLotMediaResponse>(null as any);
+    }
+
+    lots_GetLabelCalibration(): Promise<GetLotLabelCalibrationResponse> {
+        let url_ = this.baseUrl + "/api/lots/label-calibration";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLots_GetLabelCalibration(_response);
+        });
+    }
+
+    protected processLots_GetLabelCalibration(response: Response): Promise<GetLotLabelCalibrationResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetLotLabelCalibrationResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetLotLabelCalibrationResponse>(null as any);
+    }
+
+    lots_SetLabelCalibration(request: SetLotLabelCalibrationRequest): Promise<SetLotLabelCalibrationResponse> {
+        let url_ = this.baseUrl + "/api/lots/label-calibration";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLots_SetLabelCalibration(_response);
+        });
+    }
+
+    protected processLots_SetLabelCalibration(response: Response): Promise<SetLotLabelCalibrationResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SetLotLabelCalibrationResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SetLotLabelCalibrationResponse>(null as any);
+    }
+
     manufactureBatch_GetBatchTemplate(productCode: string): Promise<CalculatedBatchSizeResponse> {
         let url_ = this.baseUrl + "/api/manufacture-batch/template/{productCode}";
         if (productCode === undefined || productCode === null)
@@ -8317,6 +8503,47 @@ export class ApiClient {
             });
         }
         return Promise.resolve<UpdateProposedTaskStatusResponse>(null as any);
+    }
+
+    meetingTasks_UpdateStatus(transcriptId: string, request: UpdateTranscriptStatusRequest): Promise<UpdateTranscriptStatusResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/{transcriptId}/status";
+        if (transcriptId === undefined || transcriptId === null)
+            throw new Error("The parameter 'transcriptId' must be defined.");
+        url_ = url_.replace("{transcriptId}", encodeURIComponent("" + transcriptId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_UpdateStatus(_response);
+        });
+    }
+
+    protected processMeetingTasks_UpdateStatus(response: Response): Promise<UpdateTranscriptStatusResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateTranscriptStatusResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateTranscriptStatusResponse>(null as any);
     }
 
     meetingTasks_AddTask(transcriptId: string, request: AddProposedTaskRequest): Promise<AddProposedTaskResponse> {
@@ -26465,6 +26692,371 @@ export class DeleteLotResponse extends BaseResponse implements IDeleteLotRespons
 export interface IDeleteLotResponse extends IBaseResponse {
 }
 
+export class PrintLotLabelsResponse extends BaseResponse implements IPrintLotLabelsResponse {
+    lotNumber?: string;
+    expiration?: string;
+    count?: number;
+    requiresMediaChangeConfirmation?: boolean;
+
+    constructor(data?: IPrintLotLabelsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.lotNumber = _data["lotNumber"];
+            this.expiration = _data["expiration"];
+            this.count = _data["count"];
+            this.requiresMediaChangeConfirmation = _data["requiresMediaChangeConfirmation"];
+        }
+    }
+
+    static override fromJS(data: any): PrintLotLabelsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new PrintLotLabelsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["lotNumber"] = this.lotNumber;
+        data["expiration"] = this.expiration;
+        data["count"] = this.count;
+        data["requiresMediaChangeConfirmation"] = this.requiresMediaChangeConfirmation;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IPrintLotLabelsResponse extends IBaseResponse {
+    lotNumber?: string;
+    expiration?: string;
+    count?: number;
+    requiresMediaChangeConfirmation?: boolean;
+}
+
+export class PrintLotLabelsRequest implements IPrintLotLabelsRequest {
+    lotNumber?: string;
+    expiration?: string;
+    count?: number;
+    mediaChangeConfirmed?: boolean;
+
+    constructor(data?: IPrintLotLabelsRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.lotNumber = _data["lotNumber"];
+            this.expiration = _data["expiration"];
+            this.count = _data["count"];
+            this.mediaChangeConfirmed = _data["mediaChangeConfirmed"];
+        }
+    }
+
+    static fromJS(data: any): PrintLotLabelsRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new PrintLotLabelsRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["lotNumber"] = this.lotNumber;
+        data["expiration"] = this.expiration;
+        data["count"] = this.count;
+        data["mediaChangeConfirmed"] = this.mediaChangeConfirmed;
+        return data;
+    }
+}
+
+export interface IPrintLotLabelsRequest {
+    lotNumber?: string;
+    expiration?: string;
+    count?: number;
+    mediaChangeConfirmed?: boolean;
+}
+
+export class PrintLotCalibrationLabelResponse extends BaseResponse implements IPrintLotCalibrationLabelResponse {
+    requiresMediaChangeConfirmation?: boolean;
+
+    constructor(data?: IPrintLotCalibrationLabelResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.requiresMediaChangeConfirmation = _data["requiresMediaChangeConfirmation"];
+        }
+    }
+
+    static override fromJS(data: any): PrintLotCalibrationLabelResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new PrintLotCalibrationLabelResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["requiresMediaChangeConfirmation"] = this.requiresMediaChangeConfirmation;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IPrintLotCalibrationLabelResponse extends IBaseResponse {
+    requiresMediaChangeConfirmation?: boolean;
+}
+
+export class PrintLotCalibrationLabelRequest implements IPrintLotCalibrationLabelRequest {
+    mediaChangeConfirmed?: boolean;
+
+    constructor(data?: IPrintLotCalibrationLabelRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.mediaChangeConfirmed = _data["mediaChangeConfirmed"];
+        }
+    }
+
+    static fromJS(data: any): PrintLotCalibrationLabelRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new PrintLotCalibrationLabelRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["mediaChangeConfirmed"] = this.mediaChangeConfirmed;
+        return data;
+    }
+}
+
+export interface IPrintLotCalibrationLabelRequest {
+    mediaChangeConfirmed?: boolean;
+}
+
+export class FeedLotMediaResponse extends BaseResponse implements IFeedLotMediaResponse {
+    requiresMediaChangeConfirmation?: boolean;
+
+    constructor(data?: IFeedLotMediaResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.requiresMediaChangeConfirmation = _data["requiresMediaChangeConfirmation"];
+        }
+    }
+
+    static override fromJS(data: any): FeedLotMediaResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new FeedLotMediaResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["requiresMediaChangeConfirmation"] = this.requiresMediaChangeConfirmation;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IFeedLotMediaResponse extends IBaseResponse {
+    requiresMediaChangeConfirmation?: boolean;
+}
+
+export class FeedLotMediaRequest implements IFeedLotMediaRequest {
+    dots?: number;
+    mediaChangeConfirmed?: boolean;
+
+    constructor(data?: IFeedLotMediaRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.dots = _data["dots"];
+            this.mediaChangeConfirmed = _data["mediaChangeConfirmed"];
+        }
+    }
+
+    static fromJS(data: any): FeedLotMediaRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new FeedLotMediaRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["dots"] = this.dots;
+        data["mediaChangeConfirmed"] = this.mediaChangeConfirmed;
+        return data;
+    }
+}
+
+export interface IFeedLotMediaRequest {
+    dots?: number;
+    mediaChangeConfirmed?: boolean;
+}
+
+export class GetLotLabelCalibrationResponse extends BaseResponse implements IGetLotLabelCalibrationResponse {
+    pitchDots?: number;
+    minPitchDots?: number;
+    maxPitchDots?: number;
+    driftDotsPer100Labels?: number;
+    minDriftDotsPer100Labels?: number;
+    maxDriftDotsPer100Labels?: number;
+
+    constructor(data?: IGetLotLabelCalibrationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.pitchDots = _data["pitchDots"];
+            this.minPitchDots = _data["minPitchDots"];
+            this.maxPitchDots = _data["maxPitchDots"];
+            this.driftDotsPer100Labels = _data["driftDotsPer100Labels"];
+            this.minDriftDotsPer100Labels = _data["minDriftDotsPer100Labels"];
+            this.maxDriftDotsPer100Labels = _data["maxDriftDotsPer100Labels"];
+        }
+    }
+
+    static override fromJS(data: any): GetLotLabelCalibrationResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetLotLabelCalibrationResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["pitchDots"] = this.pitchDots;
+        data["minPitchDots"] = this.minPitchDots;
+        data["maxPitchDots"] = this.maxPitchDots;
+        data["driftDotsPer100Labels"] = this.driftDotsPer100Labels;
+        data["minDriftDotsPer100Labels"] = this.minDriftDotsPer100Labels;
+        data["maxDriftDotsPer100Labels"] = this.maxDriftDotsPer100Labels;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetLotLabelCalibrationResponse extends IBaseResponse {
+    pitchDots?: number;
+    minPitchDots?: number;
+    maxPitchDots?: number;
+    driftDotsPer100Labels?: number;
+    minDriftDotsPer100Labels?: number;
+    maxDriftDotsPer100Labels?: number;
+}
+
+export class SetLotLabelCalibrationResponse extends BaseResponse implements ISetLotLabelCalibrationResponse {
+    pitchDots?: number;
+    driftDotsPer100Labels?: number;
+
+    constructor(data?: ISetLotLabelCalibrationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.pitchDots = _data["pitchDots"];
+            this.driftDotsPer100Labels = _data["driftDotsPer100Labels"];
+        }
+    }
+
+    static override fromJS(data: any): SetLotLabelCalibrationResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetLotLabelCalibrationResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["pitchDots"] = this.pitchDots;
+        data["driftDotsPer100Labels"] = this.driftDotsPer100Labels;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISetLotLabelCalibrationResponse extends IBaseResponse {
+    pitchDots?: number;
+    driftDotsPer100Labels?: number;
+}
+
+export class SetLotLabelCalibrationRequest implements ISetLotLabelCalibrationRequest {
+    pitchDots?: number;
+    driftDotsPer100Labels?: number;
+
+    constructor(data?: ISetLotLabelCalibrationRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.pitchDots = _data["pitchDots"];
+            this.driftDotsPer100Labels = _data["driftDotsPer100Labels"];
+        }
+    }
+
+    static fromJS(data: any): SetLotLabelCalibrationRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetLotLabelCalibrationRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["pitchDots"] = this.pitchDots;
+        data["driftDotsPer100Labels"] = this.driftDotsPer100Labels;
+        return data;
+    }
+}
+
+export interface ISetLotLabelCalibrationRequest {
+    pitchDots?: number;
+    driftDotsPer100Labels?: number;
+}
+
 export class CalculatedBatchSizeResponse extends BaseResponse implements ICalculatedBatchSizeResponse {
     productCode?: string;
     productName?: string;
@@ -31640,6 +32232,7 @@ export interface IDiscardMaterialContainerResponse extends IBaseResponse {
 
 export class PrintMaterialContainerLabelsResponse extends BaseResponse implements IPrintMaterialContainerLabelsResponse {
     containers?: MaterialContainerDto[];
+    requiresMediaChangeConfirmation?: boolean;
 
     constructor(data?: IPrintMaterialContainerLabelsResponse) {
         super(data);
@@ -31653,6 +32246,7 @@ export class PrintMaterialContainerLabelsResponse extends BaseResponse implement
                 for (let item of _data["containers"])
                     this.containers!.push(MaterialContainerDto.fromJS(item));
             }
+            this.requiresMediaChangeConfirmation = _data["requiresMediaChangeConfirmation"];
         }
     }
 
@@ -31670,6 +32264,7 @@ export class PrintMaterialContainerLabelsResponse extends BaseResponse implement
             for (let item of this.containers)
                 data["containers"].push(item.toJSON());
         }
+        data["requiresMediaChangeConfirmation"] = this.requiresMediaChangeConfirmation;
         super.toJSON(data);
         return data;
     }
@@ -31677,10 +32272,12 @@ export class PrintMaterialContainerLabelsResponse extends BaseResponse implement
 
 export interface IPrintMaterialContainerLabelsResponse extends IBaseResponse {
     containers?: MaterialContainerDto[];
+    requiresMediaChangeConfirmation?: boolean;
 }
 
 export class PrintMaterialContainerLabelsRequest implements IPrintMaterialContainerLabelsRequest {
     count?: number;
+    mediaChangeConfirmed?: boolean;
 
     constructor(data?: IPrintMaterialContainerLabelsRequest) {
         if (data) {
@@ -31694,6 +32291,7 @@ export class PrintMaterialContainerLabelsRequest implements IPrintMaterialContai
     init(_data?: any) {
         if (_data) {
             this.count = _data["count"];
+            this.mediaChangeConfirmed = _data["mediaChangeConfirmed"];
         }
     }
 
@@ -31707,12 +32305,14 @@ export class PrintMaterialContainerLabelsRequest implements IPrintMaterialContai
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["count"] = this.count;
+        data["mediaChangeConfirmed"] = this.mediaChangeConfirmed;
         return data;
     }
 }
 
 export interface IPrintMaterialContainerLabelsRequest {
     count?: number;
+    mediaChangeConfirmed?: boolean;
 }
 
 export class GetTranscriptListResponse extends BaseResponse implements IGetTranscriptListResponse {
@@ -31787,6 +32387,7 @@ export class MeetingTranscriptDto implements IMeetingTranscriptDto {
     approvedTaskCount?: number;
     rejectedTaskCount?: number;
     tasks?: ProposedTaskDto[];
+    participants?: string[];
     accessLevel?: string;
     accessGrants?: MeetingAccessGrantDto[];
 
@@ -31818,6 +32419,11 @@ export class MeetingTranscriptDto implements IMeetingTranscriptDto {
                 this.tasks = [] as any;
                 for (let item of _data["tasks"])
                     this.tasks!.push(ProposedTaskDto.fromJS(item));
+            }
+            if (Array.isArray(_data["participants"])) {
+                this.participants = [] as any;
+                for (let item of _data["participants"])
+                    this.participants!.push(item);
             }
             this.accessLevel = _data["accessLevel"];
             if (Array.isArray(_data["accessGrants"])) {
@@ -31855,6 +32461,11 @@ export class MeetingTranscriptDto implements IMeetingTranscriptDto {
             for (let item of this.tasks)
                 data["tasks"].push(item.toJSON());
         }
+        if (Array.isArray(this.participants)) {
+            data["participants"] = [];
+            for (let item of this.participants)
+                data["participants"].push(item);
+        }
         data["accessLevel"] = this.accessLevel;
         if (Array.isArray(this.accessGrants)) {
             data["accessGrants"] = [];
@@ -31880,6 +32491,7 @@ export interface IMeetingTranscriptDto {
     approvedTaskCount?: number;
     rejectedTaskCount?: number;
     tasks?: ProposedTaskDto[];
+    participants?: string[];
     accessLevel?: string;
     accessGrants?: MeetingAccessGrantDto[];
 }
@@ -32274,6 +32886,79 @@ export interface IUpdateProposedTaskStatusRequest {
     transcriptId?: string;
     taskId?: string;
     status: string;
+}
+
+export class UpdateTranscriptStatusResponse extends BaseResponse implements IUpdateTranscriptStatusResponse {
+    status?: string | undefined;
+
+    constructor(data?: IUpdateTranscriptStatusResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.status = _data["status"];
+        }
+    }
+
+    static override fromJS(data: any): UpdateTranscriptStatusResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateTranscriptStatusResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["status"] = this.status;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateTranscriptStatusResponse extends IBaseResponse {
+    status?: string | undefined;
+}
+
+export class UpdateTranscriptStatusRequest implements IUpdateTranscriptStatusRequest {
+    transcriptId?: string;
+    status?: string;
+
+    constructor(data?: IUpdateTranscriptStatusRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.transcriptId = _data["transcriptId"];
+            this.status = _data["status"];
+        }
+    }
+
+    static fromJS(data: any): UpdateTranscriptStatusRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateTranscriptStatusRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transcriptId"] = this.transcriptId;
+        data["status"] = this.status;
+        return data;
+    }
+}
+
+export interface IUpdateTranscriptStatusRequest {
+    transcriptId?: string;
+    status?: string;
 }
 
 export class AddProposedTaskResponse extends BaseResponse implements IAddProposedTaskResponse {

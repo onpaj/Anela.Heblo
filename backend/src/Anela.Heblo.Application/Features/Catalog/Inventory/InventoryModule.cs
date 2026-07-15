@@ -1,6 +1,9 @@
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateMaterialContainers;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateLot;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.FeedLotMedia;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.PrintLotLabels;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.SetLotLabelCalibration;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.UpdateLot;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
 using Anela.Heblo.Persistence.Catalog.Inventory;
@@ -16,16 +19,24 @@ public static class InventoryModule
     {
         services.AddScoped<ILotRepository, LotRepository>();
         services.AddScoped<IMaterialContainerRepository, MaterialContainerRepository>();
+        services.AddScoped<ILotLabelCalibrationRepository, LotLabelCalibrationRepository>();
+        services.AddScoped<IPrinterMediaStateRepository, PrinterMediaStateRepository>();
         // IMaterialContainerCodeGenerator is registered in PersistenceModule: MaterialContainerCodeGenerator when a real
         // NpgsqlDataSource is available, NullMaterialContainerCodeGenerator when running in-memory.
 
         services.AddScoped<IValidator<CreateLotRequest>, CreateLotRequestValidator>();
         services.AddScoped<IValidator<UpdateLotRequest>, UpdateLotRequestValidator>();
         services.AddScoped<IValidator<CreateMaterialContainersRequest>, CreateMaterialContainersRequestValidator>();
+        services.AddScoped<IValidator<PrintLotLabelsRequest>, PrintLotLabelsRequestValidator>();
+        services.AddScoped<IValidator<FeedLotMediaRequest>, FeedLotMediaRequestValidator>();
+        services.AddScoped<IValidator<SetLotLabelCalibrationRequest>, SetLotLabelCalibrationRequestValidator>();
 
         services.AddScoped<IPipelineBehavior<CreateLotRequest, CreateLotResponse>, ValidationBehavior<CreateLotRequest, CreateLotResponse>>();
         services.AddScoped<IPipelineBehavior<UpdateLotRequest, UpdateLotResponse>, ValidationBehavior<UpdateLotRequest, UpdateLotResponse>>();
         services.AddScoped<IPipelineBehavior<CreateMaterialContainersRequest, CreateMaterialContainersResponse>, ValidationBehavior<CreateMaterialContainersRequest, CreateMaterialContainersResponse>>();
+        services.AddScoped<IPipelineBehavior<PrintLotLabelsRequest, PrintLotLabelsResponse>, ValidationBehavior<PrintLotLabelsRequest, PrintLotLabelsResponse>>();
+        services.AddScoped<IPipelineBehavior<FeedLotMediaRequest, FeedLotMediaResponse>, ValidationBehavior<FeedLotMediaRequest, FeedLotMediaResponse>>();
+        services.AddScoped<IPipelineBehavior<SetLotLabelCalibrationRequest, SetLotLabelCalibrationResponse>, ValidationBehavior<SetLotLabelCalibrationRequest, SetLotLabelCalibrationResponse>>();
 
         return services;
     }
