@@ -34,15 +34,15 @@
     },
     {
       "name": "remove-handler-date-parsing",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-15T07:31:59.684040Z"
+      "updated_at": "2026-07-15T07:33:23.415806Z"
     },
     {
       "name": "simplify-validator-date-rules",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-15T07:33:27.714711Z"
     },
     {
       "name": "update-backend-unit-tests",
