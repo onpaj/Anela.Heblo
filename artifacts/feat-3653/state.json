@@ -40,15 +40,15 @@
     },
     {
       "name": "simplify-validator-date-rules",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-15T07:33:27.714711Z"
+      "updated_at": "2026-07-15T07:37:53.870953Z"
     },
     {
       "name": "update-backend-unit-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-15T07:37:58.177423Z"
     },
     {
       "name": "regenerate-client-and-update-frontend-hook",
