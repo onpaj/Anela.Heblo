@@ -13,6 +13,7 @@ public class MaterialContainerLabelZplBuilderTests
 
         zpl.Split("^XZ", System.StringSplitOptions.RemoveEmptyEntries).Should().HaveCount(2);
         System.Text.RegularExpressions.Regex.Matches(zpl, "\\^XA").Should().HaveCount(2);
+        zpl.Should().Contain("^MNY");              // non-continuous gap-sensing media
         zpl.Should().Contain("^BCN");              // Code128 barcode command
         zpl.Should().Contain("^FDM00000001^FS");   // barcode + human-readable use same data
     }

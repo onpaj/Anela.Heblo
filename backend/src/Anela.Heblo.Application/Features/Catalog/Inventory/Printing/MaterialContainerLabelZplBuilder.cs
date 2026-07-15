@@ -18,6 +18,9 @@ public static class MaterialContainerLabelZplBuilder
         foreach (var code in codes)
         {
             sb.Append("^XA");
+            sb.Append("^MNY");  // non-continuous gap media: sense the web between labels.
+                                // Set explicitly so container prints keep working after a
+                                // lot-label print switched the printer to continuous mode.
             sb.Append($"^PW{LabelWidthDots}");
             sb.Append($"^LL{LabelHeightDots}");
             // Code128 @ 300 dpi, module width BY3, 10 mm tall. ^FB centers text but NOT a
