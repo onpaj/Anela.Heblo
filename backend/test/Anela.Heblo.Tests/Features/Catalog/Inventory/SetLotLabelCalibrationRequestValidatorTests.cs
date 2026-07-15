@@ -16,7 +16,7 @@ public class SetLotLabelCalibrationRequestValidatorTests
     public void Valid_Pitch_Passes(int pitch)
     {
         var result = _validator.TestValidate(
-            new SetLotLabelCalibrationRequest { PitchDots = pitch, DriftEveryNLabels = 3 });
+            new SetLotLabelCalibrationRequest { PitchDots = pitch, DriftDotsPer10Labels = 3 });
         result.ShouldNotHaveAnyValidationErrors();
     }
 
@@ -27,28 +27,28 @@ public class SetLotLabelCalibrationRequestValidatorTests
     public void Invalid_Pitch_Fails(int pitch)
     {
         var result = _validator.TestValidate(
-            new SetLotLabelCalibrationRequest { PitchDots = pitch, DriftEveryNLabels = 3 });
+            new SetLotLabelCalibrationRequest { PitchDots = pitch, DriftDotsPer10Labels = 3 });
         result.ShouldHaveValidationErrorFor(x => x.PitchDots);
     }
 
     [Theory]
-    [InlineData(LotLabelCalibration.MinDriftEveryNLabels)] // 0 = disabled, valid
+    [InlineData(LotLabelCalibration.MinDriftDotsPer10Labels)] // 0 = disabled, valid
     [InlineData(3)]
-    [InlineData(LotLabelCalibration.MaxDriftEveryNLabels)]
+    [InlineData(LotLabelCalibration.MaxDriftDotsPer10Labels)]
     public void Valid_Drift_Passes(int drift)
     {
         var result = _validator.TestValidate(
-            new SetLotLabelCalibrationRequest { PitchDots = 148, DriftEveryNLabels = drift });
+            new SetLotLabelCalibrationRequest { PitchDots = 148, DriftDotsPer10Labels = drift });
         result.ShouldNotHaveAnyValidationErrors();
     }
 
     [Theory]
     [InlineData(-1)]
-    [InlineData(LotLabelCalibration.MaxDriftEveryNLabels + 1)]
+    [InlineData(LotLabelCalibration.MaxDriftDotsPer10Labels + 1)]
     public void Invalid_Drift_Fails(int drift)
     {
         var result = _validator.TestValidate(
-            new SetLotLabelCalibrationRequest { PitchDots = 148, DriftEveryNLabels = drift });
-        result.ShouldHaveValidationErrorFor(x => x.DriftEveryNLabels);
+            new SetLotLabelCalibrationRequest { PitchDots = 148, DriftDotsPer10Labels = drift });
+        result.ShouldHaveValidationErrorFor(x => x.DriftDotsPer10Labels);
     }
 }

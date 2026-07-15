@@ -35,13 +35,23 @@ public class LotLabelZplBuilderTests
     }
 
     [Fact]
-    public void Build_AddsOneDotEveryThirdLabel_WhenDriftEvery3()
+    public void Build_SpreadsDriftDotsEvenlyOver10Labels()
     {
-        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 6, 148, 3);
+        // 4 dots per 10 labels: exactly 4 of the 10 labels feed +1 dot, the rest the base pitch.
+        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 10, 148, 4);
 
-        // Labels 1,2,4,5 feed the calibrated pitch; every 3rd label (3 and 6) feeds +1 dot.
-        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL148(?![0-9])").Should().HaveCount(4);
+        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL149(?![0-9])").Should().HaveCount(4);
+        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL148(?![0-9])").Should().HaveCount(6);
+    }
+
+    [Fact]
+    public void Build_SpreadsDriftProportionally_ForPartialRun()
+    {
+        // 4 dots per 10 labels over a run of 5 => 2 correction dots.
+        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 5, 148, 4);
+
         System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL149(?![0-9])").Should().HaveCount(2);
+        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL148(?![0-9])").Should().HaveCount(3);
     }
 
     [Fact]

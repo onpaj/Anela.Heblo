@@ -15,10 +15,10 @@ public static class LotLabelZplBuilder
 
     // Vertical pitch (^LL) the printer advances per label in continuous mode. Round die-cut
     // labels are unreliable for the gap sensor, so the media is driven continuous (^MNN) and
-    // fed exactly this many dots; it must match the physical pitch or the print drifts. Both
-    // the pitch and the drift correction (feed +1 dot every driftEveryNLabels labels, 0 to
-    // disable) are calibrated per printer and passed in from the persisted LotLabelCalibration.
-    public static string Build(string lotNumber, string expiration, int count, int pitchDots, int driftEveryNLabels)
+    // fed exactly this many dots; it must match the physical pitch or the print drifts. The
+    // pitch and the drift correction (total extra dots spread evenly across every 10 labels,
+    // 0 to disable) are calibrated per printer and passed in from the persisted calibration.
+    public static string Build(string lotNumber, string expiration, int count, int pitchDots, int driftDotsPer10Labels)
     {
         if (string.IsNullOrWhiteSpace(lotNumber))
             throw new ArgumentException("Lot number is required.", nameof(lotNumber));
@@ -28,14 +28,19 @@ public static class LotLabelZplBuilder
             throw new ArgumentException("Count must be at least 1.", nameof(count));
         if (pitchDots < 1)
             throw new ArgumentException("Pitch must be at least 1 dot.", nameof(pitchDots));
-        if (driftEveryNLabels < 0)
-            throw new ArgumentException("Drift correction cannot be negative.", nameof(driftEveryNLabels));
+        if (driftDotsPer10Labels < 0)
+            throw new ArgumentException("Drift correction cannot be negative.", nameof(driftDotsPer10Labels));
 
         var sb = new StringBuilder();
+        var appliedDots = 0;
         for (var i = 0; i < count; i++)
         {
-            // Add 1 dot on every Nth label to compensate residual drift over the run (0 = off).
-            var labelPitch = pitchDots + (driftEveryNLabels > 0 && (i + 1) % driftEveryNLabels == 0 ? 1 : 0);
+            // Spread driftDotsPer10Labels evenly: the cumulative correction after label i is
+            // round(i * dots / 10); each label feeds the difference (0 or 1, or more if the
+            // rate exceeds 10 per 10). Round half up with integer math.
+            var targetDots = ((i + 1) * driftDotsPer10Labels + 5) / 10;
+            var labelPitch = pitchDots + (targetDots - appliedDots);
+            appliedDots = targetDots;
 
             sb.Append("^XA");
             sb.Append("^MNN");  // continuous media: do not sense gaps/marks, feed by ^LL

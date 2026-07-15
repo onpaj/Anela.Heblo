@@ -44,7 +44,7 @@ function LotLabelPrintModal({ isOpen, onClose }: LotLabelPrintModalProps) {
   const [expirationMonth, setExpirationMonth] = useState("");
   const [count, setCount] = useState(MIN_COUNT);
   const [pitchDots, setPitchDots] = useState<number | "">("");
-  const [driftEveryN, setDriftEveryN] = useState<number | "">("");
+  const [driftPer10, setDriftPer10] = useState<number | "">("");
   const [error, setError] = useState<string | null>(null);
 
   const { hasPermission } = usePermissionsContext();
@@ -77,10 +77,10 @@ function LotLabelPrintModal({ isOpen, onClose }: LotLabelPrintModalProps) {
   }, [calibration.data?.pitchDots]);
 
   useEffect(() => {
-    if (calibration.data?.driftEveryNLabels != null) {
-      setDriftEveryN(calibration.data.driftEveryNLabels);
+    if (calibration.data?.driftDotsPer10Labels != null) {
+      setDriftPer10(calibration.data.driftDotsPer10Labels);
     }
-  }, [calibration.data?.driftEveryNLabels]);
+  }, [calibration.data?.driftDotsPer10Labels]);
 
   if (!isOpen) return null;
 
@@ -126,10 +126,10 @@ function LotLabelPrintModal({ isOpen, onClose }: LotLabelPrintModalProps) {
   // Persists the printer calibration (pitch + drift correction, admin only) so it
   // applies to every print.
   const handleSaveCalibration = () => {
-    if (pitchDots === "" || driftEveryN === "") return;
+    if (pitchDots === "" || driftPer10 === "") return;
     setError(null);
     saveCalibration.mutate(
-      { pitchDots, driftEveryNLabels: driftEveryN },
+      { pitchDots, driftDotsPer10Labels: driftPer10 },
       {
         onError: (err) =>
           setError(`Chyba při uložení kalibrace: ${(err as Error).message}`),
@@ -278,18 +278,18 @@ function LotLabelPrintModal({ isOpen, onClose }: LotLabelPrintModalProps) {
                 </div>
                 <div>
                   <label
-                    htmlFor="driftEveryN"
+                    htmlFor="driftPer10"
                     className="block text-xs font-medium text-gray-500 dark:text-graphite-muted mb-1"
                   >
-                    Korekce driftu: +1 bod každých N štítků (0 = vypnuto)
+                    Korekce driftu: celkem bodů na 10 štítků (0 = vypnuto)
                   </label>
                   <input
-                    id="driftEveryN"
+                    id="driftPer10"
                     type="number"
                     min={0}
-                    value={driftEveryN}
+                    value={driftPer10}
                     onChange={(e) =>
-                      setDriftEveryN(e.target.value === "" ? "" : Number(e.target.value))
+                      setDriftPer10(e.target.value === "" ? "" : Number(e.target.value))
                     }
                     className="w-28 px-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
                     disabled={saveCalibration.isPending || calibration.isLoading}
@@ -300,7 +300,7 @@ function LotLabelPrintModal({ isOpen, onClose }: LotLabelPrintModalProps) {
                   onClick={handleSaveCalibration}
                   disabled={
                     pitchDots === "" ||
-                    driftEveryN === "" ||
+                    driftPer10 === "" ||
                     saveCalibration.isPending ||
                     calibration.isLoading
                   }

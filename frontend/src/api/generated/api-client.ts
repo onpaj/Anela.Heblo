@@ -26867,9 +26867,9 @@ export class GetLotLabelCalibrationResponse extends BaseResponse implements IGet
     pitchDots?: number;
     minPitchDots?: number;
     maxPitchDots?: number;
-    driftEveryNLabels?: number;
-    minDriftEveryNLabels?: number;
-    maxDriftEveryNLabels?: number;
+    driftDotsPer10Labels?: number;
+    minDriftDotsPer10Labels?: number;
+    maxDriftDotsPer10Labels?: number;
 
     constructor(data?: IGetLotLabelCalibrationResponse) {
         super(data);
@@ -26881,9 +26881,9 @@ export class GetLotLabelCalibrationResponse extends BaseResponse implements IGet
             this.pitchDots = _data["pitchDots"];
             this.minPitchDots = _data["minPitchDots"];
             this.maxPitchDots = _data["maxPitchDots"];
-            this.driftEveryNLabels = _data["driftEveryNLabels"];
-            this.minDriftEveryNLabels = _data["minDriftEveryNLabels"];
-            this.maxDriftEveryNLabels = _data["maxDriftEveryNLabels"];
+            this.driftDotsPer10Labels = _data["driftDotsPer10Labels"];
+            this.minDriftDotsPer10Labels = _data["minDriftDotsPer10Labels"];
+            this.maxDriftDotsPer10Labels = _data["maxDriftDotsPer10Labels"];
         }
     }
 
@@ -26899,9 +26899,9 @@ export class GetLotLabelCalibrationResponse extends BaseResponse implements IGet
         data["pitchDots"] = this.pitchDots;
         data["minPitchDots"] = this.minPitchDots;
         data["maxPitchDots"] = this.maxPitchDots;
-        data["driftEveryNLabels"] = this.driftEveryNLabels;
-        data["minDriftEveryNLabels"] = this.minDriftEveryNLabels;
-        data["maxDriftEveryNLabels"] = this.maxDriftEveryNLabels;
+        data["driftDotsPer10Labels"] = this.driftDotsPer10Labels;
+        data["minDriftDotsPer10Labels"] = this.minDriftDotsPer10Labels;
+        data["maxDriftDotsPer10Labels"] = this.maxDriftDotsPer10Labels;
         super.toJSON(data);
         return data;
     }
@@ -26911,14 +26911,14 @@ export interface IGetLotLabelCalibrationResponse extends IBaseResponse {
     pitchDots?: number;
     minPitchDots?: number;
     maxPitchDots?: number;
-    driftEveryNLabels?: number;
-    minDriftEveryNLabels?: number;
-    maxDriftEveryNLabels?: number;
+    driftDotsPer10Labels?: number;
+    minDriftDotsPer10Labels?: number;
+    maxDriftDotsPer10Labels?: number;
 }
 
 export class SetLotLabelCalibrationResponse extends BaseResponse implements ISetLotLabelCalibrationResponse {
     pitchDots?: number;
-    driftEveryNLabels?: number;
+    driftDotsPer10Labels?: number;
 
     constructor(data?: ISetLotLabelCalibrationResponse) {
         super(data);
@@ -26928,7 +26928,7 @@ export class SetLotLabelCalibrationResponse extends BaseResponse implements ISet
         super.init(_data);
         if (_data) {
             this.pitchDots = _data["pitchDots"];
-            this.driftEveryNLabels = _data["driftEveryNLabels"];
+            this.driftDotsPer10Labels = _data["driftDotsPer10Labels"];
         }
     }
 
@@ -26942,7 +26942,7 @@ export class SetLotLabelCalibrationResponse extends BaseResponse implements ISet
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["pitchDots"] = this.pitchDots;
-        data["driftEveryNLabels"] = this.driftEveryNLabels;
+        data["driftDotsPer10Labels"] = this.driftDotsPer10Labels;
         super.toJSON(data);
         return data;
     }
@@ -26950,12 +26950,12 @@ export class SetLotLabelCalibrationResponse extends BaseResponse implements ISet
 
 export interface ISetLotLabelCalibrationResponse extends IBaseResponse {
     pitchDots?: number;
-    driftEveryNLabels?: number;
+    driftDotsPer10Labels?: number;
 }
 
 export class SetLotLabelCalibrationRequest implements ISetLotLabelCalibrationRequest {
     pitchDots?: number;
-    driftEveryNLabels?: number;
+    driftDotsPer10Labels?: number;
 
     constructor(data?: ISetLotLabelCalibrationRequest) {
         if (data) {
@@ -26969,7 +26969,7 @@ export class SetLotLabelCalibrationRequest implements ISetLotLabelCalibrationReq
     init(_data?: any) {
         if (_data) {
             this.pitchDots = _data["pitchDots"];
-            this.driftEveryNLabels = _data["driftEveryNLabels"];
+            this.driftDotsPer10Labels = _data["driftDotsPer10Labels"];
         }
     }
 
@@ -26983,14 +26983,14 @@ export class SetLotLabelCalibrationRequest implements ISetLotLabelCalibrationReq
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["pitchDots"] = this.pitchDots;
-        data["driftEveryNLabels"] = this.driftEveryNLabels;
+        data["driftDotsPer10Labels"] = this.driftDotsPer10Labels;
         return data;
     }
 }
 
 export interface ISetLotLabelCalibrationRequest {
     pitchDots?: number;
-    driftEveryNLabels?: number;
+    driftDotsPer10Labels?: number;
 }
 
 export class CalculatedBatchSizeResponse extends BaseResponse implements ICalculatedBatchSizeResponse {

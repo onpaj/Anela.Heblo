@@ -29,7 +29,7 @@ public class PrintLotLabelsHandler
         var calibration = await _calibrationRepository.GetAsync(cancellationToken);
         var zpl = LotLabelZplBuilder.Build(
             request.LotNumber, request.Expiration, request.Count,
-            calibration.PitchDots, calibration.DriftEveryNLabels);
+            calibration.PitchDots, calibration.DriftDotsPer10Labels);
         await _labelPrinter.PrintZplAsync(zpl, cancellationToken);
 
         _logger.LogInformation(

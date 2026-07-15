@@ -96,7 +96,7 @@ export const useSetLotLabelCalibration = () => {
   return useMutation({
     mutationFn: (input: {
       pitchDots: number;
-      driftEveryNLabels: number;
+      driftDotsPer10Labels: number;
     }): Promise<SetLotLabelCalibrationResponse> => {
       const apiClient = getAuthenticatedApiClient();
       const request = new SetLotLabelCalibrationRequest(input);

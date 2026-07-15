@@ -22,13 +22,13 @@ public class SetLotLabelCalibrationHandlerTests
             repo.Object, AuthenticatedUser().Object, NullLogger<SetLotLabelCalibrationHandler>.Instance);
 
         var result = await sut.Handle(
-            new SetLotLabelCalibrationRequest { PitchDots = 152, DriftEveryNLabels = 4 }, CancellationToken.None);
+            new SetLotLabelCalibrationRequest { PitchDots = 152, DriftDotsPer10Labels = 4 }, CancellationToken.None);
 
         result.Success.Should().BeTrue();
         result.PitchDots.Should().Be(152);
-        result.DriftEveryNLabels.Should().Be(4);
+        result.DriftDotsPer10Labels.Should().Be(4);
         repo.Verify(r => r.SaveAsync(
-            It.Is<LotLabelCalibration>(c => c.PitchDots == 152 && c.DriftEveryNLabels == 4),
+            It.Is<LotLabelCalibration>(c => c.PitchDots == 152 && c.DriftDotsPer10Labels == 4),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

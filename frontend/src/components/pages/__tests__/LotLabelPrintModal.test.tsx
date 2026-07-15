@@ -68,9 +68,9 @@ describe("LotLabelPrintModal", () => {
         pitchDots: 148,
         minPitchDots: 80,
         maxPitchDots: 400,
-        driftEveryNLabels: 3,
-        minDriftEveryNLabels: 0,
-        maxDriftEveryNLabels: 100,
+        driftDotsPer10Labels: 3,
+        minDriftDotsPer10Labels: 0,
+        maxDriftDotsPer10Labels: 100,
       },
       isLoading: false,
     });
@@ -178,7 +178,7 @@ describe("LotLabelPrintModal", () => {
     fireEvent.click(screen.getByRole("button", { name: /Uložit kalibraci/i }));
 
     expect(mockSaveCalibration).toHaveBeenLastCalledWith(
-      { pitchDots: 152, driftEveryNLabels: 4 },
+      { pitchDots: 152, driftDotsPer10Labels: 4 },
       expect.objectContaining({ onError: expect.any(Function) }),
     );
   });
