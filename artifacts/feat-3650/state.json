@@ -21,16 +21,16 @@
       "updated_at": "2026-07-15T05:24:36.964814Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-15T05:25:05.224617Z"
     }
   },
   "tasks": [
     {
       "name": "backend-move-use-case",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-15T05:25:05.463223Z"
     },
     {
       "name": "frontend-wire-move-endpoint",
