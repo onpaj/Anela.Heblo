@@ -357,6 +357,16 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
             "404 response must contain a 'message' field to preserve wire format");
         Assert.Equal($"Bank statement import with ID {missingId} not found", messageProp.GetString());
     }
+
+    [Fact]
+    public async Task GetBankStatements_WithInvalidDateFromQueryParam_ReturnsBadRequest()
+    {
+        // Act
+        var response = await _client.GetAsync("/api/bank-statements?dateFrom=not-a-date");
+
+        // Assert — ASP.NET Core model binding rejects this before MediatR.Send runs.
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }
 
 /// <summary>
