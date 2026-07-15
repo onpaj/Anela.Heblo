@@ -92,6 +92,24 @@ namespace Anela.Heblo.API.Controllers
         }
 
         /// <summary>
+        /// Move (reschedule) a marketing action — date-only update used by calendar drag/resize.
+        /// Does not modify title, description, action type, product associations, or folder links.
+        /// </summary>
+        [HttpPatch("{id:int}/move")]
+        [FeatureAuthorize(Feature.Marketing_MarketingCalendar, AccessLevel.Write)]
+        [ProducesResponseType(typeof(MoveMarketingActionResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<MoveMarketingActionResponse>> MoveMarketingAction(
+            int id,
+            [FromBody] MoveMarketingActionRequest request)
+        {
+            request.Id = id;
+            var response = await _mediator.Send(request);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
         /// Delete a marketing action (soft delete)
         /// </summary>
         [HttpDelete("{id:int}")]

@@ -7822,6 +7822,61 @@ export class ApiClient {
         return Promise.resolve<GetMarketingCalendarResponse>(null as any);
     }
 
+    marketingCalendar_MoveMarketingAction(id: number, request: MoveMarketingActionRequest): Promise<MoveMarketingActionResponse> {
+        let url_ = this.baseUrl + "/api/MarketingCalendar/{id}/move";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingCalendar_MoveMarketingAction(_response);
+        });
+    }
+
+    protected processMarketingCalendar_MoveMarketingAction(response: Response): Promise<MoveMarketingActionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = MoveMarketingActionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<MoveMarketingActionResponse>(null as any);
+    }
+
     marketingCalendar_ImportFromOutlook(request: ImportFromOutlookRequest): Promise<ImportFromOutlookResponse> {
         let url_ = this.baseUrl + "/api/MarketingCalendar/import-from-outlook";
         url_ = url_.replace(/[?&]$/, "");
@@ -8317,6 +8372,47 @@ export class ApiClient {
             });
         }
         return Promise.resolve<UpdateProposedTaskStatusResponse>(null as any);
+    }
+
+    meetingTasks_UpdateStatus(transcriptId: string, request: UpdateTranscriptStatusRequest): Promise<UpdateTranscriptStatusResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/{transcriptId}/status";
+        if (transcriptId === undefined || transcriptId === null)
+            throw new Error("The parameter 'transcriptId' must be defined.");
+        url_ = url_.replace("{transcriptId}", encodeURIComponent("" + transcriptId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_UpdateStatus(_response);
+        });
+    }
+
+    protected processMeetingTasks_UpdateStatus(response: Response): Promise<UpdateTranscriptStatusResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateTranscriptStatusResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateTranscriptStatusResponse>(null as any);
     }
 
     meetingTasks_AddTask(transcriptId: string, request: AddProposedTaskRequest): Promise<AddProposedTaskResponse> {
@@ -31146,6 +31242,91 @@ export interface IUpdateMarketingActionRequest {
     folderLinks?: MarketingFolderLinkRequest[] | undefined;
 }
 
+export class MoveMarketingActionResponse extends BaseResponse implements IMoveMarketingActionResponse {
+    id?: number;
+    modifiedAt?: Date;
+    message?: string;
+
+    constructor(data?: IMoveMarketingActionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
+            this.message = _data["message"];
+        }
+    }
+
+    static override fromJS(data: any): MoveMarketingActionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new MoveMarketingActionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
+        data["message"] = this.message;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IMoveMarketingActionResponse extends IBaseResponse {
+    id?: number;
+    modifiedAt?: Date;
+    message?: string;
+}
+
+export class MoveMarketingActionRequest implements IMoveMarketingActionRequest {
+    id?: number;
+    startDate!: Date;
+    endDate?: Date | undefined;
+
+    constructor(data?: IMoveMarketingActionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.startDate = _data["startDate"] ? new Date(_data["startDate"].toString()) : <any>undefined;
+            this.endDate = _data["endDate"] ? new Date(_data["endDate"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): MoveMarketingActionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new MoveMarketingActionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["startDate"] = this.startDate ? this.startDate.toISOString() : <any>undefined;
+        data["endDate"] = this.endDate ? this.endDate.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IMoveMarketingActionRequest {
+    id?: number;
+    startDate: Date;
+    endDate?: Date | undefined;
+}
+
 export class DeleteMarketingActionResponse extends BaseResponse implements IDeleteMarketingActionResponse {
     id?: number;
     message?: string;
@@ -31787,6 +31968,7 @@ export class MeetingTranscriptDto implements IMeetingTranscriptDto {
     approvedTaskCount?: number;
     rejectedTaskCount?: number;
     tasks?: ProposedTaskDto[];
+    participants?: string[];
     accessLevel?: string;
     accessGrants?: MeetingAccessGrantDto[];
 
@@ -31818,6 +32000,11 @@ export class MeetingTranscriptDto implements IMeetingTranscriptDto {
                 this.tasks = [] as any;
                 for (let item of _data["tasks"])
                     this.tasks!.push(ProposedTaskDto.fromJS(item));
+            }
+            if (Array.isArray(_data["participants"])) {
+                this.participants = [] as any;
+                for (let item of _data["participants"])
+                    this.participants!.push(item);
             }
             this.accessLevel = _data["accessLevel"];
             if (Array.isArray(_data["accessGrants"])) {
@@ -31855,6 +32042,11 @@ export class MeetingTranscriptDto implements IMeetingTranscriptDto {
             for (let item of this.tasks)
                 data["tasks"].push(item.toJSON());
         }
+        if (Array.isArray(this.participants)) {
+            data["participants"] = [];
+            for (let item of this.participants)
+                data["participants"].push(item);
+        }
         data["accessLevel"] = this.accessLevel;
         if (Array.isArray(this.accessGrants)) {
             data["accessGrants"] = [];
@@ -31880,6 +32072,7 @@ export interface IMeetingTranscriptDto {
     approvedTaskCount?: number;
     rejectedTaskCount?: number;
     tasks?: ProposedTaskDto[];
+    participants?: string[];
     accessLevel?: string;
     accessGrants?: MeetingAccessGrantDto[];
 }
@@ -32274,6 +32467,79 @@ export interface IUpdateProposedTaskStatusRequest {
     transcriptId?: string;
     taskId?: string;
     status: string;
+}
+
+export class UpdateTranscriptStatusResponse extends BaseResponse implements IUpdateTranscriptStatusResponse {
+    status?: string | undefined;
+
+    constructor(data?: IUpdateTranscriptStatusResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.status = _data["status"];
+        }
+    }
+
+    static override fromJS(data: any): UpdateTranscriptStatusResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateTranscriptStatusResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["status"] = this.status;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateTranscriptStatusResponse extends IBaseResponse {
+    status?: string | undefined;
+}
+
+export class UpdateTranscriptStatusRequest implements IUpdateTranscriptStatusRequest {
+    transcriptId?: string;
+    status?: string;
+
+    constructor(data?: IUpdateTranscriptStatusRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.transcriptId = _data["transcriptId"];
+            this.status = _data["status"];
+        }
+    }
+
+    static fromJS(data: any): UpdateTranscriptStatusRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateTranscriptStatusRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transcriptId"] = this.transcriptId;
+        data["status"] = this.status;
+        return data;
+    }
+}
+
+export interface IUpdateTranscriptStatusRequest {
+    transcriptId?: string;
+    status?: string;
 }
 
 export class AddProposedTaskResponse extends BaseResponse implements IAddProposedTaskResponse {
