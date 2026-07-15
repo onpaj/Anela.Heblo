@@ -236,7 +236,7 @@ describe('usePrintLotCalibrationLabel', () => {
     } as any);
   });
 
-  it('calls the calibration endpoint with no arguments', async () => {
+  it('calls the calibration endpoint with an unconfirmed media change by default', async () => {
     mockPrintCalibration.mockResolvedValue({ success: true });
 
     const { result } = renderHook(() => usePrintLotCalibrationLabel(), {
@@ -250,7 +250,9 @@ describe('usePrintLotCalibrationLabel', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(mockPrintCalibration).toHaveBeenCalledTimes(1);
-    expect(mockPrintCalibration).toHaveBeenCalledWith();
+    expect(mockPrintCalibration).toHaveBeenCalledWith(
+      expect.objectContaining({ mediaChangeConfirmed: false }),
+    );
   });
 });
 
@@ -273,7 +275,7 @@ describe('useFeedLotMedia', () => {
     });
 
     await act(async () => {
-      result.current.mutate(40);
+      result.current.mutate({ dots: 40 });
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
