@@ -7,9 +7,9 @@ public class GetLotLabelCalibrationResponse : BaseResponse
     public int PitchDots { get; set; }
     public int MinPitchDots { get; set; }
     public int MaxPitchDots { get; set; }
-    public int DriftDotsPer10Labels { get; set; }
-    public int MinDriftDotsPer10Labels { get; set; }
-    public int MaxDriftDotsPer10Labels { get; set; }
+    public int DriftDotsPer100Labels { get; set; }
+    public int MinDriftDotsPer100Labels { get; set; }
+    public int MaxDriftDotsPer100Labels { get; set; }
 
     public GetLotLabelCalibrationResponse() : base() { }
 

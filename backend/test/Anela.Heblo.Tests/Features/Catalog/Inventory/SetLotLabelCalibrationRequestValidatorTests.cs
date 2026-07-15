@@ -16,7 +16,7 @@ public class SetLotLabelCalibrationRequestValidatorTests
     public void Valid_Pitch_Passes(int pitch)
     {
         var result = _validator.TestValidate(
-            new SetLotLabelCalibrationRequest { PitchDots = pitch, DriftDotsPer10Labels = 3 });
+            new SetLotLabelCalibrationRequest { PitchDots = pitch, DriftDotsPer100Labels = 3 });
         result.ShouldNotHaveAnyValidationErrors();
     }
 
@@ -27,28 +27,28 @@ public class SetLotLabelCalibrationRequestValidatorTests
     public void Invalid_Pitch_Fails(int pitch)
     {
         var result = _validator.TestValidate(
-            new SetLotLabelCalibrationRequest { PitchDots = pitch, DriftDotsPer10Labels = 3 });
+            new SetLotLabelCalibrationRequest { PitchDots = pitch, DriftDotsPer100Labels = 3 });
         result.ShouldHaveValidationErrorFor(x => x.PitchDots);
     }
 
     [Theory]
-    [InlineData(LotLabelCalibration.MinDriftDotsPer10Labels)] // 0 = disabled, valid
+    [InlineData(LotLabelCalibration.MinDriftDotsPer100Labels)] // 0 = disabled, valid
     [InlineData(3)]
-    [InlineData(LotLabelCalibration.MaxDriftDotsPer10Labels)]
+    [InlineData(LotLabelCalibration.MaxDriftDotsPer100Labels)]
     public void Valid_Drift_Passes(int drift)
     {
         var result = _validator.TestValidate(
-            new SetLotLabelCalibrationRequest { PitchDots = 148, DriftDotsPer10Labels = drift });
+            new SetLotLabelCalibrationRequest { PitchDots = 148, DriftDotsPer100Labels = drift });
         result.ShouldNotHaveAnyValidationErrors();
     }
 
     [Theory]
     [InlineData(-1)]
-    [InlineData(LotLabelCalibration.MaxDriftDotsPer10Labels + 1)]
+    [InlineData(LotLabelCalibration.MaxDriftDotsPer100Labels + 1)]
     public void Invalid_Drift_Fails(int drift)
     {
         var result = _validator.TestValidate(
-            new SetLotLabelCalibrationRequest { PitchDots = 148, DriftDotsPer10Labels = drift });
-        result.ShouldHaveValidationErrorFor(x => x.DriftDotsPer10Labels);
+            new SetLotLabelCalibrationRequest { PitchDots = 148, DriftDotsPer100Labels = drift });
+        result.ShouldHaveValidationErrorFor(x => x.DriftDotsPer100Labels);
     }
 }

@@ -6445,13 +6445,17 @@ export class ApiClient {
         return Promise.resolve<PrintLotLabelsResponse>(null as any);
     }
 
-    lots_PrintCalibrationLabel(): Promise<PrintLotCalibrationLabelResponse> {
+    lots_PrintCalibrationLabel(request: PrintLotCalibrationLabelRequest): Promise<PrintLotCalibrationLabelResponse> {
         let url_ = this.baseUrl + "/api/lots/print-calibration-label";
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(request);
+
         let options_: RequestInit = {
+            body: content_,
             method: "POST",
             headers: {
+                "Content-Type": "application/json",
                 "Accept": "application/json"
             }
         };
@@ -26692,6 +26696,7 @@ export class PrintLotLabelsResponse extends BaseResponse implements IPrintLotLab
     lotNumber?: string;
     expiration?: string;
     count?: number;
+    requiresMediaChangeConfirmation?: boolean;
 
     constructor(data?: IPrintLotLabelsResponse) {
         super(data);
@@ -26703,6 +26708,7 @@ export class PrintLotLabelsResponse extends BaseResponse implements IPrintLotLab
             this.lotNumber = _data["lotNumber"];
             this.expiration = _data["expiration"];
             this.count = _data["count"];
+            this.requiresMediaChangeConfirmation = _data["requiresMediaChangeConfirmation"];
         }
     }
 
@@ -26718,6 +26724,7 @@ export class PrintLotLabelsResponse extends BaseResponse implements IPrintLotLab
         data["lotNumber"] = this.lotNumber;
         data["expiration"] = this.expiration;
         data["count"] = this.count;
+        data["requiresMediaChangeConfirmation"] = this.requiresMediaChangeConfirmation;
         super.toJSON(data);
         return data;
     }
@@ -26727,12 +26734,14 @@ export interface IPrintLotLabelsResponse extends IBaseResponse {
     lotNumber?: string;
     expiration?: string;
     count?: number;
+    requiresMediaChangeConfirmation?: boolean;
 }
 
 export class PrintLotLabelsRequest implements IPrintLotLabelsRequest {
     lotNumber?: string;
     expiration?: string;
     count?: number;
+    mediaChangeConfirmed?: boolean;
 
     constructor(data?: IPrintLotLabelsRequest) {
         if (data) {
@@ -26748,6 +26757,7 @@ export class PrintLotLabelsRequest implements IPrintLotLabelsRequest {
             this.lotNumber = _data["lotNumber"];
             this.expiration = _data["expiration"];
             this.count = _data["count"];
+            this.mediaChangeConfirmed = _data["mediaChangeConfirmed"];
         }
     }
 
@@ -26763,6 +26773,7 @@ export class PrintLotLabelsRequest implements IPrintLotLabelsRequest {
         data["lotNumber"] = this.lotNumber;
         data["expiration"] = this.expiration;
         data["count"] = this.count;
+        data["mediaChangeConfirmed"] = this.mediaChangeConfirmed;
         return data;
     }
 }
@@ -26771,9 +26782,11 @@ export interface IPrintLotLabelsRequest {
     lotNumber?: string;
     expiration?: string;
     count?: number;
+    mediaChangeConfirmed?: boolean;
 }
 
 export class PrintLotCalibrationLabelResponse extends BaseResponse implements IPrintLotCalibrationLabelResponse {
+    requiresMediaChangeConfirmation?: boolean;
 
     constructor(data?: IPrintLotCalibrationLabelResponse) {
         super(data);
@@ -26781,6 +26794,9 @@ export class PrintLotCalibrationLabelResponse extends BaseResponse implements IP
 
     override init(_data?: any) {
         super.init(_data);
+        if (_data) {
+            this.requiresMediaChangeConfirmation = _data["requiresMediaChangeConfirmation"];
+        }
     }
 
     static override fromJS(data: any): PrintLotCalibrationLabelResponse {
@@ -26792,15 +26808,54 @@ export class PrintLotCalibrationLabelResponse extends BaseResponse implements IP
 
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["requiresMediaChangeConfirmation"] = this.requiresMediaChangeConfirmation;
         super.toJSON(data);
         return data;
     }
 }
 
 export interface IPrintLotCalibrationLabelResponse extends IBaseResponse {
+    requiresMediaChangeConfirmation?: boolean;
+}
+
+export class PrintLotCalibrationLabelRequest implements IPrintLotCalibrationLabelRequest {
+    mediaChangeConfirmed?: boolean;
+
+    constructor(data?: IPrintLotCalibrationLabelRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.mediaChangeConfirmed = _data["mediaChangeConfirmed"];
+        }
+    }
+
+    static fromJS(data: any): PrintLotCalibrationLabelRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new PrintLotCalibrationLabelRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["mediaChangeConfirmed"] = this.mediaChangeConfirmed;
+        return data;
+    }
+}
+
+export interface IPrintLotCalibrationLabelRequest {
+    mediaChangeConfirmed?: boolean;
 }
 
 export class FeedLotMediaResponse extends BaseResponse implements IFeedLotMediaResponse {
+    requiresMediaChangeConfirmation?: boolean;
 
     constructor(data?: IFeedLotMediaResponse) {
         super(data);
@@ -26808,6 +26863,9 @@ export class FeedLotMediaResponse extends BaseResponse implements IFeedLotMediaR
 
     override init(_data?: any) {
         super.init(_data);
+        if (_data) {
+            this.requiresMediaChangeConfirmation = _data["requiresMediaChangeConfirmation"];
+        }
     }
 
     static override fromJS(data: any): FeedLotMediaResponse {
@@ -26819,16 +26877,19 @@ export class FeedLotMediaResponse extends BaseResponse implements IFeedLotMediaR
 
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["requiresMediaChangeConfirmation"] = this.requiresMediaChangeConfirmation;
         super.toJSON(data);
         return data;
     }
 }
 
 export interface IFeedLotMediaResponse extends IBaseResponse {
+    requiresMediaChangeConfirmation?: boolean;
 }
 
 export class FeedLotMediaRequest implements IFeedLotMediaRequest {
     dots?: number;
+    mediaChangeConfirmed?: boolean;
 
     constructor(data?: IFeedLotMediaRequest) {
         if (data) {
@@ -26842,6 +26903,7 @@ export class FeedLotMediaRequest implements IFeedLotMediaRequest {
     init(_data?: any) {
         if (_data) {
             this.dots = _data["dots"];
+            this.mediaChangeConfirmed = _data["mediaChangeConfirmed"];
         }
     }
 
@@ -26855,21 +26917,23 @@ export class FeedLotMediaRequest implements IFeedLotMediaRequest {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["dots"] = this.dots;
+        data["mediaChangeConfirmed"] = this.mediaChangeConfirmed;
         return data;
     }
 }
 
 export interface IFeedLotMediaRequest {
     dots?: number;
+    mediaChangeConfirmed?: boolean;
 }
 
 export class GetLotLabelCalibrationResponse extends BaseResponse implements IGetLotLabelCalibrationResponse {
     pitchDots?: number;
     minPitchDots?: number;
     maxPitchDots?: number;
-    driftDotsPer10Labels?: number;
-    minDriftDotsPer10Labels?: number;
-    maxDriftDotsPer10Labels?: number;
+    driftDotsPer100Labels?: number;
+    minDriftDotsPer100Labels?: number;
+    maxDriftDotsPer100Labels?: number;
 
     constructor(data?: IGetLotLabelCalibrationResponse) {
         super(data);
@@ -26881,9 +26945,9 @@ export class GetLotLabelCalibrationResponse extends BaseResponse implements IGet
             this.pitchDots = _data["pitchDots"];
             this.minPitchDots = _data["minPitchDots"];
             this.maxPitchDots = _data["maxPitchDots"];
-            this.driftDotsPer10Labels = _data["driftDotsPer10Labels"];
-            this.minDriftDotsPer10Labels = _data["minDriftDotsPer10Labels"];
-            this.maxDriftDotsPer10Labels = _data["maxDriftDotsPer10Labels"];
+            this.driftDotsPer100Labels = _data["driftDotsPer100Labels"];
+            this.minDriftDotsPer100Labels = _data["minDriftDotsPer100Labels"];
+            this.maxDriftDotsPer100Labels = _data["maxDriftDotsPer100Labels"];
         }
     }
 
@@ -26899,9 +26963,9 @@ export class GetLotLabelCalibrationResponse extends BaseResponse implements IGet
         data["pitchDots"] = this.pitchDots;
         data["minPitchDots"] = this.minPitchDots;
         data["maxPitchDots"] = this.maxPitchDots;
-        data["driftDotsPer10Labels"] = this.driftDotsPer10Labels;
-        data["minDriftDotsPer10Labels"] = this.minDriftDotsPer10Labels;
-        data["maxDriftDotsPer10Labels"] = this.maxDriftDotsPer10Labels;
+        data["driftDotsPer100Labels"] = this.driftDotsPer100Labels;
+        data["minDriftDotsPer100Labels"] = this.minDriftDotsPer100Labels;
+        data["maxDriftDotsPer100Labels"] = this.maxDriftDotsPer100Labels;
         super.toJSON(data);
         return data;
     }
@@ -26911,14 +26975,14 @@ export interface IGetLotLabelCalibrationResponse extends IBaseResponse {
     pitchDots?: number;
     minPitchDots?: number;
     maxPitchDots?: number;
-    driftDotsPer10Labels?: number;
-    minDriftDotsPer10Labels?: number;
-    maxDriftDotsPer10Labels?: number;
+    driftDotsPer100Labels?: number;
+    minDriftDotsPer100Labels?: number;
+    maxDriftDotsPer100Labels?: number;
 }
 
 export class SetLotLabelCalibrationResponse extends BaseResponse implements ISetLotLabelCalibrationResponse {
     pitchDots?: number;
-    driftDotsPer10Labels?: number;
+    driftDotsPer100Labels?: number;
 
     constructor(data?: ISetLotLabelCalibrationResponse) {
         super(data);
@@ -26928,7 +26992,7 @@ export class SetLotLabelCalibrationResponse extends BaseResponse implements ISet
         super.init(_data);
         if (_data) {
             this.pitchDots = _data["pitchDots"];
-            this.driftDotsPer10Labels = _data["driftDotsPer10Labels"];
+            this.driftDotsPer100Labels = _data["driftDotsPer100Labels"];
         }
     }
 
@@ -26942,7 +27006,7 @@ export class SetLotLabelCalibrationResponse extends BaseResponse implements ISet
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["pitchDots"] = this.pitchDots;
-        data["driftDotsPer10Labels"] = this.driftDotsPer10Labels;
+        data["driftDotsPer100Labels"] = this.driftDotsPer100Labels;
         super.toJSON(data);
         return data;
     }
@@ -26950,12 +27014,12 @@ export class SetLotLabelCalibrationResponse extends BaseResponse implements ISet
 
 export interface ISetLotLabelCalibrationResponse extends IBaseResponse {
     pitchDots?: number;
-    driftDotsPer10Labels?: number;
+    driftDotsPer100Labels?: number;
 }
 
 export class SetLotLabelCalibrationRequest implements ISetLotLabelCalibrationRequest {
     pitchDots?: number;
-    driftDotsPer10Labels?: number;
+    driftDotsPer100Labels?: number;
 
     constructor(data?: ISetLotLabelCalibrationRequest) {
         if (data) {
@@ -26969,7 +27033,7 @@ export class SetLotLabelCalibrationRequest implements ISetLotLabelCalibrationReq
     init(_data?: any) {
         if (_data) {
             this.pitchDots = _data["pitchDots"];
-            this.driftDotsPer10Labels = _data["driftDotsPer10Labels"];
+            this.driftDotsPer100Labels = _data["driftDotsPer100Labels"];
         }
     }
 
@@ -26983,14 +27047,14 @@ export class SetLotLabelCalibrationRequest implements ISetLotLabelCalibrationReq
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["pitchDots"] = this.pitchDots;
-        data["driftDotsPer10Labels"] = this.driftDotsPer10Labels;
+        data["driftDotsPer100Labels"] = this.driftDotsPer100Labels;
         return data;
     }
 }
 
 export interface ISetLotLabelCalibrationRequest {
     pitchDots?: number;
-    driftDotsPer10Labels?: number;
+    driftDotsPer100Labels?: number;
 }
 
 export class CalculatedBatchSizeResponse extends BaseResponse implements ICalculatedBatchSizeResponse {
@@ -32168,6 +32232,7 @@ export interface IDiscardMaterialContainerResponse extends IBaseResponse {
 
 export class PrintMaterialContainerLabelsResponse extends BaseResponse implements IPrintMaterialContainerLabelsResponse {
     containers?: MaterialContainerDto[];
+    requiresMediaChangeConfirmation?: boolean;
 
     constructor(data?: IPrintMaterialContainerLabelsResponse) {
         super(data);
@@ -32181,6 +32246,7 @@ export class PrintMaterialContainerLabelsResponse extends BaseResponse implement
                 for (let item of _data["containers"])
                     this.containers!.push(MaterialContainerDto.fromJS(item));
             }
+            this.requiresMediaChangeConfirmation = _data["requiresMediaChangeConfirmation"];
         }
     }
 
@@ -32198,6 +32264,7 @@ export class PrintMaterialContainerLabelsResponse extends BaseResponse implement
             for (let item of this.containers)
                 data["containers"].push(item.toJSON());
         }
+        data["requiresMediaChangeConfirmation"] = this.requiresMediaChangeConfirmation;
         super.toJSON(data);
         return data;
     }
@@ -32205,10 +32272,12 @@ export class PrintMaterialContainerLabelsResponse extends BaseResponse implement
 
 export interface IPrintMaterialContainerLabelsResponse extends IBaseResponse {
     containers?: MaterialContainerDto[];
+    requiresMediaChangeConfirmation?: boolean;
 }
 
 export class PrintMaterialContainerLabelsRequest implements IPrintMaterialContainerLabelsRequest {
     count?: number;
+    mediaChangeConfirmed?: boolean;
 
     constructor(data?: IPrintMaterialContainerLabelsRequest) {
         if (data) {
@@ -32222,6 +32291,7 @@ export class PrintMaterialContainerLabelsRequest implements IPrintMaterialContai
     init(_data?: any) {
         if (_data) {
             this.count = _data["count"];
+            this.mediaChangeConfirmed = _data["mediaChangeConfirmed"];
         }
     }
 
@@ -32235,12 +32305,14 @@ export class PrintMaterialContainerLabelsRequest implements IPrintMaterialContai
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["count"] = this.count;
+        data["mediaChangeConfirmed"] = this.mediaChangeConfirmed;
         return data;
     }
 }
 
 export interface IPrintMaterialContainerLabelsRequest {
     count?: number;
+    mediaChangeConfirmed?: boolean;
 }
 
 export class GetTranscriptListResponse extends BaseResponse implements IGetTranscriptListResponse {

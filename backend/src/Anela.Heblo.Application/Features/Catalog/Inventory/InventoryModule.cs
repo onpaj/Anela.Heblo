@@ -20,6 +20,7 @@ public static class InventoryModule
         services.AddScoped<ILotRepository, LotRepository>();
         services.AddScoped<IMaterialContainerRepository, MaterialContainerRepository>();
         services.AddScoped<ILotLabelCalibrationRepository, LotLabelCalibrationRepository>();
+        services.AddScoped<IPrinterMediaStateRepository, PrinterMediaStateRepository>();
         // IMaterialContainerCodeGenerator is registered in PersistenceModule: MaterialContainerCodeGenerator when a real
         // NpgsqlDataSource is available, NullMaterialContainerCodeGenerator when running in-memory.
 

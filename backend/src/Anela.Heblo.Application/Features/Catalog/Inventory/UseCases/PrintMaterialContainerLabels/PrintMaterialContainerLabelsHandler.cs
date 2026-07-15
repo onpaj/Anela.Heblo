@@ -16,24 +16,33 @@ public class PrintMaterialContainerLabelsHandler
     private readonly IMaterialContainerRepository _repository;
     private readonly ILabelPrintingService _labelPrinter;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IPrinterMediaStateRepository _mediaStateRepository;
 
     public PrintMaterialContainerLabelsHandler(
         ILogger<PrintMaterialContainerLabelsHandler> logger,
         IMaterialContainerCodeGenerator generator,
         IMaterialContainerRepository repository,
         ILabelPrintingService labelPrinter,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IPrinterMediaStateRepository mediaStateRepository)
     {
         _logger = logger;
         _generator = generator;
         _repository = repository;
         _labelPrinter = labelPrinter;
         _currentUserService = currentUserService;
+        _mediaStateRepository = mediaStateRepository;
     }
 
     public async Task<PrintMaterialContainerLabelsResponse> Handle(
         PrintMaterialContainerLabelsRequest request, CancellationToken cancellationToken)
     {
+        var mediaState = await _mediaStateRepository.GetAsync(cancellationToken);
+        if (mediaState.RequiresConfirmation(LabelMediaType.MaterialContainer) && !request.MediaChangeConfirmed)
+        {
+            return new PrintMaterialContainerLabelsResponse { RequiresMediaChangeConfirmation = true };
+        }
+
         var createdBy = _currentUserService.GetCurrentUser().Name ?? "System";
 
         var codes = await _generator.GenerateAsync(request.Count, cancellationToken);
@@ -44,6 +53,9 @@ public class PrintMaterialContainerLabelsHandler
 
         var zpl = MaterialContainerLabelZplBuilder.Build(codes);
         await _labelPrinter.PrintZplAsync(zpl, cancellationToken);
+
+        mediaState.RecordPrint(LabelMediaType.MaterialContainer, createdBy);
+        await _mediaStateRepository.SaveAsync(mediaState, cancellationToken);
 
         _logger.LogInformation("Printed {Count} MaterialContainer labels", containers.Count);
 

@@ -32,17 +32,17 @@ public class SetLotLabelCalibrationHandler
             return new SetLotLabelCalibrationResponse(ErrorCodes.Unauthorized);
         }
 
-        var calibration = new LotLabelCalibration(request.PitchDots, request.DriftDotsPer10Labels, currentUser.Id);
+        var calibration = new LotLabelCalibration(request.PitchDots, request.DriftDotsPer100Labels, currentUser.Id);
         await _repository.SaveAsync(calibration, cancellationToken);
 
         _logger.LogInformation(
-            "Lot label calibration set to pitch {PitchDots} dots, drift {DriftDotsPer10Labels} dots per 10 labels by {User}",
-            request.PitchDots, request.DriftDotsPer10Labels, currentUser.Id);
+            "Lot label calibration set to pitch {PitchDots} dots, drift {DriftDotsPer100Labels} dots per 100 labels by {User}",
+            request.PitchDots, request.DriftDotsPer100Labels, currentUser.Id);
 
         return new SetLotLabelCalibrationResponse
         {
             PitchDots = request.PitchDots,
-            DriftDotsPer10Labels = request.DriftDotsPer10Labels,
+            DriftDotsPer100Labels = request.DriftDotsPer100Labels,
         };
     }
 }

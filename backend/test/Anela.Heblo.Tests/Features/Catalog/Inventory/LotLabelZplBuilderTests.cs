@@ -35,23 +35,23 @@ public class LotLabelZplBuilderTests
     }
 
     [Fact]
-    public void Build_SpreadsDriftDotsEvenlyOver10Labels()
+    public void Build_SpreadsDriftDotsEvenlyOver100Labels()
     {
-        // 4 dots per 10 labels: exactly 4 of the 10 labels feed +1 dot, the rest the base pitch.
-        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 10, 148, 4);
+        // 40 dots per 100 labels: exactly 40 of the 100 labels feed +1 dot, the rest the base pitch.
+        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 100, 148, 40);
 
-        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL149(?![0-9])").Should().HaveCount(4);
-        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL148(?![0-9])").Should().HaveCount(6);
+        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL149(?![0-9])").Should().HaveCount(40);
+        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL148(?![0-9])").Should().HaveCount(60);
     }
 
     [Fact]
     public void Build_SpreadsDriftProportionally_ForPartialRun()
     {
-        // 4 dots per 10 labels over a run of 5 => 2 correction dots.
-        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 5, 148, 4);
+        // 40 dots per 100 labels over a run of 50 => 20 correction dots.
+        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 50, 148, 40);
 
-        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL149(?![0-9])").Should().HaveCount(2);
-        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL148(?![0-9])").Should().HaveCount(3);
+        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL149(?![0-9])").Should().HaveCount(20);
+        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL148(?![0-9])").Should().HaveCount(30);
     }
 
     [Fact]

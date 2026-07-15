@@ -103,9 +103,10 @@ public class LotsController : BaseApiController
     [HttpPost("print-calibration-label")]
     [FeatureAuthorize(Feature.Manufacture_MaterialContainers, AccessLevel.Write)]
     public async Task<ActionResult<PrintLotCalibrationLabelResponse>> PrintCalibrationLabel(
+        [FromBody] PrintLotCalibrationLabelRequest request,
         CancellationToken cancellationToken)
     {
-        var response = await _mediator.Send(new PrintLotCalibrationLabelRequest(), cancellationToken);
+        var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }
 

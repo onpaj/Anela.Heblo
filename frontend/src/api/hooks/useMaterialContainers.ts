@@ -11,6 +11,7 @@ import {
   PrintMaterialContainerLabelsResponse,
   PrintLotLabelsRequest,
   PrintLotLabelsResponse,
+  PrintLotCalibrationLabelRequest,
   PrintLotCalibrationLabelResponse,
   FeedLotMediaRequest,
   FeedLotMediaResponse,
@@ -36,9 +37,12 @@ export const useCreateMaterialContainers = () => {
 export const usePrintMaterialContainerLabels = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { count: number }): Promise<PrintMaterialContainerLabelsResponse> => {
+    mutationFn: (input: { count: number; mediaChangeConfirmed?: boolean }): Promise<PrintMaterialContainerLabelsResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const request = new PrintMaterialContainerLabelsRequest({ count: input.count });
+      const request = new PrintMaterialContainerLabelsRequest({
+        count: input.count,
+        mediaChangeConfirmed: input.mediaChangeConfirmed ?? false,
+      });
       return apiClient.materialContainers_PrintLabels(request);
     },
     onSuccess: () => {
@@ -53,12 +57,14 @@ export const usePrintLotLabels = () =>
       lotNumber: string;
       expiration: string;
       count: number;
+      mediaChangeConfirmed?: boolean;
     }): Promise<PrintLotLabelsResponse> => {
       const apiClient = getAuthenticatedApiClient();
       const request = new PrintLotLabelsRequest({
         lotNumber: input.lotNumber,
         expiration: input.expiration,
         count: input.count,
+        mediaChangeConfirmed: input.mediaChangeConfirmed ?? false,
       });
       return apiClient.lots_PrintLabels(request);
     },
@@ -66,17 +72,23 @@ export const usePrintLotLabels = () =>
 
 export const usePrintLotCalibrationLabel = () =>
   useMutation({
-    mutationFn: (): Promise<PrintLotCalibrationLabelResponse> => {
+    mutationFn: (input?: { mediaChangeConfirmed?: boolean }): Promise<PrintLotCalibrationLabelResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      return apiClient.lots_PrintCalibrationLabel();
+      const request = new PrintLotCalibrationLabelRequest({
+        mediaChangeConfirmed: input?.mediaChangeConfirmed ?? false,
+      });
+      return apiClient.lots_PrintCalibrationLabel(request);
     },
   });
 
 export const useFeedLotMedia = () =>
   useMutation({
-    mutationFn: (dots: number): Promise<FeedLotMediaResponse> => {
+    mutationFn: (input: { dots: number; mediaChangeConfirmed?: boolean }): Promise<FeedLotMediaResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const request = new FeedLotMediaRequest({ dots });
+      const request = new FeedLotMediaRequest({
+        dots: input.dots,
+        mediaChangeConfirmed: input.mediaChangeConfirmed ?? false,
+      });
       return apiClient.lots_FeedMedia(request);
     },
   });
@@ -96,7 +108,7 @@ export const useSetLotLabelCalibration = () => {
   return useMutation({
     mutationFn: (input: {
       pitchDots: number;
-      driftDotsPer10Labels: number;
+      driftDotsPer100Labels: number;
     }): Promise<SetLotLabelCalibrationResponse> => {
       const apiClient = getAuthenticatedApiClient();
       const request = new SetLotLabelCalibrationRequest(input);

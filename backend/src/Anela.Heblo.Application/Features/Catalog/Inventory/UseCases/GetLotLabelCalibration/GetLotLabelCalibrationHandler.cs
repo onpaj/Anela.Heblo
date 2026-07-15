@@ -23,9 +23,9 @@ public class GetLotLabelCalibrationHandler
             PitchDots = calibration.PitchDots,
             MinPitchDots = LotLabelCalibration.MinPitchDots,
             MaxPitchDots = LotLabelCalibration.MaxPitchDots,
-            DriftDotsPer10Labels = calibration.DriftDotsPer10Labels,
-            MinDriftDotsPer10Labels = LotLabelCalibration.MinDriftDotsPer10Labels,
-            MaxDriftDotsPer10Labels = LotLabelCalibration.MaxDriftDotsPer10Labels,
+            DriftDotsPer100Labels = calibration.DriftDotsPer100Labels,
+            MinDriftDotsPer100Labels = LotLabelCalibration.MinDriftDotsPer100Labels,
+            MaxDriftDotsPer100Labels = LotLabelCalibration.MaxDriftDotsPer100Labels,
         };
     }
 }

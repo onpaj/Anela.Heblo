@@ -15,9 +15,9 @@ public class LotLabelCalibrationConfiguration : IEntityTypeConfiguration<LotLabe
 
         builder.Property(e => e.PitchDots).IsRequired();
 
-        builder.Property(e => e.DriftDotsPer10Labels)
+        builder.Property(e => e.DriftDotsPer100Labels)
             .IsRequired()
-            .HasDefaultValue(LotLabelCalibration.DefaultDriftDotsPer10Labels);
+            .HasDefaultValue(LotLabelCalibration.DefaultDriftDotsPer100Labels);
 
         builder.Property(e => e.ModifiedAt)
             .HasColumnType("timestamp with time zone");

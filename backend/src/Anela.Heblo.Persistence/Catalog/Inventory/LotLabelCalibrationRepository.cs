@@ -27,7 +27,7 @@ public sealed class LotLabelCalibrationRepository : ILotLabelCalibrationReposito
         }
         else
         {
-            existing.Update(calibration.PitchDots, calibration.DriftDotsPer10Labels, calibration.ModifiedBy ?? string.Empty);
+            existing.Update(calibration.PitchDots, calibration.DriftDotsPer100Labels, calibration.ModifiedBy ?? string.Empty);
         }
         await _context.SaveChangesAsync(cancellationToken);
     }

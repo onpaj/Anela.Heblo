@@ -5,7 +5,7 @@ namespace Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.SetLotLabe
 public class SetLotLabelCalibrationResponse : BaseResponse
 {
     public int PitchDots { get; set; }
-    public int DriftDotsPer10Labels { get; set; }
+    public int DriftDotsPer100Labels { get; set; }
 
     public SetLotLabelCalibrationResponse() : base() { }
 

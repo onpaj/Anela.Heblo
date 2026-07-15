@@ -158,6 +158,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Lot> Lots { get; set; } = null!;
     public DbSet<MaterialContainer> MaterialContainers { get; set; } = null!;
     public DbSet<LotLabelCalibration> LotLabelCalibrations { get; set; } = null!;
+    public DbSet<PrinterMediaState> PrinterMediaStates { get; set; } = null!;
 
     // Feature Flags module
     public DbSet<FeatureFlagOverride> FeatureFlagOverrides { get; set; } = null!;
