@@ -64,7 +64,14 @@ describe("LotLabelPrintModal", () => {
       isPending: false,
     });
     (mockHooks.useLotLabelCalibration as jest.Mock) = jest.fn().mockReturnValue({
-      data: { pitchDots: 148, minPitchDots: 80, maxPitchDots: 400 },
+      data: {
+        pitchDots: 148,
+        minPitchDots: 80,
+        maxPitchDots: 400,
+        driftEveryNLabels: 3,
+        minDriftEveryNLabels: 0,
+        maxDriftEveryNLabels: 100,
+      },
       isLoading: false,
     });
     (mockHooks.useSetLotLabelCalibration as jest.Mock) = jest
@@ -157,18 +164,21 @@ describe("LotLabelPrintModal", () => {
     expect(screen.queryByLabelText(/Rozteč štítků/i)).not.toBeInTheDocument();
   });
 
-  it("shows the pitch field for admins, prefilled, and saves it", () => {
+  it("shows pitch + drift fields for admins, prefilled, and saves both", () => {
     setPermission(true);
     render(<LotLabelPrintModal isOpen={true} onClose={jest.fn()} />);
 
     const pitchInput = screen.getByLabelText(/Rozteč štítků/i) as HTMLInputElement;
+    const driftInput = screen.getByLabelText(/Korekce driftu/i) as HTMLInputElement;
     expect(pitchInput.value).toBe("148");
+    expect(driftInput.value).toBe("3");
 
     fireEvent.change(pitchInput, { target: { value: "152" } });
-    fireEvent.click(screen.getByRole("button", { name: /Uložit rozteč/i }));
+    fireEvent.change(driftInput, { target: { value: "4" } });
+    fireEvent.click(screen.getByRole("button", { name: /Uložit kalibraci/i }));
 
     expect(mockSaveCalibration).toHaveBeenLastCalledWith(
-      152,
+      { pitchDots: 152, driftEveryNLabels: 4 },
       expect.objectContaining({ onError: expect.any(Function) }),
     );
   });

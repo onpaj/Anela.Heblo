@@ -44,6 +44,7 @@ function LotLabelPrintModal({ isOpen, onClose }: LotLabelPrintModalProps) {
   const [expirationMonth, setExpirationMonth] = useState("");
   const [count, setCount] = useState(MIN_COUNT);
   const [pitchDots, setPitchDots] = useState<number | "">("");
+  const [driftEveryN, setDriftEveryN] = useState<number | "">("");
   const [error, setError] = useState<string | null>(null);
 
   const { hasPermission } = usePermissionsContext();
@@ -68,12 +69,18 @@ function LotLabelPrintModal({ isOpen, onClose }: LotLabelPrintModalProps) {
     }
   }, [isOpen]);
 
-  // Populate the pitch field once the persisted calibration loads.
+  // Populate the calibration fields once the persisted values load.
   useEffect(() => {
     if (calibration.data?.pitchDots != null) {
       setPitchDots(calibration.data.pitchDots);
     }
   }, [calibration.data?.pitchDots]);
+
+  useEffect(() => {
+    if (calibration.data?.driftEveryNLabels != null) {
+      setDriftEveryN(calibration.data.driftEveryNLabels);
+    }
+  }, [calibration.data?.driftEveryNLabels]);
 
   if (!isOpen) return null;
 
@@ -116,14 +123,18 @@ function LotLabelPrintModal({ isOpen, onClose }: LotLabelPrintModalProps) {
     });
   };
 
-  // Persists the printer pitch calibration (admin only) so it applies to every print.
+  // Persists the printer calibration (pitch + drift correction, admin only) so it
+  // applies to every print.
   const handleSaveCalibration = () => {
-    if (pitchDots === "") return;
+    if (pitchDots === "" || driftEveryN === "") return;
     setError(null);
-    saveCalibration.mutate(pitchDots, {
-      onError: (err) =>
-        setError(`Chyba při uložení kalibrace: ${(err as Error).message}`),
-    });
+    saveCalibration.mutate(
+      { pitchDots, driftEveryNLabels: driftEveryN },
+      {
+        onError: (err) =>
+          setError(`Chyba při uložení kalibrace: ${(err as Error).message}`),
+      },
+    );
   };
 
   return (
@@ -246,14 +257,14 @@ function LotLabelPrintModal({ isOpen, onClose }: LotLabelPrintModalProps) {
             </div>
 
             {canCalibrate && (
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-graphite-border">
-                <label
-                  htmlFor="pitchDots"
-                  className="block text-xs font-medium text-gray-500 dark:text-graphite-muted mb-1"
-                >
-                  Rozteč štítků (body) — kalibrace tiskárny
-                </label>
-                <div className="flex items-center gap-2">
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-graphite-border space-y-3">
+                <div>
+                  <label
+                    htmlFor="pitchDots"
+                    className="block text-xs font-medium text-gray-500 dark:text-graphite-muted mb-1"
+                  >
+                    Rozteč štítků (body)
+                  </label>
                   <input
                     id="pitchDots"
                     type="number"
@@ -264,19 +275,39 @@ function LotLabelPrintModal({ isOpen, onClose }: LotLabelPrintModalProps) {
                     className="w-28 px-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
                     disabled={saveCalibration.isPending || calibration.isLoading}
                   />
-                  <button
-                    type="button"
-                    onClick={handleSaveCalibration}
-                    disabled={
-                      pitchDots === "" ||
-                      saveCalibration.isPending ||
-                      calibration.isLoading
-                    }
-                    className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-                  >
-                    {saveCalibration.isPending ? "Ukládám…" : "Uložit rozteč"}
-                  </button>
                 </div>
+                <div>
+                  <label
+                    htmlFor="driftEveryN"
+                    className="block text-xs font-medium text-gray-500 dark:text-graphite-muted mb-1"
+                  >
+                    Korekce driftu: +1 bod každých N štítků (0 = vypnuto)
+                  </label>
+                  <input
+                    id="driftEveryN"
+                    type="number"
+                    min={0}
+                    value={driftEveryN}
+                    onChange={(e) =>
+                      setDriftEveryN(e.target.value === "" ? "" : Number(e.target.value))
+                    }
+                    className="w-28 px-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
+                    disabled={saveCalibration.isPending || calibration.isLoading}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveCalibration}
+                  disabled={
+                    pitchDots === "" ||
+                    driftEveryN === "" ||
+                    saveCalibration.isPending ||
+                    calibration.isLoading
+                  }
+                  className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                  {saveCalibration.isPending ? "Ukládám…" : "Uložit kalibraci"}
+                </button>
               </div>
             )}
           </div>

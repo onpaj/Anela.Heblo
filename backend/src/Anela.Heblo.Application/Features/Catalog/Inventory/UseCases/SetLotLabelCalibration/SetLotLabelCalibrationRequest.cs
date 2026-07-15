@@ -5,4 +5,5 @@ namespace Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.SetLotLabe
 public class SetLotLabelCalibrationRequest : IRequest<SetLotLabelCalibrationResponse>
 {
     public int PitchDots { get; set; }
+    public int DriftEveryNLabels { get; set; }
 }

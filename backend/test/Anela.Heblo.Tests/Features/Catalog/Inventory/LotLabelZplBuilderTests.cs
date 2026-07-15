@@ -9,7 +9,7 @@ public class LotLabelZplBuilderTests
     [Fact]
     public void Build_EmitsOneLabelBlockPerCount_WithBothTextLines_AndNoBarcode()
     {
-        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 3, 148);
+        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 3, 148, 0);
 
         System.Text.RegularExpressions.Regex.Matches(zpl, "\\^XA").Should().HaveCount(3);
         System.Text.RegularExpressions.Regex.Matches(zpl, "\\^XZ").Should().HaveCount(3);
@@ -30,18 +30,27 @@ public class LotLabelZplBuilderTests
     [InlineData("2926", "")]
     public void Build_Throws_OnEmptyLotNumberOrExpiration(string? lotNumber, string? expiration)
     {
-        var act = () => LotLabelZplBuilder.Build(lotNumber!, expiration!, 1, 148);
+        var act = () => LotLabelZplBuilder.Build(lotNumber!, expiration!, 1, 148, 0);
         act.Should().Throw<System.ArgumentException>();
     }
 
     [Fact]
-    public void Build_AddsOneDotEveryThirdLabel_ToCompensateDrift()
+    public void Build_AddsOneDotEveryThirdLabel_WhenDriftEvery3()
     {
-        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 6, 148);
+        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 6, 148, 3);
 
         // Labels 1,2,4,5 feed the calibrated pitch; every 3rd label (3 and 6) feeds +1 dot.
         System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL148(?![0-9])").Should().HaveCount(4);
         System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL149(?![0-9])").Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void Build_AppliesNoDriftCorrection_WhenDriftIsZero()
+    {
+        var zpl = LotLabelZplBuilder.Build("2926", "07/29", 6, 148, 0);
+
+        System.Text.RegularExpressions.Regex.Matches(zpl, @"\^LL148(?![0-9])").Should().HaveCount(6);
+        zpl.Should().NotContain("^LL149");
     }
 
     [Theory]
@@ -49,7 +58,7 @@ public class LotLabelZplBuilderTests
     [InlineData(-1)]
     public void Build_Throws_OnNonPositiveCount(int count)
     {
-        var act = () => LotLabelZplBuilder.Build("2926", "07/29", count, 148);
+        var act = () => LotLabelZplBuilder.Build("2926", "07/29", count, 148, 0);
         act.Should().Throw<System.ArgumentException>();
     }
 

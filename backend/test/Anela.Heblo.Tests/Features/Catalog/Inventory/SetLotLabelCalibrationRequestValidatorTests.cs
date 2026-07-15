@@ -15,7 +15,8 @@ public class SetLotLabelCalibrationRequestValidatorTests
     [InlineData(LotLabelCalibration.MaxPitchDots)]
     public void Valid_Pitch_Passes(int pitch)
     {
-        var result = _validator.TestValidate(new SetLotLabelCalibrationRequest { PitchDots = pitch });
+        var result = _validator.TestValidate(
+            new SetLotLabelCalibrationRequest { PitchDots = pitch, DriftEveryNLabels = 3 });
         result.ShouldNotHaveAnyValidationErrors();
     }
 
@@ -25,7 +26,29 @@ public class SetLotLabelCalibrationRequestValidatorTests
     [InlineData(0)]
     public void Invalid_Pitch_Fails(int pitch)
     {
-        var result = _validator.TestValidate(new SetLotLabelCalibrationRequest { PitchDots = pitch });
+        var result = _validator.TestValidate(
+            new SetLotLabelCalibrationRequest { PitchDots = pitch, DriftEveryNLabels = 3 });
         result.ShouldHaveValidationErrorFor(x => x.PitchDots);
+    }
+
+    [Theory]
+    [InlineData(LotLabelCalibration.MinDriftEveryNLabels)] // 0 = disabled, valid
+    [InlineData(3)]
+    [InlineData(LotLabelCalibration.MaxDriftEveryNLabels)]
+    public void Valid_Drift_Passes(int drift)
+    {
+        var result = _validator.TestValidate(
+            new SetLotLabelCalibrationRequest { PitchDots = 148, DriftEveryNLabels = drift });
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(LotLabelCalibration.MaxDriftEveryNLabels + 1)]
+    public void Invalid_Drift_Fails(int drift)
+    {
+        var result = _validator.TestValidate(
+            new SetLotLabelCalibrationRequest { PitchDots = 148, DriftEveryNLabels = drift });
+        result.ShouldHaveValidationErrorFor(x => x.DriftEveryNLabels);
     }
 }

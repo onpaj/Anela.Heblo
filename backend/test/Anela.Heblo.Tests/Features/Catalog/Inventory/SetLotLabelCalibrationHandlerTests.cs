@@ -21,12 +21,15 @@ public class SetLotLabelCalibrationHandlerTests
         var sut = new SetLotLabelCalibrationHandler(
             repo.Object, AuthenticatedUser().Object, NullLogger<SetLotLabelCalibrationHandler>.Instance);
 
-        var result = await sut.Handle(new SetLotLabelCalibrationRequest { PitchDots = 152 }, CancellationToken.None);
+        var result = await sut.Handle(
+            new SetLotLabelCalibrationRequest { PitchDots = 152, DriftEveryNLabels = 4 }, CancellationToken.None);
 
         result.Success.Should().BeTrue();
         result.PitchDots.Should().Be(152);
+        result.DriftEveryNLabels.Should().Be(4);
         repo.Verify(r => r.SaveAsync(
-            It.Is<LotLabelCalibration>(c => c.PitchDots == 152), It.IsAny<CancellationToken>()), Times.Once);
+            It.Is<LotLabelCalibration>(c => c.PitchDots == 152 && c.DriftEveryNLabels == 4),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

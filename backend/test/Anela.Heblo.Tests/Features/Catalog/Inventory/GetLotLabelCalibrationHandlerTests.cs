@@ -13,7 +13,7 @@ public class GetLotLabelCalibrationHandlerTests
     {
         var repo = new Mock<ILotLabelCalibrationRepository>();
         repo.Setup(r => r.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new LotLabelCalibration(152, "admin"));
+            .ReturnsAsync(new LotLabelCalibration(152, 3, "admin"));
 
         var sut = new GetLotLabelCalibrationHandler(repo.Object);
 

@@ -19,7 +19,7 @@ public class PrintLotLabelsHandlerTests
 
         var calibration = new Mock<ILotLabelCalibrationRepository>();
         calibration.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new LotLabelCalibration(152, "admin"));
+            .ReturnsAsync(new LotLabelCalibration(152, 3, "admin"));
 
         var sut = new PrintLotLabelsHandler(
             NullLogger<PrintLotLabelsHandler>.Instance, label.Object, calibration.Object);

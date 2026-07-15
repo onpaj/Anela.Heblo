@@ -94,9 +94,12 @@ export const useLotLabelCalibration = (enabled: boolean) =>
 export const useSetLotLabelCalibration = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (pitchDots: number): Promise<SetLotLabelCalibrationResponse> => {
+    mutationFn: (input: {
+      pitchDots: number;
+      driftEveryNLabels: number;
+    }): Promise<SetLotLabelCalibrationResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const request = new SetLotLabelCalibrationRequest({ pitchDots });
+      const request = new SetLotLabelCalibrationRequest(input);
       return apiClient.lots_SetLabelCalibration(request);
     },
     onSuccess: () =>

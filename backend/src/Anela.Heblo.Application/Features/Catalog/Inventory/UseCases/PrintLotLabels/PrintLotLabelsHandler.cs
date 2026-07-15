@@ -27,7 +27,9 @@ public class PrintLotLabelsHandler
         PrintLotLabelsRequest request, CancellationToken cancellationToken)
     {
         var calibration = await _calibrationRepository.GetAsync(cancellationToken);
-        var zpl = LotLabelZplBuilder.Build(request.LotNumber, request.Expiration, request.Count, calibration.PitchDots);
+        var zpl = LotLabelZplBuilder.Build(
+            request.LotNumber, request.Expiration, request.Count,
+            calibration.PitchDots, calibration.DriftEveryNLabels);
         await _labelPrinter.PrintZplAsync(zpl, cancellationToken);
 
         _logger.LogInformation(

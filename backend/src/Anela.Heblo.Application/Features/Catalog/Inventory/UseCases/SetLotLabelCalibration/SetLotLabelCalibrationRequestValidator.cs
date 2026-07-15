@@ -10,5 +10,9 @@ public class SetLotLabelCalibrationRequestValidator : AbstractValidator<SetLotLa
         RuleFor(x => x.PitchDots)
             .InclusiveBetween(LotLabelCalibration.MinPitchDots, LotLabelCalibration.MaxPitchDots)
             .WithMessage($"Pitch must be between {LotLabelCalibration.MinPitchDots} and {LotLabelCalibration.MaxPitchDots} dots.");
+
+        RuleFor(x => x.DriftEveryNLabels)
+            .InclusiveBetween(LotLabelCalibration.MinDriftEveryNLabels, LotLabelCalibration.MaxDriftEveryNLabels)
+            .WithMessage($"Drift correction must be between {LotLabelCalibration.MinDriftEveryNLabels} and {LotLabelCalibration.MaxDriftEveryNLabels}.");
     }
 }
