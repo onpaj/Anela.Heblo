@@ -7,6 +7,9 @@ import {
   useLastUsedLotForMaterial,
   useMaterialContainersList,
   usePrintMaterialContainerLabels,
+  usePrintLotLabels,
+  usePrintLotCalibrationLabel,
+  useFeedLotMedia,
 } from '../useMaterialContainers';
 import * as clientModule from '../../client';
 
@@ -168,6 +171,119 @@ describe('usePrintMaterialContainerLabels', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect((result.current.error as Error).message).toBe('API Error');
+  });
+});
+
+describe('usePrintLotLabels', () => {
+  let mockPrintLotLabels: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockPrintLotLabels = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      lots_PrintLabels: mockPrintLotLabels,
+    } as any);
+  });
+
+  it('forwards lot number, expiration and count to the generated client', async () => {
+    mockPrintLotLabels.mockResolvedValue({
+      success: true,
+      lotNumber: '2926',
+      expiration: '07/29',
+      count: 3,
+    });
+
+    const { result } = renderHook(() => usePrintLotLabels(), {
+      wrapper: createWrapper,
+    });
+
+    await act(async () => {
+      result.current.mutate({ lotNumber: '2926', expiration: '07/29', count: 3 });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockPrintLotLabels).toHaveBeenCalledTimes(1);
+    expect(mockPrintLotLabels).toHaveBeenCalledWith(
+      expect.objectContaining({ lotNumber: '2926', expiration: '07/29', count: 3 }),
+    );
+  });
+
+  it('surfaces errors from the API', async () => {
+    mockPrintLotLabels.mockRejectedValue(new Error('API Error'));
+
+    const { result } = renderHook(() => usePrintLotLabels(), {
+      wrapper: createWrapper,
+    });
+
+    await act(async () => {
+      result.current.mutate({ lotNumber: '2926', expiration: '07/29', count: 1 });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect((result.current.error as Error).message).toBe('API Error');
+  });
+});
+
+describe('usePrintLotCalibrationLabel', () => {
+  let mockPrintCalibration: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockPrintCalibration = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      lots_PrintCalibrationLabel: mockPrintCalibration,
+    } as any);
+  });
+
+  it('calls the calibration endpoint with an unconfirmed media change by default', async () => {
+    mockPrintCalibration.mockResolvedValue({ success: true });
+
+    const { result } = renderHook(() => usePrintLotCalibrationLabel(), {
+      wrapper: createWrapper,
+    });
+
+    await act(async () => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockPrintCalibration).toHaveBeenCalledTimes(1);
+    expect(mockPrintCalibration).toHaveBeenCalledWith(
+      expect.objectContaining({ mediaChangeConfirmed: false }),
+    );
+  });
+});
+
+describe('useFeedLotMedia', () => {
+  let mockFeedMedia: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockFeedMedia = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      lots_FeedMedia: mockFeedMedia,
+    } as any);
+  });
+
+  it('forwards the requested dot count to the generated client', async () => {
+    mockFeedMedia.mockResolvedValue({ success: true });
+
+    const { result } = renderHook(() => useFeedLotMedia(), {
+      wrapper: createWrapper,
+    });
+
+    await act(async () => {
+      result.current.mutate({ dots: 40 });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockFeedMedia).toHaveBeenCalledTimes(1);
+    expect(mockFeedMedia).toHaveBeenCalledWith(
+      expect.objectContaining({ dots: 40 }),
+    );
   });
 });
 

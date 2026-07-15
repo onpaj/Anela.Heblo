@@ -2,10 +2,29 @@
 
 # Conductor run script — launches backend + frontend on dynamically picked free ports
 # so multiple Conductor workspaces of Heblo can run in parallel without colliding.
+#
+# Usage: conductor-run.sh [all|backend|frontend]
+#   all       (default) start both the backend and the frontend
+#   backend   start only the backend
+#   frontend  start only the frontend (expects a backend running elsewhere;
+#             override its URL with REACT_APP_API_URL)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+MODE="${1:-all}"
+RUN_BACKEND=false
+RUN_FRONTEND=false
+case "$MODE" in
+  all) RUN_BACKEND=true; RUN_FRONTEND=true ;;
+  backend) RUN_BACKEND=true ;;
+  frontend) RUN_FRONTEND=true ;;
+  *)
+    echo "❌ Unknown mode '$MODE'. Use: all | backend | frontend" >&2
+    exit 1
+    ;;
+esac
 
 # Find the first free TCP port at or above the given starting port.
 find_free_port() {
@@ -16,62 +35,77 @@ find_free_port() {
   echo "$port"
 }
 
-# Bases 5100/3100 keep Conductor instances clear of the manual 5000/3000 dev scripts.
-BACKEND_PORT="$(find_free_port 5100)"
-FRONTEND_PORT="$(find_free_port 3100)"
-
 BRANCH="$(git -C "$PROJECT_ROOT" branch --show-current)"
 if [ -z "$BRANCH" ]; then
   BRANCH="$(git -C "$PROJECT_ROOT" rev-parse --short HEAD)"
 fi
 
-echo "🚀 Starting Heblo (Conductor)"
+echo "🚀 Starting Heblo (Conductor) — mode: $MODE"
 echo "   Branch:   $BRANCH"
-echo "   Backend:  http://localhost:$BACKEND_PORT"
-echo "   Frontend: http://localhost:$FRONTEND_PORT"
+
+# Bases 5100/3100 keep Conductor instances clear of the manual 5000/3000 dev scripts.
+if [ "$RUN_BACKEND" = true ]; then
+  BACKEND_PORT="$(find_free_port 5100)"
+  echo "   Backend:  http://localhost:$BACKEND_PORT"
+fi
+if [ "$RUN_FRONTEND" = true ]; then
+  FRONTEND_PORT="$(find_free_port 3100)"
+  echo "   Frontend: http://localhost:$FRONTEND_PORT"
+fi
 echo ""
 
 # Stop both children when this script (and its process group) is stopped.
 trap 'kill 0' EXIT INT TERM
 
-# Backend — dynamic port via ASPNETCORE_URLS.
-# UseConductorOverrides=true layers appsettings.Conductor.json (disables all hydration /
-# background refresh) and makes CORS accept any loopback origin, so the dynamically
-# chosen frontend port is allowed without a fixed allow-list.
-(
-  cd "$PROJECT_ROOT"
-  ASPNETCORE_ENVIRONMENT=Development \
-  ASPNETCORE_URLS="http://localhost:$BACKEND_PORT" \
-  UseConductorOverrides=true \
-    dotnet run --project backend/src/Anela.Heblo.API --no-launch-profile
-) &
-BACKEND_PID=$!
+if [ "$RUN_BACKEND" = true ]; then
+  # Backend — dynamic port via ASPNETCORE_URLS.
+  # UseConductorOverrides=true layers appsettings.Conductor.json (disables all hydration /
+  # background refresh) and makes CORS accept any loopback origin, so the dynamically
+  # chosen frontend port is allowed without a fixed allow-list.
+  (
+    cd "$PROJECT_ROOT"
+    ASPNETCORE_ENVIRONMENT=Development \
+    ASPNETCORE_URLS="http://localhost:$BACKEND_PORT" \
+    UseConductorOverrides=true \
+      dotnet run --project backend/src/Anela.Heblo.API --no-launch-profile
+  ) &
+  BACKEND_PID=$!
 
-# Wait for the backend to actually listen — `dotnet run` builds first, so this can
-# take 30-60s. Bail out early with a clear message if the build/start failed.
-echo "⏳ Waiting for backend to build and listen on port $BACKEND_PORT ..."
-for _ in $(seq 1 150); do
-  if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
-    echo "❌ Backend exited before becoming ready — check the build output above."
-    exit 1
-  fi
-  if curl -sf -o /dev/null "http://localhost:$BACKEND_PORT/health/live" 2>/dev/null; then
-    echo "✅ Backend is up on http://localhost:$BACKEND_PORT"
-    break
-  fi
-  sleep 2
-done
+  # Wait for the backend to actually listen — `dotnet run` builds first, so this can
+  # take 30-60s. Bail out early with a clear message if the build/start failed.
+  echo "⏳ Waiting for backend to build and listen on port $BACKEND_PORT ..."
+  for _ in $(seq 1 150); do
+    if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+      echo "❌ Backend exited before becoming ready — check the build output above."
+      exit 1
+    fi
+    if curl -sf -o /dev/null "http://localhost:$BACKEND_PORT/health/live" 2>/dev/null; then
+      echo "✅ Backend is up on http://localhost:$BACKEND_PORT"
+      break
+    fi
+    sleep 2
+  done
+fi
 
-# Frontend — start:conductor has no inline env, so these exported vars take effect.
-# REACT_APP_REDIRECT_URI is cleared so MSAL falls back to window.location.origin.
-(
-  cd "$PROJECT_ROOT"
-  PORT="$FRONTEND_PORT" \
-  REACT_APP_API_URL="http://localhost:$BACKEND_PORT" \
-  REACT_APP_USE_MOCK_AUTH=false \
-  REACT_APP_REDIRECT_URI= \
-  REACT_APP_BRANCH_NAME="$BRANCH" \
-    npm --prefix frontend run start:conductor
-) &
+if [ "$RUN_FRONTEND" = true ]; then
+  # Frontend — start:conductor has no inline env, so these exported vars take effect.
+  # REACT_APP_REDIRECT_URI is cleared so MSAL falls back to window.location.origin.
+  # When the backend runs here, point at it; otherwise honor a caller-supplied
+  # REACT_APP_API_URL (the backend is expected to be running elsewhere).
+  if [ "$RUN_BACKEND" = true ]; then
+    API_URL="http://localhost:$BACKEND_PORT"
+  else
+    API_URL="${REACT_APP_API_URL:-http://localhost:5000}"
+  fi
+  (
+    cd "$PROJECT_ROOT"
+    PORT="$FRONTEND_PORT" \
+    REACT_APP_API_URL="$API_URL" \
+    REACT_APP_USE_MOCK_AUTH=false \
+    REACT_APP_REDIRECT_URI= \
+    REACT_APP_BRANCH_NAME="$BRANCH" \
+      npm --prefix frontend run start:conductor
+  ) &
+fi
 
 wait

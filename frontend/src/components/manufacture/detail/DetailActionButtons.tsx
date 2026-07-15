@@ -7,6 +7,7 @@ import {
   Loader2,
   Calculator,
   Printer,
+  Tag,
 } from "lucide-react";
 import { ManufactureOrderState } from "../../../api/generated/api-client";
 
@@ -18,6 +19,7 @@ interface DetailActionButtonsProps {
   onSave: () => void;
   onBatchCalculator?: () => void;
   onPrintProtocol?: () => void;
+  onPrintLotLabels?: () => void;
   isUpdateLoading: boolean;
   isDuplicateLoading: boolean;
   isPrintingProtocol?: boolean;
@@ -31,6 +33,7 @@ export const DetailActionButtons: React.FC<DetailActionButtonsProps> = ({
   onSave,
   onBatchCalculator,
   onPrintProtocol,
+  onPrintLotLabels,
   isUpdateLoading,
   isDuplicateLoading,
   isPrintingProtocol,
@@ -81,6 +84,18 @@ export const DetailActionButtons: React.FC<DetailActionButtonsProps> = ({
             >
               <Calculator className="h-4 w-4 mr-1" />
               Kalkulačka dávek
+            </button>
+          )}
+
+          {/* Print Lot Labels button – available whenever the order has a semi-product */}
+          {order && order.semiProduct && onPrintLotLabels && (
+            <button
+              onClick={onPrintLotLabels}
+              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+              title="Tisk štítků šarže s přednastavenými hodnotami"
+            >
+              <Tag className="h-4 w-4 mr-1" />
+              Tisk štítků
             </button>
           )}
 

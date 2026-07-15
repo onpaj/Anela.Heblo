@@ -7,6 +7,8 @@ import {
 } from "../../api/hooks/useMaterialContainers";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useScreenView } from "../../telemetry/useScreenView";
+import LotLabelPrintModal from "./LotLabelPrintModal";
+import PrinterMediaChangeDialog from "../dialogs/PrinterMediaChangeDialog";
 
 const formatDate = (date: Date | string | undefined): string => {
   if (!date) return "-";
@@ -33,7 +35,27 @@ const MaterialContainerList: React.FC = () => {
 
   const [showPrint, setShowPrint] = useState(false);
   const [qty, setQty] = useState(10);
+  const [showLotLabelModal, setShowLotLabelModal] = useState(false);
   const printLabels = usePrintMaterialContainerLabels();
+  // Set when a print was blocked because the media type changed; holds the closure that
+  // re-runs the print confirmed. Non-null while the confirmation dialog is shown.
+  const [pendingConfirm, setPendingConfirm] = useState<(() => void) | null>(null);
+
+  const runPrintLabels = (confirmed: boolean) => {
+    printLabels.mutate(
+      { count: qty, mediaChangeConfirmed: confirmed },
+      {
+        onSuccess: (res) => {
+          if (res?.requiresMediaChangeConfirmation) {
+            setPendingConfirm(() => () => runPrintLabels(true));
+          } else {
+            setPendingConfirm(null);
+            setShowPrint(false);
+          }
+        },
+      },
+    );
+  };
 
   useScreenView("Manufacturing", "MaterialContainers");
 
@@ -127,12 +149,7 @@ const MaterialContainerList: React.FC = () => {
               <button
                 type="button"
                 disabled={printLabels.isPending || qty < 1 || qty > 200}
-                onClick={() =>
-                  printLabels.mutate(
-                    { count: qty },
-                    { onSuccess: () => setShowPrint(false) },
-                  )
-                }
+                onClick={() => runPrintLabels(false)}
                 className="bg-green-600 hover:bg-green-700 text-white font-medium py-1.5 px-3 rounded-md text-sm disabled:opacity-50"
               >
                 {printLabels.isPending ? "Tisknu…" : `Vytisknout ${qty}`}
@@ -146,8 +163,27 @@ const MaterialContainerList: React.FC = () => {
           >
             Tisk štítků
           </button>
+          <button
+            type="button"
+            onClick={() => setShowLotLabelModal(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1.5 px-4 rounded-md text-sm"
+          >
+            Tisk štítků šarže
+          </button>
         </div>
       </div>
+
+      <LotLabelPrintModal
+        isOpen={showLotLabelModal}
+        onClose={() => setShowLotLabelModal(false)}
+      />
+
+      <PrinterMediaChangeDialog
+        isOpen={pendingConfirm !== null}
+        isPending={printLabels.isPending}
+        onConfirm={() => pendingConfirm?.()}
+        onCancel={() => setPendingConfirm(null)}
+      />
 
       <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between flex-wrap gap-3">

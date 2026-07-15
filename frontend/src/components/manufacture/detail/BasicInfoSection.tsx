@@ -169,7 +169,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 value={editableLotNumber}
                 onChange={(e) => onLotNumberChange(e.target.value)}
                 className="text-sm border border-gray-300 rounded px-2 py-1 w-28 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
-                placeholder="38202412"
+                placeholder="2926"
               />
             ) : (
               <span className="text-sm text-gray-900 dark:text-graphite-text">

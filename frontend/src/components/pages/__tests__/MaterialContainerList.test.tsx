@@ -10,6 +10,8 @@ jest.mock("../../../api/hooks/useMaterialContainers");
 jest.mock("../../../telemetry/useScreenView", () => ({
   useScreenView: jest.fn(),
 }));
+// The lot-label modal has its own hook/permission dependencies covered by its own test.
+jest.mock("../LotLabelPrintModal", () => () => null);
 
 const mockHooks = useMaterialContainersHooks as jest.Mocked<
   typeof useMaterialContainersHooks
@@ -125,9 +127,33 @@ describe("MaterialContainerList", () => {
     fireEvent.click(screen.getByText("Vytisknout 5"));
 
     expect(mockPrintMutate).toHaveBeenCalledWith(
-      { count: 5 },
+      { count: 5, mediaChangeConfirmed: false },
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     );
+  });
+
+  it("shows the media-change dialog when a print is blocked, then reprints confirmed", () => {
+    // The backend blocks the first (unconfirmed) print, then allows the confirmed retry.
+    mockPrintMutate.mockImplementation((input, opts) =>
+      opts?.onSuccess?.({ requiresMediaChangeConfirmation: !input.mediaChangeConfirmed }),
+    );
+
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+
+    fireEvent.click(screen.getByText("Tisk štítků"));
+    fireEvent.click(screen.getByText("Vytisknout 10"));
+
+    expect(screen.getByTestId("printer-media-change-dialog")).toBeInTheDocument();
+    expect(mockPrintMutate).toHaveBeenCalledTimes(1);
+    expect(mockPrintMutate.mock.calls[0][0].mediaChangeConfirmed).toBe(false);
+
+    fireEvent.click(screen.getByText("Pokračovat v tisku"));
+
+    expect(mockPrintMutate).toHaveBeenCalledTimes(2);
+    expect(mockPrintMutate.mock.calls[1][0].mediaChangeConfirmed).toBe(true);
+    expect(
+      screen.queryByTestId("printer-media-change-dialog"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders a Stav column with the container status", () => {
