@@ -86,10 +86,10 @@ function LotLabelPrintModal({ isOpen, onClose }: LotLabelPrintModalProps) {
     if (!isValid) return;
 
     setError(null);
+    // Keep the modal open after printing so the operator can reprint / adjust.
     printLotLabels.mutate(
       { lotNumber: lotNumber.trim(), expiration, count },
       {
-        onSuccess: () => onClose(),
         onError: (err) =>
           setError(`Chyba při tisku štítků: ${(err as Error).message}`),
       },

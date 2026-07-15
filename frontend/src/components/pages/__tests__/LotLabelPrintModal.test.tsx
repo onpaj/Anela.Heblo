@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import LotLabelPrintModal, {
   defaultLotNumber,
@@ -105,10 +105,7 @@ describe("LotLabelPrintModal", () => {
 
     expect(mockMutate).toHaveBeenCalledWith(
       { lotNumber: "2926", expiration: "07/29", count: 3 },
-      expect.objectContaining({
-        onSuccess: expect.any(Function),
-        onError: expect.any(Function),
-      }),
+      expect.objectContaining({ onError: expect.any(Function) }),
     );
   });
 
@@ -176,9 +173,9 @@ describe("LotLabelPrintModal", () => {
     );
   });
 
-  it("closes on successful print", async () => {
+  it("stays open after a successful print", () => {
     const onClose = jest.fn();
-    mockMutate.mockImplementation((_input, { onSuccess }) => onSuccess());
+    mockMutate.mockImplementation((_input, opts) => opts?.onSuccess?.());
 
     render(<LotLabelPrintModal isOpen={true} onClose={onClose} />);
 
@@ -187,6 +184,7 @@ describe("LotLabelPrintModal", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /Vytisknout/i }));
 
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(mockMutate).toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
