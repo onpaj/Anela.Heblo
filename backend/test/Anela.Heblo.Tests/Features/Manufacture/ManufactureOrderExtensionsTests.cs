@@ -9,12 +9,12 @@ public class ManufactureOrderExtensionsTests
     // ── GetDefaultLot ─────────────────────────────────────────────────────────
 
     [Theory]
-    [InlineData(2024, 1, 1, "01202401")] // Monday, week 1 — tests week and month zero-padding
-    [InlineData(2024, 6, 3, "23202406")] // Monday, week 23 — mid-year
-    [InlineData(2023, 12, 31, "52202312")] // Sunday, week 52 — year-end boundary
-    [InlineData(2024, 12, 30, "01202412")] // Monday, ISO week 1 of next year but calendar year stays 2024
-    [InlineData(2024, 1, 7, "01202401")] // Sunday, still week 1 (same Thursday as Jan 4)
-    public void GetDefaultLot_ReturnsExpectedWwYyyyMmString(
+    [InlineData(2024, 1, 1, "0124")] // Monday, week 1 — tests week zero-padding
+    [InlineData(2024, 6, 3, "2324")] // Monday, week 23 — mid-year
+    [InlineData(2023, 12, 31, "5223")] // Sunday, week 52 — year-end boundary
+    [InlineData(2024, 12, 30, "0124")] // Monday, ISO week 1 of next year but calendar year stays 2024
+    [InlineData(2024, 1, 7, "0124")] // Sunday, still week 1 (same Thursday as Jan 4)
+    public void GetDefaultLot_ReturnsExpectedWwYyString(
         int year, int month, int day, string expected)
     {
         var result = ManufactureOrderExtensions.GetDefaultLot(new DateTime(year, month, day));
