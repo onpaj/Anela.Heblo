@@ -21,16 +21,16 @@
       "updated_at": "2026-07-15T06:28:44.059278Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-15T06:29:25.801188Z"
     }
   },
   "tasks": [
     {
       "name": "add-bankdailycount-and-update-domain-contract",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-15T06:29:25.975985Z"
     },
     {
       "name": "update-bankstatementimportrepository-ef-implementation",
