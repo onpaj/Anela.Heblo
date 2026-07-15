@@ -105,4 +105,63 @@ describe('DetailActionButtons', () => {
     const button = screen.getByTitle('Tisknout protokol výroby');
     expect(button).toBeDisabled();
   });
+
+  test('renders Tisk štítků button when order has a semi-product', () => {
+    const order = { state: ManufactureOrderState.Planned, semiProduct: {} };
+    const onPrintLotLabels = jest.fn();
+
+    render(
+      <DetailActionButtons
+        {...baseProps}
+        order={order}
+        onPrintLotLabels={onPrintLotLabels}
+      />
+    );
+
+    expect(screen.getByText('Tisk štítků')).toBeInTheDocument();
+  });
+
+  test('does NOT render Tisk štítků button when order has no semi-product', () => {
+    const order = { state: ManufactureOrderState.Planned };
+    const onPrintLotLabels = jest.fn();
+
+    render(
+      <DetailActionButtons
+        {...baseProps}
+        order={order}
+        onPrintLotLabels={onPrintLotLabels}
+      />
+    );
+
+    expect(screen.queryByText('Tisk štítků')).not.toBeInTheDocument();
+  });
+
+  test('does NOT render Tisk štítků button when onPrintLotLabels is not provided', () => {
+    const order = { state: ManufactureOrderState.Planned, semiProduct: {} };
+
+    render(
+      <DetailActionButtons
+        {...baseProps}
+        order={order}
+      />
+    );
+
+    expect(screen.queryByText('Tisk štítků')).not.toBeInTheDocument();
+  });
+
+  test('calls onPrintLotLabels when Tisk štítků button is clicked', () => {
+    const order = { state: ManufactureOrderState.Planned, semiProduct: {} };
+    const onPrintLotLabels = jest.fn();
+
+    render(
+      <DetailActionButtons
+        {...baseProps}
+        order={order}
+        onPrintLotLabels={onPrintLotLabels}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Tisk štítků'));
+    expect(onPrintLotLabels).toHaveBeenCalledTimes(1);
+  });
 });
