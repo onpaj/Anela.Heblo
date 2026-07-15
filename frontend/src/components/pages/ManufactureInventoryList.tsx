@@ -179,6 +179,14 @@ const ManufactureInventoryList: React.FC = () => {
     );
   };
 
+  const handleHealthyPreset = () => {
+    // Everything beyond the 90-day horizon = healthy (open-ended upper bound)
+    applyExpirationPreset(
+      toIsoDate(addDays(startOfToday(), EXPIRATION_HORIZON_DAYS + 1)),
+      "",
+    );
+  };
+
   // Sorting handler
   const handleSort = (column: string) => {
     if (sortBy === column) {
@@ -443,6 +451,12 @@ const ManufactureInventoryList: React.FC = () => {
               className="px-3 py-2 text-sm font-medium rounded-md border border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-500/40 dark:text-amber-300 dark:hover:bg-amber-500/10 transition-colors"
             >
               31–90 dní
+            </button>
+            <button
+              onClick={handleHealthyPreset}
+              className="px-3 py-2 text-sm font-medium rounded-md border border-green-300 text-green-700 hover:bg-green-50 dark:border-green-500/40 dark:text-green-300 dark:hover:bg-green-500/10 transition-colors"
+            >
+              &gt; 90 dní
             </button>
           </div>
         </div>
