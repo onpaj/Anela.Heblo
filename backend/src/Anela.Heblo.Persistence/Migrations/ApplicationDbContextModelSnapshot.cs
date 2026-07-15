@@ -680,6 +680,31 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("Lots", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.Inventory.LotLabelCalibration", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DriftDotsPer100Labels")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(30);
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<int>("PitchDots")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LotLabelCalibrations", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.Inventory.MaterialContainer", b =>
                 {
                     b.Property<int>("Id")
@@ -805,6 +830,28 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasDatabaseName("IX_MaterialContainers_MaterialCode_LotCode");
 
                     b.ToTable("MaterialContainers", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.Inventory.PrinterMediaState", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LastMediaType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset?>("LastPrintedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastPrintedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PrinterMediaStates", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.ManufactureDifficultySetting", b =>
