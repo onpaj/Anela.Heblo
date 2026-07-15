@@ -7,6 +7,7 @@ import {
 } from "../../api/hooks/useMaterialContainers";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useScreenView } from "../../telemetry/useScreenView";
+import LotLabelPrintModal from "./LotLabelPrintModal";
 
 const formatDate = (date: Date | string | undefined): string => {
   if (!date) return "-";
@@ -33,6 +34,7 @@ const MaterialContainerList: React.FC = () => {
 
   const [showPrint, setShowPrint] = useState(false);
   const [qty, setQty] = useState(10);
+  const [showLotLabelModal, setShowLotLabelModal] = useState(false);
   const printLabels = usePrintMaterialContainerLabels();
 
   useScreenView("Manufacturing", "MaterialContainers");
@@ -146,8 +148,20 @@ const MaterialContainerList: React.FC = () => {
           >
             Tisk štítků
           </button>
+          <button
+            type="button"
+            onClick={() => setShowLotLabelModal(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1.5 px-4 rounded-md text-sm"
+          >
+            Tisk štítků šarže
+          </button>
         </div>
       </div>
+
+      <LotLabelPrintModal
+        isOpen={showLotLabelModal}
+        onClose={() => setShowLotLabelModal(false)}
+      />
 
       <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between flex-wrap gap-3">

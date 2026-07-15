@@ -10,6 +10,8 @@ jest.mock("../../../api/hooks/useMaterialContainers");
 jest.mock("../../../telemetry/useScreenView", () => ({
   useScreenView: jest.fn(),
 }));
+// The lot-label modal has its own hook/permission dependencies covered by its own test.
+jest.mock("../LotLabelPrintModal", () => () => null);
 
 const mockHooks = useMaterialContainersHooks as jest.Mocked<
   typeof useMaterialContainersHooks

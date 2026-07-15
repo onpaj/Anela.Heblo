@@ -1,7 +1,12 @@
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateLot;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.DeleteLot;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetLot;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.FeedLotMedia;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetLotLabelCalibration;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.ListLots;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.PrintLotCalibrationLabel;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.SetLotLabelCalibration;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.PrintLotLabels;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.UpdateLot;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
@@ -82,6 +87,55 @@ public class LotsController : BaseApiController
     public async Task<ActionResult<DeleteLotResponse>> DeleteLot(int id, CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(new DeleteLotRequest { Id = id }, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    [HttpPost("print-labels")]
+    [FeatureAuthorize(Feature.Manufacture_MaterialContainers, AccessLevel.Write)]
+    public async Task<ActionResult<PrintLotLabelsResponse>> PrintLabels(
+        [FromBody] PrintLotLabelsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    [HttpPost("print-calibration-label")]
+    [FeatureAuthorize(Feature.Manufacture_MaterialContainers, AccessLevel.Write)]
+    public async Task<ActionResult<PrintLotCalibrationLabelResponse>> PrintCalibrationLabel(
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(new PrintLotCalibrationLabelRequest(), cancellationToken);
+        return HandleResponse(response);
+    }
+
+    [HttpPost("feed-media")]
+    [FeatureAuthorize(Feature.Manufacture_MaterialContainers, AccessLevel.Write)]
+    public async Task<ActionResult<FeedLotMediaResponse>> FeedMedia(
+        [FromBody] FeedLotMediaRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    [HttpGet("label-calibration")]
+    public async Task<ActionResult<GetLotLabelCalibrationResponse>> GetLabelCalibration(
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(new GetLotLabelCalibrationRequest(), cancellationToken);
+        return HandleResponse(response);
+    }
+
+    // Changing the calibration is an administrative action, gated above the normal
+    // material-containers write access so operators cannot alter it.
+    [HttpPut("label-calibration")]
+    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
+    public async Task<ActionResult<SetLotLabelCalibrationResponse>> SetLabelCalibration(
+        [FromBody] SetLotLabelCalibrationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }
 }

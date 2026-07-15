@@ -9,6 +9,14 @@ import {
   ListMaterialContainersResponse,
   PrintMaterialContainerLabelsRequest,
   PrintMaterialContainerLabelsResponse,
+  PrintLotLabelsRequest,
+  PrintLotLabelsResponse,
+  PrintLotCalibrationLabelResponse,
+  FeedLotMediaRequest,
+  FeedLotMediaResponse,
+  GetLotLabelCalibrationResponse,
+  SetLotLabelCalibrationRequest,
+  SetLotLabelCalibrationResponse,
 } from '../generated/api-client';
 
 export const useCreateMaterialContainers = () => {
@@ -36,6 +44,65 @@ export const usePrintMaterialContainerLabels = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialContainers });
     },
+  });
+};
+
+export const usePrintLotLabels = () =>
+  useMutation({
+    mutationFn: (input: {
+      lotNumber: string;
+      expiration: string;
+      count: number;
+    }): Promise<PrintLotLabelsResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const request = new PrintLotLabelsRequest({
+        lotNumber: input.lotNumber,
+        expiration: input.expiration,
+        count: input.count,
+      });
+      return apiClient.lots_PrintLabels(request);
+    },
+  });
+
+export const usePrintLotCalibrationLabel = () =>
+  useMutation({
+    mutationFn: (): Promise<PrintLotCalibrationLabelResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      return apiClient.lots_PrintCalibrationLabel();
+    },
+  });
+
+export const useFeedLotMedia = () =>
+  useMutation({
+    mutationFn: (dots: number): Promise<FeedLotMediaResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const request = new FeedLotMediaRequest({ dots });
+      return apiClient.lots_FeedMedia(request);
+    },
+  });
+
+export const useLotLabelCalibration = (enabled: boolean) =>
+  useQuery({
+    enabled,
+    queryKey: [...QUERY_KEYS.materialContainers, 'lot-label-calibration'],
+    queryFn: (): Promise<GetLotLabelCalibrationResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      return apiClient.lots_GetLabelCalibration();
+    },
+  });
+
+export const useSetLotLabelCalibration = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (pitchDots: number): Promise<SetLotLabelCalibrationResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const request = new SetLotLabelCalibrationRequest({ pitchDots });
+      return apiClient.lots_SetLabelCalibration(request);
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.materialContainers, 'lot-label-calibration'],
+      }),
   });
 };
 
@@ -89,4 +156,5 @@ export type {
   GetLastUsedLotForMaterialResponse,
   ListMaterialContainersResponse,
   PrintMaterialContainerLabelsResponse,
+  PrintLotLabelsResponse,
 } from '../generated/api-client';
