@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementList;
 using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Shared;
@@ -369,20 +370,68 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
     }
 
     [Fact]
-    public async Task GetBankStatements_WithUtcDesignatorDateQueryParam_BindsSuccessfully()
+    public async Task GetBankStatements_WithUtcDesignatorDateQueryParam_FiltersToExactCalendarDate()
     {
-        // This is the exact format the frontend sends for a date-only filter
-        // (new Date('2026-01-01').toISOString() === "2026-01-01T00:00:00.000Z").
-        // Regression coverage for the UtcDateTimeModelBinder timezone fix: the
-        // default DateTime binder would reinterpret this as server-local time,
-        // but this must bind successfully (200, not 400) regardless of the
-        // server's local timezone offset.
+        // Regression test for the UtcDateTimeModelBinder timezone fix. The frontend
+        // sends date-only filters as new Date('2026-01-01').toISOString(), i.e.
+        // "2026-01-01T00:00:00.000Z". The default ASP.NET Core DateTime? binder would
+        // reinterpret this as server-local time, shifting .Date by a day on
+        // negative-UTC-offset hosts. This test seeds statements on the target date and
+        // on its immediate neighbors, then asserts the filtered response contains
+        // exactly the target-date statement — a status-code-only assertion would pass
+        // even if the date got silently shifted by the old buggy binder.
+        string onTargetTransferId, dayBeforeTransferId, dayAfterTransferId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<Anela.Heblo.Persistence.ApplicationDbContext>();
 
-        // Act
-        var response = await _client.GetAsync("/api/bank-statements?dateFrom=2026-01-01T00:00:00.000Z&dateTo=2026-01-01T00:00:00.000Z");
+            onTargetTransferId = $"T-TZ-ON-{Guid.NewGuid():N}";
+            dayBeforeTransferId = $"T-TZ-BEFORE-{Guid.NewGuid():N}";
+            dayAfterTransferId = $"T-TZ-AFTER-{Guid.NewGuid():N}";
+
+            context.BankStatements.AddRange(
+                new Anela.Heblo.Domain.Features.Bank.BankStatementImport(onTargetTransferId, new DateTime(2026, 1, 1))
+                {
+                    Account = "ComgateCZK",
+                    Currency = Anela.Heblo.Domain.Shared.CurrencyCode.CZK,
+                    ItemCount = 1,
+                    ImportResult = "OK"
+                },
+                new Anela.Heblo.Domain.Features.Bank.BankStatementImport(dayBeforeTransferId, new DateTime(2025, 12, 31))
+                {
+                    Account = "ComgateCZK",
+                    Currency = Anela.Heblo.Domain.Shared.CurrencyCode.CZK,
+                    ItemCount = 1,
+                    ImportResult = "OK"
+                },
+                new Anela.Heblo.Domain.Features.Bank.BankStatementImport(dayAfterTransferId, new DateTime(2026, 1, 2))
+                {
+                    Account = "ComgateCZK",
+                    Currency = Anela.Heblo.Domain.Shared.CurrencyCode.CZK,
+                    ItemCount = 1,
+                    ImportResult = "OK"
+                });
+            await context.SaveChangesAsync();
+        }
+
+        // Act — request exactly the target calendar date, in the format the frontend
+        // actually sends (Date.toISOString()).
+        var response = await _client.GetAsync(
+            $"/api/bank-statements?statementDate=2026-01-01T00:00:00.000Z&dateFrom=2026-01-01T00:00:00.000Z&dateTo=2026-01-01T00:00:00.000Z&take=100");
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadAsStringAsync();
+        var result = JsonSerializer.Deserialize<GetBankStatementListResponse>(
+            body,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.NotNull(result);
+        var transferIds = result!.Items.Select(i => i.TransferId).ToList();
+        Assert.Contains(onTargetTransferId, transferIds);
+        Assert.DoesNotContain(dayBeforeTransferId, transferIds);
+        Assert.DoesNotContain(dayAfterTransferId, transferIds);
     }
 }
 
