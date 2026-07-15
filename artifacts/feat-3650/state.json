@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "backend-move-use-case",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-15T05:25:05.463223Z"
+      "updated_at": "2026-07-15T06:31:30.077669Z"
     },
     {
       "name": "frontend-wire-move-endpoint",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-15T06:31:35.234643Z"
     }
   ]
 }
