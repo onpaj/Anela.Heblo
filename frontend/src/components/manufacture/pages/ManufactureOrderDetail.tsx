@@ -332,11 +332,10 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       if (hasUserChangedDate) {
         const semiProductDate = new Date(editablePlannedDate);
 
-        // Auto-calculate lot number
-        const year = semiProductDate.getFullYear();
-        const month = String(semiProductDate.getMonth() + 1).padStart(2, '0');
+        // Auto-calculate lot number in wwyy format (ISO week + 2-digit year)
+        const year = String(semiProductDate.getFullYear() % 100).padStart(2, '0');
         const week = String(getWeekNumber(semiProductDate)).padStart(2, '0');
-        const newLotNumber = `${week}${year}${month}`;
+        const newLotNumber = `${week}${year}`;
         setEditableLotNumber(newLotNumber);
 
         // Auto-calculate expiration date

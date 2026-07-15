@@ -49,12 +49,6 @@ public static class ManufactureOrderExtensions
 
     public static DateOnly GetDefaultExpiration(DateTime manufactureDate, int months)
     {
-        // Calculate lot number in wwyyyyMM format
-        var year = manufactureDate.Year;
-        var month = manufactureDate.Month.ToString("D2");
-        var week = GetWeekNumber(manufactureDate).ToString("D2");
-        var lotNumber = $"{week}{year}{month}";
-
         // Calculate expiration date (last day of month after adding expiration months)
         var expirationDate = manufactureDate.AddMonths(months);
         var lastDayOfExpirationMonth = DateOnly.FromDateTime(new DateTime(expirationDate.Year, expirationDate.Month, 1)
@@ -68,11 +62,10 @@ public static class ManufactureOrderExtensions
 
     public static string GetDefaultLot(DateTime manufactureDate)
     {
-        // Calculate lot number in wwyyyyMM format
-        var year = manufactureDate.Year;
-        var month = manufactureDate.Month.ToString("D2");
+        // Calculate lot number in wwyy format (ISO week + 2-digit year)
+        var year = (manufactureDate.Year % 100).ToString("D2");
         var week = GetWeekNumber(manufactureDate).ToString("D2");
-        return $"{week}{year}{month}";
+        return $"{week}{year}";
     }
 
     private static int GetWeekNumber(DateTime date)
