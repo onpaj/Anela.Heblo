@@ -1,5 +1,17 @@
 "$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
 
 [scripts]
-run = "./scripts/conductor-run.sh"
 setup = "dotnet restore && npm --prefix frontend install --legacy-peer-deps"
+
+[scripts.run.RunAll]
+command = "./scripts/conductor-run.sh all"
+default = true
+icon = "play"
+
+[scripts.run.RunBackend]
+command = "./scripts/conductor-run.sh backend"
+icon = "server"
+
+[scripts.run.RunFrontend]
+command = "./scripts/conductor-run.sh frontend"
+icon = "globe"
