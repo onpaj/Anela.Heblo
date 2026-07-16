@@ -129,6 +129,16 @@ export default defineConfig({
       testDir: './test/e2e/baleni',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'leaflet-generator',
+      testDir: './test/e2e/leaflet-generator',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'terminal',
+      testDir: './test/e2e/terminal',
+      use: { ...devices['Desktop Chrome'] },
+    },
   ],
 
   /* Run your local dev server before starting the tests */

@@ -24,9 +24,9 @@ on:
           - 'webkit'
           - 'all'
       enable_parallel:
-        description: 'Enable parallel execution across modules (may cause timeouts under heavy load)'
+        description: 'Run per-module in parallel (default). Uncheck to run everything sequentially in a single "all" job.'
         required: false
-        default: false
+        default: true
         type: boolean
       deploy_staging:
         description: 'Deploy current main to staging before running tests (disable to test a pre-deployed build)'
@@ -223,9 +223,15 @@ jobs:
     needs: validate-staging-health
     strategy:
       fail-fast: false
+      # Cap concurrent module jobs so we don't overwhelm the single shared staging
+      # instance (which slows every test and causes false timeouts).
+      max-parallel: 2
       matrix:
-        # Conditional matrix: parallel mode runs modules separately, sequential mode runs all at once
-        module: ${{ fromJSON(github.event.inputs.enable_parallel == 'true' && '["catalog", "issued-invoices", "stock-operations", "transport", "manufacturing", "core", "marketing"]' || '["all"]') }}
+        # Per-module fan-out is the default (scheduled runs and manual runs alike): each module is a
+        # small suite that finishes well under the 60-min globalTimeout, so every test actually runs
+        # and reports honestly. A manual run with enable_parallel=false falls back to a single "all"
+        # job. Keep this list in sync with the `projects` array in frontend/playwright.config.ts.
+        module: ${{ fromJSON((github.event_name == 'schedule' || github.event.inputs.enable_parallel != 'false') && '["catalog", "issued-invoices", "stock-operations", "transport", "manufacturing", "core", "marketing", "finance", "baleni", "leaflet-generator", "terminal"]' || '["all"]') }}
 
     steps:
       - name: ℹ️ Test execution mode
@@ -308,21 +314,38 @@ jobs:
       - name: 📝 Export test results for aggregation
         if: always()
         run: |
-          # Parse JSON results and export as artifact metadata
+          # Parse JSON results and export as artifact metadata.
+          # Status is derived from actual per-test results, NOT `.ok`: Playwright marks
+          # never-run specs as `ok: true`, so a run truncated by the global timeout would
+          # otherwise masquerade as passing. Specs with no result (or "interrupted") are
+          # counted in a distinct DIDNOTRUN bucket so a truncated run can't hide.
           if [ -f frontend/test-results/results.json ]; then
-            TOTAL=$(jq '[ .suites[].suites[]?.specs[]? ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
-            PASSED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == true) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
-            FAILED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
-            SKIPPED=$(jq '[ .suites[].suites[]?.specs[]? | select(.tests[0].results[0].status == "skipped") ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
-
-            # Export for downstream jobs
-            echo "TOTAL=$TOTAL" >> frontend/test-results/module-summary.env
-            echo "PASSED=$PASSED" >> frontend/test-results/module-summary.env
-            echo "FAILED=$FAILED" >> frontend/test-results/module-summary.env
-            echo "SKIPPED=$SKIPPED" >> frontend/test-results/module-summary.env
+            jq -r '
+              def spec_status:
+                [.tests[]?.results[]?.status] as $s
+                | if   ($s | length) == 0                                 then "didnotrun"
+                  elif ($s | any(. == "failed" or . == "timedOut"))       then "failed"
+                  elif ($s | any(. == "interrupted"))                     then "didnotrun"
+                  elif ($s | length) > 0 and ($s | all(. == "skipped"))   then "skipped"
+                  elif ($s | any(. == "passed"))                          then "passed"
+                  else "didnotrun" end;
+              [.. | objects | select(has("tests"))] | map(spec_status) as $st
+              | "TOTAL=\($st | length)",
+                "PASSED=\($st | map(select(. == "passed")) | length)",
+                "FAILED=\($st | map(select(. == "failed")) | length)",
+                "SKIPPED=\($st | map(select(. == "skipped")) | length)",
+                "DIDNOTRUN=\($st | map(select(. == "didnotrun")) | length)"
+            ' frontend/test-results/results.json >> frontend/test-results/module-summary.env
             echo "MODULE=${{ matrix.module }}" >> frontend/test-results/module-summary.env
 
-            echo "📊 Module ${{ matrix.module }}: $PASSED/$TOTAL passed"
+            source frontend/test-results/module-summary.env
+            echo "📊 Module ${{ matrix.module }}: $PASSED passed, $FAILED failed, $SKIPPED skipped, $DIDNOTRUN did-not-run (of $TOTAL)"
+          else
+            echo "⚠️ No results.json found for module ${{ matrix.module }} — the run may have crashed before producing results."
+            {
+              echo "TOTAL=0"; echo "PASSED=0"; echo "FAILED=0"; echo "SKIPPED=0"; echo "DIDNOTRUN=0"
+              echo "MODULE=${{ matrix.module }}"
+            } >> frontend/test-results/module-summary.env
           fi
 
       - name: 📊 Publish Test Results to GitHub
@@ -368,6 +391,7 @@ jobs:
           path: all-test-results
 
       - name: 📝 Create comprehensive aggregate summary
+        id: summary
         run: |
           echo "## 🎭 E2E Nightly Regression - Complete Test Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -380,61 +404,67 @@ jobs:
           GRAND_PASSED=0
           GRAND_FAILED=0
           GRAND_SKIPPED=0
+          GRAND_DIDNOTRUN=0
 
           # Collect module data
           declare -A MODULE_TOTAL
           declare -A MODULE_PASSED
           declare -A MODULE_FAILED
           declare -A MODULE_SKIPPED
+          declare -A MODULE_DIDNOTRUN
 
           # Parse results from each module
           for module_dir in all-test-results/e2e-test-results-*; do
             # Look for module-summary.env file
             if [ -f "$module_dir/test-results/module-summary.env" ]; then
+              # Reset before sourcing so a missing key can't leak from a prior module
+              TOTAL=0; PASSED=0; FAILED=0; SKIPPED=0; DIDNOTRUN=0; MODULE=""
               source "$module_dir/test-results/module-summary.env"
+              [ -z "$MODULE" ] && continue
 
               MODULE_TOTAL[$MODULE]=$TOTAL
               MODULE_PASSED[$MODULE]=$PASSED
               MODULE_FAILED[$MODULE]=$FAILED
               MODULE_SKIPPED[$MODULE]=$SKIPPED
+              MODULE_DIDNOTRUN[$MODULE]=$DIDNOTRUN
 
               GRAND_TOTAL=$((GRAND_TOTAL + TOTAL))
               GRAND_PASSED=$((GRAND_PASSED + PASSED))
               GRAND_FAILED=$((GRAND_FAILED + FAILED))
               GRAND_SKIPPED=$((GRAND_SKIPPED + SKIPPED))
+              GRAND_DIDNOTRUN=$((GRAND_DIDNOTRUN + DIDNOTRUN))
             fi
           done
 
-          # Overall status
-          if [ "$GRAND_FAILED" -eq 0 ]; then
+          # Overall status — a broken run (real failures OR tests that never ran) is a failure
+          if [ "$GRAND_FAILED" -eq 0 ] && [ "$GRAND_DIDNOTRUN" -eq 0 ]; then
             echo "### ✅ All Tests Passed!" >> $GITHUB_STEP_SUMMARY
           else
-            echo "### ❌ $GRAND_FAILED Test(s) Failed" >> $GITHUB_STEP_SUMMARY
+            echo "### ❌ $GRAND_FAILED failed, $GRAND_DIDNOTRUN did not run" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Summary table
-          echo "| Module | Total | Passed | Failed | Skipped |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|--------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Module | Total | Passed | Failed | Skipped | Did Not Run |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|--------|--------|---------|-------------|" >> $GITHUB_STEP_SUMMARY
 
           # Total row first
-          echo "| **TOTAL** | **$GRAND_TOTAL** | **$GRAND_PASSED** | **$GRAND_FAILED** | **$GRAND_SKIPPED** |" >> $GITHUB_STEP_SUMMARY
+          echo "| **TOTAL** | **$GRAND_TOTAL** | **$GRAND_PASSED** | **$GRAND_FAILED** | **$GRAND_SKIPPED** | **$GRAND_DIDNOTRUN** |" >> $GITHUB_STEP_SUMMARY
 
-          # Module rows in consistent order
-          for module in catalog issued-invoices stock-operations transport manufacturing core; do
-            if [ -n "${MODULE_TOTAL[$module]}" ]; then
-              TOTAL=${MODULE_TOTAL[$module]}
-              PASSED=${MODULE_PASSED[$module]}
-              FAILED=${MODULE_FAILED[$module]}
-              SKIPPED=${MODULE_SKIPPED[$module]}
+          # Module rows — iterate every module that actually reported, sorted for stable output
+          for module in $(printf '%s\n' "${!MODULE_TOTAL[@]}" | sort); do
+            TOTAL=${MODULE_TOTAL[$module]}
+            PASSED=${MODULE_PASSED[$module]}
+            FAILED=${MODULE_FAILED[$module]}
+            SKIPPED=${MODULE_SKIPPED[$module]}
+            DIDNOTRUN=${MODULE_DIDNOTRUN[$module]}
 
-              STATUS_ICON="✅"
-              if [ "$FAILED" -gt 0 ]; then
-                STATUS_ICON="❌"
-              fi
-
-              echo "| $STATUS_ICON **$module** | $TOTAL | $PASSED | $FAILED | $SKIPPED |" >> $GITHUB_STEP_SUMMARY
+            STATUS_ICON="✅"
+            if [ "$FAILED" -gt 0 ] || [ "$DIDNOTRUN" -gt 0 ]; then
+              STATUS_ICON="❌"
             fi
+
+            echo "| $STATUS_ICON **$module** | $TOTAL | $PASSED | $FAILED | $SKIPPED | $DIDNOTRUN |" >> $GITHUB_STEP_SUMMARY
           done
 
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -449,15 +479,16 @@ jobs:
                 # Extract module name from directory
                 MODULE_NAME=$(basename "$module_dir" | sed 's/e2e-test-results-//' | sed 's/-[0-9]*$//')
 
-                # Check if module has failures
-                FAILED_COUNT=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | length' "$module_dir/test-results/results.json" 2>/dev/null || echo "0")
+                # Select genuinely-failed specs (status-based, matching the counting logic)
+                FAILED_FILTER='[.. | objects | select(has("tests")) | select([.tests[]?.results[]?.status] | any(. == "failed" or . == "timedOut"))]'
+                FAILED_COUNT=$(jq "$FAILED_FILTER | length" "$module_dir/test-results/results.json" 2>/dev/null || echo "0")
 
                 if [ "$FAILED_COUNT" -gt 0 ]; then
                   echo "#### Module: $MODULE_NAME" >> $GITHUB_STEP_SUMMARY
                   echo "" >> $GITHUB_STEP_SUMMARY
 
                   # Extract failed test details
-                  jq -r '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | .[] | "**" + .title + "**\n- File: `" + .file + "`\n- Error: " + (.tests[0].results[0].error.message // "No error message") + "\n"' "$module_dir/test-results/results.json" >> $GITHUB_STEP_SUMMARY
+                  jq -r "$FAILED_FILTER"' | .[] | "**" + .title + "**\n- File: `" + (.file // "unknown") + "`\n- Error: " + ((first(.tests[]?.results[]? | select(.error?.message) | .error.message) // "No error message") | split("\n")[0]) + "\n"' "$module_dir/test-results/results.json" >> $GITHUB_STEP_SUMMARY
 
                   echo "" >> $GITHUB_STEP_SUMMARY
                 fi
@@ -471,3 +502,29 @@ jobs:
           echo "1. Go to **Actions** → This workflow run → **Artifacts**" >> $GITHUB_STEP_SUMMARY
           echo "2. Download module-specific artifacts (e.g., \`e2e-test-results-catalog-${{ github.run_number }}\`)" >> $GITHUB_STEP_SUMMARY
           echo "3. Extract and open \`playwright-report/index.html\` in your browser" >> $GITHUB_STEP_SUMMARY
+
+          # Export grand totals so the failure gate can read them
+          {
+            echo "grand_total=$GRAND_TOTAL"
+            echo "grand_failed=$GRAND_FAILED"
+            echo "grand_didnotrun=$GRAND_DIDNOTRUN"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 🚦 Fail the workflow on real test failures or tests that never ran
+        run: |
+          TOTAL="${{ steps.summary.outputs.grand_total }}"
+          FAILED="${{ steps.summary.outputs.grand_failed }}"
+          DIDNOTRUN="${{ steps.summary.outputs.grand_didnotrun }}"
+
+          # No results at all means every module job failed to produce output — treat as broken.
+          if [ -z "$TOTAL" ] || [ "$TOTAL" -eq 0 ]; then
+            echo "❌ No test results were aggregated — the E2E run did not produce any results."
+            exit 1
+          fi
+
+          if [ "${FAILED:-0}" -gt 0 ] || [ "${DIDNOTRUN:-0}" -gt 0 ]; then
+            echo "❌ E2E nightly is RED: $FAILED failed, $DIDNOTRUN did not run (of $TOTAL)."
+            exit 1
+          fi
+
+          echo "✅ E2E nightly is GREEN: all $TOTAL tests passed (or were intentionally skipped)."
