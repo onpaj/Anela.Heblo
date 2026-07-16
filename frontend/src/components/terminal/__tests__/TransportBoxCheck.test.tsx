@@ -2,7 +2,6 @@ import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import TransportBoxCheck from '../TransportBoxCheck';
 import { ScanProvider } from '../shell/ScanProvider';
-import { FlashOverlay } from '../shell/FlashOverlay';
 import { useTransportBoxByCodeQuery } from '../../../api/hooks/useTransportBoxes';
 
 jest.mock('../../../api/hooks/useTransportBoxes', () => ({
@@ -47,7 +46,6 @@ const renderScreen = () =>
   render(
     <ScanProvider>
       <TransportBoxCheck />
-      <FlashOverlay />
     </ScanProvider>,
   );
 
@@ -163,7 +161,7 @@ describe('TransportBoxCheck', () => {
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
-  it('flashes ok exactly once when a box resolves successfully', () => {
+  it('shows the box subject when a box resolves successfully', () => {
     mockHook.mockImplementation((code: string | null) =>
       code === 'B001'
         ? { data: fakeBox, isFetching: false, isError: false }
@@ -172,11 +170,10 @@ describe('TransportBoxCheck', () => {
     renderScreen();
     act(() => scan('b001'));
 
-    // FlashOverlay renders an ok-tone status when the resolution flashes ok.
-    expect(screen.getByTestId('flash-overlay')).toHaveAttribute('data-tone', 'ok');
+    expect(screen.getByTestId('subject-header')).toBeInTheDocument();
   });
 
-  it('flashes err exactly once when a scan errors', () => {
+  it('shows an on-screen error when a scan errors', () => {
     mockHook.mockImplementation((code: string | null) =>
       code
         ? { data: null, isFetching: false, isError: true, error: new Error('Box nenalezen') }
@@ -185,6 +182,6 @@ describe('TransportBoxCheck', () => {
     renderScreen();
     act(() => scan('B999'));
 
-    expect(screen.getByTestId('flash-overlay')).toHaveAttribute('data-tone', 'err');
+    expect(screen.getByText('Zkontrolujte kód a naskenujte znovu')).toBeInTheDocument();
   });
 });

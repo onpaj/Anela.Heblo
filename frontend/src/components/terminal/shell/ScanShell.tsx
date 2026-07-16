@@ -1,10 +1,10 @@
 // shell/ScanShell.tsx
 import React from 'react';
-import { ScanStrip } from './ScanStrip';
 import { DockedAction } from './DockedAction';
 import type { ScanShellProps } from './types';
 
-/** Zones B–E. Zone A (app bar) is TerminalLayout; FlashOverlay is mounted there too. */
+/** Zones B, C, E. Zone A (app bar) is TerminalLayout. Scan feedback is on-screen (subject +
+ *  body), so there is no full-bleed flash overlay or scan strip. */
 export const ScanShell: React.FC<ScanShellProps> = ({ subject, children, actions = [] }) => {
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -14,8 +14,6 @@ export const ScanShell: React.FC<ScanShellProps> = ({ subject, children, actions
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="max-w-md mx-auto w-full p-4">{children}</div>
       </div>
-      {/* Zone D — persistent scan strip */}
-      <ScanStrip />
       {/* Zone E — docked action */}
       <DockedAction actions={actions} />
     </div>

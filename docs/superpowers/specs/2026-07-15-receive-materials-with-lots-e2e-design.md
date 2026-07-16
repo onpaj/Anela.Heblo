@@ -93,6 +93,24 @@ Run the spec against staging at iPhone-Max viewport, review the step screenshots
 - **Backend unit:** a test for `FeatureGatedLabelPrintingService` — delegates when flag on, no-ops when flag off. Existing `PrintMaterialContainerLabelsHandler` tests remain green (decorator is transparent).
 - **Contract:** any new `*Response` inherits `BaseResponse` (no new response types expected here).
 
+## Implementation findings (2026-07-15)
+
+Driving the flow locally at iPhone 15 Pro Max (frontend with mock auth against a local backend, printing flag off) surfaced two blockers outside the terminal feature itself:
+
+1. **AuthGuard `returnUrl` bounce (fixed).** `AuthGuard` stored `auth.returnUrl` = the deep-linked path but only cleared it when it *differed* from the current path. A direct load of `/terminal/lot-identification` therefore left a stale `returnUrl` that bounced the first in-app navigation (tile tap → `/po` → snapped back home). This breaks the flow under E2E/mock auth (real Entra users are unaffected because the redirect cycle consumes `returnUrl`). Fixed to **consume-once**: remove `returnUrl` whenever authenticated, navigate only when it differs. Covered by an updated `AuthGuard.test.tsx` case.
+
+2. **Changelog toaster overlaps the flow on mobile (mitigated in test; product fix deferred).** The global "Co je nové" toaster (`fixed top-4 right-4`, 400 px wide) blankets the first home tile on a 430 px phone and intercepts the tap. The spec dismisses it defensively in `beforeEach`. A product fix (suppress on `/terminal` or make it responsive) is recommended but left out of this change as it touches a global, separately-tested component.
+
+The terminal feature's own screens (home tiles, PO pick, line pick, lot entry, scan loop, finish, freeform, error states) render cleanly at iPhone-Max with good tap targets and feedback — no changes needed there. Data correctness was verified end to end via the API: `print-labels` seeds Unassigned with the printing flag off (no printer 500), freeform assign yields `Assigned` with no PO line, PO assign yields `Assigned` linked to the PO line, and the PO stays `InTransit`.
+
+## Flow revisions (2026-07-15, from review)
+
+Two feature-flow corrections were made after driving the flow:
+
+1. **PO flow is now multi-material.** After scanning a material's containers, the operator returns to the order's material list via a **"Zpět na objednávku"** button (was: straight to the mark-received step), picks the next material, and repeats. The order is completed explicitly with a **"Dokončit příjem objednávky"** button on the material list, which opens the existing mark-received / leave-in-transit step. `ContainerScanLoop` (PO mode) now routes to `/po/:id`; `PoLinePickStep` gained the finish button. The PO E2E test now receives two materials across two visits to the scan screen and asserts each container is `Assigned` to a PO line.
+
+2. **Freeform picks material from an autocomplete, not a scan.** Materials have no barcode until a container label is assigned, so `FreeformMaterialStep` now uses the existing `CatalogAutocomplete` (react-select, `productTypes=[Material]`, `size="lg"` touch target, portal menu) instead of `ScanInput`. Selecting a material navigates to the lot step with its `productCode`. Validated at iPhone-Max that the combobox renders, is touch-friendly, keeps focus inside the scan shell, and positions its dropdown correctly (catalog data is only present on staging, where the E2E exercises real selection). `FreeformMaterialStep.test.tsx` was rewritten for the select→navigate behavior.
+
 ## Risks / open items
 
 - **E2E user permissions:** the material-containers endpoints require `Manufacture_MaterialContainers` (Write for create/print). Confirm the synthetic E2E session carries this; if not, that's the first blocker to resolve.
