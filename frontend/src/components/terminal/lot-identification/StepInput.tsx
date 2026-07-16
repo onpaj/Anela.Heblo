@@ -37,6 +37,7 @@ const StepInput = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const loadingRef = useRef(loading);
   loadingRef.current = loading;
+  const hasUserTyped = useRef(false);
 
   // Keep the field focused while its step is active, and reclaim focus after a save completes.
   useEffect(() => {
@@ -51,13 +52,14 @@ const StepInput = ({
     prevLoading.current = loading;
   }, [loading, active, disabled]);
 
-  // Sync an async prefill (last-used lot) into the field.
+  // Sync an async prefill (last-used lot) into the field only when the operator hasn't typed yet.
   useEffect(() => {
-    if (defaultValue !== undefined) setValue(defaultValue);
+    if (defaultValue !== undefined && !hasUserTyped.current) setValue(defaultValue);
   }, [defaultValue]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      hasUserTyped.current = true;
       setValue(uppercase ? e.target.value.toUpperCase() : e.target.value);
     },
     [uppercase],
