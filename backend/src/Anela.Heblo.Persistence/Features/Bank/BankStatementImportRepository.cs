@@ -1,4 +1,3 @@
-using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Bank;
 using Microsoft.EntityFrameworkCore;
 
@@ -140,18 +139,17 @@ public class BankStatementImportRepository : IBankStatementImportRepository
         return bankStatement;
     }
 
-    public async Task<IReadOnlyList<DailyBankStatementStatistics>> GetDailyStatisticsAsync(
+    public async Task<IReadOnlyList<BankDailyCount>> GetDailyCountsAsync(
         DateTime startDate,
         DateTime endDate,
-        BankStatementDateType dateType,
+        bool byStatementDate,
         CancellationToken cancellationToken = default)
     {
         var startUnspecified = DateTime.SpecifyKind(startDate, DateTimeKind.Unspecified);
         var endUnspecified = DateTime.SpecifyKind(endDate, DateTimeKind.Unspecified);
 
-        var rawResults = dateType switch
-        {
-            BankStatementDateType.StatementDate => await _context.BankStatements
+        var rawResults = byStatementDate
+            ? await _context.BankStatements
                 .AsNoTracking()
                 .Where(b => b.StatementDate >= startUnspecified && b.StatementDate <= endUnspecified)
                 .GroupBy(b => new { b.StatementDate.Year, b.StatementDate.Month, b.StatementDate.Day })
@@ -164,9 +162,8 @@ public class BankStatementImportRepository : IBankStatementImportRepository
                     TotalItemCount = g.Sum(b => b.ItemCount)
                 })
                 .OrderBy(d => new DateTime(d.Year, d.Month, d.Day))
-                .ToListAsync(cancellationToken),
-
-            BankStatementDateType.ImportDate => await _context.BankStatements
+                .ToListAsync(cancellationToken)
+            : await _context.BankStatements
                 .AsNoTracking()
                 .Where(b => b.ImportDate >= startUnspecified && b.ImportDate <= endUnspecified)
                 .GroupBy(b => new { b.ImportDate.Year, b.ImportDate.Month, b.ImportDate.Day })
@@ -179,18 +176,13 @@ public class BankStatementImportRepository : IBankStatementImportRepository
                     TotalItemCount = g.Sum(b => b.ItemCount)
                 })
                 .OrderBy(d => new DateTime(d.Year, d.Month, d.Day))
-                .ToListAsync(cancellationToken),
-
-            _ => throw new ArgumentOutOfRangeException(nameof(dateType), dateType, null)
-        };
+                .ToListAsync(cancellationToken);
 
         return rawResults
-            .Select(r => new DailyBankStatementStatistics
-            {
-                Date = DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
-                ImportCount = r.ImportCount,
-                TotalItemCount = r.TotalItemCount
-            })
+            .Select(r => new BankDailyCount(
+                DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
+                r.ImportCount,
+                r.TotalItemCount))
             .ToList();
     }
 

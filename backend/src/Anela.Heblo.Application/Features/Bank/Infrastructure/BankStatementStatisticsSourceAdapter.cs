@@ -23,7 +23,17 @@ internal sealed class BankStatementStatisticsSourceAdapter : IBankStatementStati
         if (endDate.Kind != DateTimeKind.Utc)
             endDate = endDate.ToUniversalTime();
 
-        var results = await _repository.GetDailyStatisticsAsync(startDate, endDate, dateType, cancellationToken);
+        var counts = await _repository.GetDailyCountsAsync(
+            startDate, endDate, dateType == BankStatementDateType.StatementDate, cancellationToken);
+
+        var results = counts
+            .Select(c => new DailyBankStatementStatistics
+            {
+                Date = c.Date,
+                ImportCount = c.ImportCount,
+                TotalItemCount = c.TotalItemCount
+            })
+            .ToList();
 
         var resultsByDate = results.ToDictionary(r => r.Date.Date);
         var filledResults = new List<DailyBankStatementStatistics>();

@@ -460,12 +460,12 @@ public static class ServiceCollectionExtensions
             using (var scope = app.Services.CreateScope())
             {
                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-                var repository = scope.ServiceProvider.GetRequiredService<IRecurringJobConfigurationRepository>();
+                var seeder = scope.ServiceProvider.GetRequiredService<IRecurringJobSeeder>();
 
                 // Get all discovered IRecurringJob implementations
                 var discoveredJobs = scope.ServiceProvider.GetServices<IRecurringJob>();
 
-                await repository.SeedDefaultConfigurationsAsync(discoveredJobs);
+                await seeder.SeedDefaultConfigurationsAsync(discoveredJobs);
                 logger.LogInformation("Successfully seeded default recurring job configurations from {Count} discovered jobs",
                     discoveredJobs.Count());
             }
