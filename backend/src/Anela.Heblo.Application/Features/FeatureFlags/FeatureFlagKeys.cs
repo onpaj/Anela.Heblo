@@ -19,4 +19,11 @@ public static class FeatureFlagKeys
     /// exercised on a controlled set of orders. When off, the production states are used.
     /// </summary>
     public const string DeliveredOrderCompletionTestSource = "is-delivered-order-completion-test-source-enabled";
+
+    /// <summary>
+    /// When on, label print requests are sent to the physical (CUPS) printer. When off, the
+    /// print is skipped but the surrounding operation still runs — e.g. material-container
+    /// labels are still generated and persisted as Unassigned. Off on Staging (no printer).
+    /// </summary>
+    public const string LabelPrintingEnabled = "is-label-printing-enabled";
 }

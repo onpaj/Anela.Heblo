@@ -100,7 +100,17 @@ public class E2ESessionService : IE2ESessionService
             // /api/StockUpOperations* (list, retry, accept). Without these, FeatureAuthorize
             // rejects every request with 403 before the controller action runs (feat-3540).
             new Claim(ClaimTypes.Role, AccessRoles.WarehouseStockUpRead),
-            new Claim(ClaimTypes.Role, AccessRoles.WarehouseStockUpWrite)
+            new Claim(ClaimTypes.Role, AccessRoles.WarehouseStockUpWrite),
+            // Grant Manufacture_MaterialContainers read/write so the terminal lot-identification
+            // E2E test can seed Unassigned containers (POST /api/material-containers/print-labels)
+            // and assign them (POST /api/material-containers). Both actions require Write.
+            new Claim(ClaimTypes.Role, AccessRoles.ManufactureMaterialContainersRead),
+            new Claim(ClaimTypes.Role, AccessRoles.ManufactureMaterialContainersWrite),
+            // Grant Purchase_PurchaseOrders read/write so the PO receive flow can list in-transit
+            // orders (PoPickStep), read a PO's lines (PoLinePickStep), and update PO status
+            // (FinishPoStep — PUT status). List/detail need Read; status update needs Write.
+            new Claim(ClaimTypes.Role, AccessRoles.PurchasePurchaseOrdersRead),
+            new Claim(ClaimTypes.Role, AccessRoles.PurchasePurchaseOrdersWrite)
         };
     }
 }

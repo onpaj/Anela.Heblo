@@ -409,6 +409,11 @@ public static class ServiceCollectionExtensions
         // it is used by MaterialContainer label printing regardless of the expedition print sink.
         services.AddCupsPrinting(configuration);
 
+        // Gate the physical print behind the label-printing feature flag (off on Staging, where
+        // no printer exists). The decorator wraps the CUPS service so all print handlers are
+        // covered uniformly without touching them.
+        services.Decorate<ILabelPrintingService, FeatureGatedLabelPrintingService>();
+
         // Temp-file read/delete is needed regardless of which PrintSink is configured — exported
         // PDFs always land on local disk first (see IExpeditionPickingSource.CreatePickingListAsync),
         // so this is registered unconditionally rather than inside the switch below.
