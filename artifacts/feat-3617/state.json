@@ -21,16 +21,16 @@
       "updated_at": "2026-07-16T02:23:12.372201Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-16T02:23:43.014774Z"
     }
   },
   "tasks": [
     {
       "name": "add-validator-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-16T02:23:43.193925Z"
     }
   ]
 }
