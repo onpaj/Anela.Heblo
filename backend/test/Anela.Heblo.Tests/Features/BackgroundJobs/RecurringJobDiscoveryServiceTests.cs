@@ -180,10 +180,10 @@ public class RecurringJobDiscoveryServiceTests : IDisposable
         public Task<RecurringJobConfiguration?> GetByJobNameAsync(string jobName, CancellationToken cancellationToken = default)
             => Task.FromResult<RecurringJobConfiguration?>(null);
 
-        public Task UpdateAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
+        public Task AddAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
-        public Task SeedDefaultConfigurationsAsync(IEnumerable<IRecurringJob> jobs, CancellationToken cancellationToken = default)
+        public Task UpdateAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
     }
 
@@ -216,10 +216,10 @@ public class RecurringJobDiscoveryServiceTests : IDisposable
         public Task<RecurringJobConfiguration?> GetByJobNameAsync(string jobName, CancellationToken cancellationToken = default)
             => Task.FromResult<RecurringJobConfiguration?>(null);
 
-        public Task UpdateAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
+        public Task AddAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
-        public Task SeedDefaultConfigurationsAsync(IEnumerable<IRecurringJob> jobs, CancellationToken cancellationToken = default)
+        public Task UpdateAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
     }
 }
