@@ -123,6 +123,7 @@ const resources = {
         InvalidScheduleDateOrder: "Datum výroby polotovaru nemůže být po datu dokončení produktu",
         ManufacturedInventoryItemNotFound: "Položka skladu výroby nenalezena (ID: {id})",
         ManufacturedInventoryInsufficientStock: "Nedostatečné zásoby ve skladu výroby. Dostupné: {available}",
+        ManufactureOrderNotCompleted: "Zakázka není dokončena",
 
         // Catalog module errors
         CatalogItemNotFound: "Položka katalogu nenalezena (ID: {id})",

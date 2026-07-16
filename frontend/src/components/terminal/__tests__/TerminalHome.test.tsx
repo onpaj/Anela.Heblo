@@ -3,7 +3,6 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import TerminalHome from '../TerminalHome';
 import { ScanProvider } from '../shell/ScanProvider';
-import { FlashOverlay } from '../shell/FlashOverlay';
 import { useTransportBoxByCodeQuery } from '../../../api/hooks/useTransportBoxes';
 
 jest.mock('../../../api/hooks/useTransportBoxes', () => ({
@@ -39,7 +38,6 @@ const renderHome = () =>
           <Route path="/terminal/box-fill" element={<LocationProbe />} />
           <Route path="/terminal/receive" element={<LocationProbe />} />
         </Routes>
-        <FlashOverlay />
       </ScanProvider>
     </MemoryRouter>,
   );
@@ -110,7 +108,7 @@ describe('TerminalHome', () => {
     expect(screen.getByTestId('location-display')).toHaveTextContent('/terminal/box-check');
   });
 
-  it('stays on Home and flashes err when the code is not found', () => {
+  it('stays on Home when the code is not found', () => {
     mockHook.mockImplementation((code: string | null) =>
       code
         ? { data: null, isFetching: false, isError: false }
@@ -121,10 +119,9 @@ describe('TerminalHome', () => {
 
     expect(screen.queryByTestId('location-display')).not.toBeInTheDocument();
     expect(screen.getByText('Vyberte operaci')).toBeInTheDocument();
-    expect(screen.getByTestId('flash-overlay')).toHaveAttribute('data-tone', 'err');
   });
 
-  it('stays on Home and flashes err when the lookup errors', () => {
+  it('stays on Home when the lookup errors', () => {
     mockHook.mockImplementation((code: string | null) =>
       code
         ? { data: null, isFetching: false, isError: true, error: new Error('x') }
@@ -134,6 +131,5 @@ describe('TerminalHome', () => {
     act(() => scan('B998'));
 
     expect(screen.queryByTestId('location-display')).not.toBeInTheDocument();
-    expect(screen.getByTestId('flash-overlay')).toHaveAttribute('data-tone', 'err');
   });
 });

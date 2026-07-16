@@ -11,15 +11,18 @@ public class ResolveManualActionHandler : IRequestHandler<ResolveManualActionReq
     private readonly IManufactureOrderRepository _repository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<ResolveManualActionHandler> _logger;
+    private readonly TimeProvider _timeProvider;
 
     public ResolveManualActionHandler(
         IManufactureOrderRepository repository,
         ICurrentUserService currentUserService,
-        ILogger<ResolveManualActionHandler> logger)
+        ILogger<ResolveManualActionHandler> logger,
+        TimeProvider timeProvider)
     {
         _repository = repository;
         _currentUserService = currentUserService;
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
     public async Task<ResolveManualActionResponse> Handle(ResolveManualActionRequest request, CancellationToken cancellationToken)
@@ -51,7 +54,7 @@ public class ResolveManualActionHandler : IRequestHandler<ResolveManualActionReq
             if (!string.IsNullOrEmpty(request.ErpDiscardResidueDocumentNumber))
             {
                 order.ErpDiscardResidueDocumentNumber = request.ErpDiscardResidueDocumentNumber;
-                order.ErpDiscardResidueDocumentNumberDate = DateTime.UtcNow;
+                order.ErpDiscardResidueDocumentNumberDate = _timeProvider.GetUtcNow().DateTime;
             }
 
             // Set ManualActionRequired to false
@@ -63,7 +66,7 @@ public class ResolveManualActionHandler : IRequestHandler<ResolveManualActionReq
                 order.Notes.Add(new ManufactureOrderNote
                 {
                     Text = request.Note,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = _timeProvider.GetUtcNow().DateTime,
                     CreatedByUser = userName
                 });
             }

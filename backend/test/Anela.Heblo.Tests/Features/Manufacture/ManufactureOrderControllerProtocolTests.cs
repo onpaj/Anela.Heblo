@@ -1,5 +1,6 @@
 using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
+using Anela.Heblo.Application.Shared;
 using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -49,7 +50,7 @@ public class ManufactureOrderControllerProtocolTests
         var result = await _controller.GetProtocolPdf(orderId, CancellationToken.None);
 
         // Assert
-        var fileResult = result.Should().BeOfType<FileContentResult>().Subject;
+        var fileResult = result.Result.Should().BeOfType<FileContentResult>().Subject;
         fileResult.ContentType.Should().Be("application/pdf");
         fileResult.FileDownloadName.Should().Be(fileName);
         fileResult.FileContents.Should().BeEquivalentTo(pdfBytes);
@@ -64,20 +65,18 @@ public class ManufactureOrderControllerProtocolTests
     {
         // Arrange
         var orderId = 1;
-        var errorMessage = "Manufacture order MO-2024-001 must be completed before generating a protocol. Current state: Planned.";
 
         _mediatorMock
             .Setup(m => m.Send(It.Is<GetManufactureProtocolRequest>(r => r.Id == orderId), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException(errorMessage));
+            .ReturnsAsync(new GetManufactureProtocolResponse(
+                ErrorCodes.ManufactureOrderNotCompleted,
+                new Dictionary<string, string> { { "orderId", "MO-2024-001" }, { "state", "Planned" } }));
 
         // Act
         var result = await _controller.GetProtocolPdf(orderId, CancellationToken.None);
 
         // Assert
-        var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
-        var body = badRequest.Value;
-        var message = body!.GetType().GetProperty("message")?.GetValue(body) as string;
-        message.Should().Be(errorMessage);
+        result.Result.Should().BeOfType<BadRequestObjectResult>();
 
         _mediatorMock.Verify(
             m => m.Send(It.Is<GetManufactureProtocolRequest>(r => r.Id == orderId), It.IsAny<CancellationToken>()),
@@ -85,19 +84,21 @@ public class ManufactureOrderControllerProtocolTests
     }
 
     [Fact]
-    public async Task GetProtocolPdf_Should_Return_BadRequest_When_Order_Not_Found()
+    public async Task GetProtocolPdf_Should_Return_NotFound_When_Order_Not_Found()
     {
         // Arrange
         var orderId = 999;
 
         _mediatorMock
             .Setup(m => m.Send(It.Is<GetManufactureProtocolRequest>(r => r.Id == orderId), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException($"Manufacture order with id {orderId} was not found."));
+            .ReturnsAsync(new GetManufactureProtocolResponse(
+                ErrorCodes.OrderNotFound,
+                new Dictionary<string, string> { { "orderId", orderId.ToString() } }));
 
         // Act
         var result = await _controller.GetProtocolPdf(orderId, CancellationToken.None);
 
         // Assert
-        result.Should().BeOfType<BadRequestObjectResult>();
+        result.Result.Should().BeOfType<NotFoundObjectResult>();
     }
 }

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
 
@@ -8,28 +9,37 @@ public class GetManufactureProtocolHandler : IRequestHandler<GetManufactureProto
     private readonly IManufactureOrderRepository _repository;
     private readonly IManufactureClient _manufactureClient;
     private readonly IManufactureProtocolRenderer _renderer;
+    private readonly TimeProvider _timeProvider;
 
     public GetManufactureProtocolHandler(
         IManufactureOrderRepository repository,
         IManufactureClient manufactureClient,
-        IManufactureProtocolRenderer renderer)
+        IManufactureProtocolRenderer renderer,
+        TimeProvider timeProvider)
     {
         _repository = repository;
         _manufactureClient = manufactureClient;
         _renderer = renderer;
+        _timeProvider = timeProvider;
     }
 
     public async Task<GetManufactureProtocolResponse> Handle(
         GetManufactureProtocolRequest request,
         CancellationToken cancellationToken)
     {
-        var order = await _repository.GetOrderByIdAsync(request.Id, cancellationToken)
-                    ?? throw new InvalidOperationException($"Manufacture order {request.Id} not found.");
+        var order = await _repository.GetOrderByIdAsync(request.Id, cancellationToken);
+        if (order == null)
+        {
+            return new GetManufactureProtocolResponse(
+                ErrorCodes.OrderNotFound,
+                new Dictionary<string, string> { { "orderId", request.Id.ToString() } });
+        }
 
         if (order.State != ManufactureOrderState.Completed)
         {
-            throw new InvalidOperationException(
-                $"Manufacture order {order.OrderNumber} is not completed; cannot generate protocol.");
+            return new GetManufactureProtocolResponse(
+                ErrorCodes.ManufactureOrderNotCompleted,
+                new Dictionary<string, string> { { "orderId", order.OrderNumber }, { "state", order.State.ToString() } });
         }
 
         var erpDocuments = await BuildErpDocumentsAsync(order, cancellationToken);
@@ -82,7 +92,7 @@ public class GetManufactureProtocolHandler : IRequestHandler<GetManufactureProto
                     Source = r.Source,
                 })
                 .ToList(),
-            GeneratedAt = DateTime.UtcNow,
+            GeneratedAt = _timeProvider.GetUtcNow().DateTime,
         };
 
         var pdfBytes = _renderer.Render(data);

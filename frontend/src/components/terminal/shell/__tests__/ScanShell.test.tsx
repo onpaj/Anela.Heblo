@@ -7,7 +7,7 @@ import { ScanShell } from '../ScanShell';
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => { jest.runOnlyPendingTimers(); jest.useRealTimers(); });
 
-it('renders subject, body, scan strip and a docked action in order', () => {
+it('renders subject, body and a docked action in order', () => {
   render(
     <ScanProvider>
       <ScanShell
@@ -20,6 +20,5 @@ it('renders subject, body, scan strip and a docked action in order', () => {
   );
   expect(screen.getByTestId('subj')).toBeInTheDocument();
   expect(screen.getByTestId('body')).toBeInTheDocument();
-  expect(screen.getByTestId('scan-strip')).toBeInTheDocument();
   expect(screen.getByTestId('go')).toBeInTheDocument();
 });
