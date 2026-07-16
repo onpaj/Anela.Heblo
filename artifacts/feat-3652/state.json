@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-3652",
+  "issue_number": 3652,
+  "created_at": "2026-07-15T06:17:30.266873Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-15T06:21:19.754802Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-15T06:23:55.158371Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-15T06:25:05.051208Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-15T06:28:44.059278Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-15T07:04:41.076069Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-15T07:06:05.991896Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-bankdailycount-and-update-domain-contract",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-15T06:32:16.201966Z"
+    },
+    {
+      "name": "update-bankstatementimportrepository-ef-implementation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-15T06:35:25.663239Z"
+    },
+    {
+      "name": "update-adapter-projection-and-boundary-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-15T07:04:36.346672Z"
+    }
+  ]
+}

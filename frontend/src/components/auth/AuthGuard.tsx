@@ -42,9 +42,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   useEffect(() => {
     if (isAuthenticated && inProgress === "none") {
       const returnUrl = localStorage.getItem("auth.returnUrl");
-      if (returnUrl && returnUrl !== window.location.pathname) {
+      if (returnUrl) {
+        // Consume the stored returnUrl once authenticated. Removing it even when it
+        // already matches the current path is important: otherwise a deep-linked load
+        // (e.g. /terminal/lot-identification) leaves a stale returnUrl that yanks the
+        // user back here on their first in-app navigation. Navigate only when it differs.
         localStorage.removeItem("auth.returnUrl");
-        navigate(returnUrl);
+        if (returnUrl !== window.location.pathname) {
+          navigate(returnUrl);
+        }
       }
     }
   }, [isAuthenticated, inProgress, navigate]);

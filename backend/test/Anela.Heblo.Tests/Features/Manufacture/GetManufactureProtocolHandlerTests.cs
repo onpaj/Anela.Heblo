@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using FluentAssertions;
@@ -21,11 +22,12 @@ public class GetManufactureProtocolHandlerTests
         _handler = new GetManufactureProtocolHandler(
             _repositoryMock.Object,
             _flexiMock.Object,
-            _rendererMock.Object);
+            _rendererMock.Object,
+            TimeProvider.System);
     }
 
     [Fact]
-    public async Task Handle_NonCompletedOrder_Throws()
+    public async Task Handle_NonCompletedOrder_ReturnsErrorResponse()
     {
         var order = new ManufactureOrder { Id = 1, OrderNumber = "MO-2026-001" };
         order.InitializeState(ManufactureOrderState.Planned, DateTime.UtcNow, "test");
@@ -33,23 +35,23 @@ public class GetManufactureProtocolHandlerTests
             .Setup(r => r.GetOrderByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
 
-        Func<Task> act = () => _handler.Handle(new GetManufactureProtocolRequest { Id = 1 }, CancellationToken.None);
+        var result = await _handler.Handle(new GetManufactureProtocolRequest { Id = 1 }, CancellationToken.None);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
-                 .WithMessage("*completed*");
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ManufactureOrderNotCompleted);
     }
 
     [Fact]
-    public async Task Handle_OrderNotFound_Throws()
+    public async Task Handle_OrderNotFound_ReturnsErrorResponse()
     {
         _repositoryMock
             .Setup(r => r.GetOrderByIdAsync(999, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ManufactureOrder?)null);
 
-        Func<Task> act = () => _handler.Handle(new GetManufactureProtocolRequest { Id = 999 }, CancellationToken.None);
+        var result = await _handler.Handle(new GetManufactureProtocolRequest { Id = 999 }, CancellationToken.None);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
-                 .WithMessage("*999*");
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.OrderNotFound);
     }
 
     [Fact]

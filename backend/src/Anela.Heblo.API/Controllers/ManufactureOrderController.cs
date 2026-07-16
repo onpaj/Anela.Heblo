@@ -166,18 +166,17 @@ public class ManufactureOrderController : BaseApiController
     /// Generate manufacture protocol PDF for a completed order
     /// </summary>
     [HttpGet("{id}/protocol.pdf")]
-    public async Task<IActionResult> GetProtocolPdf(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<GetManufactureProtocolResponse>> GetProtocolPdf(int id, CancellationToken cancellationToken)
     {
         var request = new GetManufactureProtocolRequest { Id = id };
-        try
+        var response = await _mediator.Send(request, cancellationToken);
+
+        if (!response.Success)
         {
-            var response = await _mediator.Send(request, cancellationToken);
-            return File(response.PdfBytes, "application/pdf", response.FileName);
+            return HandleResponse(response);
         }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+
+        return File(response.PdfBytes, "application/pdf", response.FileName);
     }
 
     /// <summary>

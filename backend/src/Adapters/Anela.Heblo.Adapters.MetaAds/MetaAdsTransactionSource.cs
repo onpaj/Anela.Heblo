@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Anela.Heblo.Domain.Features.MarketingInvoices;
+using Anela.Heblo.Application.Features.MarketingInvoices.Contracts;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;

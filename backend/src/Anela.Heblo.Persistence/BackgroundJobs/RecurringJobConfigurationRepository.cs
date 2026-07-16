@@ -25,42 +25,15 @@ public class RecurringJobConfigurationRepository : IRecurringJobConfigurationRep
             .FirstOrDefaultAsync(c => c.JobName == jobName, cancellationToken);
     }
 
-    public async Task UpdateAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
+    public async Task AddAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
     {
-        _context.RecurringJobConfigurations.Update(configuration);
+        await _context.RecurringJobConfigurations.AddAsync(configuration, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// Seeds database with configurations from discovered IRecurringJob implementations.
-    /// Only creates configurations for jobs that don't already exist in the database.
-    /// </summary>
-    /// <param name="jobs">Collection of discovered recurring jobs</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    public async Task SeedDefaultConfigurationsAsync(IEnumerable<IRecurringJob> jobs, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
     {
-        // Create configurations from discovered job metadata
-        var defaultConfigurations = jobs.Select(job => new RecurringJobConfiguration(
-            job.Metadata.JobName,
-            job.Metadata.DisplayName,
-            job.Metadata.Description,
-            job.Metadata.CronExpression,
-            job.Metadata.DefaultIsEnabled,
-            "System"
-        )).ToArray();
-
-        // Load all existing job names in a single query (EF Core 8.0.8 has no ToHashSetAsync)
-        var existingNames = new HashSet<string>(
-            await _context.RecurringJobConfigurations
-                .Select(c => c.JobName)
-                .ToListAsync(cancellationToken));
-
-        foreach (var config in defaultConfigurations.Where(c => !existingNames.Contains(c.JobName)))
-        {
-            await _context.RecurringJobConfigurations.AddAsync(config, cancellationToken);
-            existingNames.Add(config.JobName); // guard against duplicate JobNames within the same batch
-        }
-
+        _context.RecurringJobConfigurations.Update(configuration);
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

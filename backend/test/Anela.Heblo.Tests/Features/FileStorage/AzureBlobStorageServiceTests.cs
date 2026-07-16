@@ -759,6 +759,45 @@ public class AzureBlobStorageServiceTests
     }
 
     [Fact]
+    public async Task UploadAsync_CreateIfNotExistsFailsThenRetried_ShouldRetryCreation()
+    {
+        // Arrange — fresh instance so _containerExists cache is empty
+        var mockBlobServiceClient = new Mock<BlobServiceClient>();
+        var mockLogger = new Mock<ILogger<AzureBlobStorageService>>();
+        var factory = new Mock<IHttpClientFactory>();
+        var service = new AzureBlobStorageService(
+            mockBlobServiceClient.Object,
+            factory.Object,
+            mockLogger.Object);
+
+        var containerName = "documents";
+        var mockContainerClient = new Mock<BlobContainerClient>();
+        var mockBlobClient = new Mock<BlobClient>();
+
+        mockBlobClient.Setup(x => x.Uri).Returns(new Uri($"https://test.blob.core.windows.net/{containerName}/file.txt"));
+        mockBlobClient.Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobUploadOptions>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+        mockContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
+        mockContainerClient.SetupSequence(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new RequestFailedException("transient failure"))
+            .ReturnsAsync(Mock.Of<Azure.Response<BlobContainerInfo>>());
+        mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
+
+        // Act — first upload fails during container creation
+        await Assert.ThrowsAsync<RequestFailedException>(
+            () => service.UploadAsync(new MemoryStream(new byte[] { 1 }), containerName, "file1.txt", "text/plain"));
+
+        // A retry of the outer call must re-attempt container creation rather than
+        // silently skipping it because the failed attempt already cached the name.
+        await service.UploadAsync(new MemoryStream(new byte[] { 2 }), containerName, "file2.txt", "text/plain");
+
+        // Assert — CreateIfNotExistsAsync retried after the first failure
+        mockContainerClient.Verify(
+            x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+    }
+
+    [Fact]
     public async Task UploadAsync_BlobStorageException_ShouldThrow()
     {
         // Arrange
