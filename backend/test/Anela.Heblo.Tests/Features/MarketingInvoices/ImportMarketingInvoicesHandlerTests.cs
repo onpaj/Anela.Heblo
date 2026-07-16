@@ -1,7 +1,7 @@
 using Anela.Heblo.Application.Features.MarketingInvoices;
+using Anela.Heblo.Application.Features.MarketingInvoices.Contracts;
 using Anela.Heblo.Application.Features.MarketingInvoices.Services;
 using Anela.Heblo.Application.Features.MarketingInvoices.UseCases.ImportMarketingInvoices;
-using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;

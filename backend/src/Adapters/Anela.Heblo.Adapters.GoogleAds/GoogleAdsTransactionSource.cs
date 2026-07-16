@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Anela.Heblo.Domain.Features.MarketingInvoices;
+using Anela.Heblo.Application.Features.MarketingInvoices.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Adapters.GoogleAds;
