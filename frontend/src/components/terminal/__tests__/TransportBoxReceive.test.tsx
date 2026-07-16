@@ -2,7 +2,6 @@ import React from 'react';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import TransportBoxReceive from '../TransportBoxReceive';
 import { ScanProvider } from '../shell/ScanProvider';
-import { FlashOverlay } from '../shell/FlashOverlay';
 import {
   useTransportBoxByCodeQuery,
   useChangeTransportBoxState,
@@ -47,7 +46,6 @@ const renderScreen = () =>
   render(
     <ScanProvider>
       <TransportBoxReceive />
-      <FlashOverlay />
     </ScanProvider>,
   );
 
@@ -91,11 +89,10 @@ describe('TransportBoxReceive', () => {
 
     expect(mutateAsync).toHaveBeenCalledWith({ boxId: 1, newState: 'Received' });
 
-    // After the mutation resolves the in-hand box is cleared and an ok flash fires.
+    // After the mutation resolves the in-hand box is cleared.
     await waitFor(() => {
       expect(screen.getByTestId('subject-empty')).toBeInTheDocument();
     });
-    expect(screen.getByTestId('flash-overlay')).toHaveAttribute('data-tone', 'ok');
   });
 
   it('re-scanning the loaded box code triggers Accept without a tap', async () => {
@@ -122,21 +119,20 @@ describe('TransportBoxReceive', () => {
     expect(screen.getByTestId('subject-empty')).toBeInTheDocument();
   });
 
-  it('disables Accept, shows a warning, and flashes warn for a non-receivable box', () => {
+  it('disables Accept and shows a warning for a non-receivable box', () => {
     mockByCode.mockImplementation(byCodeFor('B002', nonReceivableBox));
     renderScreen();
     act(() => scan('B002'));
 
     expect(screen.getByTestId('accept-box')).toBeDisabled();
     expect(screen.getByTestId('not-receivable')).toBeInTheDocument();
-    expect(screen.getByTestId('flash-overlay')).toHaveAttribute('data-tone', 'warn');
 
     // re-scanning a non-receivable box must NOT trigger Accept
     act(() => scan('B002'));
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
-  it('flashes err for an unknown code', () => {
+  it('stays empty for an unknown code', () => {
     mockByCode.mockImplementation((code: string | null) =>
       code
         ? { data: null, isFetching: false, isError: false }
@@ -145,11 +141,10 @@ describe('TransportBoxReceive', () => {
     renderScreen();
     act(() => scan('B999'));
 
-    expect(screen.getByTestId('flash-overlay')).toHaveAttribute('data-tone', 'err');
     expect(screen.getByTestId('subject-empty')).toBeInTheDocument();
   });
 
-  it('flashes err when the hook reports an error', () => {
+  it('stays empty when the hook reports an error', () => {
     mockByCode.mockImplementation((code: string | null) =>
       code
         ? { data: undefined, isFetching: false, isError: true, refetch: jest.fn() }
@@ -158,7 +153,7 @@ describe('TransportBoxReceive', () => {
     renderScreen();
     act(() => scan('B986'));
 
-    expect(screen.getByTestId('flash-overlay')).toHaveAttribute('data-tone', 'err');
+    expect(screen.getByTestId('subject-empty')).toBeInTheDocument();
   });
 
   it('re-scanning the same error code calls refetch instead of deduplicating', () => {
