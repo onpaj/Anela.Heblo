@@ -187,7 +187,7 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<>c__DisplayClass5_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<Handle>d__5 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf.GetSemiproductRecipePdfHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf.GetSemiproductRecipePdfHandler+<Handle>d__5 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler+<>c__DisplayClass10_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",

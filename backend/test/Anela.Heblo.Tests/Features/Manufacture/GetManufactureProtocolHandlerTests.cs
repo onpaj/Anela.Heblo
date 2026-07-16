@@ -21,7 +21,8 @@ public class GetManufactureProtocolHandlerTests
         _handler = new GetManufactureProtocolHandler(
             _repositoryMock.Object,
             _flexiMock.Object,
-            _rendererMock.Object);
+            _rendererMock.Object,
+            TimeProvider.System);
     }
 
     [Fact]

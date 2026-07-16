@@ -11,15 +11,18 @@ public class GetSemiproductRecipePdfHandler : IRequestHandler<GetSemiproductReci
     private readonly IManufactureClient _manufactureClient;
     private readonly IManufactureCatalogSource _catalogSource;
     private readonly ISemiproductRecipeRenderer _renderer;
+    private readonly TimeProvider _timeProvider;
 
     public GetSemiproductRecipePdfHandler(
         IManufactureClient manufactureClient,
         IManufactureCatalogSource catalogSource,
-        ISemiproductRecipeRenderer renderer)
+        ISemiproductRecipeRenderer renderer,
+        TimeProvider timeProvider)
     {
         _manufactureClient = manufactureClient;
         _catalogSource = catalogSource;
         _renderer = renderer;
+        _timeProvider = timeProvider;
     }
 
     public async Task<GetSemiproductRecipePdfResponse> Handle(
@@ -62,7 +65,7 @@ public class GetSemiproductRecipePdfHandler : IRequestHandler<GetSemiproductReci
                 ProductCode = template.ProductCode,
                 ProductName = template.ProductName,
                 BatchSize = batchSize,
-                PrintedAt = DateTime.Now,
+                PrintedAt = _timeProvider.GetUtcNow().DateTime,
                 Mmq = catalog?.MinimalManufactureQuantity > 0 ? catalog.MinimalManufactureQuantity : null,
                 ExpirationMonths = catalog?.Properties?.ExpirationMonths,
                 Ingredients = ingredientLines,
