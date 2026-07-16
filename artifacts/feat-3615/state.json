@@ -21,16 +21,16 @@
       "updated_at": "2026-07-16T00:23:56.001052Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-16T00:24:51.235150Z"
     }
   },
   "tasks": [
     {
       "name": "add-recalculate-product-weight-handler-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-16T00:24:51.449232Z"
     }
   ]
 }
