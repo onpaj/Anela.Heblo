@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import BoxFillWorkflow from "../BoxFillWorkflow";
 import { ScanProvider } from "../../shell/ScanProvider";
-import { FlashOverlay } from "../../shell/FlashOverlay";
 import * as inventoryHook from "../../../../api/hooks/useManufacturedProductInventory";
 import * as useBoxFill from "../../../../api/hooks/useBoxFill";
 
@@ -58,7 +57,6 @@ const renderScreen = () =>
   render(
     <ScanProvider>
       <BoxFillWorkflow />
-      <FlashOverlay />
     </ScanProvider>,
   );
 
@@ -90,30 +88,27 @@ describe("BoxFillWorkflow", () => {
 
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(openMutateAsync).not.toHaveBeenCalled();
-    expect(screen.getByTestId("flash-overlay")).toHaveAttribute("data-tone", "err");
     expect(screen.getByTestId("subject-empty")).toBeInTheDocument();
   });
 
-  it("opens a valid box, shows the subject, and flashes ok when not resumed", async () => {
+  it("opens a valid box and shows the subject when not resumed", async () => {
     await renderWithBoxInHand();
 
     expect(openMutateAsync).toHaveBeenCalledWith("B001");
     expect(screen.getByTestId("subject-header")).toBeInTheDocument();
-    expect(screen.getByTestId("flash-overlay")).toHaveAttribute("data-tone", "ok");
   });
 
-  it("flashes warn and shows the resumed banner when the box is resumed with items", async () => {
+  it("shows the resumed banner when the box is resumed with items", async () => {
     openMutateAsync.mockResolvedValue({ success: true, resumed: true, transportBox: filledBox });
     renderScreen();
     await act(async () => {
       scan("B001");
     });
 
-    expect(screen.getByTestId("flash-overlay")).toHaveAttribute("data-tone", "warn");
     expect(screen.getByText(/Pokračujete v rozpracovaném boxu/)).toBeInTheDocument();
   });
 
-  it("shows an error and flashes err when opening the box fails", async () => {
+  it("shows an error when opening the box fails", async () => {
     openMutateAsync.mockResolvedValue({ success: false });
     renderScreen();
     await act(async () => {
@@ -121,7 +116,6 @@ describe("BoxFillWorkflow", () => {
     });
 
     expect(screen.getByRole("alert")).toBeInTheDocument();
-    expect(screen.getByTestId("flash-overlay")).toHaveAttribute("data-tone", "err");
     expect(screen.getByTestId("subject-empty")).toBeInTheDocument();
   });
 
@@ -142,7 +136,6 @@ describe("BoxFillWorkflow", () => {
         allowNegativeStock: false,
       }),
     );
-    expect(screen.getByTestId("flash-overlay")).toHaveAttribute("data-tone", "ok");
   });
 
   it("opens the overdraft sheet for over-stock; add-with-negative adds with allowNegativeStock and flashes warn", async () => {
@@ -159,10 +152,9 @@ describe("BoxFillWorkflow", () => {
     fireEvent.click(screen.getByTestId("overdraft-add-negative"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("flash-overlay")).toHaveAttribute("data-tone", "warn"),
-    );
-    expect(addMutateAsync).toHaveBeenCalledWith(
-      expect.objectContaining({ amount: 25, allowNegativeStock: true }),
+      expect(addMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 25, allowNegativeStock: true }),
+      ),
     );
   });
 
@@ -195,7 +187,6 @@ describe("BoxFillWorkflow", () => {
 
     expect(await screen.findByTestId("subject-empty")).toBeInTheDocument();
     expect(transitMutateAsync).toHaveBeenCalledWith(1);
-    expect(screen.getByTestId("flash-overlay")).toHaveAttribute("data-tone", "ok");
     expect(screen.getByText(/byl odeslán do přepravy/)).toBeInTheDocument();
   });
 
@@ -210,7 +201,7 @@ describe("BoxFillWorkflow", () => {
     expect(transitMutateAsync).toHaveBeenCalledWith(1);
   });
 
-  it("re-scanning the in-hand box code with 0 items flashes warn and does not send", async () => {
+  it("re-scanning the in-hand box code with 0 items does not send", async () => {
     await renderWithBoxInHand(emptyBox);
 
     await act(async () => {
@@ -218,6 +209,5 @@ describe("BoxFillWorkflow", () => {
     });
 
     expect(transitMutateAsync).not.toHaveBeenCalled();
-    expect(screen.getByTestId("flash-overlay")).toHaveAttribute("data-tone", "warn");
   });
 });

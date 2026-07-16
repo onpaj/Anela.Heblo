@@ -1,5 +1,3 @@
-using Anela.Heblo.Domain.Features.Analytics;
-
 namespace Anela.Heblo.Domain.Features.Bank;
 
 public interface IBankStatementImportRepository
@@ -24,9 +22,9 @@ public interface IBankStatementImportRepository
 
     Task<BankStatementImport> UpdateAsync(BankStatementImport bankStatement, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<DailyBankStatementStatistics>> GetDailyStatisticsAsync(
+    Task<IReadOnlyList<BankDailyCount>> GetDailyCountsAsync(
         DateTime startDate,
         DateTime endDate,
-        BankStatementDateType dateType,
+        bool byStatementDate,
         CancellationToken cancellationToken = default);
 }

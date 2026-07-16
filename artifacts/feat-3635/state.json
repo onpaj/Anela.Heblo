@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-3635",
+  "issue_number": 3635,
+  "created_at": "2026-07-14T09:15:20.731352Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-14T09:18:05.714873Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-14T09:21:03.350553Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-14T09:22:15.413734Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-14T09:28:03.756830Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-14T11:55:25.673066Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-14T11:56:07.455436Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-repository-add-async-and-recurring-job-seeder",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-14T10:34:58.293033Z"
+    },
+    {
+      "name": "wire-recurring-job-seeder-into-di-and-startup",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-14T11:00:31.318716Z"
+    },
+    {
+      "name": "remove-legacy-seed-method-and-clean-test-doubles",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-14T11:55:15.714378Z"
+    }
+  ]
+}

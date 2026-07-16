@@ -27,7 +27,8 @@ public class GetSemiproductRecipePdfHandlerTests
         _handler = new GetSemiproductRecipePdfHandler(
             _manufactureClientMock.Object,
             _catalogRepositoryMock.Object,
-            _rendererMock.Object);
+            _rendererMock.Object,
+            TimeProvider.System);
     }
 
     [Fact]
