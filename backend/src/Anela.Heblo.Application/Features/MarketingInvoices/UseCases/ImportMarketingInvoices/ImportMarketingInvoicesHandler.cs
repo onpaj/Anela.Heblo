@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.MarketingInvoices.Contracts;
 using Anela.Heblo.Application.Features.MarketingInvoices.Services;
-using Anela.Heblo.Domain.Features.MarketingInvoices;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
