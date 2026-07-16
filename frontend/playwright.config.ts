@@ -129,6 +129,25 @@ export default defineConfig({
       testDir: './test/e2e/baleni',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'leaflet-generator',
+      testDir: './test/e2e/leaflet-generator',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      // The terminal module is a mobile warehouse UI — run it emulating an iPhone "Max"
+      // (iPhone 15 Pro Max viewport/UA) on Chromium so it shares the suite's launch args.
+      name: 'terminal',
+      testDir: './test/e2e/terminal',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: devices['iPhone 15 Pro Max'].viewport,
+        userAgent: devices['iPhone 15 Pro Max'].userAgent,
+        deviceScaleFactor: devices['iPhone 15 Pro Max'].deviceScaleFactor,
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
   ],
 
   /* Run your local dev server before starting the tests */

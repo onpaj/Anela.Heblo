@@ -1,7 +1,10 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { CheckCircle } from 'lucide-react';
 import { useUpdatePurchaseOrderStatusMutation } from '../../../api/hooks/usePurchaseOrders';
 import { UpdatePurchaseOrderStatusRequest } from '../../../api/generated/api-client';
 import { useScreenView } from '../../../telemetry/useScreenView';
+import { ScanShell } from '../shell/ScanShell';
+import LotSessionHeader from './LotSessionHeader';
 
 const FinishPoStep = () => {
   useScreenView('Terminal', 'LotIdentificationFinishPo');
@@ -15,31 +18,37 @@ const FinishPoStep = () => {
       { id: poId, request: new UpdatePurchaseOrderStatusRequest({ id: poId, status: 'Received' }) },
       {
         onSuccess: () => navigate('/terminal/lot-identification'),
-      }
+      },
     );
   };
 
+  const subject = <LotSessionHeader title="Dokončit příjem objednávky" icon={CheckCircle} facts="Potvrďte stav objednávky" />;
+
   return (
-    <div className="space-y-4 pt-2">
+    <ScanShell
+      subject={subject}
+      actions={[
+        {
+          label: 'Ponechat ve stavu „V přepravě"',
+          onClick: () => navigate('/terminal/lot-identification'),
+          variant: 'ghost',
+        },
+        {
+          label: 'Označit jako přijatou',
+          onClick: handleConfirm,
+          variant: 'success',
+          loading: update.isPending,
+        },
+      ]}
+    >
       <h2 className="text-lg font-semibold text-neutral-slate dark:text-graphite-text">
         Označit objednávku jako přijatou?
       </h2>
-      <button
-        type="button"
-        disabled={update.isPending}
-        onClick={handleConfirm}
-        className="w-full h-12 bg-primary-blue text-white rounded-xl font-semibold disabled:opacity-50"
-      >
-        Označit jako přijatou
-      </button>
-      <button
-        type="button"
-        onClick={() => navigate('/terminal/lot-identification')}
-        className="w-full h-12 border border-border-light dark:border-graphite-border text-neutral-slate dark:text-graphite-text rounded-xl"
-      >
-        Ponechat ve stavu „V přepravě"
-      </button>
-    </div>
+      <p className="mt-2 text-sm text-neutral-gray dark:text-graphite-muted">
+        Všechny přijaté kontejnery jsou uložené. Můžete objednávku označit jako přijatou, nebo ji ponechat
+        ve stavu „V přepravě" a dokončit později.
+      </p>
+    </ScanShell>
   );
 };
 

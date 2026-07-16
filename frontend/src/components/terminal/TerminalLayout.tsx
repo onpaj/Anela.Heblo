@@ -3,7 +3,6 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import UserProfile from '../auth/UserProfile';
 import { ScanProvider } from './shell/ScanProvider';
-import { FlashOverlay } from './shell/FlashOverlay';
 
 const TERMINAL_ROOT = '/terminal';
 
@@ -42,7 +41,6 @@ const TerminalLayout: React.FC = () => {
         <main className="flex-1 min-h-0 overflow-hidden">
           <Outlet />
         </main>
-        <FlashOverlay />
       </ScanProvider>
     </div>
   );

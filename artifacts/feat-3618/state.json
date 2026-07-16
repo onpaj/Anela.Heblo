@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3618",
+  "issue_number": 3618,
+  "created_at": "2026-07-16T03:14:05.884380Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-16T03:15:36.792211Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-16T03:17:03.063363Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-16T03:17:39.036292Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-16T03:18:34.962789Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-16T03:49:22.736240Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-16T03:54:31.549005Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-validator-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-16T03:49:17.151567Z"
+    }
+  ]
+}
