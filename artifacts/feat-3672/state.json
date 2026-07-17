@@ -21,16 +21,16 @@
       "updated_at": "2026-07-17T05:20:02.779294Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-17T05:20:30.600193Z"
     }
   },
   "tasks": [
     {
       "name": "remove-unused-orgchart-config-param",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-17T05:20:30.795620Z"
     }
   ]
 }
