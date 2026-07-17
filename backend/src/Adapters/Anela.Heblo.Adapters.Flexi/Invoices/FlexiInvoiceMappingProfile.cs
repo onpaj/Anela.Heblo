@@ -8,6 +8,9 @@ namespace Anela.Heblo.Adapters.Flexi.Invoices;
 
 public class FlexiInvoiceMappingProfile : BaseFlexiProfile
 {
+    private const string GiftGoodyProductCode = "GOODYDO0001";
+    private const string GiftBaseCreditAccount = "code:325002"; // zklDalUcet for GOODYDO0001 gifts
+
     public FlexiInvoiceMappingProfile()
     {
 
@@ -65,6 +68,7 @@ public class FlexiInvoiceMappingProfile : BaseFlexiProfile
             .ForMember(dest => dest.PriceList, opt => opt.MapFrom(src => string.IsNullOrEmpty(src.Code) || src.Code.StartsWith("SHIPPING") || src.Code.StartsWith("BILLING") ? null : $"code:{src.Code}"))
             .ForMember(dest => dest.Store, opt => opt.MapFrom(src => src.IsNonStock || string.IsNullOrEmpty(src.Code) || src.Code.StartsWith("SHIPPING") || src.Code.StartsWith("BILLING") ? null : "code:ZBOZI"))
             .ForMember(dest => dest.VatRateType, opt => opt.MapFrom(src => MapVatRateType(src.ItemPrice.VatRate)))
+            .ForMember(dest => dest.AccountBaseDal, opt => opt.MapFrom(src => src.Code == GiftGoodyProductCode ? GiftBaseCreditAccount : null))
             .ForMember(dest => dest.PriceVatType, opt => opt.MapFrom(src => "typCeny.bezDph"))
             .ForMember(dest => dest.CopyCategoryVatReport, opt => opt.MapFrom(src => true))
             .ForMember(dest => dest.CopyCategoryVat, opt => opt.MapFrom(src => true));
