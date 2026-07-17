@@ -100,7 +100,10 @@ export const ScanProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             onBlur={handleBlur}
             className="absolute opacity-0 h-px w-px -z-10 pointer-events-none"
           />
-          <div onClick={() => focusWedge()}>{children}</div>
+          {/* display:contents keeps this click-to-refocus wrapper transparent to layout so the
+              shell's flex height chain (ScanShell h-full → docked action pinned to the bottom)
+              is preserved. Clicks still bubble here to refocus the wedge. */}
+          <div onClick={() => focusWedge()} className="contents">{children}</div>
         </FlashContext.Provider>
       </ScanEchoContext.Provider>
     </ScanActionsContext.Provider>

@@ -21,7 +21,8 @@ public class ResolveManualActionHandlerTests
         _handler = new ResolveManualActionHandler(
             _repositoryMock.Object,
             _currentUserServiceMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            TimeProvider.System);
     }
 
     [Fact]

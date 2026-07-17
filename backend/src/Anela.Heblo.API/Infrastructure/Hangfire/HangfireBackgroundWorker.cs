@@ -13,10 +13,12 @@ namespace Anela.Heblo.API.Infrastructure.Hangfire;
 public class HangfireBackgroundWorker : IBackgroundWorker
 {
     private readonly HangfireOptions _options;
+    private readonly JobStorage _jobStorage;
 
-    public HangfireBackgroundWorker(IOptions<HangfireOptions> options)
+    public HangfireBackgroundWorker(IOptions<HangfireOptions> options, JobStorage jobStorage)
     {
         _options = options.Value;
+        _jobStorage = jobStorage ?? throw new ArgumentNullException(nameof(jobStorage));
     }
 
     public string Enqueue<T>(Expression<Func<T, Task>> methodCall)
@@ -52,14 +54,14 @@ public class HangfireBackgroundWorker : IBackgroundWorker
     public IList<BackgroundJobInfo> GetPendingJobs()
     {
         var pageSize = _options.MaxPendingJobsPageSize;
-        var monitoring = JobStorage.Current.GetMonitoringApi();
+        var monitoring = _jobStorage.GetMonitoringApi();
 
         var enqueuedJobs = monitoring.EnqueuedJobs("default", 0, pageSize);
         var scheduledJobs = monitoring.ScheduledJobs(0, pageSize);
 
         var result = new List<BackgroundJobInfo>();
 
-        using var connection = JobStorage.Current.GetConnection();
+        using var connection = _jobStorage.GetConnection();
 
         foreach (var job in enqueuedJobs)
         {
@@ -95,12 +97,12 @@ public class HangfireBackgroundWorker : IBackgroundWorker
     public IList<BackgroundJobInfo> GetRunningJobs()
     {
         var pageSize = _options.MaxPendingJobsPageSize;
-        var monitoring = JobStorage.Current.GetMonitoringApi();
+        var monitoring = _jobStorage.GetMonitoringApi();
         var processingJobs = monitoring.ProcessingJobs(0, pageSize);
 
         var result = new List<BackgroundJobInfo>();
 
-        using var connection = JobStorage.Current.GetConnection();
+        using var connection = _jobStorage.GetConnection();
 
         foreach (var job in processingJobs)
         {
@@ -127,7 +129,7 @@ public class HangfireBackgroundWorker : IBackgroundWorker
     {
         try
         {
-            using var connection = JobStorage.Current.GetConnection();
+            using var connection = _jobStorage.GetConnection();
             var jobDetails = connection.GetJobData(jobId);
 
             if (jobDetails?.Job == null)

@@ -31,9 +31,6 @@ public class FileStorageController : BaseApiController
         [FromBody] DownloadFromUrlRequest request,
         CancellationToken cancellationToken = default)
     {
-        Logger.LogInformation("Processing file download and upload request from URL: {FileUrl} to container: {ContainerName}",
-            request.FileUrl, request.ContainerName);
-
         var response = await _mediator.Send(request, cancellationToken);
 
         return HandleResponse(response);
