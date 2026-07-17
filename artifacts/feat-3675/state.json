@@ -21,16 +21,16 @@
       "updated_at": "2026-07-17T08:30:39.467917Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-17T08:31:02.798470Z"
     }
   },
   "tasks": [
     {
       "name": "add-container-name-validator-and-pipeline-wiring",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-17T08:31:02.981201Z"
     },
     {
       "name": "remove-container-name-validation-from-handler",
