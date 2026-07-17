@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-container-name-validator-and-pipeline-wiring",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-17T08:31:02.981201Z"
+      "updated_at": "2026-07-17T08:54:51.326675Z"
     },
     {
       "name": "remove-container-name-validation-from-handler",
