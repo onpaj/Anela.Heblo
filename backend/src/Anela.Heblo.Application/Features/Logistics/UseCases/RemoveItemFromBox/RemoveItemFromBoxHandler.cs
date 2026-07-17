@@ -64,6 +64,16 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
                 };
             }
 
+            if (request.Amount.HasValue && request.Amount.Value <= 0)
+            {
+                return new RemoveItemFromBoxResponse
+                {
+                    Success = false,
+                    ErrorCode = ErrorCodes.ValidationError,
+                    Params = new Dictionary<string, string> { { "details", "Amount must be greater than zero." } }
+                };
+            }
+
             var amountToRemove = request.Amount ?? item.Amount;
             var decreaseResult = transportBox.DecreaseItem(request.ItemId, amountToRemove);
 
