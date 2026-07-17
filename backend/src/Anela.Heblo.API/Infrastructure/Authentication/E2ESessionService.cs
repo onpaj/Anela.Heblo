@@ -83,6 +83,14 @@ public class E2ESessionService : IE2ESessionService
             new Claim("oid", "e2e-test-object-id"),
             new Claim("tid", environmentName), // Use environment as tenant for testing
             new Claim(ClaimTypes.Role, AccessRoles.Base), // Base role for application access
+            // E2E test user is a super_user: full access via the same wildcard path as mock
+            // auth (MockAuthenticationHandler) and production break-glass. This is what
+            // populates the frontend permission list from /api/auth/me (GetMeHandler returns
+            // the wildcard for super_user), which the sidebar/RequireMenuPath gate on. Without
+            // it the nav collapses to Dashboard and every role-gated E2E page times out (#3680).
+            // The per-module role claims below are now redundant under super_user but kept as
+            // harmless defense-in-depth.
+            new Claim(ClaimTypes.Role, AccessRoles.SuperUser),
             new Claim("scp", "access_as_user"),
             // Grant the finance overview read role so E2E tests can reach /api/FinancialOverview.
             // FeatureAuthorize checks the role claim (permission strings were renamed away from the
