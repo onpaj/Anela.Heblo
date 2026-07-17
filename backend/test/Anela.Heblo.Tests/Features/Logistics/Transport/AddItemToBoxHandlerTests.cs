@@ -116,6 +116,38 @@ public class AddItemToBoxHandlerTests
     }
 
     [Fact]
+    public async Task Handle_AddingSameProductAndLotTwice_MergesIntoSingleRow()
+    {
+        // Arrange
+        var box = CreateOpenBox();
+        var request = new AddItemToBoxRequest
+        {
+            BoxId = 1,
+            ProductCode = "PROD-001",
+            ProductName = "Test Product",
+            Amount = 5.0,
+            LotNumber = "LOT-1"
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
+            .ReturnsAsync(box);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act — add the same product+lot twice
+        await _handler.Handle(request, CancellationToken.None);
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert — one grouped row with the summed amount
+        result.Success.Should().BeTrue();
+        box.Items.Should().ContainSingle();
+        box.Items[0].Amount.Should().Be(10.0);
+    }
+
+    [Fact]
     public async Task Handle_WithSourceInventoryId_ConsumesInventoryAndSetsLotOnItem()
     {
         // Arrange

@@ -206,7 +206,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
   };
 
   // Handle remove item
-  const handleRemoveItem = async (itemId: number) => {
+  const handleRemoveItem = async (itemId: number, amount?: number) => {
     if (!boxId) return;
 
     try {
@@ -217,7 +217,9 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
 
       // Use authenticated API client for DELETE request
       const baseUrl = apiClient.baseUrl;
-      const fullUrl = `${baseUrl}/api/transport-boxes/${boxId}/items/${itemId}`;
+      const fullUrl =
+        `${baseUrl}/api/transport-boxes/${boxId}/items/${itemId}` +
+        (amount !== undefined ? `?amount=${amount}` : "");
       const response = await apiClient.http.fetch(fullUrl, {
         method: "DELETE",
         headers: {

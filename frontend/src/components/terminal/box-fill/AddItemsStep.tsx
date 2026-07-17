@@ -4,11 +4,12 @@ import {
   useManufacturedProductInventoryQuery,
   type ManufacturedProductInventoryItem,
 } from "../../../api/hooks/useManufacturedProductInventory";
-import { useAddBoxItem, useRemoveBoxItem, type TerminalBox } from "../../../api/hooks/useBoxFill";
+import { useAddBoxItem, useRemoveBoxItem, type TerminalBox, type TerminalBoxItem } from "../../../api/hooks/useBoxFill";
 import { getErrorMessage } from "../../../utils/errorHandler";
 import ScanInput from "../ScanInput";
 import AmountEntrySheet from "./AmountEntrySheet";
 import OverdraftSheet from "./OverdraftSheet";
+import RemoveAmountSheet from "./RemoveAmountSheet";
 
 interface AddItemsStepProps {
   box: TerminalBox;
@@ -31,6 +32,7 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
 }) => {
   const [selected, setSelected] = useState<ManufacturedProductInventoryItem | null>(null);
   const [overdraft, setOverdraft] = useState<{ item: ManufacturedProductInventoryItem; amount: number } | null>(null);
+  const [removing, setRemoving] = useState<TerminalBoxItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data, isLoading, error: loadError } = useManufacturedProductInventoryQuery({ onlyWithStock: true });
@@ -75,14 +77,15 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
     void performAdd(selected, amount, false);
   };
 
-  const handleRemove = async (itemId: number) => {
+  const handleRemove = async (itemId: number, amount: number) => {
     setError(null);
-    const result = await removeItem.mutateAsync({ boxId: box.id, itemId });
+    const result = await removeItem.mutateAsync({ boxId: box.id, itemId, amount });
     if (!result.success || !result.transportBox) {
       setError(result.errorCode ? getErrorMessage(result.errorCode, result.params) : "Položku se nepodařilo odebrat");
       return;
     }
     onBoxUpdated(result.transportBox);
+    setRemoving(null);
   };
 
   return (
@@ -174,7 +177,7 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
                 </div>
                 <button
                   type="button"
-                  onClick={() => void handleRemove(it.id)}
+                  onClick={() => { setError(null); setRemoving(it); }}
                   disabled={removeItem.isPending}
                   aria-label="Odebrat položku"
                   data-testid={`remove-item-${it.id}`}
@@ -216,6 +219,14 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
           onAddNegative={() => void performAdd(overdraft.item, overdraft.amount, true)}
           onAddRemaining={() => void performAdd(overdraft.item, overdraft.item.amount, false)}
           onCancel={() => setOverdraft(null)}
+        />
+      )}
+      {removing && (
+        <RemoveAmountSheet
+          item={removing}
+          isSubmitting={removeItem.isPending}
+          onConfirm={(amount) => void handleRemove(removing.id, amount)}
+          onCancel={() => setRemoving(null)}
         />
       )}
     </div>
