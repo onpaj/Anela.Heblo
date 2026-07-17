@@ -5,14 +5,13 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
   Package,
   Pencil,
   Trash2,
   Plus,
   Check,
   X,
+  RefreshCw,
 } from "lucide-react";
 import {
   useManufacturedProductInventoryQuery,
@@ -241,6 +240,10 @@ const LogPanel: React.FC<LogPanelProps> = ({ item }) => {
     return <p className="text-sm text-gray-500 dark:text-graphite-muted px-4 py-2">Žádné záznamy.</p>;
   }
 
+  const sortedLog = [...item.log].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
+
   return (
     <table className="min-w-full text-xs text-gray-700 dark:text-graphite-muted">
       <thead>
@@ -254,7 +257,7 @@ const LogPanel: React.FC<LogPanelProps> = ({ item }) => {
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100 dark:divide-graphite-border">
-        {item.log.map((entry) => (
+        {sortedLog.map((entry) => (
           <tr key={entry.id}>
             <td className="px-3 py-1 whitespace-nowrap">{formatDateTime(entry.timestamp)}</td>
             <td className="px-3 py-1 whitespace-nowrap">{changeTypeLabels[entry.changeType] ?? entry.changeType}</td>
@@ -283,7 +286,7 @@ const ManufacturedInventoryPage: React.FC = () => {
 
   const filters = { search, onlyWithStock, page, pageSize: PAGE_SIZE };
 
-  const { data, isLoading, error } = useManufacturedProductInventoryQuery(filters);
+  const { data, isLoading, isFetching, error, refetch } = useManufacturedProductInventoryQuery(filters);
   const createMutation = useCreateManufacturedProductInventoryItem();
   const updateMutation = useUpdateManufacturedProductInventoryItem();
   const deleteMutation = useDeleteManufacturedProductInventoryItem();
@@ -354,13 +357,23 @@ const ManufacturedInventoryPage: React.FC = () => {
             <Package className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
             <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Sklad výroby</h1>
           </div>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            Přidat položku
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="flex items-center px-2 py-1 border border-gray-300 dark:border-graphite-border rounded-md shadow-sm dark:shadow-soft-dark text-xs font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3 w-3 mr-1 ${isFetching ? "animate-spin" : ""}`} />
+              Obnovit
+            </button>
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              Přidat položku
+            </button>
+          </div>
         </div>
       </div>
 
@@ -412,7 +425,7 @@ const ManufacturedInventoryPage: React.FC = () => {
                 <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Expirace</th>
                 <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Množství</th>
                 <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Naposledy změnil</th>
-                <th className="px-4 py-4 text-left text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Akce</th>
+                <th className="w-px px-4 py-4 text-left text-sm font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider whitespace-nowrap">Akce</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
@@ -420,12 +433,15 @@ const ManufacturedInventoryPage: React.FC = () => {
                 const isExpanded = expandedRows.has(item.id);
                 return (
                   <React.Fragment key={item.id}>
-                    <tr className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                    <tr
+                      onClick={() => toggleRow(item.id)}
+                      className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    >
                       <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-graphite-text whitespace-nowrap">{item.productCode}</td>
                       <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">{item.productName}</td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-graphite-muted whitespace-nowrap">{item.lotNumber ?? "—"}</td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-graphite-muted whitespace-nowrap">{formatDate(item.expirationDate)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <InlineEditCell item={item} onSave={handleUpdate} />
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500 dark:text-graphite-muted whitespace-nowrap">
@@ -433,16 +449,8 @@ const ManufacturedInventoryPage: React.FC = () => {
                           ? `${item.lastModifiedBy} (${formatDate(item.lastModifiedAt)})`
                           : `${item.createdBy} (${formatDate(item.createdAt)})`}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => toggleRow(item.id)}
-                            className="flex items-center gap-1 text-xs text-indigo-600 dark:text-graphite-accent hover:text-indigo-800 font-medium"
-                            title="Historie změn"
-                          >
-                            Historie
-                            {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                          </button>
+                      <td className="w-px px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                           {confirmDeleteId === item.id ? (
                             <div className="flex items-center gap-1">
                               <button
