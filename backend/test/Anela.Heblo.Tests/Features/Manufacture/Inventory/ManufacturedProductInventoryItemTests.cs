@@ -28,6 +28,41 @@ public class ManufacturedProductInventoryItemTests
     }
 
     [Fact]
+    public void WriteDownFromManufacture_IncreasesAmountAndLogsOrderReference()
+    {
+        var item = CreateItem(100m); // created by order 42
+        var ts = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        item.WriteDownFromManufacture(10m, "operator1", ts, manufactureOrderId: 77);
+
+        item.Amount.Should().Be(110m);
+        item.LastModifiedAt.Should().Be(ts);
+        item.LastModifiedBy.Should().Be("operator1");
+        item.Log.Should().HaveCount(2);
+        var log = item.Log[1];
+        log.ChangeType.Should().Be(InventoryChangeType.InitialWriteDown);
+        log.AmountDelta.Should().Be(10m);
+        log.AmountAfter.Should().Be(110m);
+        log.ReferenceType.Should().Be(ManufacturedProductInventoryItem.ManufactureOrderReferenceType);
+        log.ReferenceId.Should().Be("77");
+    }
+
+    [Fact]
+    public void WasWrittenDownByOrder_TrueForCreatingOrderAndSubsequentWriteDowns_FalseOtherwise()
+    {
+        var item = CreateItem(100m); // created by order 42
+
+        item.WasWrittenDownByOrder(42).Should().BeTrue();  // from the constructor's initial log
+        item.WasWrittenDownByOrder(77).Should().BeFalse();
+
+        item.WriteDownFromManufacture(10m, "operator1",
+            new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc), manufactureOrderId: 77);
+
+        item.WasWrittenDownByOrder(77).Should().BeTrue();
+        item.WasWrittenDownByOrder(99).Should().BeFalse();
+    }
+
+    [Fact]
     public void Consume_ReducesAmountAndAddsLog()
     {
         var item = CreateItem(10m);

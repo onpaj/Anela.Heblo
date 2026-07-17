@@ -187,6 +187,77 @@ public class RemoveItemFromBoxHandlerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_PartialAmount_RestoresOnlyRemovedAmount_AndKeepsRow()
+    {
+        // Arrange
+        var box = CreateOpenBoxWithItem(itemId: 1, sourceInventoryId: 42, amount: 10.0);
+        var request = new RemoveItemFromBoxRequest { BoxId = 1, ItemId = 1, Amount = 3.0 };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
+            .ReturnsAsync(box);
+
+        _inventoryReservationServiceMock
+            .Setup(x => x.RestoreAsync(
+                42, 3m, It.IsAny<string>(), It.IsAny<DateTime>(),
+                1, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        box.Items.Should().ContainSingle(i => i.Id == 1 && i.Amount == 7.0);
+
+        _inventoryReservationServiceMock.Verify(
+            x => x.RestoreAsync(
+                42, 3m, "Test User", FixedTime,
+                1, "B001", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_AmountExceedingRemaining_RestoresActualRemoved_AndRemovesRow()
+    {
+        // Arrange
+        var box = CreateOpenBoxWithItem(itemId: 1, sourceInventoryId: 42, amount: 5.0);
+        var request = new RemoveItemFromBoxRequest { BoxId = 1, ItemId = 1, Amount = 8.0 };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
+            .ReturnsAsync(box);
+
+        _inventoryReservationServiceMock
+            .Setup(x => x.RestoreAsync(
+                42, 5m, It.IsAny<string>(), It.IsAny<DateTime>(),
+                1, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        box.Items.Should().BeEmpty();
+
+        // Restore is clamped to what was actually in the box (5), not the requested 8
+        _inventoryReservationServiceMock.Verify(
+            x => x.RestoreAsync(
+                42, 5m, "Test User", FixedTime,
+                1, "B001", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     private static TransportBox CreateOpenBox()
     {
         var box = new TransportBox();

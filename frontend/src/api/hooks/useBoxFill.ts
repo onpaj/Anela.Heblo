@@ -83,10 +83,14 @@ export const useAddBoxItem = () => {
 export const useRemoveBoxItem = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { boxId: number; itemId: number }): Promise<BoxFillResult> =>
-      boxFillRequest(`/api/transport-boxes/${input.boxId}/items/${input.itemId}`, {
-        method: "DELETE",
-      }),
+    mutationFn: (input: { boxId: number; itemId: number; amount?: number }): Promise<BoxFillResult> =>
+      boxFillRequest(
+        `/api/transport-boxes/${input.boxId}/items/${input.itemId}` +
+          (input.amount !== undefined ? `?amount=${input.amount}` : ""),
+        {
+          method: "DELETE",
+        },
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.manufacturedProductInventory });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.transportBox });
