@@ -21,16 +21,16 @@
       "updated_at": "2026-07-17T07:21:52.270448Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-17T07:22:12.242968Z"
     }
   },
   "tasks": [
     {
       "name": "fix-filestorage-adapter-application-dependency",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-17T07:22:12.450732Z"
     }
   ]
 }
