@@ -21,16 +21,16 @@
       "updated_at": "2026-07-17T06:19:24.956558Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-17T06:19:36.629147Z"
+      "status": "completed",
+      "updated_at": "2026-07-17T06:28:27.190017Z"
     }
   },
   "tasks": [
     {
       "name": "move-getlevelcolor-to-positioncard",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-17T06:19:36.822453Z"
+      "updated_at": "2026-07-17T06:28:16.082885Z"
     }
   ]
 }
