@@ -23,6 +23,54 @@ public class DownloadFromUrlRequestValidatorTests
             ContainerName = containerName,
         };
 
+    private static DownloadFromUrlRequest CreateRequestWithUrl(string fileUrl) =>
+        new()
+        {
+            FileUrl = fileUrl,
+            ContainerName = "valid-container",
+        };
+
+    [Theory]
+    [InlineData("not-a-url")]
+    [InlineData("")]
+    [InlineData("ftp://example.com/file.txt")]
+    [InlineData("example.com/file.txt")]
+    public void FileUrl_Invalid_ShouldHaveValidationError(string invalidFileUrl)
+    {
+        // Arrange
+        var request = CreateRequestWithUrl(invalidFileUrl);
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.FileUrl)
+            .WithErrorMessage("Invalid URL format");
+
+        var failure = result.Errors.Single(f => f.PropertyName == nameof(DownloadFromUrlRequest.FileUrl));
+        failure.ErrorCode.Should().Be(((int)ErrorCodes.InvalidUrlFormat).ToString());
+
+        var customState = failure.CustomState as Dictionary<string, string>;
+        customState.Should().NotBeNull();
+        customState.Should().ContainKey("fileUrl").WhoseValue.Should().Be(invalidFileUrl);
+        customState.Should().ContainKey("cause").WhoseValue.Should().Be("validation");
+    }
+
+    [Theory]
+    [InlineData("https://example.com/file.txt")]
+    [InlineData("http://example.com/file.txt")]
+    public void FileUrl_Valid_ShouldNotHaveValidationError(string validFileUrl)
+    {
+        // Arrange
+        var request = CreateRequestWithUrl(validFileUrl);
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.FileUrl);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("ab")]

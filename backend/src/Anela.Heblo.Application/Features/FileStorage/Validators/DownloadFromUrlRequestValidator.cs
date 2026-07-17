@@ -1,3 +1,4 @@
+using System;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Application.Shared;
 using FluentValidation;
@@ -8,6 +9,16 @@ public class DownloadFromUrlRequestValidator : AbstractValidator<DownloadFromUrl
 {
     public DownloadFromUrlRequestValidator()
     {
+        RuleFor(x => x.FileUrl)
+            .Must(IsValidFileUrl)
+            .WithErrorCode(((int)ErrorCodes.InvalidUrlFormat).ToString())
+            .WithState(x => (object)new Dictionary<string, string>
+            {
+                { "fileUrl", x.FileUrl },
+                { "cause", "validation" },
+            })
+            .WithMessage("Invalid URL format");
+
         RuleFor(x => x.ContainerName)
             .Must(IsValidContainerName)
             .WithErrorCode(((int)ErrorCodes.InvalidContainerName).ToString())
@@ -17,6 +28,12 @@ public class DownloadFromUrlRequestValidator : AbstractValidator<DownloadFromUrl
                 { "cause", "validation" },
             })
             .WithMessage("Invalid container name");
+    }
+
+    private static bool IsValidFileUrl(string fileUrl)
+    {
+        return Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
     }
 
     private static bool IsValidContainerName(string containerName)

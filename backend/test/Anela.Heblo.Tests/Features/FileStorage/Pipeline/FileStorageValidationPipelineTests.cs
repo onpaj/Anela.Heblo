@@ -90,6 +90,35 @@ public class FileStorageValidationPipelineTests
     }
 
     [Fact]
+    public async Task Send_InvalidFileUrlAndInvalidContainerName_ReturnsInvalidUrlFormat()
+    {
+        // Arrange
+        var blobStorage = new Mock<IBlobStorageService>();
+        var resilience = new Mock<IDownloadResilienceService>();
+        var mediator = BuildMediator(blobStorage, resilience);
+
+        var request = new DownloadFromUrlRequest
+        {
+            FileUrl = "not-a-url",
+            ContainerName = "AB",
+        };
+
+        // Act
+        var result = await mediator.Send(request);
+
+        // Assert — pre-refactor precedence: URL-format error wins over container-name error
+        // when both are invalid (see FileStorageValidator rule ordering).
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.InvalidUrlFormat);
+        result.Params.Should().ContainKey("fileUrl").WhoseValue.Should().Be("not-a-url");
+        result.Params.Should().ContainKey("cause").WhoseValue.Should().Be("validation");
+        blobStorage.Verify(
+            s => s.DownloadFromUrlAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task Send_ValidContainerName_ReachesHandler_ReturnsSuccess()
     {
         // Arrange
