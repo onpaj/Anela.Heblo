@@ -54,8 +54,7 @@ public class E2ESessionServiceTests
     [Fact]
     public void CreateSyntheticUserClaims_IncludesSuperUserRole()
     {
-        // E2E test user must be super_user so GET /api/auth/me returns the full
-        // permission wildcard and the frontend sidebar/nav renders (issue #3680).
+        // super_user claim required so /api/auth/me returns full permissions (#3680).
         var sut = CreateSut();
 
         var claims = sut.CreateSyntheticUserClaims("Staging");
