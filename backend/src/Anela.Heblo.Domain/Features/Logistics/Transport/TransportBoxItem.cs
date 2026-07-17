@@ -32,4 +32,24 @@ public class TransportBoxItem : Entity<int>
         ExpirationDate = expirationDate;
         SourceInventoryId = sourceInventoryId;
     }
+
+    /// <summary>
+    /// Increases the grouped amount and records the latest add (date/user reflect the last touch).
+    /// </summary>
+    public void AddAmount(double amount, DateTime dateAdded, string userAdded)
+    {
+        Amount += amount;
+        DateAdded = dateAdded;
+        UserAdded = userAdded;
+    }
+
+    /// <summary>
+    /// Removes up to <paramref name="amount"/> from the grouped amount and returns how much was actually removed.
+    /// </summary>
+    public double RemoveAmount(double amount)
+    {
+        var removed = Math.Min(amount, Amount);
+        Amount -= removed;
+        return removed;
+    }
 }

@@ -17,6 +17,18 @@ public class ManufacturedProductInventoryRepository
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ManufacturedProductInventoryItem>> GetByProductCodesWithLogsAsync(
+        IReadOnlyCollection<string> productCodes, CancellationToken cancellationToken = default)
+    {
+        if (productCodes.Count == 0)
+            return Array.Empty<ManufacturedProductInventoryItem>();
+
+        return await DbSet
+            .Include(x => x.Log)
+            .Where(x => productCodes.Contains(x.ProductCode))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<(IReadOnlyList<ManufacturedProductInventoryItem> Items, int TotalCount)> GetPagedListAsync(
         ManufacturedInventoryFilter filter, CancellationToken cancellationToken = default)
     {
