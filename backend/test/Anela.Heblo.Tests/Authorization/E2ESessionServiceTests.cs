@@ -50,4 +50,16 @@ public class E2ESessionServiceTests
         claims.Should().Contain(c =>
             c.Type == ClaimTypes.Email && c.Value == "e2e-test@anela-heblo.com");
     }
+
+    [Fact]
+    public void CreateSyntheticUserClaims_IncludesSuperUserRole()
+    {
+        // super_user claim required so /api/auth/me returns full permissions (#3680).
+        var sut = CreateSut();
+
+        var claims = sut.CreateSyntheticUserClaims("Staging");
+
+        claims.Should().Contain(c =>
+            c.Type == ClaimTypes.Role && c.Value == AccessRoles.SuperUser);
+    }
 }
