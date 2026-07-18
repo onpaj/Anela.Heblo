@@ -21,16 +21,16 @@
       "updated_at": "2026-07-18T06:24:21.002311Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-18T06:24:45.837361Z"
     }
   },
   "tasks": [
     {
       "name": "fix-recurring-job-seeder-upsert",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-18T06:24:46.192215Z"
     }
   ]
 }
