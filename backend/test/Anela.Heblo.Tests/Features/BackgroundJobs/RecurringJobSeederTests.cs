@@ -79,6 +79,86 @@ public class RecurringJobSeederTests : IDisposable
         Assert.Single(purchasePriceConfigs);
     }
 
+    [Fact]
+    public async Task SeedDefaultConfigurationsAsync_WhenConfigurationExists_UpdatesDisplayNameAndDescription()
+    {
+        // Arrange - add an existing configuration with stale DisplayName/Description
+        var existingConfig = new RecurringJobConfiguration(
+            "purchase-price-recalculation",
+            "Old Display Name",
+            "Old description that no longer matches the code",
+            "0 2 * * *",
+            true,
+            "System");
+
+        await _context.RecurringJobConfigurations.AddAsync(existingConfig);
+        await _context.SaveChangesAsync();
+
+        var mockJobs = CreateMockJobs();
+
+        // Act
+        await _seeder.SeedDefaultConfigurationsAsync(mockJobs);
+
+        // Assert
+        var updated = await _repository.GetByJobNameAsync("purchase-price-recalculation");
+        Assert.NotNull(updated);
+        Assert.Equal("Purchase Price Recalculation", updated!.DisplayName);
+        Assert.Equal("Recalculates purchase prices for all materials and products", updated.Description);
+    }
+
+    [Fact]
+    public async Task SeedDefaultConfigurationsAsync_WhenConfigurationExists_PreservesCronExpressionAndIsEnabled()
+    {
+        // Arrange - add an existing configuration with an admin-customized CronExpression and IsEnabled
+        var existingConfig = new RecurringJobConfiguration(
+            "purchase-price-recalculation",
+            "Purchase Price Recalculation",
+            "Recalculates purchase prices for all materials and products",
+            "0 0 * * *", // admin-customized cron, differs from mock job's "0 2 * * *"
+            false,       // admin-disabled, differs from mock job's DefaultIsEnabled: true
+            "System");
+
+        await _context.RecurringJobConfigurations.AddAsync(existingConfig);
+        await _context.SaveChangesAsync();
+
+        var mockJobs = CreateMockJobs();
+
+        // Act
+        await _seeder.SeedDefaultConfigurationsAsync(mockJobs);
+
+        // Assert
+        var updated = await _repository.GetByJobNameAsync("purchase-price-recalculation");
+        Assert.NotNull(updated);
+        Assert.Equal("0 0 * * *", updated!.CronExpression);
+        Assert.False(updated.IsEnabled);
+    }
+
+    [Fact]
+    public async Task SeedDefaultConfigurationsAsync_WhenConfigurationExists_SetsLastModifiedByToSystem()
+    {
+        // Arrange - add an existing configuration whose last modification was made by an admin
+        var existingConfig = new RecurringJobConfiguration(
+            "purchase-price-recalculation",
+            "Purchase Price Recalculation",
+            "Recalculates purchase prices for all materials and products",
+            "0 2 * * *",
+            true,
+            "Admin");
+
+        await _context.RecurringJobConfigurations.AddAsync(existingConfig);
+        await _context.SaveChangesAsync();
+
+        var mockJobs = CreateMockJobs();
+
+        // Act
+        await _seeder.SeedDefaultConfigurationsAsync(mockJobs);
+
+        // Assert
+        var updated = await _repository.GetByJobNameAsync("purchase-price-recalculation");
+        Assert.NotNull(updated);
+        Assert.Equal("System", updated!.LastModifiedBy);
+    }
+
     public void Dispose()
     {
         _context.Dispose();
