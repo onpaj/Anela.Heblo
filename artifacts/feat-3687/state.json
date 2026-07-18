@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-recurring-job-timezone-id",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-18T07:27:50.680583Z"
+      "updated_at": "2026-07-18T08:15:11.920787Z"
     }
   ]
 }
