@@ -4,7 +4,7 @@ namespace Anela.Heblo.Application.Features.BackgroundJobs.Services;
 /// Applies a CRON expression update to a running Hangfire job schedule immediately,
 /// without requiring a restart.
 /// </summary>
-public interface IHangfireRecurringJobScheduler
+public interface ICronScheduler
 {
     void UpdateCronSchedule(string jobName, string cronExpression);
 }

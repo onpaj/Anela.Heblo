@@ -13,14 +13,14 @@ public class UpdateRecurringJobCronHandlerTests
 {
     private readonly Mock<IRecurringJobConfigurationRepository> _repositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
-    private readonly Mock<IHangfireRecurringJobScheduler> _schedulerMock;
+    private readonly Mock<ICronScheduler> _schedulerMock;
     private readonly UpdateRecurringJobCronHandler _handler;
 
     public UpdateRecurringJobCronHandlerTests()
     {
         _repositoryMock = new Mock<IRecurringJobConfigurationRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
-        _schedulerMock = new Mock<IHangfireRecurringJobScheduler>();
+        _schedulerMock = new Mock<ICronScheduler>();
 
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
