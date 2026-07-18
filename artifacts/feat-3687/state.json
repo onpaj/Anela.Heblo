@@ -21,16 +21,16 @@
       "updated_at": "2026-07-18T07:27:37.787176Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-18T07:27:50.499233Z"
     }
   },
   "tasks": [
     {
       "name": "add-recurring-job-timezone-id",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-18T07:27:50.680583Z"
     }
   ]
 }
