@@ -22,6 +22,24 @@ CI run in a repo that hasn't configured RP.
 | `RP_ENDPOINT` | repo variable | RP REST base incl. `/api/v1` |
 | `RP_PROJECT` | repo variable | target project, default `heblo` |
 | `RP_API_KEY` | repo secret | API key from the RP UI |
+| `TS_OAUTH_CLIENT_ID` | repo secret | Tailscale OAuth client id (see Reachability) |
+| `TS_OAUTH_SECRET` | repo secret | Tailscale OAuth client secret |
+
+## Reachability (Tailscale)
+
+ReportPortal is self-hosted on the Tailnet (`nas.*.ts.net`), which GitHub-hosted
+runners cannot resolve on their own. Each RP-reporting job therefore joins the Tailnet
+first via `tailscale/github-action@v4`, gated on `RP_ENABLE` and marked
+`continue-on-error` so a failed/absent connection never breaks CI — reporting simply
+no-ops (it is non-fatal on every layer).
+
+Set up once in the Tailscale admin console:
+1. Create an **OAuth client** with an ACL tag (e.g. `tag:ci`) and write access to the RP host.
+2. Add its id/secret as the `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET` repo secrets.
+3. Ensure your ACLs let `tag:ci` reach the ReportPortal host:port.
+
+> Reporting is non-fatal by design: if ReportPortal (or the Tailnet hop) is unreachable,
+> tests still pass and deploys still proceed — you just get no data for that run.
 
 ## Layer wiring
 

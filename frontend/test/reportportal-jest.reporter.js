@@ -27,6 +27,23 @@ if (rpEnabled()) {
     constructor(globalConfig, _options) {
       super(globalConfig, buildConfig('frontend', { launch: 'heblo-frontend' }));
     }
+
+    // Non-fatal by design: ReportPortal is observability, not a gate. onRunComplete()
+    // in the agent awaits the launch promises, so an unreachable/misbehaving server
+    // (e.g. DNS failure) makes the reporter throw and jest exits non-zero — turning a
+    // fully green test run red and, on main, blocking the deploy pipeline. Swallow any
+    // reporting error and let the actual test result stand.
+    async onRunComplete(contexts, results) {
+      try {
+        return await super.onRunComplete(contexts, results);
+      } catch (err) {
+        console.warn(
+          '⚠️  ReportPortal reporting failed (non-fatal, tests unaffected):',
+          (err && err.message) || err,
+        );
+        return undefined;
+      }
+    }
   };
 } else {
   console.log('ℹ️  ReportPortal disabled — Jest RP reporter is a no-op');
