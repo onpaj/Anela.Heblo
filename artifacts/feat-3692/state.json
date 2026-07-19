@@ -21,16 +21,16 @@
       "updated_at": "2026-07-19T06:32:44.759991Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-19T06:33:27.913632Z"
     }
   },
   "tasks": [
     {
       "name": "batch-photobank-index-upserts",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-19T06:33:28.099772Z"
     },
     {
       "name": "add-photobank-index-batch-tests",
