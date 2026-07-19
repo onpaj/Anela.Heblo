@@ -30,16 +30,16 @@ public class ReapplyRulesHandlerTests
              .Returns(Task.CompletedTask);
         _repo.Setup(r => r.GetOccupiedTagPairsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
              .ReturnsAsync(new HashSet<(int PhotoId, int TagId)>());
-        _repo.Setup(r => r.GetAllPhotosAsync(It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new List<Photo>());
+        _repo.Setup(r => r.GetPhotoRuleCandidatesPageAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+             .ReturnsAsync(new List<PhotoAutoTagCandidate>());
         _repo.Setup(r => r.AddPhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
              .Returns(Task.CompletedTask);
         _repo.Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
              .ReturnsAsync(new Dictionary<string, int>());
     }
 
-    private static Photo PhotoAt(int id, string folder, string file) =>
-        new() { Id = id, SharePointFileId = $"sp-{id}", FolderPath = folder, FileName = file, ModifiedAt = DateTime.UtcNow };
+    private static PhotoAutoTagCandidate CandidateAt(int id, string folder, string file) =>
+        new(id, folder, file);
 
     [Fact]
     public async Task RuleNotFound_ReturnsError_AndDoesNotRemoveOrSave()
@@ -83,11 +83,11 @@ public class ReapplyRulesHandlerTests
         });
         _repo.Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
              .ReturnsAsync(new Dictionary<string, int> { ["products"] = 10 });
-        _repo.Setup(r => r.GetAllPhotosAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<Photo>
+        _repo.Setup(r => r.GetPhotoRuleCandidatesPageAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<PhotoAutoTagCandidate>
         {
-            PhotoAt(1, "Products/A", "a.jpg"),
-            PhotoAt(2, "Products/B", "b.jpg"),
-            PhotoAt(3, "Events/C", "c.jpg"), // no match
+            CandidateAt(1, "Products/A", "a.jpg"),
+            CandidateAt(2, "Products/B", "b.jpg"),
+            CandidateAt(3, "Events/C", "c.jpg"), // no match
         });
 
         List<PhotoTag>? added = null;
@@ -114,9 +114,9 @@ public class ReapplyRulesHandlerTests
         });
         _repo.Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
              .ReturnsAsync(new Dictionary<string, int> { ["products"] = 10 });
-        _repo.Setup(r => r.GetAllPhotosAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<Photo>
+        _repo.Setup(r => r.GetPhotoRuleCandidatesPageAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<PhotoAutoTagCandidate>
         {
-            PhotoAt(1, "Products/A", "a.jpg"),
+            CandidateAt(1, "Products/A", "a.jpg"),
         });
         _repo.Setup(r => r.GetOccupiedTagPairsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
              .ReturnsAsync(new HashSet<(int PhotoId, int TagId)> { (1, 10) }); // Manual/AI already owns it
@@ -143,9 +143,9 @@ public class ReapplyRulesHandlerTests
         });
         _repo.Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
              .ReturnsAsync(new Dictionary<string, int> { ["products"] = 10 });
-        _repo.Setup(r => r.GetAllPhotosAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<Photo>
+        _repo.Setup(r => r.GetPhotoRuleCandidatesPageAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<PhotoAutoTagCandidate>
         {
-            PhotoAt(1, "Products/A", "a.jpg"), // matches both rules → still one (1,10) pair
+            CandidateAt(1, "Products/A", "a.jpg"), // matches both rules → still one (1,10) pair
         });
 
         List<PhotoTag>? added = null;
@@ -167,9 +167,9 @@ public class ReapplyRulesHandlerTests
             new() { Id = 1, PathPattern = "Products", TagName = "Products", IsActive = true, SortOrder = 0 },
             new() { Id = 2, PathPattern = "Events", TagName = "events", IsActive = true, SortOrder = 1 },
         });
-        _repo.Setup(r => r.GetAllPhotosAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<Photo>
+        _repo.Setup(r => r.GetPhotoRuleCandidatesPageAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<PhotoAutoTagCandidate>
         {
-            PhotoAt(1, "Products/Events", "a.jpg"), // matches both rules' patterns
+            CandidateAt(1, "Products/Events", "a.jpg"), // matches both rules' patterns
         });
 
         IReadOnlyCollection<string>? requestedNames = null;
