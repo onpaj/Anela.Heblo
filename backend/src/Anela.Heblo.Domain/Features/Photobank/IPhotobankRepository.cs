@@ -25,8 +25,6 @@ namespace Anela.Heblo.Domain.Features.Photobank
 
         Task<PhotoLocator?> GetLocatorAsync(int id, CancellationToken cancellationToken);
 
-        Task<List<Photo>> GetAllPhotosAsync(CancellationToken cancellationToken);
-
         Task<Photo?> GetPhotoBySharePointFileIdAsync(string sharePointFileId, CancellationToken cancellationToken);
 
         Task AddPhotoAsync(Photo photo, CancellationToken cancellationToken);

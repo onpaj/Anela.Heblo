@@ -29,23 +29,6 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
     public void Dispose() => _context.Dispose();
 
     [Fact]
-    public async System.Threading.Tasks.Task GetAllPhotosAsync_returnsAllPhotos()
-    {
-        // Arrange
-        _context.Photos.AddRange(
-            new Photo { Id = 1, SharePointFileId = "sp-1", FileName = "a.jpg", FolderPath = "Products", ModifiedAt = DateTime.UtcNow },
-            new Photo { Id = 2, SharePointFileId = "sp-2", FileName = "b.jpg", FolderPath = "Events", ModifiedAt = DateTime.UtcNow });
-        await _context.SaveChangesAsync(CancellationToken.None);
-
-        // Act
-        var photos = await _repository.GetAllPhotosAsync(CancellationToken.None);
-
-        // Assert
-        photos.Should().HaveCount(2);
-        photos.Select(p => p.Id).Should().BeEquivalentTo(new[] { 1, 2 });
-    }
-
-    [Fact]
     public async System.Threading.Tasks.Task GetPhotoRuleCandidatesPageAsync_firstPage_returnsProjectionOrderedById()
     {
         // Arrange

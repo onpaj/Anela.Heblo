@@ -144,11 +144,6 @@ public class PhotobankRepository : IPhotobankRepository
         return new PhotoLocator(projection.DriveId, projection.SharePointFileId, projection.ModifiedAt);
     }
 
-    public async Task<List<Photo>> GetAllPhotosAsync(CancellationToken cancellationToken)
-    {
-        return await _context.Photos.ToListAsync(cancellationToken);
-    }
-
     public Task<Photo?> GetPhotoBySharePointFileIdAsync(string sharePointFileId, CancellationToken cancellationToken)
     {
         return _context.Photos
