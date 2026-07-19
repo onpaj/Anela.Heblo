@@ -38,6 +38,7 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 | # | Area | Symptom | Status |
 | - | ---- | ------- | ------ |
 | 1 | catalog filter | `/api/catalog?productName=Kr%C3%A9m` → HTTP 200 but **0 rows**, while unfiltered returns 20. Possible diacritics/case handling bug in backend query. | ⚠️ **Unverified** — may just be staging data. Needs confirmation. |
+| 3 | Terminal lot identification — **user-facing** | Scanning an already-assigned (or unknown) container label tells the operator **"Chyba připojení."** (connection error). Backend is correct: `POST /api/material-containers` returns `409` with `{"errorCode":"MaterialContainerCodeExists","params":{...}}`. But the NSwag client (`api-client.ts:8140`) throws for any status other than 200/204, so React Query routes it to `onError` (`ReceiveScreen.tsx:124-127`) which cannot read the body and emits the generic message. This makes `ReceiveScreen.tsx:106-118` **dead code** — both the `MaterialContainerCodeExists` and `UnknownMaterialContainerCode` branches are unreachable, since `ErrorCodes.cs:351` maps the former to 409 and the latter to 400. A warehouse operator scanning a duplicate label is told their internet is down. | 🐛 **Confirmed**, not fixed. Test skipped with pointer. |
 | 2 | `GET /api/e2etest/auth-status` | Returns **HTTP 400** `"An item with the same key has already been added. Key: .../claims/role"`. `E2ETestController.cs:150` does `User.Claims.ToDictionary(c => c.Type, c => c.Value)`; `ToDictionary` throws on duplicate keys and the E2E identity carries 11+ `ClaimTypes.Role` claims (`E2ESessionService.CreateSyntheticUserClaims`), plus one per permission from `PermissionClaimsTransformation`. Endpoint has been unreachable since the 2nd role claim landed. Fix: group by type into `string[]`. | 🐛 **Confirmed**, not fixed. Test `core/staging-auth.spec.ts` "should validate API authentication status" marked `.skip()` with pointer. |
 
 ## Test-quality debt noted (not blocking)
@@ -45,6 +46,7 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 - `core/dashboard.spec.ts` "should support drag and drop to reorder tiles" is **destructive**: it persists a new tile order for the shared staging E2E user via `useSaveDashboardSettings`, so repeated runs keep shuffling that user's dashboard.
 - `core/dashboard.spec.ts:53` still uses a bare `waitForTimeout(1000)` — passes today, same latent-flake class as the ones removed.
 - `navigateToIssuedInvoices` logs `❌ Zákaznické menu item not found` on every run and silently falls back to direct URL navigation. Tests pass either way, but the sidebar path in that helper is dead in practice and may be masking a stale menu selector.
+- `terminal/lot-identification.spec.ts` "PO flow: receive several materials from one order" failed once in a full run, then passed in isolation and in two subsequent full runs. Not perfectly stable; may resurface nightly.
 - `core/changelog.spec.ts` "should display version history in modal" is **flaky**: observed failing twice standalone (both with and without the toaster fix) but passing in a full-module run. Needs a stability check.
 
 ---
@@ -62,7 +64,7 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 | manufacturing | ✅ **green** | 9 passed, 0 failed |
 | marketing | ✅ **green** | 36 passed, 0 failed |
 | stock-operations | ✅ **green** | 57 passed, 0 failed (was 2 failing) |
-| terminal | 🔴 | 4 passed, 1 failed — `duplicate code shows the already-assigned message` gets "Chyba připojení" (connection error) instead of the expected message. Queued. |
+| terminal | ⚠️ | 4 passed, 1 **skipped** — blocked by app bug #3 (real, user-facing). |
 | transport | ✅ **green** | 42 passed, 0 failed (no changes needed) |
 
 ---
@@ -117,7 +119,7 @@ Filled in from the baseline run.
 | stock-operations/sorting.spec.ts | ✅ | |
 | stock-operations/source-filter.spec.ts | ✅ | |
 | stock-operations/state-filter.spec.ts | ✅ | |
-| terminal/lot-identification.spec.ts | ⬜ | |
+| terminal/lot-identification.spec.ts | 🐛 | `duplicate code shows the already-assigned message` skipped — app bug #3 |
 | transport/box-creation.spec.ts | ✅ | |
 | transport/box-items.spec.ts | ✅ | |
 | transport/box-management.spec.ts | ✅ | |
