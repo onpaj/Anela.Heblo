@@ -1,75 +1,52 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { navigateToApp } from '../helpers/e2e-auth-helper';
-import { TestPackingOrders } from '../fixtures/test-data';
+
+const SCAN_INPUT_LABEL = 'Sken čísla objednávky';
+
+/**
+ * The scan input is disabled until a packing user (balič) is selected —
+ * see BaleniPacking.tsx `loading={scanMutation.isPending || !current}`.
+ * The picker opens automatically on mount when nothing is stored, so every
+ * test has to pick an operator before the input becomes usable.
+ */
+async function selectPackingUser(page: Page): Promise<void> {
+  const pickerHeading = page.getByRole('heading', { name: 'Kdo balí?' });
+  await expect(pickerHeading).toBeVisible({ timeout: 30000 });
+
+  const userButton = page.locator('div.fixed.inset-0 div.grid button').first();
+  await expect(userButton).toBeVisible({ timeout: 15000 });
+  await userButton.click();
+
+  await expect(pickerHeading).toBeHidden();
+}
 
 test.describe('Balení — packing screen', () => {
   test.beforeEach(async ({ page }) => {
     await navigateToApp(page);
     await page.goto('/baleni/baleni');
+    await selectPackingUser(page);
   });
 
   test('shows the empty state and scan input', async ({ page }) => {
     await expect(page.getByText('Naskenujte číslo objednávky')).toBeVisible();
-    await expect(page.getByRole('textbox')).toBeFocused();
+    await expect(page.getByRole('textbox', { name: SCAN_INPUT_LABEL })).toBeFocused();
   });
 
   test('shows a not-found message for an unknown order code', async ({ page }) => {
-    const input = page.getByRole('textbox');
+    const input = page.getByRole('textbox', { name: SCAN_INPUT_LABEL });
     await input.fill('00000000');
     await input.press('Enter');
 
     await expect(page.getByText('Objednávka nenalezena')).toBeVisible({ timeout: 15000 });
   });
 
-  test('shows a confirmation button for each additional package label', async ({ page }) => {
-    if (!TestPackingOrders.multiPackagePacking) {
-      throw new Error(
-        'TestPackingOrders.multiPackagePacking fixture missing — set a real multi-package packing order code in test-data.ts'
-      );
-    }
-
-    const input = page.getByRole('textbox');
-    await input.fill(TestPackingOrders.multiPackagePacking);
-    await input.press('Enter');
-
-    await expect(
-      page.getByTestId('print-next-label-button')
-    ).toBeVisible({ timeout: 15000 });
-
-    await expect(
-      page.getByTestId('print-next-label-button')
-    ).toHaveText(/Vytisknout štítek 2\//);
-  });
-
-  test('shows Vytvořit zásilku button for an order with no existing shipment', async ({ page }) => {
-    if (!TestPackingOrders.noShipmentPacking) {
-      throw new Error(
-        'TestPackingOrders.noShipmentPacking fixture missing — set a real order code with no shipment in test-data.ts'
-      );
-    }
-
-    const input = page.getByRole('textbox');
-    await input.fill(TestPackingOrders.noShipmentPacking);
-    await input.press('Enter');
-
-    await expect(page.getByRole('button', { name: /Vytvořit zásilku/i })).toBeVisible({ timeout: 15000 });
-  });
-
-  test('shows existing-shipment warning for an order with an existing shipment', async ({ page }) => {
-    if (!TestPackingOrders.existingShipmentPacking) {
-      throw new Error(
-        'TestPackingOrders.existingShipmentPacking fixture missing — set a real order code with an existing shipment in test-data.ts'
-      );
-    }
-
-    const input = page.getByRole('textbox');
-    await input.fill(TestPackingOrders.existingShipmentPacking);
-    await input.press('Enter');
-
-    await page.getByRole('button', { name: /Vytvořit zásilku/i }).click({ timeout: 15000 });
-
-    await expect(page.getByText(/Zásilka již existuje/i)).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('button', { name: /Použít existující/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Vytvořit novou/i })).toBeVisible();
-  });
+  // NOTE: three further tests ("Vytvořit zásilku" button, existing-shipment warning,
+  // multi-package label confirmation) were removed here. They were written against the
+  // pre-4ae8dda4a PackingShipmentCreator, where the operator pressed a "Vytvořit zásilku"
+  // button after scanning. Since #1502 moved shipment orchestration to the backend, the
+  // scan call itself creates or returns the shipment and that button no longer exists.
+  //
+  // Restoring equivalent coverage requires scanning a real staging order, which issues a
+  // live Shoptet shipment-creation call (no sandbox — see CLAUDE.md), so it is deliberately
+  // left to the component tests in src/components/baleni/__tests__/ instead.
 });
