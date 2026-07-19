@@ -289,6 +289,16 @@ jobs:
           fi
           echo "✅ Azure credentials validated"
 
+      # Join the Tailnet so the Playwright RP agent can reach the self-hosted
+      # ReportPortal (nas.*.ts.net). Gated on RP_ENABLE and fail-safe.
+      - name: 🔗 Connect to Tailscale (for ReportPortal)
+        if: vars.RP_ENABLE == 'true'
+        continue-on-error: true
+        uses: tailscale/github-action@v4
+        with:
+          # Tagged, reusable, ephemeral auth key (carries tag:ci itself, so no tags input).
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
       - name: 🧪 Run E2E tests for module
         id: run-tests
         working-directory: ./frontend
@@ -310,6 +320,14 @@ jobs:
           E2E_CLIENT_ID: ${{ secrets.E2E_CLIENT_ID }}
           E2E_CLIENT_SECRET: ${{ secrets.E2E_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.REACT_APP_AZURE_TENANT_ID }}
+          # ReportPortal (opt-in; dormant unless the RP_ENABLE repo variable is 'true').
+          # Each module matrix job reports as its own launch, tagged module:<name>.
+          RP_ENABLE: ${{ vars.RP_ENABLE }}
+          RP_ENDPOINT: ${{ vars.RP_ENDPOINT }}
+          RP_PROJECT: ${{ vars.RP_PROJECT }}
+          RP_API_KEY: ${{ secrets.RP_API_KEY }}
+          RP_LAUNCH: heblo-e2e
+          RP_MODULE: ${{ matrix.module }}
 
       - name: 📝 Export test results for aggregation
         if: always()

@@ -56,8 +56,11 @@ test.describe('IssuedInvoices - Navigation and Tab Switching', () => {
     await expect(statisticsTab).toHaveClass(/border-indigo-500/);
     await expect(gridTab).not.toHaveClass(/border-indigo-500/);
 
-    // Verify statistics content is visible
-    const summaryCard = page.locator('text="Celkem faktur"');
+    // Verify statistics content is visible.
+    // Note: "Celkem faktur" appears twice on the Statistics tab - once in the sync-stats
+    // summary cards and once inside the embedded InvoiceImportStatistics chart - so scope
+    // to the first heading to avoid a strict mode violation.
+    const summaryCard = page.getByRole('heading', { name: 'Celkem faktur' }).first();
     await expect(summaryCard).toBeVisible();
   });
 });
