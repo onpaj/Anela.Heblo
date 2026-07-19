@@ -105,9 +105,9 @@ guessing a duration - a sleep tuned on an idle machine breaks under full-suite l
 | baleni | 2 passed |
 | leaflet-generator | 2 passed, 2 skipped |
 | terminal | 4 passed, 1 skipped (app bug #3) |
-| **core** | **not yet stable — see below** |
+| core | 72 passed, 8 skipped — **3/3 clean consecutive runs** |
 
-### core: shared-user state poisoning
+### core: resolved (was the last unstable module)
 
 Dashboard settings persist **server-side per user**, and staging has a single shared E2E user.
 `GetUserSettingsHandler:73-76` back-fills AutoShow tiles that are *absent* from the saved set,
@@ -115,10 +115,18 @@ but NOT tiles explicitly recorded `IsVisible=false`. So once any run (or any hum
 `backgroundtaskstatus` tile, it stays hidden forever and
 `should display AutoShow tiles automatically` fails — passing in isolation, failing in full runs.
 
-Mitigations applied:
-- the reorder test now restores tile order (best-effort, unasserted — dnd-kit keyboard reorder
-  over a mixed-`col-span` grid is not a reliable adjacent swap)
-- the AutoShow test now enables the tile via `POST /api/dashboard/tiles/{tileId}/enable` first
+Fixes applied (core now passes 3/3 consecutive full runs):
+- **AutoShow tile**: enable it via `POST /api/dashboard/tiles/{tileId}/enable` before asserting,
+  so the test no longer depends on leftover state from earlier runs.
+- **Reorder**: dnd-kit silently drops the Space pick-up if the keypress lands mid-render, so the
+  reorder never happened (~2 runs in 3). The sequence is now retried until the order moves.
+  The test also restores the original order (best-effort, unasserted).
+- **Changelog `Verze`**: was a substring locator matching 4 elements once versions loaded — it
+  only passed when the assertion beat the data. Now an exact heading match.
+
+Note: the reorder test was briefly skipped during this effort and then **un-skipped** — the skip
+was based on failures observed before the state fix landed, and the test works once the flake is
+addressed. Coverage retained.
 
 **General lesson for this suite:** its worst failures come from shared mutable state on one
 staging user, not from bad selectors. Any test that writes persisted settings needs an explicit
