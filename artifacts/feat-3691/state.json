@@ -21,16 +21,16 @@
       "updated_at": "2026-07-19T05:25:07.168781Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-19T05:25:40.714621Z"
     }
   },
   "tasks": [
     {
       "name": "add-photo-rule-candidates-page-method",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-19T05:25:40.970823Z"
     },
     {
       "name": "migrate-reapplyrules-handler-to-paginated-fetch",
