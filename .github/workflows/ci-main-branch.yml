@@ -58,9 +58,8 @@ jobs:
         continue-on-error: true
         uses: tailscale/github-action@v4
         with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
+          # Tagged, reusable, ephemeral auth key (carries tag:ci itself, so no tags input).
+          authkey: ${{ secrets.TS_AUTHKEY }}
 
       - name: 🧪 Run tests with coverage
         working-directory: ./frontend
@@ -138,9 +137,8 @@ jobs:
         continue-on-error: true
         uses: tailscale/github-action@v4
         with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
+          # Tagged, reusable, ephemeral auth key (carries tag:ci itself, so no tags input).
+          authkey: ${{ secrets.TS_AUTHKEY }}
 
       - name: 🧪 Run tests with coverage (excluding Playwright integration tests)
         run: |
