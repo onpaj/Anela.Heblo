@@ -54,6 +54,41 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 
 ---
 
+## Second verification pass (independent re-run of every module)
+
+| Module | Result |
+| ------ | ------ |
+| catalog | 84 passed, 3 skipped |
+| issued-invoices | 29 passed |
+| stock-operations | 57 passed |
+| manufacturing | 9 passed |
+| marketing | 36 passed |
+| transport | 42 passed |
+| finance | 3 passed |
+| baleni | 2 passed |
+| leaflet-generator | 2 passed, 2 skipped |
+| terminal | 4 passed, 1 skipped (app bug #3) |
+| **core** | **not yet stable — see below** |
+
+### core: shared-user state poisoning
+
+Dashboard settings persist **server-side per user**, and staging has a single shared E2E user.
+`GetUserSettingsHandler:73-76` back-fills AutoShow tiles that are *absent* from the saved set,
+but NOT tiles explicitly recorded `IsVisible=false`. So once any run (or any human) hides the
+`backgroundtaskstatus` tile, it stays hidden forever and
+`should display AutoShow tiles automatically` fails — passing in isolation, failing in full runs.
+
+Mitigations applied:
+- the reorder test now restores tile order (best-effort, unasserted — dnd-kit keyboard reorder
+  over a mixed-`col-span` grid is not a reliable adjacent swap)
+- the AutoShow test now enables the tile via `POST /api/dashboard/tiles/{tileId}/enable` first
+
+**General lesson for this suite:** its worst failures come from shared mutable state on one
+staging user, not from bad selectors. Any test that writes persisted settings needs an explicit
+precondition, because a test that only passes on a clean account fails unpredictably ever after.
+
+---
+
 ## Module status
 
 | Module | Result | Detail |

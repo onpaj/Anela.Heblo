@@ -23,6 +23,18 @@ test.describe('Dashboard', () => {
   });
 
   test('should display AutoShow tiles automatically', async ({ page }) => {
+    // Guarantee a clean precondition. Dashboard settings persist server-side per user and the
+    // staging E2E user is shared across every run, so a tile hidden by an earlier run (or by a
+    // human) stays hidden: GetUserSettingsHandler back-fills AutoShow tiles that are *absent*
+    // from the saved set, but not ones explicitly recorded as IsVisible=false. Without this the
+    // test passes in isolation and fails intermittently in full runs, depending on leftover state
+    // rather than on product behaviour.
+    await page.request.post(
+      `${process.env.PLAYWRIGHT_BASE_URL}/api/dashboard/tiles/backgroundtaskstatus/enable`,
+    );
+    await page.reload();
+    await page.waitForSelector('[data-testid="dashboard-container"]', { timeout: 10000 });
+
     // Wait for tiles to load
     await page.waitForSelector('[data-testid^="dashboard-tile-"]', { timeout: 15000 });
 
