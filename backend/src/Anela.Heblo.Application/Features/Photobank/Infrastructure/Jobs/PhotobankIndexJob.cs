@@ -7,6 +7,8 @@ namespace Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
 
 public class PhotobankIndexJob : IRecurringJob
 {
+    private const int BatchSize = 200;
+
     private readonly IPhotobankGraphService _graphService;
     private readonly IPhotobankRepository _repo;
     private readonly IRecurringJobStatusChecker _statusChecker;
@@ -73,11 +75,23 @@ public class PhotobankIndexJob : IRecurringJob
             var activeTagRules = await _repo.GetActiveTagRulesAsync(ct);
 
             int upserted = 0, deleted = 0;
+            var pendingBatch = new List<GraphPhotoItem>();
 
             foreach (var item in delta.Items)
             {
                 if (item.IsDeleted)
                 {
+                    // Flush any pending upsert batch first, so this delete's lookup
+                    // always sees every prior item in the delta as committed — matching
+                    // today's per-item-flush guarantee and preventing orphaned rows when
+                    // an item is upserted then deleted within the same delta.
+                    if (pendingBatch.Count > 0)
+                    {
+                        await UpsertPhotoBatchAsync(pendingBatch, activeTagRules, root.DriveId, ct);
+                        upserted += pendingBatch.Count;
+                        pendingBatch.Clear();
+                    }
+
                     var existing = await _repo.GetPhotoBySharePointFileIdAsync(item.ItemId, ct);
                     if (existing != null)
                     {
@@ -87,9 +101,21 @@ public class PhotobankIndexJob : IRecurringJob
                 }
                 else
                 {
-                    await UpsertPhotoAsync(item, activeTagRules, root.DriveId, ct);
-                    upserted++;
+                    pendingBatch.Add(item);
+                    if (pendingBatch.Count == BatchSize)
+                    {
+                        await UpsertPhotoBatchAsync(pendingBatch, activeTagRules, root.DriveId, ct);
+                        upserted += pendingBatch.Count;
+                        pendingBatch.Clear();
+                    }
                 }
+            }
+
+            if (pendingBatch.Count > 0)
+            {
+                await UpsertPhotoBatchAsync(pendingBatch, activeTagRules, root.DriveId, ct);
+                upserted += pendingBatch.Count;
+                pendingBatch.Clear();
             }
 
             root.DeltaLink = delta.NewDeltaLink;
@@ -108,52 +134,90 @@ public class PhotobankIndexJob : IRecurringJob
         }
     }
 
-    private async Task UpsertPhotoAsync(GraphPhotoItem item, List<TagRule> tagRules, string? driveId, CancellationToken ct)
+    private async Task UpsertPhotoBatchAsync(IReadOnlyList<GraphPhotoItem> batch, List<TagRule> tagRules, string? driveId, CancellationToken ct)
     {
-        var photo = await _repo.GetPhotoBySharePointFileIdAsync(item.ItemId, ct);
+        // Phase A: upsert Photo entities for the whole batch, single flush.
+        // A batch-local cache (keyed by SharePointFileId) guards against duplicate rows
+        // when the same SharePointFileId appears twice as a non-deleted item in one batch —
+        // both occurrences resolve to, and mutate, the same tracked Photo instance.
+        var photosByFileId = new Dictionary<string, Photo>();
 
-        var pathChanged = photo != null &&
-            (photo.FolderPath != item.FolderPath || photo.FileName != item.Name);
-
-        if (photo == null)
+        foreach (var item in batch)
         {
-            photo = new Photo
+            if (!photosByFileId.TryGetValue(item.ItemId, out var photo))
             {
-                SharePointFileId = item.ItemId,
-                IndexedAt = DateTime.UtcNow,
-            };
-            await _repo.AddPhotoAsync(photo, ct);
+                photo = await _repo.GetPhotoBySharePointFileIdAsync(item.ItemId, ct);
+            }
+
+            var pathChanged = photo != null &&
+                (photo.FolderPath != item.FolderPath || photo.FileName != item.Name);
+
+            if (photo == null)
+            {
+                photo = new Photo
+                {
+                    SharePointFileId = item.ItemId,
+                    IndexedAt = DateTime.UtcNow,
+                };
+                await _repo.AddPhotoAsync(photo, ct);
+            }
+
+            photo.FileName = item.Name;
+            photo.FolderPath = item.FolderPath;
+            photo.SharePointWebUrl = item.WebUrl;
+            photo.FileSizeBytes = item.FileSizeBytes;
+            photo.ModifiedAt = item.LastModifiedAt ?? DateTime.UtcNow;
+            photo.DriveId = driveId;
+
+            if (pathChanged)
+                photo.LastAutoTaggedAt = null;
+
+            photosByFileId[item.ItemId] = photo;
         }
-
-        photo.FileName = item.Name;
-        photo.FolderPath = item.FolderPath;
-        photo.SharePointWebUrl = item.WebUrl;
-        photo.FileSizeBytes = item.FileSizeBytes;
-        photo.ModifiedAt = item.LastModifiedAt ?? DateTime.UtcNow;
-        photo.DriveId = driveId;
-
-        if (pathChanged)
-            photo.LastAutoTaggedAt = null;
 
         await _repo.SaveChangesAsync(ct);
 
-        // Re-apply rule tags: remove existing Rule-source tags, add new ones
-        var existingRuleTags = await _repo.GetPhotoTagsByPhotoAndSourceAsync(photo.Id, PhotoTagSource.Rule, ct);
-        await _repo.RemovePhotoTagsAsync(existingRuleTags, ct);
+        // Phase B: re-apply rule tags for the whole batch, single flush.
+        // Tag names are pre-resolved once for the whole batch via the bulk
+        // GetOrCreateTagsAsync, not per item via the singular GetOrCreateTagAsync —
+        // the singular method has a hidden internal SaveChangesAsync on new-tag
+        // creation that would defeat the round-trip reduction (mirrors ReapplyRulesHandler).
+        var itemMatches = new List<(GraphPhotoItem Item, IReadOnlyList<string> TagNames)>(batch.Count);
+        var allMatchingTagNames = new HashSet<string>();
 
-        var matchingTagNames = TagRuleMatcher.GetMatchingTags(item.FolderPath, item.Name, tagRules);
-        foreach (var tagName in matchingTagNames)
+        foreach (var item in batch)
         {
-            var tag = await _repo.GetOrCreateTagAsync(tagName, ct);
-            if (await _repo.PhotoTagExistsAsync(photo.Id, tag!.Id, ct)) continue;
+            var matches = TagRuleMatcher.GetMatchingTags(item.FolderPath, item.Name, tagRules);
+            itemMatches.Add((item, matches));
+            foreach (var name in matches)
+                allMatchingTagNames.Add(name);
+        }
 
-            await _repo.AddPhotoTagAsync(new PhotoTag
+        var tagIdsByName = allMatchingTagNames.Count > 0
+            ? await _repo.GetOrCreateTagsAsync(allMatchingTagNames, ct)
+            : new Dictionary<string, int>();
+
+        foreach (var (item, tagNames) in itemMatches)
+        {
+            var photo = photosByFileId[item.ItemId];
+
+            // Re-apply rule tags: remove existing Rule-source tags, add new ones
+            var existingRuleTags = await _repo.GetPhotoTagsByPhotoAndSourceAsync(photo.Id, PhotoTagSource.Rule, ct);
+            await _repo.RemovePhotoTagsAsync(existingRuleTags, ct);
+
+            foreach (var tagName in tagNames)
             {
-                PhotoId = photo.Id,
-                TagId = tag!.Id,
-                Source = PhotoTagSource.Rule,
-                CreatedAt = DateTime.UtcNow,
-            }, ct);
+                if (!tagIdsByName.TryGetValue(tagName, out var tagId)) continue;
+                if (await _repo.PhotoTagExistsAsync(photo.Id, tagId, ct)) continue;
+
+                await _repo.AddPhotoTagAsync(new PhotoTag
+                {
+                    PhotoId = photo.Id,
+                    TagId = tagId,
+                    Source = PhotoTagSource.Rule,
+                    CreatedAt = DateTime.UtcNow,
+                }, ct);
+            }
         }
 
         await _repo.SaveChangesAsync(ct);

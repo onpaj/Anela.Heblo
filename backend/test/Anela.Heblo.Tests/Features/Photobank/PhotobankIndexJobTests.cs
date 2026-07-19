@@ -92,10 +92,9 @@ public class PhotobankIndexJobTests
             .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var tag = new Tag { Id = 42, Name = "produkty" };
         _repoMock
-            .Setup(r => r.GetOrCreateTagAsync("produkty", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tag);
+            .Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int> { ["produkty"] = 42 });
 
         _repoMock
             .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
@@ -196,10 +195,9 @@ public class PhotobankIndexJobTests
             .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var tag = new Tag { Id = 42, Name = "produkty" };
         _repoMock
-            .Setup(r => r.GetOrCreateTagAsync("produkty", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tag);
+            .Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int> { ["produkty"] = 42 });
 
         _repoMock
             .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
