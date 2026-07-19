@@ -78,41 +78,41 @@ export PLAYWRIGHT_BASE_URL="$STAGING_URL"
 export CI=false  # Disable CI mode for better debugging
 
 # Define available modules
-MODULES=("catalog" "issued-invoices" "stock-operations" "transport" "manufacturing" "core" "marketing" "finance" "baleni" "terminal")
+MODULES=("catalog" "issued-invoices" "stock-operations" "transport" "manufacturing" "core" "marketing" "finance" "baleni" "leaflet-generator" "terminal")
 
 # Build test command
-PLAYWRIGHT_CMD="npx playwright test"
+PLAYWRIGHT_CMD=(npx playwright test)
 
 # Add module or pattern filter if provided
 if [ -n "$1" ]; then
     # Check if first parameter is a module name
     if [[ " ${MODULES[@]} " =~ " ${1} " ]]; then
         echo -e "${BLUE}🎯 Running module: ${YELLOW}$1${NC}"
-        PLAYWRIGHT_CMD="$PLAYWRIGHT_CMD --project=$1"
+        PLAYWRIGHT_CMD+=("--project=$1")
     else
         # Otherwise treat as test pattern
         echo -e "${BLUE}🎯 Running tests matching pattern: ${YELLOW}$1${NC}"
-        PLAYWRIGHT_CMD="$PLAYWRIGHT_CMD $1"
+        PLAYWRIGHT_CMD+=("$1")
     fi
 
     # Add test name filter if provided (second parameter)
     if [ -n "$2" ]; then
         echo -e "${BLUE}🔍 Filtering for test: ${YELLOW}$2${NC}"
-        PLAYWRIGHT_CMD="$PLAYWRIGHT_CMD -g \"$2\""
+        PLAYWRIGHT_CMD+=(-g "$2")
     fi
 else
     echo -e "${BLUE}🎯 Running all E2E tests (all modules)${NC}"
 fi
 
 # Additional Playwright options
-PLAYWRIGHT_CMD="$PLAYWRIGHT_CMD --config=playwright.config.ts"
+PLAYWRIGHT_CMD+=(--config=playwright.config.ts)
 
 echo -e "${BLUE}📂 Test Directory: ${TEST_DIR}${NC}"
-echo -e "${BLUE}🚀 Running Command: ${PLAYWRIGHT_CMD}${NC}"
+echo -e "${BLUE}🚀 Running Command: ${PLAYWRIGHT_CMD[*]}${NC}"
 echo ""
 
 # Run the tests
-if $PLAYWRIGHT_CMD; then
+if "${PLAYWRIGHT_CMD[@]}"; then
     echo ""
     echo -e "${GREEN}✅ Tests completed successfully!${NC}"
     
