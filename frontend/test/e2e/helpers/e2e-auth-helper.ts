@@ -1,6 +1,7 @@
 import { config } from 'dotenv';
 import * as path from 'path';
 import { waitForPageLoad, waitForLoadingComplete } from './wait-helpers';
+import { suppressChangelogToaster } from './changelog-toaster-helper';
 
 // Load test environment variables from .env.test if it exists (local development)
 // In CI, environment variables are provided directly
@@ -119,6 +120,11 @@ export async function createE2EAuthSession(page: any): Promise<void> {
 }
 
 export async function navigateToApp(page: any): Promise<void> {
+  // Stop the changelog toaster from rendering. It never auto-hides and overlays the
+  // top-right of every page, intercepting clicks on filter/action controls beneath it.
+  // Must run before the first navigation so the init script applies to every page load.
+  await suppressChangelogToaster(page);
+
   // Use service principal authentication for E2E tests
   await createE2EAuthSession(page);
   await navigateToAppWithServicePrincipal(page);

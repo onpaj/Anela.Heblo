@@ -1,0 +1,37 @@
+# ReportPortal MCP server — OPTIONAL overlay (Track 1: triage / auto-healing)
+#
+# This is NOT needed to get test results into ReportPortal. It only matters for the
+# triage-agent track, which reads launch history / analysis from ReportPortal over MCP.
+#
+# ⚠️ VERIFY BEFORE USE. The official MCP server's image name, env var names, and HTTP-mode
+#    flags were NOT confirmed against upstream when this file was written — the repo was not
+#    reachable from the automation environment. Check the current docs at
+#    https://github.com/reportportal/mcp-server and reconcile the image tag + env keys below
+#    before relying on this. Treat the values here as a template, not gospel.
+#
+# Usage (once verified):
+#   docker compose -f docker-compose.yml -f mcp-server.compose.yml up -d
+#
+services:
+  mcp-server:
+    image: reportportal/mcp-server:latest
+    restart: unless-stopped
+    depends_on:
+      - gateway
+    environment:
+      # Base URL of the ReportPortal instance this MCP server talks to (REST API).
+      RP_HOST: ${RP_MCP_HOST:-http://gateway:8080}
+      # Personal access token minted in the RP UI (Profile → API keys).
+      RP_API_TOKEN: ${RP_MCP_API_TOKEN}
+      # Default project the triage agent queries.
+      RP_PROJECT: ${RP_MCP_PROJECT:-heblo}
+      # Serve over HTTP (streamable) so a scheduled routine can reach a shared instance,
+      # rather than stdio. Confirm the exact flag/var name with upstream docs.
+      RP_MCP_TRANSPORT: http
+    ports:
+      - "8000:8000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 50m
+        max-file: "3"
