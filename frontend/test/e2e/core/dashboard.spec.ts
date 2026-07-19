@@ -123,6 +123,31 @@ test.describe('Dashboard', () => {
         ].join('|');
       }, { timeout: 10000 })
       .not.toBe([firstTileId, secondTileId].join('|'));
+
+    // Restore the original order. useSaveDashboardSettings persists this server-side for the
+    // shared staging E2E user, so without an undo the new order leaks into every later test and
+    // every later run - which previously made sibling tests (e.g. the AutoShow tile assertion)
+    // pass in isolation but fail in a full-module run.
+    //
+    // Undo with the same ArrowRight motion rather than ArrowLeft: the swap is symmetric, so
+    // moving whichever tile is now first one place right restores the original pair. ArrowLeft
+    // does not walk the tile back in dnd-kit's grid layout - it was verified not to restore.
+    const restoreHandle = page
+      .locator('[data-testid^="dashboard-tile-"]')
+      .nth(0)
+      .locator('button[title="Přetáhnout pro změnu pořadí"]');
+    await restoreHandle.focus();
+    await restoreHandle.press(' ');
+    await restoreHandle.press('ArrowRight');
+    await restoreHandle.press(' ');
+
+    // Best-effort cleanup, deliberately NOT asserted. dnd-kit's keyboard reorder over a
+    // mixed-col-span grid is not a reliable adjacent swap, so demanding an exact restored order
+    // makes this test flaky without testing any product behaviour - the assertion under test is
+    // the reorder above. Give the persist a moment to land, then move on.
+    await expect
+      .poll(async () => tiles.nth(0).getAttribute('data-testid'), { timeout: 5000 })
+      .toBeTruthy();
   });
 
   test('should display empty state for production tile with no orders', async ({ page }) => {
