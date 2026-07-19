@@ -83,6 +83,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
+    "@reportportal/agent-js-jest": "^5.2.2",
+    "@reportportal/agent-js-playwright": "^5.4.2",
     "@types/react-router-dom": "^5.3.3",
     "eslint": "^8.57.0",
     "husky": "^9.1.7",
