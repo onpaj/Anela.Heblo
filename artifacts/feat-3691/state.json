@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-photo-rule-candidates-page-method",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-19T05:25:40.970823Z"
+      "updated_at": "2026-07-19T05:45:49.201875Z"
     },
     {
       "name": "migrate-reapplyrules-handler-to-paginated-fetch",
