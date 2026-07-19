@@ -197,10 +197,24 @@ public class PhotobankIndexJob : IRecurringJob
             ? await _repo.GetOrCreateTagsAsync(allMatchingTagNames, ct)
             : new Dictionary<string, int>();
 
+        // Dedupe by Photo before applying tags: when the same SharePointFileId appears
+        // twice as a non-deleted item in one batch, both occurrences share the same
+        // tracked Photo instance (see photosByFileId above), but the tag removal/add
+        // loop below reads existing tags via DB queries that can't see this batch's own
+        // unflushed changes yet. Processing the same photo twice in that loop would
+        // either leave stale tags behind (different rules matched) or double-insert the
+        // same (PhotoId, TagId) pair and crash SaveChangesAsync (same rule matched
+        // twice). Collapsing to one entry per Photo — keeping the last item's matches,
+        // mirroring Phase A's last-write-wins collapse — avoids both failure modes.
+        var tagNamesByPhoto = new Dictionary<Photo, IReadOnlyList<string>>();
         foreach (var (item, tagNames) in itemMatches)
         {
             var photo = photosByFileId[item.ItemId];
+            tagNamesByPhoto[photo] = tagNames;
+        }
 
+        foreach (var (photo, tagNames) in tagNamesByPhoto)
+        {
             // Re-apply rule tags: remove existing Rule-source tags, add new ones
             var existingRuleTags = await _repo.GetPhotoTagsByPhotoAndSourceAsync(photo.Id, PhotoTagSource.Rule, ct);
             await _repo.RemovePhotoTagsAsync(existingRuleTags, ct);
