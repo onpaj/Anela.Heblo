@@ -50,6 +50,18 @@ jobs:
         working-directory: ./frontend
         run: npm install --legacy-peer-deps
 
+      # Join the Tailnet so the RP agent can reach the self-hosted ReportPortal
+      # (nas.*.ts.net). Gated on RP_ENABLE and fail-safe: if the connection can't be
+      # made, reporting just no-ops (it's non-fatal) rather than breaking the job.
+      - name: 🔗 Connect to Tailscale (for ReportPortal)
+        if: vars.RP_ENABLE == 'true'
+        continue-on-error: true
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
       - name: 🧪 Run tests with coverage
         working-directory: ./frontend
         run: |
@@ -119,6 +131,16 @@ jobs:
           dotnet build backend/test/Anela.Heblo.Tests --configuration Release --no-restore
           dotnet build backend/test/Anela.Heblo.Adapters.Shoptet.Tests --configuration Release --no-restore
           dotnet build backend/test/Anela.Heblo.Adapters.Flexi.Tests --configuration Release --no-restore
+
+      # See the frontend job for rationale — fail-safe Tailnet join for ReportPortal.
+      - name: 🔗 Connect to Tailscale (for ReportPortal)
+        if: vars.RP_ENABLE == 'true'
+        continue-on-error: true
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
 
       - name: 🧪 Run tests with coverage (excluding Playwright integration tests)
         run: |

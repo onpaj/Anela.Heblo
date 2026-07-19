@@ -289,6 +289,17 @@ jobs:
           fi
           echo "✅ Azure credentials validated"
 
+      # Join the Tailnet so the Playwright RP agent can reach the self-hosted
+      # ReportPortal (nas.*.ts.net). Gated on RP_ENABLE and fail-safe.
+      - name: 🔗 Connect to Tailscale (for ReportPortal)
+        if: vars.RP_ENABLE == 'true'
+        continue-on-error: true
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
       - name: 🧪 Run E2E tests for module
         id: run-tests
         working-directory: ./frontend
