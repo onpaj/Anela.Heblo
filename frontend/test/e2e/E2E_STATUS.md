@@ -15,9 +15,29 @@
 | 🗑️ | Test no longer meaningful → deleted |
 | ⏭️ | Pre-existing `.skip` inherited from earlier effort |
 
+## Fixed root causes
+
+### Changelog toaster intercepted clicks (57 of 81 baseline failures)
+
+The changelog toaster renders `fixed top-4 right-4 z-50` and deliberately never
+auto-hides (`useChangelogToaster`: _"Do not start auto-hide - user must close manually"_).
+Every Playwright test starts with empty `localStorage`, so `isNewVersion()` was always
+true and the toaster stayed pinned over the filter/action controls for the whole test.
+Playwright's click log: `subtree intercepts pointer events / 14 × retrying click action`.
+
+Because helpers do `Promise.all([responsePromise, button.click()])`, the 30 s
+`waitForResponse` rejected first and **masked** the real click failure — which is why
+the symptom looked like a dead API endpoint. `/api/catalog` was correct and returning 200
+all along.
+
+Fixed in tests (not app — the toaster is intended behavior for real users) via
+`helpers/changelog-toaster-helper.ts`, called from `navigateToApp()`.
+
 ## Application bugs found (do not fix — report only)
 
-_None recorded yet._
+| # | Area | Symptom | Status |
+| - | ---- | ------- | ------ |
+| 1 | catalog filter | `/api/catalog?productName=Kr%C3%A9m` → HTTP 200 but **0 rows**, while unfiltered returns 20. Possible diacritics/case handling bug in backend query. | ⚠️ **Unverified** — may just be staging data. Needs confirmation. |
 
 ---
 
@@ -55,14 +75,14 @@ Filled in from the baseline run.
 | catalog/sorting-with-filters.spec.ts | ⬜ | |
 | catalog/text-search-filters.spec.ts | ⬜ | |
 | catalog/ui.spec.ts | ⬜ | |
-| core/changelog.spec.ts | ⬜ | |
-| core/dashboard.spec.ts | ⬜ | |
-| core/invoice-classification-history-actions.spec.ts | ⬜ | |
-| core/invoice-classification-history-filters.spec.ts | ⬜ | |
-| core/invoice-classification-history.spec.ts | ⬜ | |
-| core/recurring-jobs-management.spec.ts | ⬜ | |
-| core/sidebar-navigation.spec.ts | ⬜ | |
-| core/staging-auth.spec.ts | ⬜ | |
+| core/changelog.spec.ts | ⚠️ | 9/10 pass. FAIL: `should display version history in modal` — pre-existing (fails with and without toaster fix). Needs triage. |
+| core/dashboard.spec.ts | ⚠️ | FAIL: `should display AutoShow tiles automatically`, `should support drag and drop to reorder tiles` |
+| core/invoice-classification-history-actions.spec.ts | ✅ | passing (some inherited `.skip`) |
+| core/invoice-classification-history-filters.spec.ts | ✅ | passing (some inherited `.skip`) |
+| core/invoice-classification-history.spec.ts | ✅ | |
+| core/recurring-jobs-management.spec.ts | ✅ | |
+| core/sidebar-navigation.spec.ts | ⚠️ | FAIL: `should display Anela section before Sklad and Administrace` |
+| core/staging-auth.spec.ts | ⚠️ | FAIL: `should validate API authentication status` |
 | finance/financial-overview-mobile.spec.ts | ⬜ | |
 | issued-invoices/filters.spec.ts | ⬜ | |
 | issued-invoices/navigation.spec.ts | ⬜ | |
