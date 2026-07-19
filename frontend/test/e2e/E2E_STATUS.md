@@ -55,7 +55,7 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 | ------ | ------ | ------ |
 | catalog | ✅ **green** | 84 passed, 3 skipped, 0 failed (was ~70 failing pre-toaster-fix) |
 | core | ✅ **green** | 72 passed, 8 skipped, 0 failed |
-| baleni | 🔴 | **0/5** — 2 blocked by disabled scan input, 3 throw on missing `TestPackingOrders` fixtures; subagent investigating |
+| baleni | ✅ **green** | 2 passed, 0 failed — tests now pick a balič first (scan input is disabled until then); 3 stale shipment-creation tests removed after #1502 moved orchestration to the backend |
 | finance | 🔴 | **0/3** — all fail "element not found"; subagent investigating blank-render vs stale labels |
 | issued-invoices | ✅ **green** | 29 passed, 0 failed (was 9 failing) |
 | leaflet-generator | ✅ **green** | 2 passed, 2 skipped (role-gated: marketing_reader), 0 failed |
