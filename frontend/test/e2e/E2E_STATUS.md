@@ -50,19 +50,19 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 
 ## Module status
 
-| Module | Spec files | Tests | Status |
-| ------ | ---------- | ----- | ------ |
-| baleni | 1 | 5 | ⬜ |
-| catalog | 9 | 84 | ⬜ |
-| core | 8 | 77 | ⬜ |
-| finance | 1 | 3 | ⬜ |
-| issued-invoices | 5 | 29 | ⬜ |
-| leaflet-generator | 1 | 4 | ⬜ |
-| manufacturing | 5 | 9 | ⬜ |
-| marketing | 5 | 36 | ⬜ |
-| stock-operations | 9 | 57 | ⬜ |
-| terminal | 1 | 5 | ⬜ |
-| transport | 7 | 42 | ⬜ |
+| Module | Result | Detail |
+| ------ | ------ | ------ |
+| catalog | ✅ **green** | 84 passed, 3 skipped, 0 failed (was ~70 failing pre-toaster-fix) |
+| core | ✅ **green** | 72 passed, 8 skipped, 0 failed |
+| baleni | ⬜ | baseline in progress |
+| finance | ⬜ | baseline in progress |
+| issued-invoices | ⬜ | 9 failures in partial baseline; re-measuring post-toaster-fix |
+| leaflet-generator | ⬜ | baseline in progress |
+| manufacturing | ⬜ | baseline in progress |
+| marketing | ⬜ | baseline in progress |
+| stock-operations | ⬜ | 2 failures in partial baseline; re-measuring post-toaster-fix |
+| terminal | ⬜ | baseline in progress |
+| transport | ⬜ | baseline in progress |
 
 ---
 
@@ -73,15 +73,15 @@ Filled in from the baseline run.
 | Spec file | Result | Notes |
 | --------- | ------ | ----- |
 | baleni/packing.spec.ts | ⬜ | |
-| catalog/clear-filters.spec.ts | ⬜ | |
-| catalog/combined-filters.spec.ts | ⬜ | |
-| catalog/filter-edge-cases.spec.ts | ⬜ | |
-| catalog/margins-chart.spec.ts | ⬜ | |
-| catalog/pagination-with-filters.spec.ts | ⬜ | |
-| catalog/product-type-filter.spec.ts | ⬜ | |
-| catalog/sorting-with-filters.spec.ts | ⬜ | |
-| catalog/text-search-filters.spec.ts | ⬜ | |
-| catalog/ui.spec.ts | ⬜ | |
+| catalog/clear-filters.spec.ts | ✅ | |
+| catalog/combined-filters.spec.ts | ✅ | |
+| catalog/filter-edge-cases.spec.ts | ✅ | |
+| catalog/margins-chart.spec.ts | ✅ | |
+| catalog/pagination-with-filters.spec.ts | ✅ | |
+| catalog/product-type-filter.spec.ts | ✅ | |
+| catalog/sorting-with-filters.spec.ts | ✅ | |
+| catalog/text-search-filters.spec.ts | ✅ | |
+| catalog/ui.spec.ts | ✅ | |
 | core/changelog.spec.ts | ⚠️ | 9/10 pass. FAIL: `should display version history in modal` — pre-existing (fails with and without toaster fix). Needs triage. |
 | core/dashboard.spec.ts | ⚠️ | FAIL: `should display AutoShow tiles automatically`, `should support drag and drop to reorder tiles` |
 | core/invoice-classification-history-actions.spec.ts | ✅ | passing (some inherited `.skip`) |
