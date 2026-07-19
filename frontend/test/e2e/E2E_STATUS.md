@@ -44,6 +44,7 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 
 - `core/dashboard.spec.ts` "should support drag and drop to reorder tiles" is **destructive**: it persists a new tile order for the shared staging E2E user via `useSaveDashboardSettings`, so repeated runs keep shuffling that user's dashboard.
 - `core/dashboard.spec.ts:53` still uses a bare `waitForTimeout(1000)` — passes today, same latent-flake class as the ones removed.
+- `navigateToIssuedInvoices` logs `❌ Zákaznické menu item not found` on every run and silently falls back to direct URL navigation. Tests pass either way, but the sidebar path in that helper is dead in practice and may be masking a stale menu selector.
 - `core/changelog.spec.ts` "should display version history in modal" is **flaky**: observed failing twice standalone (both with and without the toaster fix) but passing in a full-module run. Needs a stability check.
 
 ---
@@ -56,11 +57,11 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 | core | ✅ **green** | 72 passed, 8 skipped, 0 failed |
 | baleni | ⬜ | baseline in progress |
 | finance | ⬜ | baseline in progress |
-| issued-invoices | ⬜ | 9 failures in partial baseline; re-measuring post-toaster-fix |
+| issued-invoices | ✅ **green** | 29 passed, 0 failed (was 9 failing) |
 | leaflet-generator | ⬜ | baseline in progress |
 | manufacturing | ⬜ | baseline in progress |
 | marketing | ⬜ | baseline in progress |
-| stock-operations | ⬜ | 2 failures in partial baseline; re-measuring post-toaster-fix |
+| stock-operations | ✅ **green** | 57 passed, 0 failed (was 2 failing) |
 | terminal | ⬜ | baseline in progress |
 | transport | ⬜ | baseline in progress |
 
@@ -91,11 +92,11 @@ Filled in from the baseline run.
 | core/sidebar-navigation.spec.ts | 🔧 | added `toHaveCount(3)` wait — `allTextContents()` does not auto-wait, ran before React rendered |
 | core/staging-auth.spec.ts | 🐛 | `should validate API authentication status` skipped — blocked by backend bug #2 |
 | finance/financial-overview-mobile.spec.ts | ⬜ | |
-| issued-invoices/filters.spec.ts | ⬜ | |
-| issued-invoices/navigation.spec.ts | ⬜ | |
-| issued-invoices/pagination.spec.ts | ⬜ | |
-| issued-invoices/sorting.spec.ts | ⬜ | |
-| issued-invoices/status-badges.spec.ts | ⬜ | |
+| issued-invoices/filters.spec.ts | ✅ | |
+| issued-invoices/navigation.spec.ts | 🔧 | scoped ambiguous `Celkem faktur` locator (heading rendered twice by design) |
+| issued-invoices/pagination.spec.ts | ✅ | |
+| issued-invoices/sorting.spec.ts | ✅ | |
+| issued-invoices/status-badges.spec.ts | ✅ | |
 | leaflet-generator/leaflet-doc-management.spec.ts | ⬜ | |
 | manufacturing/batch-planning-error-handling.spec.ts | ⬜ | |
 | manufacturing/batch-planning-workflow.spec.ts | ⬜ | |
@@ -107,15 +108,15 @@ Filled in from the baseline run.
 | marketing/grid-view.spec.ts | ⬜ | |
 | marketing/loading.spec.ts | ⬜ | |
 | marketing/mobile-agenda.spec.ts | ⬜ | |
-| stock-operations/accept.spec.ts | ⬜ | |
-| stock-operations/badges.spec.ts | ⬜ | |
-| stock-operations/filters.spec.ts | ⬜ | |
-| stock-operations/navigation.spec.ts | ⬜ | |
-| stock-operations/panel.spec.ts | ⬜ | |
-| stock-operations/retry.spec.ts | ⬜ | |
-| stock-operations/sorting.spec.ts | ⬜ | |
-| stock-operations/source-filter.spec.ts | ⬜ | |
-| stock-operations/state-filter.spec.ts | ⬜ | |
+| stock-operations/accept.spec.ts | ✅ | |
+| stock-operations/badges.spec.ts | ✅ | |
+| stock-operations/filters.spec.ts | ✅ | |
+| stock-operations/navigation.spec.ts | ✅ | |
+| stock-operations/panel.spec.ts | ✅ | |
+| stock-operations/retry.spec.ts | ✅ | |
+| stock-operations/sorting.spec.ts | ✅ | |
+| stock-operations/source-filter.spec.ts | ✅ | |
+| stock-operations/state-filter.spec.ts | ✅ | |
 | terminal/lot-identification.spec.ts | ⬜ | |
 | transport/box-creation.spec.ts | ⬜ | |
 | transport/box-items.spec.ts | ⬜ | |
