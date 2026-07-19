@@ -119,22 +119,35 @@ test.describe('Dashboard', () => {
     // the tiles have mixed col-spans, so closestCenter collision detection resolves
     // the dragged (large) tile back onto itself and the drop is a no-op.
     // Keyboard: Space picks up, ArrowRight moves to the next sortable, Space drops.
-    await dragHandle.focus();
-    await dragHandle.press(' ');
-    await dragHandle.press('ArrowRight');
-    await dragHandle.press(' ');
+    //
+    // The pick-up does not always register - if the keypress lands while the grid is still
+    // rendering, dnd-kit drops it and the order never changes. That made this test fail roughly
+    // two runs in three. Retry the whole sequence until the order actually moves rather than
+    // issuing it once and hoping.
+    const originalOrder = [firstTileId, secondTileId].join('|');
+    const currentOrder = async () => {
+      const t = page.locator('[data-testid^="dashboard-tile-"]');
+      return [
+        await t.nth(0).getAttribute('data-testid'),
+        await t.nth(1).getAttribute('data-testid'),
+      ].join('|');
+    };
 
-    // The reorder is persisted through useSaveDashboardSettings, so poll the DOM
-    // until the order actually changes rather than sleeping a fixed amount.
     await expect
-      .poll(async () => {
-        const tilesAfterDrag = page.locator('[data-testid^="dashboard-tile-"]');
-        return [
-          await tilesAfterDrag.nth(0).getAttribute('data-testid'),
-          await tilesAfterDrag.nth(1).getAttribute('data-testid'),
-        ].join('|');
-      }, { timeout: 10000 })
-      .not.toBe([firstTileId, secondTileId].join('|'));
+      .poll(
+        async () => {
+          if ((await currentOrder()) === originalOrder) {
+            await dragHandle.focus();
+            await dragHandle.press(' ');
+            await dragHandle.press('ArrowRight');
+            await dragHandle.press(' ');
+            await page.waitForTimeout(500);
+          }
+          return currentOrder();
+        },
+        { timeout: 25000, intervals: [500] },
+      )
+      .not.toBe(originalOrder);
 
     // Restore the original order. useSaveDashboardSettings persists this server-side for the
     // shared staging E2E user, so without an undo the new order leaks into every later test and

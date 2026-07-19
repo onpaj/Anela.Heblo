@@ -44,6 +44,43 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 | 3 | Terminal lot identification — **user-facing** | Scanning an already-assigned (or unknown) container label tells the operator **"Chyba připojení."** (connection error). Backend is correct: `POST /api/material-containers` returns `409` with `{"errorCode":"MaterialContainerCodeExists","params":{...}}`. But the NSwag client (`api-client.ts:8140`) throws for any status other than 200/204, so React Query routes it to `onError` (`ReceiveScreen.tsx:124-127`) which cannot read the body and emits the generic message. This makes `ReceiveScreen.tsx:106-118` **dead code** — both the `MaterialContainerCodeExists` and `UnknownMaterialContainerCode` branches are unreachable, since `ErrorCodes.cs:351` maps the former to 409 and the latter to 400. A warehouse operator scanning a duplicate label is told their internet is down. | 🐛 **Confirmed**, not fixed. Test skipped with pointer. |
 | 2 | `GET /api/e2etest/auth-status` | Returns **HTTP 400** `"An item with the same key has already been added. Key: .../claims/role"`. `E2ETestController.cs:150` does `User.Claims.ToDictionary(c => c.Type, c => c.Value)`; `ToDictionary` throws on duplicate keys and the E2E identity carries 11+ `ClaimTypes.Role` claims (`E2ESessionService.CreateSyntheticUserClaims`), plus one per permission from `PermissionClaimsTransformation`. Endpoint has been unreachable since the 2nd role claim landed. Fix: group by type into `string[]`. | 🐛 **Confirmed**, not fixed. Test `core/staging-auth.spec.ts` "should validate API authentication status" marked `.skip()` with pointer. |
 
+## Dominant defect classes in this suite
+
+Two causes account for nearly every failure found, and both are worth guarding against:
+
+### 1. Substring locator matching (4 separate failures)
+
+Playwright matches accessible names and `hasText` by **substring** by default, and `text=` is a
+substring match too. These pass until real data introduces a second match, then fail as
+strict-mode violations - so they look like flakes:
+
+| Locator | Also matched |
+| ------- | ------------ |
+| `'Generovat'` | `'Generovat znovu'` |
+| `'Celkem faktur'` | the same heading rendered twice by design |
+| `hasText: 'Dnes'` | a marketing action titled `"... MF Dnes ..."` |
+| `text=Verze` | `'Verze 3.142.0'`, `'Aktuální verze'` (4 matches) |
+
+The `Verze` case is the clearest illustration: it passed only when the assertion ran *before* the
+data loaded. Loading successfully is what broke it.
+
+**Audit of remaining exposure** (not fixed - most strings are currently unique, but they are one
+new record away from breaking):
+
+- `locator('text=...')` - 81 occurrences
+- `getByRole(..., { name: '...' })` without `exact: true` - 62 occurrences
+- `filter({ hasText: '...' })` with a string - 90 occurrences
+
+Suggested follow-up: prefer `getByRole(..., { exact: true })` and reserve substring matching for
+cases that genuinely need it.
+
+### 2. Fixed sleeps standing in for real conditions
+
+`waitForTimeout(...)` used as a proxy for "the data has loaded" caused the finance, marketing and
+changelog failures. Where no DOM signal exists (e.g. FullCalendar has no idle event, dnd-kit
+silently drops a keypress landing mid-render), poll the *action* until it takes effect rather than
+guessing a duration - a sleep tuned on an idle machine breaks under full-suite load.
+
 ## Test-quality debt noted (not blocking)
 
 - `core/dashboard.spec.ts` "should support drag and drop to reorder tiles" is **destructive**: it persists a new tile order for the shared staging E2E user via `useSaveDashboardSettings`, so repeated runs keep shuffling that user's dashboard.
