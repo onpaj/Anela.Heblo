@@ -59,7 +59,7 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 | finance | ⬜ | baseline in progress |
 | issued-invoices | ✅ **green** | 29 passed, 0 failed (was 9 failing) |
 | leaflet-generator | ⬜ | baseline in progress |
-| manufacturing | ⬜ | baseline in progress |
+| manufacturing | ✅ **green** | 9 passed, 0 failed |
 | marketing | ⬜ | baseline in progress |
 | stock-operations | ✅ **green** | 57 passed, 0 failed (was 2 failing) |
 | terminal | ⬜ | baseline in progress |
@@ -98,11 +98,11 @@ Filled in from the baseline run.
 | issued-invoices/sorting.spec.ts | ✅ | |
 | issued-invoices/status-badges.spec.ts | ✅ | |
 | leaflet-generator/leaflet-doc-management.spec.ts | ⬜ | |
-| manufacturing/batch-planning-error-handling.spec.ts | ⬜ | |
-| manufacturing/batch-planning-workflow.spec.ts | ⬜ | |
-| manufacturing/order-creation.spec.ts | ⬜ | |
-| manufacturing/order-state-return.spec.ts | ⬜ | |
-| manufacturing/protocol.spec.ts | ⬜ | |
+| manufacturing/batch-planning-error-handling.spec.ts | ✅ | |
+| manufacturing/batch-planning-workflow.spec.ts | ✅ | |
+| manufacturing/order-creation.spec.ts | ✅ | |
+| manufacturing/order-state-return.spec.ts | ✅ | |
+| manufacturing/protocol.spec.ts | ✅ | |
 | marketing/calendar-view.spec.ts | ⬜ | |
 | marketing/create-record.spec.ts | ⬜ | |
 | marketing/grid-view.spec.ts | ⬜ | |

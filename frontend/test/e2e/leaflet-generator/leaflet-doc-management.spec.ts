@@ -30,7 +30,11 @@ test.describe('Leaflet document management', () => {
       page.getByRole('heading', { name: 'Generátor letáků' }),
     ).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByRole('button', { name: 'Generovat' })).toBeVisible();
+    // exact: true - getByRole matches accessible names by substring by default, so a
+    // bare 'Generovat' also matches the 'Generovat znovu' button in LeafletResult.
+    await expect(
+      page.getByRole('button', { name: 'Generovat', exact: true }),
+    ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Dokumenty' })).toBeVisible();
   });
 
