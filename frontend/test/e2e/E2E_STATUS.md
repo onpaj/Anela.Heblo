@@ -56,14 +56,14 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 | catalog | ✅ **green** | 84 passed, 3 skipped, 0 failed (was ~70 failing pre-toaster-fix) |
 | core | ✅ **green** | 72 passed, 8 skipped, 0 failed |
 | baleni | ✅ **green** | 2 passed, 0 failed — tests now pick a balič first (scan input is disabled until then); 3 stale shipment-creation tests removed after #1502 moved orchestration to the backend |
-| finance | 🔴 | **0/3** — all fail "element not found"; subagent investigating blank-render vs stale labels |
+| finance | ✅ **green** | 3 passed, 0 failed (was 0/3). Not a blank render and not stale labels — the page loads fine, it just takes 20-30s on staging, so the 5s assertion default expired first. Fixed with a data-ready gate in `beforeEach`. |
 | issued-invoices | ✅ **green** | 29 passed, 0 failed (was 9 failing) |
 | leaflet-generator | ✅ **green** | 2 passed, 2 skipped (role-gated: marketing_reader), 0 failed |
 | manufacturing | ✅ **green** | 9 passed, 0 failed |
-| marketing | ⬜ | baseline in progress |
+| marketing | ✅ **green** | 36 passed, 0 failed |
 | stock-operations | ✅ **green** | 57 passed, 0 failed (was 2 failing) |
 | terminal | 🔴 | 4 passed, 1 failed — `duplicate code shows the already-assigned message` gets "Chyba připojení" (connection error) instead of the expected message. Queued. |
-| transport | ⬜ | baseline in progress |
+| transport | ✅ **green** | 42 passed, 0 failed (no changes needed) |
 
 ---
 
@@ -73,7 +73,7 @@ Filled in from the baseline run.
 
 | Spec file | Result | Notes |
 | --------- | ------ | ----- |
-| baleni/packing.spec.ts | ⬜ | |
+| baleni/packing.spec.ts | ✅ | |
 | catalog/clear-filters.spec.ts | ✅ | |
 | catalog/combined-filters.spec.ts | ✅ | |
 | catalog/filter-edge-cases.spec.ts | ✅ | |
@@ -91,7 +91,7 @@ Filled in from the baseline run.
 | core/recurring-jobs-management.spec.ts | ✅ | |
 | core/sidebar-navigation.spec.ts | 🔧 | added `toHaveCount(3)` wait — `allTextContents()` does not auto-wait, ran before React rendered |
 | core/staging-auth.spec.ts | 🐛 | `should validate API authentication status` skipped — blocked by backend bug #2 |
-| finance/financial-overview-mobile.spec.ts | ⬜ | |
+| finance/financial-overview-mobile.spec.ts | 🔧 | All 3 were missing a wait for the slow Financial Overview data query; added an auto-waiting data-ready gate in `beforeEach`. Labels/roles were all correct. |
 | issued-invoices/filters.spec.ts | ✅ | |
 | issued-invoices/navigation.spec.ts | 🔧 | scoped ambiguous `Celkem faktur` locator (heading rendered twice by design) |
 | issued-invoices/pagination.spec.ts | ✅ | |
@@ -103,11 +103,11 @@ Filled in from the baseline run.
 | manufacturing/order-creation.spec.ts | ✅ | |
 | manufacturing/order-state-return.spec.ts | ✅ | |
 | manufacturing/protocol.spec.ts | ✅ | |
-| marketing/calendar-view.spec.ts | ⬜ | |
-| marketing/create-record.spec.ts | ⬜ | |
-| marketing/grid-view.spec.ts | ⬜ | |
-| marketing/loading.spec.ts | ⬜ | |
-| marketing/mobile-agenda.spec.ts | ⬜ | |
+| marketing/calendar-view.spec.ts | 🔧 | `Dnes` test: exact-name locator (events titled "MF Dnes" matched the substring filter), wait for datesSet before capturing label, poll the click (gotoDate swallowed mid-render under load) |
+| marketing/create-record.spec.ts | ✅ | |
+| marketing/grid-view.spec.ts | ✅ | |
+| marketing/loading.spec.ts | ✅ | |
+| marketing/mobile-agenda.spec.ts | ✅ | |
 | stock-operations/accept.spec.ts | ✅ | |
 | stock-operations/badges.spec.ts | ✅ | |
 | stock-operations/filters.spec.ts | ✅ | |
@@ -118,10 +118,10 @@ Filled in from the baseline run.
 | stock-operations/source-filter.spec.ts | ✅ | |
 | stock-operations/state-filter.spec.ts | ✅ | |
 | terminal/lot-identification.spec.ts | ⬜ | |
-| transport/box-creation.spec.ts | ⬜ | |
-| transport/box-items.spec.ts | ⬜ | |
-| transport/box-management.spec.ts | ⬜ | |
-| transport/box-receive.spec.ts | ⬜ | |
-| transport/box-workflow.spec.ts | ⬜ | |
-| transport/boxes-basic.spec.ts | ⬜ | |
-| transport/ean-integration.spec.ts | ⬜ | |
+| transport/box-creation.spec.ts | ✅ | |
+| transport/box-items.spec.ts | ✅ | |
+| transport/box-management.spec.ts | ✅ | |
+| transport/box-receive.spec.ts | ✅ | |
+| transport/box-workflow.spec.ts | ✅ | |
+| transport/boxes-basic.spec.ts | ✅ | |
+| transport/ean-integration.spec.ts | ✅ | |
