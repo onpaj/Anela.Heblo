@@ -55,14 +55,14 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 | ------ | ------ | ------ |
 | catalog | ✅ **green** | 84 passed, 3 skipped, 0 failed (was ~70 failing pre-toaster-fix) |
 | core | ✅ **green** | 72 passed, 8 skipped, 0 failed |
-| baleni | ⬜ | baseline in progress |
-| finance | ⬜ | baseline in progress |
+| baleni | 🔴 | **0/5** — 2 blocked by disabled scan input, 3 throw on missing `TestPackingOrders` fixtures; subagent investigating |
+| finance | 🔴 | **0/3** — all fail "element not found"; subagent investigating blank-render vs stale labels |
 | issued-invoices | ✅ **green** | 29 passed, 0 failed (was 9 failing) |
-| leaflet-generator | ⬜ | baseline in progress |
+| leaflet-generator | ✅ **green** | 2 passed, 2 skipped (role-gated: marketing_reader), 0 failed |
 | manufacturing | ✅ **green** | 9 passed, 0 failed |
 | marketing | ⬜ | baseline in progress |
 | stock-operations | ✅ **green** | 57 passed, 0 failed (was 2 failing) |
-| terminal | ⬜ | baseline in progress |
+| terminal | 🔴 | 4 passed, 1 failed — `duplicate code shows the already-assigned message` gets "Chyba připojení" (connection error) instead of the expected message. Queued. |
 | transport | ⬜ | baseline in progress |
 
 ---
@@ -97,7 +97,7 @@ Filled in from the baseline run.
 | issued-invoices/pagination.spec.ts | ✅ | |
 | issued-invoices/sorting.spec.ts | ✅ | |
 | issued-invoices/status-badges.spec.ts | ✅ | |
-| leaflet-generator/leaflet-doc-management.spec.ts | ⬜ | |
+| leaflet-generator/leaflet-doc-management.spec.ts | 🔧 | `Generovat` locator made exact — getByRole name matching is substring by default |
 | manufacturing/batch-planning-error-handling.spec.ts | ✅ | |
 | manufacturing/batch-planning-workflow.spec.ts | ✅ | |
 | manufacturing/order-creation.spec.ts | ✅ | |
